@@ -1,8 +1,5 @@
 import { createContext, useState, type ReactNode } from "react";
-
-interface Auth {
-  token: string;
-}
+import type { Auth } from "../types/auth";
 
 export interface TokenContextType {
   token: string | null;
