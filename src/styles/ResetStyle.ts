@@ -20,13 +20,16 @@ const ResetStyle = createGlobalStyle`
 		font: inherit;
 		vertical-align: baseline;
 	}
-	article, aside, details, figcaption, figure, 
-	footer, header, hgroup, menu, nav, section {
-		display: block;
-        user-select: none;
+
+	html, body {
+		height: 100%;
+    background: #333;
 	}
+
 	body {
 		line-height: 1;
+    position: relative;
+
 		&::-webkit-scrollbar {
 			width: 10px;
 		}
@@ -34,6 +37,17 @@ const ResetStyle = createGlobalStyle`
 			background-color:#1877F2;
 			border-radius: 3px;
 		}
+	}
+
+	#root{
+		height: 100%;
+		overflow-x: hidden;
+	}
+
+	article, aside, details, figcaption, figure, 
+	footer, header, hgroup, menu, nav, section {
+		display: block;
+    user-select: none;
 	}
 	ol, ul {
 		list-style: none;
@@ -50,36 +64,16 @@ const ResetStyle = createGlobalStyle`
 		border-collapse: collapse;
 		border-spacing: 0;
 	}
-    body,html{
-        min-height: 100% !important;
-		height: 100% !important;
-        background: #333;
-    }
-	body.swal2-height-auto {
-		height: 100% !important
-	}
-
-	#root{
-	height: 100%;
-			min-height: 100%;
-	position: relative;
-			--toastify-color-success: #1f1f1f !important;
-	}
-
-	.swal2-image{
-		object-fit: cover;
-	}
 
 	button{
-			cursor: pointer;
-			user-select: none;
+		cursor: pointer;
+		user-select: none;
 	}
 
 	* {
-			font-family: 'Lato';
-			transition: all 200ms;
-			box-sizing: border-box;
+		font-family: 'Lato';
+		transition: color 200ms, background-color 200ms; 
+		box-sizing: border-box;
 	}
 `;
-
 export default ResetStyle;
