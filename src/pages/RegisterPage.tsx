@@ -7,6 +7,7 @@ import ButtonSubmit from "../components/atoms/ButtonSubmit";
 import SignPagesTemplate from "../components/templates/SignPagesTemplate";
 import type { SignUpBody } from "../types/user";
 import { authService } from "../services/authService";
+import useToken from "../hooks/useToken";
 
 function isAnyFieldEmpty({ nick, email, password, confirmPass }: SignUpBody) {
   return email === "" || password === "" || nick === "" || confirmPass === "";
@@ -21,6 +22,7 @@ export default function RegisterPage() {
     password: "",
     confirmPass: "",
   });
+  const { logout } = useToken();
 
   function handleSubmit(e: FormEvent<HTMLFormElement>): void {
     e.preventDefault();
@@ -37,6 +39,7 @@ export default function RegisterPage() {
     authService
       .signUp(form)
       .then(() => {
+        logout();
         navigate("/");
       })
       .catch((err) => {
