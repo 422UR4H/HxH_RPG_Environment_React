@@ -1,0 +1,50 @@
+import StyledCharacterSummary from "../../styles/StyledCharacterSummary";
+import type { CharacterSheetSummary } from "../../types/characterSheet";
+
+interface CharacterSummaryProps {
+  character: CharacterSheetSummary;
+  to: string;
+}
+
+export default function CharacterSheetCard({
+  character,
+  to,
+}: CharacterSummaryProps) {
+  return (
+    <StyledCharacterSummary to={to}>
+      <div className="card-content">
+        <h2>{character.nickName}</h2>
+        <div className="char-info">
+          <p className="full-name">{character.fullName}</p>
+          <p className="char-class">{character.characterClass}</p>
+
+          <div className="status-bars">
+            <div className="status-bar health">
+              <span className="label">Vida:</span>
+              <div className="bar">
+                <div
+                  className="fill"
+                  style={{ width: `${(character.healthCurrPts / 100) * 100}%` }}
+                />
+              </div>
+              <span className="value">{character.healthCurrPts}</span>
+            </div>
+
+            <div className="status-bar stamina">
+              <span className="label">Stamina:</span>
+              <div className="bar">
+                <div
+                  className="fill"
+                  style={{
+                    width: `${(character.staminaCurrPts / 100) * 100}%`,
+                  }}
+                />
+              </div>
+              <span className="value">{character.staminaCurrPts}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </StyledCharacterSummary>
+  );
+}
