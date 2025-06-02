@@ -63,7 +63,7 @@ const StyledCharacterSummary = styled(Link)`
   .status-bar {
     display: flex;
     align-items: center;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
 
     .label {
       width: 70px;
@@ -72,7 +72,7 @@ const StyledCharacterSummary = styled(Link)`
 
     .bar {
       flex-grow: 1;
-      height: 10px;
+      height: 14px;
       background-color: #444;
       border-radius: 5px;
       overflow: hidden;
@@ -85,8 +85,8 @@ const StyledCharacterSummary = styled(Link)`
     }
 
     .value {
-      width: 30px;
-      text-align: right;
+      width: 70px;
+      text-align: left;
       font-size: 14px;
     }
   }
@@ -102,7 +102,6 @@ const StyledCharacterSummary = styled(Link)`
   @media (orientation: landscape) {
     width: 80vw;
     border-radius: 16px;
-    /* border: 2px solid #444; */
     &:hover {
       h2 {
         color: rgb(255, 162, 22);

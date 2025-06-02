@@ -21,26 +21,45 @@ export default function CharacterSheetCard({
           <div className="status-bars">
             <div className="status-bar health">
               <span className="label">Vida:</span>
-              <div className="bar">
+              <div
+                className="bar"
+                style={{ width: `${character.health.max}px`, maxWidth: "100%" }}
+              >
                 <div
                   className="fill"
-                  style={{ width: `${(character.healthCurrPts / 100) * 100}%` }}
+                  style={{
+                    width: `${
+                      (character.health.curr / character.health.max) * 100
+                    }%`,
+                  }}
                 />
               </div>
-              <span className="value">{character.healthCurrPts}</span>
+              <span className="value">
+                {character.health.curr} / {character.health.max}
+              </span>
             </div>
 
             <div className="status-bar stamina">
               <span className="label">Stamina:</span>
-              <div className="bar">
+              <div
+                className="bar"
+                style={{
+                  width: `${character.stamina.max}px`,
+                  maxWidth: "100%",
+                }}
+              >
                 <div
                   className="fill"
                   style={{
-                    width: `${(character.staminaCurrPts / 100) * 100}%`,
+                    width: `${
+                      (character.stamina.curr / character.stamina.max) * 100
+                    }%`,
                   }}
                 />
               </div>
-              <span className="value">{character.staminaCurrPts}</span>
+              <span className="value">
+                {character.stamina.curr} / {character.stamina.max}
+              </span>
             </div>
           </div>
         </div>

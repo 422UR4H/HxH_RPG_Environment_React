@@ -10,7 +10,6 @@ function CharacterSheetsPage() {
   const { token } = useToken();
   const navigate = useNavigate();
   const [charSheets, setCharSheets] = useState<CharacterSheetSummary[]>([]);
-  // const [charSheets, setCharSheets] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -73,11 +72,14 @@ const StyledCharacterSheetsPage = styled.div`
 
   /* TODO: remove */
   h1 {
+    color: white;
     text-align: center;
+    font-weight: 600;
+    font-size: 24px;
+    margin-top: 20px;
   }
 
   @media (orientation: landscape) {
-    /* justify-content: center; */
     align-items: center;
   }
 `;
