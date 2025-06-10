@@ -3,6 +3,7 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import HomePage from "./pages/HomePage";
 import CharacterSheetsPage from "./pages/CharacterSheetsPage";
+import CharacterSheetsDetailPage from "./pages/CharacterSheetsDetailPage";
 import CampaignsPage from "./pages/CampaignsPage";
 
 function App() {
@@ -13,7 +14,8 @@ function App() {
         <Route path="/sign-up" element={<RegisterPage />} />
 
         <Route path="/home" element={<HomePage />} />
-        <Route path="/character-sheets" element={<CharacterSheetsPage />} />
+        <Route path="/charactersheets" element={<CharacterSheetsPage />} />
+        <Route path="/charactersheets/:id" element={<CharacterSheetsDetailPage />} />
         <Route path="/campaigns" element={<CampaignsPage />} />
       </Routes>
     </BrowserRouter>

@@ -27,7 +27,7 @@ function CharacterSheetsPage() {
         console.log("Character Sheets:", data);
 
         if (data.length === 0) {
-          navigate("/create-charactersheet");
+          navigate("/charactersheets");
           return;
         }
         setCharSheets(data);
@@ -57,7 +57,7 @@ function CharacterSheetsPage() {
         <CharacterSheetCard
           key={sheet.uuid}
           character={sheet}
-          to={`/characters/${sheet.uuid}`}
+          to={`/charactersheets/${sheet.uuid}`}
         />
       ))}
     </StyledCharacterSheetsPage>

@@ -1,5 +1,6 @@
 import { httpClient } from "./httpClient";
 import type {
+  CharacterSheet,
   CharacterSheetResponse,
   CharacterSheetSummary,
 } from "../types/characterSheet";
@@ -20,6 +21,16 @@ export const characterSheetsService = {
         return {
           ...response,
           data: sheetsInCamelCase,
+        };
+      }),
+
+  getCharacterSheetDetails: (token: string, id: string) =>
+    httpClient
+      .get<CharacterSheet>(`/charactersheets/${id}`, config(token))
+      .then((response) => {
+        return {
+          ...response,
+          data: objToCamelCase<CharacterSheet>(response.data),
         };
       }),
 };

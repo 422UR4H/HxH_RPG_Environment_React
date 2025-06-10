@@ -4,7 +4,7 @@ import CardButtonNavigation from "../components/atoms/CardButtonNavigation";
 function HomePage() {
   return (
     <StyledHomePage>
-      <CardButtonNavigation to="/character-sheets">
+      <CardButtonNavigation to="/charactersheets">
         Personagens
       </CardButtonNavigation>
       <CardButtonNavigation to="/campaigns">Campanhas</CardButtonNavigation>
