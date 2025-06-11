@@ -85,17 +85,19 @@ function CharacterSheetsDetailPage() {
         <CharacterName>{profile.nickname}</CharacterName>
         <CharacterMeta>
           <MetaItem>
-            <Label>Nome Completo:</Label> {profile.fullname}
+            <Label>Nome:</Label> {profile.fullname}
           </MetaItem>
           <MetaItem>
             <Label>Classe:</Label> {characterClass}
           </MetaItem>
           <MetaItem>
-            <Label>Categoria:</Label> {categoryName}
-          </MetaItem>
-          <MetaItem>
             <Label>Alinhamento:</Label> {profile.alignment}
           </MetaItem>
+          {categoryName && (
+            <MetaItem>
+              <Label>Categoria:</Label> {categoryName}
+            </MetaItem>
+          )}
         </CharacterMeta>
         <CharacterDescription>{profile.briefDescription}</CharacterDescription>
       </HeaderSection>
@@ -108,13 +110,15 @@ function CharacterSheetsDetailPage() {
             <BarContainer>
               <BarFill
                 style={{
-                  width: `${(status.Health.curr / status.Health.max) * 100}%`,
+                  width: `${
+                    (status.health.current / status.health.max) * 100
+                  }%`,
                   backgroundColor: "#e74c3c",
                 }}
               />
             </BarContainer>
             <StatusValue>
-              {status.Health.curr} / {status.Health.max}
+              {status.health.current} / {status.health.max}
             </StatusValue>
           </StatusBar>
 
@@ -123,13 +127,15 @@ function CharacterSheetsDetailPage() {
             <BarContainer>
               <BarFill
                 style={{
-                  width: `${(status.Stamina.curr / status.Stamina.max) * 100}%`,
+                  width: `${
+                    (status.stamina.current / status.stamina.max) * 100
+                  }%`,
                   backgroundColor: "#2ecc71",
                 }}
               />
             </BarContainer>
             <StatusValue>
-              {status.Stamina.curr} / {status.Stamina.max}
+              {status.stamina.current} / {status.stamina.max}
             </StatusValue>
           </StatusBar>
         </StatusBarsContainer>
@@ -207,29 +213,192 @@ function CharacterSheetsDetailPage() {
 
           {/* Seção de Perícias Físicas - Agrupadas por atributo */}
           <SkillsGroup>
-            <GroupTitle>Físicas</GroupTitle>
-            <SkillsList>
-              {Object.entries(physicalSkills).map(([name, skill]) => (
-                <SkillItem key={name}>
-                  <SkillName>{name}</SkillName>
-                  <SkillValue>{skill.valueForTest}</SkillValue>
-                  <SkillMeta>Nível: {skill.level}</SkillMeta>
-                </SkillItem>
-              ))}
-            </SkillsList>
+            <GroupTitle>Perícias Físicas</GroupTitle>
+
+            {/* Resistance */}
+            <AttributeSkillGroup>
+              <AttributeTitle>Resistance</AttributeTitle>
+              <SkillsSubList>
+                {["Defense", "Energy", "Vitality"].map(
+                  (skillName) =>
+                    physicalSkills[skillName] && (
+                      <SkillItem key={skillName}>
+                        <SkillName>{skillName}</SkillName>
+                        <SkillValue>
+                          {physicalSkills[skillName].valueForTest}
+                        </SkillValue>
+                        <SkillMeta>
+                          Nível: {physicalSkills[skillName].level}
+                        </SkillMeta>
+                      </SkillItem>
+                    )
+                )}
+              </SkillsSubList>
+            </AttributeSkillGroup>
+
+            {/* Strength */}
+            <AttributeSkillGroup>
+              <AttributeTitle>Strength</AttributeTitle>
+              <SkillsSubList>
+                {["CarryCapacity", "Grab", "Push"].map(
+                  (skillName) =>
+                    physicalSkills[skillName] && (
+                      <SkillItem key={skillName}>
+                        <SkillName>{skillName}</SkillName>
+                        <SkillValue>
+                          {physicalSkills[skillName].valueForTest}
+                        </SkillValue>
+                        <SkillMeta>
+                          Nível: {physicalSkills[skillName].level}
+                        </SkillMeta>
+                      </SkillItem>
+                    )
+                )}
+              </SkillsSubList>
+            </AttributeSkillGroup>
+
+            {/* Agility */}
+            <AttributeSkillGroup>
+              <AttributeTitle>Agility</AttributeTitle>
+              <SkillsSubList>
+                {["Accelerate", "Brake", "Velocity"].map(
+                  (skillName) =>
+                    physicalSkills[skillName] && (
+                      <SkillItem key={skillName}>
+                        <SkillName>{skillName}</SkillName>
+                        <SkillValue>
+                          {physicalSkills[skillName].valueForTest}
+                        </SkillValue>
+                        <SkillMeta>
+                          Nível: {physicalSkills[skillName].level}
+                        </SkillMeta>
+                      </SkillItem>
+                    )
+                )}
+              </SkillsSubList>
+            </AttributeSkillGroup>
+
+            {/* Action Speed */}
+            <AttributeSkillGroup>
+              <AttributeTitle>Action Speed</AttributeTitle>
+              <SkillsSubList>
+                {["AttackSpeed", "Feint", "Repel"].map(
+                  (skillName) =>
+                    physicalSkills[skillName] && (
+                      <SkillItem key={skillName}>
+                        <SkillName>{skillName}</SkillName>
+                        <SkillValue>
+                          {physicalSkills[skillName].valueForTest}
+                        </SkillValue>
+                        <SkillMeta>
+                          Nível: {physicalSkills[skillName].level}
+                        </SkillMeta>
+                      </SkillItem>
+                    )
+                )}
+              </SkillsSubList>
+            </AttributeSkillGroup>
+
+            {/* Flexibility */}
+            <AttributeSkillGroup>
+              <AttributeTitle>Flexibility</AttributeTitle>
+              <SkillsSubList>
+                {["Acrobatics", "Evasion", "Sneak"].map(
+                  (skillName) =>
+                    physicalSkills[skillName] && (
+                      <SkillItem key={skillName}>
+                        <SkillName>{skillName}</SkillName>
+                        <SkillValue>
+                          {physicalSkills[skillName].valueForTest}
+                        </SkillValue>
+                        <SkillMeta>
+                          Nível: {physicalSkills[skillName].level}
+                        </SkillMeta>
+                      </SkillItem>
+                    )
+                )}
+              </SkillsSubList>
+            </AttributeSkillGroup>
+
+            {/* Dexterity */}
+            <AttributeSkillGroup>
+              <AttributeTitle>Dexterity</AttributeTitle>
+              <SkillsSubList>
+                {["Accuracy", "Reflex", "Stealth"].map(
+                  (skillName) =>
+                    physicalSkills[skillName] && (
+                      <SkillItem key={skillName}>
+                        <SkillName>{skillName}</SkillName>
+                        <SkillValue>
+                          {physicalSkills[skillName].valueForTest}
+                        </SkillValue>
+                        <SkillMeta>
+                          Nível: {physicalSkills[skillName].level}
+                        </SkillMeta>
+                      </SkillItem>
+                    )
+                )}
+              </SkillsSubList>
+            </AttributeSkillGroup>
+
+            {/* Sense */}
+            <AttributeSkillGroup>
+              <AttributeTitle>Sense</AttributeTitle>
+              <SkillsSubList>
+                {["Hearing", "Smell", "Tact", "Taste", "Vision"].map(
+                  (skillName) =>
+                    physicalSkills[skillName] && (
+                      <SkillItem key={skillName}>
+                        <SkillName>{skillName}</SkillName>
+                        <SkillValue>
+                          {physicalSkills[skillName].valueForTest}
+                        </SkillValue>
+                        <SkillMeta>
+                          Nível: {physicalSkills[skillName].level}
+                        </SkillMeta>
+                      </SkillItem>
+                    )
+                )}
+              </SkillsSubList>
+            </AttributeSkillGroup>
+
+            {/* Constitution */}
+            <AttributeSkillGroup>
+              <AttributeTitle>Constitution</AttributeTitle>
+              <SkillsSubList>
+                {["Breath", "Heal", "Tenacity"].map(
+                  (skillName) =>
+                    physicalSkills[skillName] && (
+                      <SkillItem key={skillName}>
+                        <SkillName>{skillName}</SkillName>
+                        <SkillValue>
+                          {physicalSkills[skillName].valueForTest}
+                        </SkillValue>
+                        <SkillMeta>
+                          Nível: {physicalSkills[skillName].level}
+                        </SkillMeta>
+                      </SkillItem>
+                    )
+                )}
+              </SkillsSubList>
+            </AttributeSkillGroup>
           </SkillsGroup>
 
+          {/* Perícias Espirituais */}
           <SkillsGroup>
-            <GroupTitle>Espirituais</GroupTitle>
-            <SkillsList>
-              {Object.entries(spiritualSkills).map(([name, skill]) => (
-                <SkillItem key={name}>
-                  <SkillName>{name}</SkillName>
-                  <SkillValue>{skill.valueForTest}</SkillValue>
-                  <SkillMeta>Nível: {skill.level}</SkillMeta>
-                </SkillItem>
-              ))}
-            </SkillsList>
+            <GroupTitle>Perícias Espirituais</GroupTitle>
+            <AttributeSkillGroup>
+              <AttributeTitle>Spirit</AttributeTitle>
+              <SkillsSubList>
+                {Object.entries(spiritualSkills).map(([name, skill]) => (
+                  <SkillItem key={name}>
+                    <SkillName>{name}</SkillName>
+                    <SkillValue>{skill.valueForTest}</SkillValue>
+                    <SkillMeta>Nível: {skill.level}</SkillMeta>
+                  </SkillItem>
+                ))}
+              </SkillsSubList>
+            </AttributeSkillGroup>
           </SkillsGroup>
         </SkillsSection>
       </GridSection>
@@ -306,8 +475,8 @@ const SheetContainer = styled.div`
 const BackButton = styled.button`
   background: none;
   border: none;
-  color: #1877f2;
-  font-size: 16px;
+  color: white;
+  font-size: 20px;
   cursor: pointer;
   padding: 5px 10px;
   margin-bottom: 20px;
@@ -325,7 +494,7 @@ const HeaderSection = styled.div`
 
 const CharacterName = styled.h1`
   font-family: "Oswald", sans-serif;
-  font-size: 42px;
+  font-size: 68px;
   color: #ffa216;
   margin-bottom: 10px;
 `;
@@ -338,7 +507,7 @@ const CharacterMeta = styled.div`
 `;
 
 const MetaItem = styled.div`
-  font-size: 16px;
+  font-size: 26px;
 `;
 
 const Label = styled.span`
@@ -347,7 +516,7 @@ const Label = styled.span`
 `;
 
 const CharacterDescription = styled.p`
-  font-size: 16px;
+  font-size: 22px;
   line-height: 1.5;
   color: #e0e0e0;
 `;
@@ -367,13 +536,14 @@ const StatusBarsContainer = styled.div`
 `;
 
 const StatusBar = styled.div`
+  font-size: 24px;
   display: flex;
   align-items: center;
   gap: 10px;
 `;
 
 const StatusLabel = styled.span`
-  width: 80px;
+  width: 90px;
   font-weight: bold;
 `;
 
@@ -391,7 +561,7 @@ const BarFill = styled.div`
 `;
 
 const StatusValue = styled.span`
-  width: 80px;
+  width: 100px;
   text-align: right;
 `;
 
@@ -400,6 +570,7 @@ const ExperienceSection = styled.div`
 `;
 
 const ExperienceBar = styled.div`
+  font-size: 24px;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -407,7 +578,7 @@ const ExperienceBar = styled.div`
 `;
 
 const ExpLabel = styled.span`
-  width: 80px;
+  width: 90px;
   font-weight: bold;
 `;
 
@@ -426,7 +597,7 @@ const ExpBarFill = styled.div`
 `;
 
 const ExpValue = styled.span`
-  width: 100px;
+  width: 120px;
   text-align: right;
 `;
 
@@ -438,7 +609,7 @@ const ExpTotal = styled.div`
 
 const SectionTitle = styled.h2`
   font-family: "Oswald", sans-serif;
-  font-size: 24px;
+  font-size: 30px;
   color: #ffa216;
   margin-bottom: 15px;
   border-bottom: 1px solid #444;
@@ -456,9 +627,9 @@ const AttributeTitle = styled.div`
   background-color: #444;
   padding: 8px 12px;
   font-weight: bold;
-  color: #1877f2;
+  color: #b1b1b1;
   font-family: "Oswald", sans-serif;
-  font-size: 16px;
+  font-size: 24px;
   border-bottom: 1px solid #555;
 `;
 
@@ -488,15 +659,17 @@ const AttributeGroup = styled.div`
 `;
 
 const GroupTitle = styled.h3`
+  font-size: 26px;
   font-family: "Oswald", sans-serif;
-  font-size: 18px;
+  font-size: 26px;
   color: #e0e0e0;
   margin-bottom: 10px;
 `;
 
 const AttributesList = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  /* grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); */
+  grid-template-columns: repeat(2, 1fr);
   gap: 10px;
 `;
 
@@ -509,19 +682,20 @@ const AttributeItem = styled.div`
 `;
 
 const AttributeName = styled.div`
+  font-size: 24px;
   font-weight: bold;
   margin-bottom: 5px;
 `;
 
 const AttributeValue = styled.div`
-  font-size: 24px;
+  font-size: 38px;
   font-weight: bold;
   color: #ffa216;
   margin-bottom: 5px;
 `;
 
 const AttributeMeta = styled.div`
-  font-size: 12px;
+  font-size: 22px;
   color: #9f9f9f;
 `;
 
@@ -535,12 +709,6 @@ const SkillsGroup = styled.div`
   margin-bottom: 20px;
 `;
 
-const SkillsList = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 10px;
-`;
-
 const SkillItem = styled.div`
   background-color: #444;
   border-radius: 6px;
@@ -550,19 +718,20 @@ const SkillItem = styled.div`
 `;
 
 const SkillName = styled.div`
+  font-size: 20px;
   font-weight: bold;
   margin-bottom: 5px;
 `;
 
 const SkillValue = styled.div`
-  font-size: 24px;
+  font-size: 38px;
   font-weight: bold;
   color: #ffa216;
   margin-bottom: 5px;
 `;
 
 const SkillMeta = styled.div`
-  font-size: 12px;
+  font-size: 22px;
   color: #9f9f9f;
 `;
 
@@ -587,7 +756,7 @@ const AbilityItem = styled.div`
 
 const AbilityName = styled.div`
   font-weight: bold;
-  font-size: 18px;
+  font-size: 26px;
   margin-bottom: 10px;
 `;
 
@@ -597,10 +766,12 @@ const AbilityMeta = styled.div`
 `;
 
 const AbilityLevel = styled.div`
+  font-size: 22px;
   color: #e0e0e0;
 `;
 
 const AbilityBonus = styled.div`
+  font-size: 22px;
   color: #2ecc71;
 `;
 
@@ -613,11 +784,12 @@ const ProficienciesSection = styled.section`
 
 const ProficienciesList = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(200px, 300px));
   gap: 15px;
 `;
 
 const ProficiencyItem = styled.div`
+  font-size: 24px;
   background-color: #444;
   border-radius: 6px;
   padding: 15px;
@@ -631,6 +803,7 @@ const ProficiencyName = styled.div`
 `;
 
 const ProficiencyLevel = styled.div`
+  font-size: 20px;
   color: #ffa216;
   font-weight: bold;
 `;
@@ -663,19 +836,20 @@ const PrincipleItem = styled.div`
 `;
 
 const PrincipleName = styled.div`
+  font-size: 20px;
   font-weight: bold;
   margin-bottom: 5px;
 `;
 
 const PrincipleValue = styled.div`
-  font-size: 24px;
+  font-size: 34px;
   font-weight: bold;
   color: #ffa216;
   margin-bottom: 5px;
 `;
 
 const PrincipleMeta = styled.div`
-  font-size: 12px;
+  font-size: 18px;
   color: #9f9f9f;
 `;
 
@@ -700,19 +874,20 @@ const CategoryItem = styled.div`
 `;
 
 const CategoryName = styled.div`
+  font-size: 20px;
   font-weight: bold;
   margin-bottom: 5px;
 `;
 
 const CategoryValue = styled.div`
-  font-size: 24px;
+  font-size: 34px;
   font-weight: bold;
   color: #ffa216;
   margin-bottom: 5px;
 `;
 
 const CategoryMeta = styled.div`
-  font-size: 12px;
+  font-size: 18px;
   color: #9f9f9f;
 `;
 

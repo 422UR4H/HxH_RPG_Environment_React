@@ -30,7 +30,7 @@ export interface CharacterSheetResponse {
 
 export interface StatusBar {
   min: number;
-  curr: number;
+  current: number;
   max: number;
 }
 
@@ -60,8 +60,8 @@ export interface CharacterSheet {
       birthday: string;
     };
     status: {
-      Health: StatusBar;
-      Stamina: StatusBar;
+      health: StatusBar;
+      stamina: StatusBar;
     };
     characterExp: {
       level: number;
@@ -77,10 +77,10 @@ export interface CharacterSheet {
       nextLvlBaseExp: number;
     };
     abilities: {
-      Mentals: Ability;
-      Physicals: Ability;
-      Skills: Ability;
-      Spirituals: Ability;
+      mentals: Ability;
+      physicals: Ability;
+      skills: Ability;
+      spirituals: Ability;
     };
     physicalAttributes: Record<string, Attribute>;
     mentalAttributes: Record<string, Attribute>;
