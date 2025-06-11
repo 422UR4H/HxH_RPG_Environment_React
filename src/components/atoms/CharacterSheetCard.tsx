@@ -29,13 +29,13 @@ export default function CharacterSheetCard({
                   className="fill"
                   style={{
                     width: `${
-                      (character.health.curr / character.health.max) * 100
+                      (character.health.current / character.health.max) * 100
                     }%`,
                   }}
                 />
               </div>
               <span className="value">
-                {character.health.curr} / {character.health.max}
+                {character.health.current} / {character.health.max}
               </span>
             </div>
 
@@ -52,13 +52,13 @@ export default function CharacterSheetCard({
                   className="fill"
                   style={{
                     width: `${
-                      (character.stamina.curr / character.stamina.max) * 100
+                      (character.stamina.current / character.stamina.max) * 100
                     }%`,
                   }}
                 />
               </div>
               <span className="value">
-                {character.stamina.curr} / {character.stamina.max}
+                {character.stamina.current} / {character.stamina.max}
               </span>
             </div>
           </div>
