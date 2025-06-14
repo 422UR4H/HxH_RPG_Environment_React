@@ -2,12 +2,12 @@ import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import useForm from "../hooks/useForm";
 import Form from "../components/atoms/Form";
-import Input from "../styles/Input";
 import ButtonSubmit from "../components/atoms/ButtonSubmit";
 import SignPagesTemplate from "../components/templates/SignPagesTemplate";
 import type { SignUpBody } from "../types/user";
 import { authService } from "../services/authService";
 import useToken from "../hooks/useToken";
+import BaseInput from "../components/ions/BaseInput";
 
 function isAnyFieldEmpty({ nick, email, password, confirmPass }: SignUpBody) {
   return email === "" || password === "" || nick === "" || confirmPass === "";
@@ -52,7 +52,7 @@ export default function RegisterPage() {
   return (
     <SignPagesTemplate margin="274px">
       <Form onSubmit={handleSubmit}>
-        <Input
+        <BaseInput
           name="email"
           type="email"
           placeholder="e-mail"
@@ -62,7 +62,7 @@ export default function RegisterPage() {
           maxLength={64}
           required
         />
-        <Input
+        <BaseInput
           name="nick"
           type="text"
           placeholder="nick"
@@ -72,7 +72,7 @@ export default function RegisterPage() {
           maxLength={20}
           required
         />
-        <Input
+        <BaseInput
           name="password"
           type="password"
           placeholder="password"
@@ -82,7 +82,7 @@ export default function RegisterPage() {
           maxLength={32}
           required
         />
-        <Input
+        <BaseInput
           name="confirmPass"
           type="password"
           placeholder="confirm password"

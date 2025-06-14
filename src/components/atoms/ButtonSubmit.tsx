@@ -1,6 +1,6 @@
 // import { ThreeDots } from "react-loader-spinner"; // provisionally replaced by:
 import { styled, keyframes } from "styled-components";
-import Button from "../../styles/Button";
+import BaseButton from "../ions/BaseButton";
 
 interface ButtonSubmitProps {
   disabled?: boolean;
@@ -12,9 +12,9 @@ export default function ButtonSubmit({
   children,
 }: ButtonSubmitProps) {
   return (
-    <Button type="submit" disabled={disabled}>
+    <BaseButton type="submit" disabled={disabled}>
       {disabled ? <LoadingDots /> : children}
-    </Button>
+    </BaseButton>
     // TODO: resolve or replace react-loader-spinner extension
     // <ThreeDots
     //     height="35"

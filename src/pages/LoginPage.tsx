@@ -1,7 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import SignPagesTemplate from "../components/templates/SignPagesTemplate";
 import Form from "../components/atoms/Form";
-import Input from "../styles/Input";
 import useForm from "../hooks/useForm";
 import ButtonSubmit from "../components/atoms/ButtonSubmit";
 import useToken from "../hooks/useToken";
@@ -9,6 +8,7 @@ import { Link, useNavigate } from "react-router-dom";
 import useUser from "../hooks/useUser";
 import type { User } from "../types/user";
 import { authService } from "../services/authService";
+import BaseInput from "../components/ions/BaseInput";
 
 interface LoginForm {
   email: string;
@@ -60,7 +60,7 @@ export default function LoginPage() {
   return (
     <SignPagesTemplate margin="317px">
       <Form onSubmit={handleSubmit}>
-        <Input
+        <BaseInput
           name="email"
           type="email"
           placeholder="e-mail"
@@ -69,7 +69,7 @@ export default function LoginPage() {
           maxLength={64}
           required
         />
-        <Input
+        <BaseInput
           name="password"
           type="password"
           placeholder="password"

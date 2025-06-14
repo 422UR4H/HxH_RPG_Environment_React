@@ -1,6 +1,17 @@
-import { styled } from "styled-components";
+import styled from "styled-components";
 
-const Button = styled.button`
+interface BaseButtonProps {
+  disabled?: boolean;
+  children: React.ReactNode;
+  type?: "button" | "submit" | "reset";
+  onClick?: () => void;
+}
+
+export default function BaseButton({ children, ...props }: BaseButtonProps) {
+  return <StyledButton {...props}>{children}</StyledButton>;
+}
+
+const StyledButton = styled.button`
   font-family: "Oswald", "sans-serif";
   font-size: 27px;
   font-weight: 700;
@@ -33,4 +44,3 @@ const Button = styled.button`
     height: 55px;
   }
 `;
-export default Button;
