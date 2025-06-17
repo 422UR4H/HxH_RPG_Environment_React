@@ -531,7 +531,7 @@ const StatusSection = styled.section`
 const StatusBarsContainer = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 5px;
   margin-top: 15px;
 `;
 
@@ -551,7 +551,7 @@ const BarContainer = styled.div`
   flex-grow: 1;
   height: 20px;
   background-color: #444;
-  border-radius: 10px;
+  border-radius: 7px;
   overflow: hidden;
 `;
 
@@ -586,7 +586,7 @@ const ExpBarContainer = styled.div`
   flex-grow: 1;
   height: 20px;
   background-color: #444;
-  border-radius: 10px;
+  border-radius: 7px;
   overflow: hidden;
 `;
 
