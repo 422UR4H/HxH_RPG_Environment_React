@@ -2,20 +2,29 @@ import { httpClient } from "./httpClient";
 import type { CampaignMaster, CampaignPlayer } from "../types/campaign";
 import { objToCamelCase } from "../utils/caseConverter";
 import config from "./config";
+import type { CampaignsResponse } from "../types/campaigns";
 
-export const campaignsService = {
+export const campaignService = {
+  getCampaignDetails: (token: string, id: string) =>
+    httpClient
+      .get<CampaignMaster>(`/campaigns/${id}`, config(token))
+      .then((response) => {
+        const campaignData = response.data.campaign || {};
+
+        return {
+          ...response,
+          data: objToCamelCase<CampaignMaster>(campaignData),
+        };
+      }),
+
   listCampaigns: (token: string) =>
     httpClient
       .get<CampaignsResponse>("/campaigns", config(token))
       .then((response) => {
         const data = objToCamelCase<CampaignsResponse>(response.data);
-        const campaigns = data.campaigns || [];
-
         return {
           ...response,
-          data: campaigns.map((campaign) =>
-            objToCamelCase<CampaignSummary>(campaign)
-          ),
+          data: data.campaigns || [],
         };
       }),
 };

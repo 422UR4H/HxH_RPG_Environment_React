@@ -4,7 +4,8 @@ import RegisterPage from "./pages/RegisterPage";
 import HomePage from "./pages/HomePage";
 import CharacterSheetsPage from "./pages/CharacterSheetsPage";
 import CharacterSheetsDetailPage from "./pages/CharacterSheetsDetailPage";
-import CampaignsListPage from "./pages/CampaignsListPage";
+import CampaignsPage from "./pages/CampaignsPage";
+import CampaignPage from "./pages/CampaignPage";
 
 function App() {
   return (
@@ -15,9 +16,12 @@ function App() {
 
         <Route path="/home" element={<HomePage />} />
         <Route path="/charactersheets" element={<CharacterSheetsPage />} />
-        <Route path="/charactersheets/:id" element={<CharacterSheetsDetailPage />} />
-        {/* TODO: fix name */}
-        <Route path="/campaigns" element={<CampaignsListPage />} /> 
+        <Route
+          path="/charactersheets/:id"
+          element={<CharacterSheetsDetailPage />}
+        />
+        <Route path="/campaigns" element={<CampaignsPage />} />
+        <Route path="/campaigns/:id" element={<CampaignPage />} />
       </Routes>
     </BrowserRouter>
   );

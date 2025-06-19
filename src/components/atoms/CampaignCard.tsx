@@ -1,6 +1,6 @@
 import styled from "styled-components";
 import { Link } from "react-router-dom";
-import type { CampaignSummary } from "../../types/campaigns"; // TODO: fix
+import type { CampaignSummary } from "../../types/campaigns";
 
 interface CampaignCardProps {
   campaign: CampaignSummary;
@@ -18,19 +18,6 @@ export default function CampaignCard({ campaign, to }: CampaignCardProps) {
           <Description>
             {campaign.briefInitialDescription || "Sem descrição"}
           </Description>
-
-          {campaign.callLink && (
-            <Description>
-              <Link
-                to={campaign.callLink}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {campaign.callLink}
-              </Link>
-            </Description>
-          )}
-
           <MetaInfo>
             <DateInfo>Início: {startDate}</DateInfo>
             <PublicStatus $isPublic={campaign.isPublic}>
