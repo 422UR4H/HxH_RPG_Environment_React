@@ -7,7 +7,7 @@ import type { CampaignsResponse } from "../types/campaigns";
 export const campaignService = {
   getCampaignDetails: (token: string, id: string) =>
     httpClient
-      .get<CampaignMaster>(`/campaigns/${id}`, config(token))
+      .get<{ campaign: CampaignMaster }>(`/campaigns/${id}`, config(token))
       .then((response) => {
         const campaignData = response.data.campaign || {};
 
