@@ -26,10 +26,6 @@ function CharacterSheetsDetailPage() {
         // TODO: remove console
         console.log("Character Sheet Details:", data);
 
-        // if (data.length === 0) {
-        //   navigate("/create-charactersheet");
-        //   return;
-        // }
         setCharSheet(data);
         setError(null);
       })

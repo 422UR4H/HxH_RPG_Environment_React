@@ -23,6 +23,7 @@ function CampaignsPage() {
     campaignService
       .listCampaigns(token)
       .then(({ data }: { data: CampaignSummary[] }) => {
+        // TODO: remove this
         console.log("Campaigns:", data);
 
         setCampaigns(data);

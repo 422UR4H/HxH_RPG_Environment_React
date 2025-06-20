@@ -36,6 +36,7 @@ export default function CampaignPage() {
     campaignService
       .getCampaignDetails(token, id)
       .then(({ data }) => {
+        // TODO: remove console
         console.log("Campaign Details:", data);
         setCampaign(data);
         setError(null);
@@ -51,7 +52,6 @@ export default function CampaignPage() {
 
   const getSortedCharacters = () => {
     if (!campaign) return [];
-    console.log(campaign);
 
     const allCharacters = [
       ...(isMaster
@@ -139,6 +139,7 @@ export default function CampaignPage() {
           <CampaignDate>
             Data Atual:{" "}
             {(() => {
+              if (!campaign.storyCurrentAt) return "Data não disponível";
               const [date, _] = campaign.storyCurrentAt.split("T");
               const [year, month, day] = date.split("-");
               return `${day}/${month}/${year}`;

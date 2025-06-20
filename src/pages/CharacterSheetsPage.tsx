@@ -23,13 +23,14 @@ function CharacterSheetsPage() {
     characterSheetsService
       .listCharacterSheets(token)
       .then(({ data }: { data: CharacterSheetSummary[] }) => {
+        // TODO: add create character sheet page and:
         // TODO: remove console
         console.log("Character Sheets:", data);
-
-        if (data.length === 0) {
-          navigate("/charactersheets");
-          return;
-        }
+        // TODO: uncomment this
+        // if (data.length === 0) {
+        //   navigate("/charactersheets/new");
+        //   return;
+        // }
         setCharSheets(data);
         setError(null);
       })
