@@ -78,7 +78,6 @@ const StyledCampaignsPage = styled.div`
   display: flex;
   flex-direction: column;
   gap: 30px;
-  padding: 20px;
 
   @media (orientation: landscape) {
     align-items: center;
