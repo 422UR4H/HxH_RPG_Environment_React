@@ -22,7 +22,8 @@ const ResetStyle = createGlobalStyle`
 	}
 
 	html, body {
-		height: 100%;
+		height: 100dvh;
+		height: 100vh;
     background: #333;
 	}
 

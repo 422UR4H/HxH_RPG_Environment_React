@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import useToken from "../hooks/useToken";
 import useUser from "../hooks/useUser";
@@ -9,14 +9,17 @@ import type {
 } from "../types/campaign";
 import styled from "styled-components";
 import CharacterSidebarItem from "../features/campaign/CharacterSidebarItem";
-import FloatingActionButton from "../features/campaign/FloatingActionButton";
 import MatchItem from "../features/campaign/MatchItem";
+import AdaptiveActionButton from "../features/campaign/AdaptativeActionButton";
 
 export default function CampaignPage() {
   const { id } = useParams<{ id: string }>();
   const { token } = useToken();
   const { user } = useUser();
   const navigate = useNavigate();
+
+  const sidebarRef = useRef<HTMLDivElement>(null);
+  const mainContentRef = useRef<HTMLDivElement>(null);
 
   const [campaign, setCampaign] = useState<CampaignMaster | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -111,7 +114,7 @@ export default function CampaignPage() {
 
   return (
     <CampaignContainer>
-      <SidebarContainer>
+      <SidebarContainer ref={sidebarRef}>
         <SidebarTitle>Personagens</SidebarTitle>
         <CharactersList>
           {sortedCharacters.map((character) => (
@@ -122,18 +125,20 @@ export default function CampaignPage() {
               onClick={() => navigate(`/character-sheets/${character.uuid}`)}
             />
           ))}
-        </CharactersList>
 
-        {isMaster && (
-          <FloatingActionButton
-            label="Criar NPC"
-            position="sidebar"
-            onClick={handleCreateNpc}
-          />
-        )}
+          {isMaster && (
+            <AdaptiveActionButton
+              label="Criar NPC"
+              type="character"
+              onClick={handleCreateNpc}
+              containerRef={sidebarRef}
+              contentChangeSignal={expandDescription}
+            />
+          )}
+        </CharactersList>
       </SidebarContainer>
 
-      <MainContentContainer>
+      <MainContentContainer ref={mainContentRef}>
         <CampaignHeader>
           <CampaignTitle>{campaign.name}</CampaignTitle>
           <CampaignDate>
@@ -167,27 +172,26 @@ export default function CampaignPage() {
             return `${day}/${month}/${year}`;
           })()}
         </CampaignDate>
-        <MatchesSection>
-          {/* <SectionTitle>Partidas</SectionTitle> */}
 
-          <MatchesList>
-            {(campaign.matches || []).map((match) => (
-              <MatchItem
-                key={match.uuid}
-                match={match}
-                onClick={() => navigate(`/matches/${match.uuid}`)}
-              />
-            ))}
-          </MatchesList>
+        <MatchesList>
+          {(campaign.matches || []).map((match) => (
+            <MatchItem
+              key={match.uuid}
+              match={match}
+              onClick={() => navigate(`/matches/${match.uuid}`)}
+            />
+          ))}
 
           {isMaster && (
-            <FloatingActionButton
+            <AdaptiveActionButton
               label="Criar Partida"
-              position="main"
+              type="match"
               onClick={handleCreateMatch}
+              containerRef={mainContentRef}
+              contentChangeSignal={expandDescription}
             />
           )}
-        </MatchesSection>
+        </MatchesList>
       </MainContentContainer>
     </CampaignContainer>
   );
@@ -195,7 +199,8 @@ export default function CampaignPage() {
 
 const CampaignContainer = styled.div`
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
   color: white;
   background-color: #333;
 `;
@@ -207,13 +212,18 @@ const SidebarContainer = styled.div`
   position: relative;
   overflow-y: auto;
   height: 100vh;
+  height: 100dvh;
+  min-height: 100vh;
+  min-height: 100dvh;
+  flex-shrink: 0;
 `;
 
 const SidebarTitle = styled.h2`
   font-family: "Oswald", sans-serif;
   font-size: 24px;
-  margin-bottom: 20px;
   color: #ffa216;
+
+  margin-bottom: 20px;
   border-bottom: 1px solid #444;
   padding-bottom: 10px;
 `;
@@ -222,14 +232,16 @@ const CharactersList = styled.div`
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin-bottom: 70px; /* Space for the floating button */
+  position: relative;
+  padding-bottom: 103px;
 `;
 
 const MainContentContainer = styled.div`
   flex: 1;
-  padding: 30px;
+  padding: 30px 30px 20px 30px;
   overflow-y: auto;
   height: 100vh;
+  height: 100dvh;
 `;
 
 const CampaignHeader = styled.div`
@@ -303,33 +315,20 @@ const ExpandButton = styled.button`
   border: none;
   color: #ffa216;
   cursor: pointer;
-  /* padding: 5px 0; */
   font-size: 14px;
   display: block;
-  /* margin-top: 10px; */
 
   &:hover {
     text-decoration: underline;
   }
 `;
 
-const SectionTitle = styled.h2`
-  font-family: "Oswald", sans-serif;
-  font-size: 30px;
-  color: #ffa216;
-  margin-bottom: 20px;
-  border-bottom: 1px solid #444;
-  padding-bottom: 10px;
-`;
-
-const MatchesSection = styled.section`
-  margin-bottom: 70px; /* Space for the floating button */
-`;
-
 const MatchesList = styled.div`
   display: flex;
   flex-direction: column;
   gap: 20px;
+  position: relative;
+  padding-bottom: 112px;
 `;
 
 const LoadingContainer = styled.div`
@@ -337,6 +336,7 @@ const LoadingContainer = styled.div`
   justify-content: center;
   align-items: center;
   min-height: 100vh;
+  min-height: 100dvh;
   font-size: 24px;
   color: white;
 `;
