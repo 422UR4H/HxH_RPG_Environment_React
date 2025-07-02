@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState } from "react";
-import styled from "styled-components";
 import { useDebounce } from "../../hooks/useDebounce";
+import PlusIcon from "../../components/ions/PlusIcon";
+import styled from "styled-components";
 
 interface AdaptiveActionButtonProps {
   label: string;
@@ -99,7 +100,7 @@ export default function AdaptiveActionButton({
         $isFloating={isFloating}
         onClick={onClick}
       >
-        <PlusIcon>+</PlusIcon>
+        <PlusIcon />
         <span>{label}</span>
       </ActionButton>
     </ButtonWrapper>
@@ -150,7 +151,7 @@ const ActionButton = styled.button<{
         font-family: "Roboto", sans-serif;
         font-size: 20px;
         font-weight: 500;
-        
+
         &:hover {
           background-color: #ff8c00;
         }
@@ -176,9 +177,4 @@ const ActionButton = styled.button<{
           background-color: #ff8c00;
         }
       `}
-`;
-
-const PlusIcon = styled.span`
-  font-weight: bold;
-  font-size: 32px;
 `;
