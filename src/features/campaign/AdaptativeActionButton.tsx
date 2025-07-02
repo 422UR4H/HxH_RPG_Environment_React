@@ -55,7 +55,7 @@ export default function AdaptiveActionButton({
     // Check multiple times at different intervals to ensure that
     // the change in the DOM is captured after the animation/transition
     const checkTimes = [50, 150, 300, 500];
-    const timers: NodeJS.Timeout[] = [];
+    const timers: number[] = [];
 
     checkTimes.forEach((time) => {
       const timer = setTimeout(() => {
