@@ -11,6 +11,7 @@ import styled from "styled-components";
 import CharacterSidebarItem from "../features/campaign/CharacterSidebarItem";
 import MatchItem from "../features/campaign/MatchItem";
 import AdaptiveActionButton from "../features/campaign/AdaptativeActionButton";
+import { getSortedCharacters } from "../features/campaign/utils/characterUtils";
 
 export default function CampaignPage() {
   const { id } = useParams<{ id: string }>();
@@ -18,22 +19,20 @@ export default function CampaignPage() {
   const { user } = useUser();
   const navigate = useNavigate();
 
-  const sidebarRef = useRef<HTMLDivElement>(null);
-  const mainContentRef = useRef<HTMLDivElement>(null);
-
   const [campaign, setCampaign] = useState<CampaignMaster | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [expandDescription, setExpandDescription] = useState<boolean>(false);
 
   const isMaster = campaign?.masterUuid === user?.uuid;
+  const sidebarRef = useRef<HTMLDivElement>(null);
+  const mainContentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!token || !id) {
       navigate("/");
       return;
     }
-
     setIsLoading(true);
 
     campaignService
@@ -53,47 +52,15 @@ export default function CampaignPage() {
       });
   }, [token, id, navigate]);
 
-  const getSortedCharacters = () => {
-    if (!campaign) return [];
-
-    const allCharacters = [
-      ...(isMaster
-        ? campaign.pendingSheets.map((sheet) => ({ ...sheet, isPending: true }))
-        : []),
-      ...campaign.characterSheets.map((sheet) => ({
-        ...sheet,
-        isPending: false,
-      })),
-    ] as (CharacterPrivateSummary & { isPending?: boolean })[];
-
-    return allCharacters.sort((a, b) => {
-      // 1. Pendents
-      if (a.isPending && !b.isPending) return -1;
-      if (!a.isPending && b.isPending) return 1;
-
-      // 2. Character Players
-      const aIsPlayer = !!a.playerUuid;
-      const bIsPlayer = !!b.playerUuid;
-      if (aIsPlayer && !bIsPlayer) return -1;
-      if (!aIsPlayer && bIsPlayer) return 1;
-
-      // 3. NPCs (without playerUuid) - already sorted by playerUuid check above
-
-      // 4. Characters dead last
-      const aIsDead = !!a.deadAt;
-      const bIsDead = !!b.deadAt;
-      if (!aIsDead && bIsDead) return -1;
-      if (aIsDead && !bIsDead) return 1;
-
-      // default alphabetical sorting by nickName
-      return a.nickName.localeCompare(b.nickName);
-    });
-  };
+  let sortedSheets: (CharacterPrivateSummary & { isPending?: boolean })[] = [];
+  if (campaign) {
+    const pendingSheets = isMaster ? campaign.pendingSheets : [];
+    sortedSheets = getSortedCharacters(campaign.characterSheets, pendingSheets);
+  }
 
   const handleCreateNpc = () => {
     console.log("Criar NPC");
   };
-
   const handleCreateMatch = () => {
     console.log("Criar Partida");
   };
@@ -101,23 +68,19 @@ export default function CampaignPage() {
   if (isLoading) {
     return <LoadingContainer>Carregando campanha...</LoadingContainer>;
   }
-
   if (error) {
     return <ErrorContainer>{error}</ErrorContainer>;
   }
-
   if (!campaign) {
     return <ErrorContainer>Campanha não encontrada</ErrorContainer>;
   }
-
-  const sortedCharacters = getSortedCharacters();
 
   return (
     <CampaignContainer>
       <SidebarContainer ref={sidebarRef}>
         <SidebarTitle>Personagens</SidebarTitle>
         <CharactersList>
-          {sortedCharacters.map((character) => (
+          {sortedSheets.map((character) => (
             <CharacterSidebarItem
               key={character.uuid}
               character={character}
