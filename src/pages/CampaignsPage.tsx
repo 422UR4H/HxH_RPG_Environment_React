@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import useToken from "../hooks/useToken";
 import { campaignService } from "../services/campaignService";
 import { useNavigate } from "react-router-dom";
 import type { CampaignSummary } from "../types/campaign";
 import CampaignCard from "../components/atoms/CampaignCard";
+import PlusIcon from "../components/ions/PlusIcon";
+import useToken from "../hooks/useToken";
 import styled from "styled-components";
 
 function CampaignsPage() {
@@ -53,9 +54,6 @@ function CampaignsPage() {
       {campaigns.length === 0 ? (
         <EmptyState>
           <EmptyMessage>Você ainda não possui campanhas.</EmptyMessage>
-          <CreateButton onClick={() => console.log("Criar campanha")}>
-            Criar Nova Campanha
-          </CreateButton>
         </EmptyState>
       ) : (
         <>
@@ -68,6 +66,10 @@ function CampaignsPage() {
           ))}
         </>
       )}
+      <CreateButton onClick={() => navigate("/campaigns/new")}>
+        <PlusIcon />
+        <span>Criar Nova Campanha</span>
+      </CreateButton>
     </StyledCampaignsPage>
   );
 }
@@ -106,7 +108,7 @@ const ErrorContainer = styled.div`
   background-color: rgba(231, 76, 60, 0.1);
   color: #e74c3c;
   padding: 20px;
-  border-radius: 8px;
+  border-radius: 12px;
   text-align: center;
   margin: 30px;
   font-size: 18px;
@@ -127,16 +129,34 @@ const EmptyMessage = styled.p`
 `;
 
 const CreateButton = styled.button`
-  background-color: #1877f2;
-  color: white;
-  border: none;
-  border-radius: 6px;
+  font-family: "Roboto", sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  color: #1d1d1d;
+  background-color: #ffa216;
+
+  height: 91px;
   padding: 15px 30px;
-  font-family: "Oswald", sans-serif;
-  font-size: 18px;
+  border-radius: 0px;
+  border: none;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
   cursor: pointer;
 
   &:hover {
-    background-color: #0052cc;
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.4);
+    background-color: #ff8c00;
+  }
+
+  @media (orientation: landscape) {
+    width: 80vw;
+    border-radius: 12px;
   }
 `;
