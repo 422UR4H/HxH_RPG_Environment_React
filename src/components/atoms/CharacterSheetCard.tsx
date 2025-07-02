@@ -1,8 +1,8 @@
 import styled from "styled-components";
 import type { CharacterSheetSummary } from "../../types/characterSheet";
 import { Link } from "react-router-dom";
-import HpBar from "../molecules/HpBar";
-import SpBar from "../molecules/SpBar";
+import HpBar from "./HpBar";
+import SpBar from "./SpBar";
 
 interface CharacterSummaryProps {
   character: CharacterSheetSummary;

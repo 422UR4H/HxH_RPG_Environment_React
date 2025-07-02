@@ -1,4 +1,4 @@
-import ProgressBar from "../atoms/ProgressBar";
+import ProgressBar from "../ions/ProgressBar";
 
 interface SpBarProps {
   current: number;
