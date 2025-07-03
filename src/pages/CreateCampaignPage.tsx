@@ -4,6 +4,7 @@ import { campaignService } from "../services/campaignService";
 import useToken from "../hooks/useToken";
 import useForm from "../hooks/useForm";
 import styled from "styled-components";
+import PageHeader from "../components/atoms/PageHeader";
 // import PlusIcon from "../components/ions/PlusIcon";
 
 interface CampaignFormData {
@@ -67,12 +68,7 @@ export default function CreateCampaignPage() {
     <PageContainer>
       <MainContentContainer>
         <CreateCampaignContainer>
-          <PageHeader>
-            <BackButton onClick={() => navigate("/campaigns")}>
-              &larr; Voltar
-            </BackButton>
-            <PageTitle>Criar Nova Campanha</PageTitle>
-          </PageHeader>
+          <PageHeader title="Criar Nova Campanha" to="/campaigns" />
 
           {error && <ErrorMessage>{error}</ErrorMessage>}
 
@@ -247,40 +243,10 @@ const RulesSidebar = styled.div`
   flex-shrink: 0;
 `;
 
-const PageHeader = styled.div`
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 30px;
-`;
-
-const BackButton = styled.button`
-  background: none;
-  border: none;
-  color: white;
-  font-size: 16px;
-  cursor: pointer;
-  text-align: left;
-  padding: 0;
-  margin-bottom: 10px;
-  width: fit-content;
-
-  &:hover {
-    text-decoration: underline;
-  }
-`;
-
-const PageTitle = styled.h1`
-  font-family: "Oswald", sans-serif;
-  font-size: 46px;
-  color: #ffa216;
-  margin: 0;
-`;
-
 const FormContainer = styled.form`
   display: flex;
   flex-direction: column;
   gap: 20px;
-  /* max-width: 1200px; */
 `;
 
 const FormGroup = styled.div`
