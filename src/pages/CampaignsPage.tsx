@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { campaignService } from "../services/campaignService";
 import { useNavigate } from "react-router-dom";
-import type { CampaignSummary } from "../types/campaign";
+import type { CampaignSummary } from "../types/campaigns";
 import CampaignCard from "../components/atoms/CampaignCard";
 import PlusIcon from "../components/ions/PlusIcon";
 import useToken from "../hooks/useToken";
