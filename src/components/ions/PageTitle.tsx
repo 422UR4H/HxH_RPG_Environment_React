@@ -11,6 +11,7 @@ export default function PageTitle({ children }: PageTitleProps) {
 const StyledPageTitle = styled.h1`
   font-family: "Oswald", sans-serif;
   font-size: 46px;
+  text-align: center;
   color: #ffa216;
   margin: 0;
 `;

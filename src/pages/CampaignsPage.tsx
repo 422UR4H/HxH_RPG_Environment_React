@@ -6,6 +6,7 @@ import CampaignCard from "../components/atoms/CampaignCard";
 import PlusIcon from "../components/ions/PlusIcon";
 import useToken from "../hooks/useToken";
 import styled from "styled-components";
+import PageHeader from "../components/atoms/PageHeader";
 
 function CampaignsPage() {
   const { token } = useToken();
@@ -49,7 +50,7 @@ function CampaignsPage() {
 
   return (
     <StyledCampaignsPage>
-      <PageHeader>Lista de Campanhas</PageHeader>
+      <PageHeader title="Lista de Campanhas" to="/home" />
 
       {campaigns.length === 0 ? (
         <EmptyState>
@@ -82,17 +83,9 @@ const StyledCampaignsPage = styled.div`
   gap: 30px;
 
   @media (orientation: landscape) {
+    padding: 30px;
     align-items: center;
   }
-`;
-
-const PageHeader = styled.h1`
-  color: white;
-  text-align: center;
-  font-family: "Oswald", sans-serif;
-  font-weight: 600;
-  font-size: 32px;
-  margin-top: 20px;
 `;
 
 const LoadingContainer = styled.div`

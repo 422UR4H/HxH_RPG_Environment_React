@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import type { CharacterSheetSummary } from "../types/characterSheet";
 import CharacterSheetCard from "../components/atoms/CharacterSheetCard";
 import styled from "styled-components";
+import PageHeader from "../components/atoms/PageHeader";
 
 function CharacterSheetsPage() {
   const { token } = useToken();
@@ -53,7 +54,8 @@ function CharacterSheetsPage() {
 
   return (
     <StyledCharacterSheetsPage>
-      <h1>Lista de Personagens</h1>
+      <PageHeader title="Lista de Personagens" to="/home" />
+
       {charSheets.map((sheet) => (
         <CharacterSheetCard
           key={sheet.uuid}
@@ -67,20 +69,13 @@ function CharacterSheetsPage() {
 export default CharacterSheetsPage;
 
 const StyledCharacterSheetsPage = styled.div`
+  padding: 0px;
   display: flex;
   flex-direction: column;
   gap: 30px;
 
-  /* TODO: remove */
-  h1 {
-    color: white;
-    text-align: center;
-    font-weight: 600;
-    font-size: 24px;
-    margin-top: 20px;
-  }
-
   @media (orientation: landscape) {
+    padding: 30px;
     align-items: center;
   }
 `;

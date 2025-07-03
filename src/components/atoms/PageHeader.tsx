@@ -20,4 +20,9 @@ const StyledPageHeader = styled.div`
   display: flex;
   flex-direction: column;
   margin-bottom: 30px;
+
+  margin-top: 30px;
+  @media (orientation: landscape) {
+    margin-top: 0;
+  }
 `;
