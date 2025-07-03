@@ -51,7 +51,7 @@ const CardContainer = styled(Link)`
 
   @media (orientation: landscape) {
     width: 80vw;
-    border-radius: 16px;
+    border-radius: 12px;
 
     &:hover {
       border: 2px solid rgb(255, 162, 22);
