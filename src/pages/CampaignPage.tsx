@@ -62,7 +62,7 @@ export default function CampaignPage() {
     console.log("Criar NPC");
   };
   const handleCreateMatch = () => {
-    console.log("Criar Partida");
+    navigate(`/campaigns/${id}/matches/new`);
   };
 
   if (isLoading) {

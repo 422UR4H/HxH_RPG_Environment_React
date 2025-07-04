@@ -7,6 +7,7 @@ import CharacterSheetsDetailPage from "./pages/CharacterSheetsDetailPage";
 import CreateCampaignPage from "./pages/CreateCampaignPage";
 import CampaignsPage from "./pages/CampaignsPage";
 import CampaignPage from "./pages/CampaignPage";
+import CreateMatchPage from "./pages/CreateMatchPage";
 
 function App() {
   return (
@@ -24,6 +25,10 @@ function App() {
         <Route path="/campaigns" element={<CampaignsPage />} />
         <Route path="/campaigns/:id" element={<CampaignPage />} />
         <Route path="/campaigns/new" element={<CreateCampaignPage />} />
+        <Route
+          path="/campaigns/:campaignId/matches/new"
+          element={<CreateMatchPage />}
+        />
       </Routes>
     </BrowserRouter>
   );
