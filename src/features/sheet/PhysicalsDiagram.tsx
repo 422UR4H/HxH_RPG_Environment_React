@@ -2,7 +2,7 @@ import PhysicalLozengeSVG from "../../assets/diagrams/physical_lozange.svg";
 import { type Ability } from "../../types/characterSheet.ts";
 import styled from "styled-components";
 
-interface PhysicalDiagramProps {
+interface PhysicalsDiagramProps {
   attributes: {
     [key: string]: { power: number; level: number };
   };
@@ -12,7 +12,7 @@ interface PhysicalDiagramProps {
 const PhysicalsDiagram = ({
   attributes,
   physicalAbility,
-}: PhysicalDiagramProps) => {
+}: PhysicalsDiagramProps) => {
   const attributePositions = [
     { name: "resistance", key: "RES", x: "50%", y: "8%" },
     { name: "constitution", key: "Con", x: "74%", y: "26%" },
@@ -29,7 +29,7 @@ const PhysicalsDiagram = ({
       <DiagramWrapper>
         <SVGContainer>
           {/* <PhysicalLozengeSVG /> */}
-          <img src={PhysicalLozengeSVG} alt="Physical Attributes Diagram" />
+          <img src={PhysicalLozengeSVG} alt="Physicals Diagram" />
         </SVGContainer>
 
         <PhysicalAbility>
@@ -70,7 +70,7 @@ export default PhysicalsDiagram;
 
 const DiagramContainer = styled.div`
   background-color: black;
-  /* margin-bottom: 30px; */
+  margin-bottom: 50px;
   width: 100%;
 `;
 
