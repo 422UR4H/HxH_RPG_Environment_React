@@ -5,7 +5,7 @@ import { characterSheetsService } from "../services/characterSheetsService";
 import type { CharacterSheet } from "../types/characterSheet";
 import styled from "styled-components";
 import PhysicalsDiagram from "../features/sheet/PhysicalsDiagram";
-// import MentalAttributesDiagram from "../features/sheet/MentalAttributesDiagram";
+import MentalsDiagram from "../features/sheet/MentalsDiagram";
 
 function CharacterSheetPage() {
   const { id } = useParams<{ id: string }>();
@@ -164,13 +164,16 @@ function CharacterSheetPage() {
 
       <GridSection>
         <AttributesSection>
-          <SectionTitle>Atributos</SectionTitle>
+          <SectionTitle>ATRIBUTOS</SectionTitle>
 
           <PhysicalsDiagram
             attributes={physicalAttributes}
             physicalAbility={abilities.physicals}
           />
-          {/* <MentalAttributesDiagram attributes={mentalAttributes} /> */}
+          <MentalsDiagram
+            attributes={mentalAttributes}
+            mentalAbility={abilities.mentals}
+          />
 
           {/* <AttributeGroup>
             <GroupTitle>Físicos</GroupTitle>
@@ -612,11 +615,13 @@ const ExpTotal = styled.div`
 `;
 
 const SectionTitle = styled.h2`
-  font-family: "Oswald", sans-serif;
-  font-size: 30px;
-  color: #ffa216;
-  margin-bottom: 15px;
-  border-bottom: 1px solid #444;
+  font-family: "Roboto", sans-serif;
+  font-size: min(6vw, 3rem);
+  font-weight: bold;
+  /* color: #ffa216; */
+  color: white;
+  margin-bottom: 30px;
+  /* border-bottom: 1px solid #444; */
   padding-bottom: 5px;
 `;
 
@@ -663,7 +668,8 @@ const GroupTitle = styled.h3`
 
 // Atualize o estilo do AttributesSection para melhor acomodar os diagramas
 const AttributesSection = styled.section`
-  background-color: #3a3a3a;
+  /* background-color: #3a3a3a; */
+  background-color: black;
   border-radius: 8px;
   /* padding: 20px; */
   margin-bottom: 30px;
