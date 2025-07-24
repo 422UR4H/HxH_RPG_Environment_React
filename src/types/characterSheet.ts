@@ -94,7 +94,7 @@ export interface CharacterSheet {
   };
 }
 
-interface Ability {
+export interface Ability {
   level: number;
   bonus: number;
 }

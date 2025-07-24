@@ -60,7 +60,7 @@ function CharacterSheetsPage() {
         <CharacterSheetCard
           key={sheet.uuid}
           character={sheet}
-          to={`/charactersheets/${sheet.uuid}`}
+          to={`/charactersheet/${sheet.uuid}`}
         />
       ))}
     </StyledCharacterSheetsPage>

@@ -1,7 +1,3 @@
-type CaseConverterOptions = {
-  deep: boolean;
-};
-
 export function camelToSnake(str: string): string {
   return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
 }
@@ -20,7 +16,7 @@ export function objToCamelCase<T>(obj: any): T {
 
     for (const key in obj) {
       if (Object.prototype.hasOwnProperty.call(obj, key)) {
-        const camelKey = snakeToCamel(key);
+        const camelKey = ensureFirstLetterLowerCase(snakeToCamel(key));
         const value = obj[key];
 
         result[camelKey] = objToCamelCase(value);
@@ -50,4 +46,9 @@ export function objToSnakeCase<T>(obj: any): T {
     return result as T;
   }
   return obj as T;
+}
+
+function ensureFirstLetterLowerCase(str: string): string {
+  if (!str || str.length === 0) return str;
+  return str.charAt(0).toLowerCase() + str.slice(1);
 }
