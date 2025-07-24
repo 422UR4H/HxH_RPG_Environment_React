@@ -4,7 +4,7 @@ import useToken from "../hooks/useToken";
 import { characterSheetsService } from "../services/characterSheetsService";
 import type { CharacterSheet } from "../types/characterSheet";
 import styled from "styled-components";
-import PhysicalsDiagram from "../features/sheet/PhysicalAttributesDiagram";
+import PhysicalsDiagram from "../features/sheet/PhysicalsDiagram";
 // import MentalAttributesDiagram from "../features/sheet/MentalAttributesDiagram";
 
 function CharacterSheetPage() {
