@@ -1,5 +1,4 @@
-// import MentalLozengeSVG from "../../assets/diagrams/mental_lozenge.svg";
-import PhysicalLozengeSVG from "../../assets/diagrams/physical_lozange.svg";
+import MentalLozengeSVG from "../../assets/diagrams/physical_lozange.svg";
 import { type Ability } from "../../types/characterSheet.ts";
 import styled from "styled-components";
 
@@ -27,16 +26,16 @@ const MentalsDiagram = ({ attributes, mentalAbility }: MentalsDiagramProps) => {
         <SVGContainer>
           {/* <MentalLozengeSVG /> */}
           {/* <img src={MentalLozengeSVG} alt="Mentals Diagram" /> */}
-          <img src={PhysicalLozengeSVG} alt="Mentals Diagram" />
+          <img src={MentalLozengeSVG} alt="Mentals Diagram" />
         </SVGContainer>
 
-        <PhysicalAbility>
-          <PhysicalLabel>MENTAL</PhysicalLabel>
-          <PhysicalNumbers>
-            <PhysicalLevel>{mentalAbility?.level}</PhysicalLevel>
-            <PhysicalBonus>{mentalAbility?.bonus}</PhysicalBonus>
-          </PhysicalNumbers>
-        </PhysicalAbility>
+        <MentalAbility>
+          <MentalLabel>MENTAL</MentalLabel>
+          <MentalNumbers>
+            <MentalLevel>{mentalAbility?.level}</MentalLevel>
+            <MentalBonus>{mentalAbility?.bonus}</MentalBonus>
+          </MentalNumbers>
+        </MentalAbility>
 
         {attributePositions.map((pos) => {
           const attr = attributes[pos.name];
@@ -68,7 +67,9 @@ export default MentalsDiagram;
 
 const DiagramContainer = styled.div`
   background-color: black;
-  margin-bottom: 50px;
+  margin-bottom: 10vw;
+  margin-bottom: 10dvw;
+  /* margin-bottom: 50px; */
   width: 100%;
 `;
 
@@ -98,21 +99,21 @@ const SVGContainer = styled.div`
   }
 `;
 
-const PhysicalLevel = styled.div`
+const MentalLevel = styled.div`
   font-family: "Roboto", sans-serif;
   font-size: min(5.4vw, 2.2rem);
   font-weight: bold;
   color: white;
 `;
 
-const PhysicalBonus = styled.div`
+const MentalBonus = styled.div`
   font-family: "Roboto", sans-serif;
   font-size: min(5.4vw, 2.2rem);
   font-weight: bold;
   color: white;
 `;
 
-const PhysicalAbility = styled.div`
+const MentalAbility = styled.div`
   position: absolute;
   top: 52%;
   left: 50%;
@@ -122,14 +123,13 @@ const PhysicalAbility = styled.div`
   align-items: center;
   justify-content: center;
   z-index: 3;
-  background-color: rgba(0, 0, 0, 0.6);
   border-radius: 50%;
   width: min(35%, 180px);
   height: min(35%, 180px);
   padding: 10px;
 `;
 
-const PhysicalLabel = styled.div`
+const MentalLabel = styled.div`
   font-family: "Roboto", sans-serif;
   font-size: min(5.6vw, 2.4rem);
   font-weight: bold;
@@ -138,7 +138,7 @@ const PhysicalLabel = styled.div`
   margin-bottom: 10px;
 `;
 
-const PhysicalNumbers = styled.div`
+const MentalNumbers = styled.div`
   display: flex;
   align-items: center;
   gap: 16px;
@@ -164,7 +164,7 @@ const AttributeLabel = styled.div`
 
 const AttributeNumbers = styled.div`
   display: flex;
-  gap: 10px;
+  gap: min(1vw, 0.5rem);
 `;
 
 const AttributeValue = styled.div`

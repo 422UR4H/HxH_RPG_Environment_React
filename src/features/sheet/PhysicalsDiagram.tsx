@@ -70,7 +70,9 @@ export default PhysicalsDiagram;
 
 const DiagramContainer = styled.div`
   background-color: black;
-  margin-bottom: 50px;
+  margin-bottom: 10vw;
+  margin-bottom: 10dvw;
+  /* margin-bottom: 50px; */
   width: 100%;
 `;
 
@@ -124,7 +126,6 @@ const PhysicalAbility = styled.div`
   align-items: center;
   justify-content: center;
   z-index: 3;
-  background-color: rgba(0, 0, 0, 0.6);
   border-radius: 50%;
   width: min(35%, 180px);
   height: min(35%, 180px);
