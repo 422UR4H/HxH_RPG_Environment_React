@@ -6,6 +6,7 @@ import type { CharacterSheet } from "../types/characterSheet";
 import styled from "styled-components";
 import PhysicalsDiagram from "../features/sheet/PhysicalsDiagram";
 import MentalsDiagram from "../features/sheet/MentalsDiagram";
+import NenPrinciplesDiagram from "../features/sheet/NenPrinciplesDiagram";
 
 function CharacterSheetPage() {
   const { id } = useParams<{ id: string }>();
@@ -174,45 +175,10 @@ function CharacterSheetPage() {
             attributes={mentalAttributes}
             mentalAbility={abilities.mentals}
           />
-
-          {/* <AttributeGroup>
-            <GroupTitle>Físicos</GroupTitle>
-            <AttributesList>
-              {Object.entries(physicalAttributes).map(([name, attr]) => (
-                <AttributeItem key={name}>
-                  <AttributeName>{name}</AttributeName>
-                  <AttributeValue>{attr.power}</AttributeValue>
-                  <AttributeMeta>Nível: {attr.level}</AttributeMeta>
-                </AttributeItem>
-              ))}
-            </AttributesList>
-          </AttributeGroup>
-
-          <AttributeGroup>
-            <GroupTitle>Mentais</GroupTitle>
-            <AttributesList>
-              {Object.entries(mentalAttributes).map(([name, attr]) => (
-                <AttributeItem key={name}>
-                  <AttributeName>{name}</AttributeName>
-                  <AttributeValue>{attr.power}</AttributeValue>
-                  <AttributeMeta>Nível: {attr.level}</AttributeMeta>
-                </AttributeItem>
-              ))}
-            </AttributesList>
-          </AttributeGroup>
-
-          <AttributeGroup>
-            <GroupTitle>Espirituais</GroupTitle>
-            <AttributesList>
-              {Object.entries(spiritualAttributes).map(([name, attr]) => (
-                <AttributeItem key={name}>
-                  <AttributeName>{name}</AttributeName>
-                  <AttributeValue>{attr.power}</AttributeValue>
-                  <AttributeMeta>Nível: {attr.level}</AttributeMeta>
-                </AttributeItem>
-              ))}
-            </AttributesList>
-          </AttributeGroup> */}
+          <NenPrinciplesDiagram
+            principles={principles}
+            spiritualAbility={abilities.spirituals}
+          />
         </AttributesSection>
 
         <SkillsSection>
