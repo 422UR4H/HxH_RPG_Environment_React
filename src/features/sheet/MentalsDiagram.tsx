@@ -67,8 +67,8 @@ export default MentalsDiagram;
 
 const DiagramContainer = styled.div`
   background-color: black;
-  margin-bottom: 10vw;
-  margin-bottom: 10dvw;
+  margin-bottom: 7vw;
+  margin-bottom: 7dvw;
   /* margin-bottom: 50px; */
   width: 100%;
 `;

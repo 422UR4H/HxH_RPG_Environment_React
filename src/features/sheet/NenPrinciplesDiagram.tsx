@@ -14,8 +14,8 @@ const NenPrinciplesDiagram = ({
   spiritualAbility,
 }: NenPrinciplesDiagramProps) => {
   const attributePositions = [
-    { name: "ten", key: "Ten", x: "38.4%", y: "68%" },
-    { name: "zetsu", key: "Zts", x: "62%", y: "68%" },
+    { name: "ten", key: "Ten", x: "38.4%", y: "69%" },
+    { name: "zetsu", key: "Zts", x: "62%", y: "69%" },
     // { name: "ren", key: "Ren", x: "29%", y: "30%" },
     { name: "ren", key: "Ren", x: "39%", y: "37%" },
     { name: "en", key: "En", x: "1%", y: "51.5%" },
@@ -118,7 +118,7 @@ const SpiritualBonus = styled.div`
 
 const SpiritualAbility = styled.div`
   position: absolute;
-  top: 52.5%;
+  top: 53.5%;
   left: 50%;
   transform: translate(-50%, -50%);
   display: flex;
