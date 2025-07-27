@@ -9,6 +9,7 @@ import MentalsDiagram from "../features/sheet/MentalsDiagram";
 import NenPrinciplesDiagram from "../features/sheet/NenPrinciplesDiagram";
 import CharacterSheetHeader from "../components/molecules/CharacterSheetHeader";
 import BackButton from "../components/ions/BackButton";
+import AttributeSkillGroup from "../features/sheet/AttributeSkillGroup";
 
 function CharacterSheetPage() {
   const { id } = useParams<{ id: string }>();
@@ -157,192 +158,73 @@ function CharacterSheetPage() {
 
           {/* Seção de Perícias Físicas - Agrupadas por atributo */}
           <SkillsGroup>
-            <GroupTitle>Perícias Físicas</GroupTitle>
+            <GroupTitle>Físicas</GroupTitle>
 
-            {/* Resistance */}
-            <AttributeSkillGroup>
-              <AttributeTitle>Resistance</AttributeTitle>
-              <SkillsSubList>
-                {["defense", "energy", "vitality"].map(
-                  (skillName) =>
-                    physicalSkills[skillName] && (
-                      <SkillItem key={skillName}>
-                        <SkillName>{skillName}</SkillName>
-                        <SkillValue>
-                          {physicalSkills[skillName].valueForTest}
-                        </SkillValue>
-                        <SkillMeta>
-                          Nível: {physicalSkills[skillName].level}
-                        </SkillMeta>
-                      </SkillItem>
-                    )
-                )}
-              </SkillsSubList>
-            </AttributeSkillGroup>
+            <AttributeSkillGroup
+              attributeName={"Resistance"}
+              attributePower={physicalAttributes["resistance"].power}
+              skillsSubList={["defense", "energy", "vitality"]}
+              skillsList={physicalSkills}
+            />
 
-            {/* Strength */}
-            <AttributeSkillGroup>
-              <AttributeTitle>Strength</AttributeTitle>
-              <SkillsSubList>
-                {["carryCapacity", "grab", "push"].map(
-                  (skillName) =>
-                    physicalSkills[skillName] && (
-                      <SkillItem key={skillName}>
-                        <SkillName>{skillName}</SkillName>
-                        <SkillValue>
-                          {physicalSkills[skillName].valueForTest}
-                        </SkillValue>
-                        <SkillMeta>
-                          Nível: {physicalSkills[skillName].level}
-                        </SkillMeta>
-                      </SkillItem>
-                    )
-                )}
-              </SkillsSubList>
-            </AttributeSkillGroup>
+            <AttributeSkillGroup
+              attributeName={"Strength"}
+              attributePower={physicalAttributes["strength"].power}
+              skillsSubList={["carryCapacity", "grab", "push"]}
+              skillsList={physicalSkills}
+            />
 
-            {/* Agility */}
-            <AttributeSkillGroup>
-              <AttributeTitle>Agility</AttributeTitle>
-              <SkillsSubList>
-                {["accelerate", "brake", "velocity"].map(
-                  (skillName) =>
-                    physicalSkills[skillName] && (
-                      <SkillItem key={skillName}>
-                        <SkillName>{skillName}</SkillName>
-                        <SkillValue>
-                          {physicalSkills[skillName].valueForTest}
-                        </SkillValue>
-                        <SkillMeta>
-                          Nível: {physicalSkills[skillName].level}
-                        </SkillMeta>
-                      </SkillItem>
-                    )
-                )}
-              </SkillsSubList>
-            </AttributeSkillGroup>
+            <AttributeSkillGroup
+              attributeName={"Agility"}
+              attributePower={physicalAttributes["agility"].power}
+              skillsSubList={["accelerate", "brake", "velocity"]}
+              skillsList={physicalSkills}
+            />
 
-            {/* Action Speed */}
-            <AttributeSkillGroup>
-              <AttributeTitle>Action Speed</AttributeTitle>
-              <SkillsSubList>
-                {["attackSpeed", "feint", "repel"].map(
-                  (skillName) =>
-                    physicalSkills[skillName] && (
-                      <SkillItem key={skillName}>
-                        <SkillName>{skillName}</SkillName>
-                        <SkillValue>
-                          {physicalSkills[skillName].valueForTest}
-                        </SkillValue>
-                        <SkillMeta>
-                          Nível: {physicalSkills[skillName].level}
-                        </SkillMeta>
-                      </SkillItem>
-                    )
-                )}
-              </SkillsSubList>
-            </AttributeSkillGroup>
+            <AttributeSkillGroup
+              attributeName={"Action Speed"}
+              attributePower={physicalAttributes["actionSpeed"].power}
+              skillsSubList={["attackSpeed", "feint", "repel"]}
+              skillsList={physicalSkills}
+            />
 
-            {/* Flexibility */}
-            <AttributeSkillGroup>
-              <AttributeTitle>Flexibility</AttributeTitle>
-              <SkillsSubList>
-                {["acrobatics", "evasion", "sneak"].map(
-                  (skillName) =>
-                    physicalSkills[skillName] && (
-                      <SkillItem key={skillName}>
-                        <SkillName>{skillName}</SkillName>
-                        <SkillValue>
-                          {physicalSkills[skillName].valueForTest}
-                        </SkillValue>
-                        <SkillMeta>
-                          Nível: {physicalSkills[skillName].level}
-                        </SkillMeta>
-                      </SkillItem>
-                    )
-                )}
-              </SkillsSubList>
-            </AttributeSkillGroup>
+            <AttributeSkillGroup
+              attributeName={"Flexibility"}
+              attributePower={physicalAttributes["flexibility"].power}
+              skillsSubList={["acrobatics", "evasion", "sneak"]}
+              skillsList={physicalSkills}
+            />
 
-            {/* Dexterity */}
-            <AttributeSkillGroup>
-              <AttributeTitle>Dexterity</AttributeTitle>
-              <SkillsSubList>
-                {["accuracy", "reflex", "stealth"].map(
-                  (skillName) =>
-                    physicalSkills[skillName] && (
-                      <SkillItem key={skillName}>
-                        <SkillName>{skillName}</SkillName>
-                        <SkillValue>
-                          {physicalSkills[skillName].valueForTest}
-                        </SkillValue>
-                        <SkillMeta>
-                          Nível: {physicalSkills[skillName].level}
-                        </SkillMeta>
-                      </SkillItem>
-                    )
-                )}
-              </SkillsSubList>
-            </AttributeSkillGroup>
+            <AttributeSkillGroup
+              attributeName={"Dexterity"}
+              attributePower={physicalAttributes["dexterity"].power}
+              skillsSubList={["accuracy", "reflex", "stealth"]}
+              skillsList={physicalSkills}
+            />
 
-            {/* Sense */}
-            <AttributeSkillGroup>
-              <AttributeTitle>Sense</AttributeTitle>
-              <SkillsSubList>
-                {["hearing", "smell", "tact", "taste", "vision"].map(
-                  (skillName) =>
-                    physicalSkills[skillName] && (
-                      <SkillItem key={skillName}>
-                        <SkillName>{skillName}</SkillName>
-                        <SkillValue>
-                          {physicalSkills[skillName].valueForTest}
-                        </SkillValue>
-                        <SkillMeta>
-                          Nível: {physicalSkills[skillName].level}
-                        </SkillMeta>
-                      </SkillItem>
-                    )
-                )}
-              </SkillsSubList>
-            </AttributeSkillGroup>
+            <AttributeSkillGroup
+              attributeName={"Sense"}
+              attributePower={physicalAttributes["sense"].power}
+              skillsSubList={["hearing", "smell", "tact", "taste", "vision"]}
+              skillsList={physicalSkills}
+            />
 
-            {/* Constitution */}
-            <AttributeSkillGroup>
-              <AttributeTitle>Constitution</AttributeTitle>
-              <SkillsSubList>
-                {["breath", "heal", "tenacity"].map(
-                  (skillName) =>
-                    physicalSkills[skillName] && (
-                      <SkillItem key={skillName}>
-                        <SkillName>{skillName}</SkillName>
-                        <SkillValue>
-                          {physicalSkills[skillName].valueForTest}
-                        </SkillValue>
-                        <SkillMeta>
-                          Nível: {physicalSkills[skillName].level}
-                        </SkillMeta>
-                      </SkillItem>
-                    )
-                )}
-              </SkillsSubList>
-            </AttributeSkillGroup>
+            <AttributeSkillGroup
+              attributeName={"Constitution"}
+              attributePower={physicalAttributes["constitution"].power}
+              skillsSubList={["breath", "heal", "tenacity"]}
+              skillsList={physicalSkills}
+            />
           </SkillsGroup>
 
-          {/* Perícias Espirituais */}
           <SkillsGroup>
-            <GroupTitle>Perícias Espirituais</GroupTitle>
-            <AttributeSkillGroup>
-              <AttributeTitle>Spirit</AttributeTitle>
-              <SkillsSubList>
-                {Object.entries(spiritualSkills).map(([name, skill]) => (
-                  <SkillItem key={name}>
-                    <SkillName>{name}</SkillName>
-                    <SkillValue>{skill.valueForTest}</SkillValue>
-                    <SkillMeta>Nível: {skill.level}</SkillMeta>
-                  </SkillItem>
-                ))}
-              </SkillsSubList>
-            </AttributeSkillGroup>
+            <GroupTitle>Espirituais</GroupTitle>
+            <AttributeSkillGroup
+              attributeName={"Spirit"}
+              attributePower={spiritualAttributes["spirit"].power}
+              skillsSubList={["focus", "nen", "willPower"]}
+              skillsList={spiritualSkills}
+            />
           </SkillsGroup>
         </SkillsSection>
       </GridSection>
@@ -481,33 +363,7 @@ const SectionTitle = styled.h2`
   font-weight: bold;
   font-size: 7cqi;
   color: white;
-  margin-top: 3cqi;
   margin-bottom: 5cqi;
-`;
-
-const AttributeSkillGroup = styled.div`
-  margin-bottom: 15px;
-  border: 1px solid #555;
-  border-radius: 8px;
-  overflow: hidden;
-`;
-
-const AttributeTitle = styled.div`
-  background-color: #444;
-  padding: 8px 12px;
-  font-weight: bold;
-  color: #b1b1b1;
-  font-family: "Oswald", sans-serif;
-  font-size: 24px;
-  border-bottom: 1px solid #555;
-`;
-
-const SkillsSubList = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(125px, 1fr));
-  gap: 10px;
-  padding: 10px;
-  background-color: #3a3a3a;
 `;
 
 const GridSection = styled.div`
@@ -520,7 +376,7 @@ const GridSection = styled.div`
 
 const GroupTitle = styled.h3`
   font-size: 26px;
-  font-family: "Oswald", sans-serif;
+  font-family: "Roboto", sans-serif;
   font-size: 26px;
   color: #e0e0e0;
   margin-bottom: 10px;
@@ -531,6 +387,7 @@ const AttributesSection = styled.section`
   background-color: black;
   border-radius: 8px;
   margin-bottom: 30px;
+  margin-top: 3cqi;
 
   display: flex;
   flex-direction: column;
@@ -546,32 +403,6 @@ const SkillsSection = styled.section`
 
 const SkillsGroup = styled.div`
   margin-bottom: 20px;
-`;
-
-const SkillItem = styled.div`
-  background-color: #444;
-  border-radius: 6px;
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-`;
-
-const SkillName = styled.div`
-  font-size: 20px;
-  font-weight: bold;
-  margin-bottom: 5px;
-`;
-
-const SkillValue = styled.div`
-  font-size: 38px;
-  font-weight: bold;
-  color: #ffa216;
-  margin-bottom: 5px;
-`;
-
-const SkillMeta = styled.div`
-  font-size: 22px;
-  color: #9f9f9f;
 `;
 
 const AbilitiesSection = styled.section`
