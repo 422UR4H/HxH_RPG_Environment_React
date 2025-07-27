@@ -19,6 +19,7 @@ export default function PageHeader({ title, to }: PageHeaderProps) {
 const StyledPageHeader = styled.div`
   display: flex;
   flex-direction: column;
+  padding: 0 30px;
   margin-bottom: 30px;
 
   margin-top: 30px;

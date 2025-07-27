@@ -37,14 +37,15 @@ export default function CharacterSheetHeader({
       </NicknameOverlay>
 
       <StatusBarsContainer>
-        <HpBar current={health.current} max={health.max} height={"3.8vw"} />
-        <SpBar current={stamina.current} max={stamina.max} height={"3.8vw"} />
+        <HpBar current={health.current} max={health.max} />
+        <SpBar current={stamina.current} max={stamina.max} />
       </StatusBarsContainer>
     </HeaderContainer>
   );
 }
 
 const HeaderContainer = styled.div`
+  container-type: inline-size;
   background-color: #444;
   width: 100%;
   position: relative;
@@ -54,6 +55,31 @@ const CoverContainer = styled.div`
   width: 100%;
   aspect-ratio: 2.5 / 1;
   overflow: hidden;
+
+  position: relative;
+
+  /* add gradient with pseudo-element */
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 24%;
+    background: linear-gradient(
+      to top,
+      rgba(0, 0, 0, 0.88) 0%,
+      rgba(0, 0, 0, 0.66) 15%,
+      rgba(0, 0, 0, 0.54) 25%,
+      rgba(0, 0, 0, 0.32) 40%,
+      rgba(0, 0, 0, 0.17) 55%,
+      rgba(0, 0, 0, 0.06) 70%,
+      rgba(0, 0, 0, 0.02) 85%,
+      transparent 100%
+    );
+    pointer-events: none; /* Allows clicks through the overlay */
+    z-index: 0;
+  }
 `;
 
 const Cover = styled.img`
@@ -66,12 +92,10 @@ const AvatarContainer = styled.div`
   position: absolute;
   bottom: 0px;
   left: 0px;
-  width: 28vw;
-  width: 28dvw;
-  height: 28vw;
-  height: 28dvw;
+  width: 28cqi;
+  height: 28cqi;
   border-radius: 50%;
-  border: 3vw solid black;
+  border: 3cqi solid black;
   overflow: hidden;
   background-color: #444;
   z-index: 2;
@@ -85,16 +109,8 @@ const Avatar = styled.img`
 
 const NicknameOverlay = styled.div`
   position: absolute;
-  bottom: calc(8vw + 14px);
-  left: 30vw;
-  // TODO: fix gradient
-  /* background: linear-gradient(
-    to top,
-    rgba(0, 0, 0, 0.8) 0%,
-    rgba(0, 0, 0, 0.4) 50%,
-    transparent 100%
-  ); */
-  /* padding: 20px; */
+  bottom: calc(8cqi + 14px);
+  left: 30cqi;
 `;
 
 const Nickname = styled.h1`
