@@ -4,6 +4,7 @@ import HpBar from "../atoms/HpBar";
 import SpBar from "../atoms/SpBar";
 import avatarPlaceholder from "../../assets/placeholder/avatar.png";
 import coverPlaceholder from "../../assets/placeholder/cover.png";
+import gungiFrame from "../../assets/placeholder/gungi.svg";
 
 interface CharacterSheetHeaderProps {
   cover?: string;
@@ -29,6 +30,7 @@ export default function CharacterSheetHeader({
       </CoverContainer>
 
       <AvatarContainer>
+        <GungiFrame src={gungiFrame} alt="frame" />
         <Avatar src={avatar || avatarPlaceholder} alt={`avatar`} />
       </AvatarContainer>
 
@@ -94,17 +96,26 @@ const AvatarContainer = styled.div`
   left: 0px;
   width: 28cqi;
   height: 28cqi;
-  border-radius: 50%;
-  border: 3cqi solid black;
-  overflow: hidden;
-  background-color: #444;
   z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const GungiFrame = styled.img`
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
 `;
 
 const Avatar = styled.img`
-  width: 100%;
-  height: 100%;
+  width: 60%;
+  height: 60%;
   object-fit: cover;
+  border-radius: 50%;
+  z-index: 2;
+  position: relative;
 `;
 
 const NicknameOverlay = styled.div`
