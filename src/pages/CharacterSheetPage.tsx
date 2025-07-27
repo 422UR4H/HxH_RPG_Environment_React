@@ -380,7 +380,7 @@ function CharacterSheetPage() {
 export default CharacterSheetPage;
 
 const SheetContainer = styled.div`
-  max-width: 1200px;
+  max-width: 940px;
   margin: 0 auto;
   color: white;
   background-color: black;
@@ -503,9 +503,8 @@ const SectionTitle = styled.h2`
   font-weight: bold;
   font-size: 7cqi;
   color: white;
-  /* margin-top: 3cqi; */
-  margin-top: 3vw;
-  margin-bottom: 5vw;
+  margin-top: 3cqi;
+  margin-bottom: 5cqi;
 `;
 
 const AttributeSkillGroup = styled.div`
@@ -561,6 +560,7 @@ const AttributesSection = styled.section`
 `;
 
 const SkillsSection = styled.section`
+  container-type: inline-size;
   background-color: #3a3a3a;
   border-radius: 8px;
   padding: 20px;
@@ -597,6 +597,7 @@ const SkillMeta = styled.div`
 `;
 
 const AbilitiesSection = styled.section`
+  container-type: inline-size;
   background-color: #3a3a3a;
   border-radius: 8px;
   padding: 20px;
@@ -637,6 +638,7 @@ const AbilityBonus = styled.div`
 `;
 
 const ProficienciesSection = styled.section`
+  container-type: inline-size;
   background-color: #3a3a3a;
   border-radius: 8px;
   padding: 20px;
