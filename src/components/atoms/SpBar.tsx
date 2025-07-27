@@ -6,7 +6,7 @@ interface SpBarProps {
   height?: string;
 }
 
-export default function SpBar({ current, max, height = "24px" }: SpBarProps) {
+export default function SpBar({ current, max, height }: SpBarProps) {
   return (
     <ProgressBar
       current={current}

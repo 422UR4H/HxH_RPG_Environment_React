@@ -17,7 +17,7 @@ export default function ProgressBar({
   // label = "",
   color,
   backgroundColor = "#444",
-  height = "20px",
+  height,
 }: ProgressBarProps) {
   const percentage = Math.max(((current - min) / (max - min)) * 100, 0);
 
@@ -56,10 +56,10 @@ const ProgressBarContainer = styled.div`
 
 const BarBackground = styled.div<{
   backgroundColor: string;
-  height: string;
+  height?: string;
 }>`
   width: 100%;
-  height: ${({ height }) => height};
+  height: ${({ height }) => height || "3.8cqi"};
   background-color: ${({ backgroundColor }) => backgroundColor};
   /* border-radius: 4px; */
   overflow: hidden;
@@ -69,10 +69,10 @@ const BarBackground = styled.div<{
 const BarFill = styled.div<{
   percentage: number;
   color: string;
-  height: string;
+  height?: string;
 }>`
   width: ${({ percentage }) => percentage}%;
-  height: ${({ height }) => height};
+  height: ${({ height }) => height || "3.8cqi"};
   background-color: ${({ color }) => color};
   transition: width 0.3s ease;
   position: relative;

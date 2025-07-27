@@ -6,7 +6,7 @@ interface HpBarProps {
   height?: string;
 }
 
-export default function HpBar({ current, max, height = "24px" }: HpBarProps) {
+export default function HpBar({ current, max, height }: HpBarProps) {
   return (
     <ProgressBar
       current={current}
