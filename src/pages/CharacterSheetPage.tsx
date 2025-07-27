@@ -8,6 +8,7 @@ import PhysicalsDiagram from "../features/sheet/PhysicalsDiagram";
 import MentalsDiagram from "../features/sheet/MentalsDiagram";
 import NenPrinciplesDiagram from "../features/sheet/NenPrinciplesDiagram";
 import CharacterSheetHeader from "../components/molecules/CharacterSheetHeader";
+import BackButton from "../components/ions/BackButton";
 
 function CharacterSheetPage() {
   const { id } = useParams<{ id: string }>();
@@ -77,9 +78,7 @@ function CharacterSheetPage() {
 
   return (
     <SheetContainer>
-      <BackButton onClick={() => navigate("/charactersheets")}>
-        &larr;
-      </BackButton>
+      <BackButton to={"/charactersheets"} />
 
       <CharacterSheetHeader
         cover={undefined} // add field here when it exists in the API response
@@ -385,27 +384,6 @@ const SheetContainer = styled.div`
   color: white;
   background-color: black;
   position: relative;
-`;
-
-const BackButton = styled.button`
-  position: fixed;
-  z-index: 10;
-  left: 16px;
-  top: 16px;
-
-  background-color: #444;
-  border: none;
-  /* border: 3px black solid; */
-  border-radius: 12px;
-  padding: 0 10px 12px 10px;
-
-  color: white;
-  font-size: 40px;
-  cursor: pointer;
-
-  /* &:hover {
-    text-decoration: underline;
-  } */
 `;
 
 const HeaderSection = styled.div`

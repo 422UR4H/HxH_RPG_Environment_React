@@ -9,24 +9,27 @@ export default function BackButton({ to }: BackButtonProps) {
   const navigate = useNavigate();
 
   return (
-    <StyledBackButton onClick={() => navigate(to)}>
-      &larr; Voltar
-    </StyledBackButton>
+    <StyledBackButton onClick={() => navigate(to)}>&larr;</StyledBackButton>
   );
 }
 
 const StyledBackButton = styled.button`
-  background: none;
+  position: fixed;
+  z-index: 10;
+  left: 16px;
+  top: 16px;
+
+  background-color: #444;
   border: none;
+  /* border: 3px black solid; */
+  border-radius: 12px;
+  padding: 0 10px 12px 10px;
+
   color: white;
-  font-size: 16px;
+  font-size: 40px;
   cursor: pointer;
-  text-align: left;
-  padding: 0;
-  margin-bottom: 10px;
-  width: fit-content;
 
   &:hover {
-    text-decoration: underline;
+    background-color: #555;
   }
 `;
