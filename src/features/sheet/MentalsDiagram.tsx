@@ -67,13 +67,13 @@ export default MentalsDiagram;
 
 const DiagramContainer = styled.div`
   background-color: black;
-  margin-bottom: 7vw;
-  margin-bottom: 7dvw;
-  /* margin-bottom: 50px; */
+  margin-bottom: 5vw;
+  margin-bottom: 5dvw;
   width: 100%;
 `;
 
 const DiagramWrapper = styled.div`
+  container-type: inline-size;
   position: relative;
   width: 100%;
   padding-bottom: 100%;
@@ -99,20 +99,6 @@ const SVGContainer = styled.div`
   }
 `;
 
-const MentalLevel = styled.div`
-  font-family: "Roboto", sans-serif;
-  font-size: min(5.4vw, 2.2rem);
-  font-weight: bold;
-  color: white;
-`;
-
-const MentalBonus = styled.div`
-  font-family: "Roboto", sans-serif;
-  font-size: min(5.4vw, 2.2rem);
-  font-weight: bold;
-  color: white;
-`;
-
 const MentalAbility = styled.div`
   position: absolute;
   top: 52%;
@@ -121,27 +107,34 @@ const MentalAbility = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   z-index: 3;
-  border-radius: 50%;
-  width: min(35%, 180px);
-  height: min(35%, 180px);
-  padding: 10px;
 `;
 
 const MentalLabel = styled.div`
   font-family: "Roboto", sans-serif;
-  font-size: min(5.6vw, 2.4rem);
   font-weight: bold;
+  font-size: 6cqi;
   color: white;
-  text-align: center;
   margin-bottom: 10px;
 `;
 
 const MentalNumbers = styled.div`
   display: flex;
-  align-items: center;
-  gap: 16px;
+  gap: 3cqi;
+`;
+
+const MentalLevel = styled.div`
+  font-family: "Roboto", sans-serif;
+  font-weight: bold;
+  font-size: 6cqi;
+  color: white;
+`;
+
+const MentalBonus = styled.div`
+  font-family: "Roboto", sans-serif;
+  font-weight: bold;
+  font-size: 6cqi;
+  color: white;
 `;
 
 const AttributeMarker = styled.div`
@@ -156,34 +149,34 @@ const AttributeMarker = styled.div`
 
 const AttributeLabel = styled.div`
   font-family: "Roboto", sans-serif;
-  font-size: min(5vw, 2rem);
   font-weight: bold;
+  font-size: 5.4cqi;
   padding: 2px 0px;
   border-radius: 4px;
 `;
 
 const AttributeNumbers = styled.div`
   display: flex;
-  gap: min(1vw, 0.5rem);
+  gap: 1.2cqi;
 `;
 
 const AttributeValue = styled.div`
   font-family: "Roboto", sans-serif;
-  font-size: min(4vw, 1.6rem);
   font-weight: bold;
+  font-size: 4cqi;
   color: white;
   align-items: center;
-  justify-content: center; */
+  justify-content: center;
 `;
 
 const AttributeLevel = styled.div`
   font-family: "Roboto", sans-serif;
-  font-size: min(4vw, 1.6rem);
   font-weight: bold;
+  font-size: 4cqi;
 `;
 
 const AttributePower = styled.div`
   font-family: "Roboto", sans-serif;
-  font-size: min(4vw, 1.6rem);
   font-weight: bold;
+  font-size: 4cqi;
 `;

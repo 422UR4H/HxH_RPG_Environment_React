@@ -77,6 +77,7 @@ const DiagramContainer = styled.div`
 `;
 
 const DiagramWrapper = styled.div`
+  container-type: inline-size;
   position: relative;
   width: 88%;
   padding-bottom: 100%;
@@ -102,20 +103,6 @@ const SVGContainer = styled.div`
   }
 `;
 
-const SpiritualLevel = styled.div`
-  font-family: "Roboto", sans-serif;
-  font-size: min(5.4vw, 2.2rem);
-  font-weight: bold;
-  color: white;
-`;
-
-const SpiritualBonus = styled.div`
-  font-family: "Roboto", sans-serif;
-  font-size: min(5.4vw, 2.2rem);
-  font-weight: bold;
-  color: white;
-`;
-
 const SpiritualAbility = styled.div`
   position: absolute;
   top: 53.5%;
@@ -124,27 +111,34 @@ const SpiritualAbility = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   z-index: 3;
-  border-radius: 50%;
-  width: min(35%, 180px);
-  height: min(35%, 180px);
-  padding: 10px;
 `;
 
 const SpiritualLabel = styled.div`
   font-family: "Roboto", sans-serif;
-  font-size: min(5.2vw, 2.2rem);
   font-weight: bold;
+  font-size: 7cqi;
   color: white;
-  text-align: center;
   margin-bottom: 4px;
 `;
 
 const SpiritualNumbers = styled.div`
   display: flex;
-  align-items: center;
-  gap: min(2.4vw, 1.2rem);
+  gap: 3cqi;
+`;
+
+const SpiritualLevel = styled.div`
+  font-family: "Roboto", sans-serif;
+  font-weight: bold;
+  font-size: 6cqi;
+  color: white;
+`;
+
+const SpiritualBonus = styled.div`
+  font-family: "Roboto", sans-serif;
+  font-weight: bold;
+  font-size: 6cqi;
+  color: white;
 `;
 
 const AttributeMarker = styled.div`
@@ -159,25 +153,25 @@ const AttributeMarker = styled.div`
 
 const AttributeLabel = styled.div`
   font-family: "Roboto", sans-serif;
-  font-size: min(5vw, 2rem);
   font-weight: bold;
+  font-size: 6cqi;
   padding: 2px 0px;
   border-radius: 4px;
 `;
 
 const AttributeNumbers = styled.div`
   display: flex;
-  gap: min(1vw, 0.5rem);
+  gap: 2.2cqi;
 `;
 
 const AttributeLevel = styled.div`
   font-family: "Roboto", sans-serif;
-  font-size: min(4vw, 1.6rem);
   font-weight: bold;
+  font-size: 5cqi;
 `;
 
 const AttributePower = styled.div`
   font-family: "Roboto", sans-serif;
-  font-size: min(4vw, 1.6rem);
   font-weight: bold;
+  font-size: 5cqi;
 `;

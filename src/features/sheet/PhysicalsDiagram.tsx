@@ -70,13 +70,13 @@ export default PhysicalsDiagram;
 
 const DiagramContainer = styled.div`
   background-color: black;
-  margin-bottom: 10vw;
-  margin-bottom: 10dvw;
-  /* margin-bottom: 50px; */
+  margin-bottom: 8vw;
+  margin-bottom: 8dvw;
   width: 100%;
 `;
 
 const DiagramWrapper = styled.div`
+  container-type: inline-size;
   position: relative;
   width: 100%;
   padding-bottom: 100%;
@@ -102,20 +102,6 @@ const SVGContainer = styled.div`
   }
 `;
 
-const PhysicalLevel = styled.div`
-  font-family: "Roboto", sans-serif;
-  font-size: min(5.4vw, 2.2rem);
-  font-weight: bold;
-  color: white;
-`;
-
-const PhysicalBonus = styled.div`
-  font-family: "Roboto", sans-serif;
-  font-size: min(5.4vw, 2.2rem);
-  font-weight: bold;
-  color: white;
-`;
-
 const PhysicalAbility = styled.div`
   position: absolute;
   top: 52%;
@@ -124,27 +110,34 @@ const PhysicalAbility = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   z-index: 3;
-  border-radius: 50%;
-  width: min(35%, 180px);
-  height: min(35%, 180px);
-  padding: 10px;
 `;
 
 const PhysicalLabel = styled.div`
   font-family: "Roboto", sans-serif;
-  font-size: min(5.6vw, 2.4rem);
   font-weight: bold;
+  font-size: 6cqi;
   color: white;
-  text-align: center;
   margin-bottom: 10px;
 `;
 
 const PhysicalNumbers = styled.div`
   display: flex;
-  align-items: center;
-  gap: 16px;
+  gap: 3cqi;
+`;
+
+const PhysicalLevel = styled.div`
+  font-family: "Roboto", sans-serif;
+  font-weight: bold;
+  font-size: 6cqi;
+  color: white;
+`;
+
+const PhysicalBonus = styled.div`
+  font-family: "Roboto", sans-serif;
+  font-weight: bold;
+  font-size: 6cqi;
+  color: white;
 `;
 
 const AttributeMarker = styled.div`
@@ -159,34 +152,34 @@ const AttributeMarker = styled.div`
 
 const AttributeLabel = styled.div`
   font-family: "Roboto", sans-serif;
-  font-size: min(5vw, 2rem);
   font-weight: bold;
+  font-size: 5.4cqi;
   padding: 2px 0px;
   border-radius: 4px;
 `;
 
 const AttributeNumbers = styled.div`
   display: flex;
-  gap: 10px;
+  gap: 1.2cqi;
 `;
 
 const AttributeValue = styled.div`
   font-family: "Roboto", sans-serif;
-  font-size: min(4vw, 1.6rem);
   font-weight: bold;
+  font-size: 4cqi;
   color: white;
   align-items: center;
-  justify-content: center; */
+  justify-content: center;
 `;
 
 const AttributeLevel = styled.div`
   font-family: "Roboto", sans-serif;
-  font-size: min(4vw, 1.6rem);
   font-weight: bold;
+  font-size: 4cqi;
 `;
 
 const AttributePower = styled.div`
   font-family: "Roboto", sans-serif;
-  font-size: min(4vw, 1.6rem);
+  font-size: 4cqi;
   font-weight: bold;
 `;
