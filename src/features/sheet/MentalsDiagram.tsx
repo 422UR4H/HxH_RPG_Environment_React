@@ -1,10 +1,10 @@
 import MentalLozengeSVG from "../../assets/diagrams/physical_lozange.svg";
-import { type Ability } from "../../types/characterSheet.ts";
+import { type Ability, type Attribute } from "../../types/characterSheet.ts";
 import styled from "styled-components";
 
 interface MentalsDiagramProps {
   attributes: {
-    [key: string]: { power: number; level: number };
+    [key: string]: Attribute;
   };
   mentalAbility: Ability;
 }
@@ -51,7 +51,7 @@ const MentalsDiagram = ({ attributes, mentalAbility }: MentalsDiagramProps) => {
             >
               <AttributeLabel>{pos.key}</AttributeLabel>
               <AttributeNumbers>
-                <AttributeValue>{attr.power}</AttributeValue>
+                <AttributePoints>{attr.points}</AttributePoints>
                 <AttributeLevel>{attr.level}</AttributeLevel>
                 {/* <AttributeLevel>Nv.{attr.level}</AttributeLevel> */}
                 <AttributePower>{attr.power}</AttributePower>
@@ -67,8 +67,7 @@ export default MentalsDiagram;
 
 const DiagramContainer = styled.div`
   background-color: black;
-  margin-bottom: 5vw;
-  margin-bottom: 5dvw;
+  margin-bottom: 5cqi;
   width: 100%;
 `;
 
@@ -160,7 +159,7 @@ const AttributeNumbers = styled.div`
   gap: 1.2cqi;
 `;
 
-const AttributeValue = styled.div`
+const AttributePoints = styled.div`
   font-family: "Roboto", sans-serif;
   font-weight: bold;
   font-size: 4cqi;

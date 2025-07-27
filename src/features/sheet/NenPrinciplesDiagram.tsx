@@ -1,10 +1,10 @@
 import NenPrinciplesSVG from "../../assets/diagrams/nen_principles.svg";
-import { type Ability } from "../../types/characterSheet.ts";
+import { type Ability, type Skill } from "../../types/characterSheet.ts";
 import styled from "styled-components";
 
 interface NenPrinciplesDiagramProps {
   principles: {
-    [key: string]: { valueForTest: number; level: number };
+    [key: string]: Skill;
   };
   spiritualAbility: Ability;
 }

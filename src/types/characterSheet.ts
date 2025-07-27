@@ -99,14 +99,14 @@ export interface Ability {
   bonus: number;
 }
 
-interface Attribute {
+export interface Attribute {
   level: number;
   points: number;
   value: number;
   power: number;
 }
 
-interface Skill {
+export interface Skill {
   level: number;
   valueForTest: number;
 }
