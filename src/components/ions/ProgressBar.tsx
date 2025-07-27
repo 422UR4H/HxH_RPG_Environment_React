@@ -40,6 +40,7 @@ export default function ProgressBar({
 }
 
 const ProgressBarContainer = styled.div`
+  container-type: inline-size;
   width: 100%;
   border: 3px solid black;
   /* margin-bottom: 6px; */
@@ -87,8 +88,9 @@ const BarFill = styled.div<{
 
 const ValuesInside = styled.span`
   font-family: "Oswald", sans-serif;
-  font-size: 22px;
+  font-size: 3.8cqi;
+  text-align: center;
   font-weight: 600;
   color: black;
-  /* text-shadow: 1px 1px 1px white(0, 0, 0, 0.5); */
+  padding-top: 1px;
 `;
