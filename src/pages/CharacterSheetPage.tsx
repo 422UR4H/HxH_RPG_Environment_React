@@ -7,6 +7,7 @@ import styled from "styled-components";
 import PhysicalsDiagram from "../features/sheet/PhysicalsDiagram";
 import MentalsDiagram from "../features/sheet/MentalsDiagram";
 import NenPrinciplesDiagram from "../features/sheet/NenPrinciplesDiagram";
+import CharacterSheetHeader from "../components/molecules/CharacterSheetHeader";
 
 function CharacterSheetPage() {
   const { id } = useParams<{ id: string }>();
@@ -77,11 +78,19 @@ function CharacterSheetPage() {
   return (
     <SheetContainer>
       <BackButton onClick={() => navigate("/charactersheets")}>
-        &larr; Voltar
+        &larr;
       </BackButton>
 
-      <HeaderSection>
-        <CharacterName>{profile.nickname}</CharacterName>
+      <CharacterSheetHeader
+        cover={undefined} // add field here when it exists in the API response
+        avatar={undefined} // add field here when it exists in the API response
+        nick={profile.nickname}
+        lvls={[]}
+        health={status.health}
+        stamina={status.stamina}
+      />
+
+      {/* <HeaderSection>
         <CharacterMeta>
           <MetaItem>
             <Label>Nome:</Label> {profile.fullname}
@@ -102,43 +111,6 @@ function CharacterSheetPage() {
       </HeaderSection>
 
       <StatusSection>
-        <SectionTitle>Status</SectionTitle>
-        <StatusBarsContainer>
-          <StatusBar>
-            <StatusLabel>Vida</StatusLabel>
-            <BarContainer>
-              <BarFill
-                style={{
-                  width: `${
-                    (status.health.current / status.health.max) * 100
-                  }%`,
-                  backgroundColor: "#e74c3c",
-                }}
-              />
-            </BarContainer>
-            <StatusValue>
-              {status.health.current} / {status.health.max}
-            </StatusValue>
-          </StatusBar>
-
-          <StatusBar>
-            <StatusLabel>Stamina</StatusLabel>
-            <BarContainer>
-              <BarFill
-                style={{
-                  width: `${
-                    (status.stamina.current / status.stamina.max) * 100
-                  }%`,
-                  backgroundColor: "#2ecc71",
-                }}
-              />
-            </BarContainer>
-            <StatusValue>
-              {status.stamina.current} / {status.stamina.max}
-            </StatusValue>
-          </StatusBar>
-        </StatusBarsContainer>
-
         <ExperienceSection>
           <SectionTitle>Experiência</SectionTitle>
           <ExperienceBar>
@@ -161,7 +133,7 @@ function CharacterSheetPage() {
           </ExperienceBar>
           <ExpTotal>EXP Total: {characterExp.exp}</ExpTotal>
         </ExperienceSection>
-      </StatusSection>
+      </StatusSection> */}
 
       <GridSection>
         <AttributesSection>
@@ -402,36 +374,6 @@ function CharacterSheetPage() {
           ))}
         </ProficienciesList>
       </ProficienciesSection>
-
-      <NenSection>
-        <SectionTitle>Nen</SectionTitle>
-
-        <PrinciplesGroup>
-          <GroupTitle>Princípios</GroupTitle>
-          <PrinciplesList>
-            {Object.entries(principles).map(([name, principle]) => (
-              <PrincipleItem key={name}>
-                <PrincipleName>{name}</PrincipleName>
-                <PrincipleValue>{principle.valueForTest}</PrincipleValue>
-                <PrincipleMeta>Nível: {principle.level}</PrincipleMeta>
-              </PrincipleItem>
-            ))}
-          </PrinciplesList>
-        </PrinciplesGroup>
-
-        <CategoriesGroup>
-          <GroupTitle>Categorias</GroupTitle>
-          <CategoriesList>
-            {Object.entries(categories).map(([name, category]) => (
-              <CategoryItem key={name}>
-                <CategoryName>{name}</CategoryName>
-                <CategoryValue>{category.percent}%</CategoryValue>
-                <CategoryMeta>Nível: {category.level}</CategoryMeta>
-              </CategoryItem>
-            ))}
-          </CategoriesList>
-        </CategoriesGroup>
-      </NenSection>
     </SheetContainer>
   );
 }
@@ -440,36 +382,36 @@ export default CharacterSheetPage;
 const SheetContainer = styled.div`
   max-width: 1200px;
   margin: 0 auto;
-  padding: 30px;
   color: white;
   background-color: black;
+  position: relative;
 `;
 
 const BackButton = styled.button`
-  background: none;
-  border: none;
-  color: white;
-  font-size: 20px;
-  cursor: pointer;
-  padding: 5px 10px;
-  margin-bottom: 20px;
+  position: fixed;
+  z-index: 10;
+  left: 16px;
+  top: 16px;
 
-  &:hover {
+  background-color: #444;
+  border: none;
+  /* border: 3px black solid; */
+  border-radius: 12px;
+  padding: 0 10px 12px 10px;
+
+  color: white;
+  font-size: 40px;
+  cursor: pointer;
+
+  /* &:hover {
     text-decoration: underline;
-  }
+  } */
 `;
 
 const HeaderSection = styled.div`
   margin-bottom: 30px;
   border-bottom: 1px solid #444;
   padding-bottom: 20px;
-`;
-
-const CharacterName = styled.h1`
-  font-family: "Oswald", sans-serif;
-  font-size: 68px;
-  color: #ffa216;
-  margin-bottom: 10px;
 `;
 
 const CharacterMeta = styled.div`
@@ -501,25 +443,6 @@ const StatusSection = styled.section`
   padding: 20px;
 `;
 
-const StatusBarsContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  margin-top: 15px;
-`;
-
-const StatusBar = styled.div`
-  font-size: 24px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-`;
-
-const StatusLabel = styled.span`
-  width: 90px;
-  font-weight: bold;
-`;
-
 const BarContainer = styled.div`
   flex-grow: 1;
   height: 20px;
@@ -531,11 +454,6 @@ const BarContainer = styled.div`
 const BarFill = styled.div`
   height: 100%;
   transition: width 0.3s ease;
-`;
-
-const StatusValue = styled.span`
-  width: 100px;
-  text-align: right;
 `;
 
 const ExperienceSection = styled.div`
@@ -582,13 +500,12 @@ const ExpTotal = styled.div`
 
 const SectionTitle = styled.h2`
   font-family: "Roboto", sans-serif;
-  font-size: min(6vw, 3rem);
   font-weight: bold;
-  /* color: #ffa216; */
+  font-size: 7cqi;
   color: white;
-  margin-bottom: 30px;
-  /* border-bottom: 1px solid #444; */
-  padding-bottom: 5px;
+  /* margin-top: 3cqi; */
+  margin-top: 3vw;
+  margin-bottom: 5vw;
 `;
 
 const AttributeSkillGroup = styled.div`
@@ -610,16 +527,16 @@ const AttributeTitle = styled.div`
 
 const SkillsSubList = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(125px, 1fr));
   gap: 10px;
   padding: 10px;
   background-color: #3a3a3a;
 `;
 
 const GridSection = styled.div`
-  /* background-color: red; */
+  padding: 30px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
   gap: 30px;
   margin-bottom: 30px;
 `;
@@ -632,69 +549,16 @@ const GroupTitle = styled.h3`
   margin-bottom: 10px;
 `;
 
-// Atualize o estilo do AttributesSection para melhor acomodar os diagramas
 const AttributesSection = styled.section`
-  /* background-color: #3a3a3a; */
+  container-type: inline-size;
   background-color: black;
   border-radius: 8px;
-  /* padding: 20px; */
   margin-bottom: 30px;
 
-  /* Adicione estas linhas para melhorar o espaço para os diagramas */
   display: flex;
   flex-direction: column;
   align-items: center;
 `;
-
-// Adicione um novo estilo para o container do diagrama
-const DiagramContainer = styled.div`
-  width: 100%;
-  max-width: 500px;
-  margin: 0 auto 30px;
-`;
-
-// const AttributesSection = styled.section`
-//   background-color: #3a3a3a;
-//   border-radius: 8px;
-//   padding: 20px;
-// `;
-
-// const AttributeGroup = styled.div`
-//   margin-bottom: 20px;
-// `;
-
-// const AttributesList = styled.div`
-//   display: grid;
-//   /* grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); */
-//   grid-template-columns: repeat(2, 1fr);
-//   gap: 10px;
-// `;
-
-// const AttributeItem = styled.div`
-//   background-color: #444;
-//   border-radius: 6px;
-//   padding: 10px;
-//   display: flex;
-//   flex-direction: column;
-// `;
-
-// const AttributeName = styled.div`
-//   font-size: 24px;
-//   font-weight: bold;
-//   margin-bottom: 5px;
-// `;
-
-// const AttributeValue = styled.div`
-//   font-size: 38px;
-//   font-weight: bold;
-//   color: #ffa216;
-//   margin-bottom: 5px;
-// `;
-
-// const AttributeMeta = styled.div`
-//   font-size: 22px;
-//   color: #9f9f9f;
-// `;
 
 const SkillsSection = styled.section`
   background-color: #3a3a3a;
@@ -803,89 +667,6 @@ const ProficiencyLevel = styled.div`
   font-size: 20px;
   color: #ffa216;
   font-weight: bold;
-`;
-
-const NenSection = styled.section`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  gap: 30px;
-  margin-bottom: 30px;
-`;
-
-const PrinciplesGroup = styled.div`
-  background-color: #3a3a3a;
-  border-radius: 8px;
-  padding: 20px;
-`;
-
-const PrinciplesList = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 10px;
-`;
-
-const PrincipleItem = styled.div`
-  background-color: #444;
-  border-radius: 6px;
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-`;
-
-const PrincipleName = styled.div`
-  font-size: 20px;
-  font-weight: bold;
-  margin-bottom: 5px;
-`;
-
-const PrincipleValue = styled.div`
-  font-size: 34px;
-  font-weight: bold;
-  color: #ffa216;
-  margin-bottom: 5px;
-`;
-
-const PrincipleMeta = styled.div`
-  font-size: 18px;
-  color: #9f9f9f;
-`;
-
-const CategoriesGroup = styled.div`
-  background-color: #3a3a3a;
-  border-radius: 8px;
-  padding: 20px;
-`;
-
-const CategoriesList = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 10px;
-`;
-
-const CategoryItem = styled.div`
-  background-color: #444;
-  border-radius: 6px;
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-`;
-
-const CategoryName = styled.div`
-  font-size: 20px;
-  font-weight: bold;
-  margin-bottom: 5px;
-`;
-
-const CategoryValue = styled.div`
-  font-size: 34px;
-  font-weight: bold;
-  color: #ffa216;
-  margin-bottom: 5px;
-`;
-
-const CategoryMeta = styled.div`
-  font-size: 18px;
-  color: #9f9f9f;
 `;
 
 const LoadingContainer = styled.div`
