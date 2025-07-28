@@ -138,7 +138,6 @@ function CharacterSheetPage() {
       <GridSection>
         <AttributesSection>
           <SectionTitle>ATRIBUTOS</SectionTitle>
-
           <PhysicalsDiagram
             attributes={physicalAttributes}
             physicalAbility={abilities.physicals}
@@ -147,6 +146,8 @@ function CharacterSheetPage() {
             attributes={mentalAttributes}
             mentalAbility={abilities.mentals}
           />
+
+          <SectionTitle>PRINCÍPIOS</SectionTitle>
           <NenPrinciplesDiagram
             principles={principles}
             spiritualAbility={abilities.spirituals}
