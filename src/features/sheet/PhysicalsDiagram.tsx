@@ -21,7 +21,7 @@ const PhysicalsDiagram = ({
     { name: "dexterity", key: "Dex", x: "73%", y: "73%" },
     { name: "sense", key: "SEN", x: "92%", y: "53%" },
     { name: "flexibility", key: "FLX", x: "50%", y: "92%" },
-    { name: "actionSpeed", key: "Ats", x: "27%", y: "73%" },
+    { name: "celerity", key: "Cel", x: "27%", y: "73%" },
   ];
 
   return (

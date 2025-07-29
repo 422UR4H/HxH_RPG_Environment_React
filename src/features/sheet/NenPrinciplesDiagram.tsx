@@ -16,15 +16,13 @@ const NenPrinciplesDiagram = ({
   const attributePositions = [
     { name: "ten", key: "Ten", x: "38.4%", y: "69%" },
     { name: "zetsu", key: "Zts", x: "62%", y: "69%" },
-    // { name: "ren", key: "Ren", x: "29%", y: "30%" },
     { name: "ren", key: "Ren", x: "39%", y: "37%" },
     { name: "en", key: "En", x: "1%", y: "51.5%" },
     { name: "ken", key: "Ken", x: "29%", y: "13%" },
     { name: "kou", key: "Kou", x: "98.5%", y: "51.5%" },
     { name: "ryu", key: "Ryu", x: "71.2%", y: "13%" },
-    // { name: "gyo", key: "Gyo", x: "71.2%", y: "30%" },
     { name: "gyo", key: "Gyo", x: "61%", y: "37%" },
-    // { name: "shu", key: "Shu", x: "30%", y: "70%" },
+    { name: "shu", key: "Shu", x: "29%", y: "87%" },
     { name: "in", key: "In", x: "71%", y: "87%" },
   ];
 

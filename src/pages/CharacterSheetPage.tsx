@@ -171,7 +171,7 @@ function CharacterSheetPage() {
             <AttributeSkillGroup
               attributeName={"Strength"}
               attributePower={physicalAttributes["strength"].power}
-              skillsSubList={["carryCapacity", "grab", "push"]}
+              skillsSubList={["carry", "grab", "push"]}
               skillsList={physicalSkills}
             />
 
@@ -183,9 +183,9 @@ function CharacterSheetPage() {
             />
 
             <AttributeSkillGroup
-              attributeName={"Action Speed"}
-              attributePower={physicalAttributes["actionSpeed"].power}
-              skillsSubList={["attackSpeed", "feint", "repel"]}
+              attributeName={"Celerity"}
+              attributePower={physicalAttributes["celerity"].power}
+              skillsSubList={["legerity", "feint", "repel"]}
               skillsList={physicalSkills}
             />
 
