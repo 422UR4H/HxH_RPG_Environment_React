@@ -4,7 +4,7 @@ import HpBar from "../atoms/HpBar";
 import SpBar from "../atoms/SpBar";
 import avatarPlaceholder from "../../assets/placeholder/avatar.png";
 import coverPlaceholder from "../../assets/placeholder/cover.png";
-import gungiFrame from "../../assets/placeholder/gungi.svg";
+import gungiFrame from "../../assets/icons/gungi.svg";
 
 interface CharacterSheetHeaderProps {
   cover?: string;

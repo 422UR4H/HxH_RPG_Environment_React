@@ -1,5 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
+// import backArrow from "../../assets/icons/setavoltarsemponta.svg"
+import backArrow from "../../assets/icons/setavoltarcomponta.svg";
 
 interface BackButtonProps {
   to: string;
@@ -9,27 +11,47 @@ export default function BackButton({ to }: BackButtonProps) {
   const navigate = useNavigate();
 
   return (
-    <StyledBackButton onClick={() => navigate(to)}>&larr;</StyledBackButton>
+    <StyledBackButton onClick={() => navigate(to)}>
+      <Arrow src={backArrow} alt="Back" />
+    </StyledBackButton>
   );
 }
 
-const StyledBackButton = styled.button`
+const StyledBackButton = styled.div`
   position: fixed;
   z-index: 10;
-  left: 16px;
-  top: 16px;
-
-  background-color: #444;
-  border: none;
-  /* border: 3px black solid; */
-  border-radius: 12px;
-  padding: 0 10px 12px 10px;
-
-  color: white;
-  font-size: 40px;
+  left: 0px;
+  top: 0px;
   cursor: pointer;
+  display: inline-block;
 
+  /* Remove any default styling that could create a "box" */
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  outline: none;
+
+  /* Ensure the clickable area matches exactly the icon size */
+  width: fit-content;
+  height: fit-content;
+`;
+
+const Arrow = styled.img`
+  width: 120px;
+  height: auto;
+  display: block;
+  object-fit: contain;
+
+  /* Remove any potential borders or outlines */
+  border: none;
+  outline: none;
+
+  /* Smooth transition for any hover effects */
+  transition: opacity 0.2s ease;
+
+  /* Optional hover effect */
   &:hover {
-    background-color: #555;
+    opacity: 0.8;
   }
 `;
