@@ -20,8 +20,8 @@ export default function BackButton({ to }: BackButtonProps) {
 const StyledBackButton = styled.div`
   position: fixed;
   z-index: 10;
-  left: 0px;
-  top: 0px;
+  left: 10px;
+  top: 10px;
   cursor: pointer;
   display: inline-block;
 
@@ -38,7 +38,7 @@ const StyledBackButton = styled.div`
 `;
 
 const Arrow = styled.img`
-  width: 120px;
+  width: min(140px, 20vw);
   height: auto;
   display: block;
   object-fit: contain;

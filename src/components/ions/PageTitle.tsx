@@ -9,9 +9,10 @@ export default function PageTitle({ children }: PageTitleProps) {
 }
 
 const StyledPageTitle = styled.h1`
-  font-family: "Oswald", sans-serif;
+  font-family: "Roboto", sans-serif;
+  font-weight: 900;
   font-size: 46px;
   text-align: center;
-  color: #ffa216;
+  color: white;
   margin: 0;
 `;

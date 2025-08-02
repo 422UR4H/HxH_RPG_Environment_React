@@ -12,6 +12,7 @@ import CharacterSidebarItem from "../features/campaign/CharacterSidebarItem";
 import MatchItem from "../features/campaign/MatchItem";
 import AdaptiveActionButton from "../features/campaign/AdaptativeActionButton";
 import { getSortedCharacters } from "../features/campaign/utils/characterUtils";
+import BackButton from "../components/ions/BackButton";
 
 export default function CampaignPage() {
   const { id } = useParams<{ id: string }>();
@@ -77,8 +78,9 @@ export default function CampaignPage() {
 
   return (
     <CampaignContainer>
+      <BackButton to="/campaigns" />
       <SidebarContainer ref={sidebarRef}>
-        <SidebarTitle>Personagens</SidebarTitle>
+        <SidebarTitle>PERSONAGENS</SidebarTitle>
         <CharactersList>
           {sortedSheets.map((character) => (
             <CharacterSidebarItem
@@ -103,7 +105,7 @@ export default function CampaignPage() {
 
       <MainContentContainer ref={mainContentRef}>
         <CampaignHeader>
-          <CampaignTitle>{campaign.name}</CampaignTitle>
+          <CampaignTitle>{campaign.name.toUpperCase()}</CampaignTitle>
           <CampaignDate>
             Data Atual:{" "}
             {(() => {
@@ -182,9 +184,11 @@ const SidebarContainer = styled.div`
 `;
 
 const SidebarTitle = styled.h2`
-  font-family: "Oswald", sans-serif;
-  font-size: 24px;
-  color: #ffa216;
+  font-family: "Roboto", sans-serif;
+  font-size: 32px;
+  font-weight: 700;
+  text-align: center;
+  color: white;
 
   margin-bottom: 20px;
   border-bottom: 1px solid #444;
@@ -217,7 +221,8 @@ const CampaignHeader = styled.div`
 const CampaignTitle = styled.h1`
   font-family: "Oswald", sans-serif;
   font-size: 42px;
-  color: #ffa216;
+  font-weight: 900;
+  color: white;
 `;
 
 const CampaignDate = styled.div`
