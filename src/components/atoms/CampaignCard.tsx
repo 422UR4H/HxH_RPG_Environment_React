@@ -38,23 +38,33 @@ const CardContainer = styled(Link)`
   overflow: hidden;
   transition: transform 0.2s, box-shadow 0.2s;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-  border-width: 2px 0 2px 0;
+  border-width: 4px 0 4px 0;
   border-style: solid;
   border-color: #444;
+  max-width: 940px;
+  width: 100%;
   cursor: pointer;
 
   &:hover {
     transform: translateY(-5px);
     box-shadow: 0 8px 15px rgba(0, 0, 0, 0.4);
-    border-color: rgb(255, 162, 22);
+    /* border-color: rgb(255, 162, 22); */
+    /* border-color: #ba1a3e; */
+    border-color: #107135;
   }
 
-  @media (orientation: landscape) {
+  @media (min-width: 941px) {
     width: 80vw;
+    border-width: 4px;
     border-radius: 12px;
 
     &:hover {
-      border: 2px solid rgb(255, 162, 22);
+      /* border: 2px solid rgb(255, 162, 22); */
+      /* border: 4px solid #ba1a3e; */
+      border-color: #107135;
+    }
+    &:active {
+      transform: scale(0.98);
     }
   }
 `;
@@ -74,7 +84,10 @@ const CampaignName = styled.h2`
   color: white;
 
   ${CardContainer}:hover & {
-    color: rgb(255, 162, 22);
+    /* color: #ba1a3e; */
+    /* color: #107135; */
+    /* color: #2ecc71; */
+    /* color: rgb(255, 162, 22); */
   }
 `;
 

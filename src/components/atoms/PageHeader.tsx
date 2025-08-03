@@ -1,30 +1,28 @@
 import styled from "styled-components";
-import PageTitle from "../ions/PageTitle";
 import BackButton from "../ions/BackButton";
+import LogoButton from "../ions/LogoButton";
 
 interface PageHeaderProps {
-  title: string;
   to: string;
 }
 
-export default function PageHeader({ title, to }: PageHeaderProps) {
+export default function PageHeader({ to }: PageHeaderProps) {
   return (
     <StyledPageHeader>
       <BackButton to={to} />
-      <PageTitle>{title}</PageTitle>
+      <LogoButton />
     </StyledPageHeader>
   );
 }
 
 const StyledPageHeader = styled.div`
   display: flex;
-  flex-direction: column;
-  /* padding: 0 30px; */
-  padding: 0 68px;
-  margin-bottom: 30px;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 
-  margin-top: 30px;
-  @media (orientation: landscape) {
-    margin-top: 0;
-  }
+  background-color: #252525;
+  width: 100%;
+  height: min(102px, 15.2vw);
+  padding-bottom: 0.4vw;
 `;

@@ -5,6 +5,7 @@ import useToken from "../hooks/useToken";
 import useForm from "../hooks/useForm";
 import { matchService } from "../services/matchService";
 import PageHeader from "../components/atoms/PageHeader";
+import PageTitle from "../components/ions/PageTitle";
 
 interface MatchFormData {
   title: string;
@@ -81,181 +82,191 @@ export default function CreateMatchPage() {
 
   return (
     <PageContainer>
-      <MainContentContainer>
-        <CreateMatchContainer>
-          <PageHeader
-            title="Criar Nova Partida"
-            to={`/campaigns/${campaignId}`}
-          />
+      <PageHeader to={`/campaigns/${campaignId}`} />
+      <PageBody>
+        <MainContentContainer>
+          <CreateMatchContainer>
+            <PageTitle>CRIAR NOVA PARTIDA</PageTitle>
 
-          {error && <ErrorMessage>{error}</ErrorMessage>}
+            {error && <ErrorMessage>{error}</ErrorMessage>}
 
-          <FormContainer onSubmit={handleSubmit}>
-            <FormGroup>
-              <Label htmlFor="title">Título da Partida</Label>
-              <Input
-                id="title"
-                name="title"
-                value={form.title}
-                onChange={handleForm}
-                placeholder="Digite o título da partida"
-                required
-              />
-            </FormGroup>
-
-            <FormGroup>
-              <Label htmlFor="briefInitialDescription">Descrição Breve</Label>
-              <TextArea
-                id="briefInitialDescription"
-                name="briefInitialDescription"
-                value={form.briefInitialDescription}
-                onChange={handleForm}
-                placeholder="Uma breve descrição inicial da partida"
-                resize="none"
-                rows={2.5}
-                required
-              />
-            </FormGroup>
-
-            <FormGroup>
-              <Label htmlFor="description">Descrição Completa (Opcional)</Label>
-              <TextArea
-                id="description"
-                name="description"
-                value={form.description}
-                onChange={handleForm}
-                placeholder="Detalhes adicionais da partida (apenas para o mestre)"
-                rows={6}
-              />
-            </FormGroup>
-
-            <FormRow>
-              <FormGroup style={{ flex: 1 }}>
-                <Label htmlFor="gameStartAt">Data e Hora da Sessão</Label>
+            <FormContainer onSubmit={handleSubmit}>
+              <FormGroup>
+                <Label htmlFor="title">Título da Partida</Label>
                 <Input
-                  id="gameStartAt"
-                  name="gameStartAt"
-                  type="datetime-local"
-                  value={form.gameStartAt}
+                  id="title"
+                  name="title"
+                  value={form.title}
                   onChange={handleForm}
+                  placeholder="Digite o título da partida"
                   required
                 />
+              </FormGroup>
+
+              <FormGroup>
+                <Label htmlFor="briefInitialDescription">Descrição Breve</Label>
+                <TextArea
+                  id="briefInitialDescription"
+                  name="briefInitialDescription"
+                  value={form.briefInitialDescription}
+                  onChange={handleForm}
+                  placeholder="Uma breve descrição inicial da partida"
+                  resize="none"
+                  rows={2.5}
+                  required
+                />
+              </FormGroup>
+
+              <FormGroup>
+                <Label htmlFor="description">
+                  Descrição Completa (Opcional)
+                </Label>
+                <TextArea
+                  id="description"
+                  name="description"
+                  value={form.description}
+                  onChange={handleForm}
+                  placeholder="Detalhes adicionais da partida (apenas para o mestre)"
+                  rows={6}
+                />
+              </FormGroup>
+
+              <FormRow>
+                <FormGroup style={{ flex: 1 }}>
+                  <Label htmlFor="gameStartAt">Data e Hora da Sessão</Label>
+                  <Input
+                    id="gameStartAt"
+                    name="gameStartAt"
+                    type="datetime-local"
+                    value={form.gameStartAt}
+                    onChange={handleForm}
+                    required
+                  />
+                  <HelpText>
+                    Esta é a data e hora real em que a sessão de jogo acontecerá
+                  </HelpText>
+                </FormGroup>
+
+                <FormGroup style={{ flex: 1 }}>
+                  <Label htmlFor="storyStartAt">
+                    Data de Início na História
+                  </Label>
+                  <Input
+                    id="storyStartAt"
+                    name="storyStartAt"
+                    type="date"
+                    value={form.storyStartAt}
+                    onChange={handleForm}
+                    required
+                  />
+                  <HelpText>
+                    Esta é a data dentro do universo da história
+                  </HelpText>
+                </FormGroup>
+              </FormRow>
+
+              <FormGroup>
+                <CheckboxContainer>
+                  <Checkbox
+                    id="isPublic"
+                    name="isPublic"
+                    type="checkbox"
+                    checked={form.isPublic}
+                    onChange={handleTogglePublic}
+                  />
+                  <CheckboxLabel htmlFor="isPublic">
+                    Partida Pública
+                  </CheckboxLabel>
+                </CheckboxContainer>
                 <HelpText>
-                  Esta é a data e hora real em que a sessão de jogo acontecerá
+                  Partidas públicas podem ser vistas por todos os jogadores
                 </HelpText>
               </FormGroup>
 
-              <FormGroup style={{ flex: 1 }}>
-                <Label htmlFor="storyStartAt">Data de Início na História</Label>
-                <Input
-                  id="storyStartAt"
-                  name="storyStartAt"
-                  type="date"
-                  value={form.storyStartAt}
-                  onChange={handleForm}
-                  required
-                />
-                <HelpText>
-                  Esta é a data dentro do universo da história
-                </HelpText>
-              </FormGroup>
-            </FormRow>
+              <ButtonsContainer>
+                <CancelButton
+                  type="button"
+                  onClick={() => navigate(`/campaigns/${campaignId}`)}
+                >
+                  Cancelar
+                </CancelButton>
+                <SubmitButton type="submit" disabled={isLoading}>
+                  <label>{isLoading ? "Criando..." : "Criar Partida"}</label>
+                </SubmitButton>
+              </ButtonsContainer>
+            </FormContainer>
+          </CreateMatchContainer>
+        </MainContentContainer>
 
-            <FormGroup>
-              <CheckboxContainer>
-                <Checkbox
-                  id="isPublic"
-                  name="isPublic"
-                  type="checkbox"
-                  checked={form.isPublic}
-                  onChange={handleTogglePublic}
-                />
-                <CheckboxLabel htmlFor="isPublic">
-                  Partida Pública
-                </CheckboxLabel>
-              </CheckboxContainer>
-              <HelpText>
-                Partidas públicas podem ser vistas por todos os jogadores
-              </HelpText>
-            </FormGroup>
+        <RulesSidebar>
+          <SidebarTitle>Regras da Partida</SidebarTitle>
+          <RulesContent>
+            <RuleSection>
+              <RuleSectionTitle>Configurações da Partida</RuleSectionTitle>
+              <RuleInfo>
+                Configure regras específicas para esta sessão de jogo.
+              </RuleInfo>
+            </RuleSection>
 
-            <ButtonsContainer>
-              <CancelButton
-                type="button"
-                onClick={() => navigate(`/campaigns/${campaignId}`)}
-              >
-                Cancelar
-              </CancelButton>
-              <SubmitButton type="submit" disabled={isLoading}>
-                <label>{isLoading ? "Criando..." : "Criar Partida"}</label>
-              </SubmitButton>
-            </ButtonsContainer>
-          </FormContainer>
-        </CreateMatchContainer>
-      </MainContentContainer>
+            <RuleSection>
+              <RuleSectionTitle>Sistema de Encontros</RuleSectionTitle>
+              <RuleInfo>
+                Configure os encontros e desafios para esta partida.
+              </RuleInfo>
+            </RuleSection>
 
-      <RulesSidebar>
-        <SidebarTitle>Regras da Partida</SidebarTitle>
-        <RulesContent>
-          <RuleSection>
-            <RuleSectionTitle>Configurações da Partida</RuleSectionTitle>
-            <RuleInfo>
-              Configure regras específicas para esta sessão de jogo.
-            </RuleInfo>
-          </RuleSection>
+            <RuleSection>
+              <RuleSectionTitle>Recompensas</RuleSectionTitle>
+              <RuleInfo>
+                Defina as recompensas que os jogadores poderão obter.
+              </RuleInfo>
+            </RuleSection>
 
-          <RuleSection>
-            <RuleSectionTitle>Sistema de Encontros</RuleSectionTitle>
-            <RuleInfo>
-              Configure os encontros e desafios para esta partida.
-            </RuleInfo>
-          </RuleSection>
-
-          <RuleSection>
-            <RuleSectionTitle>Recompensas</RuleSectionTitle>
-            <RuleInfo>
-              Defina as recompensas que os jogadores poderão obter.
-            </RuleInfo>
-          </RuleSection>
-
-          <RuleSection>
-            <RuleSectionTitle>Eventos Narrativos</RuleSectionTitle>
-            <RuleInfo>
-              Configure eventos especiais que ocorrerão nesta partida.
-            </RuleInfo>
-          </RuleSection>
-        </RulesContent>
-        <SidebarFooter>
-          Mais opções de configuração serão adicionadas em breve.
-        </SidebarFooter>
-      </RulesSidebar>
+            <RuleSection>
+              <RuleSectionTitle>Eventos Narrativos</RuleSectionTitle>
+              <RuleInfo>
+                Configure eventos especiais que ocorrerão nesta partida.
+              </RuleInfo>
+            </RuleSection>
+          </RulesContent>
+          <SidebarFooter>
+            Mais opções de configuração serão adicionadas em breve.
+          </SidebarFooter>
+        </RulesSidebar>
+      </PageBody>
     </PageContainer>
   );
 }
 
 // TODO: componentize replicated styles from the campaign creation page
 const PageContainer = styled.div`
-  display: flex;
+  display: grid;
+  grid-template-rows: auto 1fr;
   height: 100vh;
   height: 100dvh;
+  overflow: hidden;
+`;
+
+const PageBody = styled.main`
+  display: flex;
   color: white;
-  background-color: #333;
+  min-height: 0;
+  overflow: hidden;
 `;
 
 const MainContentContainer = styled.div`
   flex: 1;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 30px;
+  justify-content: center;
   overflow-y: auto;
-  height: 100vh;
-  height: 100dvh;
 `;
 
 const CreateMatchContainer = styled.div`
-  width: 100%;
-  max-width: 1200px;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  max-width: 940px;
+  padding: 30px;
 `;
 
 const RulesSidebar = styled.div`
@@ -264,10 +275,6 @@ const RulesSidebar = styled.div`
   padding: 20px;
   position: relative;
   overflow-y: auto;
-  height: 100vh;
-  height: 100dvh;
-  min-height: 100vh;
-  min-height: 100dvh;
   flex-shrink: 0;
 `;
 
@@ -361,7 +368,7 @@ const HelpText = styled.p`
 const ButtonsContainer = styled.div`
   display: flex;
   gap: 15px;
-  margin-top: 20px;
+  margin-bottom: 30px;
 `;
 
 const Button = styled.button`
@@ -375,13 +382,23 @@ const Button = styled.button`
 `;
 
 const SubmitButton = styled(Button)`
-  background-color: #ffa216;
-  color: #1d1d1d;
+  background-color: #107135;
+  color: white;
   border: none;
   margin: 0 16px;
 
+  transition: all 0.2s ease;
+
+  * {
+    cursor: pointer;
+  }
+
   &:hover {
-    background-color: #ff8c00;
+    transform: translateY(-5px);
+    filter: brightness(1.1);
+  }
+  &:active {
+    transform: scale(0.98);
   }
 
   &:disabled {
@@ -393,10 +410,16 @@ const SubmitButton = styled(Button)`
 const CancelButton = styled(Button)`
   background-color: transparent;
   color: white;
-  border: 1px solid #666;
+  border: 1px solid white;
+
+  transition: all 0.2s ease;
 
   &:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+    transform: translateY(-5px);
+    filter: brightness(1.1);
+  }
+  &:active {
+    transform: scale(0.98);
   }
 `;
 

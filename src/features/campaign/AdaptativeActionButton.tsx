@@ -142,18 +142,23 @@ const ActionButton = styled.button<{
         bottom: 20px;
         ${$type === "character" ? "left: 20px;" : "left: 340px;"}
         border-radius: 50px;
-        padding: 15px 24px 15px 20px;
-        background-color: #ffa216;
-        color: #1d1d1d;
+        padding: 15px 30px 15px 26px;
+        background-color: #107135;
+        color: white;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
         gap: 10px;
 
         font-family: "Roboto", sans-serif;
-        font-size: 20px;
-        font-weight: 500;
+        font-size: 26px;
+        font-weight: 600;
 
         &:hover {
-          background-color: #ff8c00;
+          transform: translateY(-5px);
+          filter: brightness(1.1);
+          box-shadow: 0 8px 15px rgba(0, 0, 0, 0.4);
+        }
+        &:active {
+          transform: scale(0.98);
         }
       `
       : `
@@ -164,17 +169,23 @@ const ActionButton = styled.button<{
         justify-content: center;
         padding: ${$type === "character" ? "15px" : "20px"};
         border-radius: 8px;
-        background-color: #ffa216;
-        color: #1d1d1d;
+        background-color: #107135;
+        color: white;
         box-shadow: none;
         gap: 15px;
 
-        border-left: ${$type === "character" ? "4px solid #ffa216" : "none"};
         font-family: "Roboto", sans-serif;
-        font-size: 20px;
-        font-weight: 500;
+        font-size: 26px;
+        font-weight: 600;
+
         &:hover {
-          background-color: #ff8c00;
+          transform: translateY(-5px);
+          filter: brightness(1.1);
+        }
+        &:active {
+          transform: scale(0.98);
         }
       `}
 `;
+// background: linear-gradient(to bottom, #ffa216 0%, #ffa216 20%, #e60000 100%);
+// color: black;

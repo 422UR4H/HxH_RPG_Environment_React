@@ -33,7 +33,7 @@ export default function CharacterSheetCard({
 }
 
 const CharacterName = styled.h2`
-  font-family: "Oswald", sans-serif;
+  font-family: "Roboto", sans-serif;
   font-size: 24px;
   font-weight: 700;
   margin-bottom: 10px;
@@ -49,24 +49,28 @@ const CardContainer = styled(Link)`
   transition: transform 0.2s, box-shadow 0.2s;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
   max-width: 940px;
+  width: 100%;
   cursor: pointer;
 
   &:hover {
     transform: translateY(-5px);
     box-shadow: 0 8px 15px rgba(0, 0, 0, 0.4);
-    border-color: rgb(255, 162, 22);
+    /* border-color: rgb(255, 162, 22); */
+    border-color: #ba1a3e;
 
     ${CharacterName} {
-      color: rgb(255, 162, 22);
+      /* color: #107135; */
+      color: #ba1a3e;
     }
   }
 
-  @media (orientation: landscape) {
+  @media (min-width: 941px) {
     width: 80vw;
     border-radius: 26px 26px 0 0;
 
     &:hover {
-      border: 4px solid rgb(255, 162, 22);
+      /* border: 4px solid #107135; */
+      border: 4px solid #ba1a3e;
     }
   }
 `;

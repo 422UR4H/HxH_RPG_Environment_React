@@ -5,7 +5,7 @@ import useToken from "../hooks/useToken";
 import useForm from "../hooks/useForm";
 import styled from "styled-components";
 import PageHeader from "../components/atoms/PageHeader";
-// import PlusIcon from "../components/ions/PlusIcon";
+import PageTitle from "../components/ions/PageTitle";
 
 interface CampaignFormData {
   name: string;
@@ -66,168 +66,182 @@ export default function CreateCampaignPage() {
 
   return (
     <PageContainer>
-      <MainContentContainer>
-        <CreateCampaignContainer>
-          <PageHeader title="Criar Nova Campanha" to="/campaigns" />
+      <PageHeader to="/campaigns" />
+      <PageBody>
+        <MainContentContainer>
+          <CreateCampaignContainer>
+            <PageTitle>CRIAR NOVA CAMPANHA</PageTitle>
+            {error && <ErrorMessage>{error}</ErrorMessage>}
 
-          {error && <ErrorMessage>{error}</ErrorMessage>}
-
-          <FormContainer onSubmit={handleSubmit}>
-            <FormGroup>
-              <Label htmlFor="name">Nome da Campanha</Label>
-              <Input
-                id="name"
-                name="name"
-                value={form.name}
-                onChange={handleForm}
-                placeholder="Digite o nome da sua campanha"
-                required
-              />
-            </FormGroup>
-
-            <FormGroup>
-              <Label htmlFor="briefInitialDescription">Descrição Breve</Label>
-              <TextArea
-                id="briefInitialDescription"
-                name="briefInitialDescription"
-                value={form.briefInitialDescription}
-                onChange={handleForm}
-                placeholder="Uma breve descrição inicial da campanha"
-                resize="none"
-                rows={2.5}
-                required
-              />
-            </FormGroup>
-
-            <FormGroup>
-              <Label htmlFor="description">Descrição Completa</Label>
-              <TextArea
-                id="description"
-                name="description"
-                value={form.description}
-                onChange={handleForm}
-                placeholder="Descreva sua campanha em detalhes"
-                rows={6}
-              />
-            </FormGroup>
-
-            <FormGroup>
-              <Label htmlFor="callLink">Link da Chamada</Label>
-              <Input
-                id="callLink"
-                name="callLink"
-                value={form.callLink}
-                onChange={handleForm}
-                placeholder="Link para chamada de vídeo/áudio (Google Meet, Discord, etc.)"
-              />
-            </FormGroup>
-
-            <FormRow>
-              <FormGroup style={{ flex: 1 }}>
-                <Label htmlFor="storyStartAt">Data de Início da História</Label>
+            <FormContainer onSubmit={handleSubmit}>
+              <FormGroup>
+                <Label htmlFor="name">Nome da Campanha</Label>
                 <Input
-                  id="storyStartAt"
-                  name="storyStartAt"
-                  type="date"
-                  value={form.storyStartAt}
+                  id="name"
+                  name="name"
+                  value={form.name}
                   onChange={handleForm}
+                  placeholder="Digite o nome da sua campanha"
                   required
                 />
               </FormGroup>
 
-              <FormGroup style={{ flex: 1 }}>
-                <Label>Visibilidade</Label>
-                <CheckboxContainer>
-                  <Checkbox
-                    id="isPublic"
-                    name="isPublic"
-                    type="checkbox"
-                    checked={form.isPublic}
-                    onChange={handleTogglePublic}
-                  />
-                  <CheckboxLabel htmlFor="isPublic">
-                    Campanha Pública
-                  </CheckboxLabel>
-                </CheckboxContainer>
-                <HelpText>
-                  Campanhas públicas podem ser vistas por todos os usuários
-                </HelpText>
+              <FormGroup>
+                <Label htmlFor="briefInitialDescription">Descrição Breve</Label>
+                <TextArea
+                  id="briefInitialDescription"
+                  name="briefInitialDescription"
+                  value={form.briefInitialDescription}
+                  onChange={handleForm}
+                  placeholder="Uma breve descrição inicial da campanha"
+                  resize="none"
+                  rows={2.5}
+                  required
+                />
               </FormGroup>
-            </FormRow>
 
-            <ButtonsContainer>
-              <CancelButton
-                type="button"
-                onClick={() => navigate("/campaigns")}
-              >
-                Cancelar
-              </CancelButton>
-              <SubmitButton type="submit" disabled={isLoading}>
-                {/* <PlusIcon /> */}
-                <label>{isLoading ? "Criando..." : "Criar Campanha"}</label>
-              </SubmitButton>
-            </ButtonsContainer>
-          </FormContainer>
-        </CreateCampaignContainer>
-      </MainContentContainer>
+              <FormGroup>
+                <Label htmlFor="description">Descrição Completa</Label>
+                <TextArea
+                  id="description"
+                  name="description"
+                  value={form.description}
+                  onChange={handleForm}
+                  placeholder="Descreva sua campanha em detalhes"
+                  rows={3}
+                />
+              </FormGroup>
 
-      <RulesSidebar>
-        <SidebarTitle>Regras da Campanha</SidebarTitle>
-        <RulesContent>
-          <RuleSection>
-            <RuleSectionTitle>Configurações Gerais</RuleSectionTitle>
-            <RuleInfo>As regras da campanha serão configuradas aqui.</RuleInfo>
-          </RuleSection>
+              <FormGroup>
+                <Label htmlFor="callLink">Link da Chamada</Label>
+                <Input
+                  id="callLink"
+                  name="callLink"
+                  value={form.callLink}
+                  onChange={handleForm}
+                  placeholder="Link para chamada de vídeo/áudio (Google Meet, Discord, etc.)"
+                />
+              </FormGroup>
 
-          <RuleSection>
-            <RuleSectionTitle>Sistema de Combate</RuleSectionTitle>
-            <RuleInfo>Configure o sistema de combate da sua campanha.</RuleInfo>
-          </RuleSection>
+              <FormRow>
+                <FormGroup style={{ flex: 1 }}>
+                  <Label htmlFor="storyStartAt">
+                    Data de Início da História
+                  </Label>
+                  <Input
+                    id="storyStartAt"
+                    name="storyStartAt"
+                    type="date"
+                    value={form.storyStartAt}
+                    onChange={handleForm}
+                    required
+                  />
+                </FormGroup>
 
-          <RuleSection>
-            <RuleSectionTitle>Progressão de Personagens</RuleSectionTitle>
-            <RuleInfo>
-              Define como os personagens evoluem durante a campanha.
-            </RuleInfo>
-          </RuleSection>
+                <FormGroup style={{ flex: 1 }}>
+                  <Label>Visibilidade</Label>
+                  <CheckboxContainer>
+                    <Checkbox
+                      id="isPublic"
+                      name="isPublic"
+                      type="checkbox"
+                      checked={form.isPublic}
+                      onChange={handleTogglePublic}
+                    />
+                    <CheckboxLabel htmlFor="isPublic">
+                      Campanha Pública
+                    </CheckboxLabel>
+                  </CheckboxContainer>
+                  <HelpText>
+                    Campanhas públicas podem ser vistas por todos os usuários
+                  </HelpText>
+                </FormGroup>
+              </FormRow>
 
-          <RuleSection>
-            <RuleSectionTitle>Nen & Habilidades</RuleSectionTitle>
-            <RuleInfo>
-              Configure as regras para uso e desenvolvimento de Nen.
-            </RuleInfo>
-          </RuleSection>
-        </RulesContent>
-        <SidebarFooter>
-          Mais opções de configuração serão adicionadas em breve.
-        </SidebarFooter>
-      </RulesSidebar>
+              <ButtonsContainer>
+                <CancelButton
+                  type="button"
+                  onClick={() => navigate("/campaigns")}
+                >
+                  Cancelar
+                </CancelButton>
+                <SubmitButton type="submit" disabled={isLoading}>
+                  {/* <PlusIcon /> */}
+                  <label>{isLoading ? "Criando..." : "Criar Campanha"}</label>
+                </SubmitButton>
+              </ButtonsContainer>
+            </FormContainer>
+          </CreateCampaignContainer>
+        </MainContentContainer>
+
+        <RulesSidebar>
+          <SidebarTitle>Regras da Campanha</SidebarTitle>
+          <RulesContent>
+            <RuleSection>
+              <RuleSectionTitle>Configurações Gerais</RuleSectionTitle>
+              <RuleInfo>
+                As regras da campanha serão configuradas aqui.
+              </RuleInfo>
+            </RuleSection>
+
+            <RuleSection>
+              <RuleSectionTitle>Sistema de Combate</RuleSectionTitle>
+              <RuleInfo>
+                Configure o sistema de combate da sua campanha.
+              </RuleInfo>
+            </RuleSection>
+
+            <RuleSection>
+              <RuleSectionTitle>Progressão de Personagens</RuleSectionTitle>
+              <RuleInfo>
+                Define como os personagens evoluem durante a campanha.
+              </RuleInfo>
+            </RuleSection>
+
+            <RuleSection>
+              <RuleSectionTitle>Nen & Habilidades</RuleSectionTitle>
+              <RuleInfo>
+                Configure as regras para uso e desenvolvimento de Nen.
+              </RuleInfo>
+            </RuleSection>
+          </RulesContent>
+          <SidebarFooter>
+            Mais opções de configuração serão adicionadas em breve.
+          </SidebarFooter>
+        </RulesSidebar>
+      </PageBody>
     </PageContainer>
   );
 }
 
 const PageContainer = styled.div`
-  display: flex;
+  display: grid;
+  grid-template-rows: auto 1fr;
   height: 100vh;
   height: 100dvh;
+  overflow: hidden;
+`;
+
+const PageBody = styled.main`
+  display: flex;
   color: white;
-  background-color: #333;
+  min-height: 0;
+  overflow: hidden;
 `;
 
 const MainContentContainer = styled.div`
   flex: 1;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 30px;
+  justify-content: center;
   overflow-y: auto;
-  height: 100vh;
-  height: 100dvh;
 `;
 
 const CreateCampaignContainer = styled.div`
-  width: 100%;
-  max-width: 1200px;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  max-width: 940px;
+  padding: 30px;
 `;
 
 const RulesSidebar = styled.div`
@@ -236,10 +250,6 @@ const RulesSidebar = styled.div`
   padding: 20px;
   position: relative;
   overflow-y: auto;
-  height: 100vh;
-  height: 100dvh;
-  min-height: 100vh;
-  min-height: 100dvh;
   flex-shrink: 0;
 `;
 
@@ -333,7 +343,7 @@ const HelpText = styled.p`
 const ButtonsContainer = styled.div`
   display: flex;
   gap: 15px;
-  margin-top: 20px;
+  margin-bottom: 30px;
 `;
 
 const Button = styled.button`
@@ -347,17 +357,24 @@ const Button = styled.button`
 `;
 
 const SubmitButton = styled(Button)`
-  background-color: #ffa216;
-  color: #1d1d1d;
+  background-color: #107135;
+  /* background: linear-gradient(to bottom, #ffa216 0%, #ffa216 20%, #e60000 100%); */
+  color: white;
   border: none;
   margin: 0 16px;
-  /* height: 70px; */
-  /* display: flex;
-  align-items: center;
-  gap: 15px; */
+
+  transition: all 0.2s ease;
+
+  * {
+    cursor: pointer;
+  }
 
   &:hover {
-    background-color: #ff8c00;
+    transform: translateY(-5px);
+    filter: brightness(1.1);
+  }
+  &:active {
+    transform: scale(0.98);
   }
 
   &:disabled {
@@ -369,10 +386,20 @@ const SubmitButton = styled(Button)`
 const CancelButton = styled(Button)`
   background-color: transparent;
   color: white;
-  border: 1px solid #666;
+  border: 1px solid white;
+
+  /* background: linear-gradient(#333, #333) padding-box,
+    linear-gradient(to bottom, #ffa216 0%, #ffa216 20%, #e60000 100%) border-box;
+  border: 2px solid transparent; */
+
+  transition: all 0.2s ease;
 
   &:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+    transform: translateY(-5px);
+    filter: brightness(1.1);
+  }
+  &:active {
+    transform: scale(0.98);
   }
 `;
 

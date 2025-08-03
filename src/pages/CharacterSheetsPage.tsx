@@ -6,6 +6,7 @@ import type { CharacterSheetSummary } from "../types/characterSheet";
 import CharacterSheetCard from "../components/atoms/CharacterSheetCard";
 import styled from "styled-components";
 import PageHeader from "../components/atoms/PageHeader";
+import PageTitle from "../components/ions/PageTitle";
 
 function CharacterSheetsPage() {
   const { token } = useToken();
@@ -54,28 +55,39 @@ function CharacterSheetsPage() {
 
   return (
     <StyledCharacterSheetsPage>
-      <PageHeader title="Lista de Personagens" to="/home" />
+      <PageHeader to="/home" />
+      <PageBody>
+        <PageTitle>LISTA DE PERSONAGENS</PageTitle>
 
-      {charSheets.map((sheet) => (
-        <CharacterSheetCard
-          key={sheet.uuid}
-          character={sheet}
-          to={`/charactersheet/${sheet.uuid}`}
-        />
-      ))}
+        {charSheets.map((sheet) => (
+          <CharacterSheetCard
+            key={sheet.uuid}
+            character={sheet}
+            to={`/charactersheet/${sheet.uuid}`}
+          />
+        ))}
+      </PageBody>
     </StyledCharacterSheetsPage>
   );
 }
 export default CharacterSheetsPage;
 
 const StyledCharacterSheetsPage = styled.div`
-  padding: 0px;
   display: flex;
   flex-direction: column;
-  gap: 30px;
+`;
 
-  @media (orientation: landscape) {
-    padding: 30px;
-    align-items: center;
+const PageBody = styled.main`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* gap: 30px; */
+  gap: 8vw;
+  padding: 8vw 0;
+  width: 100vw;
+
+  @media (min-width: 941px) {
+    padding: 45px 0;
+    gap: 45px;
   }
 `;

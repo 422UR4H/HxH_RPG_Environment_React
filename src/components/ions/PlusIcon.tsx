@@ -6,5 +6,5 @@ export default function PlusIcon() {
 
 const StyledPlusIcon = styled.span`
   font-weight: bold;
-  font-size: 32px;
+  font-size: 36px;
 `;

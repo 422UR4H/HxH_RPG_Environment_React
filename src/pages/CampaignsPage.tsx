@@ -7,6 +7,7 @@ import PlusIcon from "../components/ions/PlusIcon";
 import useToken from "../hooks/useToken";
 import styled from "styled-components";
 import PageHeader from "../components/atoms/PageHeader";
+import PageTitle from "../components/ions/PageTitle";
 
 function CampaignsPage() {
   const { token } = useToken();
@@ -50,27 +51,30 @@ function CampaignsPage() {
 
   return (
     <StyledCampaignsPage>
-      <PageHeader title="Lista de Campanhas" to="/home" />
+      <PageHeader to="/home" />
+      <PageBody>
+        <PageTitle>LISTA DE CAMPANHAS</PageTitle>
 
-      {campaigns.length === 0 ? (
-        <EmptyState>
-          <EmptyMessage>Você ainda não possui campanhas.</EmptyMessage>
-        </EmptyState>
-      ) : (
-        <>
-          {campaigns.map((campaign) => (
-            <CampaignCard
-              key={campaign.uuid}
-              campaign={campaign}
-              to={`/campaigns/${campaign.uuid}`}
-            />
-          ))}
-        </>
-      )}
-      <CreateButton onClick={() => navigate("/campaigns/new")}>
-        <PlusIcon />
-        <span>Criar Nova Campanha</span>
-      </CreateButton>
+        {campaigns.length === 0 ? (
+          <EmptyState>
+            <EmptyMessage>Você ainda não possui campanhas.</EmptyMessage>
+          </EmptyState>
+        ) : (
+          <>
+            {campaigns.map((campaign) => (
+              <CampaignCard
+                key={campaign.uuid}
+                campaign={campaign}
+                to={`/campaigns/${campaign.uuid}`}
+              />
+            ))}
+          </>
+        )}
+        <CreateButton onClick={() => navigate("/campaigns/new")}>
+          <PlusIcon />
+          <span>Criar Nova Campanha</span>
+        </CreateButton>
+      </PageBody>
     </StyledCampaignsPage>
   );
 }
@@ -80,11 +84,18 @@ export default CampaignsPage;
 const StyledCampaignsPage = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 30px;
+`;
 
-  @media (orientation: landscape) {
+const PageBody = styled.main`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 30px;
+  padding: 30px 0;
+  width: 100vw;
+
+  @media (max-width: 941px) {
     padding: 30px;
-    align-items: center;
   }
 `;
 
@@ -125,12 +136,12 @@ const CreateButton = styled.button`
   font-family: "Roboto", sans-serif;
   font-size: 20px;
   font-weight: 500;
-  color: #1d1d1d;
-  background-color: #ffa216;
+  color: white;
+  background-color: #107135;
 
   height: 91px;
+  max-width: 940px;
   padding: 15px 30px;
-  border-radius: 0px;
   border: none;
 
   display: flex;
@@ -144,12 +155,22 @@ const CreateButton = styled.button`
 
   &:hover {
     transform: translateY(-5px);
+    filter: brightness(1.1);
     box-shadow: 0 8px 15px rgba(0, 0, 0, 0.4);
-    background-color: #ff8c00;
+
+    border-width: 4px 0px 4px 0px;
+    border-style: solid;
   }
 
   @media (orientation: landscape) {
     width: 80vw;
     border-radius: 12px;
+
+    &:hover {
+      border: 4px solid white;
+    }
+    &:active {
+      transform: scale(0.98);
+    }
   }
 `;

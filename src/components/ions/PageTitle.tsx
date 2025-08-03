@@ -15,4 +15,5 @@ const StyledPageTitle = styled.h1`
   text-align: center;
   color: white;
   margin: 0;
+  font-size: min(40px, 6.8vw);
 `;

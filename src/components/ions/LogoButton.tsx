@@ -1,29 +1,18 @@
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
-// import backArrow from "../../assets/icons/setavoltarsemponta.svg"
-import backArrow from "../../assets/icons/setavoltarcomponta.svg";
+import hxhLogo from "../../assets/icons/hxh-logo.avif";
 
-interface BackButtonProps {
-  to: string;
-}
-
-export default function BackButton({ to }: BackButtonProps) {
+export default function LogoButton() {
   const navigate = useNavigate();
 
   return (
-    <StyledBackButton onClick={() => navigate(to)}>
-      <Arrow src={backArrow} alt="Back" />
-    </StyledBackButton>
+    <StyledLogoButton onClick={() => navigate("/")}>
+      <Logo src={hxhLogo} alt="HxH RPG System - Home" />
+    </StyledLogoButton>
   );
 }
 
-const StyledBackButton = styled.div`
-  position: fixed;
-  z-index: 10;
-  left: min(10px, 1.6vw);
-  /* left: 0px; */
-  top: min(10px, 1.6vw);
-
+const StyledLogoButton = styled.div`
   cursor: pointer;
   display: inline-block;
 
@@ -34,13 +23,14 @@ const StyledBackButton = styled.div`
   margin: 0;
   outline: none;
 
-  /* Ensure the clickable area matches exactly the icon size */
+  /* Ensure the clickable area matches exactly the logo size */
   width: fit-content;
   height: fit-content;
 `;
 
-const Arrow = styled.img`
-  width: min(140px, 20vw);
+const Logo = styled.img`
+  /* width: min(200px, 28vw); */
+  width: min(180px, 28vw);
   height: auto;
   display: block;
   object-fit: contain;

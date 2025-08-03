@@ -12,7 +12,7 @@ import CharacterSidebarItem from "../features/campaign/CharacterSidebarItem";
 import MatchItem from "../features/campaign/MatchItem";
 import AdaptiveActionButton from "../features/campaign/AdaptativeActionButton";
 import { getSortedCharacters } from "../features/campaign/utils/characterUtils";
-import BackButton from "../components/ions/BackButton";
+import PageHeader from "../components/atoms/PageHeader";
 
 export default function CampaignPage() {
   const { id } = useParams<{ id: string }>();
@@ -78,108 +78,113 @@ export default function CampaignPage() {
 
   return (
     <CampaignContainer>
-      <BackButton to="/campaigns" />
-      <SidebarContainer ref={sidebarRef}>
-        <SidebarTitle>PERSONAGENS</SidebarTitle>
-        <CharactersList>
-          {sortedSheets.map((character) => (
-            <CharacterSidebarItem
-              key={character.uuid}
-              character={character}
-              isMaster={!!isMaster}
-              onClick={() => navigate(`/character-sheets/${character.uuid}`)}
-            />
-          ))}
+      <PageHeader to="/campaigns" />
+      <PageBody>
+        <SidebarContainer ref={sidebarRef}>
+          <SidebarTitle>PERSONAGENS</SidebarTitle>
+          <CharactersList>
+            {sortedSheets.map((character) => (
+              <CharacterSidebarItem
+                key={character.uuid}
+                character={character}
+                isMaster={!!isMaster}
+                onClick={() => navigate(`/character-sheets/${character.uuid}`)}
+              />
+            ))}
 
-          {isMaster && (
-            <AdaptiveActionButton
-              label="Criar NPC"
-              type="character"
-              onClick={handleCreateNpc}
-              containerRef={sidebarRef}
-              contentChangeSignal={expandDescription}
-            />
-          )}
-        </CharactersList>
-      </SidebarContainer>
+            {isMaster && (
+              <AdaptiveActionButton
+                label="Criar NPC"
+                type="character"
+                onClick={handleCreateNpc}
+                containerRef={sidebarRef}
+                contentChangeSignal={expandDescription}
+              />
+            )}
+          </CharactersList>
+        </SidebarContainer>
 
-      <MainContentContainer ref={mainContentRef}>
-        <CampaignHeader>
-          <CampaignTitle>{campaign.name.toUpperCase()}</CampaignTitle>
+        <MainContentContainer ref={mainContentRef}>
+          <CampaignHeader>
+            <CampaignTitle>{campaign.name.toUpperCase()}</CampaignTitle>
+            <CampaignDate>
+              Data Atual:{" "}
+              {(() => {
+                if (!campaign.storyCurrentAt) return "Data não disponível";
+                const [date, _] = campaign.storyCurrentAt.split("T");
+                const [year, month, day] = date.split("-");
+                return `${day}/${month}/${year}`;
+              })()}
+            </CampaignDate>
+          </CampaignHeader>
+
+          <CampaignBriefDescription>
+            {campaign.briefInitialDescription}
+          </CampaignBriefDescription>
+
+          <CampaignFullDescription $expanded={expandDescription}>
+            <p>{campaign.description}</p>
+            <ExpandButton
+              onClick={() => setExpandDescription(!expandDescription)}
+            >
+              {expandDescription ? "Mostrar menos" : "Mostrar mais"}
+            </ExpandButton>
+          </CampaignFullDescription>
+
           <CampaignDate>
-            Data Atual:{" "}
+            Início:{" "}
             {(() => {
-              if (!campaign.storyCurrentAt) return "Data não disponível";
-              const [date, _] = campaign.storyCurrentAt.split("T");
-              const [year, month, day] = date.split("-");
+              const [year, month, day] = campaign.storyStartAt.split("-");
               return `${day}/${month}/${year}`;
             })()}
           </CampaignDate>
-        </CampaignHeader>
 
-        <CampaignBriefDescription>
-          {campaign.briefInitialDescription}
-        </CampaignBriefDescription>
+          <MatchesList>
+            {(campaign.matches || []).map((match) => (
+              <MatchItem
+                key={match.uuid}
+                match={match}
+                onClick={() => navigate(`/matches/${match.uuid}`)}
+              />
+            ))}
 
-        <CampaignFullDescription $expanded={expandDescription}>
-          <p>{campaign.description}</p>
-          <ExpandButton
-            onClick={() => setExpandDescription(!expandDescription)}
-          >
-            {expandDescription ? "Mostrar menos" : "Mostrar mais"}
-          </ExpandButton>
-        </CampaignFullDescription>
-
-        <CampaignDate>
-          Início:{" "}
-          {(() => {
-            const [year, month, day] = campaign.storyStartAt.split("-");
-            return `${day}/${month}/${year}`;
-          })()}
-        </CampaignDate>
-
-        <MatchesList>
-          {(campaign.matches || []).map((match) => (
-            <MatchItem
-              key={match.uuid}
-              match={match}
-              onClick={() => navigate(`/matches/${match.uuid}`)}
-            />
-          ))}
-
-          {isMaster && (
-            <AdaptiveActionButton
-              label="Criar Partida"
-              type="match"
-              onClick={handleCreateMatch}
-              containerRef={mainContentRef}
-              contentChangeSignal={expandDescription}
-            />
-          )}
-        </MatchesList>
-      </MainContentContainer>
+            {isMaster && (
+              <AdaptiveActionButton
+                label="Criar Partida"
+                type="match"
+                onClick={handleCreateMatch}
+                containerRef={mainContentRef}
+                contentChangeSignal={expandDescription}
+              />
+            )}
+          </MatchesList>
+        </MainContentContainer>
+      </PageBody>
     </CampaignContainer>
   );
 }
 
 const CampaignContainer = styled.div`
-  display: flex;
+  display: grid;
+  grid-template-rows: auto 1fr;
   height: 100vh;
   height: 100dvh;
+  overflow: hidden;
+`;
+
+const PageBody = styled.main`
+  display: flex;
   color: white;
-  background-color: #333;
+  min-height: 0;
+  overflow: hidden;
 `;
 
 const SidebarContainer = styled.div`
   width: 300px;
-  background-color: #2a2a2a;
+  background-color: #2e2e2e;
   padding: 20px;
   position: relative;
   overflow-y: auto;
-  height: 100vh;
-  height: 100dvh;
-  min-height: 100vh;
-  min-height: 100dvh;
   flex-shrink: 0;
 `;
 
@@ -207,8 +212,8 @@ const MainContentContainer = styled.div`
   flex: 1;
   padding: 30px 30px 20px 30px;
   overflow-y: auto;
-  height: 100vh;
-  height: 100dvh;
+  /* verify if is realy necessary */
+  min-height: 0;
 `;
 
 const CampaignHeader = styled.div`
