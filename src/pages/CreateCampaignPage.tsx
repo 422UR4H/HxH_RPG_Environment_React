@@ -71,6 +71,7 @@ export default function CreateCampaignPage() {
         <MainContentContainer>
           <CreateCampaignContainer>
             <PageTitle>CRIAR NOVA CAMPANHA</PageTitle>
+
             {error && <ErrorMessage>{error}</ErrorMessage>}
 
             <FormContainer onSubmit={handleSubmit}>
@@ -95,7 +96,7 @@ export default function CreateCampaignPage() {
                   onChange={handleForm}
                   placeholder="Uma breve descrição inicial da campanha"
                   resize="none"
-                  rows={2.5}
+                  rows={2}
                   required
                 />
               </FormGroup>
@@ -233,6 +234,7 @@ const MainContentContainer = styled.div`
   flex: 1;
   display: flex;
   justify-content: center;
+  align-items: flex-start;
   overflow-y: auto;
 `;
 
@@ -241,11 +243,14 @@ const CreateCampaignContainer = styled.div`
   flex-direction: column;
   gap: 30px;
   max-width: 940px;
+  width: 100%;
   padding: 30px;
 `;
 
 const RulesSidebar = styled.div`
-  width: 450px;
+  width: 50%;
+  max-width: 450px;
+  min-width: 350px;
   background-color: #2a2a2a;
   padding: 20px;
   position: relative;
@@ -256,24 +261,21 @@ const RulesSidebar = styled.div`
 const FormContainer = styled.form`
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 18px;
 `;
 
 const FormGroup = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 `;
 
 const FormRow = styled.div`
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+
   gap: 30px;
   width: 100%;
-
-  @media (max-width: 768px) {
-    flex-direction: column;
-    gap: 20px;
-  }
 `;
 
 const Label = styled.label`
@@ -294,7 +296,7 @@ const Input = styled.input`
 
   &:focus {
     outline: none;
-    border-color: #ffa216;
+    border-color: #ffbd30;
   }
 `;
 
@@ -307,11 +309,10 @@ const TextArea = styled.textarea<{ resize?: string }>`
   color: white;
   font-size: 24px;
   resize: ${({ resize }) => resize || "vertical"};
-  min-height: 60px;
 
   &:focus {
     outline: none;
-    border-color: #ffa216;
+    border-color: #ffbd30;
   }
 `;
 
@@ -322,8 +323,8 @@ const CheckboxContainer = styled.div`
 `;
 
 const Checkbox = styled.input`
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   cursor: pointer;
 `;
 
@@ -343,7 +344,6 @@ const HelpText = styled.p`
 const ButtonsContainer = styled.div`
   display: flex;
   gap: 15px;
-  margin-bottom: 30px;
 `;
 
 const Button = styled.button`
@@ -369,6 +369,9 @@ const SubmitButton = styled(Button)`
     cursor: pointer;
   }
 
+  /* &:focus {
+    outline: none;
+  } */
   &:hover {
     transform: translateY(-5px);
     filter: brightness(1.1);
