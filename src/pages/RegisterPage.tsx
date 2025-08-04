@@ -50,7 +50,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <SignPagesTemplate margin="274px">
+    <SignPagesTemplate>
       <Form onSubmit={handleSubmit}>
         <BaseInput
           name="email"

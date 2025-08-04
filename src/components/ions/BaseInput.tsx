@@ -17,8 +17,8 @@ export default function BaseInput({ ...props }: BaseInputProps) {
 }
 
 const StyledInput = styled.input`
-  font-family: "Oswald", "sans-serif";
-  font-size: 27px;
+  font-family: "Roboto", "sans-serif";
+  font-size: min(27px, 6vw);
   font-weight: 700;
   line-height: 40px;
   color: black;
@@ -37,8 +37,16 @@ const StyledInput = styled.input`
     outline: none;
   }
 
-  @media (max-width: 767px) {
-    width: calc(100vw - 45px);
+  /* @media (max-width: 767px) { */
+  @media (max-width: 580px) {
+    width: 100%;
+  }
+
+  @media (max-width: 480px) {
+    border-radius: 0;
+  }
+
+  @media (max-width: 360px) {
     height: 55px;
   }
 `;

@@ -11,13 +11,9 @@ export default function Form({ children, onSubmit }: FormProps) {
 }
 
 const StyledForm = styled.form`
-  gap: 13px;
-
   display: flex;
   flex-direction: column;
   align-items: center;
-
-  @media (max-width: 767px) {
-    gap: 11px;
-  }
+  gap: 13px;
+  width: 100%;
 `;

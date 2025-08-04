@@ -1,6 +1,6 @@
 import styled from "styled-components";
 import BackButton from "../ions/BackButton";
-import LogoButton from "../ions/LogoButton";
+import LogoButton from "./LogoButton";
 
 interface PageHeaderProps {
   to: string;

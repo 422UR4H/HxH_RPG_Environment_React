@@ -58,7 +58,7 @@ export default function LoginPage() {
   }
 
   return (
-    <SignPagesTemplate margin="317px">
+    <SignPagesTemplate>
       <Form onSubmit={handleSubmit}>
         <BaseInput
           name="email"
