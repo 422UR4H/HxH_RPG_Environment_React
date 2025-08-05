@@ -13,11 +13,11 @@ const MentalsDiagram = ({ attributes, mentalAbility }: MentalsDiagramProps) => {
   const attributePositions = [
     { name: "resilience", key: "RSL", x: "50%", y: "8%" },
     // { name: "emotion", key: "EMO", x: "50%", y: "8%" },
-    { name: "adaptability", key: "ADP", x: "92%", y: "53%" },
+    { name: "adaptability", key: "ADP", x: "93%", y: "53%" },
     // { name: "charism", key: "CAR", x: "92%", y: "53%" },
     { name: "weighting", key: "WEG", x: "50%", y: "92%" },
     // { name: "reasoning", key: "REA", x: "50%", y: "92%" },
-    { name: "creativity", key: "CRE", x: "8%", y: "53%" },
+    { name: "creativity", key: "CRE", x: "7%", y: "53%" },
   ];
 
   return (
@@ -100,7 +100,7 @@ const SVGContainer = styled.div`
 
 const MentalAbility = styled.div`
   position: absolute;
-  top: 52%;
+  top: 54%;
   left: 50%;
   transform: translate(-50%, -50%);
   display: flex;
@@ -112,27 +112,26 @@ const MentalAbility = styled.div`
 const MentalLabel = styled.div`
   font-family: "Roboto", sans-serif;
   font-weight: bold;
-  font-size: 6cqi;
+  font-size: min(7.6cqi, 34px);
   color: white;
-  margin-bottom: 10px;
+  margin-bottom: 2cqi;
 `;
 
 const MentalNumbers = styled.div`
   display: flex;
+  font-size: min(7.2cqi, 30px);
   gap: 3cqi;
 `;
 
 const MentalLevel = styled.div`
   font-family: "Roboto", sans-serif;
   font-weight: bold;
-  font-size: 6cqi;
   color: white;
 `;
 
 const MentalBonus = styled.div`
   font-family: "Roboto", sans-serif;
   font-weight: bold;
-  font-size: 6cqi;
   color: white;
 `;
 
@@ -149,7 +148,7 @@ const AttributeMarker = styled.div`
 const AttributeLabel = styled.div`
   font-family: "Roboto", sans-serif;
   font-weight: bold;
-  font-size: 5.4cqi;
+  font-size: min(7.4cqi, 32px);
   padding: 2px 0px;
   border-radius: 4px;
 `;
@@ -157,12 +156,12 @@ const AttributeLabel = styled.div`
 const AttributeNumbers = styled.div`
   display: flex;
   gap: 1.2cqi;
+  font-size: min(5.8cqi, 25px);
 `;
 
 const AttributePoints = styled.div`
   font-family: "Roboto", sans-serif;
   font-weight: bold;
-  font-size: 4cqi;
   color: white;
   align-items: center;
   justify-content: center;
@@ -171,11 +170,9 @@ const AttributePoints = styled.div`
 const AttributeLevel = styled.div`
   font-family: "Roboto", sans-serif;
   font-weight: bold;
-  font-size: 4cqi;
 `;
 
 const AttributePower = styled.div`
   font-family: "Roboto", sans-serif;
   font-weight: bold;
-  font-size: 4cqi;
 `;

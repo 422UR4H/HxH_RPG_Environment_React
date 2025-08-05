@@ -155,7 +155,7 @@ function CharacterSheetPage() {
         </AttributesSection>
 
         <SkillsSection>
-          <SectionTitle>Perícias</SectionTitle>
+          <SectionTitle>PERÍCIAS</SectionTitle>
 
           {/* Seção de Perícias Físicas - Agrupadas por atributo */}
           <SkillsGroup>
@@ -267,6 +267,7 @@ const SheetContainer = styled.div`
   color: white;
   background-color: black;
   position: relative;
+  padding-bottom: 30px;
 `;
 
 const HeaderSection = styled.div`
@@ -362,32 +363,32 @@ const ExpTotal = styled.div`
 const SectionTitle = styled.h2`
   font-family: "Roboto", sans-serif;
   font-weight: bold;
-  font-size: 7cqi;
+  font-size: 8cqi;
   color: white;
   margin-bottom: 5cqi;
+  padding-left: 1cqi;
 `;
 
 const GridSection = styled.div`
   padding: 30px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 30px;
-  margin-bottom: 30px;
 `;
 
 const GroupTitle = styled.h3`
-  font-size: 26px;
   font-family: "Roboto", sans-serif;
-  font-size: 26px;
+  font-size: 8cqi;
   color: #e0e0e0;
+  margin-top: 5cqi;
   margin-bottom: 10px;
+  padding-left: 1cqi;
 `;
 
 const AttributesSection = styled.section`
   container-type: inline-size;
   background-color: black;
   border-radius: 8px;
-  margin-bottom: 30px;
   margin-top: 3cqi;
 
   display: flex;
@@ -399,11 +400,11 @@ const SkillsSection = styled.section`
   container-type: inline-size;
   background-color: #3a3a3a;
   border-radius: 8px;
-  padding: 20px;
+  padding: 4% 3% 1% 3%;
 `;
 
 const SkillsGroup = styled.div`
-  margin-bottom: 20px;
+  /* margin-bottom: 20px; */
 `;
 
 const AbilitiesSection = styled.section`
@@ -452,7 +453,6 @@ const ProficienciesSection = styled.section`
   background-color: #3a3a3a;
   border-radius: 8px;
   padding: 20px;
-  margin-bottom: 30px;
 `;
 
 const ProficienciesList = styled.div`

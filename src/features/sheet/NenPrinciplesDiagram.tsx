@@ -14,16 +14,16 @@ const NenPrinciplesDiagram = ({
   spiritualAbility,
 }: NenPrinciplesDiagramProps) => {
   const attributePositions = [
-    { name: "ten", key: "Ten", x: "38.4%", y: "69%" },
-    { name: "zetsu", key: "Zts", x: "62%", y: "69%" },
-    { name: "ren", key: "Ren", x: "39%", y: "37%" },
+    { name: "ten", key: "Ten", x: "39%", y: "69%" },
+    { name: "zetsu", key: "Zts", x: "61.6%", y: "69%" },
+    { name: "ren", key: "Ren", x: "39.6%", y: "38%" },
     { name: "en", key: "En", x: "1%", y: "51.5%" },
-    { name: "ken", key: "Ken", x: "29%", y: "13%" },
-    { name: "kou", key: "Kou", x: "98.5%", y: "51.5%" },
-    { name: "ryu", key: "Ryu", x: "71.2%", y: "13%" },
-    { name: "gyo", key: "Gyo", x: "61%", y: "37%" },
-    { name: "shu", key: "Shu", x: "29%", y: "87%" },
-    { name: "in", key: "In", x: "71%", y: "87%" },
+    { name: "ken", key: "Ken", x: "29%", y: "12%" },
+    { name: "kou", key: "Kou", x: "99%", y: "51.5%" },
+    { name: "ryu", key: "Ryu", x: "71.2%", y: "12%" },
+    { name: "gyo", key: "Gyo", x: "60.4%", y: "38%" },
+    { name: "shu", key: "Shu", x: "29%", y: "89%" },
+    { name: "in", key: "In", x: "71%", y: "89%" },
   ];
 
   return (
@@ -103,7 +103,7 @@ const SVGContainer = styled.div`
 
 const SpiritualAbility = styled.div`
   position: absolute;
-  top: 53.5%;
+  top: 54%;
   left: 50%;
   transform: translate(-50%, -50%);
   display: flex;
@@ -115,27 +115,26 @@ const SpiritualAbility = styled.div`
 const SpiritualLabel = styled.div`
   font-family: "Roboto", sans-serif;
   font-weight: bold;
-  font-size: 7cqi;
+  font-size: min(7.4cqi, 32px);
   color: white;
-  margin-bottom: 4px;
+  margin-bottom: 1cqi;
 `;
 
 const SpiritualNumbers = styled.div`
   display: flex;
+  font-size: min(7.5cqi, 32px);
   gap: 3cqi;
 `;
 
 const SpiritualLevel = styled.div`
   font-family: "Roboto", sans-serif;
   font-weight: bold;
-  font-size: 6cqi;
   color: white;
 `;
 
 const SpiritualBonus = styled.div`
   font-family: "Roboto", sans-serif;
   font-weight: bold;
-  font-size: 6cqi;
   color: white;
 `;
 
@@ -152,24 +151,22 @@ const AttributeMarker = styled.div`
 const AttributeLabel = styled.div`
   font-family: "Roboto", sans-serif;
   font-weight: bold;
-  font-size: 6cqi;
-  padding: 2px 0px;
-  border-radius: 4px;
+  font-size: min(7cqi, 32px);
+  padding: 1px 0px;
 `;
 
 const AttributeNumbers = styled.div`
   display: flex;
   gap: 2.2cqi;
+  font-size: min(5.8cqi, 25px);
 `;
 
 const AttributeLevel = styled.div`
   font-family: "Roboto", sans-serif;
   font-weight: bold;
-  font-size: 5cqi;
 `;
 
 const AttributePower = styled.div`
   font-family: "Roboto", sans-serif;
   font-weight: bold;
-  font-size: 5cqi;
 `;

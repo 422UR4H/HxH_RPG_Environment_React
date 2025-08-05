@@ -41,7 +41,7 @@ export default function AttributeSkillGroup({
 }
 
 const AttributeSkillContainer = styled.div`
-  margin-bottom: 10px;
+  margin-bottom: 3cqi;
   border: 1px solid #555;
   border-radius: 8px;
   overflow: hidden;
@@ -59,35 +59,38 @@ const AttributeSectionTitle = styled.div`
 `;
 
 const AttributeTitle = styled.h3`
+  font-family: "Roboto", sans-serif;
+  font-size: 6cqi;
   color: #b1b1b1;
 `;
 
 const AttributePower = styled.h3`
   font-family: "Roboto", sans-serif;
+  font-size: 6cqi;
   color: #b1b1b1;
 `;
 
 const SkillsSubList = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-  gap: 10px;
-  padding: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(30cqi, 1fr));
+  gap: 2cqi;
+  padding: 2cqi;
   background-color: #3a3a3a;
 `;
 
 const SkillItem = styled.div`
   background-color: #444;
   border-radius: 6px;
-  padding: 10px 10px 8px 10px;
+  padding: 2.8cqi 2.6cqi 2cqi 2.6cqi;
   display: flex;
   flex-direction: column;
 `;
 
 const SkillName = styled.div`
   font-family: "Roboto", sans-serif;
-  font-size: 19px;
+  font-size: 5cqi;
   font-weight: 500;
-  margin-bottom: 5px;
+  margin-bottom: 2cqi;
 `;
 
 const SkillNumbers = styled.div`
@@ -99,14 +102,13 @@ const SkillNumbers = styled.div`
 
 const SkillValue = styled.div`
   font-family: "Roboto", sans-serif;
-  font-size: 28px;
+  font-size: 6cqi;
   font-weight: bold;
   color: white;
 `;
 
 const SkillLevel = styled.div`
   font-family: "Roboto", sans-serif;
-  font-size: 20px;
+  font-size: 5cqi;
   color: #9f9f9f;
-  padding-bottom: 2px;
 `;

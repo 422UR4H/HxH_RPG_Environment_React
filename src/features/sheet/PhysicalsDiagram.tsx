@@ -17,11 +17,11 @@ const PhysicalsDiagram = ({
     { name: "resistance", key: "RES", x: "50%", y: "8%" },
     { name: "constitution", key: "Con", x: "74%", y: "26%" },
     { name: "strength", key: "Str", x: "26%", y: "26%" },
-    { name: "agility", key: "AGI", x: "8%", y: "53%" },
-    { name: "dexterity", key: "Dex", x: "73%", y: "73%" },
-    { name: "sense", key: "SEN", x: "92%", y: "53%" },
+    { name: "agility", key: "AGI", x: "7%", y: "53%" },
+    { name: "dexterity", key: "Dex", x: "74%", y: "74%" },
+    { name: "sense", key: "SEN", x: "93%", y: "53%" },
     { name: "flexibility", key: "FLX", x: "50%", y: "92%" },
-    { name: "celerity", key: "Cel", x: "27%", y: "73%" },
+    { name: "celerity", key: "Cel", x: "26%", y: "74%" },
   ];
 
   return (
@@ -103,7 +103,7 @@ const SVGContainer = styled.div`
 
 const PhysicalAbility = styled.div`
   position: absolute;
-  top: 52%;
+  top: 54%;
   left: 50%;
   transform: translate(-50%, -50%);
   display: flex;
@@ -115,27 +115,26 @@ const PhysicalAbility = styled.div`
 const PhysicalLabel = styled.div`
   font-family: "Roboto", sans-serif;
   font-weight: bold;
-  font-size: 6cqi;
+  font-size: min(7.6cqi, 34px);
   color: white;
-  margin-bottom: 10px;
+  margin-bottom: 2cqi;
 `;
 
 const PhysicalNumbers = styled.div`
   display: flex;
+  font-size: min(7.5cqi, 32px);
   gap: 3cqi;
 `;
 
 const PhysicalLevel = styled.div`
   font-family: "Roboto", sans-serif;
   font-weight: bold;
-  font-size: 6cqi;
   color: white;
 `;
 
 const PhysicalBonus = styled.div`
   font-family: "Roboto", sans-serif;
   font-weight: bold;
-  font-size: 6cqi;
   color: white;
 `;
 
@@ -152,7 +151,7 @@ const AttributeMarker = styled.div`
 const AttributeLabel = styled.div`
   font-family: "Roboto", sans-serif;
   font-weight: bold;
-  font-size: 5.4cqi;
+  font-size: min(7.4cqi, 32px);
   padding: 2px 0px;
   border-radius: 4px;
 `;
@@ -160,12 +159,12 @@ const AttributeLabel = styled.div`
 const AttributeNumbers = styled.div`
   display: flex;
   gap: 1.2cqi;
+  font-size: min(5.8cqi, 25px);
 `;
 
 const AttributePoints = styled.div`
   font-family: "Roboto", sans-serif;
   font-weight: bold;
-  font-size: 4cqi;
   color: white;
   align-items: center;
   justify-content: center;
@@ -174,11 +173,9 @@ const AttributePoints = styled.div`
 const AttributeLevel = styled.div`
   font-family: "Roboto", sans-serif;
   font-weight: bold;
-  font-size: 4cqi;
 `;
 
 const AttributePower = styled.div`
   font-family: "Roboto", sans-serif;
-  font-size: 4cqi;
   font-weight: bold;
 `;
