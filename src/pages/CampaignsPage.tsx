@@ -91,11 +91,11 @@ const PageBody = styled.main`
   flex-direction: column;
   align-items: center;
   gap: 30px;
-  padding: 30px 0;
+  padding: 30px;
   width: 100vw;
 
-  @media (max-width: 941px) {
-    padding: 30px;
+  @media (max-width: 500px) {
+    padding: 30px 0;
   }
 `;
 
@@ -134,14 +134,15 @@ const EmptyMessage = styled.p`
 
 const CreateButton = styled.button`
   font-family: "Roboto", sans-serif;
-  font-size: 20px;
-  font-weight: 500;
+  font-size: 26px;
+  font-weight: 600;
   color: white;
   background-color: #107135;
 
-  height: 91px;
+  height: 100px;
+  width: 80vw;
   max-width: 940px;
-  padding: 15px 30px;
+  border-radius: 12px;
   border: none;
 
   display: flex;
@@ -157,20 +158,23 @@ const CreateButton = styled.button`
     transform: translateY(-5px);
     filter: brightness(1.1);
     box-shadow: 0 8px 15px rgba(0, 0, 0, 0.4);
-
-    border-width: 4px 0px 4px 0px;
-    border-style: solid;
+    border: 4px solid white;
+  }
+  &:active {
+    transform: scale(0.98);
   }
 
-  @media (orientation: landscape) {
-    width: 80vw;
-    border-radius: 12px;
+  @media (max-width: 500px) {
+    font-size: 22px;
+
+    width: 100%;
+    border-radius: 0px;
 
     &:hover {
-      border: 4px solid white;
+      border-width: 4px 0px 4px 0px;
     }
     &:active {
-      transform: scale(0.98);
+      transform: scale(1);
     }
   }
 `;

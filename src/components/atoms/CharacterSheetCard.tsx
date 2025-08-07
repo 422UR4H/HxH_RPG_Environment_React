@@ -45,14 +45,17 @@ const CardContainer = styled(Link)`
   overflow: hidden;
   transition: transform 0.2s, box-shadow 0.2s;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-  max-width: 940px;
-  width: 100%;
   cursor: pointer;
+
+  width: 80vw;
+  max-width: 940px;
+  border-radius: 26px 26px 0 0;
+  border: 4px solid black;
 
   &:hover {
     transform: translateY(-5px);
     box-shadow: 0 8px 15px rgba(0, 0, 0, 0.4);
-    /* border-color: rgb(255, 162, 22); */
+    /* border: 4px solid rgb(255, 162, 22); */
     border-color: #ba1a3e;
 
     ${CharacterName} {
@@ -60,14 +63,21 @@ const CardContainer = styled(Link)`
       color: #ba1a3e;
     }
   }
+  &:active {
+    transform: scale(0.98);
+  }
 
-  @media (min-width: 941px) {
-    width: 80vw;
-    border-radius: 26px 26px 0 0;
+  @media (max-width: 500px) {
+    width: 100%;
+    border-radius: 0;
 
     &:hover {
-      /* border: 4px solid #107135; */
-      border: 4px solid #ba1a3e;
+      /* border-color: #107135; */
+      border-color: #ba1a3e;
+      border-width: 4px 0 4px 0;
+    }
+    &:active {
+      transform: scale(1);
     }
   }
 `;

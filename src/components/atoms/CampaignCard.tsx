@@ -38,12 +38,12 @@ const CardContainer = styled(Link)`
   overflow: hidden;
   transition: transform 0.2s, box-shadow 0.2s;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-  border-width: 4px 0 4px 0;
-  border-style: solid;
-  border-color: #444;
-  max-width: 940px;
-  width: 100%;
   cursor: pointer;
+
+  width: 80vw;
+  max-width: 940px;
+  border: 4px solid #444;
+  border-radius: 12px;
 
   &:hover {
     transform: translateY(-5px);
@@ -52,19 +52,17 @@ const CardContainer = styled(Link)`
     /* border-color: #ba1a3e; */
     border-color: #107135;
   }
+  &:active {
+    transform: scale(0.98);
+  }
 
-  @media (min-width: 941px) {
-    width: 80vw;
-    border-width: 4px;
-    border-radius: 12px;
+  @media (max-width: 500px) {
+    width: 100%;
+    border-width: 4px 0 4px 0;
+    border-radius: 0px;
 
-    &:hover {
-      /* border: 2px solid rgb(255, 162, 22); */
-      /* border: 4px solid #ba1a3e; */
-      border-color: #107135;
-    }
     &:active {
-      transform: scale(0.98);
+      transform: scale(1);
     }
   }
 `;
@@ -77,8 +75,8 @@ const CardContent = styled.div`
 `;
 
 const CampaignName = styled.h2`
-  font-family: "Oswald", sans-serif;
-  font-size: 24px;
+  font-family: "Roboto", sans-serif;
+  font-size: 26px;
   font-weight: 700;
   margin-bottom: 10px;
   color: white;
@@ -89,6 +87,10 @@ const CampaignName = styled.h2`
     /* color: #2ecc71; */
     /* color: rgb(255, 162, 22); */
   }
+
+  @media(max-width: 500px) {
+    font-size: 22px;
+  }
 `;
 
 const CampaignInfo = styled.div`
@@ -98,9 +100,15 @@ const CampaignInfo = styled.div`
 `;
 
 const Description = styled.p`
-  font-size: 16px;
-  margin-bottom: 15px;
+  font-family: "Roboto", sans-serif;
+  font-weight: 300;
+  font-size: 20px;
   line-height: 1.4;
+  margin-bottom: 15px;
+
+  @media(max-width: 500px) {
+    font-size: 18px;
+  }
 `;
 
 const MetaInfo = styled.div`
