@@ -10,6 +10,7 @@ import NenPrinciplesDiagram from "../features/sheet/NenPrinciplesDiagram";
 import CharacterSheetHeader from "../components/molecules/CharacterSheetHeader";
 import BackButton from "../components/ions/BackButton";
 import AttributeSkillGroup from "../features/sheet/AttributeSkillGroup";
+import CharacterProfile from "../features/sheet/CharacterProfile";
 
 function CharacterSheetPage() {
   const { id } = useParams<{ id: string }>();
@@ -85,6 +86,7 @@ function CharacterSheetPage() {
         cover={undefined} // add field here when it exists in the API response
         avatar={undefined} // add field here when it exists in the API response
         nick={profile.nickname}
+        characterClass={characterClass}
         lvls={[]}
         health={status.health}
         stamina={status.stamina}
@@ -134,6 +136,13 @@ function CharacterSheetPage() {
           <ExpTotal>EXP Total: {characterExp.exp}</ExpTotal>
         </ExperienceSection>
       </StatusSection> */}
+
+      <CharacterProfile
+        fullname={profile.fullname}
+        briefDescription={profile.briefDescription}
+        birthday={profile.birthday}
+        alignment={profile.alignment}
+      />
 
       <GridSection>
         <AttributesSection>
@@ -230,7 +239,7 @@ function CharacterSheetPage() {
         </SkillsSection>
       </GridSection>
 
-      <AbilitiesSection>
+      {/* <AbilitiesSection>
         <SectionTitle>Habilidades</SectionTitle>
         <AbilitiesList>
           {Object.entries(abilities).map(([name, ability]) => (
@@ -243,15 +252,17 @@ function CharacterSheetPage() {
             </AbilityItem>
           ))}
         </AbilitiesList>
-      </AbilitiesSection>
+      </AbilitiesSection> */}
 
       <ProficienciesSection>
         <SectionTitle>Proficiências</SectionTitle>
         <ProficienciesList>
           {Object.entries(commonProficiencies).map(([name, prof]) => (
             <ProficiencyItem key={name}>
-              <ProficiencyName>{name}</ProficiencyName>
-              <ProficiencyLevel>Nível: {prof.level}</ProficiencyLevel>
+              <ProficiencyName>
+                {name.charAt(0).toUpperCase() + name.slice(1)}
+              </ProficiencyName>
+              <ProficiencyLevel>Level: {prof.level}</ProficiencyLevel>
             </ProficiencyItem>
           ))}
         </ProficienciesList>
@@ -452,6 +463,7 @@ const ProficienciesSection = styled.section`
   container-type: inline-size;
   background-color: #3a3a3a;
   border-radius: 8px;
+  margin: 0 30px;
   padding: 20px;
 `;
 
@@ -472,13 +484,16 @@ const ProficiencyItem = styled.div`
 `;
 
 const ProficiencyName = styled.div`
-  font-weight: bold;
+  font-family: "Roboto", sans-serif;
+  font-weight: 500;
+  font-size: min(22px, 5cqi);
 `;
 
 const ProficiencyLevel = styled.div`
-  font-size: 20px;
-  color: #ffa216;
-  font-weight: bold;
+  font-family: "Roboto", sans-serif;
+  font-weight: 400;
+  font-size: min(22px, 5cqi);
+  color: #9f9f9f;
 `;
 
 const LoadingContainer = styled.div`

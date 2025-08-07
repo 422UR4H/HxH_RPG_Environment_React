@@ -159,7 +159,7 @@ const AttributeLabel = styled.div`
 const AttributeNumbers = styled.div`
   display: flex;
   gap: 1.2cqi;
-  font-size: min(5.8cqi, 25px);
+  font-size: 5.8cqi;
 `;
 
 const AttributePoints = styled.div`
