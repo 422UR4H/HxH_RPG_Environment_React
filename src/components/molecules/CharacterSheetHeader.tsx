@@ -10,22 +10,26 @@ interface CharacterSheetHeaderProps {
   cover?: string;
   avatar?: string;
   nick: string;
+  characterClass: string;
   health: StatusBar;
   stamina: StatusBar;
   lvls: number[];
+  cardView?: boolean;
 }
 
 export default function CharacterSheetHeader({
   cover,
   avatar,
   nick,
+  characterClass,
   health,
   stamina,
   lvls = [],
+  cardView = false,
 }: CharacterSheetHeaderProps) {
   return (
     <HeaderContainer>
-      <CoverContainer>
+      <CoverContainer $cardView={cardView}>
         <Cover src={cover || coverPlaceholder} alt={`cover`} />
       </CoverContainer>
 
@@ -36,6 +40,7 @@ export default function CharacterSheetHeader({
 
       <NicknameOverlay>
         <Nickname>{nick}</Nickname>
+        <CharacterClass>{characterClass}</CharacterClass>
       </NicknameOverlay>
 
       <StatusBarsContainer>
@@ -53,9 +58,9 @@ const HeaderContainer = styled.div`
   position: relative;
 `;
 
-const CoverContainer = styled.div`
+const CoverContainer = styled.div<{ $cardView: boolean }>`
   width: 100%;
-  aspect-ratio: 2.5 / 1;
+  aspect-ratio: ${({ $cardView }) => ($cardView ? "3 / 1" : "2.5 / 1")};
   overflow: hidden;
 
   position: relative;
@@ -67,15 +72,15 @@ const CoverContainer = styled.div`
     bottom: 0;
     left: 0;
     right: 0;
-    height: 24%;
+    height: 40%;
     background: linear-gradient(
       to top,
-      rgba(0, 0, 0, 0.88) 0%,
-      rgba(0, 0, 0, 0.66) 15%,
-      rgba(0, 0, 0, 0.54) 25%,
-      rgba(0, 0, 0, 0.32) 40%,
-      rgba(0, 0, 0, 0.17) 55%,
-      rgba(0, 0, 0, 0.06) 70%,
+      rgba(0, 0, 0, 0.9) 0%,
+      rgba(0, 0, 0, 0.69) 15%,
+      rgba(0, 0, 0, 0.55) 25%,
+      rgba(0, 0, 0, 0.35) 40%,
+      rgba(0, 0, 0, 0.19) 55%,
+      rgba(0, 0, 0, 0.07) 70%,
       rgba(0, 0, 0, 0.02) 85%,
       transparent 100%
     );
@@ -126,9 +131,18 @@ const NicknameOverlay = styled.div`
 
 const Nickname = styled.h1`
   font-family: "Roboto", sans-serif;
-  font-size: min(5vw, 3rem);
+  font-size: min(5.4cqi, 3.1rem);
   font-weight: 700;
   color: white;
+  text-shadow: 1px 1px 6px rgba(0, 0, 0, 1);
+`;
+
+const CharacterClass = styled.h2`
+  font-family: "Roboto", sans-serif;
+  font-size: min(3.6cqi, 2.2rem);
+  font-weight: 600;
+  color: #c4c4c4;
+  padding-left: 0.8cqi;
   text-shadow: 1px 1px 6px rgba(0, 0, 0, 1);
 `;
 

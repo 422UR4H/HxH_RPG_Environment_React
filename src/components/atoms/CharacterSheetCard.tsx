@@ -8,26 +8,23 @@ interface CharacterSummaryProps {
   to: string;
 }
 
-// TODO: add fullname? and character class
 export default function CharacterSheetCard({
   // character: { health, stamina, nickName, ...charRest },
-  character: { health, stamina, nickName },
+  character: { health, stamina, nickName, characterClass },
   to,
 }: CharacterSummaryProps) {
   return (
     <CardContainer to={to}>
       <CharacterSheetHeader
+        // cover={cover}
+        // avatar={avatar}
         nick={nickName}
+        characterClass={characterClass}
         health={health}
         stamina={stamina}
         lvls={[]}
+        cardView={true}
       />
-      {/* <CoverImage src={character.coverUrl} />
-        <Avatar src={character.avatarUrl} /> */}
-      {/* <CharacterInfo>
-        <FullName>{charRest.fullName}</FullName>
-        <CharacterClass>{charRest.characterClass}</CharacterClass>
-      </CharacterInfo> */}
     </CardContainer>
   );
 }
@@ -74,20 +71,3 @@ const CardContainer = styled(Link)`
     }
   }
 `;
-
-// const CharacterInfo = styled.div`
-//   display: flex;
-//   flex-direction: column;
-//   flex-grow: 1;
-// `;
-
-// const FullName = styled.p`
-//   font-size: 16px;
-//   margin-bottom: 5px;
-// `;
-
-// const CharacterClass = styled.p`
-//   font-size: 14px;
-//   color: #9f9f9f;
-//   margin-bottom: 15px;
-// `;
