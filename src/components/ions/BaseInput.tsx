@@ -1,5 +1,6 @@
 import styled from "styled-components";
 
+// TODO: improve componentization to make base button more reusable or splitting it
 interface BaseInputProps {
   name: string;
   type?: "text" | "email" | "password" | "number";
@@ -22,13 +23,14 @@ const StyledInput = styled.input`
   font-weight: 700;
   line-height: 40px;
   color: black;
+  border: 4px solid #b91a40;
 
   width: 429px;
-  height: 65px;
-  border: none;
-  border-radius: 6px;
-  padding-inline: 17px;
-  padding-bottom: 5px;
+  height: 48px;
+  /* border: none; */
+  /* border-radius: 6px; */
+  padding-inline: 14px;
+  padding-bottom: 2px;
 
   &::placeholder {
     color: #9f9f9f;

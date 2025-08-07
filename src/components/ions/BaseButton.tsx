@@ -7,6 +7,7 @@ interface BaseButtonProps {
   onClick?: () => void;
 }
 
+// TODO: improve componentization to make base button more reusable
 export default function BaseButton({ children, ...props }: BaseButtonProps) {
   return <StyledButton {...props}>{children}</StyledButton>;
 }
@@ -18,11 +19,14 @@ const StyledButton = styled.button`
   line-height: 40px;
   color: white;
 
-  background-color: #107135;
+  border: 4px solid black;
+  /* background-color: #107135; */
+  background: linear-gradient(to bottom, #ffa216 0%, #ffa216 20%, #e60000 100%);
+  color: black;
+
   width: 429px;
-  height: 65px;
-  border-radius: 6px;
-  border: none;
+  height: 48px;
+  border-radius: 14px;
   cursor: pointer;
 
   /* &:focus {
