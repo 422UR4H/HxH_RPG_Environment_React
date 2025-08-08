@@ -1,5 +1,5 @@
 import { useState } from "react";
-import styled from "styled-components";
+import styled, { keyframes } from "styled-components";
 import expandIcon from "../../assets/icons/vezinhopontiagudo.svg";
 
 interface CharacterProfileProps {
@@ -63,6 +63,7 @@ export default function CharacterProfile({
 }
 
 const ProfileContainer = styled.div`
+  container-type: inline-size;
   width: 100%;
   background-color: #3a3a3a;
   margin-bottom: 20px;
@@ -100,41 +101,60 @@ const ExpandIcon = styled.img<{ $isExpanded: boolean }>`
   transition: transform 0.16s ease;
   transform: ${({ $isExpanded }) =>
     $isExpanded ? "rotate(180deg)" : "rotate(0deg)"};
+
+  -webkit-user-select: none;
+  /* -moz-user-select: none; */
+  /* pointer-events: none; */
+  /* user-select: none; */
+
+  &:hover {
+    /* transform: scale(1.05); */
+    filter: brightness(1.1);
+  }
+  /* &:active {
+    transform: scale(0.98);
+  } */
+`;
+
+const slideDown = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 `;
 
 const ProfileContent = styled.div`
   container-type: inline-size;
   padding: 20px 25px;
-  animation: slideDown 0.3s ease;
-
-  @keyframes slideDown {
-    from {
-      opacity: 0;
-      transform: translateY(-10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
+  animation: ${slideDown} 0.3s ease;
 `;
 
 const ProfileName = styled.h2`
   font-family: "Roboto", sans-serif;
-  font-size: 32px;
-  font-size: 5cqi;
+  font-size: min(4.2cqi, 32px);
   font-weight: bold;
   color: white;
   margin-bottom: 1cqi;
+
+  @media (max-width: 609px) {
+    font-size: 5cqi;
+  }
 `;
 
 const ProfileDescription = styled.p`
   font-family: "Roboto", sans-serif;
-  font-size: 18px;
-  font-size: 4.6cqi;
+  font-size: min(3.4cqi, 24px);
   line-height: 1.6;
   color: #e0e0e0;
   margin-bottom: 2cqi;
+
+  @media (max-width: 609px) {
+    font-size: 4.6cqi;
+  }
 `;
 
 const ProfileDetails = styled.div`
@@ -159,16 +179,24 @@ const DetailItem = styled.div`
 
 const DetailLabel = styled.span`
   font-family: "Roboto", sans-serif;
-  font-size: 4cqi;
+  font-size: min(3.4cqi, 24px);
   color: #9f9f9f;
   font-weight: 500;
+
+  @media (max-width: 609px) {
+    font-size: 4cqi;
+  }
 `;
 
 const DetailValue = styled.span`
   font-family: "Roboto", sans-serif;
-  font-size: 4.6cqi;
+  font-size: min(3.8cqi, 28px);
   color: white;
   font-weight: 600;
+
+  @media (max-width: 609px) {
+    font-size: 4.6cqi;
+  }
 `;
 
 const RightDetails = styled.div`
@@ -195,8 +223,11 @@ const BackgroundButton = styled.button`
 
 const BackgroundText = styled.span`
   font-family: "Roboto", sans-serif;
-  font-size: 16px;
-  font-size: 4cqi;
+  font-size: min(3.4cqi, 28px);
   color: white;
   font-weight: 600;
+
+  @media (max-width: 609px) {
+    font-size: 4cqi;
+  }
 `;
