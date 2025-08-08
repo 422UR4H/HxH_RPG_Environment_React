@@ -9,8 +9,10 @@ import MentalsDiagram from "../features/sheet/MentalsDiagram";
 import NenPrinciplesDiagram from "../features/sheet/NenPrinciplesDiagram";
 import CharacterSheetHeader from "../components/molecules/CharacterSheetHeader";
 import BackButton from "../components/ions/BackButton";
-import AttributeSkillGroup from "../features/sheet/AttributeSkillGroup";
 import CharacterProfile from "../features/sheet/CharacterProfile";
+import PhysicalSkillsGroup from "../features/sheet/PhysicalSkillsGroup";
+import SpiritualSkillsGroup from "../features/sheet/SpiritualSkillsGroup";
+import ProficienciesList from "../features/sheet/ProficienciesList";
 
 function CharacterSheetPage() {
   const { id } = useParams<{ id: string }>();
@@ -94,22 +96,12 @@ function CharacterSheetPage() {
 
       {/* <HeaderSection>
         <CharacterMeta>
-          <MetaItem>
-            <Label>Nome:</Label> {profile.fullname}
-          </MetaItem>
-          <MetaItem>
-            <Label>Classe:</Label> {characterClass}
-          </MetaItem>
-          <MetaItem>
-            <Label>Alinhamento:</Label> {profile.alignment}
-          </MetaItem>
           {categoryName && (
             <MetaItem>
               <Label>Categoria:</Label> {categoryName}
             </MetaItem>
           )}
         </CharacterMeta>
-        <CharacterDescription>{profile.briefDescription}</CharacterDescription>
       </HeaderSection>
 
       <StatusSection>
@@ -166,74 +158,19 @@ function CharacterSheetPage() {
         <SkillsSection>
           <SectionTitle>PERÍCIAS</SectionTitle>
 
-          {/* Seção de Perícias Físicas - Agrupadas por atributo */}
           <SkillsGroup>
             <GroupTitle>Físicas</GroupTitle>
-
-            <AttributeSkillGroup
-              attributeName={"Resistance"}
-              attributePower={physicalAttributes["resistance"].power}
-              skillsSubList={["defense", "energy", "vitality"]}
-              skillsList={physicalSkills}
-            />
-
-            <AttributeSkillGroup
-              attributeName={"Strength"}
-              attributePower={physicalAttributes["strength"].power}
-              skillsSubList={["carry", "grab", "push"]}
-              skillsList={physicalSkills}
-            />
-
-            <AttributeSkillGroup
-              attributeName={"Agility"}
-              attributePower={physicalAttributes["agility"].power}
-              skillsSubList={["accelerate", "brake", "velocity"]}
-              skillsList={physicalSkills}
-            />
-
-            <AttributeSkillGroup
-              attributeName={"Celerity"}
-              attributePower={physicalAttributes["celerity"].power}
-              skillsSubList={["legerity", "feint", "repel"]}
-              skillsList={physicalSkills}
-            />
-
-            <AttributeSkillGroup
-              attributeName={"Flexibility"}
-              attributePower={physicalAttributes["flexibility"].power}
-              skillsSubList={["acrobatics", "evasion", "sneak"]}
-              skillsList={physicalSkills}
-            />
-
-            <AttributeSkillGroup
-              attributeName={"Dexterity"}
-              attributePower={physicalAttributes["dexterity"].power}
-              skillsSubList={["accuracy", "reflex", "stealth"]}
-              skillsList={physicalSkills}
-            />
-
-            <AttributeSkillGroup
-              attributeName={"Sense"}
-              attributePower={physicalAttributes["sense"].power}
-              skillsSubList={["hearing", "smell", "tact", "taste", "vision"]}
-              skillsList={physicalSkills}
-            />
-
-            <AttributeSkillGroup
-              attributeName={"Constitution"}
-              attributePower={physicalAttributes["constitution"].power}
-              skillsSubList={["breath", "heal", "tenacity"]}
-              skillsList={physicalSkills}
+            <PhysicalSkillsGroup
+              attributes={physicalAttributes}
+              skills={physicalSkills}
             />
           </SkillsGroup>
 
           <SkillsGroup>
             <GroupTitle>Espirituais</GroupTitle>
-            <AttributeSkillGroup
-              attributeName={"Spirit"}
-              attributePower={spiritualAttributes["spirit"].power}
-              skillsSubList={["focus", "nen", "willPower"]}
-              skillsList={spiritualSkills}
+            <SpiritualSkillsGroup
+              attributes={spiritualAttributes}
+              skills={spiritualSkills}
             />
           </SkillsGroup>
         </SkillsSection>
@@ -256,16 +193,7 @@ function CharacterSheetPage() {
 
       <ProficienciesSection>
         <SectionTitle>Proficiências</SectionTitle>
-        <ProficienciesList>
-          {Object.entries(commonProficiencies).map(([name, prof]) => (
-            <ProficiencyItem key={name}>
-              <ProficiencyName>
-                {name.charAt(0).toUpperCase() + name.slice(1)}
-              </ProficiencyName>
-              <ProficiencyLevel>Level: {prof.level}</ProficiencyLevel>
-            </ProficiencyItem>
-          ))}
-        </ProficienciesList>
+        <ProficienciesList commonProfs={commonProficiencies} />
       </ProficienciesSection>
     </SheetContainer>
   );
@@ -273,6 +201,7 @@ function CharacterSheetPage() {
 export default CharacterSheetPage;
 
 const SheetContainer = styled.div`
+  container-type: inline-size;
   max-width: 940px;
   margin: 0 auto;
   color: white;
@@ -301,12 +230,6 @@ const MetaItem = styled.div`
 const Label = styled.span`
   color: #9f9f9f;
   margin-right: 5px;
-`;
-
-const CharacterDescription = styled.p`
-  font-size: 22px;
-  line-height: 1.5;
-  color: #e0e0e0;
 `;
 
 const StatusSection = styled.section`
@@ -385,6 +308,11 @@ const GridSection = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 30px;
+
+  @media (max-width: 609px) {
+    padding: 30px;
+    padding-top: 0px;
+  }
 `;
 
 const GroupTitle = styled.h3`
@@ -398,9 +326,7 @@ const GroupTitle = styled.h3`
 
 const AttributesSection = styled.section`
   container-type: inline-size;
-  background-color: black;
-  border-radius: 8px;
-  margin-top: 3cqi;
+  margin-top: 12px;
 
   display: flex;
   flex-direction: column;
@@ -465,35 +391,6 @@ const ProficienciesSection = styled.section`
   border-radius: 8px;
   margin: 0 30px;
   padding: 20px;
-`;
-
-const ProficienciesList = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 300px));
-  gap: 15px;
-`;
-
-const ProficiencyItem = styled.div`
-  font-size: 24px;
-  background-color: #444;
-  border-radius: 6px;
-  padding: 15px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-`;
-
-const ProficiencyName = styled.div`
-  font-family: "Roboto", sans-serif;
-  font-weight: 500;
-  font-size: min(22px, 5cqi);
-`;
-
-const ProficiencyLevel = styled.div`
-  font-family: "Roboto", sans-serif;
-  font-weight: 400;
-  font-size: min(22px, 5cqi);
-  color: #9f9f9f;
 `;
 
 const LoadingContainer = styled.div`
