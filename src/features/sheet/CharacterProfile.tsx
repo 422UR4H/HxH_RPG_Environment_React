@@ -65,11 +65,15 @@ export default function CharacterProfile({
 const ProfileContainer = styled.div`
   container-type: inline-size;
   width: 100%;
-  background-color: #3a3a3a;
-  margin-bottom: 20px;
+  background-color: #444;
+  margin-bottom: 2cqi;
   border: 3px solid black;
   overflow: visible;
   transition: all 0.3s ease;
+
+  @media (max-width: 609px) {
+    margin-bottom: 4vw;
+  }
 `;
 
 const ProfileHeader = styled.div`
@@ -81,7 +85,7 @@ const ProfileHeader = styled.div`
   justify-content: center;
   position: relative;
   cursor: pointer;
-  background-color: #444;
+  background-color: #3a3a3a;
   transition: background-color 0.2s ease;
   overflow: visible;
 

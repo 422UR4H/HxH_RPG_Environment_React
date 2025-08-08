@@ -12,7 +12,8 @@ export default function HpBar({ current, max, height }: HpBarProps) {
       current={current}
       max={max}
       // label="Vida"
-      color="#e74c3c"
+      // color="#e74c3c"
+      color="#B61B40"
       height={height}
     />
   );

@@ -115,8 +115,8 @@ const GungiFrame = styled.img`
 `;
 
 const Avatar = styled.img`
-  width: 60%;
-  height: 60%;
+  width: 71.1%;
+  height: 71.1%;
   object-fit: cover;
   border-radius: 50%;
   z-index: 2;

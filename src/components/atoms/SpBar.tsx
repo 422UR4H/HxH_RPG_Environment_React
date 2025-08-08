@@ -12,7 +12,8 @@ export default function SpBar({ current, max, height }: SpBarProps) {
       current={current}
       max={max}
       // label="Stamina"
-      color="#2ecc71"
+      // color="#2ecc71"
+      color="#088E3B"
       height={height}
     />
   );
