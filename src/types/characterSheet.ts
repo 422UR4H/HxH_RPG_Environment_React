@@ -49,49 +49,47 @@ export interface StatusBar {
 // skillsLvl: number;
 
 export interface CharacterSheet {
-  characterSheet: {
-    characterClass: string;
-    categoryName: string;
-    profile: {
-      nickname: string;
-      fullname: string;
-      alignment: string;
-      briefDescription: string;
-      birthday: string;
-    };
-    status: {
-      health: StatusBar;
-      stamina: StatusBar;
-    };
-    characterExp: {
-      level: number;
-      exp: number;
-      currExp: number;
-      nextLvlBaseExp: number;
-      points: number;
-    };
-    talent: {
-      level: number;
-      exp: number;
-      currExp: number;
-      nextLvlBaseExp: number;
-    };
-    abilities: {
-      mentals: Ability;
-      physicals: Ability;
-      skills: Ability;
-      spirituals: Ability;
-    };
-    physicalAttributes: Record<string, Attribute>;
-    mentalAttributes: Record<string, Attribute>;
-    spiritualAttributes: Record<string, Attribute>;
-    physicalSkills: Record<string, Skill>;
-    spiritualSkills: Record<string, Skill>;
-    principles: Record<string, Skill>;
-    categories: Record<string, Category>;
-    commonProficiencies: Record<string, { level: number }>;
-    jointProficiencies: Record<string, any>;
+  characterClass: string;
+  categoryName: string;
+  profile: {
+    nickname: string;
+    fullname: string;
+    alignment: string;
+    briefDescription: string;
+    birthday: string;
   };
+  status: {
+    health: StatusBar;
+    stamina: StatusBar;
+  };
+  characterExp: {
+    level: number;
+    exp: number;
+    currExp: number;
+    nextLvlBaseExp: number;
+    points: number;
+  };
+  talent: {
+    level: number;
+    exp: number;
+    currExp: number;
+    nextLvlBaseExp: number;
+  };
+  abilities: {
+    mentals: Ability;
+    physicals: Ability;
+    skills: Ability;
+    spirituals: Ability;
+  };
+  physicalAttributes: Record<string, Attribute>;
+  mentalAttributes: Record<string, Attribute>;
+  spiritualAttributes: Record<string, Attribute>;
+  physicalSkills: Record<string, Skill>;
+  spiritualSkills: Record<string, Skill>;
+  principles: Record<string, Skill>;
+  categories: Record<string, Category>;
+  commonProficiencies: Record<string, { level: number }>;
+  jointProficiencies: Record<string, any>;
 }
 
 export interface Ability {

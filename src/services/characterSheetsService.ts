@@ -26,11 +26,15 @@ export const characterSheetsService = {
 
   getCharacterSheetDetails: (token: string, id: string) =>
     httpClient
-      .get<CharacterSheet>(`/charactersheets/${id}`, config(token))
+      .get<{ character_sheet: CharacterSheet }>(
+        `/charactersheets/${id}`,
+        config(token)
+      )
       .then((response) => {
+        const campaignData = response.data.character_sheet;
         return {
           ...response,
-          data: objToCamelCase<CharacterSheet>(response.data),
+          data: objToCamelCase<CharacterSheet>(campaignData),
         };
       }),
 };
