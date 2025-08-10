@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import CharacterSheetTemplate from "../components/templates/CharacterSheetTemplate";
+import CharacterSheetTemplate from "../features/sheet/CharacterSheetTemplate";
 import useToken from "../hooks/useToken";
 import type { CharacterSheet } from "../types/characterSheet";
 import { characterSheetsService } from "../services/characterSheetsService";

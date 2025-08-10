@@ -1,14 +1,14 @@
 import type { CharacterSheet } from "../../types/characterSheet";
 import styled from "styled-components";
-import BackButton from "../ions/BackButton";
-import CharacterSheetHeader from "../molecules/CharacterSheetHeader";
-import CharacterProfile from "../../features/sheet/CharacterProfile";
-import PhysicalsDiagram from "../../features/sheet/PhysicalsDiagram";
-import MentalsDiagram from "../../features/sheet/MentalsDiagram";
-import NenPrinciplesDiagram from "../../features/sheet/NenPrinciplesDiagram";
-import PhysicalSkillsGroup from "../../features/sheet/PhysicalSkillsGroup";
-import SpiritualSkillsGroup from "../../features/sheet/SpiritualSkillsGroup";
-import ProficienciesList from "../../features/sheet/ProficienciesList";
+import BackButton from "../../components/ions/BackButton";
+import CharacterSheetHeader from "../../components/molecules/CharacterSheetHeader";
+import CharacterProfile from "./CharacterProfile";
+import PhysicalsDiagram from "./PhysicalsDiagram";
+import MentalsDiagram from "./MentalsDiagram";
+import NenPrinciplesDiagram from "./NenPrinciplesDiagram";
+import PhysicalSkillsGroup from "./PhysicalSkillsGroup";
+import SpiritualSkillsGroup from "./SpiritualSkillsGroup";
+import ProficienciesList from "./ProficienciesList";
 
 interface CharacterSheetTemplateProps {
   charSheet: CharacterSheet;
