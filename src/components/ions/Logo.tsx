@@ -1,4 +1,4 @@
-import hxhLogo from "../../assets/icons/hxh-logo.avif";
+import hxhLogo from "../../assets/images/hxh-logo.avif";
 import styled from "styled-components";
 
 export default function Logo() {
