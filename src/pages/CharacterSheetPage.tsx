@@ -5,6 +5,7 @@ import useToken from "../hooks/useToken";
 import type { CharacterSheet } from "../types/characterSheet";
 import { characterSheetsService } from "../services/characterSheetsService";
 import styled from "styled-components";
+import type { SheetMode } from "../features/sheet/types/sheetMode";
 
 function CharacterSheetPage() {
   const { id } = useParams<{ id: string }>();
@@ -13,6 +14,13 @@ function CharacterSheetPage() {
   const [charSheet, setCharSheet] = useState<CharacterSheet | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const sheetMode: SheetMode = {
+    headerMode: "view",
+    profileMode: "view",
+    diagramsMode: "view",
+    proficiencyMode: "view",
+    skillsMode: "view",
+  };
 
   useEffect(() => {
     if (!token || !id) {
@@ -46,15 +54,13 @@ function CharacterSheetPage() {
       <LoadingContainer>Carregando ficha do personagem...</LoadingContainer>
     );
   }
-
   if (error) {
     return <ErrorContainer>{error}</ErrorContainer>;
   }
-
   if (!charSheet) {
     return <ErrorContainer>Ficha não encontrada</ErrorContainer>;
   }
-  return <CharacterSheetTemplate charSheet={charSheet} />;
+  return <CharacterSheetTemplate sheetMode={sheetMode} charSheet={charSheet} />;
 }
 export default CharacterSheetPage;
 

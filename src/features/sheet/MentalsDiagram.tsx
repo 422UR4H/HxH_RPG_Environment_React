@@ -1,15 +1,21 @@
 import MentalLozengeSVG from "../../assets/diagrams/physical_lozange.svg";
 import { type Ability, type Attribute } from "../../types/characterSheet.ts";
+import type { DiagramsMode } from "./types/diagramsMode.ts";
 import styled from "styled-components";
 
 interface MentalsDiagramProps {
-  attributes: {
+  mode: DiagramsMode;
+  attributes?: {
     [key: string]: Attribute;
   };
-  mentalAbility: Ability;
+  mentalAbility?: Ability;
 }
 
-const MentalsDiagram = ({ attributes, mentalAbility }: MentalsDiagramProps) => {
+const MentalsDiagram = ({
+  mode,
+  attributes = {},
+  mentalAbility = { level: 0, bonus: 0 },
+}: MentalsDiagramProps) => {
   const attributePositions = [
     { name: "resilience", key: "RSL", x: "50%", y: "8%" },
     // { name: "emotion", key: "EMO", x: "50%", y: "8%" },
@@ -39,7 +45,6 @@ const MentalsDiagram = ({ attributes, mentalAbility }: MentalsDiagramProps) => {
 
         {attributePositions.map((pos) => {
           const attr = attributes[pos.name];
-          if (!attr) return null;
 
           return (
             <AttributeMarker
@@ -51,10 +56,10 @@ const MentalsDiagram = ({ attributes, mentalAbility }: MentalsDiagramProps) => {
             >
               <AttributeLabel>{pos.key}</AttributeLabel>
               <AttributeNumbers>
-                <AttributePoints>{attr.points}</AttributePoints>
-                <AttributeLevel>{attr.level}</AttributeLevel>
+                <AttributePoints>{attr?.points || 0}</AttributePoints>
+                <AttributeLevel>{attr?.level || 0}</AttributeLevel>
                 {/* <AttributeLevel>Nv.{attr.level}</AttributeLevel> */}
-                <AttributePower>{attr.power}</AttributePower>
+                <AttributePower>{attr?.power || 0}</AttributePower>
               </AttributeNumbers>
             </AttributeMarker>
           );

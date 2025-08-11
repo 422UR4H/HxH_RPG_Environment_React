@@ -26,14 +26,11 @@ function CharacterSheetsPage() {
     characterSheetsService
       .listCharacterSheets(token)
       .then(({ data }: { data: CharacterSheetSummary[] }) => {
-        // TODO: add create character sheet page and:
-        // TODO: remove console
         console.log("Character Sheets:", data);
-        // TODO: uncomment this
-        // if (data.length === 0) {
-        //   navigate("/charactersheets/new");
-        //   return;
-        // }
+        if (data.length === 0) {
+          navigate("/charactersheet/new");
+          return;
+        }
         setCharSheets(data);
         setError(null);
       })
@@ -75,7 +72,7 @@ function CharacterSheetsPage() {
             ))}
           </>
         )}
-        <CreateButton onClick={() => navigate("/charactersheets/new")}>
+        <CreateButton onClick={() => navigate("/charactersheet/new")}>
           <PlusIcon />
           <span>Criar Nova Ficha</span>
         </CreateButton>

@@ -1,17 +1,20 @@
 import PhysicalLozengeSVG from "../../assets/diagrams/physical_lozange.svg";
 import { type Ability, type Attribute } from "../../types/characterSheet.ts";
+import type { DiagramsMode } from "./types/diagramsMode.ts";
 import styled from "styled-components";
 
 interface PhysicalsDiagramProps {
-  attributes: {
+  mode: DiagramsMode;
+  attributes?: {
     [key: string]: Attribute;
   };
-  physicalAbility: Ability;
+  physicalAbility?: Ability;
 }
 
 const PhysicalsDiagram = ({
-  attributes,
-  physicalAbility,
+  mode,
+  attributes = {},
+  physicalAbility = { level: 0, bonus: 0 },
 }: PhysicalsDiagramProps) => {
   const attributePositions = [
     { name: "resistance", key: "RES", x: "50%", y: "8%" },
@@ -42,7 +45,6 @@ const PhysicalsDiagram = ({
 
         {attributePositions.map((pos) => {
           const attr = attributes[pos.name];
-          if (!attr) return null;
 
           return (
             <AttributeMarker
@@ -54,10 +56,10 @@ const PhysicalsDiagram = ({
             >
               <AttributeLabel>{pos.key}</AttributeLabel>
               <AttributeNumbers>
-                <AttributePoints>{attr.points}</AttributePoints>
-                <AttributeLevel>{attr.level}</AttributeLevel>
+                <AttributePoints>{attr?.points || 0}</AttributePoints>
+                <AttributeLevel>{attr?.level || 0}</AttributeLevel>
                 {/* <AttributeLevel>Nv.{attr.level}</AttributeLevel> */}
-                <AttributePower>{attr.power}</AttributePower>
+                <AttributePower>{attr?.power || 0}</AttributePower>
               </AttributeNumbers>
             </AttributeMarker>
           );

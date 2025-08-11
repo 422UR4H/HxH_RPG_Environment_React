@@ -1,17 +1,20 @@
 import NenPrinciplesSVG from "../../assets/diagrams/nen_principles.svg";
 import { type Ability, type Skill } from "../../types/characterSheet.ts";
+import type { DiagramsMode } from "./types/diagramsMode.ts";
 import styled from "styled-components";
 
 interface NenPrinciplesDiagramProps {
-  principles: {
+  mode: DiagramsMode;
+  principles?: {
     [key: string]: Skill;
   };
-  spiritualAbility: Ability;
+  spiritualAbility?: Ability;
 }
 
 const NenPrinciplesDiagram = ({
-  principles,
-  spiritualAbility,
+  mode,
+  principles = {},
+  spiritualAbility = { level: 0, bonus: 0 },
 }: NenPrinciplesDiagramProps) => {
   const attributePositions = [
     { name: "ten", key: "Ten", x: "39%", y: "69%" },
@@ -44,7 +47,6 @@ const NenPrinciplesDiagram = ({
 
         {attributePositions.map((pos) => {
           const attr = principles[pos.name];
-          if (!attr) return null;
 
           return (
             <AttributeMarker
@@ -56,9 +58,9 @@ const NenPrinciplesDiagram = ({
             >
               <AttributeLabel>{pos.key}</AttributeLabel>
               <AttributeNumbers>
-                <AttributeLevel>{attr.level}</AttributeLevel>
+                <AttributeLevel>{attr?.level || 0}</AttributeLevel>
                 {/* <AttributeLevel>Nv.{attr.level}</AttributeLevel> */}
-                <AttributePower>{attr.valueForTest}</AttributePower>
+                <AttributePower>{attr?.valueForTest || 0}</AttributePower>
               </AttributeNumbers>
             </AttributeMarker>
           );

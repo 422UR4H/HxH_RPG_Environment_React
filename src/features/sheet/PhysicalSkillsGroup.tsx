@@ -1,12 +1,15 @@
 import styled from "styled-components";
 import AttributeSkillGroup from "./AttributeSkillGroup";
 import type { Attribute, Skill } from "../../types/characterSheet";
+import type { SkillsMode } from "./types/skillsMode";
 
 interface PhysicalSkillsGroupProps {
-  attributes: Record<string, Attribute>;
-  skills: Record<string, Skill>;
+  mode: SkillsMode;
+  attributes?: Record<string, Attribute>;
+  skills?: Record<string, Skill>;
 }
 export default function PhysicalSkillsGroup({
+  mode,
   attributes,
   skills,
 }: PhysicalSkillsGroupProps) {
@@ -14,56 +17,56 @@ export default function PhysicalSkillsGroup({
     <SkillsGroupContainer>
       <AttributeSkillGroup
         attributeName={"Resistance"}
-        attributePower={attributes["resistance"].power}
+        attributePower={attributes?.["resistance"].power}
         skillsSubList={["defense", "energy", "vitality"]}
         skillsList={skills}
       />
 
       <AttributeSkillGroup
         attributeName={"Strength"}
-        attributePower={attributes["strength"].power}
+        attributePower={attributes?.["strength"].power}
         skillsSubList={["carry", "grab", "push"]}
         skillsList={skills}
       />
 
       <AttributeSkillGroup
         attributeName={"Agility"}
-        attributePower={attributes["agility"].power}
+        attributePower={attributes?.["agility"].power}
         skillsSubList={["accelerate", "brake", "velocity"]}
         skillsList={skills}
       />
 
       <AttributeSkillGroup
         attributeName={"Celerity"}
-        attributePower={attributes["celerity"].power}
+        attributePower={attributes?.["celerity"].power}
         skillsSubList={["legerity", "feint", "repel"]}
         skillsList={skills}
       />
 
       <AttributeSkillGroup
         attributeName={"Flexibility"}
-        attributePower={attributes["flexibility"].power}
+        attributePower={attributes?.["flexibility"].power}
         skillsSubList={["acrobatics", "evasion", "sneak"]}
         skillsList={skills}
       />
 
       <AttributeSkillGroup
         attributeName={"Dexterity"}
-        attributePower={attributes["dexterity"].power}
+        attributePower={attributes?.["dexterity"].power}
         skillsSubList={["accuracy", "reflex", "stealth"]}
         skillsList={skills}
       />
 
       <AttributeSkillGroup
         attributeName={"Sense"}
-        attributePower={attributes["sense"].power}
+        attributePower={attributes?.["sense"].power}
         skillsSubList={["hearing", "smell", "tact", "taste", "vision"]}
         skillsList={skills}
       />
 
       <AttributeSkillGroup
         attributeName={"Constitution"}
-        attributePower={attributes["constitution"].power}
+        attributePower={attributes?.["constitution"].power}
         skillsSubList={["breath", "heal", "tenacity"]}
         skillsList={skills}
       />

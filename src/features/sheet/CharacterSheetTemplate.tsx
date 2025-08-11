@@ -9,12 +9,17 @@ import NenPrinciplesDiagram from "./NenPrinciplesDiagram";
 import PhysicalSkillsGroup from "./PhysicalSkillsGroup";
 import SpiritualSkillsGroup from "./SpiritualSkillsGroup";
 import ProficienciesList from "./ProficienciesList";
+import type { SheetMode } from "./types/sheetMode";
 
 interface CharacterSheetTemplateProps {
-  charSheet: CharacterSheet;
+  sheetMode: SheetMode;
+  charSheet?: CharacterSheet;
 }
 
-function CharacterSheetTemplate({ charSheet }: CharacterSheetTemplateProps) {
+function CharacterSheetTemplate({
+  sheetMode,
+  charSheet,
+}: CharacterSheetTemplateProps) {
   const {
     profile,
     characterClass,
@@ -31,20 +36,21 @@ function CharacterSheetTemplate({ charSheet }: CharacterSheetTemplateProps) {
     principles,
     // categories,
     commonProficiencies,
-  } = charSheet;
+  } = charSheet || {};
 
   return (
     <SheetContainer>
       <BackButton to={"/charactersheets"} />
 
       <CharacterSheetHeader
+        mode={sheetMode.headerMode}
         cover={undefined} // add field here when it exists in the API response
         avatar={undefined} // add field here when it exists in the API response
-        nick={profile.nickname}
+        nick={profile?.nickname}
         characterClass={characterClass}
         lvls={[]}
-        health={status.health}
-        stamina={status.stamina}
+        health={status?.health}
+        stamina={status?.stamina}
       />
 
       {/* <HeaderSection>
@@ -82,29 +88,27 @@ function CharacterSheetTemplate({ charSheet }: CharacterSheetTemplateProps) {
         </ExperienceSection>
       </StatusSection> */}
 
-      <CharacterProfile
-        fullname={profile.fullname}
-        briefDescription={profile.briefDescription}
-        birthday={profile.birthday}
-        alignment={profile.alignment}
-      />
+      <CharacterProfile mode={sheetMode.profileMode} profileInfo={profile} />
 
       <GridSection>
         <AttributesSection>
           <SectionTitle>ATRIBUTOS</SectionTitle>
           <PhysicalsDiagram
+            mode={sheetMode.diagramsMode}
             attributes={physicalAttributes}
-            physicalAbility={abilities.physicals}
+            physicalAbility={abilities?.physicals}
           />
           <MentalsDiagram
+            mode={sheetMode.diagramsMode}
             attributes={mentalAttributes}
-            mentalAbility={abilities.mentals}
+            mentalAbility={abilities?.mentals}
           />
 
           <SectionTitle>PRINCÍPIOS</SectionTitle>
           <NenPrinciplesDiagram
+            mode={sheetMode.diagramsMode}
             principles={principles}
-            spiritualAbility={abilities.spirituals}
+            spiritualAbility={abilities?.spirituals}
           />
         </AttributesSection>
 
@@ -114,6 +118,7 @@ function CharacterSheetTemplate({ charSheet }: CharacterSheetTemplateProps) {
           <SkillsGroup>
             <GroupTitle>Físicas</GroupTitle>
             <PhysicalSkillsGroup
+              mode={sheetMode.skillsMode}
               attributes={physicalAttributes}
               skills={physicalSkills}
             />
@@ -122,6 +127,7 @@ function CharacterSheetTemplate({ charSheet }: CharacterSheetTemplateProps) {
           <SkillsGroup>
             <GroupTitle>Espirituais</GroupTitle>
             <SpiritualSkillsGroup
+              mode={sheetMode.skillsMode}
               attributes={spiritualAttributes}
               skills={spiritualSkills}
             />
@@ -146,7 +152,10 @@ function CharacterSheetTemplate({ charSheet }: CharacterSheetTemplateProps) {
 
       <ProficienciesSection>
         <SectionTitle>Proficiências</SectionTitle>
-        <ProficienciesList commonProfs={commonProficiencies} />
+        <ProficienciesList
+          mode={sheetMode.proficiencyMode}
+          commonProfs={commonProficiencies}
+        />
       </ProficienciesSection>
     </SheetContainer>
   );

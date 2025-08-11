@@ -48,16 +48,18 @@ export interface StatusBar {
 // spiritualsLvl: number;
 // skillsLvl: number;
 
+export type Profile = {
+  nickname: string;
+  fullname: string;
+  briefDescription: string;
+  birthday: string;
+  alignment: string;
+};
+
 export interface CharacterSheet {
   characterClass: string;
   categoryName: string;
-  profile: {
-    nickname: string;
-    fullname: string;
-    alignment: string;
-    briefDescription: string;
-    birthday: string;
-  };
+  profile: Profile;
   status: {
     health: StatusBar;
     stamina: StatusBar;

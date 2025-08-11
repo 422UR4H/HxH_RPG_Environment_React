@@ -5,19 +5,21 @@ import SpBar from "../atoms/SpBar";
 import avatarPlaceholder from "../../assets/placeholder/avatar.png";
 import coverPlaceholder from "../../assets/placeholder/cover.png";
 import gungiFrame from "../../assets/icons/gungi.svg";
+import type { HeaderMode } from "../../features/sheet/types/headerMode";
 
 interface CharacterSheetHeaderProps {
+  mode: HeaderMode;
   cover?: string;
   avatar?: string;
-  nick: string;
-  characterClass: string;
-  health: StatusBar;
-  stamina: StatusBar;
+  nick?: string;
+  characterClass?: string;
+  health?: StatusBar;
+  stamina?: StatusBar;
   lvls: number[];
-  cardView?: boolean;
 }
 
 export default function CharacterSheetHeader({
+  mode,
   cover,
   avatar,
   nick,
@@ -25,11 +27,10 @@ export default function CharacterSheetHeader({
   health,
   stamina,
   lvls = [],
-  cardView = false,
 }: CharacterSheetHeaderProps) {
   return (
     <HeaderContainer>
-      <CoverContainer $cardView={cardView}>
+      <CoverContainer $cardView={mode === "card"}>
         <Cover src={cover || coverPlaceholder} alt={`cover`} />
       </CoverContainer>
 
@@ -44,8 +45,8 @@ export default function CharacterSheetHeader({
       </NicknameOverlay>
 
       <StatusBarsContainer>
-        <HpBar current={health.current} max={health.max} />
-        <SpBar current={stamina.current} max={stamina.max} />
+        <HpBar current={health?.current} max={health?.max} />
+        <SpBar current={stamina?.current} max={stamina?.max} />
       </StatusBarsContainer>
     </HeaderContainer>
   );

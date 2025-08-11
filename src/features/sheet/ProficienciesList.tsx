@@ -1,22 +1,26 @@
 import styled from "styled-components";
+import type { ProficiencyMode } from "./types/proficiencyMode";
 
 interface ProficienciesListProps {
-  commonProfs: Record<string, { level: number }>;
+  mode: ProficiencyMode;
+  commonProfs?: Record<string, { level: number }>;
 }
 
 export default function ProficienciesList({
+  mode,
   commonProfs,
 }: ProficienciesListProps) {
   return (
     <ProficienciesListContainer>
-      {Object.entries(commonProfs).map(([name, { level }]) => (
-        <ProficiencyItem key={name}>
-          <ProficiencyName>
-            {name.charAt(0).toUpperCase() + name.slice(1)}
-          </ProficiencyName>
-          <ProficiencyLevel>Level: {level}</ProficiencyLevel>
-        </ProficiencyItem>
-      ))}
+      {commonProfs &&
+        Object.entries(commonProfs).map(([name, { level }]) => (
+          <ProficiencyItem key={name}>
+            <ProficiencyName>
+              {name.charAt(0).toUpperCase() + name.slice(1)}
+            </ProficiencyName>
+            <ProficiencyLevel>Level: {level}</ProficiencyLevel>
+          </ProficiencyItem>
+        ))}
     </ProficienciesListContainer>
   );
 }

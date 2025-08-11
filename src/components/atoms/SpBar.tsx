@@ -1,12 +1,12 @@
 import ProgressBar from "../ions/ProgressBar";
 
 interface SpBarProps {
-  current: number;
-  max: number;
+  current?: number;
+  max?: number;
   height?: string;
 }
 
-export default function SpBar({ current, max, height }: SpBarProps) {
+export default function SpBar({ current = 0, max = 0, height }: SpBarProps) {
   return (
     <ProgressBar
       current={current}

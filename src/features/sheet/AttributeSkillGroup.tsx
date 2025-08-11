@@ -3,14 +3,14 @@ import { type Skill } from "../../types/characterSheet.ts";
 
 interface AttributeSkillGroupProps {
   attributeName: string;
-  attributePower: number;
+  attributePower?: number;
   skillsSubList: string[];
-  skillsList: Record<string, Skill>;
+  skillsList?: Record<string, Skill>;
 }
 
 export default function AttributeSkillGroup({
   attributeName,
-  attributePower,
+  attributePower = 0,
   skillsSubList,
   skillsList,
 }: AttributeSkillGroupProps) {
@@ -21,20 +21,17 @@ export default function AttributeSkillGroup({
         <AttributePower>{attributePower}</AttributePower>
       </AttributeSectionTitle>
       <SkillsSubList>
-        {skillsSubList.map(
-          (skName) =>
-            skillsList[skName] && (
-              <SkillItem key={skName}>
-                <SkillName>
-                  {skName.charAt(0).toUpperCase() + skName.slice(1)}
-                </SkillName>
-                <SkillNumbers>
-                  <SkillValue>{skillsList[skName].valueForTest}</SkillValue>
-                  <SkillLevel>Lv {skillsList[skName].level}</SkillLevel>
-                </SkillNumbers>
-              </SkillItem>
-            )
-        )}
+        {skillsSubList.map((skName) => (
+          <SkillItem key={skName}>
+            <SkillName>
+              {skName.charAt(0).toUpperCase() + skName.slice(1)}
+            </SkillName>
+            <SkillNumbers>
+              <SkillValue>{skillsList?.[skName].valueForTest || 0}</SkillValue>
+              <SkillLevel>Lv {skillsList?.[skName].level || 0}</SkillLevel>
+            </SkillNumbers>
+          </SkillItem>
+        ))}
       </SkillsSubList>
     </AttributeSkillContainer>
   );

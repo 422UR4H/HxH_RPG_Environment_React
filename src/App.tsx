@@ -3,12 +3,12 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import HomePage from "./pages/HomePage";
 import CharacterSheetsPage from "./pages/CharacterSheetsPage";
-import CharacterSheetsDetailPage from "./pages/CharacterSheetsDetailPage";
 import CreateCampaignPage from "./pages/CreateCampaignPage";
 import CampaignsPage from "./pages/CampaignsPage";
 import CampaignPage from "./pages/CampaignPage";
 import CreateMatchPage from "./pages/CreateMatchPage";
 import CharacterSheetPage from "./pages/CharacterSheetPage";
+import CreateCharacterSheetPage from "./pages/CreateCharacterSheetPage";
 
 function App() {
   return (
@@ -20,13 +20,10 @@ function App() {
         <Route path="/home" element={<HomePage />} />
         <Route path="/charactersheets" element={<CharacterSheetsPage />} />
         <Route
-          path="/charactersheets/:id"
-          element={<CharacterSheetsDetailPage />}
+          path="/charactersheet/new"
+          element={<CreateCharacterSheetPage />}
         />
-        <Route
-          path="/charactersheet/:id"
-          element={<CharacterSheetPage />}
-        />
+        <Route path="/charactersheet/:id" element={<CharacterSheetPage />} />
         <Route path="/campaigns" element={<CampaignsPage />} />
         <Route path="/campaigns/:id" element={<CampaignPage />} />
         <Route path="/campaigns/new" element={<CreateCampaignPage />} />

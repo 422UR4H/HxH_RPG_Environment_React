@@ -16,6 +16,7 @@ export default function CharacterSheetCard({
   return (
     <CardContainer to={to}>
       <CharacterSheetHeader
+        mode={"card"}
         // cover={cover}
         // avatar={avatar}
         nick={nickName}
@@ -23,7 +24,6 @@ export default function CharacterSheetCard({
         health={health}
         stamina={stamina}
         lvls={[]}
-        cardView={true}
       />
     </CardContainer>
   );

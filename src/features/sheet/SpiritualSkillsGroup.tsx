@@ -1,12 +1,15 @@
 import styled from "styled-components";
 import AttributeSkillGroup from "./AttributeSkillGroup";
 import type { Attribute, Skill } from "../../types/characterSheet";
+import type { SkillsMode } from "./types/skillsMode";
 
 interface SpiritualSkillsGroupProps {
-  attributes: Record<string, Attribute>;
-  skills: Record<string, Skill>;
+  mode: SkillsMode;
+  attributes?: Record<string, Attribute>;
+  skills?: Record<string, Skill>;
 }
 export default function SpiritualSkillsGroup({
+  mode,
   attributes,
   skills,
 }: SpiritualSkillsGroupProps) {
@@ -14,7 +17,7 @@ export default function SpiritualSkillsGroup({
     <SkillsGroupContainer>
       <AttributeSkillGroup
         attributeName={"Spirit"}
-        attributePower={attributes.spirit.power}
+        attributePower={attributes?.spirit.power}
         skillsSubList={["focus", "nen", "willPower"]}
         skillsList={skills}
       />
