@@ -152,12 +152,12 @@ const DetailLabel = styled.span`
 const DetailInput = styled.input`
   font-family: "Roboto", sans-serif;
   font-size: min(3.8cqi, 28px);
+  font-weight: 600;
   color: white;
   background-color: #555;
   border: 2px solid #666;
   border-radius: 6px;
   padding: 12px 16px;
-  font-weight: 600;
 
   &::placeholder {
     color: #9f9f9f;
@@ -181,30 +181,40 @@ const AlignmentContainer = styled.div`
 const AlignmentSelect = styled.select`
   font-family: "Roboto", sans-serif;
   font-size: min(3.8cqi, 28px);
+  font-weight: 600;
   color: white;
-  background-color: #555;
   background-color: #107135;
-  border: 2px solid #666;
   border: 4px solid #107135;
-  border-radius: 12px;
   border-radius: 28px;
   padding: 8px 16px;
-  font-weight: 600;
   flex: 1;
+  cursor: pointer;
+
+  /* remove down arrow */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+
+  /* add new down arrow */
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 20px;
 
   &:active {
     outline: none;
     border-color: #088e3b;
     border-color: white;
   }
-
   &:focus {
     outline: none;
   }
-
+  &:hover {
+    filter: brightness(1.1);
+  }
   option {
     font-family: "Roboto", sans-serif;
-    font-size: min(3.8cqi, 20px);
+    font-size: min(3.8cqi, 28px);
     font-weight: 600;
     color: white;
     background-color: #555;
