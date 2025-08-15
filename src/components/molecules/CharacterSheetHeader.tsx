@@ -6,6 +6,7 @@ import avatarPlaceholder from "../../assets/placeholder/avatar.png";
 import coverPlaceholder from "../../assets/placeholder/cover.png";
 import gungiFrame from "../../assets/icons/gungi.svg";
 import type { HeaderMode } from "../../features/sheet/types/headerMode";
+import type { CharacterClass } from "../../types/characterClass";
 
 interface CharacterSheetHeaderProps {
   mode: HeaderMode;
@@ -16,6 +17,7 @@ interface CharacterSheetHeaderProps {
   health?: StatusBar;
   stamina?: StatusBar;
   lvls: number[];
+  charClasses?: CharacterClass[];
 }
 
 export default function CharacterSheetHeader({
@@ -27,6 +29,7 @@ export default function CharacterSheetHeader({
   health,
   stamina,
   lvls = [],
+  charClasses = [],
 }: CharacterSheetHeaderProps) {
   return (
     <HeaderContainer>
@@ -39,10 +42,24 @@ export default function CharacterSheetHeader({
         <Avatar src={avatar || avatarPlaceholder} alt={`avatar`} />
       </AvatarContainer>
 
-      <NicknameOverlay>
-        <Nickname>{nick}</Nickname>
-        <CharacterClass>{characterClass}</CharacterClass>
-      </NicknameOverlay>
+      {mode === "create" || mode == "edit" ? (
+        <NicknameOverlay>
+          <NicknameInput type="text" placeholder="Nickname" maxLength={10} />
+          <CharacterClass>Classe: </CharacterClass>
+          <CharacterClassSelect>
+            {charClasses.map((charClass, i) => (
+              <option key={i} value={charClass.profile.name}>
+                {charClass.profile.name}
+              </option>
+            ))}
+          </CharacterClassSelect>
+        </NicknameOverlay>
+      ) : (
+        <NicknameOverlay>
+          <Nickname>{nick}</Nickname>
+          <CharacterClass>{characterClass}</CharacterClass>
+        </NicknameOverlay>
+      )}
 
       <StatusBarsContainer>
         <HpBar current={health?.current} max={health?.max} />
@@ -138,13 +155,75 @@ const Nickname = styled.h1`
   text-shadow: 1px 1px 6px rgba(0, 0, 0, 1);
 `;
 
+const NicknameInput = styled.input`
+  background: transparent;
+  outline: none;
+  border: none;
+  border-bottom: 2px solid white;
+  font-family: "Roboto", sans-serif;
+  font-size: min(5cqi, 3.1rem);
+  font-weight: 700;
+  color: white;
+  margin-bottom: 8px;
+  text-shadow: 1px 1px 6px rgba(0, 0, 0, 1);
+
+  &::placeholder {
+    color: white;
+  }
+`;
+
 const CharacterClass = styled.h2`
   font-family: "Roboto", sans-serif;
   font-size: min(3.6cqi, 2.2rem);
   font-weight: 600;
   color: #c4c4c4;
-  padding-left: 0.8cqi;
+  display: inline-block;
+  padding: 0 0.8cqi;
   text-shadow: 1px 1px 6px rgba(0, 0, 0, 1);
+`;
+
+const CharacterClassSelect = styled.select`
+  font-family: "Roboto", sans-serif;
+  font-size: min(3cqi, 28px);
+  font-weight: 600;
+  color: white;
+  background-color: #107135;
+  border: 4px solid #107135;
+  border-radius: 28px;
+  padding: 8px 16px;
+  appearance: none;
+  cursor: pointer;
+
+  /* remove down arrow */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+
+  /* add new down arrow */
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 20px;
+
+  &:active {
+    outline: none;
+    border-color: #088e3b;
+    border-color: white;
+  }
+  &:focus {
+    outline: none;
+  }
+  &:hover {
+    filter: brightness(1.1);
+  }
+  option {
+    font-family: "Roboto", sans-serif;
+    font-size: min(3cqi, 28px);
+    font-weight: 600;
+    color: white;
+    background-color: #555;
+    background-color: #107135;
+  }
 `;
 
 const StatusBarsContainer = styled.div`

@@ -10,15 +10,18 @@ import PhysicalSkillsGroup from "./PhysicalSkillsGroup";
 import SpiritualSkillsGroup from "./SpiritualSkillsGroup";
 import ProficienciesList from "./ProficienciesList";
 import type { SheetMode } from "./types/sheetMode";
+import type { CharacterClass } from "../../types/characterClass";
 
 interface CharacterSheetTemplateProps {
   sheetMode: SheetMode;
   charSheet?: CharacterSheet;
+  charClasses?: CharacterClass[];
 }
 
 function CharacterSheetTemplate({
   sheetMode,
   charSheet,
+  charClasses,
 }: CharacterSheetTemplateProps) {
   const {
     profile,
@@ -48,9 +51,10 @@ function CharacterSheetTemplate({
         avatar={undefined} // add field here when it exists in the API response
         nick={profile?.nickname}
         characterClass={characterClass}
-        lvls={[]}
         health={status?.health}
         stamina={status?.stamina}
+        lvls={[]}
+        charClasses={charClasses}
       />
 
       {/* <HeaderSection>
