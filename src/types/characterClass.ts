@@ -1,3 +1,11 @@
+import type {
+  Ability,
+  Attribute,
+  JointProficiency,
+  Proficiency,
+  Skill,
+} from "./characterSheet";
+
 export interface CharacterClassProfile {
   name: string;
   alignment: string;
@@ -12,29 +20,15 @@ export interface Distribution {
   proficienciesAllowed: string[];
 }
 
-export interface SkillExp {
-  lvl: number;
-  exp: number;
-}
-
-export interface AttributeExp {
-  lvl: number;
-  exp: number;
-}
-
-export interface ProficiencyExp {
-  lvl: number;
-  exp: number;
-}
-
 export interface CharacterClass {
   profile: CharacterClassProfile;
   distribution?: Distribution;
-  skillsExps: Record<string, SkillExp>;
+  skills: Record<string, Skill>;
   jointSkills: Record<string, any>;
-  proficienciesExps: Record<string, ProficiencyExp>;
-  jointProficiencies: Record<string, any>;
-  attributesExps: Record<string, AttributeExp>;
+  proficiencies: Record<string, Proficiency>;
+  jointProficiencies: JointProficiency[];
+  attributes: Record<string, Attribute>;
+  abilities: Record<string, Ability>;
   indicatedCategories: string[];
 }
 
