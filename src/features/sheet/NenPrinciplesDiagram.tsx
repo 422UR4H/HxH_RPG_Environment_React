@@ -16,7 +16,7 @@ const NenPrinciplesDiagram = ({
   principles = {},
   spiritualAbility = { level: 0, bonus: 0 },
 }: NenPrinciplesDiagramProps) => {
-  const attributePositions = [
+  const principlePositions = [
     { name: "ten", key: "Ten", x: "39%", y: "69%" },
     { name: "zetsu", key: "Zts", x: "61.6%", y: "69%" },
     { name: "ren", key: "Ren", x: "39.6%", y: "38%" },
@@ -45,8 +45,8 @@ const NenPrinciplesDiagram = ({
           </SpiritualNumbers>
         </SpiritualAbility>
 
-        {attributePositions.map((pos) => {
-          const attr = principles[pos.name];
+        {principlePositions.map((pos) => {
+          const principle = principles[pos.name];
 
           return (
             <AttributeMarker
@@ -58,9 +58,9 @@ const NenPrinciplesDiagram = ({
             >
               <AttributeLabel>{pos.key}</AttributeLabel>
               <AttributeNumbers>
-                <AttributeLevel>{attr?.level || 0}</AttributeLevel>
-                {/* <AttributeLevel>Nv.{attr.level}</AttributeLevel> */}
-                <AttributePower>{attr?.valueForTest || 0}</AttributePower>
+                <AttributeLevel>{principle?.level || 0}</AttributeLevel>
+                {/* <AttributeLevel>Nv.{principle.level}</AttributeLevel> */}
+                <AttributePower>{principle?.value || 0}</AttributePower>
               </AttributeNumbers>
             </AttributeMarker>
           );
