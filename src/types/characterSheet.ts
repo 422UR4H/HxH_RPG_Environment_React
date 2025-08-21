@@ -6,8 +6,10 @@ export interface CharacterSheetSummary {
   nickName: string;
   fullName: string;
   alignment: string;
-  characterClass: string;
   birthday: string;
+  cover?: string;
+  avatar?: string;
+  characterClass: string;
   categoryName: string;
   currHexValue: number | null;
   level: number;
@@ -48,14 +50,6 @@ export interface StatusBar {
 // spiritualsLvl: number;
 // skillsLvl: number;
 
-export type Profile = {
-  nickname: string;
-  fullname: string;
-  briefDescription: string;
-  birthday: string;
-  alignment: string;
-};
-
 export interface CharacterSheet {
   characterClass: string;
   categoryName: string;
@@ -64,25 +58,9 @@ export interface CharacterSheet {
     health: StatusBar;
     stamina: StatusBar;
   };
-  characterExp: {
-    level: number;
-    exp: number;
-    currExp: number;
-    nextLvlBaseExp: number;
-    points: number;
-  };
-  talent: {
-    level: number;
-    exp: number;
-    currExp: number;
-    nextLvlBaseExp: number;
-  };
-  abilities: {
-    mentals: Ability;
-    physicals: Ability;
-    skills: Ability;
-    spirituals: Ability;
-  };
+  characterExp: CharacterExp;
+  talent: Talent;
+  abilities: Record<string, Ability>;
   physicalAttributes: Record<string, Attribute>;
   mentalAttributes: Record<string, Attribute>;
   spiritualAttributes: Record<string, Attribute>;
@@ -90,29 +68,71 @@ export interface CharacterSheet {
   spiritualSkills: Record<string, Skill>;
   principles: Record<string, Skill>;
   categories: Record<string, Category>;
-  commonProficiencies: Record<string, { level: number }>;
-  jointProficiencies: Record<string, any>;
+  commonProficiencies: Record<string, Proficiency>;
+  jointProficiencies: JointProficiency[];
+}
+
+// TODO: review and padronize type and interface
+export type Profile = {
+  nickname: string;
+  fullname: string;
+  description?: string;
+  briefDescription: string;
+  birthday: string;
+  alignment: string;
+  cover?: string;
+  avatar?: string;
+};
+
+export interface CharacterExp {
+  level: number;
+  exp: number;
+  currExp: number;
+  nextLvlBaseExp: number;
+  points: number;
+}
+
+export interface Talent {
+  level: number;
+  exp: number;
+  currExp: number;
+  nextLvlBaseExp: number;
 }
 
 export interface Ability {
+  exp?: number;
   level: number;
   bonus: number;
 }
 
 export interface Attribute {
+  exp?: number;
   level: number;
   points: number;
-  value: number;
+  value?: number;
   power: number;
 }
 
 export interface Skill {
+  exp?: number;
   level: number;
-  valueForTest: number;
+  value: number;
 }
 
-interface Category {
+export interface Proficiency {
+  exp?: number;
   level: number;
-  valueForTest: number;
+}
+
+export interface JointProficiency {
+  exp?: number;
+  level: number;
+  name: string;
+}
+
+export interface Category {
+  exp?: number;
+  level: number;
+  value: number;
   percent: number;
 }
