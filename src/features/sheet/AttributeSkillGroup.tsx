@@ -27,7 +27,7 @@ export default function AttributeSkillGroup({
               {skName.charAt(0).toUpperCase() + skName.slice(1)}
             </SkillName>
             <SkillNumbers>
-              <SkillValue>{skillsList?.[skName].valueForTest || 0}</SkillValue>
+              <SkillValue>{skillsList?.[skName].value || 0}</SkillValue>
               <SkillLevel>Lv {skillsList?.[skName].level || 0}</SkillLevel>
             </SkillNumbers>
           </SkillItem>
