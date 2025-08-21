@@ -1,4 +1,5 @@
-import type { CharacterSheet } from "../../types/characterSheet";
+import type { CharacterClass } from "../../types/characterClass";
+import type { SheetMode } from "./types/sheetMode";
 import styled from "styled-components";
 import BackButton from "../../components/ions/BackButton";
 import CharacterSheetHeader from "../../components/molecules/CharacterSheetHeader";
@@ -9,25 +10,32 @@ import NenPrinciplesDiagram from "./NenPrinciplesDiagram";
 import PhysicalSkillsGroup from "./PhysicalSkillsGroup";
 import SpiritualSkillsGroup from "./SpiritualSkillsGroup";
 import ProficienciesList from "./ProficienciesList";
-import type { SheetMode } from "./types/sheetMode";
-import type { CharacterClass } from "../../types/characterClass";
+import type { CharacterSheet } from "../../types/characterSheet";
+
+interface Data {
+  error: string | null;
+  isLoading: boolean;
+
+  charSheet?: CharacterSheet;
+  setCharSheet?: (charSheet: CharacterSheet) => void;
+  charClasses?: CharacterClass[];
+  selectedClass?: CharacterClass;
+  applyClassDistribution?: (className: string) => void;
+}
 
 interface CharacterSheetTemplateProps {
   sheetMode: SheetMode;
-  charSheet?: CharacterSheet;
-  charClasses?: CharacterClass[];
+  data: Data;
 }
 
 function CharacterSheetTemplate({
+  data: { charSheet, setCharSheet, charClasses, isLoading, error },
   sheetMode,
-  charSheet,
-  charClasses,
 }: CharacterSheetTemplateProps) {
+  if (!charSheet) return <ErrorContainer>Ficha não encontrada</ErrorContainer>;
   const {
     profile,
-    characterClass,
     // categoryName,
-    status,
     // characterExp,
     // talent,
     abilities,
@@ -39,7 +47,19 @@ function CharacterSheetTemplate({
     principles,
     // categories,
     commonProficiencies,
-  } = charSheet || {};
+    jointProficiencies,
+  } = charSheet;
+
+  if (isLoading)
+    return (
+      <LoadingContainer>Carregando ficha do personagem...</LoadingContainer>
+    );
+  if (error) return <ErrorContainer>{error}</ErrorContainer>;
+
+  const mode = sheetMode.headerMode;
+  if ((mode === "create" || mode === "edit") && !charClasses) {
+    return <ErrorContainer>Falha ao carregar classes</ErrorContainer>;
+  }
 
   return (
     <SheetContainer>
@@ -47,14 +67,7 @@ function CharacterSheetTemplate({
 
       <CharacterSheetHeader
         mode={sheetMode.headerMode}
-        cover={undefined} // add field here when it exists in the API response
-        avatar={undefined} // add field here when it exists in the API response
-        nick={profile?.nickname}
-        characterClass={characterClass}
-        health={status?.health}
-        stamina={status?.stamina}
-        lvls={[]}
-        charClasses={charClasses}
+        data={{ charSheet, setCharSheet, charClasses }}
       />
 
       {/* <HeaderSection>
@@ -92,7 +105,7 @@ function CharacterSheetTemplate({
         </ExperienceSection>
       </StatusSection> */}
 
-      <CharacterProfile mode={sheetMode.profileMode} profileInfo={profile} />
+      <CharacterProfile mode={sheetMode.profileMode} profile={profile} />
 
       <GridSection>
         <AttributesSection>
@@ -159,6 +172,7 @@ function CharacterSheetTemplate({
         <ProficienciesList
           mode={sheetMode.proficiencyMode}
           commonProfs={commonProficiencies}
+          jointProfs={jointProficiencies}
         />
       </ProficienciesSection>
     </SheetContainer>
@@ -357,4 +371,23 @@ const ProficienciesSection = styled.section`
   border-radius: 8px;
   margin: 0 30px;
   padding: 20px;
+`;
+
+const LoadingContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 50vh;
+  font-size: 24px;
+  color: white;
+`;
+
+const ErrorContainer = styled.div`
+  background-color: rgba(231, 76, 60, 0.1);
+  color: #e74c3c;
+  padding: 20px;
+  border-radius: 8px;
+  text-align: center;
+  margin: 30px;
+  font-size: 18px;
 `;

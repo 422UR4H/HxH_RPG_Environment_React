@@ -8,12 +8,12 @@ import ProfileInputs from "./ProfileInputs";
 
 interface CharacterProfileProps {
   mode: ProfileMode;
-  profileInfo?: Profile;
+  profile?: Profile;
 }
 
 export default function CharacterProfile({
   mode,
-  profileInfo,
+  profile,
 }: CharacterProfileProps) {
   const [isExpanded, setIsExpanded] = useState(mode === "create");
 
@@ -31,8 +31,13 @@ export default function CharacterProfile({
         />
       </ProfileHeader>
 
-      {isExpanded && profileInfo && <ProfileDetails profileInfo={profileInfo} />}
-      {isExpanded && !profileInfo && <ProfileInputs />}
+      {/* TODO: refactor ternary to semanthic funcion */}
+      {isExpanded && profile && mode === "view" && (
+        <ProfileDetails profile={profile} />
+      )}
+      {isExpanded && (mode === "create" || mode === "edit") && (
+        <ProfileInputs />
+      )}
     </ProfileContainer>
   );
 }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import useToken from "../hooks/useToken";
 import { characterSheetsService } from "../services/characterSheetsService";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import type { CharacterSheetSummary } from "../types/characterSheet";
 import CharacterSheetCard from "../components/atoms/CharacterSheetCard";
 import styled from "styled-components";
@@ -16,11 +16,11 @@ function CharacterSheetsPage() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  if (!token) {
+    return <Navigate to="/" replace />;
+  }
+
   useEffect(() => {
-    if (!token) {
-      navigate("/");
-      return;
-    }
     setIsLoading(true);
 
     characterSheetsService
@@ -46,7 +46,6 @@ function CharacterSheetsPage() {
   if (isLoading) {
     return <div>Carregando...</div>;
   }
-
   if (error) {
     return <div>{error}</div>;
   }

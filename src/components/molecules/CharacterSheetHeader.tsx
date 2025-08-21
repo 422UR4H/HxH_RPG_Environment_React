@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import type { StatusBar } from "../../types/characterSheet";
+import type { CharacterSheet } from "../../types/characterSheet";
 import HpBar from "../atoms/HpBar";
 import SpBar from "../atoms/SpBar";
 import avatarPlaceholder from "../../assets/placeholder/avatar.png";
@@ -7,47 +7,59 @@ import coverPlaceholder from "../../assets/placeholder/cover.png";
 import gungiFrame from "../../assets/icons/gungi.svg";
 import type { HeaderMode } from "../../features/sheet/types/headerMode";
 import type { CharacterClass } from "../../types/characterClass";
+import { useCharSheetBuilder } from "../../features/sheet/hooks/useCharSheetBuilder";
+
+interface Data {
+  charSheet?: CharacterSheet;
+  setCharSheet?: (charSheet: CharacterSheet) => void;
+  charClasses?: CharacterClass[];
+}
 
 interface CharacterSheetHeaderProps {
+  data: Data;
   mode: HeaderMode;
-  cover?: string;
-  avatar?: string;
-  nick?: string;
-  characterClass?: string;
-  health?: StatusBar;
-  stamina?: StatusBar;
-  lvls: number[];
-  charClasses?: CharacterClass[];
 }
 
 export default function CharacterSheetHeader({
   mode,
-  cover,
-  avatar,
-  nick,
-  characterClass,
-  health,
-  stamina,
-  lvls = [],
-  charClasses = [],
+  data: { charSheet, setCharSheet, charClasses },
 }: CharacterSheetHeaderProps) {
+  const { buildFromClass } = useCharSheetBuilder();
+  const handleClassChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const targetClass = event.target.value;
+    const charClass = charClasses?.find(
+      (cc) => cc.profile.name === targetClass
+    );
+
+    if (!charSheet || !setCharSheet) return;
+    if (!charClass) return;
+
+    // TODO: verify this assertion type
+    const newCharSheet = buildFromClass(charClass, charSheet) as CharacterSheet;
+    setCharSheet(newCharSheet);
+  };
+  const profile = charSheet?.profile;
+  const health = charSheet?.status?.health;
+  const stamina = charSheet?.status?.stamina;
+
   return (
     <HeaderContainer>
       <CoverContainer $cardView={mode === "card"}>
-        <Cover src={cover || coverPlaceholder} alt={`cover`} />
+        <Cover src={profile?.cover || coverPlaceholder} alt={`cover`} />
       </CoverContainer>
 
       <AvatarContainer>
         <GungiFrame src={gungiFrame} alt="frame" />
-        <Avatar src={avatar || avatarPlaceholder} alt={`avatar`} />
+        <Avatar src={profile?.avatar || avatarPlaceholder} alt={`avatar`} />
       </AvatarContainer>
 
       {mode === "create" || mode == "edit" ? (
         <NicknameOverlay>
           <NicknameInput type="text" placeholder="Nickname" maxLength={10} />
           <CharacterClass>Classe: </CharacterClass>
-          <CharacterClassSelect>
-            {charClasses.map((charClass, i) => (
+          <CharacterClassSelect onChange={handleClassChange}>
+            <option value="">Selecione uma classe</option>
+            {charClasses?.map((charClass, i) => (
               <option key={i} value={charClass.profile.name}>
                 {charClass.profile.name}
               </option>
@@ -56,8 +68,8 @@ export default function CharacterSheetHeader({
         </NicknameOverlay>
       ) : (
         <NicknameOverlay>
-          <Nickname>{nick}</Nickname>
-          <CharacterClass>{characterClass}</CharacterClass>
+          <Nickname>{profile?.nickname}</Nickname>
+          <CharacterClass>{charSheet?.characterClass}</CharacterClass>
         </NicknameOverlay>
       )}
 

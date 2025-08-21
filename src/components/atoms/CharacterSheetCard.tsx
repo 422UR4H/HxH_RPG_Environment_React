@@ -2,6 +2,7 @@ import styled from "styled-components";
 import type { CharacterSheetSummary } from "../../types/characterSheet";
 import { Link } from "react-router-dom";
 import CharacterSheetHeader from "../molecules/CharacterSheetHeader";
+import { createEmptyCharacterSheet } from "../../features/sheet/factories/characterSheet.factory";
 
 interface CharacterSummaryProps {
   character: CharacterSheetSummary;
@@ -9,22 +10,31 @@ interface CharacterSummaryProps {
 }
 
 export default function CharacterSheetCard({
-  // character: { health, stamina, nickName, ...charRest },
-  character: { health, stamina, nickName, characterClass },
+  character: character,
   to,
 }: CharacterSummaryProps) {
+  const charSheet = createEmptyCharacterSheet();
+
+  // TODO: create createEmptyCharacterSheet({ charClass: charClass })
+  charSheet.characterClass = character.characterClass;
+  charSheet.categoryName = character.categoryName;
+  charSheet.profile = {
+    nickname: character.nickName,
+    fullname: character.fullName,
+    briefDescription: "",
+    birthday: character.birthday,
+    alignment: character.alignment,
+    cover: character?.cover,
+    avatar: character?.avatar,
+  };
+  charSheet.status = {
+    health: character.health,
+    stamina: character.stamina,
+  };
+
   return (
     <CardContainer to={to}>
-      <CharacterSheetHeader
-        mode={"card"}
-        // cover={cover}
-        // avatar={avatar}
-        nick={nickName}
-        characterClass={characterClass}
-        health={health}
-        stamina={stamina}
-        lvls={[]}
-      />
+      <CharacterSheetHeader mode={"card"} data={{ charSheet }} />
     </CardContainer>
   );
 }

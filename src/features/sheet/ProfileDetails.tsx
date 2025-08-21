@@ -3,11 +3,11 @@ import BackgroundButton from "../../components/atoms/BackgroundButton";
 import type { Profile } from "../../types/characterSheet";
 
 interface ProfileDetailsProps {
-  profileInfo: Profile;
+  profile: Profile;
 }
 
-export default function ProfileDetails({ profileInfo }: ProfileDetailsProps) {
-  const { fullname, briefDescription, birthday, alignment } = profileInfo;
+export default function ProfileDetails({ profile }: ProfileDetailsProps) {
+  const { fullname, briefDescription, birthday, alignment } = profile;
 
   return (
     <ProfileContainer>

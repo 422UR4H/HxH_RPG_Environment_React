@@ -1,14 +1,17 @@
 import styled from "styled-components";
 import type { ProficiencyMode } from "./types/proficiencyMode";
+import type { JointProficiency } from "../../types/characterSheet";
 
 interface ProficienciesListProps {
   mode: ProficiencyMode;
   commonProfs?: Record<string, { level: number }>;
+  jointProfs?: JointProficiency[];
 }
 
 export default function ProficienciesList({
   mode,
   commonProfs,
+  jointProfs,
 }: ProficienciesListProps) {
   return (
     <ProficienciesListContainer>
@@ -21,6 +24,19 @@ export default function ProficienciesList({
             <ProficiencyLevel>Level: {level}</ProficiencyLevel>
           </ProficiencyItem>
         ))}
+      {/* TODO: diff of the commonProfs */}
+      {jointProfs && jointProfs.length > 0 && (
+        <>
+          {jointProfs.map(({ name, level }) => (
+            <ProficiencyItem key={name}>
+              <ProficiencyName>
+                {name.charAt(0).toUpperCase() + name.slice(1)}
+              </ProficiencyName>
+              <ProficiencyLevel>Level: {level}</ProficiencyLevel>
+            </ProficiencyItem>
+          ))}
+        </>
+      )}
     </ProficienciesListContainer>
   );
 }
