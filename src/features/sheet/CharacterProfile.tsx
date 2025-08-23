@@ -52,6 +52,7 @@ const ProfileContainer = styled.div`
   transition: all 0.3s ease;
 
   @media (max-width: 609px) {
+    border-width: 0.6cqi;
     margin-bottom: 4vw;
   }
 `;

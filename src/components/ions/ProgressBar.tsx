@@ -40,10 +40,13 @@ export default function ProgressBar({
 }
 
 const ProgressBarContainer = styled.div`
-  container-type: inline-size;
+  /* container-type: inline-size; */
   width: 100%;
   border: 3px solid black;
-  /* margin-bottom: 6px; */
+
+  @media(max-width: 609px) {
+    border-width: 0.6cqi;
+  }
 `;
 
 // const Label = styled.span`
