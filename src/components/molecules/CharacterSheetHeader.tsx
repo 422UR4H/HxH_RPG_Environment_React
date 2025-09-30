@@ -4,7 +4,10 @@ import HpBar from "../atoms/HpBar";
 import SpBar from "../atoms/SpBar";
 import avatarPlaceholder from "../../assets/placeholder/avatar.png";
 import coverPlaceholder from "../../assets/placeholder/cover.png";
+import cameraIcon from "../../assets/icons/camera.svg";
 import gungiFrame from "../../assets/icons/gungi.svg";
+import plusIcon from "../../assets/icons/plus.svg";
+import penIcon from "../../assets/icons/pen.svg";
 import type { HeaderMode } from "../../features/sheet/types/headerMode";
 import type { CharacterClass } from "../../types/characterClass";
 import { useCharSheetBuilder } from "../../features/sheet/hooks/useCharSheetBuilder";
@@ -51,18 +54,30 @@ export default function CharacterSheetHeader({
       <AvatarContainer>
         <GungiFrame src={gungiFrame} alt="frame" />
         <Avatar src={profile?.avatar || avatarPlaceholder} alt={`avatar`} />
+        {(mode === "create" || mode === "edit") && (
+          <AddAvatar onClick={() => alert("Calma, jovem gafanhoto...")}>
+            <CameraIcon src={cameraIcon} alt="Camera Icon" />
+            <PlusIcon src={plusIcon} alt="+" />
+          </AddAvatar>
+        )}
       </AvatarContainer>
 
       {mode === "create" || mode == "edit" ? (
         <NicknameOverlay>
-          <NicknameInput type="text" placeholder="Nickname" maxLength={10} />
+          <NicknameInputContainer>
+            <PenIcon src={penIcon} alt="Edit Icon" />
+            <NicknameInput type="text" placeholder="Nickname" maxLength={10} />
+          </NicknameInputContainer>
+
           <CharacterClass>Classe: </CharacterClass>
           <CharacterClassSelect onChange={handleClassChange}>
-            <option value="">Selecione uma classe</option>
+            <CharacterClassOption value="">
+              Selecione uma classe
+            </CharacterClassOption>
             {charClasses?.map((charClass, i) => (
-              <option key={i} value={charClass.profile.name}>
+              <CharacterClassOption key={i} value={charClass.profile.name}>
                 {charClass.profile.name}
-              </option>
+              </CharacterClassOption>
             ))}
           </CharacterClassSelect>
         </NicknameOverlay>
@@ -131,7 +146,6 @@ const AvatarContainer = styled.div`
   left: 0px;
   width: 28cqi;
   height: 28cqi;
-  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -153,10 +167,65 @@ const Avatar = styled.img`
   position: relative;
 `;
 
+const AddAvatar = styled.button`
+  position: absolute;
+  bottom: 1cqi;
+  left: 1cqi;
+  z-index: 3;
+
+  background-color: black;
+  width: 8cqi;
+  height: 8cqi;
+  padding: 1%;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: scale(1.05);
+    filter: brightness(1.1);
+  }
+  &:active {
+    transform: scale(0.98);
+  }
+`;
+
+const CameraIcon = styled.img`
+  width: 100%;
+  height: auto;
+`;
+
+const PlusIcon = styled.img`
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 40%;
+  height: auto;
+`;
+
 const NicknameOverlay = styled.div`
   position: absolute;
   bottom: calc(8cqi + 14px);
   left: 30cqi;
+`;
+
+const NicknameInputContainer = styled.div`
+  width: 50cqi;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  margin-bottom: 8px;
+`;
+
+const PenIcon = styled.img`
+  position: absolute;
+  right: 0;
+  bottom: 8px;
+  width: 7cqi;
+  height: 7cqi;
+  z-index: 1;
 `;
 
 const Nickname = styled.h1`
@@ -179,6 +248,9 @@ const NicknameInput = styled.input`
   margin-bottom: 8px;
   text-shadow: 1px 1px 6px rgba(0, 0, 0, 1);
 
+  width: 50cqi;
+  /* padding-left: min(6cqi, 28px); */
+
   &::placeholder {
     color: white;
   }
@@ -196,14 +268,13 @@ const CharacterClass = styled.h2`
 
 const CharacterClassSelect = styled.select`
   font-family: "Roboto", sans-serif;
-  font-size: min(3cqi, 28px);
+  font-size: min(3.8cqi, 28px);
   font-weight: 600;
   color: white;
   background-color: #107135;
   border: 4px solid #107135;
   border-radius: 28px;
-  padding: 8px 16px;
-  appearance: none;
+  padding: 8px min(8cqi, 46px) 8px 16px;
   cursor: pointer;
 
   /* remove down arrow */
@@ -215,7 +286,7 @@ const CharacterClassSelect = styled.select`
   background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
   background-repeat: no-repeat;
   background-position: right 12px center;
-  background-size: 20px;
+  background-size: min(4.4cqi, 28px);
 
   &:active {
     outline: none;
@@ -228,14 +299,16 @@ const CharacterClassSelect = styled.select`
   &:hover {
     filter: brightness(1.1);
   }
-  option {
-    font-family: "Roboto", sans-serif;
-    font-size: min(3cqi, 28px);
-    font-weight: 600;
-    color: white;
-    background-color: #555;
-    background-color: #107135;
-  }
+`;
+
+const CharacterClassOption = styled.option`
+  font-family: "Roboto", sans-serif;
+  font-size: min(3.8cqi, 28px);
+  font-weight: 600;
+  color: white;
+  background-color: #555;
+  background-color: #107135;
+  padding-right: 40px;
 `;
 
 const StatusBarsContainer = styled.div`
