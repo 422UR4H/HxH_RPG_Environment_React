@@ -144,7 +144,9 @@ export default function CampaignPage() {
               <MatchItem
                 key={match.uuid}
                 match={match}
-                onClick={() => navigate(`/matches/${match.uuid}`)}
+                onClick={() =>
+                  navigate(`/campaigns/${campaign.uuid}/matches/${match.uuid}`)
+                }
               />
             ))}
 

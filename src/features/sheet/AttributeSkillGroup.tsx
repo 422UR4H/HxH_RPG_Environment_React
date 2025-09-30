@@ -72,7 +72,7 @@ const SkillsSubList = styled.div`
   grid-template-columns: repeat(auto-fill, minmax(30cqi, 1fr));
   gap: 2cqi;
   padding: 2cqi;
-  background-color: #3a3a3a;
+  background-color: #333333;
 `;
 
 const SkillItem = styled.div`
