@@ -1,6 +1,8 @@
 import type { CharacterClass } from "../../types/characterClass";
+import type { CharacterSheet } from "../../types/characterSheet";
 import type { SheetMode } from "./types/sheetMode";
 import styled from "styled-components";
+import space from "../../assets/images/space.png";
 import BackButton from "../../components/ions/BackButton";
 import CharacterSheetHeader from "../../components/molecules/CharacterSheetHeader";
 import CharacterProfile from "./CharacterProfile";
@@ -10,7 +12,6 @@ import NenPrinciplesDiagram from "./NenPrinciplesDiagram";
 import PhysicalSkillsGroup from "./PhysicalSkillsGroup";
 import SpiritualSkillsGroup from "./SpiritualSkillsGroup";
 import ProficienciesList from "./ProficienciesList";
-import type { CharacterSheet } from "../../types/characterSheet";
 
 interface Data {
   error: string | null;
@@ -34,7 +35,6 @@ function CharacterSheetTemplate({
 }: CharacterSheetTemplateProps) {
   if (!charSheet) return <ErrorContainer>Ficha não encontrada</ErrorContainer>;
   const {
-    profile,
     // categoryName,
     // characterExp,
     // talent,
@@ -105,54 +105,65 @@ function CharacterSheetTemplate({
         </ExperienceSection>
       </StatusSection> */}
 
-      <CharacterProfile mode={sheetMode.profileMode} profile={profile} />
+      <CharacterProfile
+        mode={sheetMode.profileMode}
+        charSheet={charSheet}
+        setCharSheet={setCharSheet}
+      />
 
-      <GridSection>
-        <AttributesSection>
-          <SectionTitle>ATRIBUTOS</SectionTitle>
-          <PhysicalsDiagram
-            mode={sheetMode.diagramsMode}
-            attributes={physicalAttributes}
-            physicalAbility={abilities?.physicals}
-          />
-          <MentalsDiagram
-            mode={sheetMode.diagramsMode}
-            attributes={mentalAttributes}
-            mentalAbility={abilities?.mentals}
-          />
-
-          <SectionTitle>PRINCÍPIOS</SectionTitle>
-          <NenPrinciplesDiagram
-            mode={sheetMode.diagramsMode}
-            principles={principles}
-            spiritualAbility={abilities?.spirituals}
-          />
-        </AttributesSection>
-
-        <SkillsSection>
-          <SectionTitle>PERÍCIAS</SectionTitle>
-
-          <SkillsGroup>
-            <GroupTitle>Físicas</GroupTitle>
-            <PhysicalSkillsGroup
-              mode={sheetMode.skillsMode}
+      <MainContent>
+        <GridSection>
+          <AttributesSection>
+            <SectionTitle>ATRIBUTOS</SectionTitle>
+            <PhysicalsDiagram
+              mode={sheetMode.diagramsMode}
               attributes={physicalAttributes}
-              skills={physicalSkills}
+              physicalAbility={abilities?.physicals}
             />
-          </SkillsGroup>
-
-          <SkillsGroup>
-            <GroupTitle>Espirituais</GroupTitle>
-            <SpiritualSkillsGroup
-              mode={sheetMode.skillsMode}
-              attributes={spiritualAttributes}
-              skills={spiritualSkills}
+            <MentalsDiagram
+              mode={sheetMode.diagramsMode}
+              attributes={mentalAttributes}
+              mentalAbility={abilities?.mentals}
             />
-          </SkillsGroup>
-        </SkillsSection>
-      </GridSection>
 
-      {/* <AbilitiesSection>
+            {charSheet.abilities?.spirituals?.level! > 0 && (
+              <>
+                <SectionTitle>PRINCÍPIOS</SectionTitle>
+                <NenPrinciplesDiagram
+                  mode={sheetMode.diagramsMode}
+                  principles={principles}
+                  spiritualAbility={abilities?.spirituals}
+                />
+              </>
+            )}
+          </AttributesSection>
+
+          <SkillsSection>
+            <SectionTitle>PERÍCIAS</SectionTitle>
+
+            <SkillsGroup>
+              <GroupTitle>Físicas</GroupTitle>
+              <PhysicalSkillsGroup
+                mode={sheetMode.skillsMode}
+                attributes={physicalAttributes}
+                skills={physicalSkills}
+              />
+            </SkillsGroup>
+
+            {charSheet.abilities?.spirituals?.level! > 0 && (
+              <SkillsGroup>
+                <GroupTitle>Espirituais</GroupTitle>
+                <SpiritualSkillsGroup
+                  mode={sheetMode.skillsMode}
+                  attributes={spiritualAttributes}
+                  skills={spiritualSkills}
+                />
+              </SkillsGroup>
+            )}
+          </SkillsSection>
+        </GridSection>
+
+        {/* <AbilitiesSection>
         <SectionTitle>Habilidades</SectionTitle>
         <AbilitiesList>
           {Object.entries(abilities).map(([name, ability]) => (
@@ -167,14 +178,15 @@ function CharacterSheetTemplate({
         </AbilitiesList>
       </AbilitiesSection> */}
 
-      <ProficienciesSection>
-        <SectionTitle>Proficiências</SectionTitle>
-        <ProficienciesList
-          mode={sheetMode.proficiencyMode}
-          commonProfs={commonProficiencies}
-          jointProfs={jointProficiencies}
-        />
-      </ProficienciesSection>
+        <ProficienciesSection>
+          <SectionTitle>Proficiências</SectionTitle>
+          <ProficienciesList
+            mode={sheetMode.proficiencyMode}
+            commonProfs={commonProficiencies}
+            jointProfs={jointProficiencies}
+          />
+        </ProficienciesSection>
+      </MainContent>
     </SheetContainer>
   );
 }
@@ -187,7 +199,6 @@ const SheetContainer = styled.div`
   color: white;
   background-color: black;
   position: relative;
-  padding-bottom: 30px;
 `;
 
 // const HeaderSection = styled.div`
@@ -214,7 +225,7 @@ const SheetContainer = styled.div`
 
 // const StatusSection = styled.section`
 //   margin-bottom: 30px;
-//   background-color: #3a3a3a;
+//   background-color: #333333;
 //   border-radius: 8px;
 //   padding: 20px;
 // `;
@@ -274,6 +285,18 @@ const SheetContainer = styled.div`
 //   color: #9f9f9f;
 // `;
 
+const MainContent = styled.main`
+  padding-bottom: 30px;
+  background-image: url(${space});
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+
+  @media (max-width: 609px) {
+    padding-bottom: 20px;
+  }
+`;
+
 const SectionTitle = styled.h2`
   font-family: "Roboto", sans-serif;
   font-weight: bold;
@@ -290,8 +313,8 @@ const GridSection = styled.div`
   gap: 30px;
 
   @media (max-width: 609px) {
-    padding: 30px;
-    padding-top: 0px;
+    padding: 20px;
+    padding-top: 30px;
   }
 `;
 
@@ -307,15 +330,22 @@ const GroupTitle = styled.h3`
 const AttributesSection = styled.section`
   container-type: inline-size;
   margin-top: 12px;
+  padding-bottom: 8cqi;
 
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: space-between;
+  /* justify-content: space-around; */
+
+  @media (max-width: 589px) {
+    padding-bottom: 0;
+  }
 `;
 
 const SkillsSection = styled.section`
   container-type: inline-size;
-  background-color: #3a3a3a;
+  background-color: #333333;
   border-radius: 8px;
   padding: 4% 3% 1% 3%;
 `;
@@ -326,7 +356,7 @@ const SkillsGroup = styled.div`
 
 // const AbilitiesSection = styled.section`
 //   container-type: inline-size;
-//   background-color: #3a3a3a;
+//   background-color: #333333;
 //   border-radius: 8px;
 //   padding: 20px;
 //   margin-bottom: 30px;
@@ -367,10 +397,14 @@ const SkillsGroup = styled.div`
 
 const ProficienciesSection = styled.section`
   container-type: inline-size;
-  background-color: #3a3a3a;
+  background-color: #333333;
   border-radius: 8px;
   margin: 0 30px;
   padding: 20px;
+
+  @media (max-width: 609px) {
+    margin: 0 20px;
+  }
 `;
 
 const LoadingContainer = styled.div`

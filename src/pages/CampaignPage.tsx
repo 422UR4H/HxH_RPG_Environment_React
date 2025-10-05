@@ -7,12 +7,14 @@ import type {
   CampaignMaster,
   CharacterPrivateSummary,
 } from "../types/campaign";
+import worldMap from "../assets/images/worldmap.png";
 import styled from "styled-components";
 import CharacterSidebarItem from "../features/campaign/CharacterSidebarItem";
 import MatchItem from "../features/campaign/MatchItem";
 import AdaptiveActionButton from "../features/campaign/AdaptativeActionButton";
 import { getSortedCharacters } from "../features/campaign/utils/characterUtils";
 import PageHeader from "../components/atoms/PageHeader";
+import ExpandButton from "../components/ions/ExpandButton";
 
 export default function CampaignPage() {
   const { id } = useParams<{ id: string }>();
@@ -24,7 +26,10 @@ export default function CampaignPage() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [expandDescription, setExpandDescription] = useState<boolean>(false);
+  const [shouldShowExpandButton, setShouldShowExpandButton] =
+    useState<boolean>(false);
 
+  const descriptionRef = useRef<HTMLParagraphElement>(null);
   const isMaster = campaign?.masterUuid === user?.uuid;
   const sidebarRef = useRef<HTMLDivElement>(null);
   const mainContentRef = useRef<HTMLDivElement>(null);
@@ -53,6 +58,27 @@ export default function CampaignPage() {
       });
   }, [token, id, navigate]);
 
+  // verify if the text exceeds 5 lines
+  useEffect(() => {
+    if (campaign && descriptionRef.current) {
+      const element = descriptionRef.current;
+
+      // temporarily remove max-height to measure actual height
+      const originalMaxHeight = element.style.maxHeight;
+      element.style.maxHeight = "none";
+
+      const lineHeight = parseFloat(getComputedStyle(element).lineHeight);
+      const maxHeight = lineHeight * 5; // 5 lines
+      const actualHeight = element.scrollHeight; // actual height of content
+
+      // restore original max-height
+      element.style.maxHeight = originalMaxHeight;
+
+      // only show the button if the content exceeds 5 lines
+      setShouldShowExpandButton(actualHeight > maxHeight);
+    }
+  }, [campaign, expandDescription]);
+
   let sortedSheets: (CharacterPrivateSummary & { isPending?: boolean })[] = [];
   if (campaign) {
     const pendingSheets = isMaster ? campaign.pendingSheets : [];
@@ -64,6 +90,9 @@ export default function CampaignPage() {
   };
   const handleCreateMatch = () => {
     navigate(`/campaigns/${id}/matches/new`);
+  };
+  const toggleExpandDescription = () => {
+    setExpandDescription(!expandDescription);
   };
 
   if (isLoading) {
@@ -78,7 +107,7 @@ export default function CampaignPage() {
 
   return (
     <CampaignContainer>
-      <PageHeader to="/campaigns" />
+      <PageHeader to="/campaigns" backgroundColor="#08491f" />
       <PageBody>
         <SidebarContainer ref={sidebarRef}>
           <SidebarTitle>PERSONAGENS</SidebarTitle>
@@ -122,13 +151,20 @@ export default function CampaignPage() {
             {campaign.briefInitialDescription}
           </CampaignBriefDescription>
 
-          <CampaignFullDescription $expanded={expandDescription}>
-            <p>{campaign.description}</p>
-            <ExpandButton
-              onClick={() => setExpandDescription(!expandDescription)}
-            >
-              {expandDescription ? "Mostrar menos" : "Mostrar mais"}
-            </ExpandButton>
+          <CampaignFullDescription
+            $expanded={expandDescription}
+            $showButton={shouldShowExpandButton}
+          >
+            <p ref={descriptionRef}>{campaign.description}</p>
+
+            {shouldShowExpandButton && (
+              <ExpandButtonContainer>
+                <ExpandButton
+                  isExpanded={expandDescription}
+                  setIsExpanded={toggleExpandDescription}
+                />
+              </ExpandButtonContainer>
+            )}
           </CampaignFullDescription>
 
           <CampaignDate>
@@ -183,7 +219,7 @@ const PageBody = styled.main`
 
 const SidebarContainer = styled.div`
   width: 300px;
-  background-color: #2e2e2e;
+  background-color: #2d2215;
   padding: 20px;
   position: relative;
   overflow-y: auto;
@@ -192,13 +228,13 @@ const SidebarContainer = styled.div`
 
 const SidebarTitle = styled.h2`
   font-family: "Roboto", sans-serif;
-  font-size: 32px;
   font-weight: 700;
+  font-size: 32px;
   text-align: center;
   color: white;
 
   margin-bottom: 20px;
-  border-bottom: 1px solid #444;
+  border-bottom: 1px solid #696969;
   padding-bottom: 10px;
 `;
 
@@ -214,41 +250,57 @@ const MainContentContainer = styled.div`
   flex: 1;
   padding: 30px 30px 20px 30px;
   overflow-y: auto;
-  /* verify if is realy necessary */
-  min-height: 0;
+
+  /* world map */
+  background-image: url(${worldMap});
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed; /* fixes the background during scrolling */
 `;
 
 const CampaignHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 40px;
   margin-bottom: 20px;
 `;
 
 const CampaignTitle = styled.h1`
-  font-family: "Oswald", sans-serif;
+  font-family: "Roboto", sans-serif;
   font-size: 42px;
   font-weight: 900;
   color: white;
 `;
 
 const CampaignDate = styled.div`
+  font-family: "Roboto", sans-serif;
+  font-weight: 400;
   text-align: right;
-  color: #9f9f9f;
-  font-size: 16px;
+  color: white;
+  font-size: 18px;
   line-height: 1.5;
 `;
 
 const CampaignBriefDescription = styled.p`
-  font-size: 20px;
+  font-family: "Roboto", sans-serif;
+  font-weight: 400;
+  font-size: 26px;
   line-height: 1.5;
   margin-bottom: 20px;
-  color: #e0e0e0;
+  color: white;
   font-style: italic;
 `;
 
-const CampaignFullDescription = styled.div<{ $expanded: boolean }>`
-  background-color: #3a3a3a;
+const CampaignFullDescription = styled.div<{
+  $expanded: boolean;
+  $showButton: boolean;
+}>`
+  font-family: "Roboto", sans-serif;
+  font-weight: 300;
+  font-size: 18px;
+  background-color: #493823;
   border-radius: 8px;
   padding: 20px;
   margin-bottom: 30px;
@@ -257,15 +309,15 @@ const CampaignFullDescription = styled.div<{ $expanded: boolean }>`
   flex-direction: column;
 
   p {
-    font-size: 16px;
     line-height: 1.6;
-    max-height: ${({ $expanded }) => ($expanded ? "none" : "100px")};
+    max-height: ${({ $expanded }) => ($expanded ? "none" : "calc(1.6em * 5)")};
     overflow: hidden;
     position: relative;
 
     /* Shadow effect when not expanded */
-    ${({ $expanded }) =>
+    ${({ $expanded, $showButton }) =>
       !$expanded &&
+      $showButton &&
       `
       &::after {
         content: '';
@@ -274,28 +326,19 @@ const CampaignFullDescription = styled.div<{ $expanded: boolean }>`
         left: 0;
         right: 0;
         height: 50px;
-        background: linear-gradient(
-          to bottom,
-          rgba(58, 58, 58, 0) 0%,
-          rgba(58, 58, 58, 1) 100%
-        );
+        box-shadow: inset 0 -40px 50px 0 rgba(73, 56, 35, 0.9);
         pointer-events: none;
       }
     `}
   }
 `;
 
-const ExpandButton = styled.button`
-  background: none;
-  border: none;
-  color: #ffa216;
-  cursor: pointer;
-  font-size: 14px;
-  display: block;
-
-  &:hover {
-    text-decoration: underline;
-  }
+const ExpandButtonContainer = styled.div`
+  position: absolute;
+  left: 50%;
+  bottom: -22px;
+  transform: translateX(-50%);
+  width: 54px;
 `;
 
 const MatchesList = styled.div`

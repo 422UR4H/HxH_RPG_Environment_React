@@ -1,29 +1,79 @@
 import styled, { keyframes } from "styled-components";
 import BackgroundButton from "../../components/atoms/BackgroundButton";
+import type { Profile, CharacterSheet } from "../../types/characterSheet";
+import BaseOption from "../../components/ions/BaseOption";
+import BaseSelect from "../../components/ions/BaseSelect";
 
-export default function ProfileInputs() {
+interface ProfileInputsProps {
+  charSheet?: CharacterSheet;
+  setCharSheet?: (charSheet: CharacterSheet) => void;
+}
+
+export default function ProfileInputs({
+  charSheet,
+  setCharSheet,
+}: ProfileInputsProps) {
+  const handleInputChange = (field: keyof Profile, value: string) => {
+    if (!charSheet || !setCharSheet) return;
+    setCharSheet({
+      ...charSheet,
+      profile: {
+        ...charSheet.profile,
+        [field]: value,
+      },
+    });
+  };
+  const profile = charSheet?.profile;
+  const alignmentOptions = [
+    "Unaligned",
+    "Lawful Good",
+    "Lawful Neutral",
+    "Lawful Evil",
+    "Neutral Good",
+    "True Neutral",
+    "Neutral Evil",
+    "Chaotic Good",
+    "Chaotic Neutral",
+    "Chaotic Evil",
+  ] as const;
+
   return (
     <ProfileContainer>
-      <ProfileNameInput type="text" placeholder="Nome completo do personagem" />
+      <ProfileNameInput
+        type="text"
+        placeholder="Nome completo do personagem"
+        value={profile?.fullname || ""}
+        onChange={(e) => handleInputChange("fullname", e.target.value)}
+      />
 
       <ProfileDescriptionTextarea
         placeholder="Breve descrição do personagem"
         rows={2}
+        value={profile?.description || ""}
+        onChange={(e) => handleInputChange("description", e.target.value)}
       />
 
       <ProfileContent>
         <LeftDetails>
           <DetailItem>
             {/* <DetailLabel>Data de Nascimento:</DetailLabel> */}
-            {/* <DetailInput type="date" placeholder="YYYY-MM-DD" /> */}
+            {/* <DetailInput
+              type="date"
+              value={profile?.birthday || ""}
+              onChange={(e) => handleInputChange("birthday", e.target.value)}
+            /> */}
             <DetailLabel>Idade:</DetailLabel>
-            <DetailInput type="number" />
+            <DetailInput
+              type="number"
+              value={profile?.age}
+              onChange={(e) => handleInputChange("age", e.target.value)}
+            />
           </DetailItem>
 
           <DetailItem>
             <DetailLabel>Alinhamento:</DetailLabel>
             <AlignmentContainer>
-              <AlignmentSelect defaultValue="Neutral">
+              {/* <AlignmentSelect defaultValue="Neutral">
                 <option value="Lawful">Lawful</option>
                 <option value="Neutral">Neutral</option>
                 <option value="Chaotic">Chaotic</option>
@@ -33,7 +83,18 @@ export default function ProfileInputs() {
                 <option value="Good">Good</option>
                 <option value="Neutral">Neutral</option>
                 <option value="Evil">Evil</option>
-              </AlignmentSelect>
+              </AlignmentSelect> */}
+
+              <BaseSelect
+                value={profile?.alignment || "Unaligned"}
+                onChange={(e) => handleInputChange("alignment", e.target.value)}
+              >
+                {alignmentOptions.map((alignment) => (
+                  <BaseOption key={alignment} value={alignment}>
+                    {alignment}
+                  </BaseOption>
+                ))}
+              </BaseSelect>
             </AlignmentContainer>
           </DetailItem>
         </LeftDetails>
@@ -167,6 +228,18 @@ const DetailInput = styled.input`
   &:focus {
     outline: none;
     border-color: #088e3b;
+  }
+
+  /* Remove increment/decrement from input type number */
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  /* Firefox */
+  &[type="number"] {
+    -moz-appearance: textfield;
   }
 
   @media (max-width: 609px) {

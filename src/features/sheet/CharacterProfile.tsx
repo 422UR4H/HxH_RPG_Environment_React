@@ -1,20 +1,23 @@
 import { useState } from "react";
 import styled from "styled-components";
-import expandIcon from "../../assets/icons/vezinhopontiagudo.svg";
+import ExpandButton from "../../components/ions/ExpandButton";
 import type { ProfileMode } from "./types/profileMode";
-import type { Profile } from "../../types/characterSheet";
+import type { CharacterSheet } from "../../types/characterSheet";
 import ProfileDetails from "./ProfileDetails";
 import ProfileInputs from "./ProfileInputs";
 
 interface CharacterProfileProps {
   mode: ProfileMode;
-  profile?: Profile;
+  charSheet?: CharacterSheet;
+  setCharSheet?: (charSheet: CharacterSheet) => void;
 }
 
 export default function CharacterProfile({
   mode,
-  profile,
+  charSheet,
+  setCharSheet,
 }: CharacterProfileProps) {
+  const profile = charSheet?.profile;
   const [isExpanded, setIsExpanded] = useState(mode === "create");
 
   const toggleExpanded = () => {
@@ -24,11 +27,9 @@ export default function CharacterProfile({
   return (
     <ProfileContainer>
       <ProfileHeader onClick={toggleExpanded}>
-        <ExpandIcon
-          src={expandIcon}
-          alt="Expandir/Retrair"
-          $isExpanded={isExpanded}
-        />
+        <ExpandButtonContainer>
+          <ExpandButton isExpanded={isExpanded} />
+        </ExpandButtonContainer>
       </ProfileHeader>
 
       {/* TODO: refactor ternary to semanthic funcion */}
@@ -36,7 +37,7 @@ export default function CharacterProfile({
         <ProfileDetails profile={profile} />
       )}
       {isExpanded && (mode === "create" || mode === "edit") && (
-        <ProfileInputs />
+        <ProfileInputs charSheet={charSheet} setCharSheet={setCharSheet} />
       )}
     </ProfileContainer>
   );
@@ -46,14 +47,14 @@ const ProfileContainer = styled.div`
   container-type: inline-size;
   width: 100%;
   background-color: #444;
-  margin-bottom: 2cqi;
   border: 3px solid black;
+  /* border-bottom: none; */
+  /* margin-bottom: 2cqi; */
   overflow: visible;
   transition: all 0.3s ease;
 
   @media (max-width: 609px) {
     border-width: 0.6cqi;
-    margin-bottom: 4vw;
   }
 `;
 
@@ -66,37 +67,25 @@ const ProfileHeader = styled.div`
   justify-content: center;
   position: relative;
   cursor: pointer;
-  background-color: #3a3a3a;
+  background-color: #333333;
   transition: background-color 0.2s ease;
   overflow: visible;
 
   &:hover {
-    background-color: #555;
+    filter: brightness(1.1);
   }
 `;
 
-const ExpandIcon = styled.img<{ $isExpanded: boolean }>`
+const ExpandButtonContainer = styled.div`
   position: absolute;
   z-index: 1;
-  top: 18%;
-  width: 38px;
-  height: 38px;
+  top: 40%;
+
   width: 6cqi;
-  height: 6cqi;
-  transition: transform 0.16s ease;
-  transform: ${({ $isExpanded }) =>
-    $isExpanded ? "rotate(180deg)" : "rotate(0deg)"};
+  height: auto;
 
-  -webkit-user-select: none;
-  /* -moz-user-select: none; */
-  /* pointer-events: none; */
-  /* user-select: none; */
-
-  &:hover {
-    /* transform: scale(1.05); */
-    filter: brightness(1.1);
+  @media (max-width: 589px) {
+    width: 7cqi;
+    height: 7cqi;
   }
-  /* &:active {
-    transform: scale(0.98);
-  } */
 `;
