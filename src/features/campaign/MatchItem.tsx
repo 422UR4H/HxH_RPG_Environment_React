@@ -34,7 +34,7 @@ export default function MatchItem({ match, onClick }: MatchItemProps) {
 }
 
 const MatchContainer = styled.div`
-  background-color: #3a3a3a;
+  background-color: #493823;
   border-radius: 8px;
   padding: 20px;
   cursor: pointer;
@@ -42,12 +42,13 @@ const MatchContainer = styled.div`
   transition: background-color 0.2s;
 
   &:hover {
-    background-color: #444;
+    background-color: #382a1a;
   }
 `;
 
 const MatchTitle = styled.h3`
-  font-family: "Oswald", sans-serif;
+  font-family: "Roboto", sans-serif;
+  font-weight: 700;
   font-size: 24px;
   margin-bottom: 10px;
   padding-right: 100px;
@@ -55,31 +56,42 @@ const MatchTitle = styled.h3`
 
 const MatchDate = styled.div`
   position: absolute;
-  top: 20px;
   right: 20px;
-  color: #9f9f9f;
-  font-size: 14px;
+  top: 20px;
+
+  font-family: "Roboto", sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  color: white;
 `;
 
 const MatchEndDate = styled.div`
   position: absolute;
   bottom: 20px;
   right: 20px;
-  color: #9f9f9f;
-  font-size: 14px;
+
+  font-family: "Roboto", sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  color: white;
 `;
 
 const MatchDescription = styled.p`
-  font-size: 16px;
+  font-family: "Roboto", sans-serif;
+  font-weight: 300;
+  font-size: 18px;
   line-height: 1.5;
   margin-bottom: 15px;
 `;
 
 const MatchFinalDescription = styled.p`
-  font-size: 16px;
+  font-family: "Roboto", sans-serif;
+  font-weight: 400;
+  font-size: 18px;
   line-height: 1.5;
   font-style: italic;
   color: #e0e0e0;
   border-top: 1px solid #555;
   padding-top: 15px;
+  padding-right: 140px;
 `;
