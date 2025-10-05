@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { campaignService } from "../services/campaignService";
+import worldMap from "../assets/images/worldmap.png";
 import useToken from "../hooks/useToken";
 import useForm from "../hooks/useForm";
 import styled from "styled-components";
@@ -66,7 +67,7 @@ export default function CreateCampaignPage() {
 
   return (
     <PageContainer>
-      <PageHeader to="/campaigns" />
+      <PageHeader to="/campaigns" backgroundColor="#08491f" />
       <PageBody>
         <MainContentContainer>
           <CreateCampaignContainer>
@@ -83,6 +84,7 @@ export default function CreateCampaignPage() {
                   value={form.name}
                   onChange={handleForm}
                   placeholder="Digite o nome da sua campanha"
+                  autoComplete="off"
                   required
                 />
               </FormGroup>
@@ -120,7 +122,8 @@ export default function CreateCampaignPage() {
                   name="callLink"
                   value={form.callLink}
                   onChange={handleForm}
-                  placeholder="Link para chamada de vídeo/áudio (Google Meet, Discord, etc.)"
+                  placeholder="Link para chamada de vídeo/áudio (Discord, Google Meet, etc.)"
+                  autoComplete="off"
                 />
               </FormGroup>
 
@@ -221,6 +224,29 @@ const PageContainer = styled.div`
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
+
+  /* scrollbars custom */
+  * {
+    /* Webkit (Chrome, Safari, Edge) */
+    &::-webkit-scrollbar {
+      width: 12px;
+      height: 12px;
+    }
+    &::-webkit-scrollbar-track {
+      background: #42331f;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: #493823;
+      border-radius: 6px;
+      border: 2px solid #2d2215;
+    }
+    &::-webkit-scrollbar-thumb:hover {
+      background: #5a4529;
+    }
+    &::-webkit-scrollbar-corner {
+      background: #2d2215;
+    }
+  }
 `;
 
 const PageBody = styled.main`
@@ -236,6 +262,13 @@ const MainContentContainer = styled.div`
   justify-content: center;
   align-items: flex-start;
   overflow-y: auto;
+
+  /* world map */
+  background-image: url(${worldMap});
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
 `;
 
 const CreateCampaignContainer = styled.div`
@@ -251,7 +284,7 @@ const RulesSidebar = styled.div`
   width: 50%;
   max-width: 450px;
   min-width: 350px;
-  background-color: #2a2a2a;
+  background-color: #2d2215;
   padding: 20px;
   position: relative;
   overflow-y: auto;
@@ -280,31 +313,31 @@ const FormRow = styled.div`
 
 const Label = styled.label`
   font-family: "Roboto", sans-serif;
+  font-weight: 700;
   font-size: 26px;
-  font-weight: bold;
-  color: #e0e0e0;
+  color: white;
 `;
 
 const Input = styled.input`
   font-family: "Roboto", sans-serif;
   padding: 12px 16px;
-  background-color: #444;
-  border: 1px solid #555;
+  background-color: #493823;
+  border: 2px solid #604d31;
   border-radius: 6px;
   color: white;
   font-size: 24px;
 
   &:focus {
     outline: none;
-    border-color: #ffbd30;
+    border-color: #107135;
   }
 `;
 
 const TextArea = styled.textarea<{ resize?: string }>`
   font-family: "Roboto", sans-serif;
   padding: 12px 16px;
-  background-color: #444;
-  border: 1px solid #555;
+  background-color: #493823;
+  border: 2px solid #604d31;
   border-radius: 6px;
   color: white;
   font-size: 24px;
@@ -312,7 +345,7 @@ const TextArea = styled.textarea<{ resize?: string }>`
 
   &:focus {
     outline: none;
-    border-color: #ffbd30;
+    border-color: #107135;
   }
 `;
 
@@ -330,14 +363,16 @@ const Checkbox = styled.input`
 
 const CheckboxLabel = styled.label`
   font-family: "Roboto", sans-serif;
+  font-weight: 500;
   font-size: 26px;
   cursor: pointer;
 `;
 
 const HelpText = styled.p`
   font-family: "Roboto", sans-serif;
+  font-weight: 400;
   font-size: 18px;
-  color: #9f9f9f;
+  color: white;
   margin-top: 4px;
 `;
 
@@ -416,10 +451,12 @@ const ErrorMessage = styled.div`
 
 const SidebarTitle = styled.h2`
   font-family: "Roboto", sans-serif;
+  font-weight: 600;
   font-size: 32px;
-  color: #ffa216;
+  color: white;
+
   margin-bottom: 20px;
-  border-bottom: 1px solid #444;
+  border-bottom: 1px solid #696969;
   padding-bottom: 10px;
 `;
 
@@ -430,31 +467,33 @@ const RulesContent = styled.div`
 `;
 
 const RuleSection = styled.div`
-  background-color: #333;
+  background-color: #493823;
   border-radius: 8px;
   padding: 15px;
 `;
 
 const RuleSectionTitle = styled.h3`
   font-family: "Roboto", sans-serif;
+  font-weight: 600;
   font-size: 24px;
-  font-weight: bold;
   margin-bottom: 10px;
-  color: #e0e0e0;
+  color: white;
 `;
 
 const RuleInfo = styled.p`
   font-family: "Roboto", sans-serif;
+  font-weight: 300;
   font-size: 20px;
-  color: #9f9f9f;
+  color: white;
   line-height: 1.4;
 `;
 
 const SidebarFooter = styled.div`
   font-family: "Roboto", sans-serif;
+  font-weight: 300;
   margin-top: 30px;
   font-size: 18px;
-  color: #777;
+  color: white;
   font-style: italic;
   text-align: center;
 `;
