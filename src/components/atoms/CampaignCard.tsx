@@ -32,7 +32,7 @@ export default function CampaignCard({ campaign, to }: CampaignCardProps) {
 
 const CardContainer = styled(Link)`
   display: block;
-  background-color: #333;
+  background-color: #493823;
   color: white;
   text-decoration: none;
   overflow: hidden;
@@ -42,7 +42,7 @@ const CardContainer = styled(Link)`
 
   width: 80vw;
   max-width: 940px;
-  border: 4px solid #444;
+  border: 4px solid #604d31;
   border-radius: 12px;
 
   &:hover {
@@ -76,10 +76,10 @@ const CardContent = styled.div`
 
 const CampaignName = styled.h2`
   font-family: "Roboto", sans-serif;
-  font-size: 26px;
   font-weight: 700;
-  margin-bottom: 10px;
+  font-size: 26px;
   color: white;
+  margin-bottom: 10px;
 
   ${CardContainer}:hover & {
     /* color: #ba1a3e; */
@@ -88,7 +88,7 @@ const CampaignName = styled.h2`
     /* color: rgb(255, 162, 22); */
   }
 
-  @media(max-width: 500px) {
+  @media (max-width: 500px) {
     font-size: 22px;
   }
 `;
@@ -101,12 +101,12 @@ const CampaignInfo = styled.div`
 
 const Description = styled.p`
   font-family: "Roboto", sans-serif;
-  font-weight: 300;
-  font-size: 20px;
+  font-weight: 400;
+  font-size: 22px;
   line-height: 1.4;
   margin-bottom: 15px;
 
-  @media(max-width: 500px) {
+  @media (max-width: 500px) {
     font-size: 18px;
   }
 `;
@@ -118,11 +118,15 @@ const MetaInfo = styled.div`
 `;
 
 const DateInfo = styled.span`
-  font-size: 14px;
-  color: #9f9f9f;
+  font-family: "Roboto", sans-serif;
+  font-weight: 300;
+  font-size: 16px;
+  color: white;
 `;
 
 const PublicStatus = styled.span<{ $isPublic: boolean }>`
-  font-size: 14px;
+  font-family: "Roboto", sans-serif;
+  font-weight: 500;
+  font-size: 16px;
   color: ${({ $isPublic }) => ($isPublic ? "#2ecc71" : "#e74c3c")};
 `;
