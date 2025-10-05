@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { campaignService } from "../services/campaignService";
 import { useNavigate } from "react-router-dom";
 import type { CampaignSummary } from "../types/campaigns";
+import worldMap from "../assets/images/worldmap.png";
 import CampaignCard from "../components/atoms/CampaignCard";
 import PlusIcon from "../components/ions/PlusIcon";
 import useToken from "../hooks/useToken";
@@ -51,7 +52,7 @@ function CampaignsPage() {
 
   return (
     <StyledCampaignsPage>
-      <PageHeader to="/home" />
+      <PageHeader to="/home" backgroundColor="#08491f" />
       <PageBody>
         <PageTitle>LISTA DE CAMPANHAS</PageTitle>
 
@@ -84,6 +85,15 @@ export default CampaignsPage;
 const StyledCampaignsPage = styled.div`
   display: flex;
   flex-direction: column;
+
+  /* world map */
+  min-height: 100vh;
+  min-height: 100dvh;
+  background-image: url(${worldMap});
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
 `;
 
 const PageBody = styled.main`
