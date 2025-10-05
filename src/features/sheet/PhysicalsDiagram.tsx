@@ -1,7 +1,9 @@
 import PhysicalLozengeSVG from "../../assets/diagrams/physical_lozange.svg";
-import { type Ability, type Attribute } from "../../types/characterSheet.ts";
-import type { DiagramsMode } from "./types/diagramsMode.ts";
+import { type Ability, type Attribute } from "../../types/characterSheet";
+import type { DiagramsMode } from "./types/diagramsMode";
 import styled from "styled-components";
+import PlusButton from "../../components/ions/PlusButton";
+import MinusButton from "../../components/ions/MinusButton";
 
 interface PhysicalsDiagramProps {
   mode: DiagramsMode;
@@ -27,8 +29,22 @@ const PhysicalsDiagram = ({
     { name: "celerity", key: "Cel", x: "26%", y: "74%" },
   ];
 
+  let marginTop = "0";
+  let marginBottom = "0";
+  if (mode === "distribute" || mode === "create" || mode === "edit") {
+    marginTop = "16cqi";
+    marginBottom = "20cqi";
+
+    attributePositions[0].y = "0%";
+    attributePositions[1].y = "20%";
+    attributePositions[2].y = "20%";
+    attributePositions[4].y = "80%";
+    attributePositions[6].y = "101%";
+    attributePositions[7].y = "80%";
+  }
+
   return (
-    <DiagramContainer>
+    <DiagramContainer $marginTop={marginTop} $marginBottom={marginBottom}>
       <DiagramWrapper>
         <SVGContainer>
           {/* <PhysicalLozengeSVG /> */}
@@ -54,6 +70,10 @@ const PhysicalsDiagram = ({
                 top: pos.y,
               }}
             >
+              {(mode === "distribute" ||
+                mode === "create" ||
+                mode === "edit") && <PlusButton />}
+
               <AttributeLabel>{pos.key}</AttributeLabel>
               <AttributeNumbers>
                 <AttributePoints>{attr?.points || 0}</AttributePoints>
@@ -61,6 +81,10 @@ const PhysicalsDiagram = ({
                 {/* <AttributeLevel>Nv.{attr.level}</AttributeLevel> */}
                 <AttributePower>{attr?.power || 0}</AttributePower>
               </AttributeNumbers>
+
+              {(mode === "distribute" ||
+                mode === "create" ||
+                mode === "edit") && <MinusButton />}
             </AttributeMarker>
           );
         })}
@@ -70,9 +94,12 @@ const PhysicalsDiagram = ({
 };
 export default PhysicalsDiagram;
 
-const DiagramContainer = styled.div`
-  background-color: black;
-  margin-bottom: 8cqi;
+const DiagramContainer = styled.div<{
+  $marginTop?: string;
+  $marginBottom?: string;
+}>`
+  margin-bottom: ${({ $marginBottom }) => $marginBottom || "8cqi"};
+  margin-top: ${({ $marginTop }) => $marginTop || "16cqi"};
   width: 100%;
 `;
 

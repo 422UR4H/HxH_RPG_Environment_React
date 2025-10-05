@@ -72,7 +72,6 @@ const NenPrinciplesDiagram = ({
 export default NenPrinciplesDiagram;
 
 const DiagramContainer = styled.div`
-  background-color: black;
   width: 100%;
 `;
 

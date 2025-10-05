@@ -1,7 +1,9 @@
 import MentalLozengeSVG from "../../assets/diagrams/physical_lozange.svg";
+import PlusButton from "../../components/ions/PlusButton";
 import { type Ability, type Attribute } from "../../types/characterSheet.ts";
 import type { DiagramsMode } from "./types/diagramsMode.ts";
 import styled from "styled-components";
+import MinusButton from "../../components/ions/MinusButton.tsx";
 
 interface MentalsDiagramProps {
   mode: DiagramsMode;
@@ -26,12 +28,21 @@ const MentalsDiagram = ({
     { name: "creativity", key: "CRE", x: "7%", y: "53%" },
   ];
 
+  let marginTop;
+  let marginBottom;
+  if (mode === "distribute" || mode === "create" || mode === "edit") {
+    marginTop = "16cqi";
+    marginBottom = "16cqi";
+
+    attributePositions[0].y = "0%";
+    attributePositions[2].y = "101%";
+  }
+
   return (
-    <DiagramContainer>
+    <DiagramContainer $marginTop={marginTop} $marginBottom={marginBottom}>
       <DiagramWrapper>
         <SVGContainer>
           {/* <MentalLozengeSVG /> */}
-          {/* <img src={MentalLozengeSVG} alt="Mentals Diagram" /> */}
           <img src={MentalLozengeSVG} alt="Mentals Diagram" />
         </SVGContainer>
 
@@ -54,6 +65,10 @@ const MentalsDiagram = ({
                 top: pos.y,
               }}
             >
+              {(mode === "distribute" ||
+                mode === "create" ||
+                mode === "edit") && <PlusButton />}
+
               <AttributeLabel>{pos.key}</AttributeLabel>
               <AttributeNumbers>
                 <AttributePoints>{attr?.points || 0}</AttributePoints>
@@ -61,6 +76,10 @@ const MentalsDiagram = ({
                 {/* <AttributeLevel>Nv.{attr.level}</AttributeLevel> */}
                 <AttributePower>{attr?.power || 0}</AttributePower>
               </AttributeNumbers>
+
+              {(mode === "distribute" ||
+                mode === "create" ||
+                mode === "edit") && <MinusButton />}
             </AttributeMarker>
           );
         })}
@@ -70,10 +89,17 @@ const MentalsDiagram = ({
 };
 export default MentalsDiagram;
 
-const DiagramContainer = styled.div`
-  background-color: black;
-  margin-bottom: 20cqi;
+const DiagramContainer = styled.div<{
+  $marginTop?: string;
+  $marginBottom?: string;
+}>`
+  margin-bottom: ${({ $marginBottom }) => $marginBottom || "16cqi"};
+  margin-top: ${({ $marginTop }) => $marginTop || "8cqi"};
   width: 100%;
+
+  @media (max-width: 589px) {
+    margin-bottom: ${({ $marginBottom }) => $marginBottom || "4cqi"};
+  }
 `;
 
 const DiagramWrapper = styled.div`
