@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import useToken from "../hooks/useToken";
-import { characterSheetsService } from "../services/characterSheetsService";
 import { Navigate, useNavigate } from "react-router-dom";
-import type { CharacterSheetSummary } from "../types/characterSheet";
-import CharacterSheetCard from "../components/atoms/CharacterSheetCard";
 import styled from "styled-components";
+import useToken from "../hooks/useToken";
+import space from "../assets/images/space.png";
+import type { CharacterSheetSummary } from "../types/characterSheet";
+import { characterSheetsService } from "../services/characterSheetsService";
+import CharacterSheetCard from "../components/atoms/CharacterSheetCard";
 import PageHeader from "../components/atoms/PageHeader";
 import PageTitle from "../components/ions/PageTitle";
 import PlusIcon from "../components/ions/PlusIcon";
@@ -52,7 +53,7 @@ function CharacterSheetsPage() {
 
   return (
     <StyledCharacterSheetsPage>
-      <PageHeader to="/home" />
+      <PageHeader to="/home" backgroundColor="black" />
       <PageBody>
         <PageTitle>LISTA DE PERSONAGENS</PageTitle>
 
@@ -84,6 +85,13 @@ export default CharacterSheetsPage;
 const StyledCharacterSheetsPage = styled.div`
   display: flex;
   flex-direction: column;
+
+  min-height: 100vh;
+  min-height: 100dvh;
+  background-image: url(${space});
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 `;
 
 const PageBody = styled.main`
