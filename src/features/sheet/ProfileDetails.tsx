@@ -18,7 +18,7 @@ export default function ProfileDetails({ profile }: ProfileDetailsProps) {
         <LeftDetails>
           <DetailItem>
             <DetailLabel>Data de Nascimento:</DetailLabel>
-            <DetailValue>{birthday.split("T")[0]}</DetailValue>
+            <DetailValue>{birthday?.split("T")[0]}</DetailValue>
             {/* Idade do personagem aqui (ao lado da data) */}
           </DetailItem>
           <DetailItem>
