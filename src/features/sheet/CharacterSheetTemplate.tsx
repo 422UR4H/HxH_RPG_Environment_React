@@ -49,6 +49,9 @@ function CharacterSheetTemplate({
     commonProficiencies,
     jointProficiencies,
   } = charSheet;
+  const spiritualAbility = abilities?.spirituals;
+  const physicalAbility = abilities?.physicals;
+  const mentalAbility = abilities?.mentals;
 
   if (isLoading)
     return (
@@ -118,21 +121,21 @@ function CharacterSheetTemplate({
             <PhysicalsDiagram
               mode={sheetMode.diagramsMode}
               attributes={physicalAttributes}
-              physicalAbility={abilities?.physicals}
+              physicalAbility={physicalAbility}
             />
             <MentalsDiagram
               mode={sheetMode.diagramsMode}
               attributes={mentalAttributes}
-              mentalAbility={abilities?.mentals}
+              mentalAbility={mentalAbility}
             />
 
-            {charSheet.abilities?.spirituals?.level! > 0 && (
+            {spiritualAbility?.level! > 0 && (
               <>
                 <SectionTitle>PRINCÍPIOS</SectionTitle>
                 <NenPrinciplesDiagram
                   mode={sheetMode.diagramsMode}
                   principles={principles}
-                  spiritualAbility={abilities?.spirituals}
+                  spiritualAbility={spiritualAbility}
                 />
               </>
             )}
@@ -150,7 +153,7 @@ function CharacterSheetTemplate({
               />
             </SkillsGroup>
 
-            {charSheet.abilities?.spirituals?.level! > 0 && (
+            {spiritualAbility?.level! > 0 && (
               <SkillsGroup>
                 <GroupTitle>Espirituais</GroupTitle>
                 <SpiritualSkillsGroup
@@ -290,6 +293,7 @@ const MainContent = styled.main`
   background-image: url(${space});
   background-size: cover;
   background-position: center;
+  /* background-position: top; */
   background-repeat: no-repeat;
 
   @media (max-width: 609px) {
