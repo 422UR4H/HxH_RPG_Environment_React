@@ -4,6 +4,7 @@ import { type Ability, type Attribute } from "../../types/characterSheet.ts";
 import type { DiagramsMode } from "./types/diagramsMode.ts";
 import styled from "styled-components";
 import MinusButton from "../../components/ions/MinusButton.tsx";
+import { useEffect, useState } from "react";
 
 interface MentalsDiagramProps {
   mode: DiagramsMode;
@@ -18,16 +19,40 @@ const MentalsDiagram = ({
   attributes = {},
   mentalAbility = { level: 0, bonus: 0 },
 }: MentalsDiagramProps) => {
+  const [distributionPoints, setDistributionPoints] = useState(
+    mentalAbility?.level || 0
+  );
+  useEffect(() => {
+    setDistributionPoints(mentalAbility?.level || 0);
+  }, [mentalAbility?.level]);
+
+  const incDistributionPoints = () => {
+    setDistributionPoints((prev) => prev + 1);
+  };
+  const decDistributionPoints = () => {
+    setDistributionPoints((prev) => (prev > 0 ? prev - 1 : 0));
+  };
+
+  const incAttributePoints = (attr: Attribute) => {
+    if (distributionPoints <= 0) return;
+    attr?.points !== undefined && (attr.points += 1);
+    decDistributionPoints();
+  };
+  const decAttributePoints = (attr: Attribute) => {
+    if (attr?.points === undefined || attr.points <= 0) return;
+    attr.points -= 1;
+    incDistributionPoints();
+  };
+
   const attributePositions = [
-    { name: "resilience", key: "RSL", x: "50%", y: "8%" },
+    { name: "resilience", key: "RSL", x: "50.2%", y: "8%" },
     // { name: "emotion", key: "EMO", x: "50%", y: "8%" },
     { name: "adaptability", key: "ADP", x: "93%", y: "53%" },
     // { name: "charism", key: "CAR", x: "92%", y: "53%" },
-    { name: "weighting", key: "WEG", x: "50%", y: "92%" },
+    { name: "weighting", key: "WEG", x: "50.2%", y: "92%" },
     // { name: "reasoning", key: "REA", x: "50%", y: "92%" },
     { name: "creativity", key: "CRE", x: "7%", y: "53%" },
   ];
-
   let marginTop;
   let marginBottom;
   if (mode === "distribute" || mode === "create" || mode === "edit") {
@@ -41,6 +66,12 @@ const MentalsDiagram = ({
   return (
     <DiagramContainer $marginTop={marginTop} $marginBottom={marginBottom}>
       <DiagramWrapper>
+        {(mode === "distribute" || mode === "create" || mode === "edit") && (
+          <Distribution>
+            Pontos para Distribuir: {distributionPoints}
+          </Distribution>
+        )}
+
         <SVGContainer>
           {/* <MentalLozengeSVG /> */}
           <img src={MentalLozengeSVG} alt="Mentals Diagram" />
@@ -56,6 +87,8 @@ const MentalsDiagram = ({
 
         {attributePositions.map((pos) => {
           const attr = attributes[pos.name];
+          const canIncrement = distributionPoints > 0;
+          const canDecrement = (attr?.points || 0) > 0;
 
           return (
             <AttributeMarker
@@ -67,19 +100,29 @@ const MentalsDiagram = ({
             >
               {(mode === "distribute" ||
                 mode === "create" ||
-                mode === "edit") && <PlusButton />}
+                mode === "edit") && (
+                <PlusButton
+                  isDisabled={!canIncrement}
+                  onClick={() => incAttributePoints(attr)}
+                />
+              )}
 
               <AttributeLabel>{pos.key}</AttributeLabel>
               <AttributeNumbers>
-                <AttributePoints>{attr?.points || 0}</AttributePoints>
                 <AttributeLevel>{attr?.level || 0}</AttributeLevel>
+                <AttributePoints>{attr?.points || 0}</AttributePoints>
                 {/* <AttributeLevel>Nv.{attr.level}</AttributeLevel> */}
                 <AttributePower>{attr?.power || 0}</AttributePower>
               </AttributeNumbers>
 
               {(mode === "distribute" ||
                 mode === "create" ||
-                mode === "edit") && <MinusButton />}
+                mode === "edit") && (
+                <MinusButton
+                  isDisabled={!canDecrement}
+                  onClick={() => decAttributePoints(attr)}
+                />
+              )}
             </AttributeMarker>
           );
         })}
@@ -126,6 +169,21 @@ const SVGContainer = styled.div`
   svg {
     width: 100%;
     height: 100%;
+  }
+`;
+
+const Distribution = styled.div`
+  position: absolute;
+  top: -18cqi;
+  width: 40cqi;
+
+  font-family: "Roboto", sans-serif;
+  font-weight: 500;
+  font-size: 6cqi;
+  line-height: 8cqi;
+
+  @media (max-width: 589px) {
+    top: -17cqi;
   }
 `;
 
@@ -181,6 +239,7 @@ const AttributeLabel = styled.div`
   font-weight: bold;
   font-size: min(7.4cqi, 32px);
   padding: 2px 0px;
+  margin-top: 0.4cqi;
   border-radius: 4px;
 `;
 
