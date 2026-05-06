@@ -1,6 +1,6 @@
 # MatchPage — Design Spec
 
-**Date:** 2026-05-05 (rev. 2026-05-06)
+**Date:** 2026-05-05 (rev. 2026-05-06 × 2)
 **Status:** Approved
 
 ---
@@ -15,20 +15,22 @@ Create `MatchPage` (`/campaigns/:campaignId/matches/:matchId`) modeled on `Campa
 
 ### Match States
 
-A match has two states, determined by `gameStartAt`:
+| State | Condition | Sidebar endpoint | Status pill |
+|---|---|---|---|
+| Agendada | `gameStartAt` null | `GET /matches/{uuid}/enrollments` | 🟡 amarelo |
+| Em Andamento | `gameStartAt` filled, `storyEndAt` null | `GET /matches/{uuid}/participants` | 🟢 verde |
+| Encerrada | `gameStartAt` filled, `storyEndAt` filled | `GET /matches/{uuid}/participants` | 🔴 vermelho apagado |
 
-| State | Condition | Sidebar endpoint |
-|---|---|---|
-| Scheduled (open) | `gameStartAt` is null | `GET /matches/{uuid}/enrollments` |
-| Started | `gameStartAt` is filled | `GET /matches/{uuid}/participants` |
+`storyEndAt` only affects the status pill. Sidebar/endpoint logic is driven by `gameStartAt` alone.
 
 ### New / Modified Files
 
 | File | Action |
 |---|---|
-| `src/types/match.ts` | **New** — `Match`, `Enrollment`, `Participant`, `CharacterSheetWithVisibility`, `CharacterPrivateOnly`, `PlayerRef` |
-| `src/types/campaign.ts` | Import `Match` from `match.ts`; remove inline `Match` definition |
-| `src/services/matchService.ts` | Add 5 new methods; also needs `masterUuid` from backend (see below) |
+| `src/types/characterSheet.ts` | Move `CharacterBaseSummary`, `CharacterPrivateSummary` here from `campaign.ts` |
+| `src/types/campaign.ts` | Import summaries from `characterSheet.ts`; import `Match` from `match.ts`; remove inline definitions |
+| `src/types/match.ts` | **New** — `Match`, `CharacterPrivateOnly`, `CharacterSheetWithVisibility`, `PlayerRef`, `Enrollment`, `Participant` |
+| `src/services/matchService.ts` | Add 5 new methods |
 | `src/pages/CreateMatchPage.tsx` | Rename `gameStartAt` → `gameScheduledAt` everywhere |
 | `src/App.tsx` | Add route `/campaigns/:campaignId/matches/:matchId` |
 | `src/components/molecules/ExpandableText.tsx` | **New** — extract from `CampaignPage` |
@@ -40,41 +42,38 @@ A match has two states, determined by `gameStartAt`:
 
 ---
 
-## Types (`src/types/match.ts`)
+## Types
 
-### `Match`
-Moved here from `campaign.ts`. `campaign.ts` imports it.
+### `src/types/characterSheet.ts` — summaries moved here
+
+`CharacterBaseSummary` and `CharacterPrivateSummary` (and `StatusBar`) move from `campaign.ts` to `characterSheet.ts` — they describe the character sheet entity, not the campaign. `campaign.ts` imports them from here.
+
+### `src/types/match.ts`
 
 ```typescript
+import type { CharacterBaseSummary, CharacterPrivateSummary } from "./characterSheet";
+
 export interface Match {
   uuid: string;
   campaignUuid: string;
-  masterUuid: string;          // added by backend (see note below)
+  masterUuid: string;        // backend adds master_uuid to GET /matches/{uuid}
   title: string;
   briefInitialDescription: string;
   briefFinalDescription?: string;
   description: string;
   isPublic: boolean;
-  gameScheduledAt: string;     // real-world scheduled session date
-  gameStartAt?: string;        // null = scheduled, filled = started/closed
+  gameScheduledAt: string;   // real-world scheduled session date
+  gameStartAt?: string;      // null = scheduled, filled = started
   storyStartAt: string;
-  storyEndAt?: string;
+  storyEndAt?: string;       // filled = match ended (affects status pill only)
   createdAt: string;
   updatedAt: string;
 }
-```
-
-> **Backend change required:** `GET /matches/{uuid}` needs to return `master_uuid`. This is the cleanest solution — avoids a second API call and doesn't rely on heuristics. Alternative (if backend change is unavailable): a dedicated `GET /matches/{uuid}/is-master?campaign_uuid=X` endpoint.
-
-### Derived Types (reuse existing campaign types)
-
-```typescript
-import type { CharacterBaseSummary, CharacterPrivateSummary } from "./campaign";
 
 // Private-only fields — derived from existing type, no duplication
 export type CharacterPrivateOnly = Omit<CharacterPrivateSummary, keyof CharacterBaseSummary>;
 
-// Wraps base summary with optional private section (null = player view)
+// Wraps base summary with optional private section (absent = player view)
 export interface CharacterSheetWithVisibility extends CharacterBaseSummary {
   private?: CharacterPrivateOnly;
 }
@@ -86,7 +85,7 @@ export interface PlayerRef {
 
 export interface Enrollment {
   uuid: string;
-  status: string;  // "pending" | "accepted" | "rejected"
+  status: string;   // "pending" | "accepted" | "rejected"
   createdAt: string;
   characterSheet: CharacterSheetWithVisibility;
   player: PlayerRef;
@@ -100,7 +99,9 @@ export interface Participant {
 }
 ```
 
-`CharacterSheetWithVisibility` covers both master (private filled) and player (private absent) views with a single type, making the page treat either state fluidly.
+`CharacterSheetWithVisibility` handles both master (private filled) and player (private absent) with a single type — the page treats either state fluidly.
+
+> **Backend change agreed:** `GET /matches/{uuid}` will return `master_uuid`.
 
 ---
 
@@ -116,22 +117,21 @@ acceptEnrollment(token, enrollmentId)  // POST /enrollments/{uuid}/accept  (empt
 rejectEnrollment(token, enrollmentId)  // POST /enrollments/{uuid}/reject  (empty body)
 ```
 
-Error handling: 404, 400, 401, 403, 500 — surfaced via rejected promise.
+Errors: 404, 400, 401, 403, 500 — surfaced via rejected promise.
 
 ---
 
 ## Extracted Components
 
 ### `ExpandableText` (`src/components/molecules/ExpandableText.tsx`)
-Encapsulates the 5-line collapse/expand logic with shadow effect and `ExpandButton`.
-
-Props: `children: React.ReactNode` | `backgroundColor?: string`
+Encapsulates the 5-line collapse/expand logic with shadow + `ExpandButton`.
+Props: `children: React.ReactNode`, `backgroundColor?: string`.
 Returns `null` if children is empty/falsy.
-Used in: `CampaignPage` (replaces existing inline logic), `MatchPage`.
+Used in `CampaignPage` (replaces existing inline logic) and `MatchPage`.
 
 ### `PageStates` (`src/components/atoms/PageStates.tsx`)
-Two named styled-components exports: `LoadingContainer` and `ErrorContainer`.
-Replaces the identical inline versions in `CampaignPage`, `CampaignsPage`, etc.
+Named styled-components exports: `LoadingContainer`, `ErrorContainer`.
+Replaces identical inline versions in `CampaignPage`, `CampaignsPage`, etc.
 
 ---
 
@@ -150,10 +150,10 @@ Props:
 
 Behavior:
 - Shows `nickName` + status badge: `Pendente` (blue) / `Aceito` (green) / `Rejeitado` (red)
-- If `private` is filled (master view), shows `fullName` + health/stamina bars (same pattern as `CharacterSidebarItem`)
-- If `isMaster`: always shows ✓ / ✗ buttons regardless of current status (master can change any enrollment)
-- Per-enrollment loading state via `actionLoading[enrollment.uuid]`
-- Click navigates to character sheet (master only), consistent with `CampaignPage`
+- If `private` is filled (master view): shows `fullName` + health/stamina bars (same pattern as `CharacterSidebarItem`)
+- If `isMaster`: always shows ✓ / ✗ buttons for all enrollments (master can change any status)
+- Per-enrollment loading via `actionLoading[enrollment.uuid]`
+- Click navigates to character sheet (master only)
 - Styled with `styled-components`, consistent with existing sidebar items
 
 ---
@@ -161,21 +161,20 @@ Behavior:
 ## `CharacterSidebarItem` update
 
 Adds optional `hasLeft?: boolean` prop. When true, renders a grey `"Saiu"` badge.
-No breaking changes to existing usage.
+No breaking changes.
 
 ---
 
 ## `MatchPage` (`src/pages/MatchPage.tsx`)
 
 **Route:** `/campaigns/:campaignId/matches/:matchId`
-**Params:** `campaignId`, `matchId`
 **Auth guard:** `if (!token) navigate("/")`
 
 ### Data Fetching
 
 1. `getMatchDetails(token, matchId)` on mount
 2. `isMaster = match.masterUuid === user.uuid`
-3. After match loads: if `match.gameStartAt` is null → `getEnrollments`; else → `getParticipants`
+3. After match loads: `gameStartAt` null → `getEnrollments`; filled → `getParticipants`
 
 ### Layout (mirrors `CampaignPage`)
 
@@ -183,12 +182,12 @@ No breaking changes to existing usage.
 PageHeader (back → /campaigns/:campaignId, backgroundColor="#08491f")
 ├── Sidebar (300px, #2d2215)
 │   ├── Title: "PERSONAGENS"
-│   └── EnrollmentSidebarItem list (scheduled)
-│       or CharacterSidebarItem list with hasLeft (started)
+│   └── EnrollmentSidebarItem list  (gameStartAt null)
+│       or CharacterSidebarItem list with hasLeft  (gameStartAt filled)
 └── MainContent (flex:1, worldMap background)
     ├── MatchHeader
-    │   ├── title (+ "ENCERRADA" badge if gameStartAt filled)
-    │   └── date display (see below)
+    │   ├── title (left)
+    │   └── status pill + date info (right, same column)
     ├── storyStartAt
     ├── briefInitialDescription (italic, large)
     ├── ExpandableText: description
@@ -197,26 +196,26 @@ PageHeader (back → /campaigns/:campaignId, backgroundColor="#08491f")
     └── [Abrir Lobby button] (master only, gameStartAt === null)
 ```
 
-### Date Display UX
+### Status Pill + Date Display
 
-**Scheduled** (`gameStartAt` null):
-- Shows `gameScheduledAt` labeled `"Sessão agendada para:"` in the header
+The pill sits in the right column of `MatchHeader`, clearly separated from the title.
 
-**Started** (`gameStartAt` filled):
-- Shows `gameStartAt` labeled `"Sessão realizada em:"` as primary date
-- `gameScheduledAt` shown only on hover — a small styled wrapper with CSS `title` attribute tooltip
-- "ENCERRADA" badge in muted red next to the match title — makes the closed state immediately obvious without being disruptive
+| State | Pill | Date label | Date value |
+|---|---|---|---|
+| Agendada | `AGENDADA` amarelo | "Agendada para:" | `gameScheduledAt` |
+| Em Andamento | `EM ANDAMENTO` verde | "Iniciada em:" | `gameStartAt` + hover tooltip → `gameScheduledAt` |
+| Encerrada | `ENCERRADA` vermelho apagado | "Iniciada em:" | `gameStartAt` + hover tooltip → `gameScheduledAt` |
 
-This decision avoids JS tooltip libraries and works purely with CSS/HTML.
+Hover tooltip uses CSS `title` attribute — no JS library needed.
 
 ### "Abrir Lobby" Flow
 
-- Master-only, bottom of main content, visible only when `gameStartAt === null`
+- Master-only, bottom of main content, `gameStartAt === null` only
 - On click: `showLobbyConfirm = true`
-- Confirmation dialog (styled `<dialog>` or overlay):
+- Confirmation dialog:
   > "Tem certeza que deseja abrir o lobby desta partida? Os jogadores aceitos poderão entrar."
   > [Cancelar] [Confirmar]
-- On confirm: `navigate(\`/campaigns/${campaignId}/matches/${matchId}/lobby\`)` — WebSocket logic is future work
+- On confirm: `navigate(\`/campaigns/${campaignId}/matches/${matchId}/lobby\`)` — WebSocket is future work
 
 ### State
 
@@ -245,7 +244,8 @@ showLobbyConfirm: boolean
 
 ## Error Handling
 
-All API errors (404, 400, 401, 403, 500) surfaced via `ErrorContainer` from `PageStates` for page-level errors. Accept/reject action errors shown inline near the buttons — do not replace the whole page.
+Page-level errors via `ErrorContainer` from `PageStates`.
+Accept/reject errors shown inline near the buttons — do not replace the whole page.
 
 ---
 
@@ -253,4 +253,4 @@ All API errors (404, 400, 401, 403, 500) surfaced via `ErrorContainer` from `Pag
 
 - WebSocket lobby connection
 - Match editing by master
-- `gameStartAt` being set (starting the match) — lobby page handles this
+- Setting `gameStartAt` (opening the match) — lobby page handles this
