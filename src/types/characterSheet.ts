@@ -37,20 +37,6 @@ export interface StatusBar {
   max: number;
 }
 
-// TODO: add this infos in card of the CharacterSheetSummary
-// alignment: string;
-// categoryName: string;
-
-// currHexValue: number | null;
-
-// level: number;
-// points: number;
-// talentLvl: number;
-// physicalsLvl: number;
-// mentalsLvl: number;
-// spiritualsLvl: number;
-// skillsLvl: number;
-
 export interface CharacterSheet {
   characterClass: string;
   categoryName: string;
@@ -73,7 +59,6 @@ export interface CharacterSheet {
   jointProficiencies: JointProficiency[];
 }
 
-// TODO: review and padronize type and interface
 export type Profile = {
   nickname: string;
   fullname: string;

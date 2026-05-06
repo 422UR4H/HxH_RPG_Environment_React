@@ -33,7 +33,7 @@ export interface PlayerRef {
 
 export interface Enrollment {
   uuid: string;
-  status: string;
+  status: "pending" | "accepted" | "rejected";
   createdAt: string;
   characterSheet: CharacterSheetWithVisibility;
   player: PlayerRef;
