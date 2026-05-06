@@ -138,3 +138,36 @@ export interface Category {
   value: number;
   percent: number;
 }
+
+export interface CharacterBaseSummary {
+  uuid: string;
+  playerUuid?: string;
+  masterUuid?: string;
+  campaignUuid?: string;
+  nickName: string;
+  storyStartAt?: string;
+  storyCurrentAt?: string;
+  deadAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CharacterPrivateSummary extends CharacterBaseSummary {
+  fullName: string;
+  alignment: string;
+  characterClass: string;
+  birthday: string;
+  categoryName: string;
+  currHexValue?: number;
+  level: number;
+  points: number;
+  talentLvl: number;
+  physicalsLvl: number;
+  mentalsLvl: number;
+  spiritualsLvl: number;
+  skillsLvl: number;
+  stamina: StatusBar;
+  health: StatusBar;
+}
+
+export interface CharacterPublicSummary extends CharacterBaseSummary {}
