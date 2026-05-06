@@ -10,6 +10,7 @@ function formatNextGame(dateStr: string): string {
   const diffMs = gameDate.getTime() - today.getTime();
   const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
   const formatted = gameDate.toLocaleDateString("pt-BR");
+  if (diffDays < 0) return `Partida agendada para: ${formatted} (passada)`;
   if (diffDays === 0) return `Partida agendada para: ${formatted} (hoje)`;
   if (diffDays === 1) return `Partida agendada para: ${formatted} (amanhã)`;
   return `Partida agendada para: ${formatted} (em ${diffDays} dias)`;

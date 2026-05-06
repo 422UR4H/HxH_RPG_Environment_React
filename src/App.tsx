@@ -28,8 +28,8 @@ function App() {
         <Route path="/charactersheet/:id" element={<CharacterSheetPage />} />
         <Route path="/campaigns" element={<CampaignsPage />} />
         <Route path="/campaigns/public" element={<PublicCampaignsPage />} />
-        <Route path="/campaigns/:id" element={<CampaignPage />} />
         <Route path="/campaigns/new" element={<CreateCampaignPage />} />
+        <Route path="/campaigns/:id" element={<CampaignPage />} />
         <Route
           path="/campaigns/:campaignId/matches/new"
           element={<CreateMatchPage />}
