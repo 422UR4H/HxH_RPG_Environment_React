@@ -13,7 +13,7 @@ interface MatchFormData {
   briefInitialDescription: string;
   description: string;
   isPublic: boolean;
-  gameStartAt: string;
+  gameScheduledAt: string;
   storyStartAt: string;
 }
 
@@ -29,7 +29,7 @@ export default function CreateMatchPage() {
     briefInitialDescription: "",
     description: "",
     isPublic: true,
-    gameStartAt: new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000)
+    gameScheduledAt: new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000)
       .toISOString()
       .substring(0, 16), // One week ahead format YYYY-MM-DDTHH:MM
     storyStartAt: new Date().toISOString().split("T")[0], // Today as default
@@ -56,7 +56,7 @@ export default function CreateMatchPage() {
       // Adds campaign UUID and story_start_at format to form data
       const matchData = {
         ...form,
-        gameStartAt: formatDateToISOString(form.gameStartAt),
+        gameScheduledAt: formatDateToISOString(form.gameScheduledAt),
         campaignUuid: campaignId,
       };
       await matchService.createMatch(token!, matchData);
@@ -134,12 +134,12 @@ export default function CreateMatchPage() {
 
               <FormRow>
                 <FormGroup style={{ flex: 1 }}>
-                  <Label htmlFor="gameStartAt">Data e Hora da Sessão</Label>
+                  <Label htmlFor="gameScheduledAt">Data e Hora da Sessão</Label>
                   <Input
-                    id="gameStartAt"
-                    name="gameStartAt"
+                    id="gameScheduledAt"
+                    name="gameScheduledAt"
                     type="datetime-local"
-                    value={form.gameStartAt}
+                    value={form.gameScheduledAt}
                     onChange={handleForm}
                     required
                   />
