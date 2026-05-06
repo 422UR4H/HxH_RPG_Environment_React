@@ -12,7 +12,6 @@ interface NenPrinciplesDiagramProps {
 }
 
 const NenPrinciplesDiagram = ({
-  mode,
   principles = {},
   spiritualAbility = { level: 0, bonus: 0 },
 }: NenPrinciplesDiagramProps) => {
