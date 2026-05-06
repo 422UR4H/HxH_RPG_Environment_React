@@ -21,6 +21,7 @@ export default function CharacterSheetCard({
   charSheet.profile = {
     nickname: character.nickName,
     fullname: character.fullName,
+    age: character.age,
     briefDescription: "",
     birthday: character.birthday,
     alignment: character.alignment,
@@ -53,7 +54,9 @@ const CardContainer = styled(Link)`
   color: white;
   text-decoration: none;
   overflow: hidden;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
   cursor: pointer;
 

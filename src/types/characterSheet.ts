@@ -6,7 +6,8 @@ export interface CharacterSheetSummary {
   nickName: string;
   fullName: string;
   alignment: string;
-  birthday: string;
+  birthday?: string;
+  age: number;
   cover?: string;
   avatar?: string;
   characterClass: string;
