@@ -14,8 +14,8 @@ import MatchItem from "../features/campaign/MatchItem";
 import AdaptiveActionButton from "../features/campaign/AdaptativeActionButton";
 import { getSortedCharacters } from "../features/campaign/utils/characterUtils";
 import PageHeader from "../components/atoms/PageHeader";
-import ExpandButton from "../components/ions/ExpandButton";
 import { LoadingContainer, ErrorContainer } from "../components/atoms/PageStates";
+import ExpandableText from "../components/molecules/ExpandableText";
 
 export default function CampaignPage() {
   const { id } = useParams<{ id: string }>();
@@ -26,11 +26,8 @@ export default function CampaignPage() {
   const [campaign, setCampaign] = useState<CampaignMaster | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [expandDescription, setExpandDescription] = useState<boolean>(false);
-  const [shouldShowExpandButton, setShouldShowExpandButton] =
-    useState<boolean>(false);
+  const [descriptionSignal, setDescriptionSignal] = useState(false);
 
-  const descriptionRef = useRef<HTMLParagraphElement>(null);
   const isMaster = campaign?.masterUuid === user?.uuid;
   const sidebarRef = useRef<HTMLDivElement>(null);
   const mainContentRef = useRef<HTMLDivElement>(null);
@@ -59,27 +56,6 @@ export default function CampaignPage() {
       });
   }, [token, id, navigate]);
 
-  // verify if the text exceeds 5 lines
-  useEffect(() => {
-    if (campaign && descriptionRef.current) {
-      const element = descriptionRef.current;
-
-      // temporarily remove max-height to measure actual height
-      const originalMaxHeight = element.style.maxHeight;
-      element.style.maxHeight = "none";
-
-      const lineHeight = parseFloat(getComputedStyle(element).lineHeight);
-      const maxHeight = lineHeight * 5; // 5 lines
-      const actualHeight = element.scrollHeight; // actual height of content
-
-      // restore original max-height
-      element.style.maxHeight = originalMaxHeight;
-
-      // only show the button if the content exceeds 5 lines
-      setShouldShowExpandButton(actualHeight > maxHeight);
-    }
-  }, [campaign, expandDescription]);
-
   let sortedSheets: (CharacterPrivateSummary & { isPending?: boolean })[] = [];
   if (campaign) {
     const pendingSheets = isMaster ? campaign.pendingSheets : [];
@@ -92,10 +68,6 @@ export default function CampaignPage() {
   const handleCreateMatch = () => {
     navigate(`/campaigns/${id}/matches/new`);
   };
-  const toggleExpandDescription = () => {
-    setExpandDescription(!expandDescription);
-  };
-
   if (isLoading) {
     return <LoadingContainer>Carregando campanha...</LoadingContainer>;
   }
@@ -128,7 +100,7 @@ export default function CampaignPage() {
                 type="character"
                 onClick={handleCreateNpc}
                 containerRef={sidebarRef}
-                contentChangeSignal={expandDescription}
+                contentChangeSignal={descriptionSignal}
               />
             )}
           </CharactersList>
@@ -152,21 +124,9 @@ export default function CampaignPage() {
             {campaign.briefInitialDescription}
           </CampaignBriefDescription>
 
-          <CampaignFullDescription
-            $expanded={expandDescription}
-            $showButton={shouldShowExpandButton}
-          >
-            <p ref={descriptionRef}>{campaign.description}</p>
-
-            {shouldShowExpandButton && (
-              <ExpandButtonContainer>
-                <ExpandButton
-                  isExpanded={expandDescription}
-                  setIsExpanded={toggleExpandDescription}
-                />
-              </ExpandButtonContainer>
-            )}
-          </CampaignFullDescription>
+          <ExpandableText onToggle={() => setDescriptionSignal((s) => !s)}>
+            {campaign.description}
+          </ExpandableText>
 
           <CampaignDate>
             Início:{" "}
@@ -193,7 +153,7 @@ export default function CampaignPage() {
                 type="match"
                 onClick={handleCreateMatch}
                 containerRef={mainContentRef}
-                contentChangeSignal={expandDescription}
+                contentChangeSignal={descriptionSignal}
               />
             )}
           </MatchesList>
@@ -292,54 +252,6 @@ const CampaignBriefDescription = styled.p`
   margin-bottom: 20px;
   color: white;
   font-style: italic;
-`;
-
-const CampaignFullDescription = styled.div<{
-  $expanded: boolean;
-  $showButton: boolean;
-}>`
-  font-family: "Roboto", sans-serif;
-  font-weight: 300;
-  font-size: 18px;
-  background-color: #493823;
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 30px;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-
-  p {
-    line-height: 1.6;
-    max-height: ${({ $expanded }) => ($expanded ? "none" : "calc(1.6em * 5)")};
-    overflow: hidden;
-    position: relative;
-
-    /* Shadow effect when not expanded */
-    ${({ $expanded, $showButton }) =>
-      !$expanded &&
-      $showButton &&
-      `
-      &::after {
-        content: '';
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: 50px;
-        box-shadow: inset 0 -40px 50px 0 rgba(73, 56, 35, 0.9);
-        pointer-events: none;
-      }
-    `}
-  }
-`;
-
-const ExpandButtonContainer = styled.div`
-  position: absolute;
-  left: 50%;
-  bottom: -22px;
-  transform: translateX(-50%);
-  width: 54px;
 `;
 
 const MatchesList = styled.div`
