@@ -9,7 +9,6 @@ interface SpiritualSkillsGroupProps {
   skills?: Record<string, Skill>;
 }
 export default function SpiritualSkillsGroup({
-  mode,
   attributes,
   skills,
 }: SpiritualSkillsGroupProps) {

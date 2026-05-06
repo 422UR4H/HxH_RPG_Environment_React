@@ -9,7 +9,6 @@ interface ProficienciesListProps {
 }
 
 export default function ProficienciesList({
-  mode,
   commonProfs,
   jointProfs,
 }: ProficienciesListProps) {

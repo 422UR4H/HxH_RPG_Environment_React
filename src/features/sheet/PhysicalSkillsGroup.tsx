@@ -9,7 +9,6 @@ interface PhysicalSkillsGroupProps {
   skills?: Record<string, Skill>;
 }
 export default function PhysicalSkillsGroup({
-  mode,
   attributes,
   skills,
 }: PhysicalSkillsGroupProps) {

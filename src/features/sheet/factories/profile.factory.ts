@@ -8,6 +8,7 @@ export function createEmptyProfile(): Profile {
     description: "",
     briefDescription: "",
     birthday: "",
+    age: 0,
     cover: undefined,
     avatar: undefined,
   };
