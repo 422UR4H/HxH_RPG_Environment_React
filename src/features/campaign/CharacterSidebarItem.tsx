@@ -4,12 +4,14 @@ import type { CharacterPrivateSummary } from "../../types/campaign";
 interface CharacterSidebarItemProps {
   character: CharacterPrivateSummary & { isPending?: boolean };
   isMaster: boolean;
+  hasLeft?: boolean;
   onClick: () => void;
 }
 
 export default function CharacterSidebarItem({
   character,
   isMaster,
+  hasLeft,
   onClick,
 }: CharacterSidebarItemProps) {
   const isDead = !!character.deadAt;
@@ -42,6 +44,7 @@ export default function CharacterSidebarItem({
       {isPending && <PendingBadge>Pendente</PendingBadge>}
       {isNpc && <NpcBadge>NPC</NpcBadge>}
       {isDead && <DeadBadge>Morto</DeadBadge>}
+      {hasLeft && <LeftBadge>Saiu</LeftBadge>}
     </CharacterItem>
   );
 }
@@ -138,4 +141,9 @@ const DeadBadge = styled(Badge)`
 const NpcBadge = styled(Badge)`
   background-color: #2ecc71;
   color: white;
+`;
+
+const LeftBadge = styled(Badge)`
+  background-color: #555;
+  color: #ccc;
 `;
