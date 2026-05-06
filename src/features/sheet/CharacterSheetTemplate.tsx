@@ -12,6 +12,7 @@ import NenPrinciplesDiagram from "./NenPrinciplesDiagram";
 import PhysicalSkillsGroup from "./PhysicalSkillsGroup";
 import SpiritualSkillsGroup from "./SpiritualSkillsGroup";
 import ProficienciesList from "./ProficienciesList";
+import SheetCampaignButton from "./SheetCampaignButton";
 
 interface Data {
   error: string | null;
@@ -22,6 +23,8 @@ interface Data {
   charClasses?: CharacterClass[];
   selectedClass?: CharacterClass;
   applyClassDistribution?: (className: string) => void;
+  onCampaignClick?: () => void;
+  hasCampaign?: boolean;
 }
 
 interface CharacterSheetTemplateProps {
@@ -30,7 +33,7 @@ interface CharacterSheetTemplateProps {
 }
 
 function CharacterSheetTemplate({
-  data: { charSheet, setCharSheet, charClasses, isLoading, error },
+  data: { charSheet, setCharSheet, charClasses, isLoading, error, onCampaignClick, hasCampaign },
   sheetMode,
 }: CharacterSheetTemplateProps) {
   if (!charSheet) return <ErrorContainer>Ficha não encontrada</ErrorContainer>;
@@ -65,7 +68,7 @@ function CharacterSheetTemplate({
   }
 
   return (
-    <SheetContainer>
+    <SheetContainer $hasCampaignButton={sheetMode.headerMode === "view" && !!onCampaignClick}>
       <BackButton to={"/charactersheets"} />
 
       <CharacterSheetHeader
@@ -190,18 +193,25 @@ function CharacterSheetTemplate({
           />
         </ProficienciesSection>
       </MainContent>
+      {sheetMode.headerMode === "view" && onCampaignClick && (
+        <SheetCampaignButton
+          label={hasCampaign ? "Ver Campanha" : "Procurar Campanhas"}
+          onClick={onCampaignClick}
+        />
+      )}
     </SheetContainer>
   );
 }
 export default CharacterSheetTemplate;
 
-const SheetContainer = styled.div`
+const SheetContainer = styled.div<{ $hasCampaignButton?: boolean }>`
   container-type: inline-size;
   max-width: 940px;
   margin: 0 auto;
   color: white;
   background-color: black;
   position: relative;
+  ${({ $hasCampaignButton }) => $hasCampaignButton && "padding-bottom: 103px;"}
 `;
 
 // const HeaderSection = styled.div`
