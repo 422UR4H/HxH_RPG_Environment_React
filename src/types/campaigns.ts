@@ -12,3 +12,11 @@ export interface CampaignSummary {
 export interface CampaignsResponse {
   campaigns: CampaignSummary[];
 }
+
+export interface PublicCampaignSummary extends CampaignSummary {
+  nextGameScheduledAt: string | null;
+}
+
+export interface PublicCampaignsResponse {
+  campaigns: PublicCampaignSummary[];
+}
