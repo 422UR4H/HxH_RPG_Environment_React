@@ -159,9 +159,7 @@ O botão só aparece quando a ficha já carregou (evita flash).
 
 **Dados:** `usePublicCampaigns(token)`
 
-**Ordenação (client-side):**
-1. Campanhas com `nextGameScheduledAt` não-nulo ordenadas por data ascendente (mais próxima primeiro)
-2. Campanhas com `nextGameScheduledAt === null` ao final
+**Ordenação:** A API já retorna as campanhas ordenadas (próxima partida primeiro, sem partida ao final). Sem ordenação client-side.
 
 **Cards:** `CampaignCard` com `nextGameScheduledAt` passado. Clique navega para `/campaigns/${uuid}`.
 
