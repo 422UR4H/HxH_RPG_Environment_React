@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { Navigate, useParams, useNavigate } from "react-router-dom";
 import useToken from "../hooks/useToken";
 import useUser from "../hooks/useUser";
 import { matchService } from "../services/matchService";
@@ -54,16 +54,12 @@ export default function MatchPage() {
   const [showLobbyConfirm, setShowLobbyConfirm] = useState(false);
   const [descriptionSignal, setDescriptionSignal] = useState(false);
 
-  const sidebarRef = useRef<HTMLDivElement>(null);
   const mainContentRef = useRef<HTMLDivElement>(null);
 
   const isMaster = !!match && match.masterUuid === user?.uuid;
 
   useEffect(() => {
-    if (!token || !matchId) {
-      navigate("/");
-      return;
-    }
+    if (!token || !matchId) return;
     setIsLoading(true);
     matchService
       .getMatchDetails(token, matchId)
@@ -88,7 +84,9 @@ export default function MatchPage() {
         .then(({ data }) => setParticipants(data))
         .catch(() => setError("Falha ao carregar participantes."));
     }
-  }, [token, match]);
+  }, [token, match?.uuid, match?.gameStartAt]);
+
+  if (!token) return <Navigate to="/" replace />;
 
   const handleAccept = async (enrollmentId: string) => {
     if (!token) return;
@@ -141,7 +139,7 @@ export default function MatchPage() {
     <MatchContainer>
       <PageHeader to={`/campaigns/${campaignId}`} backgroundColor="#08491f" />
       <PageBody>
-        <SidebarContainer ref={sidebarRef}>
+        <SidebarContainer>
           <SidebarTitle>PERSONAGENS</SidebarTitle>
           <CharactersList>
             {!match.gameStartAt
