@@ -1,6 +1,6 @@
 # MatchPage — Design Spec
 
-**Date:** 2026-05-05  
+**Date:** 2026-05-05 (rev. 2026-05-06)
 **Status:** Approved
 
 ---
@@ -26,8 +26,9 @@ A match has two states, determined by `gameStartAt`:
 
 | File | Action |
 |---|---|
-| `src/types/campaign.ts` | Update `Match`; add `Enrollment`, `Participant`, `CharacterSheetWithVisibility`, `CharacterPrivateOnly` |
-| `src/services/matchService.ts` | Add 5 new methods |
+| `src/types/match.ts` | **New** — `Match`, `Enrollment`, `Participant`, `CharacterSheetWithVisibility`, `CharacterPrivateOnly`, `PlayerRef` |
+| `src/types/campaign.ts` | Import `Match` from `match.ts`; remove inline `Match` definition |
+| `src/services/matchService.ts` | Add 5 new methods; also needs `masterUuid` from backend (see below) |
 | `src/pages/CreateMatchPage.tsx` | Rename `gameStartAt` → `gameScheduledAt` everywhere |
 | `src/App.tsx` | Add route `/campaigns/:campaignId/matches/:matchId` |
 | `src/components/molecules/ExpandableText.tsx` | **New** — extract from `CampaignPage` |
@@ -39,20 +40,23 @@ A match has two states, determined by `gameStartAt`:
 
 ---
 
-## Types (`src/types/campaign.ts`)
+## Types (`src/types/match.ts`)
 
-### Updated `Match`
+### `Match`
+Moved here from `campaign.ts`. `campaign.ts` imports it.
+
 ```typescript
 export interface Match {
   uuid: string;
   campaignUuid: string;
+  masterUuid: string;          // added by backend (see note below)
   title: string;
   briefInitialDescription: string;
   briefFinalDescription?: string;
-  description: string;         // new field
+  description: string;
   isPublic: boolean;
-  gameScheduledAt: string;     // renamed from gameStartAt (real-world session date)
-  gameStartAt?: string;        // nullable — null = scheduled, filled = started
+  gameScheduledAt: string;     // real-world scheduled session date
+  gameStartAt?: string;        // null = scheduled, filled = started/closed
   storyStartAt: string;
   storyEndAt?: string;
   createdAt: string;
@@ -60,28 +64,19 @@ export interface Match {
 }
 ```
 
-### New Types
-```typescript
-export interface CharacterPrivateOnly {
-  fullName: string;
-  alignment: string;
-  characterClass: string;
-  birthday: string;
-  categoryName: string;
-  currHexValue?: number;
-  level: number;
-  points: number;
-  talentLvl: number;
-  physicalsLvl: number;
-  mentalsLvl: number;
-  spiritualsLvl: number;
-  skillsLvl: number;
-  stamina: StatusBar;
-  health: StatusBar;
-}
+> **Backend change required:** `GET /matches/{uuid}` needs to return `master_uuid`. This is the cleanest solution — avoids a second API call and doesn't rely on heuristics. Alternative (if backend change is unavailable): a dedicated `GET /matches/{uuid}/is-master?campaign_uuid=X` endpoint.
 
+### Derived Types (reuse existing campaign types)
+
+```typescript
+import type { CharacterBaseSummary, CharacterPrivateSummary } from "./campaign";
+
+// Private-only fields — derived from existing type, no duplication
+export type CharacterPrivateOnly = Omit<CharacterPrivateSummary, keyof CharacterBaseSummary>;
+
+// Wraps base summary with optional private section (null = player view)
 export interface CharacterSheetWithVisibility extends CharacterBaseSummary {
-  private?: CharacterPrivateOnly;  // null for players, filled for master
+  private?: CharacterPrivateOnly;
 }
 
 export interface PlayerRef {
@@ -105,6 +100,8 @@ export interface Participant {
 }
 ```
 
+`CharacterSheetWithVisibility` covers both master (private filled) and player (private absent) views with a single type, making the page treat either state fluidly.
+
 ---
 
 ## Service (`src/services/matchService.ts`)
@@ -112,14 +109,14 @@ export interface Participant {
 New methods (all with `objToCamelCase` on response, `objToSnakeCase` on body):
 
 ```typescript
-getMatchDetails(token, matchId)       // GET /matches/{uuid}
-getEnrollments(token, matchId)        // GET /matches/{uuid}/enrollments
-getParticipants(token, matchId)       // GET /matches/{uuid}/participants
-acceptEnrollment(token, enrollmentId) // POST /enrollments/{uuid}/accept  (empty body)
-rejectEnrollment(token, enrollmentId) // POST /enrollments/{uuid}/reject  (empty body)
+getMatchDetails(token, matchId)        // GET /matches/{uuid}
+getEnrollments(token, matchId)         // GET /matches/{uuid}/enrollments
+getParticipants(token, matchId)        // GET /matches/{uuid}/participants
+acceptEnrollment(token, enrollmentId)  // POST /enrollments/{uuid}/accept  (empty body)
+rejectEnrollment(token, enrollmentId)  // POST /enrollments/{uuid}/reject  (empty body)
 ```
 
-Error handling: 404, 400, 401, 403, 500 — all surfaced to the component via rejected promise.
+Error handling: 404, 400, 401, 403, 500 — surfaced via rejected promise.
 
 ---
 
@@ -128,13 +125,13 @@ Error handling: 404, 400, 401, 403, 500 — all surfaced to the component via re
 ### `ExpandableText` (`src/components/molecules/ExpandableText.tsx`)
 Encapsulates the 5-line collapse/expand logic with shadow effect and `ExpandButton`.
 
-Props: `children: React.ReactNode` | `backgroundColor?: string`  
-Returns `null` if children is empty/falsy.  
+Props: `children: React.ReactNode` | `backgroundColor?: string`
+Returns `null` if children is empty/falsy.
 Used in: `CampaignPage` (replaces existing inline logic), `MatchPage`.
 
 ### `PageStates` (`src/components/atoms/PageStates.tsx`)
-Two named styled exports: `LoadingContainer` and `ErrorContainer`.  
-Identical to what currently exists inline in `CampaignPage`, `CampaignsPage`, etc.
+Two named styled-components exports: `LoadingContainer` and `ErrorContainer`.
+Replaces the identical inline versions in `CampaignPage`, `CampaignsPage`, etc.
 
 ---
 
@@ -147,71 +144,89 @@ Props:
   isMaster: boolean;
   onAccept: (enrollmentId: string) => Promise<void>;
   onReject: (enrollmentId: string) => Promise<void>;
-  onClick: () => void;       // navigate to character sheet (master only)
+  onClick: () => void;   // navigate to character sheet (master only)
 }
 ```
 
 Behavior:
 - Shows `nickName` + status badge: `Pendente` (blue) / `Aceito` (green) / `Rejeitado` (red)
-- If `private` is filled (master), shows `fullName` and health/stamina bars (same as `CharacterSidebarItem`)
-- If `status === "pending"` and `isMaster`: shows inline ✓ / ✗ buttons with per-enrollment loading state
-- Click on item navigates to character sheet (master only)
+- If `private` is filled (master view), shows `fullName` + health/stamina bars (same pattern as `CharacterSidebarItem`)
+- If `isMaster`: always shows ✓ / ✗ buttons regardless of current status (master can change any enrollment)
+- Per-enrollment loading state via `actionLoading[enrollment.uuid]`
+- Click navigates to character sheet (master only), consistent with `CampaignPage`
 - Styled with `styled-components`, consistent with existing sidebar items
 
 ---
 
 ## `CharacterSidebarItem` update
 
-Adds `hasLeft?: boolean` prop. When true, renders a grey `"Saiu"` badge.  
-No breaking changes.
+Adds optional `hasLeft?: boolean` prop. When true, renders a grey `"Saiu"` badge.
+No breaking changes to existing usage.
 
 ---
 
 ## `MatchPage` (`src/pages/MatchPage.tsx`)
 
-**Route:** `/campaigns/:campaignId/matches/:matchId`  
-**Params:** `campaignId`, `matchId`  
+**Route:** `/campaigns/:campaignId/matches/:matchId`
+**Params:** `campaignId`, `matchId`
 **Auth guard:** `if (!token) navigate("/")`
 
-### Data fetching
-1. Parallel: `getMatchDetails(token, matchId)` + `getCampaignDetails(token, campaignId)`
-2. `isMaster = campaign.masterUuid === user.uuid` (same pattern as `CampaignPage`)
-3. After match loads: if `match.gameStartAt` is null → `getEnrollments(token, matchId)`; else → `getParticipants(token, matchId)`
+### Data Fetching
 
-> **Why parallel campaign fetch:** `getMatchDetails` doesn't return `masterUuid`. Inferring master role from `private` presence on enrollments breaks when the list is empty (master with zero enrollments would lose master-only UI). Parallel fetch adds no perceived latency and reuses the existing `campaignService.getCampaignDetails`.
+1. `getMatchDetails(token, matchId)` on mount
+2. `isMaster = match.masterUuid === user.uuid`
+3. After match loads: if `match.gameStartAt` is null → `getEnrollments`; else → `getParticipants`
 
 ### Layout (mirrors `CampaignPage`)
+
 ```
 PageHeader (back → /campaigns/:campaignId, backgroundColor="#08491f")
 ├── Sidebar (300px, #2d2215)
 │   ├── Title: "PERSONAGENS"
-│   └── List of EnrollmentSidebarItem (scheduled) or CharacterSidebarItem (started)
+│   └── EnrollmentSidebarItem list (scheduled)
+│       or CharacterSidebarItem list with hasLeft (started)
 └── MainContent (flex:1, worldMap background)
-    ├── MatchHeader: title + gameScheduledAt
+    ├── MatchHeader
+    │   ├── title (+ "ENCERRADA" badge if gameStartAt filled)
+    │   └── date display (see below)
     ├── storyStartAt
     ├── briefInitialDescription (italic, large)
     ├── ExpandableText: description
-    ├── briefFinalDescription (if present)
+    ├── briefFinalDescription (if present, italic, border-top)
     ├── storyEndAt (if present)
-    └── [Abrir Lobby button] (master only, gameStartAt is null)
+    └── [Abrir Lobby button] (master only, gameStartAt === null)
 ```
 
-### "Abrir Lobby" flow
-- Button rendered at the bottom of main content, master-only, `gameStartAt === null`
-- On click: sets `showLobbyConfirm = true`
+### Date Display UX
+
+**Scheduled** (`gameStartAt` null):
+- Shows `gameScheduledAt` labeled `"Sessão agendada para:"` in the header
+
+**Started** (`gameStartAt` filled):
+- Shows `gameStartAt` labeled `"Sessão realizada em:"` as primary date
+- `gameScheduledAt` shown only on hover — a small styled wrapper with CSS `title` attribute tooltip
+- "ENCERRADA" badge in muted red next to the match title — makes the closed state immediately obvious without being disruptive
+
+This decision avoids JS tooltip libraries and works purely with CSS/HTML.
+
+### "Abrir Lobby" Flow
+
+- Master-only, bottom of main content, visible only when `gameStartAt === null`
+- On click: `showLobbyConfirm = true`
 - Confirmation dialog (styled `<dialog>` or overlay):
   > "Tem certeza que deseja abrir o lobby desta partida? Os jogadores aceitos poderão entrar."
   > [Cancelar] [Confirmar]
 - On confirm: `navigate(\`/campaigns/${campaignId}/matches/${matchId}/lobby\`)` — WebSocket logic is future work
 
 ### State
+
 ```typescript
 match: Match | null
-enrollments: Enrollment[]      // or
+enrollments: Enrollment[]
 participants: Participant[]
 isLoading: boolean
 error: string | null
-actionLoading: Record<string, boolean>  // per-enrollment loading for accept/reject
+actionLoading: Record<string, boolean>  // keyed by enrollment UUID
 showLobbyConfirm: boolean
 ```
 
@@ -230,7 +245,7 @@ showLobbyConfirm: boolean
 
 ## Error Handling
 
-All API errors (404, 400, 401, 403, 500) are caught and displayed via `ErrorContainer` from `PageStates`. For accept/reject actions, errors are shown inline (small error message near the buttons), not replacing the whole page.
+All API errors (404, 400, 401, 403, 500) surfaced via `ErrorContainer` from `PageStates` for page-level errors. Accept/reject action errors shown inline near the buttons — do not replace the whole page.
 
 ---
 
@@ -238,4 +253,4 @@ All API errors (404, 400, 401, 403, 500) are caught and displayed via `ErrorCont
 
 - WebSocket lobby connection
 - Match editing by master
-- `gameStartAt` being set (starting the match) — lobby page will handle this
+- `gameStartAt` being set (starting the match) — lobby page handles this
