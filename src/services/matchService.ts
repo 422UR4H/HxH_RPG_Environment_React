@@ -14,26 +14,26 @@ export const matchService = {
 
   getMatchDetails: (token: string, matchId: string) =>
     httpClient
-      .get<Match>(`/matches/${matchId}`, config(token))
+      .get<{ match: Match }>(`/matches/${matchId}`, config(token))
       .then((response) => ({
         ...response,
-        data: objToCamelCase<Match>(response.data),
+        data: objToCamelCase<Match>(response.data.match),
       })),
 
   getEnrollments: (token: string, matchId: string) =>
     httpClient
-      .get<Enrollment[]>(`/matches/${matchId}/enrollments`, config(token))
+      .get<{ enrollments: Enrollment[] }>(`/matches/${matchId}/enrollments`, config(token))
       .then((response) => ({
         ...response,
-        data: objToCamelCase<Enrollment[]>(response.data),
+        data: objToCamelCase<Enrollment[]>(response.data.enrollments),
       })),
 
   getParticipants: (token: string, matchId: string) =>
     httpClient
-      .get<Participant[]>(`/matches/${matchId}/participants`, config(token))
+      .get<{ participants: Participant[] }>(`/matches/${matchId}/participants`, config(token))
       .then((response) => ({
         ...response,
-        data: objToCamelCase<Participant[]>(response.data),
+        data: objToCamelCase<Participant[]>(response.data.participants),
       })),
 
   acceptEnrollment: (token: string, enrollmentId: string) =>
