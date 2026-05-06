@@ -7,6 +7,7 @@ import CreateCampaignPage from "./pages/CreateCampaignPage";
 import CampaignsPage from "./pages/CampaignsPage";
 import CampaignPage from "./pages/CampaignPage";
 import CreateMatchPage from "./pages/CreateMatchPage";
+import MatchPage from "./pages/MatchPage";
 import CharacterSheetPage from "./pages/CharacterSheetPage";
 import CreateCharacterSheetPage from "./pages/CreateCharacterSheetPage";
 
@@ -30,6 +31,10 @@ function App() {
         <Route
           path="/campaigns/:campaignId/matches/new"
           element={<CreateMatchPage />}
+        />
+        <Route
+          path="/campaigns/:campaignId/matches/:matchId"
+          element={<MatchPage />}
         />
       </Routes>
     </BrowserRouter>
