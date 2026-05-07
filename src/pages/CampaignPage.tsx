@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import useToken from "../hooks/useToken";
 import useUser from "../hooks/useUser";
 import { campaignService } from "../services/campaignService";
+import { characterSheetsService } from "../services/characterSheetsService";
 import type {
   CampaignMaster,
   CharacterPrivateSummary,
@@ -23,16 +24,37 @@ export default function CampaignPage() {
   const { user } = useUser();
   const navigate = useNavigate();
   const location = useLocation();
-  const backTo = (location.state as { from?: string } | null)?.from ?? "/campaigns";
+  const locationState = location.state as { from?: string; sheetId?: string } | null;
+  const backTo = locationState?.from ?? "/campaigns";
+  const sheetId = locationState?.sheetId;
 
   const [campaign, setCampaign] = useState<CampaignMaster | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [descriptionSignal, setDescriptionSignal] = useState(false);
+  const [submitLoading, setSubmitLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   const isMaster = campaign?.masterUuid === user?.uuid;
   const sidebarRef = useRef<HTMLDivElement>(null);
   const mainContentRef = useRef<HTMLDivElement>(null);
+
+  const playerSheetId = campaign?.characterSheets.find(
+    (s) => s.playerUuid === user?.uuid
+  )?.uuid;
+
+  const handleSubmitSheet = async () => {
+    if (!token || !sheetId || !campaign) return;
+    setSubmitLoading(true);
+    try {
+      await characterSheetsService.submitCharacterSheet(token, sheetId, campaign.uuid);
+      setSubmitted(true);
+    } catch {
+      // re-enables on error
+    } finally {
+      setSubmitLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!token || !id) {
@@ -145,7 +167,9 @@ export default function CampaignPage() {
                 key={match.uuid}
                 match={match}
                 onClick={() =>
-                  navigate(`/campaigns/${campaign.uuid}/matches/${match.uuid}`)
+                  navigate(`/campaigns/${campaign.uuid}/matches/${match.uuid}`, {
+                    state: { sheetId: playerSheetId },
+                  })
                 }
               />
             ))}
@@ -155,6 +179,16 @@ export default function CampaignPage() {
                 label="Criar Partida"
                 type="match"
                 onClick={handleCreateMatch}
+                containerRef={mainContentRef}
+                contentChangeSignal={descriptionSignal}
+              />
+            )}
+
+            {!isMaster && !submitted && sheetId && (
+              <AdaptiveActionButton
+                label={submitLoading ? "Submetendo..." : "Submeter Ficha"}
+                type="match"
+                onClick={submitLoading ? () => {} : handleSubmitSheet}
                 containerRef={mainContentRef}
                 contentChangeSignal={descriptionSignal}
               />
