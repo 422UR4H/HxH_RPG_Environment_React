@@ -66,6 +66,7 @@ const ProfileHeader = styled.div`
   align-items: center;
   justify-content: center;
   position: relative;
+  z-index: 1;
   cursor: pointer;
   background-color: #333333;
   transition: background-color 0.2s ease;
