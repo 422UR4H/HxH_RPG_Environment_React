@@ -138,7 +138,7 @@ export default function CampaignPage() {
               Data Atual:{" "}
               {(() => {
                 if (!campaign.storyCurrentAt) return "Data não disponível";
-                const [date, _] = campaign.storyCurrentAt.split("T");
+                const [date] = campaign.storyCurrentAt.split("T");
                 const [year, month, day] = date.split("-");
                 return `${day}/${month}/${year}`;
               })()}
