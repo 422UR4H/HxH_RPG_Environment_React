@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import useToken from "../hooks/useToken";
 import useUser from "../hooks/useUser";
 import { campaignService } from "../services/campaignService";
@@ -22,6 +22,8 @@ export default function CampaignPage() {
   const { token } = useToken();
   const { user } = useUser();
   const navigate = useNavigate();
+  const location = useLocation();
+  const backTo = (location.state as { from?: string } | null)?.from ?? "/campaigns";
 
   const [campaign, setCampaign] = useState<CampaignMaster | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -57,6 +59,7 @@ export default function CampaignPage() {
   }, [token, id, navigate]);
 
   let sortedSheets: (CharacterPrivateSummary & { isPending?: boolean })[] = [];
+  console.log("Campaign Data:", campaign);
   if (campaign) {
     const pendingSheets = isMaster ? campaign.pendingSheets : [];
     sortedSheets = getSortedCharacters(campaign.characterSheets, pendingSheets);
@@ -80,7 +83,7 @@ export default function CampaignPage() {
 
   return (
     <CampaignContainer>
-      <PageHeader to="/campaigns" backgroundColor="#08491f" />
+      <PageHeader to={backTo} backgroundColor="#08491f" />
       <PageBody>
         <SidebarContainer ref={sidebarRef}>
           <SidebarTitle>PERSONAGENS</SidebarTitle>

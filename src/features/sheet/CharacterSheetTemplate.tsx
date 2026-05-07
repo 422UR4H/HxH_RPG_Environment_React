@@ -68,7 +68,7 @@ function CharacterSheetTemplate({
   }
 
   return (
-    <SheetContainer $hasCampaignButton={sheetMode.headerMode === "view" && !!onCampaignClick}>
+    <SheetContainer>
       <BackButton to={"/charactersheets"} />
 
       <CharacterSheetHeader
@@ -117,7 +117,7 @@ function CharacterSheetTemplate({
         setCharSheet={setCharSheet}
       />
 
-      <MainContent>
+      <MainContent $hasCampaignButton={sheetMode.headerMode === "view" && !!onCampaignClick}>
         <GridSection>
           <AttributesSection>
             <SectionTitle>ATRIBUTOS</SectionTitle>
@@ -192,26 +192,26 @@ function CharacterSheetTemplate({
             jointProfs={jointProficiencies}
           />
         </ProficienciesSection>
+
+        {sheetMode.headerMode === "view" && onCampaignClick && (
+          <SheetCampaignButton
+            label={hasCampaign ? "Ver Campanha" : "Procurar Campanhas"}
+            onClick={onCampaignClick}
+          />
+        )}
       </MainContent>
-      {sheetMode.headerMode === "view" && onCampaignClick && (
-        <SheetCampaignButton
-          label={hasCampaign ? "Ver Campanha" : "Procurar Campanhas"}
-          onClick={onCampaignClick}
-        />
-      )}
     </SheetContainer>
   );
 }
 export default CharacterSheetTemplate;
 
-const SheetContainer = styled.div<{ $hasCampaignButton?: boolean }>`
+const SheetContainer = styled.div`
   container-type: inline-size;
   max-width: 940px;
   margin: 0 auto;
   color: white;
   background-color: black;
   position: relative;
-  ${({ $hasCampaignButton }) => $hasCampaignButton && "padding-bottom: 103px;"}
 `;
 
 // const HeaderSection = styled.div`
@@ -298,8 +298,10 @@ const SheetContainer = styled.div<{ $hasCampaignButton?: boolean }>`
 //   color: #9f9f9f;
 // `;
 
-const MainContent = styled.main`
-  padding-bottom: 30px;
+const MainContent = styled.main<{ $hasCampaignButton?: boolean }>`
+  position: relative;
+  padding-bottom: ${({ $hasCampaignButton }) =>
+    $hasCampaignButton ? "135px" : "30px"};
   background-image: url(${space});
   background-size: cover;
   background-position: center;
@@ -307,7 +309,8 @@ const MainContent = styled.main`
   background-repeat: no-repeat;
 
   @media (max-width: 609px) {
-    padding-bottom: 20px;
+    padding-bottom: ${({ $hasCampaignButton }) =>
+      $hasCampaignButton ? "125px" : "20px"};
   }
 `;
 
