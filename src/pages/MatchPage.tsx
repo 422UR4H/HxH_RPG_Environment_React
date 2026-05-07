@@ -153,7 +153,7 @@ export default function MatchPage() {
                     onReject={handleReject}
                     onClick={() =>
                       navigate(
-                        `/character-sheets/${enrollment.characterSheet.uuid}`
+                        `/charactersheet/${enrollment.characterSheet.uuid}`
                       )
                     }
                   />
@@ -183,7 +183,7 @@ export default function MatchPage() {
                       hasLeft={!!participant.leftAt}
                       onClick={() =>
                         navigate(
-                          `/character-sheets/${participant.characterSheet.uuid}`
+                          `/charactersheet/${participant.characterSheet.uuid}`
                         )
                       }
                     />

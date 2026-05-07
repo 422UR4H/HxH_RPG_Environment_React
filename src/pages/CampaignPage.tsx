@@ -93,7 +93,7 @@ export default function CampaignPage() {
                 key={character.uuid}
                 character={character}
                 isMaster={!!isMaster}
-                onClick={() => navigate(`/character-sheets/${character.uuid}`)}
+                onClick={() => navigate(`/charactersheet/${character.uuid}`)}
               />
             ))}
 
