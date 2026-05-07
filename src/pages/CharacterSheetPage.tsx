@@ -1,4 +1,4 @@
-import { Navigate, useParams } from "react-router-dom";
+import { Navigate, useParams, useNavigate } from "react-router-dom";
 import CharacterSheetTemplate from "../features/sheet/CharacterSheetTemplate";
 import useToken from "../hooks/useToken";
 import type { SheetMode } from "../features/sheet/types/sheetMode";
@@ -7,6 +7,8 @@ import { useCharacterSheet } from "../hooks/useCharacterSheet";
 function CharacterSheetPage() {
   const { id } = useParams<{ id: string }>();
   const { token } = useToken();
+  const navigate = useNavigate();
+
   const sheetMode: SheetMode = {
     headerMode: "view",
     profileMode: "view",
@@ -14,16 +16,35 @@ function CharacterSheetPage() {
     proficiencyMode: "view",
     skillsMode: "view",
   };
+
   const { data: charSheet, isLoading, error } = useCharacterSheet(token, id);
 
   if (!token || !id) {
     return <Navigate to="/" replace />;
   }
+
+  const handleCampaignClick = () => {
+    if (charSheet?.campaignUuid) {
+      navigate(`/campaigns/${charSheet.campaignUuid}`, {
+        state: { from: `/charactersheet/${id}` },
+      });
+    } else {
+      navigate("/campaigns/public", { state: { sheetId: id } });
+    }
+  };
+
   return (
     <CharacterSheetTemplate
       sheetMode={sheetMode}
-      data={{ charSheet, isLoading, error: error ? error.message : null }}
+      data={{
+        charSheet,
+        isLoading,
+        error: error ? error.message : null,
+        onCampaignClick: charSheet ? handleCampaignClick : undefined,
+        hasCampaign: !!charSheet?.campaignUuid,
+      }}
     />
   );
 }
+
 export default CharacterSheetPage;

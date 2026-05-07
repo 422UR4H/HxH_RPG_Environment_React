@@ -2,7 +2,7 @@ import { httpClient } from "./httpClient";
 import type { CampaignMaster } from "../types/campaign";
 import { objToCamelCase, objToSnakeCase } from "../utils/caseConverter";
 import config from "./config";
-import type { CampaignsResponse } from "../types/campaigns";
+import type { CampaignsResponse, PublicCampaignsResponse } from "../types/campaigns";
 
 export const campaignService = {
   getCampaignDetails: (token: string, id: string) =>
@@ -21,6 +21,17 @@ export const campaignService = {
       .get<CampaignsResponse>("/campaigns", config(token))
       .then((response) => {
         const data = objToCamelCase<CampaignsResponse>(response.data);
+        return {
+          ...response,
+          data: data.campaigns || [],
+        };
+      }),
+
+  listPublicCampaigns: (token: string) =>
+    httpClient
+      .get<PublicCampaignsResponse>("/public/campaigns", config(token))
+      .then((response) => {
+        const data = objToCamelCase<PublicCampaignsResponse>(response.data);
         return {
           ...response,
           data: data.campaigns || [],

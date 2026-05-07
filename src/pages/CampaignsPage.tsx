@@ -137,8 +137,10 @@ const EmptyState = styled.div`
 `;
 
 const EmptyMessage = styled.p`
-  color: #9f9f9f;
-  font-size: 20px;
+  font-family: "Roboto", sans-serif;
+  font-weight: 600;
+  color: white;
+  font-size: 28px;
   margin-bottom: 20px;
 `;
 

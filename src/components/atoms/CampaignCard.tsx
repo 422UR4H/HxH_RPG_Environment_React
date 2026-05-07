@@ -2,13 +2,34 @@ import styled from "styled-components";
 import { Link } from "react-router-dom";
 import type { CampaignSummary } from "../../types/campaigns";
 
+function formatNextGame(dateStr: string): string {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const gameDate = new Date(dateStr);
+  gameDate.setHours(0, 0, 0, 0);
+  const diffMs = gameDate.getTime() - today.getTime();
+  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+  const formatted = gameDate.toLocaleDateString("pt-BR");
+  if (diffDays < 0) return `Partida agendada para: ${formatted} (passada)`;
+  if (diffDays === 0) return `Partida agendada para: ${formatted} (hoje)`;
+  if (diffDays === 1) return `Partida agendada para: ${formatted} (amanhã)`;
+  return `Partida agendada para: ${formatted} (em ${diffDays} dias)`;
+}
+
 interface CampaignCardProps {
   campaign: CampaignSummary;
   to: string;
+  nextGameScheduledAt?: string | null;
 }
 
-export default function CampaignCard({ campaign, to }: CampaignCardProps) {
+export default function CampaignCard({ campaign, to, nextGameScheduledAt }: CampaignCardProps) {
   const startDate = new Date(campaign.storyStartAt).toLocaleDateString("pt-BR");
+  const nextGameText =
+    nextGameScheduledAt === undefined
+      ? null
+      : nextGameScheduledAt === null
+        ? "Sem partidas agendadas"
+        : formatNextGame(nextGameScheduledAt);
 
   return (
     <CardContainer to={to}>
@@ -20,6 +41,7 @@ export default function CampaignCard({ campaign, to }: CampaignCardProps) {
           </Description>
           <MetaInfo>
             <DateInfo>Início: {startDate}</DateInfo>
+            {nextGameText && <NextGameInfo>{nextGameText}</NextGameInfo>}
             <PublicStatus $isPublic={campaign.isPublic}>
               {campaign.isPublic ? "Pública" : "Privada"}
             </PublicStatus>
@@ -129,4 +151,11 @@ const PublicStatus = styled.span<{ $isPublic: boolean }>`
   font-weight: 500;
   font-size: 16px;
   color: ${({ $isPublic }) => ($isPublic ? "#2ecc71" : "#e74c3c")};
+`;
+
+const NextGameInfo = styled.span`
+  font-family: "Roboto", sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  color: #f0c040;
 `;

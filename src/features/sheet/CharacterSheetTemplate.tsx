@@ -12,6 +12,7 @@ import NenPrinciplesDiagram from "./NenPrinciplesDiagram";
 import PhysicalSkillsGroup from "./PhysicalSkillsGroup";
 import SpiritualSkillsGroup from "./SpiritualSkillsGroup";
 import ProficienciesList from "./ProficienciesList";
+import SheetCampaignButton from "./SheetCampaignButton";
 
 interface Data {
   error: string | null;
@@ -22,6 +23,8 @@ interface Data {
   charClasses?: CharacterClass[];
   selectedClass?: CharacterClass;
   applyClassDistribution?: (className: string) => void;
+  onCampaignClick?: () => void;
+  hasCampaign?: boolean;
 }
 
 interface CharacterSheetTemplateProps {
@@ -30,7 +33,7 @@ interface CharacterSheetTemplateProps {
 }
 
 function CharacterSheetTemplate({
-  data: { charSheet, setCharSheet, charClasses, isLoading, error },
+  data: { charSheet, setCharSheet, charClasses, isLoading, error, onCampaignClick, hasCampaign },
   sheetMode,
 }: CharacterSheetTemplateProps) {
   if (!charSheet) return <ErrorContainer>Ficha não encontrada</ErrorContainer>;
@@ -114,7 +117,7 @@ function CharacterSheetTemplate({
         setCharSheet={setCharSheet}
       />
 
-      <MainContent>
+      <MainContent $hasCampaignButton={sheetMode.headerMode === "view" && !!onCampaignClick}>
         <GridSection>
           <AttributesSection>
             <SectionTitle>ATRIBUTOS</SectionTitle>
@@ -189,6 +192,13 @@ function CharacterSheetTemplate({
             jointProfs={jointProficiencies}
           />
         </ProficienciesSection>
+
+        {sheetMode.headerMode === "view" && onCampaignClick && (
+          <SheetCampaignButton
+            label={hasCampaign ? "Ver Campanha" : "Procurar Campanhas"}
+            onClick={onCampaignClick}
+          />
+        )}
       </MainContent>
     </SheetContainer>
   );
@@ -288,8 +298,10 @@ const SheetContainer = styled.div`
 //   color: #9f9f9f;
 // `;
 
-const MainContent = styled.main`
-  padding-bottom: 30px;
+const MainContent = styled.main<{ $hasCampaignButton?: boolean }>`
+  position: relative;
+  padding-bottom: ${({ $hasCampaignButton }) =>
+    $hasCampaignButton ? "135px" : "30px"};
   background-image: url(${space});
   background-size: cover;
   background-position: center;
@@ -297,7 +309,8 @@ const MainContent = styled.main`
   background-repeat: no-repeat;
 
   @media (max-width: 609px) {
-    padding-bottom: 20px;
+    padding-bottom: ${({ $hasCampaignButton }) =>
+      $hasCampaignButton ? "125px" : "20px"};
   }
 `;
 

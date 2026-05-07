@@ -1,8 +1,14 @@
 import styled from "styled-components";
-import type { CharacterPrivateSummary } from "../../types/campaign";
+import type { CharacterBaseSummary } from "../../types/campaign";
+import type { StatusBar } from "../../types/characterSheet";
 
 interface CharacterSidebarItemProps {
-  character: CharacterPrivateSummary & { isPending?: boolean };
+  character: CharacterBaseSummary & {
+    isPending?: boolean;
+    fullName?: string;
+    health?: StatusBar;
+    stamina?: StatusBar;
+  };
   isMaster: boolean;
   hasLeft?: boolean;
   onClick: () => void;
@@ -18,6 +24,8 @@ export default function CharacterSidebarItem({
   const isPending = !!character.isPending;
   const isNpc = !character.playerUuid;
 
+  console.log(character)
+
   return (
     <CharacterItem
       $isDead={isDead}
@@ -28,17 +36,19 @@ export default function CharacterSidebarItem({
     >
       <CharacterName>{character.nickName}</CharacterName>
       <CharacterMeta>
-        <div>{character.fullName}</div>
-        <StatusBars>
-          <StatusBar
-            $type="health"
-            $value={(character.health.current / character.health.max) * 100}
-          />
-          <StatusBar
-            $type="stamina"
-            $value={(character.stamina.current / character.stamina.max) * 100}
-          />
-        </StatusBars>
+        {character.fullName && <div>{character.fullName}</div>}
+        {character.health && character.stamina && (
+          <StatusBars>
+            <StatusBar
+              $type="health"
+              $value={(character.health.current / character.health.max) * 100}
+            />
+            <StatusBar
+              $type="stamina"
+              $value={(character.stamina.current / character.stamina.max) * 100}
+            />
+          </StatusBars>
+        )}
       </CharacterMeta>
 
       {isPending && <PendingBadge>Pendente</PendingBadge>}
