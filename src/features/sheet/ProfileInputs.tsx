@@ -24,6 +24,7 @@ export default function ProfileInputs({
     });
   };
   const profile = charSheet?.profile;
+  const defaultAge = 20;
   const alignmentOptions = [
     "Unaligned",
     "Lawful Good",
@@ -65,7 +66,7 @@ export default function ProfileInputs({
             <DetailLabel>Idade:</DetailLabel>
             <DetailInput
               type="number"
-              value={profile?.age}
+              value={profile?.age || defaultAge}
               onChange={(e) => handleInputChange("age", e.target.value)}
             />
           </DetailItem>
