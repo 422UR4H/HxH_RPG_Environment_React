@@ -4,7 +4,7 @@ import type {
   CharacterSheetResponse,
   CharacterSheetSummary,
 } from "../types/characterSheet";
-import { objToCamelCase } from "../utils/caseConverter";
+import { objToCamelCase, objToSnakeCase } from "../utils/caseConverter";
 import config from "./config";
 
 export const characterSheetsService = {
@@ -37,4 +37,11 @@ export const characterSheetsService = {
           data: objToCamelCase<CharacterSheet>(campaignData),
         };
       }),
+
+  submitCharacterSheet: (token: string, sheetUuid: string, campaignUuid: string) =>
+    httpClient.post(
+      "/submissions/charactersheets/submit",
+      objToSnakeCase({ sheetUuid, campaignUuid }),
+      config(token)
+    ),
 };

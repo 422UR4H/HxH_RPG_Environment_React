@@ -41,4 +41,11 @@ export const matchService = {
 
   rejectEnrollment: (token: string, enrollmentId: string) =>
     httpClient.post(`/enrollments/${enrollmentId}/reject`, {}, config(token)),
+
+  enrollCharacterSheet: (token: string, sheetUuid: string, matchUuid: string) =>
+    httpClient.post(
+      "/enrollments/charactersheets/enroll",
+      objToSnakeCase({ sheetUuid, matchUuid }),
+      config(token)
+    ),
 };

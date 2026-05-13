@@ -20,9 +20,10 @@ interface CampaignCardProps {
   campaign: CampaignSummary;
   to: string;
   nextGameScheduledAt?: string | null;
+  state?: object;
 }
 
-export default function CampaignCard({ campaign, to, nextGameScheduledAt }: CampaignCardProps) {
+export default function CampaignCard({ campaign, to, nextGameScheduledAt, state }: CampaignCardProps) {
   const startDate = new Date(campaign.storyStartAt).toLocaleDateString("pt-BR");
   const nextGameText =
     nextGameScheduledAt === undefined
@@ -32,7 +33,7 @@ export default function CampaignCard({ campaign, to, nextGameScheduledAt }: Camp
         : formatNextGame(nextGameScheduledAt);
 
   return (
-    <CardContainer to={to}>
+    <CardContainer to={to} state={state}>
       <CardContent>
         <CampaignName>{campaign.name}</CampaignName>
         <CampaignInfo>

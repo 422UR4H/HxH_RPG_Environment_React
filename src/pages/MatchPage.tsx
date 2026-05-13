@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Navigate, useParams, useNavigate } from "react-router-dom";
+import { Navigate, useParams, useNavigate, useLocation } from "react-router-dom";
 import useToken from "../hooks/useToken";
 import useUser from "../hooks/useUser";
 import { matchService } from "../services/matchService";
@@ -42,6 +42,9 @@ export default function MatchPage() {
   const { token } = useToken();
   const { user } = useUser();
   const navigate = useNavigate();
+  const location = useLocation();
+  const locationState = location.state as { sheetId?: string } | null;
+  const sheetId = locationState?.sheetId;
 
   const [match, setMatch] = useState<Match | null>(null);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
@@ -53,6 +56,8 @@ export default function MatchPage() {
   );
   const [showLobbyConfirm, setShowLobbyConfirm] = useState(false);
   const [descriptionSignal, setDescriptionSignal] = useState(false);
+  const [enrollLoading, setEnrollLoading] = useState(false);
+  const [isEnrolled, setIsEnrolled] = useState(false);
 
   const mainContentRef = useRef<HTMLDivElement>(null);
 
@@ -122,6 +127,19 @@ export default function MatchPage() {
     navigate(`/campaigns/${campaignId}/matches/${matchId}/lobby`);
   };
 
+  const handleEnroll = async () => {
+    if (!token || !sheetId || !match) return;
+    setEnrollLoading(true);
+    try {
+      await matchService.enrollCharacterSheet(token, sheetId, match.uuid);
+      setIsEnrolled(true);
+    } catch {
+      // re-enables on error
+    } finally {
+      setEnrollLoading(false);
+    }
+  };
+
   if (isLoading)
     return <LoadingContainer>Carregando partida...</LoadingContainer>;
   if (error) return <ErrorContainer>{error}</ErrorContainer>;
@@ -134,6 +152,13 @@ export default function MatchPage() {
     ongoing: "EM ANDAMENTO",
     ended: "ENCERRADA",
   };
+
+  const canEnroll =
+    !isMaster &&
+    !match.gameStartAt &&
+    !!sheetId &&
+    !isEnrolled &&
+    !enrollments.some((e) => e.characterSheet.uuid === sheetId);
 
   return (
     <MatchContainer>
@@ -153,7 +178,7 @@ export default function MatchPage() {
                     onReject={handleReject}
                     onClick={() =>
                       navigate(
-                        `/character-sheets/${enrollment.characterSheet.uuid}`
+                        `/charactersheet/${enrollment.characterSheet.uuid}`
                       )
                     }
                   />
@@ -183,7 +208,7 @@ export default function MatchPage() {
                       hasLeft={!!participant.leftAt}
                       onClick={() =>
                         navigate(
-                          `/character-sheets/${participant.characterSheet.uuid}`
+                          `/charactersheet/${participant.characterSheet.uuid}`
                         )
                       }
                     />
@@ -245,6 +270,16 @@ export default function MatchPage() {
                 label="Abrir Lobby"
                 type="match"
                 onClick={() => setShowLobbyConfirm(true)}
+                containerRef={mainContentRef}
+                contentChangeSignal={descriptionSignal}
+              />
+            )}
+
+            {canEnroll && (
+              <AdaptiveActionButton
+                label={enrollLoading ? "Inscrevendo..." : "Inscrever-se"}
+                type="match"
+                onClick={enrollLoading ? () => {} : handleEnroll}
                 containerRef={mainContentRef}
                 contentChangeSignal={descriptionSignal}
               />

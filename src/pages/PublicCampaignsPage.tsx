@@ -50,6 +50,7 @@ function PublicCampaignsPage() {
                 campaign={campaign}
                 to={`/campaigns/${campaign.uuid}`}
                 nextGameScheduledAt={campaign.nextGameScheduledAt}
+                state={sheetId ? { sheetId } : undefined}
               />
             ))}
           </>
