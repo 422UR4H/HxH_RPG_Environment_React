@@ -1,5 +1,6 @@
 import styled from "styled-components";
 import type { Enrollment } from "../../types/match";
+import EnrollmentStatusBadge from "../../components/atoms/EnrollmentStatusBadge";
 
 interface EnrollmentSidebarItemProps {
   enrollment: Enrollment;
@@ -25,11 +26,7 @@ export default function EnrollmentSidebarItem({
     <ItemContainer $clickable={isMaster} onClick={isMaster ? onClick : undefined}>
       <TopRow>
         <NickName>{characterSheet.nickName}</NickName>
-        <StatusBadge $status={status}>
-          {status === "pending" && "Pendente"}
-          {status === "accepted" && "Aceito"}
-          {status === "rejected" && "Rejeitado"}
-        </StatusBadge>
+        <EnrollmentStatusBadge status={status} />
       </TopRow>
 
       {priv && (
@@ -100,20 +97,6 @@ const NickName = styled.div`
   font-family: "Oswald", sans-serif;
   font-size: 18px;
   font-weight: bold;
-  color: white;
-`;
-
-const StatusBadge = styled.span<{ $status: string }>`
-  border-radius: 4px;
-  padding: 2px 8px;
-  font-size: 12px;
-  font-weight: bold;
-  background-color: ${({ $status }) =>
-    $status === "pending"
-      ? "#3498db"
-      : $status === "accepted"
-      ? "#2ecc71"
-      : "#e74c3c"};
   color: white;
 `;
 

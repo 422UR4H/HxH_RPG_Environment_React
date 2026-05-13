@@ -57,7 +57,6 @@ export default function MatchPage() {
   const [showLobbyConfirm, setShowLobbyConfirm] = useState(false);
   const [descriptionSignal, setDescriptionSignal] = useState(false);
   const [enrollLoading, setEnrollLoading] = useState(false);
-  const [isEnrolled, setIsEnrolled] = useState(false);
 
   const mainContentRef = useRef<HTMLDivElement>(null);
 
@@ -132,9 +131,24 @@ export default function MatchPage() {
     setEnrollLoading(true);
     try {
       await matchService.enrollCharacterSheet(token, sheetId, match.uuid);
-      setIsEnrolled(true);
+      const now = new Date().toISOString();
+      setEnrollments((prev) => [
+        ...prev,
+        {
+          uuid: `temp-${Date.now()}`,
+          status: "pending" as const,
+          createdAt: now,
+          characterSheet: {
+            uuid: sheetId,
+            nickName: user?.nick ?? "",
+            createdAt: now,
+            updatedAt: now,
+          },
+          player: { uuid: user?.uuid ?? "", nick: user?.nick ?? "" },
+        },
+      ]);
     } catch {
-      // re-enables on error
+      // re-enables button on error
     } finally {
       setEnrollLoading(false);
     }
@@ -156,8 +170,8 @@ export default function MatchPage() {
   const canEnroll =
     !isMaster &&
     !match.gameStartAt &&
+    !match.storyEndAt &&
     !!sheetId &&
-    !isEnrolled &&
     !enrollments.some((e) => e.characterSheet.uuid === sheetId);
 
   return (

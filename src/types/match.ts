@@ -13,6 +13,7 @@ export interface Match {
   gameStartAt?: string;
   storyStartAt: string;
   storyEndAt?: string;
+  myEnrollmentStatus?: "pending" | "accepted" | "rejected";
   createdAt: string;
   updatedAt: string;
 }
