@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, type FormEvent } from "react";
 import SignPagesTemplate from "../components/templates/SignPagesTemplate";
 import Form from "../components/atoms/Form";
 import useForm from "../hooks/useForm";
@@ -6,8 +6,7 @@ import ButtonSubmit from "../components/atoms/ButtonSubmit";
 import useToken from "../hooks/useToken";
 import { Link, useNavigate } from "react-router-dom";
 import useUser from "../hooks/useUser";
-import type { User } from "../types/user";
-import { authService } from "../services/authService";
+import { useSignIn } from "../hooks/useSignIn";
 import BaseInput from "../components/ions/BaseInput";
 
 interface LoginForm {
@@ -15,17 +14,12 @@ interface LoginForm {
   password: string;
 }
 
-interface LoginResponse {
-  token: string;
-  user: User;
-}
-
 export default function LoginPage() {
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   const { token, login } = useToken();
   const { putUser } = useUser();
   const { form, handleForm } = useForm<LoginForm>({ email: "", password: "" });
   const navigate = useNavigate();
+  const { mutate: signIn, isPending } = useSignIn();
 
   useEffect(() => {
     if (token) navigate("/home");
@@ -33,28 +27,20 @@ export default function LoginPage() {
 
   function handleSubmit(e: FormEvent<HTMLFormElement>): void {
     e.preventDefault();
-
-    if (isLoading) return;
-    setIsLoading(true);
-
     if (form.email === "" || form.password === "") {
       alert("Preencha todos os campos!");
-      setIsLoading(false);
       return;
     }
-
-    authService
-      .signIn(form)
-      .then(({ data }: { data: LoginResponse }) => {
+    signIn(form, {
+      onSuccess: (data) => {
         login(data);
         putUser(data);
         navigate("/home");
-      })
-      .catch((err) => {
-        console.log(err.response);
+      },
+      onError: (err: any) => {
         alert(err.response?.data?.message || "Erro ao fazer login");
-      })
-      .finally(() => setIsLoading(false));
+      },
+    });
   }
 
   return (
@@ -79,7 +65,7 @@ export default function LoginPage() {
           maxLength={32}
           required
         />
-        <ButtonSubmit disabled={isLoading}>Log In</ButtonSubmit>
+        <ButtonSubmit disabled={isPending}>Log In</ButtonSubmit>
       </Form>
       <Link to="/sign-up">First time? Create an account!</Link>
     </SignPagesTemplate>
