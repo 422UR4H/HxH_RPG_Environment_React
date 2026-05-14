@@ -9,9 +9,8 @@ import { TokenProvider } from "./contexts/TokenContext";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
+      staleTime: 60_000,
       retry: 1,
-      // staleTime: 5 * 60 * 1000, // 5 minutos
-      // cacheTime: 10 * 60 * 1000, // 10 minutos
     },
   },
 });
