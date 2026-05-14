@@ -1,13 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import useToken from "../hooks/useToken";
 import useUser from "../hooks/useUser";
-import { campaignService } from "../services/campaignService";
-import { characterSheetsService } from "../services/characterSheetsService";
-import type {
-  CampaignMaster,
-  CharacterPrivateSummary,
-} from "../types/campaign";
+import { useCampaignDetails } from "../hooks/useCampaignDetails";
+import { useSubmitCharacterSheet } from "../hooks/useSubmitCharacterSheet";
+import type { CharacterPrivateSummary } from "../types/campaign";
 import worldMap from "../assets/images/worldmap.png";
 import styled from "styled-components";
 import CharacterSidebarItem from "../features/campaign/CharacterSidebarItem";
@@ -17,6 +14,7 @@ import { getSortedCharacters } from "../features/campaign/utils/characterUtils";
 import PageHeader from "../components/atoms/PageHeader";
 import { LoadingContainer, ErrorContainer } from "../components/atoms/PageStates";
 import ExpandableText from "../components/molecules/ExpandableText";
+import { useState } from "react";
 
 export default function CampaignPage() {
   const { id } = useParams<{ id: string }>();
@@ -28,76 +26,45 @@ export default function CampaignPage() {
   const backTo = locationState?.from ?? "/campaigns";
   const sheetId = locationState?.sheetId;
 
-  const [campaign, setCampaign] = useState<CampaignMaster | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
   const [descriptionSignal, setDescriptionSignal] = useState(false);
-  const [submitLoading, setSubmitLoading] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
 
-  const isMaster = campaign?.masterUuid === user?.uuid;
   const sidebarRef = useRef<HTMLDivElement>(null);
   const mainContentRef = useRef<HTMLDivElement>(null);
+
+  const { data: campaign, isPending, isError } = useCampaignDetails(token, id);
+  const {
+    mutate: submitSheet,
+    isPending: submitPending,
+    isSuccess: submitted,
+  } = useSubmitCharacterSheet(token, id);
+
+  const isMaster = campaign?.masterUuid === user?.uuid;
 
   const playerSheetId = campaign?.characterSheets.find(
     (s) => s.playerUuid === user?.uuid
   )?.uuid;
 
-  const handleSubmitSheet = async () => {
-    if (!token || !sheetId || !campaign) return;
-    setSubmitLoading(true);
-    try {
-      await characterSheetsService.submitCharacterSheet(token, sheetId, campaign.uuid);
-      setSubmitted(true);
-    } catch {
-      // re-enables on error
-    } finally {
-      setSubmitLoading(false);
-    }
+  const handleSubmitSheet = () => {
+    if (!sheetId || !campaign) return;
+    submitSheet({ sheetUuid: sheetId, campaignUuid: campaign.uuid });
   };
 
-  useEffect(() => {
-    if (!token || !id) {
-      navigate("/");
-      return;
-    }
-    setIsLoading(true);
-
-    campaignService
-      .getCampaignDetails(token, id)
-      .then(({ data }) => {
-        // TODO: remove console
-        console.log("Campaign Details:", data);
-        setCampaign(data);
-        setError(null);
-      })
-      .catch((error) => {
-        console.error("Error fetching campaign details:", error);
-        setError("Falha ao carregar detalhes da campanha.");
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
-  }, [token, id, navigate]);
-
   let sortedSheets: (CharacterPrivateSummary & { isPending?: boolean })[] = [];
-  console.log("Campaign Data:", campaign);
   if (campaign) {
     const pendingSheets = isMaster ? campaign.pendingSheets : [];
     sortedSheets = getSortedCharacters(campaign.characterSheets, pendingSheets);
   }
 
-  const handleCreateNpc = () => {
-    console.log("Criar NPC");
-  };
+  const handleCreateNpc = () => {};
   const handleCreateMatch = () => {
     navigate(`/campaigns/${id}/matches/new`);
   };
-  if (isLoading) {
+
+  if (isPending) {
     return <LoadingContainer>Carregando campanha...</LoadingContainer>;
   }
-  if (error) {
-    return <ErrorContainer>{error}</ErrorContainer>;
+  if (isError) {
+    return <ErrorContainer>Falha ao carregar detalhes da campanha.</ErrorContainer>;
   }
   if (!campaign) {
     return <ErrorContainer>Campanha não encontrada</ErrorContainer>;
@@ -186,9 +153,9 @@ export default function CampaignPage() {
 
             {!isMaster && !submitted && sheetId && (
               <AdaptiveActionButton
-                label={submitLoading ? "Submetendo..." : "Submeter Ficha"}
+                label={submitPending ? "Submetendo..." : "Submeter Ficha"}
                 type="match"
-                onClick={submitLoading ? () => {} : handleSubmitSheet}
+                onClick={submitPending ? () => {} : handleSubmitSheet}
                 containerRef={mainContentRef}
                 contentChangeSignal={descriptionSignal}
               />
