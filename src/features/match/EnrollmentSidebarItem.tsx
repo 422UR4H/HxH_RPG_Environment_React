@@ -5,8 +5,8 @@ interface EnrollmentSidebarItemProps {
   enrollment: Enrollment;
   isMaster: boolean;
   isLoading: boolean;
-  onAccept: (enrollmentId: string) => Promise<void>;
-  onReject: (enrollmentId: string) => Promise<void>;
+  onAccept: (enrollmentId: string) => void;
+  onReject: (enrollmentId: string) => void;
   onClick: () => void;
 }
 
