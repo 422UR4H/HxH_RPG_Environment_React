@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { campaignService } from "../services/campaignService";
+import { useCreateCampaign } from "../hooks/useCreateCampaign";
 import worldMap from "../assets/images/worldmap.png";
 import useToken from "../hooks/useToken";
 import useForm from "../hooks/useForm";
@@ -20,7 +20,6 @@ interface CampaignFormData {
 export default function CreateCampaignPage() {
   const { token } = useToken();
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   const { form, handleForm, setForm } = useForm<CampaignFormData>({
@@ -32,37 +31,28 @@ export default function CreateCampaignPage() {
     storyStartAt: new Date().toISOString().split("T")[0],
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const { mutate: createCampaign, isPending } = useCreateCampaign(token);
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (isLoading) return;
-
     if (!form.name || !form.briefInitialDescription) {
       setError("Nome e descrição breve são obrigatórios.");
       return;
     }
-    setIsLoading(true);
     setError(null);
-
-    try {
-      await campaignService.createCampaign(token!, form);
-      navigate("/campaigns");
-    } catch (error: any) {
-      console.error("Erro ao criar campanha:", error);
-      setError(
-        error.response?.data?.message ||
-          "Erro ao criar campanha. Tente novamente."
-      );
-    } finally {
-      setIsLoading(false);
-    }
+    createCampaign(form, {
+      onSuccess: () => navigate("/campaigns"),
+      onError: (err: any) => {
+        setError(
+          err.response?.data?.message ||
+            "Erro ao criar campanha. Tente novamente."
+        );
+      },
+    });
   };
 
   const handleTogglePublic = () => {
-    setForm({
-      ...form,
-      isPublic: !form.isPublic,
-    });
+    setForm({ ...form, isPublic: !form.isPublic });
   };
 
   return (
@@ -169,9 +159,8 @@ export default function CreateCampaignPage() {
                 >
                   Cancelar
                 </CancelButton>
-                <SubmitButton type="submit" disabled={isLoading}>
-                  {/* <PlusIcon /> */}
-                  <label>{isLoading ? "Criando..." : "Criar Campanha"}</label>
+                <SubmitButton type="submit" disabled={isPending}>
+                  <label>{isPending ? "Criando..." : "Criar Campanha"}</label>
                 </SubmitButton>
               </ButtonsContainer>
             </FormContainer>
