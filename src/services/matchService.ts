@@ -4,48 +4,52 @@ import config from "./config";
 import type { Match, Enrollment, Participant } from "../types/match";
 
 export const matchService = {
-  createMatch: (token: string, matchData: object) =>
+  createMatch: (token: string, matchData: object): Promise<Match> =>
     httpClient
       .post<{ match: Match }>("/matches", objToSnakeCase(matchData), config(token))
-      .then((response) => ({
-        ...response,
-        data: objToCamelCase<Match>(response.data.match ?? {}),
-      })),
+      .then(({ data }) => objToCamelCase<Match>(data.match)),
 
-  getMatchDetails: (token: string, matchId: string) =>
+  getMatchDetails: (token: string, matchId: string): Promise<Match> =>
     httpClient
       .get<{ match: Match }>(`/matches/${matchId}`, config(token))
-      .then((response) => ({
-        ...response,
-        data: objToCamelCase<Match>(response.data.match),
-      })),
+      .then(({ data }) => objToCamelCase<Match>(data.match)),
 
-  getEnrollments: (token: string, matchId: string) =>
+  getEnrollments: (token: string, matchId: string): Promise<Enrollment[]> =>
     httpClient
-      .get<{ enrollments: Enrollment[] }>(`/matches/${matchId}/enrollments`, config(token))
-      .then((response) => ({
-        ...response,
-        data: objToCamelCase<Enrollment[]>(response.data.enrollments),
-      })),
+      .get<{ enrollments: Enrollment[] }>(
+        `/matches/${matchId}/enrollments`,
+        config(token)
+      )
+      .then(({ data }) => objToCamelCase<Enrollment[]>(data.enrollments)),
 
-  getParticipants: (token: string, matchId: string) =>
+  getParticipants: (token: string, matchId: string): Promise<Participant[]> =>
     httpClient
-      .get<{ participants: Participant[] }>(`/matches/${matchId}/participants`, config(token))
-      .then((response) => ({
-        ...response,
-        data: objToCamelCase<Participant[]>(response.data.participants),
-      })),
+      .get<{ participants: Participant[] }>(
+        `/matches/${matchId}/participants`,
+        config(token)
+      )
+      .then(({ data }) => objToCamelCase<Participant[]>(data.participants)),
 
-  acceptEnrollment: (token: string, enrollmentId: string) =>
-    httpClient.post(`/enrollments/${enrollmentId}/accept`, {}, config(token)),
+  acceptEnrollment: (token: string, enrollmentId: string): Promise<void> =>
+    httpClient
+      .post(`/enrollments/${enrollmentId}/accept`, {}, config(token))
+      .then(() => undefined),
 
-  rejectEnrollment: (token: string, enrollmentId: string) =>
-    httpClient.post(`/enrollments/${enrollmentId}/reject`, {}, config(token)),
+  rejectEnrollment: (token: string, enrollmentId: string): Promise<void> =>
+    httpClient
+      .post(`/enrollments/${enrollmentId}/reject`, {}, config(token))
+      .then(() => undefined),
 
-  enrollCharacterSheet: (token: string, sheetUuid: string, matchUuid: string) =>
-    httpClient.post(
-      "/enrollments/charactersheets/enroll",
-      objToSnakeCase({ sheetUuid, matchUuid }),
-      config(token)
-    ),
+  enrollCharacterSheet: (
+    token: string,
+    sheetUuid: string,
+    matchUuid: string
+  ): Promise<void> =>
+    httpClient
+      .post(
+        "/enrollments/charactersheets/enroll",
+        objToSnakeCase({ sheetUuid, matchUuid }),
+        config(token)
+      )
+      .then(() => undefined),
 };
