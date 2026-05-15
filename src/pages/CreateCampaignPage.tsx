@@ -155,7 +155,7 @@ export default function CreateCampaignPage() {
               <ButtonsContainer>
                 <CancelButton
                   type="button"
-                  onClick={() => navigate("/campaigns")}
+                  onClick={() => navigate(-1)}
                 >
                   Cancelar
                 </CancelButton>

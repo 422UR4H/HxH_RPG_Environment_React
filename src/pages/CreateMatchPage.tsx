@@ -173,7 +173,7 @@ export default function CreateMatchPage() {
               <ButtonsContainer>
                 <CancelButton
                   type="button"
-                  onClick={() => navigate(`/campaigns/${campaignId}`)}
+                  onClick={() => navigate(-1)}
                 >
                   Cancelar
                 </CancelButton>
