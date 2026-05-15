@@ -12,7 +12,6 @@ function PublicCampaignsPage() {
   const { token } = useToken();
   const location = useLocation();
   const sheetId = (location.state as { sheetId?: string } | null)?.sheetId;
-  const backTo = sheetId ? `/charactersheet/${sheetId}` : "/charactersheets";
 
   const { data: campaigns, isLoading, error } = usePublicCampaigns(token);
 
@@ -34,7 +33,7 @@ function PublicCampaignsPage() {
 
   return (
     <StyledPublicCampaignsPage>
-      <PageHeader to={backTo} backgroundColor="#08491f" />
+      <PageHeader backgroundColor="#08491f" />
       <PageBody>
         <PageTitle>CAMPANHAS PÚBLICAS</PageTitle>
 

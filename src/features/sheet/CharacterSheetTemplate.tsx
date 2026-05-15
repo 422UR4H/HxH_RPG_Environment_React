@@ -69,7 +69,7 @@ function CharacterSheetTemplate({
 
   return (
     <SheetContainer>
-      <BackButton to={"/charactersheets"} />
+      <BackButton />
 
       <CharacterSheetHeader
         mode={sheetMode.headerMode}

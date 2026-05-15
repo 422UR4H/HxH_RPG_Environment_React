@@ -28,7 +28,7 @@ function CampaignsPage() {
 
   return (
     <StyledCampaignsPage>
-      <PageHeader to="/home" backgroundColor="#08491f" />
+      <PageHeader backgroundColor="#08491f" />
       <PageBody>
         <PageTitle>LISTA DE CAMPANHAS</PageTitle>
 

@@ -25,9 +25,7 @@ function CharacterSheetPage() {
 
   const handleCampaignClick = () => {
     if (charSheet?.campaignUuid) {
-      navigate(`/campaigns/${charSheet.campaignUuid}`, {
-        state: { from: `/charactersheet/${id}` },
-      });
+      navigate(`/campaigns/${charSheet.campaignUuid}`);
     } else {
       navigate("/campaigns/public", { state: { sheetId: id } });
     }

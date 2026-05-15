@@ -40,7 +40,7 @@ function CharacterSheetsPage() {
 
   return (
     <StyledCharacterSheetsPage>
-      <PageHeader to="/home" backgroundColor="black" />
+      <PageHeader backgroundColor="black" />
       <PageBody>
         <PageTitle>LISTA DE PERSONAGENS</PageTitle>
 

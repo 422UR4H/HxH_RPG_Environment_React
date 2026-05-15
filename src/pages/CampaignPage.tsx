@@ -22,9 +22,7 @@ export default function CampaignPage() {
   const { user } = useUser();
   const navigate = useNavigate();
   const location = useLocation();
-  const locationState = location.state as { from?: string; sheetId?: string } | null;
-  const backTo = locationState?.from ?? "/campaigns";
-  const sheetId = locationState?.sheetId;
+  const sheetId = (location.state as { sheetId?: string } | null)?.sheetId;
 
   const [descriptionSignal, setDescriptionSignal] = useState(false);
 
@@ -72,7 +70,7 @@ export default function CampaignPage() {
 
   return (
     <CampaignContainer>
-      <PageHeader to={backTo} backgroundColor="#08491f" />
+      <PageHeader backgroundColor="#08491f" />
       <PageBody>
         <SidebarContainer ref={sidebarRef}>
           <SidebarTitle>PERSONAGENS</SidebarTitle>

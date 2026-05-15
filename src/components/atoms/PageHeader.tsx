@@ -3,14 +3,13 @@ import BackButton from "../ions/BackButton";
 import LogoButton from "./LogoButton";
 
 interface PageHeaderProps {
-  to: string;
   backgroundColor?: string;
 }
 
-export default function PageHeader({ to, backgroundColor }: PageHeaderProps) {
+export default function PageHeader({ backgroundColor }: PageHeaderProps) {
   return (
     <StyledPageHeader $backgroundColor={backgroundColor}>
-      <BackButton to={to} />
+      <BackButton />
       <LogoButton />
     </StyledPageHeader>
   );

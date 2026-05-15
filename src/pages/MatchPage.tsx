@@ -129,7 +129,7 @@ export default function MatchPage() {
 
   return (
     <MatchContainer>
-      <PageHeader to={`/campaigns/${campaignId}`} backgroundColor="#08491f" />
+      <PageHeader backgroundColor="#08491f" />
       <PageBody>
         <SidebarContainer>
           <SidebarTitle>PERSONAGENS</SidebarTitle>

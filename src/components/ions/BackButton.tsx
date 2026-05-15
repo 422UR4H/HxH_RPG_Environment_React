@@ -3,15 +3,11 @@ import styled from "styled-components";
 // import backArrow from "../../assets/icons/setavoltarsemponta.svg"
 import backArrow from "../../assets/icons/setavoltarcomponta.svg";
 
-interface BackButtonProps {
-  to: string;
-}
-
-export default function BackButton({ to }: BackButtonProps) {
+export default function BackButton() {
   const navigate = useNavigate();
 
   return (
-    <StyledBackButton onClick={() => navigate(to)}>
+    <StyledBackButton onClick={() => navigate(-1)}>
       <Arrow src={backArrow} alt="Back" />
     </StyledBackButton>
   );

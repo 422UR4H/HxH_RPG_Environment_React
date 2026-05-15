@@ -57,7 +57,7 @@ export default function CreateCampaignPage() {
 
   return (
     <PageContainer>
-      <PageHeader to="/campaigns" backgroundColor="#08491f" />
+      <PageHeader backgroundColor="#08491f" />
       <PageBody>
         <MainContentContainer>
           <CreateCampaignContainer>

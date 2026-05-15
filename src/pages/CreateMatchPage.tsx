@@ -68,7 +68,7 @@ export default function CreateMatchPage() {
 
   return (
     <PageContainer>
-      <PageHeader to={`/campaigns/${campaignId}`} backgroundColor="#08491f" />
+      <PageHeader backgroundColor="#08491f" />
       <PageBody>
         <MainContentContainer>
           <CreateMatchContainer>
