@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { campaignService } from "../services/campaignService";
+import { useCampaigns } from "../hooks/useCampaigns";
 import { useNavigate } from "react-router-dom";
 import type { CampaignSummary } from "../types/campaigns";
 import worldMap from "../assets/images/worldmap.png";
@@ -13,41 +12,18 @@ import PageTitle from "../components/ions/PageTitle";
 function CampaignsPage() {
   const { token } = useToken();
   const navigate = useNavigate();
-  const [campaigns, setCampaigns] = useState<CampaignSummary[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: campaigns = [], isPending, isError } = useCampaigns(token);
 
-  useEffect(() => {
-    if (!token) {
-      navigate("/");
-      return;
-    }
-    setIsLoading(true);
-
-    campaignService
-      .listCampaigns(token)
-      .then(({ data }: { data: CampaignSummary[] }) => {
-        // TODO: remove this
-        console.log("Campaigns:", data);
-
-        setCampaigns(data);
-        setError(null);
-      })
-      .catch((error) => {
-        console.error("Error fetching campaigns:", error);
-        setError("Falha ao carregar campanhas. Tente novamente mais tarde.");
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
-  }, [token, navigate]);
-
-  if (isLoading) {
+  if (isPending) {
     return <LoadingContainer>Carregando campanhas...</LoadingContainer>;
   }
 
-  if (error) {
-    return <ErrorContainer>{error}</ErrorContainer>;
+  if (isError) {
+    return (
+      <ErrorContainer>
+        Falha ao carregar campanhas. Tente novamente mais tarde.
+      </ErrorContainer>
+    );
   }
 
   return (
@@ -62,7 +38,7 @@ function CampaignsPage() {
           </EmptyState>
         ) : (
           <>
-            {campaigns.map((campaign) => (
+            {campaigns.map((campaign: CampaignSummary) => (
               <CampaignCard
                 key={campaign.uuid}
                 campaign={campaign}
@@ -85,8 +61,6 @@ export default CampaignsPage;
 const StyledCampaignsPage = styled.div`
   display: flex;
   flex-direction: column;
-
-  /* world map */
   min-height: 100vh;
   min-height: 100dvh;
   background-image: url(${worldMap});
@@ -150,18 +124,15 @@ const CreateButton = styled.button`
   font-weight: 600;
   color: white;
   background-color: #107135;
-
   height: 100px;
   width: 80vw;
   max-width: 940px;
   border-radius: 12px;
   border: none;
-
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 15px;
-
   transition: transform 0.2s, box-shadow 0.2s;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
   cursor: pointer;
@@ -178,7 +149,6 @@ const CreateButton = styled.button`
 
   @media (max-width: 500px) {
     font-size: 22px;
-
     width: 100%;
     border-radius: 0px;
 

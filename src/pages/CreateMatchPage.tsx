@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { matchService } from "../services/matchService";
+import { useCreateMatch } from "../hooks/useCreateMatch";
 import worldMap from "../assets/images/worldmap.png";
 import styled from "styled-components";
 import useToken from "../hooks/useToken";
@@ -21,7 +21,6 @@ export default function CreateMatchPage() {
   const { campaignId } = useParams<{ campaignId: string }>();
   const { token } = useToken();
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   const { form, handleForm, setForm } = useForm<MatchFormData>({
@@ -31,53 +30,40 @@ export default function CreateMatchPage() {
     isPublic: true,
     gameScheduledAt: new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000)
       .toISOString()
-      .substring(0, 16), // One week ahead format YYYY-MM-DDTHH:MM
-    storyStartAt: new Date().toISOString().split("T")[0], // Today as default
+      .substring(0, 16),
+    storyStartAt: new Date().toISOString().split("T")[0],
   });
 
-  const formatDateToISOString = (dateTimeString: string): string => {
-    // Add ":00Z" to the end to complete the ISO 8601 format
-    return `${dateTimeString}:00Z`;
-  };
+  const { mutate: createMatch, isPending } = useCreateMatch(token, campaignId);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const formatDateToISOString = (dateTimeString: string): string =>
+    `${dateTimeString}:00Z`;
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (isLoading) return;
-
     if (!form.title || !form.briefInitialDescription) {
       setError("Título e descrição breve são obrigatórios.");
       return;
     }
-    setIsLoading(true);
     setError(null);
-
-    try {
-      // Adds campaign UUID and story_start_at format to form data
-      const matchData = {
-        ...form,
-        gameScheduledAt: formatDateToISOString(form.gameScheduledAt),
-        campaignUuid: campaignId,
-      };
-      await matchService.createMatch(token!, matchData);
-
-      navigate(`/campaigns/${campaignId}`);
-    } catch (error: any) {
-      console.error("Erro ao criar partida:", error);
-      setError(
-        error.response?.data?.message ||
-          "Erro ao criar partida. Tente novamente."
-      );
-    } finally {
-      setIsLoading(false);
-    }
+    const matchData = {
+      ...form,
+      gameScheduledAt: formatDateToISOString(form.gameScheduledAt),
+      campaignUuid: campaignId,
+    };
+    createMatch(matchData, {
+      onSuccess: () => navigate(`/campaigns/${campaignId}`),
+      onError: (err: any) => {
+        setError(
+          err.response?.data?.message ||
+            "Erro ao criar partida. Tente novamente."
+        );
+      },
+    });
   };
 
   const handleTogglePublic = () => {
-    setForm({
-      ...form,
-      isPublic: !form.isPublic,
-    });
+    setForm({ ...form, isPublic: !form.isPublic });
   };
 
   return (
@@ -191,8 +177,8 @@ export default function CreateMatchPage() {
                 >
                   Cancelar
                 </CancelButton>
-                <SubmitButton type="submit" disabled={isLoading}>
-                  <label>{isLoading ? "Criando..." : "Criar Partida"}</label>
+                <SubmitButton type="submit" disabled={isPending}>
+                  <label>{isPending ? "Criando..." : "Criar Partida"}</label>
                 </SubmitButton>
               </ButtonsContainer>
             </FormContainer>

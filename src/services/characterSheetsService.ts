@@ -8,40 +8,31 @@ import { objToCamelCase, objToSnakeCase } from "../utils/caseConverter";
 import config from "./config";
 
 export const characterSheetsService = {
-  listCharacterSheets: (token: string) =>
+  listCharacterSheets: (token: string): Promise<CharacterSheetSummary[]> =>
     httpClient
       .get<CharacterSheetResponse>("/charactersheets", config(token))
-      .then((response) => {
-        const data = objToCamelCase<CharacterSheetResponse>(response.data);
-        const sheets = data.characterSheets || [];
+      .then(({ data }) =>
+        objToCamelCase<CharacterSheetResponse>(data).characterSheets ?? []
+      ),
 
-        const sheetsInCamelCase = sheets.map((sheet) =>
-          objToCamelCase<CharacterSheetSummary>(sheet)
-        );
-        return {
-          ...response,
-          data: sheetsInCamelCase,
-        };
-      }),
-
-  getCharacterSheetDetails: (token: string, id: string) =>
+  getCharacterSheetDetails: (token: string, id: string): Promise<CharacterSheet> =>
     httpClient
       .get<{ character_sheet: CharacterSheet }>(
         `/charactersheets/${id}`,
         config(token)
       )
-      .then((response) => {
-        const campaignData = response.data.character_sheet;
-        return {
-          ...response,
-          data: objToCamelCase<CharacterSheet>(campaignData),
-        };
-      }),
+      .then(({ data }) => objToCamelCase<CharacterSheet>(data.character_sheet)),
 
-  submitCharacterSheet: (token: string, sheetUuid: string, campaignUuid: string) =>
-    httpClient.post(
-      "/submissions/charactersheets/submit",
-      objToSnakeCase({ sheetUuid, campaignUuid }),
-      config(token)
-    ),
+  submitCharacterSheet: (
+    token: string,
+    sheetUuid: string,
+    campaignUuid: string
+  ): Promise<void> =>
+    httpClient
+      .post(
+        "/submissions/charactersheets/submit",
+        objToSnakeCase({ sheetUuid, campaignUuid }),
+        config(token)
+      )
+      .then(() => undefined),
 };

@@ -1,9 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { useState, useRef } from "react";
 import { Navigate, useParams, useNavigate, useLocation } from "react-router-dom";
 import useToken from "../hooks/useToken";
 import useUser from "../hooks/useUser";
-import { matchService } from "../services/matchService";
-import type { Match, Enrollment, Participant } from "../types/match";
+import { useMatchDetails } from "../hooks/useMatchDetails";
+import { useMatchEnrollments } from "../hooks/useMatchEnrollments";
+import { useMatchParticipants } from "../hooks/useMatchParticipants";
+import { useAcceptEnrollment } from "../hooks/useAcceptEnrollment";
+import { useRejectEnrollment } from "../hooks/useRejectEnrollment";
+import { useEnrollCharacterSheet } from "../hooks/useEnrollCharacterSheet";
 import type { CharacterPrivateSummary } from "../types/characterSheet";
 import worldMap from "../assets/images/worldmap.png";
 import styled from "styled-components";
@@ -16,7 +20,7 @@ import { LoadingContainer, ErrorContainer } from "../components/atoms/PageStates
 
 type MatchStatus = "scheduled" | "ongoing" | "ended";
 
-function getMatchStatus(match: Match): MatchStatus {
+function getMatchStatus(match: { gameStartAt?: string; storyEndAt?: string }): MatchStatus {
   if (!match.gameStartAt) return "scheduled";
   if (!match.storyEndAt) return "ongoing";
   return "ended";
@@ -46,103 +50,66 @@ export default function MatchPage() {
   const locationState = location.state as { sheetId?: string } | null;
   const sheetId = locationState?.sheetId;
 
-  const [match, setMatch] = useState<Match | null>(null);
-  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
-  const [participants, setParticipants] = useState<Participant[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [actionLoading, setActionLoading] = useState<Record<string, boolean>>(
-    {}
-  );
+  const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
   const [showLobbyConfirm, setShowLobbyConfirm] = useState(false);
   const [descriptionSignal, setDescriptionSignal] = useState(false);
-  const [enrollLoading, setEnrollLoading] = useState(false);
-  const [isEnrolled, setIsEnrolled] = useState(false);
-
   const mainContentRef = useRef<HTMLDivElement>(null);
 
-  const isMaster = !!match && match.masterUuid === user?.uuid;
+  const { data: match, isPending, isError } = useMatchDetails(token, matchId);
 
-  useEffect(() => {
-    if (!token || !matchId) return;
-    setIsLoading(true);
-    matchService
-      .getMatchDetails(token, matchId)
-      .then(({ data }) => {
-        setMatch(data);
-        setError(null);
-      })
-      .catch(() => setError("Falha ao carregar detalhes da partida."))
-      .finally(() => setIsLoading(false));
-  }, [token, matchId, navigate]);
+  const matchStarted = !!match?.gameStartAt;
 
-  useEffect(() => {
-    if (!token || !match) return;
-    if (!match.gameStartAt) {
-      matchService
-        .getEnrollments(token, match.uuid)
-        .then(({ data }) => setEnrollments(data))
-        .catch(() => setError("Falha ao carregar inscrições."));
-    } else {
-      matchService
-        .getParticipants(token, match.uuid)
-        .then(({ data }) => setParticipants(data))
-        .catch(() => setError("Falha ao carregar participantes."));
-    }
-  }, [token, match?.uuid, match?.gameStartAt]);
+  const { data: enrollments = [] } = useMatchEnrollments(
+    token,
+    matchId,
+    !matchStarted
+  );
+  const { data: participants = [] } = useMatchParticipants(
+    token,
+    matchId,
+    matchStarted
+  );
+
+  const { mutate: acceptEnrollment } = useAcceptEnrollment(token, matchId);
+  const { mutate: rejectEnrollment } = useRejectEnrollment(token, matchId);
+  const {
+    mutate: enrollSheet,
+    isPending: enrollPending,
+    isSuccess: isEnrolled,
+  } = useEnrollCharacterSheet(token, matchId);
 
   if (!token) return <Navigate to="/" replace />;
 
-  const handleAccept = async (enrollmentId: string) => {
-    if (!token) return;
+  const isMaster = !!match && match.masterUuid === user?.uuid;
+
+  const handleAccept = (enrollmentId: string) => {
     setActionLoading((prev) => ({ ...prev, [enrollmentId]: true }));
-    try {
-      await matchService.acceptEnrollment(token, enrollmentId);
-      setEnrollments((prev) =>
-        prev.map((e) =>
-          e.uuid === enrollmentId ? { ...e, status: "accepted" as const } : e
-        )
-      );
-    } finally {
-      setActionLoading((prev) => ({ ...prev, [enrollmentId]: false }));
-    }
+    acceptEnrollment(enrollmentId, {
+      onSettled: () =>
+        setActionLoading((prev) => ({ ...prev, [enrollmentId]: false })),
+    });
   };
 
-  const handleReject = async (enrollmentId: string) => {
-    if (!token) return;
+  const handleReject = (enrollmentId: string) => {
     setActionLoading((prev) => ({ ...prev, [enrollmentId]: true }));
-    try {
-      await matchService.rejectEnrollment(token, enrollmentId);
-      setEnrollments((prev) =>
-        prev.map((e) =>
-          e.uuid === enrollmentId ? { ...e, status: "rejected" as const } : e
-        )
-      );
-    } finally {
-      setActionLoading((prev) => ({ ...prev, [enrollmentId]: false }));
-    }
+    rejectEnrollment(enrollmentId, {
+      onSettled: () =>
+        setActionLoading((prev) => ({ ...prev, [enrollmentId]: false })),
+    });
   };
 
   const handleLobbyConfirm = () => {
     navigate(`/campaigns/${campaignId}/matches/${matchId}/lobby`);
   };
 
-  const handleEnroll = async () => {
-    if (!token || !sheetId || !match) return;
-    setEnrollLoading(true);
-    try {
-      await matchService.enrollCharacterSheet(token, sheetId, match.uuid);
-      setIsEnrolled(true);
-    } catch {
-      // re-enables on error
-    } finally {
-      setEnrollLoading(false);
-    }
+  const handleEnroll = () => {
+    if (!sheetId || !match) return;
+    enrollSheet({ sheetUuid: sheetId, matchUuid: match.uuid });
   };
 
-  if (isLoading)
+  if (isPending)
     return <LoadingContainer>Carregando partida...</LoadingContainer>;
-  if (error) return <ErrorContainer>{error}</ErrorContainer>;
+  if (isError) return <ErrorContainer>Falha ao carregar detalhes da partida.</ErrorContainer>;
   if (!match) return <ErrorContainer>Partida não encontrada</ErrorContainer>;
 
   const status = getMatchStatus(match);
@@ -277,9 +244,9 @@ export default function MatchPage() {
 
             {canEnroll && (
               <AdaptiveActionButton
-                label={enrollLoading ? "Inscrevendo..." : "Inscrever-se"}
+                label={enrollPending ? "Inscrevendo..." : "Inscrever-se"}
                 type="match"
-                onClick={enrollLoading ? () => {} : handleEnroll}
+                onClick={enrollPending ? () => {} : handleEnroll}
                 containerRef={mainContentRef}
                 contentChangeSignal={descriptionSignal}
               />

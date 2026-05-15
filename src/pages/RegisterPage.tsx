@@ -1,11 +1,11 @@
-import { useState, type FormEvent } from "react";
+import { type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import useForm from "../hooks/useForm";
 import Form from "../components/atoms/Form";
 import ButtonSubmit from "../components/atoms/ButtonSubmit";
 import SignPagesTemplate from "../components/templates/SignPagesTemplate";
 import type { SignUpBody } from "../types/user";
-import { authService } from "../services/authService";
+import { useSignUp } from "../hooks/useSignUp";
 import useToken from "../hooks/useToken";
 import BaseInput from "../components/ions/BaseInput";
 
@@ -15,7 +15,6 @@ function isAnyFieldEmpty({ nick, email, password, confirmPass }: SignUpBody) {
 
 export default function RegisterPage() {
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   const { form, handleForm } = useForm<SignUpBody>({
     nick: "",
     email: "",
@@ -23,30 +22,23 @@ export default function RegisterPage() {
     confirmPass: "",
   });
   const { logout } = useToken();
+  const { mutate: signUp, isPending } = useSignUp();
 
   function handleSubmit(e: FormEvent<HTMLFormElement>): void {
     e.preventDefault();
-
-    if (isLoading) return;
-    setIsLoading(true);
-
     if (isAnyFieldEmpty(form)) {
       alert("Preencha todos os campos!");
-      setIsLoading(false);
       return;
     }
-
-    authService
-      .signUp(form)
-      .then(() => {
+    signUp(form, {
+      onSuccess: () => {
         logout();
         navigate("/");
-      })
-      .catch((err) => {
-        console.log(err);
-        alert(err.response.data.message);
-      })
-      .finally(() => setIsLoading(false));
+      },
+      onError: (err: any) => {
+        alert(err.response?.data?.message || "Erro ao criar conta");
+      },
+    });
   }
 
   return (
@@ -92,7 +84,7 @@ export default function RegisterPage() {
           maxLength={32}
           required
         />
-        <ButtonSubmit disabled={isLoading}>Sign Up</ButtonSubmit>
+        <ButtonSubmit disabled={isPending}>Sign Up</ButtonSubmit>
       </Form>
       <Link to="/">Switch back to log in</Link>
     </SignPagesTemplate>

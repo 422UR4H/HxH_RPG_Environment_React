@@ -1,38 +1,18 @@
 import { httpClient } from "./httpClient";
-import type {
-  CharacterClass,
-  CharacterClassResponse,
-} from "../types/characterClass";
+import type { CharacterClass, CharacterClassResponse } from "../types/characterClass";
 import { objToCamelCase } from "../utils/caseConverter";
 import config from "./config";
 
 export const characterClassesService = {
-  listCharacterClasses: (token: string) =>
+  listCharacterClasses: (token: string): Promise<CharacterClass[]> =>
     httpClient
       .get<CharacterClassResponse>("/classes", config(token))
-      .then((response) => {
-        const classes = objToCamelCase<CharacterClass[]>(
-          response.data.CharacterClasses
-        );
+      .then(({ data }) =>
+        data.CharacterClasses.map((c) => objToCamelCase<CharacterClass>(c))
+      ),
 
-        const classesInCamelCase = classes.map((characterClass) =>
-          objToCamelCase<CharacterClass>(characterClass)
-        );
-
-        return {
-          ...response,
-          data: classesInCamelCase,
-        };
-      }),
-
-  getCharacterClassDetails: (token: string, id: string) =>
+  getCharacterClassDetails: (token: string, id: string): Promise<CharacterClass> =>
     httpClient
       .get<{ character_class: CharacterClass }>(`/classes/${id}`, config(token))
-      .then((response) => {
-        const classData = response.data.character_class;
-        return {
-          ...response,
-          data: objToCamelCase<CharacterClass>(classData),
-        };
-      }),
+      .then(({ data }) => objToCamelCase<CharacterClass>(data.character_class)),
 };
