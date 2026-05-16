@@ -45,4 +45,30 @@ export const characterSheetsService = {
     httpClient
       .post(`/submissions/${sheetUuid}/reject`, {}, config(token))
       .then(() => undefined),
+
+  createCharacterSheet: (
+    token: string,
+    charSheet: CharacterSheet
+  ): Promise<{ uuid: string }> =>
+    httpClient
+      .post<{ character_sheet: { uuid: string } }>(
+        "/charactersheets",
+        objToSnakeCase(charSheet),
+        config(token)
+      )
+      .then(({ data }) => ({ uuid: data.character_sheet.uuid })),
+
+  patchCharacterSheetProfile: (
+    token: string,
+    sheetUuid: string,
+    avatarUrl?: string | null,
+    coverUrl?: string | null
+  ): Promise<void> =>
+    httpClient
+      .patch(
+        `/charactersheets/${sheetUuid}/profile`,
+        objToSnakeCase({ avatarUrl, coverUrl }),
+        config(token)
+      )
+      .then(() => undefined),
 };
