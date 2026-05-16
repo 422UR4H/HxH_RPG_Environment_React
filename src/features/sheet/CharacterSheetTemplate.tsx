@@ -490,11 +490,11 @@ const SubmissionActionBase = styled.button`
 `;
 
 const AcceptButton = styled(SubmissionActionBase)`
-  background: linear-gradient(to bottom, #27ae60 0%, #1e8449 100%);
+  background: #088E3B;
   color: white;
 `;
 
 const RejectButton = styled(SubmissionActionBase)`
-  background: linear-gradient(to bottom, #e74c3c 0%, #c0392b 100%);
+  background: #B61B40;
   color: white;
 `;
