@@ -43,8 +43,10 @@ export default function CharacterSheetHeader({
     if (!charSheet || !setCharSheet) return;
     if (!charClass) return;
 
-    // TODO: verify this assertion type
-    const newCharSheet = buildFromClass(charClass, charSheet) as CharacterSheet;
+    const newCharSheet = {
+      ...(buildFromClass(charClass, charSheet) as CharacterSheet),
+      characterClass: charClass.profile.name,
+    };
     setCharSheet(newCharSheet);
   };
   const profile = charSheet?.profile;
@@ -78,7 +80,16 @@ export default function CharacterSheetHeader({
         <NicknameOverlay>
           <NicknameInputContainer>
             <PenIcon src={penIcon} alt="Edit Icon" />
-            <NicknameInput type="text" placeholder="Nickname" maxLength={10} />
+            <NicknameInput
+              type="text"
+              placeholder="Nickname"
+              maxLength={10}
+              value={profile?.nickname ?? ""}
+              onChange={(e) => {
+                if (!charSheet || !setCharSheet) return;
+                setCharSheet({ ...charSheet, profile: { ...charSheet.profile, nickname: e.target.value } });
+              }}
+            />
           </NicknameInputContainer>
 
           <CharacterClass>Classe: </CharacterClass>
