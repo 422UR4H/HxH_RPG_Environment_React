@@ -58,6 +58,7 @@ export default function CharacterSheetHeader({
         {(mode === "create" || mode === "edit") && onCoverSelected && (
           <AddCover onClick={() => setCoverModalOpen(true)}>
             <CameraIcon src={cameraIcon} alt="Camera Icon" />
+            <PlusIcon src={plusIcon} alt="+" />
           </AddCover>
         )}
       </CoverContainer>
@@ -206,8 +207,8 @@ const AddAvatar = styled.button`
   z-index: 3;
 
   background-color: black;
-  width: 8cqi;
-  height: 8cqi;
+  width: max(8cqi, 40px);
+  height: max(8cqi, 40px);
   padding: 1%;
   border: none;
   border-radius: 50%;
@@ -234,16 +235,22 @@ const AddCover = styled.button`
   top: 10px;
   right: 10px;
   z-index: 3;
+
   background-color: rgba(0, 0, 0, 0.6);
-  width: 40px;
-  height: 40px;
-  padding: 8px;
+  width: max(10cqi, 48px);
+  height: max(10cqi, 48px);
   border: none;
   border-radius: 50%;
   cursor: pointer;
+
   transition: all 0.2s ease;
+
   &:hover {
-    filter: brightness(1.2);
+    transform: scale(1.05);
+    filter: brightness(1.1);
+  }
+  &:active {
+    transform: scale(0.98);
   }
 `;
 

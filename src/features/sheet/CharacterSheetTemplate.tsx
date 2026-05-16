@@ -217,7 +217,7 @@ function CharacterSheetTemplate({
         )}
 
         {sheetMode.headerMode === "create" && onCreateSheet && (
-          <CreateSheetButton onClick={onCreateSheet}>Criar Ficha</CreateSheetButton>
+          <CreateSheetButton onClick={onCreateSheet}>+ Criar Ficha</CreateSheetButton>
         )}
       </MainContent>
     </SheetContainer>
@@ -497,7 +497,7 @@ const SubmissionActionBase = styled.button`
 `;
 
 const AcceptButton = styled(SubmissionActionBase)`
-  background: #088E3B;
+  background: #107135;
   color: white;
 `;
 
@@ -507,15 +507,31 @@ const RejectButton = styled(SubmissionActionBase)`
 `;
 
 const CreateSheetButton = styled.button`
-  padding: 12px 28px;
+  font-family: "Roboto", sans-serif;
+  font-size: 6cqi;
+  font-weight: bold;
+
   background: #107135;
   color: white;
+
+  display: block;
+  width: calc(100% - 60px);
   border: none;
   border-radius: 8px;
-  font-family: "Roboto", sans-serif;
-  font-size: 1rem;
-  font-weight: 600;
+  padding: 2cqi 28px;
+  margin: 24px 30px 0;
+
   cursor: pointer;
-  margin: 16px 30px;
-  &:hover { filter: brightness(1.1); }
+  &:hover {
+    transform: translateY(-3px);
+    filter: brightness(1.1);
+  }
+  &:active {
+    transform: scale(0.98);
+  }
+
+  @media (max-width: 609px) {
+    width: calc(100% - 40px);
+    margin: 20px 20px 0;
+  }
 `;
