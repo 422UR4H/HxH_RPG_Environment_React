@@ -1,5 +1,9 @@
 // src/components/molecules/ImagePickerModal.tsx
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { Cropper, CircleStencil, RectangleStencil } from "react-advanced-cropper";
+import "react-advanced-cropper/dist/style.css";
+import type { CropperRef } from "react-advanced-cropper";
+import imageCompression from "browser-image-compression";
 import styled from "styled-components";
 
 export type ImageType = "avatar" | "cover";
@@ -19,11 +23,15 @@ export default function ImagePickerModal({
 }: ImagePickerModalProps) {
   const [mode, setMode] = useState<Mode>("upload");
   const [urlInput, setUrlInput] = useState("");
-  const [pendingBlob, setPendingBlob] = useState<Blob | null>(null);
+  const [, setPendingBlob] = useState<Blob | null>(null);
   const [showOverwriteWarning, setShowOverwriteWarning] = useState(false);
   const [pendingModeSwitch, setPendingModeSwitch] = useState<Mode | null>(null);
+  const cropperRef = useRef<CropperRef>(null);
+  const [imageSrc, setImageSrc] = useState<string | null>(null);
+  const [isCompressing, setIsCompressing] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const hasPendingContent = mode === "upload" ? pendingBlob !== null : urlInput.trim() !== "";
+  const hasPendingContent = mode === "upload" ? imageSrc !== null : urlInput.trim() !== "";
 
   const handleModeClick = (next: Mode) => {
     if (next === mode) return;
@@ -49,13 +57,29 @@ export default function ImagePickerModal({
     setShowOverwriteWarning(false);
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (mode === "url") {
       if (!urlInput.trim()) return;
       onConfirm(null, urlInput.trim());
-    } else {
-      if (!pendingBlob) return;
-      onConfirm(pendingBlob, null);
+      return;
+    }
+    if (!cropperRef.current || !imageSrc) return;
+    setIsCompressing(true);
+    try {
+      const canvas = cropperRef.current.getCanvas();
+      if (!canvas) return;
+      const rawBlob = await new Promise<Blob>((resolve, reject) =>
+        canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("canvas empty"))), "image/webp", 0.9)
+      );
+      const maxDimension = type === "avatar" ? 512 : 1280;
+      const compressed = await imageCompression(new File([rawBlob], "image.webp", { type: "image/webp" }), {
+        maxWidthOrHeight: maxDimension,
+        fileType: "image/webp",
+        useWebWorker: true,
+      });
+      onConfirm(compressed, null);
+    } finally {
+      setIsCompressing(false);
     }
   };
 
@@ -107,16 +131,44 @@ export default function ImagePickerModal({
             )}
           </UrlSection>
         ) : (
-          <UploadPlaceholder>
-            {/* Task 4 adiciona o crop aqui */}
-            <PlaceholderText>Selecione um arquivo para recortar</PlaceholderText>
-          </UploadPlaceholder>
+          <UploadSection>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: "none" }}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = () => setImageSrc(reader.result as string);
+                reader.readAsDataURL(file);
+                setPendingBlob(null);
+              }}
+            />
+            {!imageSrc ? (
+              <DropZone onClick={() => fileInputRef.current?.click()}>
+                <DropZoneText>Clique para selecionar uma imagem</DropZoneText>
+              </DropZone>
+            ) : (
+              <CropArea>
+                <Cropper
+                  ref={cropperRef}
+                  src={imageSrc}
+                  stencilComponent={type === "avatar" ? CircleStencil : RectangleStencil}
+                  stencilProps={type === "cover" ? { aspectRatio: 2.5 } : undefined}
+                  style={{ height: 280 }}
+                />
+                <CropHint>Arraste para reposicionar · Use o scroll para zoom</CropHint>
+              </CropArea>
+            )}
+          </UploadSection>
         )}
 
         <ModalActions>
           <CancelButton onClick={onClose}>Cancelar</CancelButton>
-          <ConfirmButton onClick={handleConfirm} disabled={!hasPendingContent && (mode === "url" ? !urlInput.trim() : !pendingBlob)}>
-            Confirmar
+          <ConfirmButton onClick={handleConfirm} disabled={!hasPendingContent || isCompressing}>
+            {isCompressing ? "Processando..." : "Confirmar"}
           </ConfirmButton>
         </ModalActions>
       </Modal>
@@ -239,17 +291,25 @@ const PreviewContainer = styled.div<{ $aspectRatio: string; $borderRadius: strin
 
 const PreviewImage = styled.img`width: 100%; height: 100%; object-fit: cover;`;
 
-const UploadPlaceholder = styled.div`
+const UploadSection = styled.div`display: flex; flex-direction: column; gap: 10px;`;
+
+const DropZone = styled.div`
   background: #1a1a1a;
+  border: 2px dashed #555;
   border-radius: 8px;
-  padding: 40px;
+  padding: 48px 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px dashed #555;
+  cursor: pointer;
+  &:hover { border-color: #107135; }
 `;
 
-const PlaceholderText = styled.p`color: #666; font-family: "Roboto", sans-serif; font-size: 0.9rem;`;
+const DropZoneText = styled.p`color: #666; font-family: "Roboto", sans-serif; font-size: 0.9rem; margin: 0;`;
+
+const CropArea = styled.div`display: flex; flex-direction: column; gap: 8px;`;
+
+const CropHint = styled.p`color: #666; font-family: "Roboto", sans-serif; font-size: 0.75rem; text-align: center; margin: 0;`;
 
 const ModalActions = styled.div`display: flex; justify-content: space-between;`;
 
