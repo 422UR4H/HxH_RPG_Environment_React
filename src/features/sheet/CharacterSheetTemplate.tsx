@@ -27,6 +27,9 @@ interface Data {
   hasCampaign?: boolean;
   onAcceptSubmission?: () => void;
   onRejectSubmission?: () => void;
+  onAvatarSelected?: (blob: Blob | null, url: string | null) => void;
+  onCoverSelected?: (blob: Blob | null, url: string | null) => void;
+  onCreateSheet?: () => void;
 }
 
 interface CharacterSheetTemplateProps {
@@ -35,7 +38,7 @@ interface CharacterSheetTemplateProps {
 }
 
 function CharacterSheetTemplate({
-  data: { charSheet, setCharSheet, charClasses, isLoading, error, onCampaignClick, hasCampaign, onAcceptSubmission, onRejectSubmission },
+  data: { charSheet, setCharSheet, charClasses, isLoading, error, onCampaignClick, hasCampaign, onAcceptSubmission, onRejectSubmission, onAvatarSelected, onCoverSelected, onCreateSheet },
   sheetMode,
 }: CharacterSheetTemplateProps) {
   if (!charSheet) return <ErrorContainer>Ficha não encontrada</ErrorContainer>;
@@ -75,7 +78,7 @@ function CharacterSheetTemplate({
 
       <CharacterSheetHeader
         mode={sheetMode.headerMode}
-        data={{ charSheet, setCharSheet, charClasses }}
+        data={{ charSheet, setCharSheet, charClasses, onAvatarSelected, onCoverSelected }}
       />
 
       {/* <HeaderSection>
@@ -211,6 +214,10 @@ function CharacterSheetTemplate({
               <AcceptButton onClick={onAcceptSubmission}>Aceitar</AcceptButton>
             )}
           </SubmissionActionsWrapper>
+        )}
+
+        {sheetMode.headerMode === "create" && onCreateSheet && (
+          <CreateSheetButton onClick={onCreateSheet}>Criar Ficha</CreateSheetButton>
         )}
       </MainContent>
     </SheetContainer>
@@ -497,4 +504,18 @@ const AcceptButton = styled(SubmissionActionBase)`
 const RejectButton = styled(SubmissionActionBase)`
   background: #B61B40;
   color: white;
+`;
+
+const CreateSheetButton = styled.button`
+  padding: 12px 28px;
+  background: #107135;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-family: "Roboto", sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin: 16px 30px;
+  &:hover { filter: brightness(1.1); }
 `;
