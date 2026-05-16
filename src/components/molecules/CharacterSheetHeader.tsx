@@ -55,7 +55,7 @@ export default function CharacterSheetHeader({
     <HeaderContainer>
       <CoverContainer $cardView={mode === "card"}>
         <Cover src={profile?.cover || coverPlaceholder} alt={`cover`} />
-        {(mode === "create" || mode === "edit") && (
+        {(mode === "create" || mode === "edit") && onCoverSelected && (
           <AddCover onClick={() => setCoverModalOpen(true)}>
             <CameraIcon src={cameraIcon} alt="Camera Icon" />
           </AddCover>
@@ -65,7 +65,7 @@ export default function CharacterSheetHeader({
       <AvatarContainer>
         <GungiFrame src={gungiFrame} alt="frame" />
         <Avatar src={profile?.avatar || avatarPlaceholder} alt={`avatar`} />
-        {(mode === "create" || mode === "edit") && (
+        {(mode === "create" || mode === "edit") && onAvatarSelected && (
           <AddAvatar onClick={() => setAvatarModalOpen(true)}>
             <CameraIcon src={cameraIcon} alt="Camera Icon" />
             <PlusIcon src={plusIcon} alt="+" />
@@ -73,7 +73,7 @@ export default function CharacterSheetHeader({
         )}
       </AvatarContainer>
 
-      {mode === "create" || mode == "edit" ? (
+      {mode === "create" || mode === "edit" ? (
         <NicknameOverlay>
           <NicknameInputContainer>
             <PenIcon src={penIcon} alt="Edit Icon" />
@@ -104,21 +104,21 @@ export default function CharacterSheetHeader({
         <SpBar current={stamina?.current} max={stamina?.max} />
       </StatusBarsContainer>
 
-      {avatarModalOpen && onAvatarSelected && (
+      {avatarModalOpen && (
         <ImagePickerModal
           type="avatar"
           onConfirm={(blob, url) => {
-            onAvatarSelected(blob, url);
+            onAvatarSelected!(blob, url);
             setAvatarModalOpen(false);
           }}
           onClose={() => setAvatarModalOpen(false)}
         />
       )}
-      {coverModalOpen && onCoverSelected && (
+      {coverModalOpen && (
         <ImagePickerModal
           type="cover"
           onConfirm={(blob, url) => {
-            onCoverSelected(blob, url);
+            onCoverSelected!(blob, url);
             setCoverModalOpen(false);
           }}
           onClose={() => setCoverModalOpen(false)}
