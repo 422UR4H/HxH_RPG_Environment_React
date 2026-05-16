@@ -66,7 +66,7 @@ export type Profile = {
   fullname: string;
   description?: string;
   briefDescription: string;
-  birthday?: string;
+  birthday: string;
   age: number;
   alignment: string;
   cover?: string;
