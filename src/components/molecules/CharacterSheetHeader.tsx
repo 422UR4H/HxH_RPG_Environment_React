@@ -1,3 +1,4 @@
+import { useState } from "react";
 import styled from "styled-components";
 import type { CharacterSheet } from "../../types/characterSheet";
 import HpBar from "../atoms/HpBar";
@@ -11,11 +12,14 @@ import penIcon from "../../assets/icons/pen.svg";
 import type { HeaderMode } from "../../features/sheet/types/headerMode";
 import type { CharacterClass } from "../../types/characterClass";
 import { useCharSheetBuilder } from "../../features/sheet/hooks/useCharSheetBuilder";
+import ImagePickerModal from "./ImagePickerModal";
 
 interface Data {
   charSheet?: CharacterSheet;
   setCharSheet?: (charSheet: CharacterSheet) => void;
   charClasses?: CharacterClass[];
+  onAvatarSelected?: (blob: Blob | null, url: string | null) => void;
+  onCoverSelected?: (blob: Blob | null, url: string | null) => void;
 }
 
 interface CharacterSheetHeaderProps {
@@ -25,9 +29,11 @@ interface CharacterSheetHeaderProps {
 
 export default function CharacterSheetHeader({
   mode,
-  data: { charSheet, setCharSheet, charClasses },
+  data: { charSheet, setCharSheet, charClasses, onAvatarSelected, onCoverSelected },
 }: CharacterSheetHeaderProps) {
   const { buildFromClass } = useCharSheetBuilder();
+  const [avatarModalOpen, setAvatarModalOpen] = useState(false);
+  const [coverModalOpen, setCoverModalOpen] = useState(false);
   const handleClassChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const targetClass = event.target.value;
     const charClass = charClasses?.find(
@@ -49,13 +55,18 @@ export default function CharacterSheetHeader({
     <HeaderContainer>
       <CoverContainer $cardView={mode === "card"}>
         <Cover src={profile?.cover || coverPlaceholder} alt={`cover`} />
+        {(mode === "create" || mode === "edit") && (
+          <AddCover onClick={() => setCoverModalOpen(true)}>
+            <CameraIcon src={cameraIcon} alt="Camera Icon" />
+          </AddCover>
+        )}
       </CoverContainer>
 
       <AvatarContainer>
         <GungiFrame src={gungiFrame} alt="frame" />
         <Avatar src={profile?.avatar || avatarPlaceholder} alt={`avatar`} />
         {(mode === "create" || mode === "edit") && (
-          <AddAvatar onClick={() => alert("Calma, jovem gafanhoto...")}>
+          <AddAvatar onClick={() => setAvatarModalOpen(true)}>
             <CameraIcon src={cameraIcon} alt="Camera Icon" />
             <PlusIcon src={plusIcon} alt="+" />
           </AddAvatar>
@@ -92,6 +103,27 @@ export default function CharacterSheetHeader({
         <HpBar current={health?.current} max={health?.max} />
         <SpBar current={stamina?.current} max={stamina?.max} />
       </StatusBarsContainer>
+
+      {avatarModalOpen && onAvatarSelected && (
+        <ImagePickerModal
+          type="avatar"
+          onConfirm={(blob, url) => {
+            onAvatarSelected(blob, url);
+            setAvatarModalOpen(false);
+          }}
+          onClose={() => setAvatarModalOpen(false)}
+        />
+      )}
+      {coverModalOpen && onCoverSelected && (
+        <ImagePickerModal
+          type="cover"
+          onConfirm={(blob, url) => {
+            onCoverSelected(blob, url);
+            setCoverModalOpen(false);
+          }}
+          onClose={() => setCoverModalOpen(false)}
+        />
+      )}
     </HeaderContainer>
   );
 }
@@ -195,6 +227,24 @@ const AddAvatar = styled.button`
 const CameraIcon = styled.img`
   width: 100%;
   height: auto;
+`;
+
+const AddCover = styled.button`
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 3;
+  background-color: rgba(0, 0, 0, 0.6);
+  width: 40px;
+  height: 40px;
+  padding: 8px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  &:hover {
+    filter: brightness(1.2);
+  }
 `;
 
 const PlusIcon = styled.img`
