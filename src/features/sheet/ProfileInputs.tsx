@@ -74,52 +74,54 @@ export default function ProfileInputs({
 
       <ProfileContent>
         <LeftDetails>
-          <DetailItem>
-            <DetailLabel>Aniversário:</DetailLabel>
-            <BirthdayRow>
-              <BaseSelect
-                value={String(currentMonth)}
-                onChange={(e) => {
-                  const newMonth = parseInt(e.target.value);
-                  const clampedDay = Math.min(currentDay, maxDaysForMonth(newMonth));
-                  const mm = String(newMonth).padStart(2, "0");
-                  const dd = String(clampedDay).padStart(2, "0");
-                  handleInputChange("birthday", `0000-${mm}-${dd}T00:00:00.000Z`);
-                }}
-              >
-                {MONTH_NAMES.map((name, i) => (
-                  <BaseOption key={name} value={String(i + 1)}>
-                    {name}
-                  </BaseOption>
-                ))}
-              </BaseSelect>
-              <BaseSelect
-                value={String(currentDay)}
-                onChange={(e) => {
-                  const mm = String(currentMonth).padStart(2, "0");
-                  const dd = String(parseInt(e.target.value)).padStart(2, "0");
-                  handleInputChange("birthday", `0000-${mm}-${dd}T00:00:00.000Z`);
-                }}
-              >
-                {Array.from({ length: maxDaysForMonth(currentMonth) }, (_, i) => i + 1).map(
-                  (day) => (
-                    <BaseOption key={day} value={String(day)}>
-                      {String(day)}
+          <BirthdayAgeRow>
+            <DetailItem style={{ flex: 1 }}>
+              <DetailLabel>Aniversário:</DetailLabel>
+              <BirthdayRow>
+                <BaseSelect
+                  value={String(currentMonth)}
+                  onChange={(e) => {
+                    const newMonth = parseInt(e.target.value);
+                    const clampedDay = Math.min(currentDay, maxDaysForMonth(newMonth));
+                    const mm = String(newMonth).padStart(2, "0");
+                    const dd = String(clampedDay).padStart(2, "0");
+                    handleInputChange("birthday", `0000-${mm}-${dd}T00:00:00.000Z`);
+                  }}
+                >
+                  {MONTH_NAMES.map((name, i) => (
+                    <BaseOption key={name} value={String(i + 1)}>
+                      {name}
                     </BaseOption>
-                  )
-                )}
-              </BaseSelect>
-            </BirthdayRow>
-          </DetailItem>
+                  ))}
+                </BaseSelect>
+                <BaseSelect
+                  value={String(currentDay)}
+                  onChange={(e) => {
+                    const mm = String(currentMonth).padStart(2, "0");
+                    const dd = String(parseInt(e.target.value)).padStart(2, "0");
+                    handleInputChange("birthday", `0000-${mm}-${dd}T00:00:00.000Z`);
+                  }}
+                >
+                  {Array.from({ length: maxDaysForMonth(currentMonth) }, (_, i) => i + 1).map(
+                    (day) => (
+                      <BaseOption key={day} value={String(day)}>
+                        {String(day)}
+                      </BaseOption>
+                    )
+                  )}
+                </BaseSelect>
+              </BirthdayRow>
+            </DetailItem>
 
-          <DetailItem>
-            <DetailLabel>Idade:</DetailLabel>
-            <DetailInput
-              type="number"
-              value={profile?.age || defaultAge}
-              onChange={(e) => handleInputChange("age", e.target.value)}
-            />
-          </DetailItem>
+            <DetailItem>
+              <DetailLabel>Idade:</DetailLabel>
+              <AgeInput
+                type="number"
+                value={profile?.age || defaultAge}
+                onChange={(e) => handleInputChange("age", e.target.value)}
+              />
+            </DetailItem>
+          </BirthdayAgeRow>
 
           <DetailItem>
             <DetailLabel>Alinhamento:</DetailLabel>
@@ -297,9 +299,19 @@ const DetailInput = styled.input`
     font-size: 4.6cqi;
   }
 `;
+const BirthdayAgeRow = styled.div`
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+`;
+
 const BirthdayRow = styled.div`
   display: flex;
   gap: 8px;
+`;
+
+const AgeInput = styled(DetailInput)`
+  width: min(14cqi, 90px);
 `;
 
 const AlignmentContainer = styled.div`
