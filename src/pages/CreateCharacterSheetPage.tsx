@@ -60,7 +60,7 @@ function CreateCharacterSheetPage() {
 
   const validateCharSheet = (): string | null => {
     const errors: string[] = [];
-    const { profile, characterClass } = charSheet;
+    const { profile, characterClass, abilities, physicalAttributes, mentalAttributes } = charSheet;
 
     if (!characterClass) errors.push("Selecione uma classe para o personagem.");
 
@@ -77,6 +77,20 @@ function CreateCharacterSheetPage() {
 
     if (profile.age < 0)
       errors.push("Idade não pode ser negativa.");
+
+    const physicalsBudget = abilities["physicals"]?.level ?? 0;
+    const physicalsSpent = Object.values(physicalAttributes).reduce(
+      (sum, attr) => sum + (attr.points || 0), 0
+    );
+    if (physicalsBudget - physicalsSpent > 0)
+      errors.push("Distribua todos os pontos de atributos físicos antes de criar a ficha.");
+
+    const mentalsBudget = abilities["mentals"]?.level ?? 0;
+    const mentalsSpent = Object.values(mentalAttributes).reduce(
+      (sum, attr) => sum + (attr.points || 0), 0
+    );
+    if (mentalsBudget - mentalsSpent > 0)
+      errors.push("Distribua todos os pontos de atributos mentais antes de criar a ficha.");
 
     return errors.length > 0 ? errors.join("\n") : null;
   };
