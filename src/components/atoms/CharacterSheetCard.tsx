@@ -23,7 +23,7 @@ export default function CharacterSheetCard({
     fullname: character.fullName,
     age: character.age,
     briefDescription: "",
-    birthday: character.birthday,
+    birthday: character.birthday ?? "0000-01-01T00:00:00.000Z",
     alignment: character.alignment,
     cover: character?.cover,
     avatar: character?.avatar,

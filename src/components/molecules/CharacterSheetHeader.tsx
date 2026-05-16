@@ -302,7 +302,7 @@ const NicknameInput = styled.input`
   font-size: min(5cqi, 3.1rem);
   font-weight: 700;
   color: white;
-  margin-bottom: 8px;
+  margin-bottom: 0.8cqi;
   text-shadow: 1px 1px 6px rgba(0, 0, 0, 1);
 
   width: 50cqi;

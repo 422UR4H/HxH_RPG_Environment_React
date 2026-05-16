@@ -9,6 +9,18 @@ interface ProfileInputsProps {
   setCharSheet?: (charSheet: CharacterSheet) => void;
 }
 
+const MONTH_NAMES = [
+  "Janeiro", "Fevereiro", "Março", "Abril",
+  "Maio", "Junho", "Julho", "Agosto",
+  "Setembro", "Outubro", "Novembro", "Dezembro",
+] as const;
+
+function maxDaysForMonth(month: number): number {
+  if (month === 2) return 29;
+  if (month === 4 || month === 6 || month === 9 || month === 11) return 30;
+  return 31;
+}
+
 export default function ProfileInputs({
   charSheet,
   setCharSheet,
@@ -25,6 +37,12 @@ export default function ProfileInputs({
   };
   const profile = charSheet?.profile;
   const defaultAge = 20;
+
+  const birthdayParts = (profile?.birthday ?? "0000-01-01T00:00:00.000Z")
+    .split("T")[0]
+    .split("-");
+  const currentMonth = parseInt(birthdayParts[1]);
+  const currentDay = parseInt(birthdayParts[2]);
   const alignmentOptions = [
     "Unaligned",
     "Lawful Good",
@@ -56,20 +74,54 @@ export default function ProfileInputs({
 
       <ProfileContent>
         <LeftDetails>
-          <DetailItem>
-            {/* <DetailLabel>Data de Nascimento:</DetailLabel> */}
-            {/* <DetailInput
-              type="date"
-              value={profile?.birthday || ""}
-              onChange={(e) => handleInputChange("birthday", e.target.value)}
-            /> */}
-            <DetailLabel>Idade:</DetailLabel>
-            <DetailInput
-              type="number"
-              value={profile?.age || defaultAge}
-              onChange={(e) => handleInputChange("age", e.target.value)}
-            />
-          </DetailItem>
+          <BirthdayAgeRow>
+            <DetailItem>
+              <DetailLabel>Aniversário:</DetailLabel>
+              <BirthdayRow>
+                <BaseSelect
+                  value={String(currentMonth)}
+                  onChange={(e) => {
+                    const newMonth = parseInt(e.target.value);
+                    const clampedDay = Math.min(currentDay, maxDaysForMonth(newMonth));
+                    const mm = String(newMonth).padStart(2, "0");
+                    const dd = String(clampedDay).padStart(2, "0");
+                    handleInputChange("birthday", `0000-${mm}-${dd}T00:00:00.000Z`);
+                  }}
+                >
+                  {MONTH_NAMES.map((name, i) => (
+                    <BaseOption key={name} value={String(i + 1)}>
+                      {name}
+                    </BaseOption>
+                  ))}
+                </BaseSelect>
+                <BaseSelect
+                  value={String(currentDay)}
+                  onChange={(e) => {
+                    const mm = String(currentMonth).padStart(2, "0");
+                    const dd = String(parseInt(e.target.value)).padStart(2, "0");
+                    handleInputChange("birthday", `0000-${mm}-${dd}T00:00:00.000Z`);
+                  }}
+                >
+                  {Array.from({ length: maxDaysForMonth(currentMonth) }, (_, i) => i + 1).map(
+                    (day) => (
+                      <BaseOption key={day} value={String(day)}>
+                        {String(day)}
+                      </BaseOption>
+                    )
+                  )}
+                </BaseSelect>
+              </BirthdayRow>
+            </DetailItem>
+
+            <DetailItem>
+              <DetailLabel>Idade:</DetailLabel>
+              <AgeInput
+                type="number"
+                value={profile?.age || defaultAge}
+                onChange={(e) => handleInputChange("age", e.target.value)}
+              />
+            </DetailItem>
+          </BirthdayAgeRow>
 
           <DetailItem>
             <DetailLabel>Alinhamento:</DetailLabel>
@@ -247,6 +299,22 @@ const DetailInput = styled.input`
     font-size: 4.6cqi;
   }
 `;
+const BirthdayAgeRow = styled.div`
+  display: flex;
+  gap: 4cqi;
+`;
+
+const BirthdayRow = styled.div`
+  display: flex;
+  gap: 1.6cqi;
+`;
+
+const AgeInput = styled(DetailInput)`
+  width: min(14cqi, 90px);
+  font-size: min(3.8cqi, 28px);
+  padding: 10px min(4cqi, 16px);
+`;
+
 const AlignmentContainer = styled.div`
   display: flex;
   gap: 12px;
