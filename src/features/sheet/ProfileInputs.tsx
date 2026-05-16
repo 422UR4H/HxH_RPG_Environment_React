@@ -57,12 +57,48 @@ export default function ProfileInputs({
       <ProfileContent>
         <LeftDetails>
           <DetailItem>
-            {/* <DetailLabel>Data de Nascimento:</DetailLabel> */}
-            {/* <DetailInput
-              type="date"
-              value={profile?.birthday || ""}
-              onChange={(e) => handleInputChange("birthday", e.target.value)}
-            /> */}
+            <DetailLabel>Mês de Nasc.:</DetailLabel>
+            <DetailInput
+              type="number"
+              min={1}
+              max={12}
+              value={(() => {
+                const parts = profile?.birthday?.split("T")[0]?.split("-");
+                return parts ? parseInt(parts[1]) : 1;
+              })()}
+              onChange={(e) => {
+                const parts = (profile?.birthday ?? "0000-01-01T00:00:00.000Z")
+                  .split("T")[0]
+                  .split("-");
+                const dd = parts[2];
+                const mm = String(Math.min(12, Math.max(1, parseInt(e.target.value) || 1))).padStart(2, "0");
+                handleInputChange("birthday", `0000-${mm}-${dd}T00:00:00.000Z`);
+              }}
+            />
+          </DetailItem>
+
+          <DetailItem>
+            <DetailLabel>Dia de Nasc.:</DetailLabel>
+            <DetailInput
+              type="number"
+              min={1}
+              max={31}
+              value={(() => {
+                const parts = profile?.birthday?.split("T")[0]?.split("-");
+                return parts ? parseInt(parts[2]) : 1;
+              })()}
+              onChange={(e) => {
+                const parts = (profile?.birthday ?? "0000-01-01T00:00:00.000Z")
+                  .split("T")[0]
+                  .split("-");
+                const mm = parts[1];
+                const dd = String(Math.min(31, Math.max(1, parseInt(e.target.value) || 1))).padStart(2, "0");
+                handleInputChange("birthday", `0000-${mm}-${dd}T00:00:00.000Z`);
+              }}
+            />
+          </DetailItem>
+
+          <DetailItem>
             <DetailLabel>Idade:</DetailLabel>
             <DetailInput
               type="number"
