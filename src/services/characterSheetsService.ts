@@ -49,14 +49,43 @@ export const characterSheetsService = {
   createCharacterSheet: (
     token: string,
     charSheet: CharacterSheet
-  ): Promise<{ uuid: string }> =>
-    httpClient
+  ): Promise<{ uuid: string }> => {
+    const skillsExps: Record<string, number> = {};
+    const allSkills = { ...charSheet.physicalSkills, ...charSheet.spiritualSkills };
+    Object.entries(allSkills).forEach(([name, skill]) => {
+      if (skill.exp && skill.exp > 0) skillsExps[name] = skill.exp;
+    });
+
+    const proficienciesExps: Record<string, number> = {};
+    Object.entries(charSheet.commonProficiencies).forEach(([name, prof]) => {
+      if (prof.exp && prof.exp > 0) proficienciesExps[name] = prof.exp;
+    });
+    charSheet.jointProficiencies.forEach((prof) => {
+      if (prof.exp && prof.exp > 0 && prof.name) proficienciesExps[prof.name] = prof.exp;
+    });
+
+    return httpClient
       .post<{ character_sheet: { uuid: string } }>(
         "/charactersheets",
-        objToSnakeCase(charSheet),
+        {
+          profile: objToSnakeCase({
+            nickname: charSheet.profile.nickname,
+            fullname: charSheet.profile.fullname,
+            alignment: charSheet.profile.alignment,
+            description: charSheet.profile.description ?? "",
+            briefDescription: charSheet.profile.briefDescription,
+            birthday: charSheet.profile.birthday,
+            age: charSheet.profile.age,
+          }),
+          character_class: charSheet.characterClass,
+          skills_exps: skillsExps,
+          proficiencies_exps: proficienciesExps,
+          categories: {},
+        },
         config(token)
       )
-      .then(({ data }) => ({ uuid: data.character_sheet.uuid })),
+      .then(({ data }) => ({ uuid: data.character_sheet.uuid }));
+  },
 
   patchCharacterSheetProfile: (
     token: string,

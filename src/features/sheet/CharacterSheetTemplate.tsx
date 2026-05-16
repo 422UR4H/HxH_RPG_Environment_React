@@ -30,6 +30,7 @@ interface Data {
   onAvatarSelected?: (blob: Blob | null, url: string | null) => void;
   onCoverSelected?: (blob: Blob | null, url: string | null) => void;
   onCreateSheet?: () => void;
+  submitError?: string | null;
 }
 
 interface CharacterSheetTemplateProps {
@@ -38,7 +39,7 @@ interface CharacterSheetTemplateProps {
 }
 
 function CharacterSheetTemplate({
-  data: { charSheet, setCharSheet, charClasses, isLoading, error, onCampaignClick, hasCampaign, onAcceptSubmission, onRejectSubmission, onAvatarSelected, onCoverSelected, onCreateSheet },
+  data: { charSheet, setCharSheet, charClasses, isLoading, error, onCampaignClick, hasCampaign, onAcceptSubmission, onRejectSubmission, onAvatarSelected, onCoverSelected, onCreateSheet, submitError },
   sheetMode,
 }: CharacterSheetTemplateProps) {
   if (!charSheet) return <ErrorContainer>Ficha não encontrada</ErrorContainer>;
@@ -216,8 +217,13 @@ function CharacterSheetTemplate({
           </SubmissionActionsWrapper>
         )}
 
-        {sheetMode.headerMode === "create" && onCreateSheet && (
-          <CreateSheetButton onClick={onCreateSheet}>+ Criar Ficha</CreateSheetButton>
+        {sheetMode.headerMode === "create" && (
+          <CreateSheetArea>
+            {submitError && <SubmitErrorText>{submitError}</SubmitErrorText>}
+            {onCreateSheet && (
+              <CreateSheetButton onClick={onCreateSheet}>+ Criar Ficha</CreateSheetButton>
+            )}
+          </CreateSheetArea>
         )}
       </MainContent>
     </SheetContainer>
@@ -533,5 +539,28 @@ const CreateSheetButton = styled.button`
   @media (max-width: 609px) {
     width: calc(100% - 40px);
     margin: 20px 20px 0;
+  }
+`;
+
+const CreateSheetArea = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding-bottom: 16px;
+`;
+
+const SubmitErrorText = styled.p`
+  font-family: "Roboto", sans-serif;
+  font-size: min(3.8cqi, 0.9rem);
+  color: #e74c3c;
+  background: rgba(231, 76, 60, 0.08);
+  border-left: 3px solid #e74c3c;
+  margin: 16px 30px 0;
+  padding: 10px 14px;
+  border-radius: 0 4px 4px 0;
+  white-space: pre-line;
+
+  @media (max-width: 609px) {
+    margin: 12px 20px 0;
   }
 `;

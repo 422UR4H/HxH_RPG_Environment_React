@@ -16,6 +16,7 @@ function CreateCharacterSheetPage() {
   const [avatarBlob, setAvatarBlob] = useState<Blob | null>(null);
   const [coverBlob, setCoverBlob] = useState<Blob | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const avatarBlobUrlRef = useRef<string | undefined>(undefined);
   const coverBlobUrlRef = useRef<string | undefined>(undefined);
   const { data: charClasses, isLoading, error } = useCharacterClasses(token);
@@ -57,8 +58,38 @@ function CreateCharacterSheetPage() {
     setCharSheet((prev) => ({ ...prev, profile: { ...prev.profile, cover: previewUrl } }));
   };
 
+  const validateCharSheet = (): string | null => {
+    const errors: string[] = [];
+    const { profile, characterClass } = charSheet;
+
+    if (!characterClass) errors.push("Selecione uma classe para o personagem.");
+
+    const nick = profile.nickname.trim();
+    if (nick.length < 3 || nick.length > 10)
+      errors.push("Nickname deve ter entre 3 e 10 caracteres.");
+
+    const full = profile.fullname.trim();
+    if (full.length < 6 || full.length > 32)
+      errors.push("Nome completo deve ter entre 6 e 32 caracteres.");
+
+    if ((profile.briefDescription ?? "").length > 255)
+      errors.push("Descrição breve deve ter no máximo 255 caracteres.");
+
+    if (profile.age < 0)
+      errors.push("Idade não pode ser negativa.");
+
+    return errors.length > 0 ? errors.join("\n") : null;
+  };
+
   const handleCreateSheet = async () => {
     if (!token || isSubmitting) return;
+
+    const validationError = validateCharSheet();
+    if (validationError) {
+      setSubmitError(validationError);
+      return;
+    }
+    setSubmitError(null);
     setIsSubmitting(true);
     let createdUuid: string | undefined;
     let resolvedAvatarUrl: string | undefined;
@@ -94,7 +125,6 @@ function CreateCharacterSheetPage() {
       navigate(`/charactersheets/${uuid}`);
     } catch (err) {
       console.error("Falha ao criar ficha:", err);
-      // Best-effort: persist any URLs already uploaded before the failure
       if (createdUuid && (resolvedAvatarUrl !== undefined || resolvedCoverUrl !== undefined)) {
         characterSheetsService.patchCharacterSheetProfile(
           token,
@@ -103,7 +133,7 @@ function CreateCharacterSheetPage() {
           resolvedCoverUrl ?? null,
         ).catch(() => undefined);
       }
-      // TODO: exibir erro ao usuário (toast ou mensagem inline)
+      setSubmitError("Erro ao salvar a ficha. Tente novamente.");
     } finally {
       setIsSubmitting(false);
     }
@@ -123,6 +153,7 @@ function CreateCharacterSheetPage() {
         onAvatarSelected: handleAvatarSelected,
         onCoverSelected: handleCoverSelected,
         onCreateSheet: handleCreateSheet,
+        submitError,
       }}
     />
   );
