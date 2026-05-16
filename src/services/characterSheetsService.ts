@@ -35,4 +35,14 @@ export const characterSheetsService = {
         config(token)
       )
       .then(() => undefined),
+
+  acceptSheetSubmission: (token: string, sheetUuid: string): Promise<void> =>
+    httpClient
+      .post(`/submissions/${sheetUuid}/accept`, {}, config(token))
+      .then(() => undefined),
+
+  rejectSheetSubmission: (token: string, sheetUuid: string): Promise<void> =>
+    httpClient
+      .post(`/submissions/${sheetUuid}/reject`, {}, config(token))
+      .then(() => undefined),
 };

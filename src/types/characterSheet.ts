@@ -38,6 +38,7 @@ export interface StatusBar {
 }
 
 export interface CharacterSheet {
+  playerUuid?: string;
   campaignUuid?: string;
   characterClass: string;
   categoryName: string;

@@ -80,7 +80,11 @@ export default function CampaignPage() {
                 key={character.uuid}
                 character={character}
                 isMaster={!!isMaster}
-                onClick={() => navigate(`/charactersheet/${character.uuid}`)}
+                onClick={() =>
+                  navigate(`/charactersheet/${character.uuid}`, {
+                    state: { isPending: !!character.isPending, campaignId: id },
+                  })
+                }
               />
             ))}
 
