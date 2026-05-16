@@ -137,7 +137,7 @@ function CharacterSheetTemplate({
               mentalAbility={mentalAbility}
             />
 
-            {spiritualAbility?.level! > 0 && (
+            {(spiritualAbility?.level ?? 0) > 0 && (
               <>
                 <SectionTitle>PRINCÍPIOS</SectionTitle>
                 <NenPrinciplesDiagram
@@ -161,7 +161,7 @@ function CharacterSheetTemplate({
               />
             </SkillsGroup>
 
-            {spiritualAbility?.level! > 0 && (
+            {(spiritualAbility?.level ?? 0) > 0 && (
               <SkillsGroup>
                 <GroupTitle>Espirituais</GroupTitle>
                 <SpiritualSkillsGroup

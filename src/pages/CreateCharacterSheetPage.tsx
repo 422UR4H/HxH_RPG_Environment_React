@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import useToken from "../hooks/useToken";
 import type { SheetMode } from "../features/sheet/types/sheetMode";
@@ -16,7 +16,16 @@ function CreateCharacterSheetPage() {
   const [avatarBlob, setAvatarBlob] = useState<Blob | null>(null);
   const [coverBlob, setCoverBlob] = useState<Blob | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const avatarBlobUrlRef = useRef<string | undefined>(undefined);
+  const coverBlobUrlRef = useRef<string | undefined>(undefined);
   const { data: charClasses, isLoading, error } = useCharacterClasses(token);
+
+  useEffect(() => {
+    return () => {
+      if (avatarBlobUrlRef.current) URL.revokeObjectURL(avatarBlobUrlRef.current);
+      if (coverBlobUrlRef.current) URL.revokeObjectURL(coverBlobUrlRef.current);
+    };
+  }, []);
 
   const sheetMode: SheetMode = {
     headerMode: "create",
@@ -28,58 +37,72 @@ function CreateCharacterSheetPage() {
 
   const handleAvatarSelected = (blob: Blob | null, url: string | null) => {
     setAvatarBlob(blob);
+    if (avatarBlobUrlRef.current) {
+      URL.revokeObjectURL(avatarBlobUrlRef.current);
+      avatarBlobUrlRef.current = undefined;
+    }
     const previewUrl = blob ? URL.createObjectURL(blob) : url ?? undefined;
-    setCharSheet((prev) => ({
-      ...prev,
-      profile: { ...prev.profile, avatar: previewUrl },
-    }));
+    if (blob && previewUrl) avatarBlobUrlRef.current = previewUrl;
+    setCharSheet((prev) => ({ ...prev, profile: { ...prev.profile, avatar: previewUrl } }));
   };
 
   const handleCoverSelected = (blob: Blob | null, url: string | null) => {
     setCoverBlob(blob);
+    if (coverBlobUrlRef.current) {
+      URL.revokeObjectURL(coverBlobUrlRef.current);
+      coverBlobUrlRef.current = undefined;
+    }
     const previewUrl = blob ? URL.createObjectURL(blob) : url ?? undefined;
-    setCharSheet((prev) => ({
-      ...prev,
-      profile: { ...prev.profile, cover: previewUrl },
-    }));
+    if (blob && previewUrl) coverBlobUrlRef.current = previewUrl;
+    setCharSheet((prev) => ({ ...prev, profile: { ...prev.profile, cover: previewUrl } }));
   };
 
   const handleCreateSheet = async () => {
     if (!token || isSubmitting) return;
     setIsSubmitting(true);
+    let createdUuid: string | undefined;
+    let resolvedAvatarUrl: string | undefined;
+    let resolvedCoverUrl: string | undefined;
     try {
-      // Step 1: create the sheet
       const { uuid } = await characterSheetsService.createCharacterSheet(token, charSheet);
+      createdUuid = uuid;
 
-      // Step 2: upload images to R2 (if blobs present)
-      let avatarUrl = avatarBlob ? undefined : charSheet.profile.avatar;
-      let coverUrl = coverBlob ? undefined : charSheet.profile.cover;
+      resolvedAvatarUrl = avatarBlob ? undefined : charSheet.profile.avatar;
+      resolvedCoverUrl = coverBlob ? undefined : charSheet.profile.cover;
 
       if (avatarBlob) {
         const { uploadUrl, publicUrl } = await uploadService.getPresignedUrl(token, "avatar", uuid);
         await uploadService.uploadToR2(uploadUrl, avatarBlob);
-        avatarUrl = publicUrl;
+        resolvedAvatarUrl = publicUrl;
       }
 
       if (coverBlob) {
         const { uploadUrl, publicUrl } = await uploadService.getPresignedUrl(token, "cover", uuid);
         await uploadService.uploadToR2(uploadUrl, coverBlob);
-        coverUrl = publicUrl;
+        resolvedCoverUrl = publicUrl;
       }
 
-      // Step 3: persist URLs on profile (only if there's something to save)
-      if (avatarUrl !== undefined || coverUrl !== undefined) {
+      if (resolvedAvatarUrl !== undefined || resolvedCoverUrl !== undefined) {
         await characterSheetsService.patchCharacterSheetProfile(
           token,
           uuid,
-          avatarUrl ?? null,
-          coverUrl ?? null,
+          resolvedAvatarUrl ?? null,
+          resolvedCoverUrl ?? null,
         );
       }
 
       navigate(`/charactersheets/${uuid}`);
     } catch (err) {
       console.error("Falha ao criar ficha:", err);
+      // Best-effort: persist any URLs already uploaded before the failure
+      if (createdUuid && (resolvedAvatarUrl !== undefined || resolvedCoverUrl !== undefined)) {
+        characterSheetsService.patchCharacterSheetProfile(
+          token,
+          createdUuid,
+          resolvedAvatarUrl ?? null,
+          resolvedCoverUrl ?? null,
+        ).catch(() => undefined);
+      }
       // TODO: exibir erro ao usuário (toast ou mensagem inline)
     } finally {
       setIsSubmitting(false);
