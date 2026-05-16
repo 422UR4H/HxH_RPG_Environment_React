@@ -75,7 +75,7 @@ export default function ProfileInputs({
       <ProfileContent>
         <LeftDetails>
           <BirthdayAgeRow>
-            <DetailItem style={{ flex: 1 }}>
+            <DetailItem>
               <DetailLabel>Aniversário:</DetailLabel>
               <BirthdayRow>
                 <BaseSelect
@@ -301,17 +301,18 @@ const DetailInput = styled.input`
 `;
 const BirthdayAgeRow = styled.div`
   display: flex;
-  gap: 16px;
-  align-items: flex-end;
+  gap: 4cqi;
 `;
 
 const BirthdayRow = styled.div`
   display: flex;
-  gap: 8px;
+  gap: 1.6cqi;
 `;
 
 const AgeInput = styled(DetailInput)`
   width: min(14cqi, 90px);
+  font-size: min(3.8cqi, 28px);
+  padding: 10px min(4cqi, 16px);
 `;
 
 const AlignmentContainer = styled.div`
