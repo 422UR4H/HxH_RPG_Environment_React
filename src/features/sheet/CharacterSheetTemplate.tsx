@@ -25,6 +25,8 @@ interface Data {
   applyClassDistribution?: (className: string) => void;
   onCampaignClick?: () => void;
   hasCampaign?: boolean;
+  onAcceptSubmission?: () => void;
+  onRejectSubmission?: () => void;
 }
 
 interface CharacterSheetTemplateProps {
@@ -33,7 +35,7 @@ interface CharacterSheetTemplateProps {
 }
 
 function CharacterSheetTemplate({
-  data: { charSheet, setCharSheet, charClasses, isLoading, error, onCampaignClick, hasCampaign },
+  data: { charSheet, setCharSheet, charClasses, isLoading, error, onCampaignClick, hasCampaign, onAcceptSubmission, onRejectSubmission },
   sheetMode,
 }: CharacterSheetTemplateProps) {
   if (!charSheet) return <ErrorContainer>Ficha não encontrada</ErrorContainer>;
@@ -117,7 +119,7 @@ function CharacterSheetTemplate({
         setCharSheet={setCharSheet}
       />
 
-      <MainContent $hasCampaignButton={sheetMode.headerMode === "view" && !!onCampaignClick}>
+      <MainContent $hasCampaignButton={sheetMode.headerMode === "view" && (!!onCampaignClick || !!onAcceptSubmission || !!onRejectSubmission)}>
         <GridSection>
           <AttributesSection>
             <SectionTitle>ATRIBUTOS</SectionTitle>
@@ -198,6 +200,17 @@ function CharacterSheetTemplate({
             label={hasCampaign ? "Ver Campanha" : "Procurar Campanhas"}
             onClick={onCampaignClick}
           />
+        )}
+
+        {sheetMode.headerMode === "view" && (onAcceptSubmission || onRejectSubmission) && (
+          <SubmissionActionsWrapper>
+            {onRejectSubmission && (
+              <RejectButton onClick={onRejectSubmission}>Rejeitar</RejectButton>
+            )}
+            {onAcceptSubmission && (
+              <AcceptButton onClick={onAcceptSubmission}>Aceitar</AcceptButton>
+            )}
+          </SubmissionActionsWrapper>
         )}
       </MainContent>
     </SheetContainer>
@@ -441,4 +454,47 @@ const ErrorContainer = styled.div`
   text-align: center;
   margin: 30px;
   font-size: 18px;
+`;
+
+const SubmissionActionsWrapper = styled.div`
+  position: absolute;
+  bottom: 22px;
+  left: 0;
+  width: 100%;
+  height: 91px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  padding: 0 3.2%;
+`;
+
+const SubmissionActionBase = styled.button`
+  font-family: "Roboto", sans-serif;
+  font-size: 26px;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  height: 100%;
+  flex: 1;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: translateY(-3px);
+    filter: brightness(1.1);
+  }
+  &:active {
+    transform: scale(0.98);
+  }
+`;
+
+const AcceptButton = styled(SubmissionActionBase)`
+  background: #088E3B;
+  color: white;
+`;
+
+const RejectButton = styled(SubmissionActionBase)`
+  background: #B61B40;
+  color: white;
 `;
