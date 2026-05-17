@@ -128,8 +128,8 @@ function CreateCharacterSheetPage() {
       const { uuid } = await characterSheetsService.createCharacterSheet(token, charSheet, selectedClass);
       createdUuid = uuid;
 
-      resolvedAvatarUrl = avatarBlob ? undefined : charSheet.profile.avatar;
-      resolvedCoverUrl = coverBlob ? undefined : charSheet.profile.cover;
+      resolvedAvatarUrl = avatarBlob ? undefined : charSheet.profile.avatarUrl;
+      resolvedCoverUrl = coverBlob ? undefined : charSheet.profile.coverUrl;
 
       if (avatarBlob) {
         const { uploadUrl, publicUrl } = await uploadService.getPresignedUrl(token, "avatar", uuid);

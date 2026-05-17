@@ -8,8 +8,8 @@ export interface CharacterSheetSummary {
   alignment: string;
   birthday?: string;
   age: number;
-  cover?: string;
-  avatar?: string;
+  coverUrl?: string;
+  avatarUrl?: string;
   characterClass: string;
   categoryName: string;
   currHexValue: number | null;
@@ -69,8 +69,8 @@ export type Profile = {
   birthday: string;
   age: number;
   alignment: string;
-  cover?: string;
-  avatar?: string;
+  coverUrl?: string;
+  avatarUrl?: string;
 };
 
 export interface CharacterExp {
@@ -132,6 +132,8 @@ export interface CharacterBaseSummary {
   masterUuid?: string;
   campaignUuid?: string;
   nickName: string;
+  avatarUrl?: string;
+  coverUrl?: string;
   storyStartAt?: string;
   storyCurrentAt?: string;
   deadAt?: string;

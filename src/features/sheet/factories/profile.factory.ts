@@ -12,7 +12,7 @@ export function createEmptyProfile(): Profile {
     briefDescription: "",
     birthday: `0000-${mm}-${dd}T00:00:00.000Z`,
     age: 0,
-    cover: undefined,
-    avatar: undefined,
+    coverUrl: undefined,
+    avatarUrl: undefined,
   };
 }
