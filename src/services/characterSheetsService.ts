@@ -62,12 +62,10 @@ export const characterSheetsService = {
       }
     });
 
+    const allowedProfs = new Set(charClass?.distribution?.proficienciesAllowed ?? []);
     const proficienciesExps: Record<string, number> = {};
     Object.entries(charSheet.commonProficiencies).forEach(([name, prof]) => {
-      if (prof.exp && prof.exp > 0) proficienciesExps[name] = prof.exp;
-    });
-    charSheet.jointProficiencies.forEach((prof) => {
-      if (prof.exp && prof.exp > 0 && prof.name) proficienciesExps[prof.name] = prof.exp;
+      if (prof.exp && prof.exp > 0 && allowedProfs.has(name)) proficienciesExps[name] = prof.exp;
     });
 
     return httpClient
