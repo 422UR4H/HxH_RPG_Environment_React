@@ -68,6 +68,13 @@ export const characterSheetsService = {
       if (prof.exp && prof.exp > 0 && allowedProfs.has(name)) proficienciesExps[name] = prof.exp;
     });
 
+    const attributePoints: Record<string, number> = {};
+    const allAttrs = { ...charSheet.physicalAttributes, ...charSheet.mentalAttributes };
+    Object.entries(allAttrs).forEach(([name, attr]) => {
+      const apiKey = name.charAt(0).toUpperCase() + name.slice(1);
+      if (attr.points > 0) attributePoints[apiKey] = attr.points;
+    });
+
     return httpClient
       .post<{ character_sheet: { uuid: string } }>(
         "/charactersheets",
@@ -84,6 +91,7 @@ export const characterSheetsService = {
           character_class: charSheet.characterClass,
           skills_exps: skillsExps,
           proficiencies_exps: proficienciesExps,
+          attribute_points: attributePoints,
           // categories: {},
         },
         config(token)
