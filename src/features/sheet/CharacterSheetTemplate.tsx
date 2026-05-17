@@ -27,6 +27,10 @@ interface Data {
   hasCampaign?: boolean;
   onAcceptSubmission?: () => void;
   onRejectSubmission?: () => void;
+  onAvatarSelected?: (blob: Blob | null, url: string | null) => void;
+  onCoverSelected?: (blob: Blob | null, url: string | null) => void;
+  onCreateSheet?: () => void;
+  submitError?: string | null;
 }
 
 interface CharacterSheetTemplateProps {
@@ -35,7 +39,7 @@ interface CharacterSheetTemplateProps {
 }
 
 function CharacterSheetTemplate({
-  data: { charSheet, setCharSheet, charClasses, isLoading, error, onCampaignClick, hasCampaign, onAcceptSubmission, onRejectSubmission },
+  data: { charSheet, setCharSheet, charClasses, isLoading, error, onCampaignClick, hasCampaign, onAcceptSubmission, onRejectSubmission, onAvatarSelected, onCoverSelected, onCreateSheet, submitError },
   sheetMode,
 }: CharacterSheetTemplateProps) {
   if (!charSheet) return <ErrorContainer>Ficha não encontrada</ErrorContainer>;
@@ -75,7 +79,7 @@ function CharacterSheetTemplate({
 
       <CharacterSheetHeader
         mode={sheetMode.headerMode}
-        data={{ charSheet, setCharSheet, charClasses }}
+        data={{ charSheet, setCharSheet, charClasses, onAvatarSelected, onCoverSelected }}
       />
 
       {/* <HeaderSection>
@@ -134,7 +138,7 @@ function CharacterSheetTemplate({
               mentalAbility={mentalAbility}
             />
 
-            {spiritualAbility?.level! > 0 && (
+            {(spiritualAbility?.level ?? 0) > 0 && (
               <>
                 <SectionTitle>PRINCÍPIOS</SectionTitle>
                 <NenPrinciplesDiagram
@@ -158,7 +162,7 @@ function CharacterSheetTemplate({
               />
             </SkillsGroup>
 
-            {spiritualAbility?.level! > 0 && (
+            {(spiritualAbility?.level ?? 0) > 0 && (
               <SkillsGroup>
                 <GroupTitle>Espirituais</GroupTitle>
                 <SpiritualSkillsGroup
@@ -211,6 +215,15 @@ function CharacterSheetTemplate({
               <AcceptButton onClick={onAcceptSubmission}>Aceitar</AcceptButton>
             )}
           </SubmissionActionsWrapper>
+        )}
+
+        {sheetMode.headerMode === "create" && (
+          <CreateSheetArea>
+            {submitError && <SubmitErrorText>{submitError}</SubmitErrorText>}
+            {onCreateSheet && (
+              <CreateSheetButton onClick={onCreateSheet}>+ Criar Ficha</CreateSheetButton>
+            )}
+          </CreateSheetArea>
         )}
       </MainContent>
     </SheetContainer>
@@ -490,11 +503,65 @@ const SubmissionActionBase = styled.button`
 `;
 
 const AcceptButton = styled(SubmissionActionBase)`
-  background: #088E3B;
+  background: #107135;
   color: white;
 `;
 
 const RejectButton = styled(SubmissionActionBase)`
   background: #B61B40;
   color: white;
+`;
+
+const CreateSheetButton = styled.button`
+  font-family: "Roboto", sans-serif;
+  font-size: 6cqi;
+  font-weight: bold;
+
+  background: #107135;
+  color: white;
+
+  display: block;
+  width: calc(100% - 60px);
+  border: none;
+  border-radius: 8px;
+  padding: 2cqi 28px;
+  margin: 24px 30px 0;
+
+  cursor: pointer;
+  &:hover {
+    transform: translateY(-3px);
+    filter: brightness(1.1);
+  }
+  &:active {
+    transform: scale(0.98);
+  }
+
+  @media (max-width: 609px) {
+    width: calc(100% - 40px);
+    margin: 20px 20px 0;
+  }
+`;
+
+const CreateSheetArea = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding-bottom: 16px;
+`;
+
+const SubmitErrorText = styled.p`
+  font-family: "Roboto", sans-serif;
+  font-size: max(2.8cqi, 12px);
+  line-height: 1.2;
+  color: #e74c3c;
+  background: rgba(231, 76, 60, 0.08);
+  border-left: 3px solid #e74c3c;
+  margin: 16px 30px 0;
+  padding: 10px 14px;
+  border-radius: 0 8px 8px 0;
+  white-space: pre-line;
+
+  @media (max-width: 609px) {
+    margin: 12px 20px 0;
+  }
 `;

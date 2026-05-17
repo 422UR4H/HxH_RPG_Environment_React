@@ -1,3 +1,4 @@
+import { useState } from "react";
 import styled from "styled-components";
 import type { CharacterSheet } from "../../types/characterSheet";
 import HpBar from "../atoms/HpBar";
@@ -11,11 +12,14 @@ import penIcon from "../../assets/icons/pen.svg";
 import type { HeaderMode } from "../../features/sheet/types/headerMode";
 import type { CharacterClass } from "../../types/characterClass";
 import { useCharSheetBuilder } from "../../features/sheet/hooks/useCharSheetBuilder";
+import ImagePickerModal from "./ImagePickerModal";
 
 interface Data {
   charSheet?: CharacterSheet;
   setCharSheet?: (charSheet: CharacterSheet) => void;
   charClasses?: CharacterClass[];
+  onAvatarSelected?: (blob: Blob | null, url: string | null) => void;
+  onCoverSelected?: (blob: Blob | null, url: string | null) => void;
 }
 
 interface CharacterSheetHeaderProps {
@@ -25,9 +29,11 @@ interface CharacterSheetHeaderProps {
 
 export default function CharacterSheetHeader({
   mode,
-  data: { charSheet, setCharSheet, charClasses },
+  data: { charSheet, setCharSheet, charClasses, onAvatarSelected, onCoverSelected },
 }: CharacterSheetHeaderProps) {
   const { buildFromClass } = useCharSheetBuilder();
+  const [avatarModalOpen, setAvatarModalOpen] = useState(false);
+  const [coverModalOpen, setCoverModalOpen] = useState(false);
   const handleClassChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const targetClass = event.target.value;
     const charClass = charClasses?.find(
@@ -37,8 +43,10 @@ export default function CharacterSheetHeader({
     if (!charSheet || !setCharSheet) return;
     if (!charClass) return;
 
-    // TODO: verify this assertion type
-    const newCharSheet = buildFromClass(charClass, charSheet) as CharacterSheet;
+    const newCharSheet = {
+      ...(buildFromClass(charClass, charSheet) as CharacterSheet),
+      characterClass: charClass.profile.name,
+    };
     setCharSheet(newCharSheet);
   };
   const profile = charSheet?.profile;
@@ -49,24 +57,39 @@ export default function CharacterSheetHeader({
     <HeaderContainer>
       <CoverContainer $cardView={mode === "card"}>
         <Cover src={profile?.cover || coverPlaceholder} alt={`cover`} />
+        {(mode === "create" || mode === "edit") && onCoverSelected && (
+          <AddCover onClick={() => setCoverModalOpen(true)}>
+            <CameraIcon src={cameraIcon} alt="Camera Icon" />
+            <PlusIcon src={plusIcon} alt="+" />
+          </AddCover>
+        )}
       </CoverContainer>
 
       <AvatarContainer>
         <GungiFrame src={gungiFrame} alt="frame" />
         <Avatar src={profile?.avatar || avatarPlaceholder} alt={`avatar`} />
-        {(mode === "create" || mode === "edit") && (
-          <AddAvatar onClick={() => alert("Calma, jovem gafanhoto...")}>
+        {(mode === "create" || mode === "edit") && onAvatarSelected && (
+          <AddAvatar onClick={() => setAvatarModalOpen(true)}>
             <CameraIcon src={cameraIcon} alt="Camera Icon" />
             <PlusIcon src={plusIcon} alt="+" />
           </AddAvatar>
         )}
       </AvatarContainer>
 
-      {mode === "create" || mode == "edit" ? (
+      {mode === "create" || mode === "edit" ? (
         <NicknameOverlay>
           <NicknameInputContainer>
             <PenIcon src={penIcon} alt="Edit Icon" />
-            <NicknameInput type="text" placeholder="Nickname" maxLength={10} />
+            <NicknameInput
+              type="text"
+              placeholder="Nickname"
+              maxLength={10}
+              value={profile?.nickname ?? ""}
+              onChange={(e) => {
+                if (!charSheet || !setCharSheet) return;
+                setCharSheet({ ...charSheet, profile: { ...charSheet.profile, nickname: e.target.value } });
+              }}
+            />
           </NicknameInputContainer>
 
           <CharacterClass>Classe: </CharacterClass>
@@ -92,6 +115,27 @@ export default function CharacterSheetHeader({
         <HpBar current={health?.current} max={health?.max} />
         <SpBar current={stamina?.current} max={stamina?.max} />
       </StatusBarsContainer>
+
+      {avatarModalOpen && (
+        <ImagePickerModal
+          type="avatar"
+          onConfirm={(blob, url) => {
+            onAvatarSelected!(blob, url);
+            setAvatarModalOpen(false);
+          }}
+          onClose={() => setAvatarModalOpen(false)}
+        />
+      )}
+      {coverModalOpen && (
+        <ImagePickerModal
+          type="cover"
+          onConfirm={(blob, url) => {
+            onCoverSelected!(blob, url);
+            setCoverModalOpen(false);
+          }}
+          onClose={() => setCoverModalOpen(false)}
+        />
+      )}
     </HeaderContainer>
   );
 }
@@ -174,8 +218,8 @@ const AddAvatar = styled.button`
   z-index: 3;
 
   background-color: black;
-  width: 8cqi;
-  height: 8cqi;
+  width: max(8cqi, 40px);
+  height: max(8cqi, 40px);
   padding: 1%;
   border: none;
   border-radius: 50%;
@@ -195,6 +239,30 @@ const AddAvatar = styled.button`
 const CameraIcon = styled.img`
   width: 100%;
   height: auto;
+`;
+
+const AddCover = styled.button`
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 3;
+
+  background-color: rgba(0, 0, 0, 0.6);
+  width: max(10cqi, 48px);
+  height: max(10cqi, 48px);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: scale(1.05);
+    filter: brightness(1.1);
+  }
+  &:active {
+    transform: scale(0.98);
+  }
 `;
 
 const PlusIcon = styled.img`
