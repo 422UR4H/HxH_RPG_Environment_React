@@ -551,7 +551,7 @@ const CreateSheetArea = styled.div`
 
 const SubmitErrorText = styled.p`
   font-family: "Roboto", sans-serif;
-  font-size: max(3cqi, 12px);
+  font-size: max(2.8cqi, 12px);
   line-height: 1.2;
   color: #e74c3c;
   background: rgba(231, 76, 60, 0.08);
