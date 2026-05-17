@@ -25,11 +25,13 @@ interface Data {
 interface CharacterSheetHeaderProps {
   data: Data;
   mode: HeaderMode;
+  showStatus?: boolean;
 }
 
 export default function CharacterSheetHeader({
   mode,
   data: { charSheet, setCharSheet, charClasses, onAvatarSelected, onCoverSelected },
+  showStatus = true,
 }: CharacterSheetHeaderProps) {
   const { buildFromClass } = useCharSheetBuilder();
   const [avatarModalOpen, setAvatarModalOpen] = useState(false);
@@ -56,7 +58,7 @@ export default function CharacterSheetHeader({
   return (
     <HeaderContainer>
       <CoverContainer $cardView={mode === "card"}>
-        <Cover src={profile?.cover || coverPlaceholder} alt={`cover`} />
+        <Cover src={profile?.coverUrl || coverPlaceholder} alt={`cover`} />
         {(mode === "create" || mode === "edit") && onCoverSelected && (
           <AddCover onClick={() => setCoverModalOpen(true)}>
             <CameraIcon src={cameraIcon} alt="Camera Icon" />
@@ -67,7 +69,7 @@ export default function CharacterSheetHeader({
 
       <AvatarContainer>
         <GungiFrame src={gungiFrame} alt="frame" />
-        <Avatar src={profile?.avatar || avatarPlaceholder} alt={`avatar`} />
+        <Avatar src={profile?.avatarUrl || avatarPlaceholder} alt={`avatar`} />
         {(mode === "create" || mode === "edit") && onAvatarSelected && (
           <AddAvatar onClick={() => setAvatarModalOpen(true)}>
             <CameraIcon src={cameraIcon} alt="Camera Icon" />
@@ -111,10 +113,12 @@ export default function CharacterSheetHeader({
         </NicknameOverlay>
       )}
 
-      <StatusBarsContainer>
-        <HpBar current={health?.current} max={health?.max} />
-        <SpBar current={stamina?.current} max={stamina?.max} />
-      </StatusBarsContainer>
+      {showStatus && (
+        <StatusBarsContainer>
+          <HpBar current={health?.current} max={health?.max} />
+          <SpBar current={stamina?.current} max={stamina?.max} />
+        </StatusBarsContainer>
+      )}
 
       {avatarModalOpen && (
         <ImagePickerModal

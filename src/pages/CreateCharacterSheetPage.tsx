@@ -44,7 +44,7 @@ function CreateCharacterSheetPage() {
     }
     const previewUrl = blob ? URL.createObjectURL(blob) : url ?? undefined;
     if (blob && previewUrl) avatarBlobUrlRef.current = previewUrl;
-    setCharSheet((prev) => ({ ...prev, profile: { ...prev.profile, avatar: previewUrl } }));
+    setCharSheet((prev) => ({ ...prev, profile: { ...prev.profile, avatarUrl: previewUrl } }));
   };
 
   const handleCoverSelected = (blob: Blob | null, url: string | null) => {
@@ -55,7 +55,7 @@ function CreateCharacterSheetPage() {
     }
     const previewUrl = blob ? URL.createObjectURL(blob) : url ?? undefined;
     if (blob && previewUrl) coverBlobUrlRef.current = previewUrl;
-    setCharSheet((prev) => ({ ...prev, profile: { ...prev.profile, cover: previewUrl } }));
+    setCharSheet((prev) => ({ ...prev, profile: { ...prev.profile, coverUrl: previewUrl } }));
   };
 
   const validateCharSheet = (): string | null => {
@@ -128,8 +128,8 @@ function CreateCharacterSheetPage() {
       const { uuid } = await characterSheetsService.createCharacterSheet(token, charSheet, selectedClass);
       createdUuid = uuid;
 
-      resolvedAvatarUrl = avatarBlob ? undefined : charSheet.profile.avatar;
-      resolvedCoverUrl = coverBlob ? undefined : charSheet.profile.cover;
+      resolvedAvatarUrl = avatarBlob ? undefined : charSheet.profile.avatarUrl;
+      resolvedCoverUrl = coverBlob ? undefined : charSheet.profile.coverUrl;
 
       if (avatarBlob) {
         const { uploadUrl, publicUrl } = await uploadService.getPresignedUrl(token, "avatar", uuid);

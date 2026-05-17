@@ -1,5 +1,7 @@
 import styled from "styled-components";
 import type { Enrollment } from "../../types/match";
+import { createEmptyCharacterSheet } from "../../features/sheet/factories/characterSheet.factory";
+import CharacterSheetHeader from "../../components/molecules/CharacterSheetHeader";
 
 interface EnrollmentSidebarItemProps {
   enrollment: Enrollment;
@@ -21,32 +23,34 @@ export default function EnrollmentSidebarItem({
   const { characterSheet, status } = enrollment;
   const priv = characterSheet.private;
 
+  const charSheet = createEmptyCharacterSheet();
+  charSheet.characterClass = priv?.characterClass ?? "";
+  charSheet.profile = {
+    ...charSheet.profile,
+    nickname: characterSheet.nickName,
+    fullname: priv?.fullName ?? "",
+    coverUrl: characterSheet.coverUrl,
+    avatarUrl: characterSheet.avatarUrl,
+  };
+  if (priv?.health && priv?.stamina) {
+    charSheet.status = {
+      health: priv.health,
+      stamina: priv.stamina,
+    };
+  }
+
   return (
     <ItemContainer $clickable={isMaster} onClick={isMaster ? onClick : undefined}>
-      <TopRow>
-        <NickName>{characterSheet.nickName}</NickName>
-        <StatusBadge $status={status}>
-          {status === "pending" && "Pendente"}
-          {status === "accepted" && "Aceito"}
-          {status === "rejected" && "Rejeitado"}
-        </StatusBadge>
-      </TopRow>
-
-      {priv && (
-        <PrivateInfo>
-          <FullName>{priv.fullName}</FullName>
-          <Bars>
-            <Bar
-              $type="health"
-              $value={(priv.health.current / priv.health.max) * 100}
-            />
-            <Bar
-              $type="stamina"
-              $value={(priv.stamina.current / priv.stamina.max) * 100}
-            />
-          </Bars>
-        </PrivateInfo>
-      )}
+      <CharacterSheetHeader
+        mode="card"
+        data={{ charSheet }}
+        showStatus={!!priv}
+      />
+      <StatusBadge $status={status}>
+        {status === "pending" && "Pendente"}
+        {status === "accepted" && "Aceito"}
+        {status === "rejected" && "Rejeitado"}
+      </StatusBadge>
 
       {isMaster && (
         <Actions>
@@ -77,33 +81,22 @@ export default function EnrollmentSidebarItem({
 }
 
 const ItemContainer = styled.div<{ $clickable: boolean }>`
-  background-color: #333;
-  border-radius: 8px;
-  padding: 15px;
   position: relative;
+  overflow: hidden;
+  border-radius: 8px;
   border-left: 4px solid #ffa216;
   cursor: ${({ $clickable }) => ($clickable ? "pointer" : "default")};
 
   &:hover {
-    background-color: ${({ $clickable }) => ($clickable ? "#444" : "#333")};
+    filter: ${({ $clickable }) => ($clickable ? "brightness(1.05)" : "none")};
   }
 `;
 
-const TopRow = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 6px;
-`;
-
-const NickName = styled.div`
-  font-family: "Oswald", sans-serif;
-  font-size: 18px;
-  font-weight: bold;
-  color: white;
-`;
-
 const StatusBadge = styled.span<{ $status: string }>`
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 10;
   border-radius: 4px;
   padding: 2px 8px;
   font-size: 12px;
@@ -117,45 +110,11 @@ const StatusBadge = styled.span<{ $status: string }>`
   color: white;
 `;
 
-const PrivateInfo = styled.div`
-  margin-top: 4px;
-`;
-
-const FullName = styled.div`
-  font-size: 14px;
-  color: #9f9f9f;
-  margin-bottom: 6px;
-`;
-
-const Bars = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-`;
-
-const Bar = styled.div<{ $type: "health" | "stamina"; $value: number }>`
-  height: 6px;
-  background-color: #444;
-  border-radius: 3px;
-  position: relative;
-  overflow: hidden;
-
-  &::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    width: ${({ $value }) => Math.min(Math.max($value, 0), 100)}%;
-    background-color: ${({ $type }) =>
-      $type === "health" ? "#e74c3c" : "#2ecc71"};
-  }
-`;
-
 const Actions = styled.div`
   display: flex;
   gap: 6px;
-  margin-top: 10px;
+  padding: 10px 15px;
+  background-color: rgba(0, 0, 0, 0.6);
 `;
 
 const ActionButton = styled.button<{ $variant: "accept" | "reject" }>`

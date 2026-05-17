@@ -25,8 +25,8 @@ export default function CharacterSheetCard({
     briefDescription: "",
     birthday: character.birthday ?? "0000-01-01T00:00:00.000Z",
     alignment: character.alignment,
-    cover: character?.cover,
-    avatar: character?.avatar,
+    coverUrl: character?.coverUrl,
+    avatarUrl: character?.avatarUrl,
   };
   charSheet.status = {
     health: character.health,
