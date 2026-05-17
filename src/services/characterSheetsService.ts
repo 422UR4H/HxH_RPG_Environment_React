@@ -4,6 +4,7 @@ import type {
   CharacterSheetResponse,
   CharacterSheetSummary,
 } from "../types/characterSheet";
+import type { CharacterClass } from "../types/characterClass";
 import { objToCamelCase, objToSnakeCase } from "../utils/caseConverter";
 import config from "./config";
 
@@ -48,15 +49,15 @@ export const characterSheetsService = {
 
   createCharacterSheet: (
     token: string,
-    charSheet: CharacterSheet
+    charSheet: CharacterSheet,
+    charClass?: CharacterClass
   ): Promise<{ uuid: string }> => {
+    const allowedSkills = new Set(charClass?.distribution?.skillsAllowed ?? []);
     const skillsExps: Record<string, number> = {};
     const allSkills = { ...charSheet.physicalSkills, ...charSheet.spiritualSkills };
     Object.entries(allSkills).forEach(([name, skill]) => {
-      if (skill.exp && skill.exp > 0) {
-        // Internal keys are camelCase-first (e.g. "defense", "willPower").
-        // The backend enum requires the first letter capitalised ("Defense", "WillPower").
-        const apiKey = name.charAt(0).toUpperCase() + name.slice(1);
+      const apiKey = name.charAt(0).toUpperCase() + name.slice(1);
+      if (skill.exp && skill.exp > 0 && allowedSkills.has(apiKey)) {
         skillsExps[apiKey] = skill.exp;
       }
     });

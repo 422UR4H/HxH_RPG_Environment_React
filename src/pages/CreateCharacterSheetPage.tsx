@@ -122,7 +122,10 @@ function CreateCharacterSheetPage() {
     let resolvedAvatarUrl: string | undefined;
     let resolvedCoverUrl: string | undefined;
     try {
-      const { uuid } = await characterSheetsService.createCharacterSheet(token, charSheet);
+      const selectedClass = charClasses?.find(
+        (cc) => cc.profile.name === charSheet.characterClass
+      );
+      const { uuid } = await characterSheetsService.createCharacterSheet(token, charSheet, selectedClass);
       createdUuid = uuid;
 
       resolvedAvatarUrl = avatarBlob ? undefined : charSheet.profile.avatar;
