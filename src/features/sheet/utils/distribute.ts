@@ -101,7 +101,7 @@ export function deriveMiddlePoints(
     (acc, p) => acc + (attributes[p]?.points ?? 0),
     0,
   );
-  return Math.round(sum / primaries.length);
+  return Math.floor(sum / primaries.length);
 }
 
 function getBaseAbilities() {
