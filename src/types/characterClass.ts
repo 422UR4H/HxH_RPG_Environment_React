@@ -13,9 +13,14 @@ export interface CharacterClassProfile {
   briefDescription: string;
 }
 
+export interface DistributionProfPoint {
+  level: number;
+  exp: number;
+}
+
 export interface Distribution {
   skillPoints: number | null;
-  proficiencyPoints: number[];
+  proficiencyPoints: DistributionProfPoint[];
   skillsAllowed: string[];
   proficienciesAllowed: string[];
 }

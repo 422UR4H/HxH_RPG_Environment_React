@@ -32,7 +32,7 @@ function CreateCharacterSheetPage() {
     headerMode: "create",
     profileMode: "create",
     diagramsMode: "create",
-    proficiencyMode: "view",
+    proficiencyMode: "create",
     skillsMode: "view",
   };
 
@@ -91,6 +91,19 @@ function CreateCharacterSheetPage() {
     );
     if (mentalsBudget - mentalsSpent > 0)
       errors.push("Distribua todos os pontos de atributos mentais antes de criar a ficha.");
+
+    const selectedClass = charClasses?.find(
+      (cc) => cc.profile.name === characterClass
+    );
+    if (selectedClass?.distribution) {
+      const d = selectedClass.distribution;
+      const filled = d.proficienciesAllowed.filter(
+        (w) => (charSheet.commonProficiencies[w]?.exp ?? 0) > 0
+      ).length;
+      if (filled < d.proficiencyPoints.length) {
+        errors.push("Selecione todas as proficiências distribuíveis antes de criar a ficha.");
+      }
+    }
 
     return errors.length > 0 ? errors.join("\n") : null;
   };

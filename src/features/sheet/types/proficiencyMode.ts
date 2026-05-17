@@ -1,1 +1,1 @@
-export type ProficiencyMode = "view" | "edit";
+export type ProficiencyMode = "view" | "edit" | "create";

@@ -61,6 +61,9 @@ function CharacterSheetTemplate({
   const spiritualAbility = abilities?.spirituals;
   const physicalAbility = abilities?.physicals;
   const mentalAbility = abilities?.mentals;
+  const selectedClass = charClasses?.find(
+    (cc) => cc.profile.name === charSheet.characterClass
+  );
 
   if (isLoading)
     return (
@@ -196,6 +199,9 @@ function CharacterSheetTemplate({
             mode={sheetMode.proficiencyMode}
             commonProfs={commonProficiencies}
             jointProfs={jointProficiencies}
+            distribution={sheetMode.proficiencyMode === "create" ? selectedClass?.distribution : undefined}
+            charSheet={sheetMode.proficiencyMode === "create" ? charSheet : undefined}
+            setCharSheet={sheetMode.proficiencyMode === "create" ? setCharSheet : undefined}
           />
         </ProficienciesSection>
 
