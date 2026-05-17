@@ -5,6 +5,7 @@ import styled from "styled-components";
 import PlusButton from "../../components/ions/PlusButton";
 import MinusButton from "../../components/ions/MinusButton";
 import { useState } from "react";
+import { deriveMiddlePoints } from "./utils/distribute";
 
 interface PhysicalsDiagramProps {
   mode: DiagramsMode;
@@ -98,6 +99,9 @@ const PhysicalsDiagram = ({
 
         {positions.map((pos) => {
           const attr = attributes[pos.name];
+          const displayPoints = pos.isPrimary
+            ? (attr?.points ?? 0)
+            : deriveMiddlePoints(pos.name, attributes);
           const isDistributeMode =
             mode === "distribute" || mode === "create" || mode === "edit";
           const canIncrement = distributionPoints > 0;
@@ -121,7 +125,7 @@ const PhysicalsDiagram = ({
               <AttributeLabel>{pos.key}</AttributeLabel>
               <AttributeNumbers>
                 <AttributeLevel>{attr?.level || 0}</AttributeLevel>
-                <AttributePoints>{attr?.points || 0}</AttributePoints>
+                <AttributePoints>{displayPoints}</AttributePoints>
                 {/* <AttributeLevel>Nv.{attr.level}</AttributeLevel> */}
                 <AttributePower>
                   {attr?.power || 0}
@@ -266,7 +270,7 @@ const AttributeNumbers = styled.div`
 const AttributePoints = styled.div`
   font-family: "Roboto", sans-serif;
   font-weight: bold;
-  color: white;
+  color: #107135;
   align-items: center;
   justify-content: center;
 `;
