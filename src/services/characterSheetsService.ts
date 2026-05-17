@@ -53,7 +53,12 @@ export const characterSheetsService = {
     const skillsExps: Record<string, number> = {};
     const allSkills = { ...charSheet.physicalSkills, ...charSheet.spiritualSkills };
     Object.entries(allSkills).forEach(([name, skill]) => {
-      if (skill.exp && skill.exp > 0) skillsExps[name] = skill.exp;
+      if (skill.exp && skill.exp > 0) {
+        // Internal keys are camelCase-first (e.g. "defense", "willPower").
+        // The backend enum requires the first letter capitalised ("Defense", "WillPower").
+        const apiKey = name.charAt(0).toUpperCase() + name.slice(1);
+        skillsExps[apiKey] = skill.exp;
+      }
     });
 
     const proficienciesExps: Record<string, number> = {};
@@ -80,7 +85,7 @@ export const characterSheetsService = {
           character_class: charSheet.characterClass,
           skills_exps: skillsExps,
           proficiencies_exps: proficienciesExps,
-          categories: {},
+          // categories: {},
         },
         config(token)
       )

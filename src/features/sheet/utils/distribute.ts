@@ -148,7 +148,16 @@ function getBaseSkillsForType(type: "physical" | "spiritual") {
         "tenacity",
       ];
     case "spiritual":
-      return ["focus", "nen", "willPower"];
+      return [
+        // flame nen
+        "focus",
+        "willPower",
+        "selfKnowledge",
+        // conscience nen
+        "coa",
+        "mop",
+        "aop",
+      ];
     default:
       return [];
   }
