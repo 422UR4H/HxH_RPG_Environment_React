@@ -131,11 +131,13 @@ function CharacterSheetTemplate({
           <AttributesSection>
             <SectionTitle>ATRIBUTOS</SectionTitle>
             <PhysicalsDiagram
+              key={`physical-${charSheet?.characterClass ?? "none"}`}
               mode={sheetMode.diagramsMode}
               attributes={physicalAttributes}
               physicalAbility={physicalAbility}
             />
             <MentalsDiagram
+              key={`mental-${charSheet?.characterClass ?? "none"}`}
               mode={sheetMode.diagramsMode}
               attributes={mentalAttributes}
               mentalAbility={mentalAbility}
@@ -196,6 +198,7 @@ function CharacterSheetTemplate({
         <ProficienciesSection>
           <SectionTitle>Proficiências</SectionTitle>
           <ProficienciesList
+            key={charSheet?.characterClass ?? "none"}
             mode={sheetMode.proficiencyMode}
             commonProfs={commonProficiencies}
             jointProfs={jointProficiencies}

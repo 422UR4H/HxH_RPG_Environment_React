@@ -163,20 +163,6 @@ function CreateCharacterSheetPage() {
           resolvedCoverUrl ?? null,
         ).catch(() => undefined);
       }
-      const selectedClass = charClasses?.find(
-        (cc) => cc.profile.name === charSheet.characterClass
-      );
-      if (selectedClass?.distribution) {
-        const distributableSet = new Set(selectedClass.distribution.proficienciesAllowed);
-        setCharSheet((prev) => ({
-          ...prev,
-          commonProficiencies: Object.fromEntries(
-            Object.entries(prev.commonProficiencies).filter(
-              ([name]) => !distributableSet.has(name)
-            )
-          ),
-        }));
-      }
       setSubmitError("Erro ao salvar a ficha. Tente novamente.");
     } finally {
       setIsSubmitting(false);

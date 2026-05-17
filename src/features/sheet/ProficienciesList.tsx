@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import styled from "styled-components";
 import type { ProficiencyMode } from "./types/proficiencyMode";
 import type {
@@ -24,18 +24,14 @@ export default function ProficienciesList({
   charSheet,
   setCharSheet,
 }: ProficienciesListProps) {
-  const [slotSelections, setSlotSelections] = useState<string[]>(() =>
-    Array(distribution?.proficiencyPoints.length ?? 0).fill(""),
-  );
-
-  useEffect(() => {
-    setSlotSelections(prev =>
-      (distribution?.proficiencyPoints ?? []).map((_, i) => {
-        const weapon = prev[i] ?? "";
-        return weapon && (charSheet?.commonProficiencies[weapon]?.exp ?? 0) > 0 ? weapon : "";
-      })
+  const [slotSelections, setSlotSelections] = useState<string[]>(() => {
+    if (!distribution) return [];
+    const allowed = new Set(distribution.proficienciesAllowed);
+    const existing = Object.keys(charSheet?.commonProficiencies ?? {}).filter((name) =>
+      allowed.has(name)
     );
-  }, [charSheet, distribution]);
+    return Array.from({ length: distribution.proficiencyPoints.length }, (_, i) => existing[i] ?? "");
+  });
 
   const handleSlotChange = (slotIndex: number, newWeapon: string) => {
     if (!charSheet || !setCharSheet || !distribution) return;

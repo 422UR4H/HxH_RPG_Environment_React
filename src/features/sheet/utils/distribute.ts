@@ -24,7 +24,6 @@ export function distributeAbilities(charClass: CharacterClass) {
 export function distributeAttributes(
   type: "physical" | "mental" | "spiritual",
   charClass: CharacterClass,
-  attributes?: Record<string, Attribute>
 ) {
   const baseAttributes = getBaseAttributesForType(type);
   const distributed: Record<string, Attribute> = {};
@@ -34,7 +33,7 @@ export function distributeAttributes(
       exp: charClass.attributes[attrName]?.exp || 0,
       level: charClass.attributes[attrName]?.level || 0,
       power: charClass.attributes[attrName]?.power || 0,
-      points: attributes?.[attrName]?.points || 0,
+      points: 0,
     };
   });
   return distributed;

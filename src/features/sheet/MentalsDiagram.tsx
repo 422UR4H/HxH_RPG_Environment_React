@@ -4,7 +4,7 @@ import { type Ability, type Attribute } from "../../types/characterSheet.ts";
 import type { DiagramsMode } from "./types/diagramsMode.ts";
 import styled from "styled-components";
 import MinusButton from "../../components/ions/MinusButton.tsx";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 interface MentalsDiagramProps {
   mode: DiagramsMode;
@@ -19,12 +19,10 @@ const MentalsDiagram = ({
   attributes = {},
   mentalAbility = { level: 0, bonus: 0 },
 }: MentalsDiagramProps) => {
+  const spent = Object.values(attributes).reduce((sum, a) => sum + (a?.points || 0), 0);
   const [distributionPoints, setDistributionPoints] = useState(
-    mentalAbility?.level || 0
+    Math.max(0, (mentalAbility?.level || 0) - spent)
   );
-  useEffect(() => {
-    setDistributionPoints(mentalAbility?.level || 0);
-  }, [mentalAbility?.level]);
 
   const incDistributionPoints = () => {
     setDistributionPoints((prev) => prev + 1);

@@ -15,21 +15,9 @@ export function useCharSheetBuilder() {
       return {
         ...sheet,
         abilities: distributeAbilities(charClass),
-        physicalAttributes: distributeAttributes(
-          "physical",
-          charClass,
-          sheet?.physicalAttributes
-        ),
-        mentalAttributes: distributeAttributes(
-          "mental",
-          charClass,
-          sheet?.mentalAttributes
-        ),
-        spiritualAttributes: distributeAttributes(
-          "spiritual",
-          charClass,
-          sheet?.spiritualAttributes
-        ),
+        physicalAttributes: distributeAttributes("physical", charClass),
+        mentalAttributes: distributeAttributes("mental", charClass),
+        spiritualAttributes: distributeAttributes("spiritual", charClass),
         physicalSkills: distributeSkills("physical", charClass),
         spiritualSkills: distributeSkills("spiritual", charClass),
         commonProficiencies: distributeProficiencies(charClass),

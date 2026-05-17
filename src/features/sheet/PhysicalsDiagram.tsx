@@ -4,7 +4,7 @@ import type { DiagramsMode } from "./types/diagramsMode";
 import styled from "styled-components";
 import PlusButton from "../../components/ions/PlusButton";
 import MinusButton from "../../components/ions/MinusButton";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 interface PhysicalsDiagramProps {
   mode: DiagramsMode;
@@ -19,12 +19,10 @@ const PhysicalsDiagram = ({
   attributes = {},
   physicalAbility = { level: 0, bonus: 0 },
 }: PhysicalsDiagramProps) => {
+  const spent = Object.values(attributes).reduce((sum, a) => sum + (a?.points || 0), 0);
   const [distributionPoints, setDistributionPoints] = useState(
-    physicalAbility?.level || 0
+    Math.max(0, (physicalAbility?.level || 0) - spent)
   );
-  useEffect(() => {
-    setDistributionPoints(physicalAbility?.level || 0);
-  }, [physicalAbility?.level]);
 
   const incDistributionPoints = () => {
     setDistributionPoints((prev) => prev + 1);
