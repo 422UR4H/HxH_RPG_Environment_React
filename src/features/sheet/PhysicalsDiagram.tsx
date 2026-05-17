@@ -270,7 +270,7 @@ const AttributeNumbers = styled.div`
 const AttributePoints = styled.div`
   font-family: "Roboto", sans-serif;
   font-weight: bold;
-  color: #107135;
+  color: #00ea5a;
   align-items: center;
   justify-content: center;
 `;

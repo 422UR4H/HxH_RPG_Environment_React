@@ -562,9 +562,9 @@ const SubmitErrorText = styled.p`
   font-family: "Roboto", sans-serif;
   font-size: max(2.8cqi, 12px);
   line-height: 1.2;
-  color: #e74c3c;
+  color: #ff1c1c;
   background: rgba(231, 76, 60, 0.08);
-  border-left: 3px solid #e74c3c;
+  border-left: 3px solid #ff1c1c;
   margin: 16px 30px 0;
   padding: 10px 14px;
   border-radius: 0 8px 8px 0;
