@@ -25,7 +25,7 @@ export default function ProfileInputs({
   charSheet,
   setCharSheet,
 }: ProfileInputsProps) {
-  const handleInputChange = (field: keyof Profile, value: string) => {
+  const handleInputChange = (field: keyof Profile, value: string | number) => {
     if (!charSheet || !setCharSheet) return;
     setCharSheet({
       ...charSheet,
@@ -118,7 +118,7 @@ export default function ProfileInputs({
               <AgeInput
                 type="number"
                 value={profile?.age || defaultAge}
-                onChange={(e) => handleInputChange("age", e.target.value)}
+                onChange={(e) => handleInputChange("age", parseInt(e.target.value, 10) || 0)}
               />
             </DetailItem>
           </BirthdayAgeRow>
