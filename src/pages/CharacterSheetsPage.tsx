@@ -14,14 +14,14 @@ import { LoadingContainer, ErrorContainer } from "../components/atoms/PageStates
 function CharacterSheetsPage() {
   const { token } = useToken();
   const navigate = useNavigate();
-  const { data: charSheets, isPending, isError } = useCharacterSheets(token);
+  const { data: charSheets, isPending, isFetching, isError } = useCharacterSheets(token);
 
   // Rules of Hooks: useEffect must be before any conditional return
   useEffect(() => {
-    if (charSheets && charSheets.length === 0) {
-      navigate("/charactersheet/new");
+    if (!isPending && !isFetching && charSheets && charSheets.length === 0) {
+      navigate("/charactersheet/new", { replace: true });
     }
-  }, [charSheets, navigate]);
+  }, [charSheets, isPending, isFetching, navigate]);
 
   if (!token) {
     return <Navigate to="/" replace />;

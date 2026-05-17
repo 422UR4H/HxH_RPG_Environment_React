@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import useToken from "../hooks/useToken";
 import type { SheetMode } from "../features/sheet/types/sheetMode";
 import CharacterSheetTemplate from "../features/sheet/CharacterSheetTemplate";
@@ -12,6 +13,7 @@ import { uploadService } from "../services/uploadService";
 function CreateCharacterSheetPage() {
   const { token } = useToken();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [charSheet, setCharSheet] = useState<CharacterSheet>(createEmptyCharacterSheet());
   const [avatarBlob, setAvatarBlob] = useState<Blob | null>(null);
   const [coverBlob, setCoverBlob] = useState<Blob | null>(null);
@@ -152,7 +154,8 @@ function CreateCharacterSheetPage() {
         );
       }
 
-      navigate(`/charactersheet/${uuid}`);
+      queryClient.invalidateQueries({ queryKey: ["characterSheets", token] });
+      navigate(`/charactersheet/${uuid}`, { replace: true });
     } catch (err) {
       console.error("Falha ao criar ficha:", err);
       if (createdUuid && (resolvedAvatarUrl !== undefined || resolvedCoverUrl !== undefined)) {
