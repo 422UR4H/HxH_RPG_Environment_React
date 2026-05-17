@@ -81,6 +81,29 @@ export function distributeJointProficiencies(charClass: CharacterClass) {
   return distributed;
 }
 
+// Middle physical attributes derived from their two primary attributes.
+// Mirrors MiddleAttribute.GetPoints() on the backend:
+//   round(sum(primaryPoints) / count(primaryAttrs))
+export const MIDDLE_ATTR_PRIMARIES: Readonly<Record<string, [string, string]>> = {
+  strength:     ["resistance", "agility"],
+  celerity:     ["agility",    "flexibility"],
+  dexterity:    ["flexibility", "sense"],
+  constitution: ["sense",      "resistance"],
+};
+
+export function deriveMiddlePoints(
+  attrName: string,
+  attributes: Record<string, Attribute>,
+): number {
+  const primaries = MIDDLE_ATTR_PRIMARIES[attrName];
+  if (!primaries) return attributes[attrName]?.points ?? 0;
+  const sum = primaries.reduce(
+    (acc, p) => acc + (attributes[p]?.points ?? 0),
+    0,
+  );
+  return Math.floor(sum / primaries.length);
+}
+
 function getBaseAbilities() {
   return ["physicals", "mentals", "spirituals", "skills"];
 }

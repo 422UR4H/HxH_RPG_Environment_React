@@ -5,6 +5,7 @@ import styled from "styled-components";
 import PlusButton from "../../components/ions/PlusButton";
 import MinusButton from "../../components/ions/MinusButton";
 import { useState } from "react";
+import { deriveMiddlePoints } from "./utils/distribute";
 
 interface PhysicalsDiagramProps {
   mode: DiagramsMode;
@@ -14,12 +15,29 @@ interface PhysicalsDiagramProps {
   physicalAbility?: Ability;
 }
 
+const attributePositions = [
+  { name: "resistance", key: "RES", x: "50.2%", y: "8%", isPrimary: true },
+  { name: "constitution", key: "Con", x: "74%", y: "26%", isPrimary: false },
+  { name: "strength", key: "Str", x: "26%", y: "26%", isPrimary: false },
+  { name: "agility", key: "AGI", x: "7%", y: "53%", isPrimary: true },
+  { name: "dexterity", key: "Dex", x: "74%", y: "74%", isPrimary: false },
+  { name: "sense", key: "SEN", x: "93%", y: "53%", isPrimary: true },
+  { name: "flexibility", key: "FLX", x: "50.2%", y: "92%", isPrimary: true },
+  { name: "celerity", key: "Cel", x: "26%", y: "74%", isPrimary: false },
+];
+
+const primaryAttributeNames = new Set(
+  attributePositions.filter((p) => p.isPrimary).map((p) => p.name)
+);
+
 const PhysicalsDiagram = ({
   mode,
   attributes = {},
   physicalAbility = { level: 0, bonus: 0 },
 }: PhysicalsDiagramProps) => {
-  const spent = Object.values(attributes).reduce((sum, a) => sum + (a?.points || 0), 0);
+  const spent = Object.entries(attributes)
+    .filter(([name]) => primaryAttributeNames.has(name))
+    .reduce((sum, [, a]) => sum + (a?.points || 0), 0);
   const [distributionPoints, setDistributionPoints] = useState(
     Math.max(0, (physicalAbility?.level || 0) - spent)
   );
@@ -42,28 +60,19 @@ const PhysicalsDiagram = ({
     incDistributionPoints();
   };
 
-  const attributePositions = [
-    { name: "resistance", key: "RES", x: "50.2%", y: "8%" },
-    { name: "constitution", key: "Con", x: "74%", y: "26%" },
-    { name: "strength", key: "Str", x: "26%", y: "26%" },
-    { name: "agility", key: "AGI", x: "7%", y: "53%" },
-    { name: "dexterity", key: "Dex", x: "74%", y: "74%" },
-    { name: "sense", key: "SEN", x: "93%", y: "53%" },
-    { name: "flexibility", key: "FLX", x: "50.2%", y: "92%" },
-    { name: "celerity", key: "Cel", x: "26%", y: "74%" },
-  ];
+  const positions = attributePositions.map((p) => ({ ...p }));
   let marginTop = "0";
   let marginBottom = "0";
   if (mode === "distribute" || mode === "create" || mode === "edit") {
     marginTop = "16cqi";
     marginBottom = "20cqi";
 
-    attributePositions[0].y = "0%";
-    attributePositions[1].y = "20%";
-    attributePositions[2].y = "20%";
-    attributePositions[4].y = "80%";
-    attributePositions[6].y = "101%";
-    attributePositions[7].y = "80%";
+    positions[0].y = "0%";
+    positions[1].y = "20%";
+    positions[2].y = "20%";
+    positions[4].y = "80%";
+    positions[6].y = "101%";
+    positions[7].y = "80%";
   }
 
   return (
@@ -88,10 +97,15 @@ const PhysicalsDiagram = ({
           </PhysicalNumbers>
         </PhysicalAbility>
 
-        {attributePositions.map((pos) => {
+        {positions.map((pos) => {
           const attr = attributes[pos.name];
+          const displayPoints = pos.isPrimary
+            ? (attr?.points ?? 0)
+            : deriveMiddlePoints(pos.name, attributes);
+          const isDistributeMode =
+            mode === "distribute" || mode === "create" || mode === "edit";
           const canIncrement = distributionPoints > 0;
-          const canDecrement = (attr?.points || 0) > 0;
+          const canDecrement = pos.isPrimary && (attr?.points || 0) > 0;
 
           return (
             <AttributeMarker
@@ -101,9 +115,7 @@ const PhysicalsDiagram = ({
                 top: pos.y,
               }}
             >
-              {(mode === "distribute" ||
-                mode === "create" ||
-                mode === "edit") && (
+              {isDistributeMode && pos.isPrimary && (
                 <PlusButton
                   isDisabled={!canIncrement}
                   onClick={() => incAttributePoints(attr)}
@@ -113,7 +125,7 @@ const PhysicalsDiagram = ({
               <AttributeLabel>{pos.key}</AttributeLabel>
               <AttributeNumbers>
                 <AttributeLevel>{attr?.level || 0}</AttributeLevel>
-                <AttributePoints>{attr?.points || 0}</AttributePoints>
+                <AttributePoints>{displayPoints}</AttributePoints>
                 {/* <AttributeLevel>Nv.{attr.level}</AttributeLevel> */}
                 <AttributePower>
                   {attr?.power || 0}
@@ -126,9 +138,7 @@ const PhysicalsDiagram = ({
                 </AttributePower>
               </AttributeNumbers>
 
-              {(mode === "distribute" ||
-                mode === "create" ||
-                mode === "edit") && (
+              {isDistributeMode && pos.isPrimary && (
                 <MinusButton
                   isDisabled={!canDecrement}
                   onClick={() => decAttributePoints(attr)}
@@ -260,7 +270,7 @@ const AttributeNumbers = styled.div`
 const AttributePoints = styled.div`
   font-family: "Roboto", sans-serif;
   font-weight: bold;
-  color: white;
+  color: #107135;
   align-items: center;
   justify-content: center;
 `;
