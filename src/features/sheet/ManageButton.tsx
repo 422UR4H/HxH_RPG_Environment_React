@@ -63,7 +63,11 @@ export default function ManageButton({
         <ConfirmDialog
           message="Tem certeza que deseja excluir esta ficha? Esta ação não pode ser desfeita."
           confirmLabel="Excluir"
-          confirmVariant="danger"
+          confirmBackground="linear-gradient(to bottom, #ffa216 0%, #ffa216 20%, #e60000 100%)"
+          confirmTextColor="black"
+          dialogBackground="rgba(0, 0, 0, 0.85)"
+          cancelBackground="#1c1c1c"
+          cancelBorderColor="#555"
           onConfirm={() => {
             setShowDeleteConfirm(false);
             onDelete();

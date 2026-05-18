@@ -4,6 +4,11 @@ interface ConfirmDialogProps {
   message: string;
   confirmLabel: string;
   confirmVariant?: "danger" | "primary";
+  confirmBackground?: string;
+  confirmTextColor?: string;
+  dialogBackground?: string;
+  cancelBackground?: string;
+  cancelBorderColor?: string;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -12,16 +17,28 @@ export default function ConfirmDialog({
   message,
   confirmLabel,
   confirmVariant = "primary",
+  confirmBackground,
+  confirmTextColor,
+  dialogBackground,
+  cancelBackground,
+  cancelBorderColor,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
   return (
     <Overlay onClick={onCancel}>
-      <Dialog onClick={(e) => e.stopPropagation()}>
+      <Dialog $bg={dialogBackground} onClick={(e) => e.stopPropagation()}>
         <Message>{message}</Message>
         <Buttons>
-          <CancelButton onClick={onCancel}>Cancelar</CancelButton>
-          <ActionButton $variant={confirmVariant} onClick={onConfirm}>
+          <CancelButton $bg={cancelBackground} $border={cancelBorderColor} onClick={onCancel}>
+            Cancelar
+          </CancelButton>
+          <ActionButton
+            $variant={confirmVariant}
+            $bg={confirmBackground}
+            $color={confirmTextColor}
+            onClick={onConfirm}
+          >
             {confirmLabel}
           </ActionButton>
         </Buttons>
@@ -40,8 +57,8 @@ const Overlay = styled.div`
   z-index: 100;
 `;
 
-const Dialog = styled.div`
-  background-color: #2d2215;
+const Dialog = styled.div<{ $bg?: string }>`
+  background-color: ${({ $bg }) => $bg ?? "#2d2215"};
   border-radius: 12px;
   padding: 30px;
   max-width: 480px;
@@ -82,14 +99,18 @@ const BaseButton = styled.button`
   }
 `;
 
-const CancelButton = styled(BaseButton)`
-  background-color: transparent;
-  border: 1px solid white;
+const CancelButton = styled(BaseButton)<{ $bg?: string; $border?: string }>`
+  background-color: ${({ $bg }) => $bg ?? "transparent"};
+  border: 1px solid ${({ $border }) => $border ?? "white"};
   color: white;
 `;
 
-const ActionButton = styled(BaseButton)<{ $variant: "danger" | "primary" }>`
-  background-color: ${({ $variant }) =>
-    $variant === "danger" ? "#c0392b" : "#107135"};
-  color: white;
+const ActionButton = styled(BaseButton)<{
+  $variant: "danger" | "primary";
+  $bg?: string;
+  $color?: string;
+}>`
+  background: ${({ $bg, $variant }) =>
+    $bg ?? ($variant === "danger" ? "#c0392b" : "#107135")};
+  color: ${({ $color }) => $color ?? "white"};
 `;
