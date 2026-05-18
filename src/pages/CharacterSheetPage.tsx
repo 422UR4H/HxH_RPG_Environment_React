@@ -58,10 +58,7 @@ function CharacterSheetPage() {
 
   const handleEdit = () => {
     if (!charSheet?.uuid) return;
-    navigate(isFree
-      ? `/charactersheet/${charSheet.uuid}/edit`
-      : `/charactersheet/${charSheet.uuid}/edit/profile`
-    );
+    navigate(`/charactersheet/${charSheet.uuid}/edit`);
   };
 
   const handleDelete = () => {
