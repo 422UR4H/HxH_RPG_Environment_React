@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import useToken from "../hooks/useToken";
 import useUser from "../hooks/useUser";
@@ -15,7 +15,6 @@ import PageHeader from "../components/atoms/PageHeader";
 import { LoadingContainer, ErrorContainer } from "../components/atoms/PageStates";
 import ExpandableText from "../components/molecules/ExpandableText";
 import ConfirmDialog from "../components/molecules/ConfirmDialog";
-import { useState } from "react";
 
 export default function CampaignPage() {
   const { id } = useParams<{ id: string }>();
