@@ -43,18 +43,18 @@ export default function ProfileInputs({
     .split("-");
   const currentMonth = parseInt(birthdayParts[1]);
   const currentDay = parseInt(birthdayParts[2]);
-  const alignmentOptions = [
-    "Unaligned",
-    "Lawful Good",
-    "Lawful Neutral",
-    "Lawful Evil",
-    "Neutral Good",
-    "True Neutral",
-    "Neutral Evil",
-    "Chaotic Good",
-    "Chaotic Neutral",
-    "Chaotic Evil",
-  ] as const;
+  const alignmentOptions: { value: string; label: string }[] = [
+    { value: "", label: "Unaligned" },
+    { value: "Lawful-Good", label: "Lawful Good" },
+    { value: "Lawful-Neutral", label: "Lawful Neutral" },
+    { value: "Lawful-Evil", label: "Lawful Evil" },
+    { value: "Neutral-Good", label: "Neutral Good" },
+    { value: "Neutral-Neutral", label: "True Neutral" },
+    { value: "Neutral-Evil", label: "Neutral Evil" },
+    { value: "Chaotic-Good", label: "Chaotic Good" },
+    { value: "Chaotic-Neutral", label: "Chaotic Neutral" },
+    { value: "Chaotic-Evil", label: "Chaotic Evil" },
+  ];
 
   return (
     <ProfileContainer>
@@ -139,12 +139,12 @@ export default function ProfileInputs({
               </AlignmentSelect> */}
 
               <BaseSelect
-                value={profile?.alignment || "Unaligned"}
+                value={profile?.alignment ?? ""}
                 onChange={(e) => handleInputChange("alignment", e.target.value)}
               >
-                {alignmentOptions.map((alignment) => (
-                  <BaseOption key={alignment} value={alignment}>
-                    {alignment}
+                {alignmentOptions.map((opt) => (
+                  <BaseOption key={opt.label} value={opt.value}>
+                    {opt.label}
                   </BaseOption>
                 ))}
               </BaseSelect>

@@ -132,9 +132,15 @@ export const characterSheetsService = {
       if (originalName && prof.exp && prof.exp > 0) proficienciesExps[originalName] = prof.exp;
     });
 
+    // Middle physical attrs (Strength, Celerity, Dexterity, Constitution) derive
+    // their points from primaries — ApplyInitialAttributePoints only accepts primaries.
+    const PRIMARY_PHYS_ATTRS = new Set(["Resistance", "Agility", "Flexibility", "Sense"]);
     const attributePoints: Record<string, number> = {};
-    const allAttrs = { ...charSheet.physicalAttributes, ...charSheet.mentalAttributes };
-    Object.entries(allAttrs).forEach(([name, attr]) => {
+    Object.entries(charSheet.physicalAttributes).forEach(([name, attr]) => {
+      const apiKey = name.charAt(0).toUpperCase() + name.slice(1);
+      if (attr.points > 0 && PRIMARY_PHYS_ATTRS.has(apiKey)) attributePoints[apiKey] = attr.points;
+    });
+    Object.entries(charSheet.mentalAttributes).forEach(([name, attr]) => {
       const apiKey = name.charAt(0).toUpperCase() + name.slice(1);
       if (attr.points > 0) attributePoints[apiKey] = attr.points;
     });
