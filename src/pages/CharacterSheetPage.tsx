@@ -38,9 +38,12 @@ function CharacterSheetPage() {
   const isOwner = !!charSheet && !!user && charSheet.playerUuid === user.uuid;
   const isFree = isOwner && !!charSheet && !charSheet.campaignUuid && !charSheet.submission;
 
+  const activeCampaignUuid =
+    charSheet?.campaignUuid ?? charSheet?.submission?.campaignUuid;
+
   const handleCampaignClick = () => {
-    if (charSheet?.campaignUuid) {
-      navigate(`/campaigns/${charSheet.campaignUuid}`);
+    if (activeCampaignUuid) {
+      navigate(`/campaigns/${activeCampaignUuid}`);
     } else {
       navigate("/campaigns/public", { state: { sheetId: id } });
     }
@@ -76,7 +79,7 @@ function CharacterSheetPage() {
         isLoading,
         error: error ? error.message : null,
         onCampaignClick: isOwner && charSheet ? handleCampaignClick : undefined,
-        hasCampaign: !!charSheet?.campaignUuid,
+        hasCampaign: !!activeCampaignUuid,
         onAcceptSubmission: !isOwner && isPending && !accepting ? handleAccept : undefined,
         onRejectSubmission: !isOwner && isPending && !rejecting ? handleReject : undefined,
         manage: isOwner ? { isFree, onEdit: handleEdit, onDelete: handleDelete } : undefined,

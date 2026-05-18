@@ -22,6 +22,7 @@ import {
 
 export function createEmptyCharacterSheet(): CharacterSheet {
   return {
+    uuid: "",
     characterClass: "",
     categoryName: "",
     profile: createEmptyProfile(),
