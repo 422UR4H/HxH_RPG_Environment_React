@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import styled from "styled-components";
+import ConfirmDialog from "../../components/molecules/ConfirmDialog";
 
 interface ManageButtonProps {
   isFree: boolean;
@@ -16,6 +17,7 @@ export default function ManageButton({
 }: ManageButtonProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -35,33 +37,41 @@ export default function ManageButton({
 
   const handleDelete = () => {
     setOpen(false);
-    if (
-      window.confirm(
-        "Tem certeza que deseja excluir esta ficha? Esta ação não pode ser desfeita.",
-      )
-    ) {
-      onDelete();
-    }
+    setShowDeleteConfirm(true);
   };
 
   return (
-    <Wrapper ref={ref}>
-      {open && (
-        <Menu>
-          <MenuItem onClick={handleEdit}>✏ Editar</MenuItem>
-          {isFree && (
-            <MenuItemDanger onClick={handleDelete}>🗑 Excluir</MenuItemDanger>
-          )}
-        </Menu>
+    <>
+      <Wrapper ref={ref}>
+        {open && (
+          <Menu>
+            <MenuItem onClick={handleEdit}>✏ Editar</MenuItem>
+            {isFree && (
+              <MenuItemDanger onClick={handleDelete}>🗑 Excluir</MenuItemDanger>
+            )}
+          </Menu>
+        )}
+        <Button
+          $isFloating={isFloating}
+          $open={open}
+          onClick={() => setOpen((v) => !v)}
+        >
+          ⚙ Gerenciar {open ? "▴" : "▾"}
+        </Button>
+      </Wrapper>
+      {showDeleteConfirm && (
+        <ConfirmDialog
+          message="Tem certeza que deseja excluir esta ficha? Esta ação não pode ser desfeita."
+          confirmLabel="Excluir"
+          confirmVariant="danger"
+          onConfirm={() => {
+            setShowDeleteConfirm(false);
+            onDelete();
+          }}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
       )}
-      <Button
-        $isFloating={isFloating}
-        $open={open}
-        onClick={() => setOpen((v) => !v)}
-      >
-        ⚙ Gerenciar {open ? "▴" : "▾"}
-      </Button>
-    </Wrapper>
+    </>
   );
 }
 
