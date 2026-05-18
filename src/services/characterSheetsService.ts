@@ -120,10 +120,16 @@ export const characterSheetsService = {
       }
     });
 
-    const allowedProfs = new Set(charClass?.distribution?.proficienciesAllowed ?? []);
+    const toCamel = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
+    const camelToOriginal = new Map<string, string>();
+    (charClass?.distribution?.proficienciesAllowed ?? []).forEach((w) => {
+      camelToOriginal.set(toCamel(w), w);
+      camelToOriginal.set(w, w);
+    });
     const proficienciesExps: Record<string, number> = {};
     Object.entries(charSheet.commonProficiencies).forEach(([name, prof]) => {
-      if (prof.exp && prof.exp > 0 && allowedProfs.has(name)) proficienciesExps[name] = prof.exp;
+      const originalName = camelToOriginal.get(name);
+      if (originalName && prof.exp && prof.exp > 0) proficienciesExps[originalName] = prof.exp;
     });
 
     const attributePoints: Record<string, number> = {};

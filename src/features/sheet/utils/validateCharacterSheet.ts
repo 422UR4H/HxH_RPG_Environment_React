@@ -44,9 +44,11 @@ export function validateCharacterSheet(
   const selectedClass = charClasses?.find((cc) => cc.profile.name === characterClass);
   if (selectedClass?.distribution) {
     const d = selectedClass.distribution;
-    const filled = d.proficienciesAllowed.filter(
-      (w) => (charSheet.commonProficiencies[w]?.exp ?? 0) > 0,
-    ).length;
+    const toCamel = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
+    const filled = d.proficienciesAllowed.filter((w) => {
+      const camelKey = toCamel(w);
+      return (charSheet.commonProficiencies[w]?.exp ?? charSheet.commonProficiencies[camelKey]?.exp ?? 0) > 0;
+    }).length;
     if (filled < d.proficiencyPoints.length)
       errors.push(`Selecione todas as proficiências distribuíveis antes de ${action}.`);
   }

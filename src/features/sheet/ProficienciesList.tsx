@@ -24,12 +24,22 @@ export default function ProficienciesList({
   charSheet,
   setCharSheet,
 }: ProficienciesListProps) {
+  // proficienciesAllowed values are PascalCase ("ThrowingDagger").
+  // commonProficiencies keys come through objToCamelCase → camelCase ("throwingDagger").
+  // Build a bidirectional map so we can look up by either casing.
+  const buildCamelToOriginal = (allowed: string[]) => {
+    const toCamel = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
+    const map = new Map<string, string>();
+    allowed.forEach((w) => { map.set(toCamel(w), w); map.set(w, w); });
+    return map;
+  };
+
   const [slotSelections, setSlotSelections] = useState<string[]>(() => {
     if (!distribution) return [];
-    const allowed = new Set(distribution.proficienciesAllowed);
-    const existing = Object.keys(charSheet?.commonProficiencies ?? {}).filter((name) =>
-      allowed.has(name)
-    );
+    const camelToOriginal = buildCamelToOriginal(distribution.proficienciesAllowed);
+    const existing = Object.keys(charSheet?.commonProficiencies ?? {})
+      .filter((name) => camelToOriginal.has(name))
+      .map((name) => camelToOriginal.get(name)!);
     return Array.from({ length: distribution.proficiencyPoints.length }, (_, i) => existing[i] ?? "");
   });
 
@@ -41,7 +51,12 @@ export default function ProficienciesList({
     setSlotSelections(next);
 
     const updatedProfs = { ...charSheet.commonProficiencies };
-    if (oldWeapon) delete updatedProfs[oldWeapon];
+    if (oldWeapon) {
+      delete updatedProfs[oldWeapon];
+      // Also remove the camelCase variant that may exist from the API response
+      const oldCamel = oldWeapon.charAt(0).toLowerCase() + oldWeapon.slice(1);
+      if (oldCamel !== oldWeapon) delete updatedProfs[oldCamel];
+    }
     if (newWeapon) {
       const point = distribution.proficiencyPoints[slotIndex];
       updatedProfs[newWeapon] = { exp: point.exp, level: point.level };
