@@ -4,15 +4,29 @@ import type { Profile } from "../../types/characterSheet";
 
 interface ProfileDetailsProps {
   profile: Profile;
+  onBriefDescriptionChange?: (value: string) => void;
 }
 
-export default function ProfileDetails({ profile }: ProfileDetailsProps) {
+export default function ProfileDetails({
+  profile,
+  onBriefDescriptionChange,
+}: ProfileDetailsProps) {
   const { fullname, briefDescription, birthday, alignment } = profile;
 
   return (
     <ProfileContainer>
       <ProfileName>{fullname}</ProfileName>
-      <ProfileDescription>{briefDescription}</ProfileDescription>
+      {onBriefDescriptionChange ? (
+        <BriefDescriptionTextarea
+          value={briefDescription ?? ""}
+          onChange={(e) => onBriefDescriptionChange(e.target.value)}
+          placeholder="Descrição breve do personagem..."
+          maxLength={255}
+          rows={3}
+        />
+      ) : (
+        <ProfileDescription>{briefDescription}</ProfileDescription>
+      )}
 
       <ProfileContent>
         <LeftDetails>
@@ -121,4 +135,32 @@ const DetailValue = styled.span`
 const RightDetails = styled.div`
   display: flex;
   justify-content: center;
+`;
+
+const BriefDescriptionTextarea = styled.textarea`
+  font-family: "Roboto", sans-serif;
+  font-size: min(3.4cqi, 24px);
+  line-height: 1.6;
+  color: white;
+  background-color: #555;
+  border: 2px solid #666;
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-bottom: 2cqi;
+  width: 100%;
+  resize: vertical;
+  min-height: 72px;
+  box-sizing: border-box;
+
+  &::placeholder {
+    color: #9f9f9f;
+  }
+  &:focus {
+    outline: none;
+    border-color: #088e3b;
+  }
+
+  @media (max-width: 609px) {
+    font-size: 4.6cqi;
+  }
 `;

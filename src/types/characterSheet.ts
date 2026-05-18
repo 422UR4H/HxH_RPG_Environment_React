@@ -37,7 +37,13 @@ export interface StatusBar {
   max: number;
 }
 
+export type Submission = {
+  campaignUuid: string;
+  createdAt: string;
+} | null;
+
 export interface CharacterSheet {
+  uuid: string;
   playerUuid?: string;
   campaignUuid?: string;
   characterClass: string;
@@ -59,6 +65,7 @@ export interface CharacterSheet {
   categories: Record<string, Category>;
   commonProficiencies: Record<string, Proficiency>;
   jointProficiencies: JointProficiency[];
+  submission?: Submission;
 }
 
 export type Profile = {

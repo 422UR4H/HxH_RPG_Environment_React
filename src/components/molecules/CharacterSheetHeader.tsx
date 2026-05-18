@@ -59,7 +59,7 @@ export default function CharacterSheetHeader({
     <HeaderContainer>
       <CoverContainer $cardView={mode === "card"}>
         <Cover src={profile?.coverUrl || coverPlaceholder} alt={`cover`} />
-        {(mode === "create" || mode === "edit") && onCoverSelected && (
+        {(mode === "create" || mode === "edit" || mode === "edit-profile") && onCoverSelected && (
           <AddCover onClick={() => setCoverModalOpen(true)}>
             <CameraIcon src={cameraIcon} alt="Camera Icon" />
             <PlusIcon src={plusIcon} alt="+" />
@@ -70,7 +70,7 @@ export default function CharacterSheetHeader({
       <AvatarContainer>
         <GungiFrame src={gungiFrame} alt="frame" />
         <Avatar src={profile?.avatarUrl || avatarPlaceholder} alt={`avatar`} />
-        {(mode === "create" || mode === "edit") && onAvatarSelected && (
+        {(mode === "create" || mode === "edit" || mode === "edit-profile") && onAvatarSelected && (
           <AddAvatar onClick={() => setAvatarModalOpen(true)}>
             <CameraIcon src={cameraIcon} alt="Camera Icon" />
             <PlusIcon src={plusIcon} alt="+" />
@@ -95,7 +95,10 @@ export default function CharacterSheetHeader({
           </NicknameInputContainer>
 
           <CharacterClass>Classe: </CharacterClass>
-          <CharacterClassSelect onChange={handleClassChange}>
+          <CharacterClassSelect
+            value={charSheet?.characterClass ?? ""}
+            onChange={handleClassChange}
+          >
             <CharacterClassOption value="">
               Selecione uma classe
             </CharacterClassOption>

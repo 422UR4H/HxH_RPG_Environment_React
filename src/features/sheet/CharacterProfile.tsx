@@ -18,7 +18,7 @@ export default function CharacterProfile({
   setCharSheet,
 }: CharacterProfileProps) {
   const profile = charSheet?.profile;
-  const [isExpanded, setIsExpanded] = useState(mode === "create");
+  const [isExpanded, setIsExpanded] = useState(mode === "create" || mode === "edit");
 
   const toggleExpanded = () => {
     setIsExpanded(!isExpanded);
@@ -32,11 +32,19 @@ export default function CharacterProfile({
         </ExpandButtonContainer>
       </ProfileHeader>
 
-      {/* TODO: refactor ternary to semanthic funcion */}
       {isExpanded && profile && mode === "view" && (
         <ProfileDetails profile={profile} />
       )}
-      {isExpanded && (mode === "create" || mode === "edit") && (
+      {isExpanded && profile && mode === "edit" && (
+        <ProfileDetails
+          profile={profile}
+          onBriefDescriptionChange={(value) => {
+            if (!charSheet || !setCharSheet) return;
+            setCharSheet({ ...charSheet, profile: { ...charSheet.profile, briefDescription: value } });
+          }}
+        />
+      )}
+      {isExpanded && mode === "create" && (
         <ProfileInputs charSheet={charSheet} setCharSheet={setCharSheet} />
       )}
     </ProfileContainer>

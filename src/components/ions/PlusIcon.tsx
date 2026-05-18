@@ -1,7 +1,7 @@
 import styled from "styled-components";
 
-export default function PlusIcon() {
-  return <StyledPlusIcon>+</StyledPlusIcon>;
+export default function PlusIcon({ className }: { className?: string }) {
+  return <StyledPlusIcon className={className}>+</StyledPlusIcon>;
 }
 
 const StyledPlusIcon = styled.span`

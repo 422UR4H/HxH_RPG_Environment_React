@@ -12,7 +12,7 @@ import NenPrinciplesDiagram from "./NenPrinciplesDiagram";
 import PhysicalSkillsGroup from "./PhysicalSkillsGroup";
 import SpiritualSkillsGroup from "./SpiritualSkillsGroup";
 import ProficienciesList from "./ProficienciesList";
-import SheetCampaignButton from "./SheetCampaignButton";
+import SheetBottomActions from "./SheetBottomActions";
 
 interface Data {
   error: string | null;
@@ -30,7 +30,13 @@ interface Data {
   onAvatarSelected?: (blob: Blob | null, url: string | null) => void;
   onCoverSelected?: (blob: Blob | null, url: string | null) => void;
   onCreateSheet?: () => void;
+  submitLabel?: string;
   submitError?: string | null;
+  manage?: {
+    isFree: boolean;
+    onEdit: () => void;
+    onDelete: () => void;
+  };
 }
 
 interface CharacterSheetTemplateProps {
@@ -39,7 +45,23 @@ interface CharacterSheetTemplateProps {
 }
 
 function CharacterSheetTemplate({
-  data: { charSheet, setCharSheet, charClasses, isLoading, error, onCampaignClick, hasCampaign, onAcceptSubmission, onRejectSubmission, onAvatarSelected, onCoverSelected, onCreateSheet, submitError },
+  data: {
+    charSheet,
+    setCharSheet,
+    charClasses,
+    isLoading,
+    error,
+    onCampaignClick,
+    hasCampaign,
+    onAcceptSubmission,
+    onRejectSubmission,
+    onAvatarSelected,
+    onCoverSelected,
+    onCreateSheet,
+    submitLabel,
+    submitError,
+    manage,
+  },
   sheetMode,
 }: CharacterSheetTemplateProps) {
   if (!charSheet) return <ErrorContainer>Ficha não encontrada</ErrorContainer>;
@@ -62,7 +84,7 @@ function CharacterSheetTemplate({
   const physicalAbility = abilities?.physicals;
   const mentalAbility = abilities?.mentals;
   const selectedClass = charClasses?.find(
-    (cc) => cc.profile.name === charSheet.characterClass
+    (cc) => cc.profile.name === charSheet.characterClass,
   );
 
   if (isLoading)
@@ -82,7 +104,13 @@ function CharacterSheetTemplate({
 
       <CharacterSheetHeader
         mode={sheetMode.headerMode}
-        data={{ charSheet, setCharSheet, charClasses, onAvatarSelected, onCoverSelected }}
+        data={{
+          charSheet,
+          setCharSheet,
+          charClasses,
+          onAvatarSelected,
+          onCoverSelected,
+        }}
       />
 
       {/* <HeaderSection>
@@ -126,7 +154,17 @@ function CharacterSheetTemplate({
         setCharSheet={setCharSheet}
       />
 
-      <MainContent $hasCampaignButton={sheetMode.headerMode === "view" && (!!onCampaignClick || !!onAcceptSubmission || !!onRejectSubmission)}>
+      <MainContent
+        $hasBottomActions={
+          sheetMode.headerMode === "view" &&
+          !!(
+            onCampaignClick ||
+            manage ||
+            onAcceptSubmission ||
+            onRejectSubmission
+          )
+        }
+      >
         <GridSection>
           <AttributesSection>
             <SectionTitle>ATRIBUTOS</SectionTitle>
@@ -202,35 +240,52 @@ function CharacterSheetTemplate({
             mode={sheetMode.proficiencyMode}
             commonProfs={commonProficiencies}
             jointProfs={jointProficiencies}
-            distribution={sheetMode.proficiencyMode === "create" ? selectedClass?.distribution : undefined}
-            charSheet={sheetMode.proficiencyMode === "create" ? charSheet : undefined}
-            setCharSheet={sheetMode.proficiencyMode === "create" ? setCharSheet : undefined}
+            distribution={
+              sheetMode.proficiencyMode === "create"
+                ? selectedClass?.distribution
+                : undefined
+            }
+            charSheet={
+              sheetMode.proficiencyMode === "create" ? charSheet : undefined
+            }
+            setCharSheet={
+              sheetMode.proficiencyMode === "create" ? setCharSheet : undefined
+            }
           />
         </ProficienciesSection>
 
-        {sheetMode.headerMode === "view" && onCampaignClick && (
-          <SheetCampaignButton
-            label={hasCampaign ? "Ver Campanha" : "Procurar Campanhas"}
-            onClick={onCampaignClick}
+        {sheetMode.headerMode === "view" && (onCampaignClick || manage) && (
+          <SheetBottomActions
+            onCampaignClick={onCampaignClick}
+            campaignLabel={hasCampaign ? "Ver Campanha" : "Procurar Campanhas"}
+            manage={manage}
           />
         )}
 
-        {sheetMode.headerMode === "view" && (onAcceptSubmission || onRejectSubmission) && (
-          <SubmissionActionsWrapper>
-            {onRejectSubmission && (
-              <RejectButton onClick={onRejectSubmission}>Rejeitar</RejectButton>
-            )}
-            {onAcceptSubmission && (
-              <AcceptButton onClick={onAcceptSubmission}>Aceitar</AcceptButton>
-            )}
-          </SubmissionActionsWrapper>
-        )}
+        {sheetMode.headerMode === "view" &&
+          (onAcceptSubmission || onRejectSubmission) && (
+            <SubmissionActionsWrapper>
+              {onRejectSubmission && (
+                <RejectButton onClick={onRejectSubmission}>
+                  Rejeitar
+                </RejectButton>
+              )}
+              {onAcceptSubmission && (
+                <AcceptButton onClick={onAcceptSubmission}>
+                  Aceitar
+                </AcceptButton>
+              )}
+            </SubmissionActionsWrapper>
+          )}
 
-        {sheetMode.headerMode === "create" && (
+        {(sheetMode.headerMode === "create" ||
+          sheetMode.headerMode === "edit-profile") && (
           <CreateSheetArea>
             {submitError && <SubmitErrorText>{submitError}</SubmitErrorText>}
             {onCreateSheet && (
-              <CreateSheetButton onClick={onCreateSheet}>+ Criar Ficha</CreateSheetButton>
+              <CreateSheetButton onClick={onCreateSheet}>
+                {submitLabel ?? "+ Criar Ficha"}
+              </CreateSheetButton>
             )}
           </CreateSheetArea>
         )}
@@ -333,10 +388,10 @@ const SheetContainer = styled.div`
 //   color: #9f9f9f;
 // `;
 
-const MainContent = styled.main<{ $hasCampaignButton?: boolean }>`
+const MainContent = styled.main<{ $hasBottomActions?: boolean }>`
   position: relative;
-  padding-bottom: ${({ $hasCampaignButton }) =>
-    $hasCampaignButton ? "135px" : "30px"};
+  padding-bottom: ${({ $hasBottomActions }) =>
+    $hasBottomActions ? "135px" : "30px"};
   background-image: url(${space});
   background-size: cover;
   background-position: center;
@@ -344,8 +399,13 @@ const MainContent = styled.main<{ $hasCampaignButton?: boolean }>`
   background-repeat: no-repeat;
 
   @media (max-width: 609px) {
-    padding-bottom: ${({ $hasCampaignButton }) =>
-      $hasCampaignButton ? "125px" : "20px"};
+    padding-bottom: ${({ $hasBottomActions }) =>
+      $hasBottomActions ? "130px" : "20px"};
+  }
+
+  @media (max-width: 440px) {
+    padding-bottom: ${({ $hasBottomActions }) =>
+      $hasBottomActions ? "110px" : "20px"};
   }
 `;
 
@@ -517,7 +577,7 @@ const AcceptButton = styled(SubmissionActionBase)`
 `;
 
 const RejectButton = styled(SubmissionActionBase)`
-  background: #B61B40;
+  background: #b61b40;
   color: white;
 `;
 
@@ -560,7 +620,7 @@ const CreateSheetArea = styled.div`
 
 const SubmitErrorText = styled.p`
   font-family: "Roboto", sans-serif;
-  font-size: max(2.8cqi, 12px);
+  font-size: max(2.7cqi, 12px);
   line-height: 1.2;
   color: #ff1c1c;
   background: rgba(231, 76, 60, 0.08);

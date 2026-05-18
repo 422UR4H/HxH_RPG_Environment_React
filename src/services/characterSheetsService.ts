@@ -19,7 +19,7 @@ export const characterSheetsService = {
   getCharacterSheetDetails: (token: string, id: string): Promise<CharacterSheet> =>
     httpClient
       .get<{ character_sheet: CharacterSheet }>(
-        `/charactersheets/${id}`,
+        `/charactersheets/${id}?include=submission`,
         config(token)
       )
       .then(({ data }) => objToCamelCase<CharacterSheet>(data.character_sheet)),
@@ -99,16 +99,80 @@ export const characterSheetsService = {
       .then(({ data }) => ({ uuid: data.character_sheet.uuid }));
   },
 
+  deleteCharacterSheet: (token: string, uuid: string): Promise<void> =>
+    httpClient
+      .delete(`/charactersheets/${uuid}`, config(token))
+      .then(() => undefined),
+
+  updateCharacterSheet: (
+    token: string,
+    uuid: string,
+    charSheet: CharacterSheet,
+    charClass?: CharacterClass
+  ): Promise<CharacterSheet> => {
+    const allowedSkills = new Set(charClass?.distribution?.skillsAllowed ?? []);
+    const skillsExps: Record<string, number> = {};
+    const allSkills = { ...charSheet.physicalSkills, ...charSheet.spiritualSkills };
+    Object.entries(allSkills).forEach(([name, skill]) => {
+      const apiKey = name.charAt(0).toUpperCase() + name.slice(1);
+      if (skill.exp && skill.exp > 0 && allowedSkills.has(apiKey)) {
+        skillsExps[apiKey] = skill.exp;
+      }
+    });
+
+    const toCamel = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
+    const camelToOriginal = new Map<string, string>();
+    (charClass?.distribution?.proficienciesAllowed ?? []).forEach((w) => {
+      camelToOriginal.set(toCamel(w), w);
+      camelToOriginal.set(w, w);
+    });
+    const proficienciesExps: Record<string, number> = {};
+    Object.entries(charSheet.commonProficiencies).forEach(([name, prof]) => {
+      const originalName = camelToOriginal.get(name);
+      if (originalName && prof.exp && prof.exp > 0) proficienciesExps[originalName] = prof.exp;
+    });
+
+    const attributePoints: Record<string, number> = {};
+    const allAttrs = { ...charSheet.physicalAttributes, ...charSheet.mentalAttributes };
+    Object.entries(allAttrs).forEach(([name, attr]) => {
+      const apiKey = name.charAt(0).toUpperCase() + name.slice(1);
+      if (attr.points > 0) attributePoints[apiKey] = attr.points;
+    });
+
+    return httpClient
+      .patch<{ character_sheet: CharacterSheet }>(
+        `/charactersheets/${uuid}`,
+        {
+          profile: objToSnakeCase({
+            nickname: charSheet.profile.nickname,
+            fullname: charSheet.profile.fullname,
+            alignment: charSheet.profile.alignment,
+            description: charSheet.profile.description ?? "",
+            briefDescription: charSheet.profile.briefDescription,
+            birthday: charSheet.profile.birthday,
+            age: charSheet.profile.age,
+          }),
+          character_class: charSheet.characterClass,
+          skills_exps: skillsExps,
+          proficiencies_exps: proficienciesExps,
+          attribute_points: attributePoints,
+        },
+        config(token)
+      )
+      .then(({ data }) => objToCamelCase<CharacterSheet>(data.character_sheet));
+  },
+
   patchCharacterSheetProfile: (
     token: string,
     sheetUuid: string,
     avatarUrl?: string | null,
-    coverUrl?: string | null
+    coverUrl?: string | null,
+    briefDescription?: string | null
   ): Promise<void> =>
     httpClient
       .patch(
         `/charactersheets/${sheetUuid}/profile`,
-        objToSnakeCase({ avatarUrl, coverUrl }),
+        objToSnakeCase({ avatarUrl, coverUrl, briefDescription }),
         config(token)
       )
       .then(() => undefined),
