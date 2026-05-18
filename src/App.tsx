@@ -31,7 +31,7 @@ function App() {
           path="/charactersheet/:id/edit"
           element={<EditCharacterSheetPage />}
         />
-<Route path="/campaigns" element={<CampaignsPage />} />
+        <Route path="/campaigns" element={<CampaignsPage />} />
         <Route path="/campaigns/public" element={<PublicCampaignsPage />} />
         <Route path="/campaigns/new" element={<CreateCampaignPage />} />
         <Route path="/campaigns/:id" element={<CampaignPage />} />

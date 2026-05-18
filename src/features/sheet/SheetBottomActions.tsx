@@ -40,7 +40,9 @@ export default function SheetBottomActions({
     const root = document.getElementById("root");
     if (!root) return;
     const check = () => {
-      setIsFloating(root.scrollTop + root.clientHeight < root.scrollHeight - 30);
+      setIsFloating(
+        root.scrollTop + root.clientHeight < root.scrollHeight - 30,
+      );
     };
     const timers = [0, 50, 150, 300, 500].map((t) => setTimeout(check, t));
     return () => timers.forEach(clearTimeout);
@@ -72,9 +74,7 @@ export default function SheetBottomActions({
 
   return (
     <AnchoredWrapper>
-      {manage && (
-        <ManageButton {...manage} isFloating={false} />
-      )}
+      {manage && <ManageButton {...manage} isFloating={false} />}
       {onCampaignClick && (
         <CampaignButton onClick={onCampaignClick}>
           <CampaignPlusIcon />
@@ -87,7 +87,7 @@ export default function SheetBottomActions({
 
 const FloatingWrapper = styled.div`
   container-type: inline-size;
-`
+`;
 
 const AnchoredWrapper = styled.div`
   container-type: inline-size;

@@ -45,7 +45,23 @@ interface CharacterSheetTemplateProps {
 }
 
 function CharacterSheetTemplate({
-  data: { charSheet, setCharSheet, charClasses, isLoading, error, onCampaignClick, hasCampaign, onAcceptSubmission, onRejectSubmission, onAvatarSelected, onCoverSelected, onCreateSheet, submitLabel, submitError, manage },
+  data: {
+    charSheet,
+    setCharSheet,
+    charClasses,
+    isLoading,
+    error,
+    onCampaignClick,
+    hasCampaign,
+    onAcceptSubmission,
+    onRejectSubmission,
+    onAvatarSelected,
+    onCoverSelected,
+    onCreateSheet,
+    submitLabel,
+    submitError,
+    manage,
+  },
   sheetMode,
 }: CharacterSheetTemplateProps) {
   if (!charSheet) return <ErrorContainer>Ficha não encontrada</ErrorContainer>;
@@ -68,7 +84,7 @@ function CharacterSheetTemplate({
   const physicalAbility = abilities?.physicals;
   const mentalAbility = abilities?.mentals;
   const selectedClass = charClasses?.find(
-    (cc) => cc.profile.name === charSheet.characterClass
+    (cc) => cc.profile.name === charSheet.characterClass,
   );
 
   if (isLoading)
@@ -88,7 +104,13 @@ function CharacterSheetTemplate({
 
       <CharacterSheetHeader
         mode={sheetMode.headerMode}
-        data={{ charSheet, setCharSheet, charClasses, onAvatarSelected, onCoverSelected }}
+        data={{
+          charSheet,
+          setCharSheet,
+          charClasses,
+          onAvatarSelected,
+          onCoverSelected,
+        }}
       />
 
       {/* <HeaderSection>
@@ -132,7 +154,17 @@ function CharacterSheetTemplate({
         setCharSheet={setCharSheet}
       />
 
-      <MainContent $hasBottomActions={sheetMode.headerMode === "view" && !!(onCampaignClick || manage || onAcceptSubmission || onRejectSubmission)}>
+      <MainContent
+        $hasBottomActions={
+          sheetMode.headerMode === "view" &&
+          !!(
+            onCampaignClick ||
+            manage ||
+            onAcceptSubmission ||
+            onRejectSubmission
+          )
+        }
+      >
         <GridSection>
           <AttributesSection>
             <SectionTitle>ATRIBUTOS</SectionTitle>
@@ -208,9 +240,17 @@ function CharacterSheetTemplate({
             mode={sheetMode.proficiencyMode}
             commonProfs={commonProficiencies}
             jointProfs={jointProficiencies}
-            distribution={sheetMode.proficiencyMode === "create" ? selectedClass?.distribution : undefined}
-            charSheet={sheetMode.proficiencyMode === "create" ? charSheet : undefined}
-            setCharSheet={sheetMode.proficiencyMode === "create" ? setCharSheet : undefined}
+            distribution={
+              sheetMode.proficiencyMode === "create"
+                ? selectedClass?.distribution
+                : undefined
+            }
+            charSheet={
+              sheetMode.proficiencyMode === "create" ? charSheet : undefined
+            }
+            setCharSheet={
+              sheetMode.proficiencyMode === "create" ? setCharSheet : undefined
+            }
           />
         </ProficienciesSection>
 
@@ -222,22 +262,30 @@ function CharacterSheetTemplate({
           />
         )}
 
-        {sheetMode.headerMode === "view" && (onAcceptSubmission || onRejectSubmission) && (
-          <SubmissionActionsWrapper>
-            {onRejectSubmission && (
-              <RejectButton onClick={onRejectSubmission}>Rejeitar</RejectButton>
-            )}
-            {onAcceptSubmission && (
-              <AcceptButton onClick={onAcceptSubmission}>Aceitar</AcceptButton>
-            )}
-          </SubmissionActionsWrapper>
-        )}
+        {sheetMode.headerMode === "view" &&
+          (onAcceptSubmission || onRejectSubmission) && (
+            <SubmissionActionsWrapper>
+              {onRejectSubmission && (
+                <RejectButton onClick={onRejectSubmission}>
+                  Rejeitar
+                </RejectButton>
+              )}
+              {onAcceptSubmission && (
+                <AcceptButton onClick={onAcceptSubmission}>
+                  Aceitar
+                </AcceptButton>
+              )}
+            </SubmissionActionsWrapper>
+          )}
 
-        {(sheetMode.headerMode === "create" || sheetMode.headerMode === "edit-profile") && (
+        {(sheetMode.headerMode === "create" ||
+          sheetMode.headerMode === "edit-profile") && (
           <CreateSheetArea>
             {submitError && <SubmitErrorText>{submitError}</SubmitErrorText>}
             {onCreateSheet && (
-              <CreateSheetButton onClick={onCreateSheet}>{submitLabel ?? "+ Criar Ficha"}</CreateSheetButton>
+              <CreateSheetButton onClick={onCreateSheet}>
+                {submitLabel ?? "+ Criar Ficha"}
+              </CreateSheetButton>
             )}
           </CreateSheetArea>
         )}
@@ -529,7 +577,7 @@ const AcceptButton = styled(SubmissionActionBase)`
 `;
 
 const RejectButton = styled(SubmissionActionBase)`
-  background: #B61B40;
+  background: #b61b40;
   color: white;
 `;
 

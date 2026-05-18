@@ -12,7 +12,10 @@ import { validateCharacterSheet } from "../features/sheet/utils/validateCharacte
 import { characterSheetsService } from "../services/characterSheetsService";
 import { uploadService } from "../services/uploadService";
 
-function sheetChangedFrom(current: CharacterSheet, original: CharacterSheet): boolean {
+function sheetChangedFrom(
+  current: CharacterSheet,
+  original: CharacterSheet,
+): boolean {
   const snap = (s: CharacterSheet) =>
     JSON.stringify({
       characterClass: s.characterClass,
@@ -45,10 +48,19 @@ function EditCharacterSheetPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data: existingSheet, isLoading: sheetLoading } = useCharacterSheet(token, id);
-  const { data: charClasses, isLoading: classesLoading, error: classesError } = useCharacterClasses(token);
+  const { data: existingSheet, isLoading: sheetLoading } = useCharacterSheet(
+    token,
+    id,
+  );
+  const {
+    data: charClasses,
+    isLoading: classesLoading,
+    error: classesError,
+  } = useCharacterClasses(token);
 
-  const [charSheet, setCharSheet] = useState<CharacterSheet | undefined>(undefined);
+  const [charSheet, setCharSheet] = useState<CharacterSheet | undefined>(
+    undefined,
+  );
   const [avatarBlob, setAvatarBlob] = useState<Blob | null>(null);
   const [coverBlob, setCoverBlob] = useState<Blob | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -62,14 +74,17 @@ function EditCharacterSheetPage() {
 
   useEffect(() => {
     return () => {
-      if (avatarBlobUrlRef.current) URL.revokeObjectURL(avatarBlobUrlRef.current);
+      if (avatarBlobUrlRef.current)
+        URL.revokeObjectURL(avatarBlobUrlRef.current);
       if (coverBlobUrlRef.current) URL.revokeObjectURL(coverBlobUrlRef.current);
     };
   }, []);
 
   if (!token || !id) return <Navigate to="/" replace />;
 
-  const isOwner = existingSheet ? existingSheet.playerUuid === user?.uuid : undefined;
+  const isOwner = existingSheet
+    ? existingSheet.playerUuid === user?.uuid
+    : undefined;
   const isFree = existingSheet
     ? !existingSheet.campaignUuid && !existingSheet.submission
     : undefined;
@@ -79,8 +94,7 @@ function EditCharacterSheetPage() {
     return <Navigate to={`/charactersheet/${id}`} replace />;
   }
 
-  const editMode: "full" | "profile" =
-    isFree === false ? "profile" : "full";
+  const editMode: "full" | "profile" = isFree === false ? "profile" : "full";
 
   const sheetMode: SheetMode =
     editMode === "full"
@@ -105,9 +119,13 @@ function EditCharacterSheetPage() {
       URL.revokeObjectURL(avatarBlobUrlRef.current);
       avatarBlobUrlRef.current = undefined;
     }
-    const previewUrl = blob ? URL.createObjectURL(blob) : url ?? undefined;
+    const previewUrl = blob ? URL.createObjectURL(blob) : (url ?? undefined);
     if (blob && previewUrl) avatarBlobUrlRef.current = previewUrl;
-    setCharSheet((prev) => prev ? { ...prev, profile: { ...prev.profile, avatarUrl: previewUrl } } : prev);
+    setCharSheet((prev) =>
+      prev
+        ? { ...prev, profile: { ...prev.profile, avatarUrl: previewUrl } }
+        : prev,
+    );
   };
 
   const handleCoverSelected = (blob: Blob | null, url: string | null) => {
@@ -116,46 +134,84 @@ function EditCharacterSheetPage() {
       URL.revokeObjectURL(coverBlobUrlRef.current);
       coverBlobUrlRef.current = undefined;
     }
-    const previewUrl = blob ? URL.createObjectURL(blob) : url ?? undefined;
+    const previewUrl = blob ? URL.createObjectURL(blob) : (url ?? undefined);
     if (blob && previewUrl) coverBlobUrlRef.current = previewUrl;
-    setCharSheet((prev) => prev ? { ...prev, profile: { ...prev.profile, coverUrl: previewUrl } } : prev);
+    setCharSheet((prev) =>
+      prev
+        ? { ...prev, profile: { ...prev.profile, coverUrl: previewUrl } }
+        : prev,
+    );
   };
 
   const handleSave = async () => {
     if (!token || !id || !charSheet || isSubmitting) return;
 
     if (editMode === "full") {
-      const validationError = validateCharacterSheet(charSheet, charClasses, "edit");
-      if (validationError) { setSubmitError(validationError); return; }
-      if (!avatarBlob && !coverBlob && existingSheet && !sheetChangedFrom(charSheet, existingSheet)) {
+      const validationError = validateCharacterSheet(
+        charSheet,
+        charClasses,
+        "edit",
+      );
+      if (validationError) {
+        setSubmitError(validationError);
+        return;
+      }
+      if (
+        !avatarBlob &&
+        !coverBlob &&
+        existingSheet &&
+        !sheetChangedFrom(charSheet, existingSheet)
+      ) {
         navigate(`/charactersheet/${id}`, { replace: true });
         return;
       }
       setSubmitError(null);
       setIsSubmitting(true);
-      let resolvedAvatarUrl: string | undefined = avatarBlob ? undefined : charSheet.profile.avatarUrl;
-      let resolvedCoverUrl: string | undefined = coverBlob ? undefined : charSheet.profile.coverUrl;
+      let resolvedAvatarUrl: string | undefined = avatarBlob
+        ? undefined
+        : charSheet.profile.avatarUrl;
+      let resolvedCoverUrl: string | undefined = coverBlob
+        ? undefined
+        : charSheet.profile.coverUrl;
       try {
-        const selectedClass = charClasses?.find((cc) => cc.profile.name === charSheet.characterClass);
-        await characterSheetsService.updateCharacterSheet(token, id, charSheet, selectedClass);
+        const selectedClass = charClasses?.find(
+          (cc) => cc.profile.name === charSheet.characterClass,
+        );
+        await characterSheetsService.updateCharacterSheet(
+          token,
+          id,
+          charSheet,
+          selectedClass,
+        );
         if (avatarBlob) {
-          const { uploadUrl, publicUrl } = await uploadService.getPresignedUrl(token, "avatar", id);
+          const { uploadUrl, publicUrl } = await uploadService.getPresignedUrl(
+            token,
+            "avatar",
+            id,
+          );
           await uploadService.uploadToR2(uploadUrl, avatarBlob);
           resolvedAvatarUrl = publicUrl;
         }
         if (coverBlob) {
-          const { uploadUrl, publicUrl } = await uploadService.getPresignedUrl(token, "cover", id);
+          const { uploadUrl, publicUrl } = await uploadService.getPresignedUrl(
+            token,
+            "cover",
+            id,
+          );
           await uploadService.uploadToR2(uploadUrl, coverBlob);
           resolvedCoverUrl = publicUrl;
         }
         if (resolvedAvatarUrl !== undefined || resolvedCoverUrl !== undefined) {
           await characterSheetsService.patchCharacterSheetProfile(
-            token, id,
+            token,
+            id,
             resolvedAvatarUrl ?? null,
             resolvedCoverUrl ?? null,
           );
         }
-        queryClient.invalidateQueries({ queryKey: ["characterSheet", token, id] });
+        queryClient.invalidateQueries({
+          queryKey: ["characterSheet", token, id],
+        });
         navigate(`/charactersheet/${id}`, { replace: true });
       } catch {
         setSubmitError("Erro ao salvar. Tente novamente.");
@@ -169,7 +225,10 @@ function EditCharacterSheetPage() {
     const briefDesc = charSheet.profile.briefDescription ?? "";
     const existingBrief = existingSheet?.profile.briefDescription ?? "";
     const noChange = !avatarBlob && !coverBlob && briefDesc === existingBrief;
-    if (noChange) { navigate(`/charactersheet/${id}`, { replace: true }); return; }
+    if (noChange) {
+      navigate(`/charactersheet/${id}`, { replace: true });
+      return;
+    }
 
     setSubmitError(null);
     setIsSubmitting(true);
@@ -177,22 +236,33 @@ function EditCharacterSheetPage() {
     let resolvedCover: string | null = charSheet.profile.coverUrl ?? null;
     try {
       if (avatarBlob) {
-        const { uploadUrl, publicUrl } = await uploadService.getPresignedUrl(token, "avatar", id);
+        const { uploadUrl, publicUrl } = await uploadService.getPresignedUrl(
+          token,
+          "avatar",
+          id,
+        );
         await uploadService.uploadToR2(uploadUrl, avatarBlob);
         resolvedAvatar = publicUrl;
       }
       if (coverBlob) {
-        const { uploadUrl, publicUrl } = await uploadService.getPresignedUrl(token, "cover", id);
+        const { uploadUrl, publicUrl } = await uploadService.getPresignedUrl(
+          token,
+          "cover",
+          id,
+        );
         await uploadService.uploadToR2(uploadUrl, coverBlob);
         resolvedCover = publicUrl;
       }
       await characterSheetsService.patchCharacterSheetProfile(
-        token, id,
+        token,
+        id,
         resolvedAvatar,
         resolvedCover,
         charSheet.profile.briefDescription ?? null,
       );
-      queryClient.invalidateQueries({ queryKey: ["characterSheet", token, id] });
+      queryClient.invalidateQueries({
+        queryKey: ["characterSheet", token, id],
+      });
       navigate(`/charactersheet/${id}`, { replace: true });
     } catch {
       setSubmitError("Erro ao salvar. Tente novamente.");
@@ -210,8 +280,12 @@ function EditCharacterSheetPage() {
         charSheet,
         setCharSheet,
         charClasses: editMode === "full" ? charClasses : undefined,
-        isLoading: sheetLoading || (editMode === "full" ? classesLoading : false) || isSubmitting,
-        error: editMode === "full" && classesError ? classesError.message : null,
+        isLoading:
+          sheetLoading ||
+          (editMode === "full" ? classesLoading : false) ||
+          isSubmitting,
+        error:
+          editMode === "full" && classesError ? classesError.message : null,
         onAvatarSelected: handleAvatarSelected,
         onCoverSelected: handleCoverSelected,
         onCreateSheet: handleSave,

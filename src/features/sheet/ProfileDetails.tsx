@@ -7,7 +7,10 @@ interface ProfileDetailsProps {
   onBriefDescriptionChange?: (value: string) => void;
 }
 
-export default function ProfileDetails({ profile, onBriefDescriptionChange }: ProfileDetailsProps) {
+export default function ProfileDetails({
+  profile,
+  onBriefDescriptionChange,
+}: ProfileDetailsProps) {
   const { fullname, briefDescription, birthday, alignment } = profile;
 
   return (

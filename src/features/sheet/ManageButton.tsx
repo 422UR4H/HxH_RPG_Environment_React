@@ -37,7 +37,7 @@ export default function ManageButton({
     setOpen(false);
     if (
       window.confirm(
-        "Tem certeza que deseja excluir esta ficha? Esta ação não pode ser desfeita."
+        "Tem certeza que deseja excluir esta ficha? Esta ação não pode ser desfeita.",
       )
     ) {
       onDelete();
@@ -84,7 +84,7 @@ const Button = styled.button<{ $isFloating: boolean; $open: boolean }>`
   gap: 8px;
   white-space: nowrap;
   transition: all 0.2s ease;
-  
+
   @media (max-width: 609px) {
     padding-inline: 5cqi;
     gap: 15px;
@@ -106,7 +106,9 @@ const Button = styled.button<{ $isFloating: boolean; $open: boolean }>`
         &:hover { filter: brightness(1.2); }
       `}
 
-  &:active { transform: scale(0.98); }
+  &:active {
+    transform: scale(0.98);
+  }
 `;
 
 const Menu = styled.div`
