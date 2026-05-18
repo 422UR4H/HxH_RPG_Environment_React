@@ -1,1 +1,1 @@
-export type HeaderMode = "view" | "create" | "custom" | "edit" | "card";
+export type HeaderMode = "view" | "create" | "custom" | "edit" | "edit-profile" | "card";

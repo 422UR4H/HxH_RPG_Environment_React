@@ -12,7 +12,6 @@ import CharacterSheetPage from "./pages/CharacterSheetPage";
 import CreateCharacterSheetPage from "./pages/CreateCharacterSheetPage";
 import PublicCampaignsPage from "./pages/PublicCampaignsPage";
 import EditCharacterSheetPage from "./pages/EditCharacterSheetPage";
-import EditCharacterSheetProfilePage from "./pages/EditCharacterSheetProfilePage";
 
 function App() {
   return (
@@ -32,11 +31,7 @@ function App() {
           path="/charactersheet/:id/edit"
           element={<EditCharacterSheetPage />}
         />
-        <Route
-          path="/charactersheet/:id/edit/profile"
-          element={<EditCharacterSheetProfilePage />}
-        />
-        <Route path="/campaigns" element={<CampaignsPage />} />
+<Route path="/campaigns" element={<CampaignsPage />} />
         <Route path="/campaigns/public" element={<PublicCampaignsPage />} />
         <Route path="/campaigns/new" element={<CreateCampaignPage />} />
         <Route path="/campaigns/:id" element={<CampaignPage />} />

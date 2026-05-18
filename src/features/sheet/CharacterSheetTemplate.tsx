@@ -233,7 +233,7 @@ function CharacterSheetTemplate({
           </SubmissionActionsWrapper>
         )}
 
-        {sheetMode.headerMode === "create" && (
+        {(sheetMode.headerMode === "create" || sheetMode.headerMode === "edit-profile") && (
           <CreateSheetArea>
             {submitError && <SubmitErrorText>{submitError}</SubmitErrorText>}
             {onCreateSheet && (
@@ -572,7 +572,7 @@ const CreateSheetArea = styled.div`
 
 const SubmitErrorText = styled.p`
   font-family: "Roboto", sans-serif;
-  font-size: max(2.8cqi, 12px);
+  font-size: max(2.7cqi, 12px);
   line-height: 1.2;
   color: #ff1c1c;
   background: rgba(231, 76, 60, 0.08);

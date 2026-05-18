@@ -69,19 +69,35 @@ function EditCharacterSheetPage() {
 
   if (!token || !id) return <Navigate to="/" replace />;
 
-  if (existingSheet && user) {
-    const isOwner = existingSheet.playerUuid === user.uuid;
-    const isFree = !existingSheet.campaignUuid && !existingSheet.submission;
-    if (!isOwner || !isFree) return <Navigate to={`/charactersheet/${id}`} replace />;
+  const isOwner = existingSheet ? existingSheet.playerUuid === user?.uuid : undefined;
+  const isFree = existingSheet
+    ? !existingSheet.campaignUuid && !existingSheet.submission
+    : undefined;
+
+  // Redirect non-owners; owners of non-free sheets stay and get profile-only mode
+  if (existingSheet && user && !isOwner) {
+    return <Navigate to={`/charactersheet/${id}`} replace />;
   }
 
-  const sheetMode: SheetMode = {
-    headerMode: "create",
-    profileMode: "create",
-    diagramsMode: "create",
-    proficiencyMode: "create",
-    skillsMode: "view",
-  };
+  const editMode: "full" | "profile" =
+    isFree === false ? "profile" : "full";
+
+  const sheetMode: SheetMode =
+    editMode === "full"
+      ? {
+          headerMode: "create",
+          profileMode: "create",
+          diagramsMode: "create",
+          proficiencyMode: "create",
+          skillsMode: "view",
+        }
+      : {
+          headerMode: "edit-profile",
+          profileMode: "edit",
+          diagramsMode: "view",
+          proficiencyMode: "view",
+          skillsMode: "view",
+        };
 
   const handleAvatarSelected = (blob: Blob | null, url: string | null) => {
     setAvatarBlob(blob);
@@ -107,42 +123,75 @@ function EditCharacterSheetPage() {
 
   const handleSave = async () => {
     if (!token || !id || !charSheet || isSubmitting) return;
-    const validationError = validateCharacterSheet(charSheet, charClasses, "edit");
-    if (validationError) {
-      setSubmitError(validationError);
+
+    if (editMode === "full") {
+      const validationError = validateCharacterSheet(charSheet, charClasses, "edit");
+      if (validationError) { setSubmitError(validationError); return; }
+      if (!avatarBlob && !coverBlob && existingSheet && !sheetChangedFrom(charSheet, existingSheet)) {
+        navigate(`/charactersheet/${id}`, { replace: true });
+        return;
+      }
+      setSubmitError(null);
+      setIsSubmitting(true);
+      let resolvedAvatarUrl: string | undefined = avatarBlob ? undefined : charSheet.profile.avatarUrl;
+      let resolvedCoverUrl: string | undefined = coverBlob ? undefined : charSheet.profile.coverUrl;
+      try {
+        const selectedClass = charClasses?.find((cc) => cc.profile.name === charSheet.characterClass);
+        await characterSheetsService.updateCharacterSheet(token, id, charSheet, selectedClass);
+        if (avatarBlob) {
+          const { uploadUrl, publicUrl } = await uploadService.getPresignedUrl(token, "avatar", id);
+          await uploadService.uploadToR2(uploadUrl, avatarBlob);
+          resolvedAvatarUrl = publicUrl;
+        }
+        if (coverBlob) {
+          const { uploadUrl, publicUrl } = await uploadService.getPresignedUrl(token, "cover", id);
+          await uploadService.uploadToR2(uploadUrl, coverBlob);
+          resolvedCoverUrl = publicUrl;
+        }
+        if (resolvedAvatarUrl !== undefined || resolvedCoverUrl !== undefined) {
+          await characterSheetsService.patchCharacterSheetProfile(
+            token, id,
+            resolvedAvatarUrl ?? null,
+            resolvedCoverUrl ?? null,
+          );
+        }
+        queryClient.invalidateQueries({ queryKey: ["characterSheet", token, id] });
+        navigate(`/charactersheet/${id}`, { replace: true });
+      } catch {
+        setSubmitError("Erro ao salvar. Tente novamente.");
+      } finally {
+        setIsSubmitting(false);
+      }
       return;
     }
-    if (!avatarBlob && !coverBlob && existingSheet && !sheetChangedFrom(charSheet, existingSheet)) {
-      navigate(`/charactersheet/${id}`, { replace: true });
-      return;
-    }
+
+    // Profile-only mode
+    const briefDesc = charSheet.profile.briefDescription ?? "";
+    const existingBrief = existingSheet?.profile.briefDescription ?? "";
+    const noChange = !avatarBlob && !coverBlob && briefDesc === existingBrief;
+    if (noChange) { navigate(`/charactersheet/${id}`, { replace: true }); return; }
+
     setSubmitError(null);
     setIsSubmitting(true);
-    let resolvedAvatarUrl: string | undefined = avatarBlob ? undefined : charSheet.profile.avatarUrl;
-    let resolvedCoverUrl: string | undefined = coverBlob ? undefined : charSheet.profile.coverUrl;
+    let resolvedAvatar: string | null = charSheet.profile.avatarUrl ?? null;
+    let resolvedCover: string | null = charSheet.profile.coverUrl ?? null;
     try {
-      const selectedClass = charClasses?.find((cc) => cc.profile.name === charSheet.characterClass);
-      await characterSheetsService.updateCharacterSheet(token, id, charSheet, selectedClass);
-
       if (avatarBlob) {
         const { uploadUrl, publicUrl } = await uploadService.getPresignedUrl(token, "avatar", id);
         await uploadService.uploadToR2(uploadUrl, avatarBlob);
-        resolvedAvatarUrl = publicUrl;
+        resolvedAvatar = publicUrl;
       }
       if (coverBlob) {
         const { uploadUrl, publicUrl } = await uploadService.getPresignedUrl(token, "cover", id);
         await uploadService.uploadToR2(uploadUrl, coverBlob);
-        resolvedCoverUrl = publicUrl;
+        resolvedCover = publicUrl;
       }
-      if (resolvedAvatarUrl !== undefined || resolvedCoverUrl !== undefined) {
-        await characterSheetsService.patchCharacterSheetProfile(
-          token,
-          id,
-          resolvedAvatarUrl ?? null,
-          resolvedCoverUrl ?? null,
-        );
-      }
-
+      await characterSheetsService.patchCharacterSheetProfile(
+        token, id,
+        resolvedAvatar,
+        resolvedCover,
+        charSheet.profile.briefDescription ?? null,
+      );
       queryClient.invalidateQueries({ queryKey: ["characterSheet", token, id] });
       navigate(`/charactersheet/${id}`, { replace: true });
     } catch {
@@ -160,13 +209,13 @@ function EditCharacterSheetPage() {
       data={{
         charSheet,
         setCharSheet,
-        charClasses,
-        isLoading: sheetLoading || classesLoading || isSubmitting,
-        error: classesError ? classesError.message : null,
+        charClasses: editMode === "full" ? charClasses : undefined,
+        isLoading: sheetLoading || (editMode === "full" ? classesLoading : false) || isSubmitting,
+        error: editMode === "full" && classesError ? classesError.message : null,
         onAvatarSelected: handleAvatarSelected,
         onCoverSelected: handleCoverSelected,
         onCreateSheet: handleSave,
-        submitLabel: "Salvar Edição",
+        submitLabel: editMode === "full" ? "Salvar Edição" : "Salvar Perfil",
         submitError,
       }}
     />
