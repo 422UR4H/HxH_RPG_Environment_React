@@ -30,6 +30,7 @@ interface Data {
   onAvatarSelected?: (blob: Blob | null, url: string | null) => void;
   onCoverSelected?: (blob: Blob | null, url: string | null) => void;
   onCreateSheet?: () => void;
+  submitLabel?: string;
   submitError?: string | null;
   manage?: {
     isFree: boolean;
@@ -44,7 +45,7 @@ interface CharacterSheetTemplateProps {
 }
 
 function CharacterSheetTemplate({
-  data: { charSheet, setCharSheet, charClasses, isLoading, error, onCampaignClick, hasCampaign, onAcceptSubmission, onRejectSubmission, onAvatarSelected, onCoverSelected, onCreateSheet, submitError, manage },
+  data: { charSheet, setCharSheet, charClasses, isLoading, error, onCampaignClick, hasCampaign, onAcceptSubmission, onRejectSubmission, onAvatarSelected, onCoverSelected, onCreateSheet, submitLabel, submitError, manage },
   sheetMode,
 }: CharacterSheetTemplateProps) {
   if (!charSheet) return <ErrorContainer>Ficha não encontrada</ErrorContainer>;
@@ -236,7 +237,7 @@ function CharacterSheetTemplate({
           <CreateSheetArea>
             {submitError && <SubmitErrorText>{submitError}</SubmitErrorText>}
             {onCreateSheet && (
-              <CreateSheetButton onClick={onCreateSheet}>+ Criar Ficha</CreateSheetButton>
+              <CreateSheetButton onClick={onCreateSheet}>{submitLabel ?? "+ Criar Ficha"}</CreateSheetButton>
             )}
           </CreateSheetArea>
         )}

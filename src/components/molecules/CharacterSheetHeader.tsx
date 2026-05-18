@@ -95,7 +95,10 @@ export default function CharacterSheetHeader({
           </NicknameInputContainer>
 
           <CharacterClass>Classe: </CharacterClass>
-          <CharacterClassSelect onChange={handleClassChange}>
+          <CharacterClassSelect
+            value={charSheet?.characterClass ?? ""}
+            onChange={handleClassChange}
+          >
             <CharacterClassOption value="">
               Selecione uma classe
             </CharacterClassOption>

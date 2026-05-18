@@ -8,6 +8,7 @@ import CharacterSheetTemplate from "../features/sheet/CharacterSheetTemplate";
 import { useCharacterClasses } from "../hooks/useCharacterClasses";
 import { useCharacterSheet } from "../hooks/useCharacterSheet";
 import type { CharacterSheet } from "../types/characterSheet";
+import { validateCharacterSheet } from "../features/sheet/utils/validateCharacterSheet";
 import { characterSheetsService } from "../services/characterSheetsService";
 import { uploadService } from "../services/uploadService";
 
@@ -80,6 +81,11 @@ function EditCharacterSheetPage() {
 
   const handleSave = async () => {
     if (!token || !id || !charSheet || isSubmitting) return;
+    const validationError = validateCharacterSheet(charSheet, charClasses, "edit");
+    if (validationError) {
+      setSubmitError(validationError);
+      return;
+    }
     setSubmitError(null);
     setIsSubmitting(true);
     let resolvedAvatarUrl: string | undefined = avatarBlob ? undefined : charSheet.profile.avatarUrl;
@@ -130,6 +136,7 @@ function EditCharacterSheetPage() {
         onAvatarSelected: handleAvatarSelected,
         onCoverSelected: handleCoverSelected,
         onCreateSheet: handleSave,
+        submitLabel: "Salvar Edição",
         submitError,
       }}
     />
