@@ -12,6 +12,32 @@ import { validateCharacterSheet } from "../features/sheet/utils/validateCharacte
 import { characterSheetsService } from "../services/characterSheetsService";
 import { uploadService } from "../services/uploadService";
 
+function sheetChangedFrom(current: CharacterSheet, original: CharacterSheet): boolean {
+  const snap = (s: CharacterSheet) =>
+    JSON.stringify({
+      characterClass: s.characterClass,
+      abilities: s.abilities,
+      physicalAttributes: s.physicalAttributes,
+      mentalAttributes: s.mentalAttributes,
+      spiritualAttributes: s.spiritualAttributes,
+      physicalSkills: s.physicalSkills,
+      spiritualSkills: s.spiritualSkills,
+      principles: s.principles,
+      commonProficiencies: s.commonProficiencies,
+      jointProficiencies: s.jointProficiencies,
+      profile: {
+        nickname: s.profile.nickname,
+        fullname: s.profile.fullname,
+        alignment: s.profile.alignment,
+        birthday: s.profile.birthday,
+        age: s.profile.age,
+        briefDescription: s.profile.briefDescription,
+        description: s.profile.description,
+      },
+    });
+  return snap(current) !== snap(original);
+}
+
 function EditCharacterSheetPage() {
   const { id } = useParams<{ id: string }>();
   const { token } = useToken();
@@ -84,6 +110,10 @@ function EditCharacterSheetPage() {
     const validationError = validateCharacterSheet(charSheet, charClasses, "edit");
     if (validationError) {
       setSubmitError(validationError);
+      return;
+    }
+    if (!avatarBlob && !coverBlob && existingSheet && !sheetChangedFrom(charSheet, existingSheet)) {
+      navigate(`/charactersheet/${id}`, { replace: true });
       return;
     }
     setSubmitError(null);
