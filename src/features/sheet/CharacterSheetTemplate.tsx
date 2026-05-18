@@ -12,7 +12,7 @@ import NenPrinciplesDiagram from "./NenPrinciplesDiagram";
 import PhysicalSkillsGroup from "./PhysicalSkillsGroup";
 import SpiritualSkillsGroup from "./SpiritualSkillsGroup";
 import ProficienciesList from "./ProficienciesList";
-import SheetCampaignButton from "./SheetCampaignButton";
+import SheetBottomActions from "./SheetBottomActions";
 
 interface Data {
   error: string | null;
@@ -31,6 +31,11 @@ interface Data {
   onCoverSelected?: (blob: Blob | null, url: string | null) => void;
   onCreateSheet?: () => void;
   submitError?: string | null;
+  manage?: {
+    isFree: boolean;
+    onEdit: () => void;
+    onDelete: () => void;
+  };
 }
 
 interface CharacterSheetTemplateProps {
@@ -39,7 +44,7 @@ interface CharacterSheetTemplateProps {
 }
 
 function CharacterSheetTemplate({
-  data: { charSheet, setCharSheet, charClasses, isLoading, error, onCampaignClick, hasCampaign, onAcceptSubmission, onRejectSubmission, onAvatarSelected, onCoverSelected, onCreateSheet, submitError },
+  data: { charSheet, setCharSheet, charClasses, isLoading, error, onCampaignClick, hasCampaign, onAcceptSubmission, onRejectSubmission, onAvatarSelected, onCoverSelected, onCreateSheet, submitError, manage },
   sheetMode,
 }: CharacterSheetTemplateProps) {
   if (!charSheet) return <ErrorContainer>Ficha não encontrada</ErrorContainer>;
@@ -126,7 +131,7 @@ function CharacterSheetTemplate({
         setCharSheet={setCharSheet}
       />
 
-      <MainContent $hasCampaignButton={sheetMode.headerMode === "view" && (!!onCampaignClick || !!onAcceptSubmission || !!onRejectSubmission)}>
+      <MainContent $hasBottomActions={sheetMode.headerMode === "view" && !!(onCampaignClick || manage || onAcceptSubmission || onRejectSubmission)}>
         <GridSection>
           <AttributesSection>
             <SectionTitle>ATRIBUTOS</SectionTitle>
@@ -208,10 +213,11 @@ function CharacterSheetTemplate({
           />
         </ProficienciesSection>
 
-        {sheetMode.headerMode === "view" && onCampaignClick && (
-          <SheetCampaignButton
-            label={hasCampaign ? "Ver Campanha" : "Procurar Campanhas"}
-            onClick={onCampaignClick}
+        {sheetMode.headerMode === "view" && (onCampaignClick || manage) && (
+          <SheetBottomActions
+            onCampaignClick={onCampaignClick}
+            campaignLabel={hasCampaign ? "Ver Campanha" : "Procurar Campanhas"}
+            manage={manage}
           />
         )}
 
@@ -333,10 +339,10 @@ const SheetContainer = styled.div`
 //   color: #9f9f9f;
 // `;
 
-const MainContent = styled.main<{ $hasCampaignButton?: boolean }>`
+const MainContent = styled.main<{ $hasBottomActions?: boolean }>`
   position: relative;
-  padding-bottom: ${({ $hasCampaignButton }) =>
-    $hasCampaignButton ? "135px" : "30px"};
+  padding-bottom: ${({ $hasBottomActions }) =>
+    $hasBottomActions ? "135px" : "30px"};
   background-image: url(${space});
   background-size: cover;
   background-position: center;
@@ -344,8 +350,8 @@ const MainContent = styled.main<{ $hasCampaignButton?: boolean }>`
   background-repeat: no-repeat;
 
   @media (max-width: 609px) {
-    padding-bottom: ${({ $hasCampaignButton }) =>
-      $hasCampaignButton ? "125px" : "20px"};
+    padding-bottom: ${({ $hasBottomActions }) =>
+      $hasBottomActions ? "125px" : "20px"};
   }
 `;
 
