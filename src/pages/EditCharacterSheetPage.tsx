@@ -162,7 +162,7 @@ function EditCharacterSheetPage() {
         existingSheet &&
         !sheetChangedFrom(charSheet, existingSheet)
       ) {
-        navigate(`/charactersheet/${id}`, { replace: true });
+        navigate(-1);
         return;
       }
       setSubmitError(null);
@@ -212,7 +212,7 @@ function EditCharacterSheetPage() {
         queryClient.invalidateQueries({
           queryKey: ["characterSheet", token, id],
         });
-        navigate(`/charactersheet/${id}`, { replace: true });
+        navigate(-1);
       } catch {
         setSubmitError("Erro ao salvar. Tente novamente.");
       } finally {
@@ -226,7 +226,7 @@ function EditCharacterSheetPage() {
     const existingBrief = existingSheet?.profile.briefDescription ?? "";
     const noChange = !avatarBlob && !coverBlob && briefDesc === existingBrief;
     if (noChange) {
-      navigate(`/charactersheet/${id}`, { replace: true });
+      navigate(-1);
       return;
     }
 
@@ -263,7 +263,7 @@ function EditCharacterSheetPage() {
       queryClient.invalidateQueries({
         queryKey: ["characterSheet", token, id],
       });
-      navigate(`/charactersheet/${id}`, { replace: true });
+      navigate(-1);
     } catch {
       setSubmitError("Erro ao salvar. Tente novamente.");
     } finally {

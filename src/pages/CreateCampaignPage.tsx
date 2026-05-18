@@ -41,7 +41,7 @@ export default function CreateCampaignPage() {
     }
     setError(null);
     createCampaign(form, {
-      onSuccess: () => navigate("/campaigns"),
+      onSuccess: () => navigate(-1),
       onError: (err: any) => {
         setError(
           err.response?.data?.message ||

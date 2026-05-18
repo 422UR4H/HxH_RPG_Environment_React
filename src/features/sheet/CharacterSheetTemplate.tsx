@@ -615,7 +615,7 @@ const CreateSheetArea = styled.div`
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  padding-bottom: 16px;
+  /* padding-bottom: 16px; */
 `;
 
 const SubmitErrorText = styled.p`

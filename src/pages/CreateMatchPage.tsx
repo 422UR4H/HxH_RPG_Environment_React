@@ -52,7 +52,7 @@ export default function CreateMatchPage() {
       campaignUuid: campaignId,
     };
     createMatch(matchData, {
-      onSuccess: () => navigate(`/campaigns/${campaignId}`),
+      onSuccess: () => navigate(-1),
       onError: (err: any) => {
         setError(
           err.response?.data?.message ||
