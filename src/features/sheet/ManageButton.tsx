@@ -68,6 +68,7 @@ export default function ManageButton({
 const Wrapper = styled.div`
   position: relative;
   flex-shrink: 0;
+  height: 100%;
 `;
 
 const Button = styled.button<{ $isFloating: boolean; $open: boolean }>`
@@ -75,7 +76,7 @@ const Button = styled.button<{ $isFloating: boolean; $open: boolean }>`
   border: 1px solid ${({ $open }) => ($open ? "#ffa216" : "#555")};
   color: white;
   font-family: "Roboto", sans-serif;
-  font-size: 18px;
+  font-size: min(22px, 4cqi);
   font-weight: 600;
   cursor: pointer;
   display: flex;
@@ -83,6 +84,11 @@ const Button = styled.button<{ $isFloating: boolean; $open: boolean }>`
   gap: 8px;
   white-space: nowrap;
   transition: all 0.2s ease;
+  
+  @media (max-width: 609px) {
+    padding-inline: 5cqi;
+    gap: 15px;
+  }
 
   ${({ $isFloating }) =>
     $isFloating
@@ -90,6 +96,7 @@ const Button = styled.button<{ $isFloating: boolean; $open: boolean }>`
         border-radius: 50px;
         padding: 14px 22px;
         box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        font-size: 3cqi;
         &:hover { transform: translateY(-3px); filter: brightness(1.2); }
       `
       : `

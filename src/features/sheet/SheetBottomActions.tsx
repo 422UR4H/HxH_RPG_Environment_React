@@ -54,7 +54,7 @@ export default function SheetBottomActions({
 
   if (isFloating) {
     return (
-      <>
+      <FloatingWrapper>
         {manage && (
           <FloatingLeft>
             <ManageButton {...manage} isFloating={true} />
@@ -62,11 +62,11 @@ export default function SheetBottomActions({
         )}
         {onCampaignClick && (
           <FloatingRight onClick={onCampaignClick}>
-            <PlusIcon />
+            <CampaignPlusIcon />
             <span>{campaignLabel}</span>
           </FloatingRight>
         )}
-      </>
+      </FloatingWrapper>
     );
   }
 
@@ -77,7 +77,7 @@ export default function SheetBottomActions({
       )}
       {onCampaignClick && (
         <CampaignButton onClick={onCampaignClick}>
-          <PlusIcon />
+          <CampaignPlusIcon />
           <span>{campaignLabel}</span>
         </CampaignButton>
       )}
@@ -85,7 +85,12 @@ export default function SheetBottomActions({
   );
 }
 
+const FloatingWrapper = styled.div`
+  container-type: inline-size;
+`
+
 const AnchoredWrapper = styled.div`
+  container-type: inline-size;
   position: absolute;
   bottom: 22px;
   left: 0;
@@ -94,9 +99,18 @@ const AnchoredWrapper = styled.div`
   width: 100%;
   display: flex;
   align-items: center;
-  padding: 0 3.2%;
-  gap: 10px;
+  padding: 0 30px;
+  gap: 20px;
   box-sizing: border-box;
+
+  @media (max-width: 609px) {
+    padding-inline: 20px;
+    gap: 15px;
+  }
+
+  @media (max-width: 440px) {
+    height: 70px;
+  }
 `;
 
 const CampaignButton = styled.button`
@@ -107,12 +121,12 @@ const CampaignButton = styled.button`
   background: linear-gradient(to bottom, #ffa216 0%, #ffa216 20%, #e60000 100%);
   color: black;
   font-family: "Roboto", sans-serif;
-  font-size: 26px;
+  font-size: min(26px, 5cqi);
   font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 15px;
+  gap: min(15px, 2cqi);
   cursor: pointer;
   transition: all 0.3s ease;
   &:hover {
@@ -124,25 +138,31 @@ const CampaignButton = styled.button`
   }
 `;
 
+const CampaignPlusIcon = styled(PlusIcon)`
+  && {
+    font-size: min(36px, 6cqi);
+  }
+`;
+
 const FloatingLeft = styled.div`
   position: fixed;
   bottom: 20px;
-  left: 60px;
+  left: min(60px, 5cqi);
   z-index: 10;
 `;
 
 const FloatingRight = styled.button`
   position: fixed;
   bottom: 20px;
-  right: 60px;
+  right: min(60px, 5cqi);
   z-index: 10;
   border: none;
   border-radius: 50px;
-  padding: 15px 30px 15px 26px;
+  padding: min(15px, 2.4cqi) min(30px, 5cqi) min(15px, 2.4cqi) min(26px, 5cqi);
   background: linear-gradient(to bottom, #ffa216 0%, #ffa216 20%, #e60000 100%);
   color: black;
   font-family: "Roboto", sans-serif;
-  font-size: 26px;
+  font-size: 4cqi;
   font-weight: 600;
   display: flex;
   align-items: center;

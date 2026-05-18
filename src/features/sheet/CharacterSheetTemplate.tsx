@@ -351,7 +351,12 @@ const MainContent = styled.main<{ $hasBottomActions?: boolean }>`
 
   @media (max-width: 609px) {
     padding-bottom: ${({ $hasBottomActions }) =>
-      $hasBottomActions ? "125px" : "20px"};
+      $hasBottomActions ? "130px" : "20px"};
+  }
+
+  @media (max-width: 440px) {
+    padding-bottom: ${({ $hasBottomActions }) =>
+      $hasBottomActions ? "110px" : "20px"};
   }
 `;
 
