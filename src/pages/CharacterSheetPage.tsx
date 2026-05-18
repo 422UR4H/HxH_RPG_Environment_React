@@ -6,6 +6,7 @@ import type { SheetMode } from "../features/sheet/types/sheetMode";
 import { useCharacterSheet } from "../hooks/useCharacterSheet";
 import { useAcceptSheetSubmission } from "../hooks/useAcceptSheetSubmission";
 import { useRejectSheetSubmission } from "../hooks/useRejectSheetSubmission";
+import { useDeleteCharacterSheet } from "../hooks/useDeleteCharacterSheet";
 
 function CharacterSheetPage() {
   const { id } = useParams<{ id: string }>();
@@ -28,12 +29,14 @@ function CharacterSheetPage() {
   const { data: charSheet, isLoading, error } = useCharacterSheet(token, id);
   const { mutate: acceptSubmission, isPending: accepting } = useAcceptSheetSubmission(token, campaignId);
   const { mutate: rejectSubmission, isPending: rejecting } = useRejectSheetSubmission(token, campaignId);
+  const { mutate: deleteSheet } = useDeleteCharacterSheet(token);
 
   if (!token || !id) {
     return <Navigate to="/" replace />;
   }
 
   const isOwner = !!charSheet && !!user && charSheet.playerUuid === user.uuid;
+  const isFree = isOwner && !!charSheet && !charSheet.campaignUuid && !charSheet.submission;
 
   const handleCampaignClick = () => {
     if (charSheet?.campaignUuid) {
@@ -53,6 +56,21 @@ function CharacterSheetPage() {
     rejectSubmission(id, { onSuccess: () => campaignId && navigate(`/campaigns/${campaignId}`) });
   };
 
+  const handleEdit = () => {
+    if (!charSheet?.uuid) return;
+    navigate(isFree
+      ? `/charactersheet/${charSheet.uuid}/edit`
+      : `/charactersheet/${charSheet.uuid}/edit/profile`
+    );
+  };
+
+  const handleDelete = () => {
+    if (!charSheet?.uuid) return;
+    deleteSheet(charSheet.uuid, {
+      onSuccess: () => navigate("/", { replace: true }),
+    });
+  };
+
   return (
     <CharacterSheetTemplate
       sheetMode={sheetMode}
@@ -64,6 +82,7 @@ function CharacterSheetPage() {
         hasCampaign: !!charSheet?.campaignUuid,
         onAcceptSubmission: !isOwner && isPending && !accepting ? handleAccept : undefined,
         onRejectSubmission: !isOwner && isPending && !rejecting ? handleReject : undefined,
+        manage: isOwner ? { isFree, onEdit: handleEdit, onDelete: handleDelete } : undefined,
       }}
     />
   );
