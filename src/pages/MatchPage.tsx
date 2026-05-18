@@ -17,6 +17,7 @@ import AdaptiveActionButton from "../features/campaign/AdaptativeActionButton";
 import ExpandableText from "../components/molecules/ExpandableText";
 import PageHeader from "../components/atoms/PageHeader";
 import { LoadingContainer, ErrorContainer } from "../components/atoms/PageStates";
+import ConfirmDialog from "../components/molecules/ConfirmDialog";
 
 type MatchStatus = "scheduled" | "ongoing" | "ended";
 
@@ -52,6 +53,7 @@ export default function MatchPage() {
 
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
   const [showLobbyConfirm, setShowLobbyConfirm] = useState(false);
+  const [showEnrollConfirm, setShowEnrollConfirm] = useState(false);
   const [descriptionSignal, setDescriptionSignal] = useState(false);
   const mainContentRef = useRef<HTMLDivElement>(null);
 
@@ -246,7 +248,7 @@ export default function MatchPage() {
               <AdaptiveActionButton
                 label={enrollPending ? "Inscrevendo..." : "Inscrever-se"}
                 type="match"
-                onClick={enrollPending ? () => {} : handleEnroll}
+                onClick={enrollPending ? () => {} : () => setShowEnrollConfirm(true)}
                 containerRef={mainContentRef}
                 contentChangeSignal={descriptionSignal}
               />
@@ -257,7 +259,7 @@ export default function MatchPage() {
 
       {showLobbyConfirm && (
         <ConfirmOverlay onClick={() => setShowLobbyConfirm(false)}>
-          <ConfirmDialog onClick={(e) => e.stopPropagation()}>
+          <StyledLobbyDialog onClick={(e) => e.stopPropagation()}>
             <ConfirmText>
               Tem certeza que deseja abrir o lobby desta partida? Os jogadores
               aceitos poderão entrar.
@@ -270,8 +272,20 @@ export default function MatchPage() {
                 Abrir Lobby
               </DialogLobbyButton>
             </ConfirmButtons>
-          </ConfirmDialog>
+          </StyledLobbyDialog>
         </ConfirmOverlay>
+      )}
+
+      {showEnrollConfirm && (
+        <ConfirmDialog
+          message="Tem certeza que deseja se inscrever nesta partida? Esta ação não pode ser desfeita."
+          confirmLabel="Inscrever-se"
+          onConfirm={() => {
+            setShowEnrollConfirm(false);
+            handleEnroll();
+          }}
+          onCancel={() => setShowEnrollConfirm(false)}
+        />
       )}
     </MatchContainer>
   );
@@ -451,7 +465,7 @@ const ConfirmOverlay = styled.div`
   z-index: 100;
 `;
 
-const ConfirmDialog = styled.div`
+const StyledLobbyDialog = styled.div`
   background-color: #2d2215;
   border-radius: 12px;
   padding: 30px;
