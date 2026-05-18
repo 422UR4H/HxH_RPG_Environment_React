@@ -14,6 +14,7 @@ import { getSortedCharacters } from "../features/campaign/utils/characterUtils";
 import PageHeader from "../components/atoms/PageHeader";
 import { LoadingContainer, ErrorContainer } from "../components/atoms/PageStates";
 import ExpandableText from "../components/molecules/ExpandableText";
+import ConfirmDialog from "../components/molecules/ConfirmDialog";
 import { useState } from "react";
 
 export default function CampaignPage() {
@@ -25,6 +26,7 @@ export default function CampaignPage() {
   const sheetId = (location.state as { sheetId?: string } | null)?.sheetId;
 
   const [descriptionSignal, setDescriptionSignal] = useState(false);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
 
   const sidebarRef = useRef<HTMLDivElement>(null);
   const mainContentRef = useRef<HTMLDivElement>(null);
@@ -159,7 +161,7 @@ export default function CampaignPage() {
               <AdaptiveActionButton
                 label={submitPending ? "Submetendo..." : "Submeter Ficha"}
                 type="match"
-                onClick={submitPending ? () => {} : handleSubmitSheet}
+                onClick={submitPending ? () => {} : () => setShowSubmitConfirm(true)}
                 containerRef={mainContentRef}
                 contentChangeSignal={descriptionSignal}
               />
@@ -167,6 +169,17 @@ export default function CampaignPage() {
           </MatchesList>
         </MainContentContainer>
       </PageBody>
+      {showSubmitConfirm && (
+        <ConfirmDialog
+          message="Tem certeza que deseja submeter esta ficha para a campanha? Esta ação não pode ser desfeita."
+          confirmLabel="Submeter"
+          onConfirm={() => {
+            setShowSubmitConfirm(false);
+            handleSubmitSheet();
+          }}
+          onCancel={() => setShowSubmitConfirm(false)}
+        />
+      )}
     </CampaignContainer>
   );
 }
