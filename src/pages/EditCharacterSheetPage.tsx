@@ -49,7 +49,7 @@ function EditCharacterSheetPage() {
   }
 
   const sheetMode: SheetMode = {
-    headerMode: "edit",
+    headerMode: "create",
     profileMode: "create",
     diagramsMode: "create",
     proficiencyMode: "create",
