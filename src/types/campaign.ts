@@ -32,6 +32,7 @@ export interface CampaignBase {
 export interface CampaignMaster extends CampaignBase {
   characterSheets: CharacterPrivateSummary[];
   pendingSheets: CharacterPrivateSummary[];
+  myPendingSheet?: CharacterPrivateSummary;
 }
 
 export interface CampaignPlayer extends CampaignBase {

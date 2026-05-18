@@ -12,6 +12,7 @@ interface CharacterSidebarItemProps {
     stamina?: StatusBar;
   };
   isMaster: boolean;
+  isOwn?: boolean;
   hasLeft?: boolean;
   onClick: () => void;
 }
@@ -19,6 +20,7 @@ interface CharacterSidebarItemProps {
 export default function CharacterSidebarItem({
   character,
   isMaster,
+  isOwn,
   hasLeft,
   onClick,
 }: CharacterSidebarItemProps) {
@@ -42,13 +44,15 @@ export default function CharacterSidebarItem({
     };
   }
 
+  const isClickable = isMaster || !!isOwn;
+
   return (
     <ItemContainer
       $isDead={isDead}
       $isPending={isPending}
       $isNpc={isNpc}
-      $clickable={isMaster}
-      onClick={isMaster ? onClick : undefined}
+      $clickable={isClickable}
+      onClick={isClickable ? onClick : undefined}
     >
       <CharacterSheetHeader
         mode="card"

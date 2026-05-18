@@ -49,7 +49,8 @@ export default function CampaignPage() {
 
   let sortedSheets: (CharacterPrivateSummary & { isPending?: boolean })[] = [];
   if (campaign) {
-    const pendingSheets = isMaster ? campaign.pendingSheets : [];
+    const ownPending = !isMaster && campaign.myPendingSheet ? [campaign.myPendingSheet] : [];
+    const pendingSheets = isMaster ? campaign.pendingSheets : ownPending;
     sortedSheets = getSortedCharacters(campaign.characterSheets, pendingSheets);
   }
 
@@ -80,6 +81,7 @@ export default function CampaignPage() {
                 key={character.uuid}
                 character={character}
                 isMaster={!!isMaster}
+                isOwn={character.playerUuid === user?.uuid}
                 onClick={() =>
                   navigate(`/charactersheet/${character.uuid}`, {
                     state: { isPending: !!character.isPending, campaignId: id },
