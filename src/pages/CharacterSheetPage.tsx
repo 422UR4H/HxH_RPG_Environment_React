@@ -45,7 +45,7 @@ function CharacterSheetPage() {
     if (activeCampaignUuid) {
       navigate(`/campaigns/${activeCampaignUuid}`);
     } else {
-      navigate("/campaigns/public", { state: { sheetId: id } });
+      navigate("/campaigns/public", { state: { sheetId: id, sheetNick: charSheet?.profile.nickname } });
     }
   };
 

@@ -22,10 +22,12 @@ export default function CampaignPage() {
   const { user } = useUser();
   const navigate = useNavigate();
   const location = useLocation();
-  const sheetId = (location.state as { sheetId?: string } | null)?.sheetId;
+  const sheetId = (location.state as { sheetId?: string; sheetNick?: string } | null)?.sheetId;
+  const sheetNick = (location.state as { sheetId?: string; sheetNick?: string } | null)?.sheetNick;
 
   const [descriptionSignal, setDescriptionSignal] = useState(false);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  const [nickConflictError, setNickConflictError] = useState(false);
 
   const sidebarRef = useRef<HTMLDivElement>(null);
   const mainContentRef = useRef<HTMLDivElement>(null);
@@ -46,6 +48,20 @@ export default function CampaignPage() {
   const handleSubmitSheet = () => {
     if (!sheetId || !campaign) return;
     submitSheet({ sheetUuid: sheetId, campaignUuid: campaign.uuid });
+  };
+
+  const handleRequestSubmit = () => {
+    if (sheetNick && campaign) {
+      const nickTaken = campaign.characterSheets.some(
+        (s) => s.nickName === sheetNick
+      );
+      if (nickTaken) {
+        setNickConflictError(true);
+        return;
+      }
+    }
+    setNickConflictError(false);
+    setShowSubmitConfirm(true);
   };
 
   let sortedSheets: (CharacterPrivateSummary & { isPending?: boolean })[] = [];
@@ -157,13 +173,20 @@ export default function CampaignPage() {
             )}
 
             {!isMaster && !submitted && sheetId && (
-              <AdaptiveActionButton
-                label={submitPending ? "Submetendo..." : "Submeter Ficha"}
-                type="match"
-                onClick={submitPending ? () => {} : () => setShowSubmitConfirm(true)}
-                containerRef={mainContentRef}
-                contentChangeSignal={descriptionSignal}
-              />
+              <>
+                <AdaptiveActionButton
+                  label={submitPending ? "Submetendo..." : "Submeter Ficha"}
+                  type="match"
+                  onClick={submitPending ? () => {} : handleRequestSubmit}
+                  containerRef={mainContentRef}
+                  contentChangeSignal={descriptionSignal}
+                />
+                {nickConflictError && (
+                  <NickConflictMessage>
+                    Já existe um personagem com o nick &quot;{sheetNick}&quot; nesta campanha. Escolha outro nick antes de submeter.
+                  </NickConflictMessage>
+                )}
+              </>
             )}
           </MatchesList>
         </MainContentContainer>
@@ -280,4 +303,12 @@ const MatchesList = styled.div`
   gap: 20px;
   position: relative;
   padding-bottom: 112px;
+`;
+
+const NickConflictMessage = styled.p`
+  font-family: "Roboto", sans-serif;
+  font-size: 14px;
+  color: #ff6b6b;
+  margin: 0;
+  text-align: center;
 `;

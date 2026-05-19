@@ -11,7 +11,8 @@ import styled from "styled-components";
 function PublicCampaignsPage() {
   const { token } = useToken();
   const location = useLocation();
-  const sheetId = (location.state as { sheetId?: string } | null)?.sheetId;
+  const sheetId = (location.state as { sheetId?: string; sheetNick?: string } | null)?.sheetId;
+  const sheetNick = (location.state as { sheetId?: string; sheetNick?: string } | null)?.sheetNick;
 
   const { data: campaigns, isLoading, error } = usePublicCampaigns(token);
 
@@ -49,7 +50,7 @@ function PublicCampaignsPage() {
                 campaign={campaign}
                 to={`/campaigns/${campaign.uuid}`}
                 nextGameScheduledAt={campaign.nextGameScheduledAt}
-                state={sheetId ? { sheetId } : undefined}
+                state={sheetId ? { sheetId, sheetNick } : undefined}
               />
             ))}
           </>
