@@ -1,9 +1,33 @@
 import styled from "styled-components";
-import { type Skill } from "../../types/characterSheet.ts";
+import type { Skill } from "../../types/characterSheet.ts";
+import ExpBar from "../../components/ions/ExpBar.tsx";
+
+interface SkillCardProps {
+  name: string;
+  value: number;
+  level: number;
+  currExp?: number;
+  nextLvlBaseExp?: number;
+}
+
+function SkillCard({ name, value, level, currExp, nextLvlBaseExp }: SkillCardProps) {
+  return (
+    <SkillItem>
+      <SkillName>{name.charAt(0).toUpperCase() + name.slice(1)}</SkillName>
+      <SkillNumbers>
+        <SkillValue>{value}</SkillValue>
+        <SkillLevel>Lv {level}</SkillLevel>
+      </SkillNumbers>
+      <ExpBar currExp={currExp ?? 0} maxExp={nextLvlBaseExp ?? 1} />
+    </SkillItem>
+  );
+}
 
 interface AttributeSkillGroupProps {
   attributeName: string;
   attributePower?: number;
+  attributeCurrExp?: number;
+  attributeNextLvlBaseExp?: number;
   skillsSubList: string[];
   skillsList?: Record<string, Skill>;
 }
@@ -11,6 +35,8 @@ interface AttributeSkillGroupProps {
 export default function AttributeSkillGroup({
   attributeName,
   attributePower = 0,
+  attributeCurrExp,
+  attributeNextLvlBaseExp,
   skillsSubList,
   skillsList,
 }: AttributeSkillGroupProps) {
@@ -18,19 +44,19 @@ export default function AttributeSkillGroup({
     <AttributeSkillContainer>
       <AttributeSectionTitle>
         <AttributeTitle>{attributeName}</AttributeTitle>
-        <AttributePower>{attributePower}</AttributePower>
+        <AttributePower>Lv {attributePower}</AttributePower>
       </AttributeSectionTitle>
+      <ExpBar currExp={attributeCurrExp ?? 0} maxExp={attributeNextLvlBaseExp ?? 1} />
       <SkillsSubList>
         {skillsSubList.map((skName) => (
-          <SkillItem key={skName}>
-            <SkillName>
-              {skName.charAt(0).toUpperCase() + skName.slice(1)}
-            </SkillName>
-            <SkillNumbers>
-              <SkillValue>{skillsList?.[skName]?.value || 0}</SkillValue>
-              <SkillLevel>Lv {skillsList?.[skName]?.level || 0}</SkillLevel>
-            </SkillNumbers>
-          </SkillItem>
+          <SkillCard
+            key={skName}
+            name={skName}
+            value={skillsList?.[skName]?.value ?? 0}
+            level={skillsList?.[skName]?.level ?? 0}
+            currExp={skillsList?.[skName]?.currExp}
+            nextLvlBaseExp={skillsList?.[skName]?.nextLvlBaseExp}
+          />
         ))}
       </SkillsSubList>
     </AttributeSkillContainer>
@@ -78,9 +104,10 @@ const SkillsSubList = styled.div`
 const SkillItem = styled.div`
   background-color: #444;
   border-radius: 6px;
-  padding: 2.8cqi 2.6cqi 2cqi 2.6cqi;
+  padding: 2.8cqi 2.6cqi 0 2.6cqi;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 `;
 
 const SkillName = styled.div`
@@ -95,6 +122,7 @@ const SkillNumbers = styled.div`
   justify-content: space-between;
   align-items: flex-end;
   padding: 0 2px;
+  margin-bottom: 2cqi;
 `;
 
 const SkillValue = styled.div`
