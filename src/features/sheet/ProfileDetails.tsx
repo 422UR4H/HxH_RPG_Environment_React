@@ -11,7 +11,7 @@ export default function ProfileDetails({
   profile,
   onBriefDescriptionChange,
 }: ProfileDetailsProps) {
-  const { fullname, briefDescription, birthday, alignment } = profile;
+  const { fullname, briefDescription, birthday, age, alignment } = profile;
 
   return (
     <ProfileContainer>
@@ -30,15 +30,22 @@ export default function ProfileDetails({
 
       <ProfileContent>
         <LeftDetails>
-          <DetailItem>
-            <DetailLabel>Data de Nascimento:</DetailLabel>
-            <DetailValue>{birthday?.split("T")[0]}</DetailValue>
-            {/* Idade do personagem aqui (ao lado da data) */}
-          </DetailItem>
-          <DetailItem>
-            <DetailLabel>Alinhamento:</DetailLabel>
-            <DetailValue>{alignment}</DetailValue>
-          </DetailItem>
+          <BirthdayAgeRow>
+            <DetailItem>
+              <DetailLabel>Data de Nascimento:</DetailLabel>
+              <DetailValue>{birthday?.split("T")[0]}</DetailValue>
+            </DetailItem>
+            <DetailItem>
+              <DetailLabel>Idade:</DetailLabel>
+              <DetailValue>{age}</DetailValue>
+            </DetailItem>
+          </BirthdayAgeRow>
+          {alignment && (
+            <DetailItem>
+              <DetailLabel>Alinhamento:</DetailLabel>
+              <DetailValue>{alignment}</DetailValue>
+            </DetailItem>
+          )}
         </LeftDetails>
 
         <RightDetails>
@@ -130,6 +137,11 @@ const DetailValue = styled.span`
   @media (max-width: 609px) {
     font-size: 4.6cqi;
   }
+`;
+
+const BirthdayAgeRow = styled.div`
+  display: flex;
+  gap: 4cqi;
 `;
 
 const RightDetails = styled.div`
