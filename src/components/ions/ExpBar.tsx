@@ -5,9 +5,10 @@ interface ExpBarProps {
   currExp: number;
   maxExp: number;
   color?: string;
+  tooltipAlign?: "center" | "right";
 }
 
-export default function ExpBar({ currExp, maxExp, color = "#ef4444" }: ExpBarProps) {
+export default function ExpBar({ currExp, maxExp, color = "#ef4444", tooltipAlign = "center" }: ExpBarProps) {
   const [tooltipVisible, setTooltipVisible] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -49,7 +50,7 @@ export default function ExpBar({ currExp, maxExp, color = "#ef4444" }: ExpBarPro
       onTouchEnd={cancelLongPress}
       onTouchMove={cancelLongPress}
     >
-      {tooltipVisible && <Tooltip>{currExp}/{maxExp}</Tooltip>}
+      {tooltipVisible && <Tooltip $align={tooltipAlign}>{currExp}/{maxExp}</Tooltip>}
       <BarTrack
         role="progressbar"
         aria-valuenow={currExp}
@@ -74,17 +75,18 @@ const BarContainer = styled.div`
   }
 `;
 
-const Tooltip = styled.div`
+const Tooltip = styled.div<{ $align: "center" | "right" }>`
   position: absolute;
   bottom: calc(100% + 4px);
-  left: 50%;
-  transform: translateX(-50%);
+  ${({ $align }) =>
+    $align === "right"
+      ? "right: 0;"
+      : "left: 50%; transform: translateX(-50%);"}
   background: #222;
   color: white;
   font-family: "Roboto", sans-serif;
   font-size: 5cqi;
   font-weight: 600;
-  /* padding: 2px 8px; */
   padding: 1.8cqi 3cqi;
   border-radius: 4px;
   white-space: nowrap;

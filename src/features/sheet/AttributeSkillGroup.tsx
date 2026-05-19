@@ -48,7 +48,7 @@ export default function AttributeSkillGroup({
         <AttributeTitle>{attributeName}</AttributeTitle>
         <AttributePower>Lv {attributePower}</AttributePower>
       </AttributeSectionTitle>
-      <ExpBar currExp={attributeCurrExp ?? 0} maxExp={attributeNextLvlBaseExp ?? 1} />
+      <ExpBar currExp={attributeCurrExp ?? 0} maxExp={attributeNextLvlBaseExp ?? 1} tooltipAlign="right" />
       <SkillsSubList>
         {skillsSubList.map((skName) => (
           <SkillCard
