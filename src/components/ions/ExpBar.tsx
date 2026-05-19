@@ -65,6 +65,8 @@ export default function ExpBar({ currExp, maxExp, color = "#ef4444" }: ExpBarPro
 const BarContainer = styled.div`
   position: relative;
   width: 100%;
+  padding-top: 10px;
+  cursor: pointer;
 `;
 
 const Tooltip = styled.div`
@@ -75,9 +77,10 @@ const Tooltip = styled.div`
   background: #222;
   color: white;
   font-family: "Roboto", sans-serif;
-  font-size: 12px;
+  font-size: 5cqi;
   font-weight: 600;
-  padding: 2px 8px;
+  /* padding: 2px 8px; */
+  padding: 1.8cqi 3cqi;
   border-radius: 4px;
   white-space: nowrap;
   pointer-events: none;
