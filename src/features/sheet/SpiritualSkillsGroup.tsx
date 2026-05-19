@@ -8,15 +8,15 @@ interface SpiritualSkillsGroupProps {
   attributes?: Record<string, Attribute>;
   skills?: Record<string, Skill>;
 }
-export default function SpiritualSkillsGroup({
-  attributes,
-  skills,
-}: SpiritualSkillsGroupProps) {
+
+export default function SpiritualSkillsGroup({ attributes, skills }: SpiritualSkillsGroupProps) {
   return (
     <SkillsGroupContainer>
       <AttributeSkillGroup
-        attributeName={"Spirit"}
+        attributeName="Spirit"
         attributePower={attributes?.["spirit"]?.power}
+        attributeCurrExp={attributes?.["spirit"]?.currExp}
+        attributeNextLvlBaseExp={attributes?.["spirit"]?.nextLvlBaseExp}
         skillsSubList={["focus", "willPower", "selfKnowledge", "coa", "mop", "aop"]}
         skillsList={skills}
       />
