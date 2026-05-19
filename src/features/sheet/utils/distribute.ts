@@ -29,11 +29,14 @@ export function distributeAttributes(
   const distributed: Record<string, Attribute> = {};
 
   baseAttributes.forEach((attrName) => {
+    const src = charClass.attributes[attrName];
     distributed[attrName] = {
-      exp: charClass.attributes[attrName]?.exp || 0,
-      level: charClass.attributes[attrName]?.level || 0,
-      power: charClass.attributes[attrName]?.power || 0,
+      exp: src?.exp || 0,
+      level: src?.level || 0,
+      power: src?.power || 0,
       points: 0,
+      currExp: src?.currExp,
+      nextLvlBaseExp: src?.nextLvlBaseExp,
     };
   });
   return distributed;
@@ -47,10 +50,13 @@ export function distributeSkills(
   const distributed: Record<string, Skill> = {};
 
   baseSkills.forEach((skillName) => {
+    const src = charClass.skills[skillName];
     distributed[skillName] = {
-      exp: charClass.skills[skillName]?.exp || 0,
-      level: charClass.skills[skillName]?.level || 0,
-      value: charClass.skills[skillName]?.value || 0,
+      exp: src?.exp || 0,
+      level: src?.level || 0,
+      value: src?.value || 0,
+      currExp: src?.currExp,
+      nextLvlBaseExp: src?.nextLvlBaseExp,
     };
   });
   return distributed;
@@ -63,6 +69,8 @@ export function distributeProficiencies(charClass: CharacterClass) {
     distributed[profName] = {
       exp: profData.exp || 0,
       level: profData.level || 0,
+      currExp: profData.currExp,
+      nextLvlBaseExp: profData.nextLvlBaseExp,
     };
   });
   return distributed;
@@ -76,6 +84,8 @@ export function distributeJointProficiencies(charClass: CharacterClass) {
       exp: prof.exp || 0,
       level: prof.level || 0,
       name: prof.name || "",
+      currExp: prof.currExp,
+      nextLvlBaseExp: prof.nextLvlBaseExp,
     });
   });
   return distributed;

@@ -80,7 +80,7 @@ const Tooltip = styled.div<{ $align: "center" | "right" }>`
   bottom: calc(100% + 4px);
   ${({ $align }) =>
     $align === "right"
-      ? "right: 0;"
+      ? "right: 1cqi;"
       : "left: 50%; transform: translateX(-50%);"}
   background: #222;
   color: white;
