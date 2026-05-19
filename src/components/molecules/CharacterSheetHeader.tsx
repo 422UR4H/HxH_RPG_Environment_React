@@ -290,7 +290,7 @@ const PlusIcon = styled.img`
 
 const NicknameOverlay = styled.div`
   position: absolute;
-  bottom: calc(8cqi + 14px);
+  bottom: calc(9.3cqi + 20px);
   left: 30cqi;
 `;
 

@@ -9,13 +9,35 @@ export default function CharacterExpBar({ currExp, maxExp }: CharacterExpBarProp
   const percentage = maxExp > 0 ? Math.min((currExp / maxExp) * 100, 100) : 0;
 
   return (
-    <BarBorder>
-      <BarBackground>
-        <BarFill $percentage={percentage} />
-      </BarBackground>
-    </BarBorder>
+    <Container>
+      {maxExp > 0 && <ExpLabel>{currExp}/{maxExp}</ExpLabel>}
+      <BarBorder>
+        <BarBackground>
+          <BarFill $percentage={percentage} />
+        </BarBackground>
+      </BarBorder>
+    </Container>
   );
 }
+
+const Container = styled.div`
+  position: relative;
+  width: 100%;
+`;
+
+const ExpLabel = styled.span`
+  position: absolute;
+  bottom: calc(100% + 3px);
+  right: 1cqi;
+  color: white;
+  font-family: "Roboto", sans-serif;
+  font-size: 4cqi;
+  font-weight: 600;
+  text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.9);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 10;
+`;
 
 const BarBorder = styled.div`
   width: 100%;

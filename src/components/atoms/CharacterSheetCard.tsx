@@ -32,6 +32,11 @@ export default function CharacterSheetCard({
     health: character.health,
     stamina: character.stamina,
   };
+  charSheet.characterExp = {
+    ...charSheet.characterExp,
+    currExp: character.currExp,
+    nextLvlBaseExp: character.nextLvlBaseExp,
+  };
 
   return (
     <CardContainer to={to}>

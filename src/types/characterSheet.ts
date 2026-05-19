@@ -15,6 +15,8 @@ export interface CharacterSheetSummary {
   currHexValue: number | null;
   level: number;
   points: number;
+  currExp: number;
+  nextLvlBaseExp: number;
   talentLvl: number;
   physicalsLvl: number;
   mentalsLvl: number;
