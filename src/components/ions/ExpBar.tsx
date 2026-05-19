@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import styled from "styled-components";
 
 interface ExpBarProps {
@@ -10,6 +10,12 @@ interface ExpBarProps {
 export default function ExpBar({ currExp, maxExp, color = "#ef4444" }: ExpBarProps) {
   const [tooltipVisible, setTooltipVisible] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current !== null) clearTimeout(timerRef.current);
+    };
+  }, []);
 
   const showTooltip = () => {
     if (currExp > 0) setTooltipVisible(true);
