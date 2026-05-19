@@ -1,6 +1,5 @@
 import { useRef, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import axios from "axios";
 import useToken from "../hooks/useToken";
 import useUser from "../hooks/useUser";
 import { useCampaignDetails } from "../hooks/useCampaignDetails";
@@ -16,6 +15,7 @@ import PageHeader from "../components/atoms/PageHeader";
 import { LoadingContainer, ErrorContainer } from "../components/atoms/PageStates";
 import ExpandableText from "../components/molecules/ExpandableText";
 import ConfirmDialog from "../components/molecules/ConfirmDialog";
+import { isApiError } from "../services/httpClient";
 
 export default function CampaignPage() {
   const { id } = useParams<{ id: string }>();
@@ -191,7 +191,7 @@ export default function CampaignPage() {
                 )}
                 {submitFailed && !nickConflictError && (
                   <NickConflictMessage>
-                    {axios.isAxiosError(submitError) && submitError.response?.status === 409
+                    {isApiError(submitError, 409)
                       ? `Já existe um personagem com o nick "${sheetNick}" nesta campanha. Escolha outro nick antes de submeter.`
                       : "Erro ao submeter ficha. Tente novamente."}
                   </NickConflictMessage>

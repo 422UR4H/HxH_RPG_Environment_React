@@ -7,6 +7,10 @@ export const httpClient = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
+export function isApiError(error: unknown, status: number): boolean {
+  return axios.isAxiosError(error) && error.response?.status === status;
+}
+
 // Interceptor for global error handling
 httpClient.interceptors.response.use(
   (response) => response,
