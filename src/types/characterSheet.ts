@@ -103,6 +103,8 @@ export interface Ability {
 
 export interface Attribute {
   exp?: number;
+  currExp?: number;
+  nextLvlBaseExp?: number;
   level: number;
   points: number;
   value?: number;
@@ -111,17 +113,23 @@ export interface Attribute {
 
 export interface Skill {
   exp?: number;
+  currExp?: number;
+  nextLvlBaseExp?: number;
   level: number;
   value: number;
 }
 
 export interface Proficiency {
   exp?: number;
+  currExp?: number;
+  nextLvlBaseExp?: number;
   level: number;
 }
 
 export interface JointProficiency {
   exp?: number;
+  currExp?: number;
+  nextLvlBaseExp?: number;
   level: number;
   name: string;
 }
