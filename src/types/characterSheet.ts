@@ -167,6 +167,8 @@ export interface CharacterPrivateSummary extends CharacterBaseSummary {
   currHexValue?: number;
   level: number;
   points: number;
+  currExp: number;
+  nextLvlBaseExp: number;
   talentLvl: number;
   physicalsLvl: number;
   mentalsLvl: number;

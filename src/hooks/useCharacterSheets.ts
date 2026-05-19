@@ -8,5 +8,6 @@ export function useCharacterSheets(token: string | null) {
     queryFn: () => characterSheetsService.listCharacterSheets(token!),
     enabled: !!token,
     retry: 1,
+    staleTime: 0,
   });
 }

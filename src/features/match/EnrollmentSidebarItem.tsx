@@ -38,6 +38,13 @@ export default function EnrollmentSidebarItem({
       stamina: priv.stamina,
     };
   }
+  if (priv?.currExp !== undefined && priv?.nextLvlBaseExp !== undefined) {
+    charSheet.characterExp = {
+      ...charSheet.characterExp,
+      currExp: priv.currExp,
+      nextLvlBaseExp: priv.nextLvlBaseExp,
+    };
+  }
 
   return (
     <ItemContainer $clickable={isMaster} onClick={isMaster ? onClick : undefined}>
