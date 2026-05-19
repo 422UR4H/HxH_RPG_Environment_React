@@ -65,8 +65,13 @@ export default function ExpBar({ currExp, maxExp, color = "#ef4444" }: ExpBarPro
 const BarContainer = styled.div`
   position: relative;
   width: 100%;
-  padding-top: 10px;
   cursor: pointer;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -10px 0 0 0;
+  }
 `;
 
 const Tooltip = styled.div`
