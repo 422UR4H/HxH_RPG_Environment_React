@@ -7,7 +7,6 @@ interface ProgressBarProps {
   // label?: string;
   color: string;
   backgroundColor?: string;
-  height?: string;
 }
 
 export default function ProgressBar({
@@ -17,7 +16,6 @@ export default function ProgressBar({
   // label = "",
   color,
   backgroundColor = "#444",
-  height,
 }: ProgressBarProps) {
   const percentage = Math.max(((current - min) / (max - min)) * 100, 0);
 
@@ -28,8 +26,8 @@ export default function ProgressBar({
           {label}: {current}/{max}
         </Label>
       )} */}
-      <BarBackground backgroundColor={backgroundColor} height={height}>
-        <BarFill percentage={percentage} color={color} height={height}>
+      <BarBackground backgroundColor={backgroundColor}>
+        <BarFill percentage={percentage} color={color}>
           <ValuesInside>
             {current}/{max}
           </ValuesInside>
@@ -44,7 +42,7 @@ const ProgressBarContainer = styled.div`
   width: 100%;
   border: 3px solid black;
 
-  @media(max-width: 609px) {
+  @media (max-width: 609px) {
     border-width: 0.6cqi;
   }
 `;
@@ -59,10 +57,8 @@ const ProgressBarContainer = styled.div`
 
 const BarBackground = styled.div<{
   backgroundColor: string;
-  height?: string;
 }>`
   width: 100%;
-  height: ${({ height }) => height || "3.8cqi"};
   background-color: ${({ backgroundColor }) => backgroundColor};
   /* border-radius: 4px; */
   overflow: hidden;
@@ -72,10 +68,8 @@ const BarBackground = styled.div<{
 const BarFill = styled.div<{
   percentage: number;
   color: string;
-  height?: string;
 }>`
   width: ${({ percentage }) => percentage}%;
-  height: ${({ height }) => height || "3.8cqi"};
   background-color: ${({ color }) => color};
   transition: width 0.3s ease;
   position: relative;
