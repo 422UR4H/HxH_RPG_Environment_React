@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
+import axios from "axios";
 import useToken from "../hooks/useToken";
 import useUser from "../hooks/useUser";
 import { useCampaignDetails } from "../hooks/useCampaignDetails";
@@ -37,6 +38,8 @@ export default function CampaignPage() {
     mutate: submitSheet,
     isPending: submitPending,
     isSuccess: submitted,
+    isError: submitFailed,
+    error: submitError,
   } = useSubmitCharacterSheet(token, id);
 
   const isMaster = campaign?.masterUuid === user?.uuid;
@@ -184,6 +187,13 @@ export default function CampaignPage() {
                 {nickConflictError && (
                   <NickConflictMessage>
                     Já existe um personagem com o nick &quot;{sheetNick}&quot; nesta campanha. Escolha outro nick antes de submeter.
+                  </NickConflictMessage>
+                )}
+                {submitFailed && !nickConflictError && (
+                  <NickConflictMessage>
+                    {axios.isAxiosError(submitError) && submitError.response?.status === 409
+                      ? `Já existe um personagem com o nick "${sheetNick}" nesta campanha. Escolha outro nick antes de submeter.`
+                      : "Erro ao submeter ficha. Tente novamente."}
                   </NickConflictMessage>
                 )}
               </>
