@@ -3,6 +3,7 @@ import styled from "styled-components";
 import type { CharacterSheet } from "../../types/characterSheet";
 import HpBar from "../atoms/HpBar";
 import SpBar from "../atoms/SpBar";
+import CharacterExpBar from "../atoms/CharacterExpBar";
 import avatarPlaceholder from "../../assets/placeholder/avatar.png";
 import coverPlaceholder from "../../assets/placeholder/cover.png";
 import cameraIcon from "../../assets/icons/camera.svg";
@@ -54,6 +55,7 @@ export default function CharacterSheetHeader({
   const profile = charSheet?.profile;
   const health = charSheet?.status?.health;
   const stamina = charSheet?.status?.stamina;
+  const charExp = charSheet?.characterExp;
 
   return (
     <HeaderContainer>
@@ -118,6 +120,12 @@ export default function CharacterSheetHeader({
 
       {showStatus && (
         <StatusBarsContainer>
+          <CharacterExpBarWrapper>
+            <CharacterExpBar
+              currExp={charExp?.currExp ?? 0}
+              maxExp={charExp?.nextLvlBaseExp ?? 0}
+            />
+          </CharacterExpBarWrapper>
           <HpBar current={health?.current} max={health?.max} />
           <SpBar current={stamina?.current} max={stamina?.max} />
         </StatusBarsContainer>
@@ -389,4 +397,8 @@ const CharacterClassOption = styled.option`
 const StatusBarsContainer = styled.div`
   display: flex;
   flex-direction: column;
+`;
+
+const CharacterExpBarWrapper = styled.div`
+  margin-left: 22cqi;
 `;
