@@ -30,6 +30,7 @@ interface Data {
   onAvatarSelected?: (blob: Blob | null, url: string | null) => void;
   onCoverSelected?: (blob: Blob | null, url: string | null) => void;
   onCreateSheet?: () => void;
+  onCancel?: () => void;
   submitLabel?: string;
   submitError?: string | null;
   manage?: {
@@ -58,6 +59,7 @@ function CharacterSheetTemplate({
     onAvatarSelected,
     onCoverSelected,
     onCreateSheet,
+    onCancel,
     submitLabel,
     submitError,
     manage,
@@ -282,11 +284,16 @@ function CharacterSheetTemplate({
           sheetMode.headerMode === "edit-profile") && (
           <CreateSheetArea>
             {submitError && <SubmitErrorText>{submitError}</SubmitErrorText>}
-            {onCreateSheet && (
-              <CreateSheetButton onClick={onCreateSheet}>
-                {submitLabel ?? "+ Criar Ficha"}
-              </CreateSheetButton>
-            )}
+            <SheetButtonsRow>
+              {onCancel && (
+                <CancelButton onClick={onCancel}>Cancelar</CancelButton>
+              )}
+              {onCreateSheet && (
+                <CreateSheetButton onClick={onCreateSheet}>
+                  {submitLabel ?? "+ Criar Ficha"}
+                </CreateSheetButton>
+              )}
+            </SheetButtonsRow>
           </CreateSheetArea>
         )}
       </MainContent>
@@ -581,33 +588,56 @@ const RejectButton = styled(SubmissionActionBase)`
   color: white;
 `;
 
-const CreateSheetButton = styled.button`
+const SheetButtonsRow = styled.div`
+  display: flex;
+  gap: 12px;
+  margin: 24px 30px 0;
+
+  @media (max-width: 609px) {
+    margin: 20px 20px 0;
+  }
+`;
+
+const SheetButtonBase = styled.button`
   font-family: "Roboto", sans-serif;
-  font-size: 6cqi;
-  font-weight: bold;
+  font-size: min(26px, 5cqi);
+  font-weight: 600;
 
-  background: #107135;
-  color: white;
-
-  display: block;
-  width: calc(100% - 60px);
   border: none;
   border-radius: 8px;
   padding: 2cqi 28px;
-  margin: 24px 30px 0;
 
   cursor: pointer;
+  transition: all 0.3s ease;
   &:hover {
-    transform: translateY(-3px);
+    transform: translateY(-5px);
     filter: brightness(1.1);
   }
   &:active {
     transform: scale(0.98);
   }
 
-  @media (max-width: 609px) {
-    width: calc(100% - 40px);
-    margin: 20px 20px 0;
+  @media (max-width: 440px) {
+    height: 46px;
+  }
+`;
+
+const CreateSheetButton = styled(SheetButtonBase)`
+  flex: 1;
+  background: linear-gradient(to bottom, #ffa216 0%, #ffa216 20%, #e60000 100%);
+  color: black;
+`;
+
+const CancelButton = styled(SheetButtonBase)`
+  flex: 0;
+  white-space: nowrap;
+  padding-inline: 50px;
+  background-color: transparent;
+  color: white;
+  border: 1px solid white;
+
+  @media (max-width: 440px) {
+    padding-inline: 28px;
   }
 `;
 

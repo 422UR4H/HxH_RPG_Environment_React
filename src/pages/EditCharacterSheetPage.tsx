@@ -289,6 +289,7 @@ function EditCharacterSheetPage() {
         onAvatarSelected: handleAvatarSelected,
         onCoverSelected: handleCoverSelected,
         onCreateSheet: handleSave,
+        onCancel: () => navigate(-1),
         submitLabel: editMode === "full" ? "Salvar Edição" : "Salvar Perfil",
         submitError,
       }}
