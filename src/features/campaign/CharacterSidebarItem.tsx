@@ -8,6 +8,8 @@ interface CharacterSidebarItemProps {
     isPending?: boolean;
     fullName?: string;
     characterClass?: string;
+    currExp?: number;
+    nextLvlBaseExp?: number;
     health?: StatusBar;
     stamina?: StatusBar;
   };
@@ -41,6 +43,13 @@ export default function CharacterSidebarItem({
     charSheet.status = {
       health: character.health,
       stamina: character.stamina,
+    };
+  }
+  if (character.currExp !== undefined && character.nextLvlBaseExp !== undefined) {
+    charSheet.characterExp = {
+      ...charSheet.characterExp,
+      currExp: character.currExp,
+      nextLvlBaseExp: character.nextLvlBaseExp,
     };
   }
 
