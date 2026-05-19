@@ -13,11 +13,13 @@ interface SkillCardProps {
 function SkillCard({ name, value, level, currExp, nextLvlBaseExp }: SkillCardProps) {
   return (
     <SkillItem>
-      <SkillName>{name.charAt(0).toUpperCase() + name.slice(1)}</SkillName>
-      <SkillNumbers>
-        <SkillValue>{value}</SkillValue>
-        <SkillLevel>Lv {level}</SkillLevel>
-      </SkillNumbers>
+      <SkillCardBody>
+        <SkillName>{name.charAt(0).toUpperCase() + name.slice(1)}</SkillName>
+        <SkillNumbers>
+          <SkillValue>{value}</SkillValue>
+          <SkillLevel>Lv {level}</SkillLevel>
+        </SkillNumbers>
+      </SkillCardBody>
       <ExpBar currExp={currExp ?? 0} maxExp={nextLvlBaseExp ?? 1} />
     </SkillItem>
   );
@@ -104,10 +106,13 @@ const SkillsSubList = styled.div`
 const SkillItem = styled.div`
   background-color: #444;
   border-radius: 6px;
-  padding: 2.8cqi 2.6cqi 0 2.6cqi;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+`;
+
+const SkillCardBody = styled.div`
+  padding: 2.8cqi 2.6cqi 0 2.6cqi;
 `;
 
 const SkillName = styled.div`
