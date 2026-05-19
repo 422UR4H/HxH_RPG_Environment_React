@@ -317,8 +317,16 @@ const MatchesList = styled.div`
 
 const NickConflictMessage = styled.p`
   font-family: "Roboto", sans-serif;
-  font-size: 14px;
-  color: #ff6b6b;
-  margin: 0;
-  text-align: center;
+  font-size: max(2.6cqi, 12px);
+  line-height: 1.2;
+  color: #ff1c1c;
+  background: rgba(0, 0, 0, 0.44);
+  border-left: 3px solid #ff1c1c;
+  padding: 10px 14px;
+  border-radius: 0 8px 8px 0;
+  white-space: pre-line;
+
+  @media (max-width: 609px) {
+    margin: 12px 20px 0;
+  }
 `;
