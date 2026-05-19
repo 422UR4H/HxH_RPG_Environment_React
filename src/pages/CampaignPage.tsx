@@ -15,6 +15,7 @@ import PageHeader from "../components/atoms/PageHeader";
 import { LoadingContainer, ErrorContainer } from "../components/atoms/PageStates";
 import ExpandableText from "../components/molecules/ExpandableText";
 import ConfirmDialog from "../components/molecules/ConfirmDialog";
+import { isApiError } from "../services/httpClient";
 
 export default function CampaignPage() {
   const { id } = useParams<{ id: string }>();
@@ -22,10 +23,12 @@ export default function CampaignPage() {
   const { user } = useUser();
   const navigate = useNavigate();
   const location = useLocation();
-  const sheetId = (location.state as { sheetId?: string } | null)?.sheetId;
+  const sheetId = (location.state as { sheetId?: string; sheetNick?: string } | null)?.sheetId;
+  const sheetNick = (location.state as { sheetId?: string; sheetNick?: string } | null)?.sheetNick;
 
   const [descriptionSignal, setDescriptionSignal] = useState(false);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  const [nickConflictError, setNickConflictError] = useState(false);
 
   const sidebarRef = useRef<HTMLDivElement>(null);
   const mainContentRef = useRef<HTMLDivElement>(null);
@@ -35,6 +38,8 @@ export default function CampaignPage() {
     mutate: submitSheet,
     isPending: submitPending,
     isSuccess: submitted,
+    isError: submitFailed,
+    error: submitError,
   } = useSubmitCharacterSheet(token, id);
 
   const isMaster = campaign?.masterUuid === user?.uuid;
@@ -46,6 +51,20 @@ export default function CampaignPage() {
   const handleSubmitSheet = () => {
     if (!sheetId || !campaign) return;
     submitSheet({ sheetUuid: sheetId, campaignUuid: campaign.uuid });
+  };
+
+  const handleRequestSubmit = () => {
+    if (sheetNick && campaign) {
+      const nickTaken = campaign.characterSheets.some(
+        (s) => s.nickName === sheetNick
+      );
+      if (nickTaken) {
+        setNickConflictError(true);
+        return;
+      }
+    }
+    setNickConflictError(false);
+    setShowSubmitConfirm(true);
   };
 
   let sortedSheets: (CharacterPrivateSummary & { isPending?: boolean })[] = [];
@@ -157,13 +176,27 @@ export default function CampaignPage() {
             )}
 
             {!isMaster && !submitted && sheetId && (
-              <AdaptiveActionButton
-                label={submitPending ? "Submetendo..." : "Submeter Ficha"}
-                type="match"
-                onClick={submitPending ? () => {} : () => setShowSubmitConfirm(true)}
-                containerRef={mainContentRef}
-                contentChangeSignal={descriptionSignal}
-              />
+              <>
+                <AdaptiveActionButton
+                  label={submitPending ? "Submetendo..." : "Submeter Ficha"}
+                  type="match"
+                  onClick={submitPending ? () => {} : handleRequestSubmit}
+                  containerRef={mainContentRef}
+                  contentChangeSignal={descriptionSignal}
+                />
+                {nickConflictError && (
+                  <NickConflictMessage>
+                    Já existe um personagem com o nick &quot;{sheetNick}&quot; nesta campanha. Escolha outro nick antes de submeter.
+                  </NickConflictMessage>
+                )}
+                {submitFailed && !nickConflictError && (
+                  <NickConflictMessage>
+                    {isApiError(submitError, 409)
+                      ? `Já existe um personagem com o nick "${sheetNick}" nesta campanha. Escolha outro nick antes de submeter.`
+                      : "Erro ao submeter ficha. Tente novamente."}
+                  </NickConflictMessage>
+                )}
+              </>
             )}
           </MatchesList>
         </MainContentContainer>
@@ -280,4 +313,20 @@ const MatchesList = styled.div`
   gap: 20px;
   position: relative;
   padding-bottom: 112px;
+`;
+
+const NickConflictMessage = styled.p`
+  font-family: "Roboto", sans-serif;
+  font-size: max(2.6cqi, 12px);
+  line-height: 1.2;
+  color: #ff1c1c;
+  background: rgba(0, 0, 0, 0.44);
+  border-left: 3px solid #ff1c1c;
+  padding: 10px 14px;
+  border-radius: 0 8px 8px 0;
+  white-space: pre-line;
+
+  @media (max-width: 609px) {
+    margin: 12px 20px 0;
+  }
 `;
