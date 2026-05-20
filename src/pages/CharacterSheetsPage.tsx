@@ -83,7 +83,7 @@ const PageBody = styled.main`
 
   @media (min-width: 500px) {
     padding: 45px 0;
-    gap: 45px;
+    gap: 5vw;
   }
 `;
 
