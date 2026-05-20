@@ -54,12 +54,12 @@ function CharacterSheetPage() {
 
   const handleAccept = () => {
     if (!id) return;
-    acceptSubmission(id, { onSuccess: () => campaignId && navigate(`/campaigns/${campaignId}`) });
+    acceptSubmission(id, { onSuccess: () => campaignId && navigate(-1) });
   };
 
   const handleReject = () => {
     if (!id) return;
-    rejectSubmission(id, { onSuccess: () => campaignId && navigate(`/campaigns/${campaignId}`) });
+    rejectSubmission(id, { onSuccess: () => campaignId && navigate(-1) });
   };
 
   const handleEdit = () => {
