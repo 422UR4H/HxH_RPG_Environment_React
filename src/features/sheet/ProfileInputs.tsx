@@ -77,7 +77,7 @@ export default function ProfileInputs({
           <BirthdayAgeRow>
             <DetailItem>
               <DetailLabel>Aniversário:</DetailLabel>
-              <BirthdayRow>
+              <BirthdaySelects>
                 <BaseSelect
                   value={String(currentMonth)}
                   onChange={(e) => {
@@ -110,7 +110,7 @@ export default function ProfileInputs({
                     )
                   )}
                 </BaseSelect>
-              </BirthdayRow>
+              </BirthdaySelects>
             </DetailItem>
 
             <DetailItem>
@@ -123,33 +123,26 @@ export default function ProfileInputs({
             </DetailItem>
           </BirthdayAgeRow>
 
-          <DetailItem>
-            <DetailLabel>Alinhamento:</DetailLabel>
-            <AlignmentContainer>
-              {/* <AlignmentSelect defaultValue="Neutral">
-                <option value="Lawful">Lawful</option>
-                <option value="Neutral">Neutral</option>
-                <option value="Chaotic">Chaotic</option>
-              </AlignmentSelect>
-
-              <AlignmentSelect defaultValue="Neutral">
-                <option value="Good">Good</option>
-                <option value="Neutral">Neutral</option>
-                <option value="Evil">Evil</option>
-              </AlignmentSelect> */}
-
-              <BaseSelect
-                value={profile?.alignment ?? ""}
-                onChange={(e) => handleInputChange("alignment", e.target.value)}
-              >
-                {alignmentOptions.map((opt) => (
-                  <BaseOption key={opt.label} value={opt.value}>
-                    {opt.label}
-                  </BaseOption>
-                ))}
-              </BaseSelect>
-            </AlignmentContainer>
-          </DetailItem>
+          <AlignmentBackgroundRow>
+            <DetailItem>
+              <DetailLabel>Alinhamento:</DetailLabel>
+              <AlignmentContainer>
+                <BaseSelect
+                  value={profile?.alignment ?? ""}
+                  onChange={(e) => handleInputChange("alignment", e.target.value)}
+                >
+                  {alignmentOptions.map((opt) => (
+                    <BaseOption key={opt.label} value={opt.value}>
+                      {opt.label}
+                    </BaseOption>
+                  ))}
+                </BaseSelect>
+              </AlignmentContainer>
+            </DetailItem>
+            <MobileOnlyButton>
+              <BackgroundButton />
+            </MobileOnlyButton>
+          </AlignmentBackgroundRow>
         </LeftDetails>
 
         <RightDetails>
@@ -246,6 +239,16 @@ const LeftDetails = styled.div`
   flex: 1;
 `;
 
+const RightDetails = styled.div`
+  display: flex;
+  justify-content: center;
+
+  /* @media (max-width: 609px) { */
+  @media (max-width: 509px) {
+    display: none;
+  }
+`;
+
 const DetailItem = styled.div`
   display: flex;
   flex-direction: column;
@@ -304,9 +307,29 @@ const BirthdayAgeRow = styled.div`
   gap: 4cqi;
 `;
 
-const BirthdayRow = styled.div`
+const BirthdaySelects = styled.div`
   display: flex;
   gap: 1.6cqi;
+`;
+
+const AlignmentBackgroundRow = styled.div`
+  display: contents;
+
+  /* @media (max-width: 609px) { */
+  @media (max-width: 509px) {
+    display: flex;
+    justify-content: flex-start;
+    gap: calc(10% + 20px);
+  }
+`;
+
+const MobileOnlyButton = styled.div`
+  display: none;
+
+  /* @media (max-width: 609px) { */
+  @media (max-width: 509px) {
+    display: flex;
+  }
 `;
 
 const AgeInput = styled(DetailInput)`
@@ -318,10 +341,4 @@ const AgeInput = styled(DetailInput)`
 const AlignmentContainer = styled.div`
   display: flex;
   gap: 12px;
-`;
-
-
-const RightDetails = styled.div`
-  display: flex;
-  justify-content: center;
 `;

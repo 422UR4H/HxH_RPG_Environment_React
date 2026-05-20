@@ -111,6 +111,11 @@ const LeftDetails = styled.div`
   flex: 1;
 `;
 
+const RightDetails = styled.div`
+  display: flex;
+  justify-content: center;
+`;
+
 const DetailItem = styled.div`
   display: flex;
   flex-direction: column;
@@ -144,10 +149,6 @@ const BirthdayAgeRow = styled.div`
   gap: 4cqi;
 `;
 
-const RightDetails = styled.div`
-  display: flex;
-  justify-content: center;
-`;
 
 const BriefDescriptionTextarea = styled.textarea`
   font-family: "Roboto", sans-serif;
