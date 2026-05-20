@@ -85,16 +85,20 @@ function EditCharacterSheetPage() {
   const isOwner = existingSheet
     ? existingSheet.playerUuid === user?.uuid
     : undefined;
+  const isMasterNpc = existingSheet && user
+    ? existingSheet.masterUuid === user.uuid && !existingSheet.playerUuid
+    : false;
   const isFree = existingSheet
     ? !existingSheet.campaignUuid && !existingSheet.submission
     : undefined;
 
-  // Redirect non-owners; owners of non-free sheets stay and get profile-only mode
-  if (existingSheet && user && !isOwner) {
+  // Redirect non-owners who are also not the master of an NPC
+  if (existingSheet && user && !isOwner && !isMasterNpc) {
     return <Navigate to={`/charactersheet/${id}`} replace />;
   }
 
-  const editMode: "full" | "profile" = isFree === false ? "profile" : "full";
+  // NPCs are always fully editable by the master
+  const editMode: "full" | "profile" = isMasterNpc || isFree !== false ? "full" : "profile";
 
   const sheetMode: SheetMode =
     editMode === "full"

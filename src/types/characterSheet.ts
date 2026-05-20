@@ -47,6 +47,7 @@ export type Submission = {
 export interface CharacterSheet {
   uuid: string;
   playerUuid?: string;
+  masterUuid?: string;
   campaignUuid?: string;
   characterClass: string;
   categoryName: string;
