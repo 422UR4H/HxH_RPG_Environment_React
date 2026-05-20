@@ -70,7 +70,7 @@ function CharacterSheetPage() {
   const handleDelete = () => {
     if (!charSheet?.uuid) return;
     deleteSheet(charSheet.uuid, {
-      onSuccess: () => navigate("/", { replace: true }),
+      onSuccess: () => navigate(-1),
     });
   };
 
