@@ -50,7 +50,8 @@ export const characterSheetsService = {
   createCharacterSheet: (
     token: string,
     charSheet: CharacterSheet,
-    charClass?: CharacterClass
+    charClass?: CharacterClass,
+    campaignUuid?: string
   ): Promise<{ uuid: string }> => {
     const allowedSkills = new Set(charClass?.distribution?.skillsAllowed ?? []);
     const skillsExps: Record<string, number> = {};
@@ -79,6 +80,7 @@ export const characterSheetsService = {
       .post<{ character_sheet: { uuid: string } }>(
         "/charactersheets",
         {
+          campaign_uuid: campaignUuid ?? null,
           profile: objToSnakeCase({
             nickname: charSheet.profile.nickname,
             fullname: charSheet.profile.fullname,

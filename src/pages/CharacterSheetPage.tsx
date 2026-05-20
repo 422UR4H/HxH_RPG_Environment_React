@@ -36,6 +36,7 @@ function CharacterSheetPage() {
   }
 
   const isOwner = !!charSheet && !!user && charSheet.playerUuid === user.uuid;
+  const isMasterNpc = !!charSheet && !!user && charSheet.masterUuid === user.uuid && !charSheet.playerUuid;
   const isFree = isOwner && !!charSheet && !charSheet.campaignUuid && !charSheet.submission;
 
   const activeCampaignUuid =
@@ -48,6 +49,8 @@ function CharacterSheetPage() {
       navigate("/campaigns/public", { state: { sheetId: id, sheetNick: charSheet?.profile.nickname } });
     }
   };
+
+  const handleCampaignClickMaster = () => navigate(-1);
 
   const handleAccept = () => {
     if (!id) return;
@@ -78,11 +81,19 @@ function CharacterSheetPage() {
         charSheet,
         isLoading,
         error: error ? error.message : null,
-        onCampaignClick: isOwner && charSheet ? handleCampaignClick : undefined,
-        hasCampaign: !!activeCampaignUuid,
-        onAcceptSubmission: !isOwner && isPending && !accepting ? handleAccept : undefined,
-        onRejectSubmission: !isOwner && isPending && !rejecting ? handleReject : undefined,
-        manage: isOwner ? { isFree, onEdit: handleEdit, onDelete: handleDelete } : undefined,
+        onCampaignClick: isMasterNpc
+          ? handleCampaignClickMaster
+          : isOwner && charSheet
+          ? handleCampaignClick
+          : undefined,
+        hasCampaign: isMasterNpc ? true : !!activeCampaignUuid,
+        onAcceptSubmission: !isOwner && !isMasterNpc && isPending && !accepting ? handleAccept : undefined,
+        onRejectSubmission: !isOwner && !isMasterNpc && isPending && !rejecting ? handleReject : undefined,
+        manage: isMasterNpc
+          ? { isFree: true, onEdit: handleEdit, onDelete: handleDelete }
+          : isOwner
+          ? { isFree, onEdit: handleEdit, onDelete: handleDelete }
+          : undefined,
       }}
     />
   );

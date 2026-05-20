@@ -74,7 +74,9 @@ export default function CampaignPage() {
     sortedSheets = getSortedCharacters(campaign.characterSheets, pendingSheets);
   }
 
-  const handleCreateNpc = () => {};
+  const handleCreateNpc = () => {
+    navigate(`/campaigns/${id}/npcs/new`);
+  };
   const handleCreateMatch = () => {
     navigate(`/campaigns/${id}/matches/new`);
   };

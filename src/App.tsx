@@ -12,6 +12,7 @@ import CharacterSheetPage from "./pages/CharacterSheetPage";
 import CreateCharacterSheetPage from "./pages/CreateCharacterSheetPage";
 import PublicCampaignsPage from "./pages/PublicCampaignsPage";
 import EditCharacterSheetPage from "./pages/EditCharacterSheetPage";
+import CreateNpcPage from "./pages/CreateNpcPage";
 
 function App() {
   return (
@@ -35,6 +36,10 @@ function App() {
         <Route path="/campaigns/public" element={<PublicCampaignsPage />} />
         <Route path="/campaigns/new" element={<CreateCampaignPage />} />
         <Route path="/campaigns/:id" element={<CampaignPage />} />
+        <Route
+          path="/campaigns/:campaignId/npcs/new"
+          element={<CreateNpcPage />}
+        />
         <Route
           path="/campaigns/:campaignId/matches/new"
           element={<CreateMatchPage />}
