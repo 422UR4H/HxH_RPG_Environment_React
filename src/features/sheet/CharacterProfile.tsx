@@ -18,6 +18,9 @@ export default function CharacterProfile({
   setCharSheet,
 }: CharacterProfileProps) {
   const profile = charSheet?.profile;
+  // In "create" and "edit" modes the profile panel starts expanded so the user
+  // can fill in or edit fields immediately. In "view" mode it starts collapsed,
+  // keeping the focus on the sheet's attributes and skills.
   const [isExpanded, setIsExpanded] = useState(mode === "create" || mode === "edit");
 
   const toggleExpanded = () => {
