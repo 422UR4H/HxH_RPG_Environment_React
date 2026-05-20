@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import styled from "styled-components";
 import ConfirmDialog from "../../components/molecules/ConfirmDialog";
+import penIcon from "../../assets/icons/pen.svg";
 
 interface ManageButtonProps {
   isFree: boolean;
@@ -45,9 +46,9 @@ export default function ManageButton({
       <Wrapper ref={ref}>
         {open && (
           <Menu>
-            <MenuItem onClick={handleEdit}>✏ Editar</MenuItem>
+            <MenuItem onClick={handleEdit}><PenIcon src={penIcon} alt="" /> Editar</MenuItem>
             {isFree && (
-              <MenuItemDanger onClick={handleDelete}>🗑 Excluir</MenuItemDanger>
+              <MenuItemDanger onClick={handleDelete}>🗑&nbsp; Excluir</MenuItemDanger>
             )}
           </Menu>
         )}
@@ -138,14 +139,22 @@ const Menu = styled.div`
   z-index: 20;
 `;
 
+const PenIcon = styled.img`
+  width: 1.4em;
+  height: 1.4em;
+`;
+
 const MenuItem = styled.div`
-  padding: 12px 18px;
+  padding: 12px 14px;
   color: white;
   font-family: "Roboto", sans-serif;
   font-size: 17px;
   font-weight: 600;
   cursor: pointer;
   border-bottom: 1px solid #333;
+  display: flex;
+  align-items: center;
+  gap: 4px;
   &:last-child {
     border-bottom: none;
   }
@@ -156,4 +165,5 @@ const MenuItem = styled.div`
 
 const MenuItemDanger = styled(MenuItem)`
   color: #f38ba8;
+  padding: 16px 0 16px 18px;
 `;
