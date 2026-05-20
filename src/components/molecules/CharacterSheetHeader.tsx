@@ -8,6 +8,7 @@ import avatarPlaceholder from "../../assets/placeholder/avatar.png";
 import coverPlaceholder from "../../assets/placeholder/cover.png";
 import cameraIcon from "../../assets/icons/camera.svg";
 import gungiFrame from "../../assets/icons/gungi.svg";
+import iconEmblem from "../../assets/icons/icon-emblem.svg";
 import plusIcon from "../../assets/icons/plus.svg";
 import penIcon from "../../assets/icons/pen.svg";
 import type { HeaderMode } from "../../features/sheet/types/headerMode";
@@ -31,7 +32,13 @@ interface CharacterSheetHeaderProps {
 
 export default function CharacterSheetHeader({
   mode,
-  data: { charSheet, setCharSheet, charClasses, onAvatarSelected, onCoverSelected },
+  data: {
+    charSheet,
+    setCharSheet,
+    charClasses,
+    onAvatarSelected,
+    onCoverSelected,
+  },
   showStatus = true,
 }: CharacterSheetHeaderProps) {
   const { buildFromClass } = useCharSheetBuilder();
@@ -40,7 +47,7 @@ export default function CharacterSheetHeader({
   const handleClassChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const targetClass = event.target.value;
     const charClass = charClasses?.find(
-      (cc) => cc.profile.name === targetClass
+      (cc) => cc.profile.name === targetClass,
     );
 
     if (!charSheet || !setCharSheet) return;
@@ -61,23 +68,26 @@ export default function CharacterSheetHeader({
     <HeaderContainer>
       <CoverContainer $cardView={mode === "card"}>
         <Cover src={profile?.coverUrl || coverPlaceholder} alt={`cover`} />
-        {(mode === "create" || mode === "edit" || mode === "edit-profile") && onCoverSelected && (
-          <AddCover onClick={() => setCoverModalOpen(true)}>
-            <CameraIcon src={cameraIcon} alt="Camera Icon" />
-            <PlusIcon src={plusIcon} alt="+" />
-          </AddCover>
-        )}
+        {(mode === "create" || mode === "edit" || mode === "edit-profile") &&
+          onCoverSelected && (
+            <AddCover onClick={() => setCoverModalOpen(true)}>
+              <CameraIcon src={cameraIcon} alt="Camera Icon" />
+              <PlusIcon src={plusIcon} alt="+" />
+            </AddCover>
+          )}
       </CoverContainer>
 
       <AvatarContainer>
+        <Emblem src={iconEmblem} alt="" />
         <GungiFrame src={gungiFrame} alt="frame" />
         <Avatar src={profile?.avatarUrl || avatarPlaceholder} alt={`avatar`} />
-        {(mode === "create" || mode === "edit" || mode === "edit-profile") && onAvatarSelected && (
-          <AddAvatar onClick={() => setAvatarModalOpen(true)}>
-            <CameraIcon src={cameraIcon} alt="Camera Icon" />
-            <PlusIcon src={plusIcon} alt="+" />
-          </AddAvatar>
-        )}
+        {(mode === "create" || mode === "edit" || mode === "edit-profile") &&
+          onAvatarSelected && (
+            <AddAvatar onClick={() => setAvatarModalOpen(true)}>
+              <CameraIcon src={cameraIcon} alt="Camera Icon" />
+              <PlusIcon src={plusIcon} alt="+" />
+            </AddAvatar>
+          )}
       </AvatarContainer>
 
       {mode === "create" || mode === "edit" ? (
@@ -91,7 +101,10 @@ export default function CharacterSheetHeader({
               value={profile?.nickname ?? ""}
               onChange={(e) => {
                 if (!charSheet || !setCharSheet) return;
-                setCharSheet({ ...charSheet, profile: { ...charSheet.profile, nickname: e.target.value } });
+                setCharSheet({
+                  ...charSheet,
+                  profile: { ...charSheet.profile, nickname: e.target.value },
+                });
               }}
             />
           </NicknameInputContainer>
@@ -126,8 +139,12 @@ export default function CharacterSheetHeader({
               maxExp={charExp?.nextLvlBaseExp ?? 0}
             />
           </CharacterExpBarWrapper>
-          <HpBar current={health?.current} max={health?.max} />
-          <SpBar current={stamina?.current} max={stamina?.max} />
+          <CharacterHpBarWrapper>
+            <HpBar current={health?.current} max={health?.max} />
+          </CharacterHpBarWrapper>
+          <CharacterSpBarWrapper>
+            <SpBar current={stamina?.current} max={stamina?.max} />
+          </CharacterSpBarWrapper>
         </StatusBarsContainer>
       )}
 
@@ -202,7 +219,8 @@ const Cover = styled.img`
 const AvatarContainer = styled.div`
   position: absolute;
   bottom: 0px;
-  left: 0px;
+  /* left: 4px; */
+  left: 0.4cqi;
   width: 28cqi;
   height: 28cqi;
   display: flex;
@@ -210,27 +228,42 @@ const AvatarContainer = styled.div`
   justify-content: center;
 `;
 
+const Emblem = styled.img`
+  position: absolute;
+  width: 104%;
+  height: 104%;
+  top: 50%;
+  top: 48%;
+  left: 50.5%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+`;
+
 const GungiFrame = styled.img`
   position: absolute;
   width: 100%;
   height: 100%;
-  z-index: 1;
+  top: -0.5cqi;
+  z-index: 3;
 `;
 
 const Avatar = styled.img`
-  width: 71.1%;
-  height: 71.1%;
+  /* width: 69%; */
+  /* height: 69%; */
+  width: 70%;
+  height: 70%;
   object-fit: cover;
   border-radius: 50%;
-  z-index: 2;
   position: relative;
+  z-index: 4;
+  top: -0.5cqi;
 `;
 
 const AddAvatar = styled.button`
   position: absolute;
   bottom: 1cqi;
   left: 1cqi;
-  z-index: 3;
+  z-index: 5;
 
   background-color: black;
   width: max(8cqi, 40px);
@@ -260,7 +293,7 @@ const AddCover = styled.button`
   position: absolute;
   top: 10px;
   right: 10px;
-  z-index: 3;
+  z-index: 5;
 
   background-color: rgba(0, 0, 0, 0.6);
   width: max(10cqi, 48px);
@@ -308,7 +341,7 @@ const PenIcon = styled.img`
   bottom: 8px;
   width: 7cqi;
   height: 7cqi;
-  z-index: 1;
+  z-index: 2;
 `;
 
 const Nickname = styled.h1`
@@ -397,8 +430,17 @@ const CharacterClassOption = styled.option`
 const StatusBarsContainer = styled.div`
   display: flex;
   flex-direction: column;
+  background-color: black;
 `;
 
 const CharacterExpBarWrapper = styled.div`
-  margin-left: 22cqi;
+  margin-left: 27.9cqi;
+`;
+
+const CharacterHpBarWrapper = styled.div`
+  margin-left: 25.2cqi;
+`;
+
+const CharacterSpBarWrapper = styled.div`
+  margin-left: 17.5cqi;
 `;

@@ -90,7 +90,7 @@ export default function EnrollmentSidebarItem({
 const ItemContainer = styled.div<{ $clickable: boolean }>`
   position: relative;
   overflow: hidden;
-  border-radius: 8px;
+  border-radius: 0px 16px 0 0;
   border-left: 4px solid #ffa216;
   cursor: ${({ $clickable }) => ($clickable ? "pointer" : "default")};
 
@@ -119,14 +119,13 @@ const StatusBadge = styled.span<{ $status: string }>`
 
 const Actions = styled.div`
   display: flex;
-  gap: 6px;
-  padding: 10px 15px;
+  gap: 8px;
+  padding: 6px 8px;
   background-color: rgba(0, 0, 0, 0.6);
 `;
 
 const ActionButton = styled.button<{ $variant: "accept" | "reject" }>`
-  width: 32px;
-  height: 32px;
+  flex: 1;
   border: none;
   border-radius: 6px;
   font-size: 16px;

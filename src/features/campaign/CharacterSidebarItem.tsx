@@ -84,7 +84,7 @@ const ItemContainer = styled.div<{
 }>`
   position: relative;
   overflow: hidden;
-  border-radius: 8px;
+  border-radius: 0px 16px 0 0;
   opacity: ${({ $isDead }) => ($isDead ? 0.7 : 1)};
   cursor: ${({ $clickable }) => ($clickable ? "pointer" : "default")};
   border-left: 4px solid
