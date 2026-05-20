@@ -42,7 +42,7 @@ const ProgressBarContainer = styled.div`
   width: 100%;
   border: 3px solid black;
 
-  @media (max-width: 609px) {
+  @container (max-width: 609px) {
     border-width: 0.6cqi;
   }
 `;
