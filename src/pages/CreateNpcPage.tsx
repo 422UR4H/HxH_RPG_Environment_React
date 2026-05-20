@@ -108,6 +108,7 @@ function CreateNpcPage() {
           uuid,
           resolvedAvatarUrl ?? null,
           resolvedCoverUrl ?? null,
+          charSheet.profile.briefDescription ?? null,
         );
       }
 
@@ -121,6 +122,7 @@ function CreateNpcPage() {
           createdUuid,
           resolvedAvatarUrl ?? null,
           resolvedCoverUrl ?? null,
+          charSheet.profile.briefDescription ?? null,
         ).catch(() => undefined);
       }
       setSubmitError("Erro ao salvar o NPC. Tente novamente.");

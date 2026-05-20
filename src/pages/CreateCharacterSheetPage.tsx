@@ -102,6 +102,7 @@ function CreateCharacterSheetPage() {
           uuid,
           resolvedAvatarUrl ?? null,
           resolvedCoverUrl ?? null,
+          charSheet.profile.briefDescription ?? null,
         );
       }
 
@@ -115,6 +116,7 @@ function CreateCharacterSheetPage() {
           createdUuid,
           resolvedAvatarUrl ?? null,
           resolvedCoverUrl ?? null,
+          charSheet.profile.briefDescription ?? null,
         ).catch(() => undefined);
       }
       setSubmitError("Erro ao salvar a ficha. Tente novamente.");

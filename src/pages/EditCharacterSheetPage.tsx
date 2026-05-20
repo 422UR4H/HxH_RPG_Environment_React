@@ -36,6 +36,8 @@ function sheetChangedFrom(
         age: s.profile.age,
         briefDescription: s.profile.briefDescription,
         description: s.profile.description,
+        avatarUrl: s.profile.avatarUrl,
+        coverUrl: s.profile.coverUrl,
       },
     });
   return snap(current) !== snap(original);
@@ -211,6 +213,7 @@ function EditCharacterSheetPage() {
             id,
             resolvedAvatarUrl ?? null,
             resolvedCoverUrl ?? null,
+            charSheet.profile.briefDescription ?? null,
           );
         }
         queryClient.invalidateQueries({
@@ -228,7 +231,12 @@ function EditCharacterSheetPage() {
     // Profile-only mode
     const briefDesc = charSheet.profile.briefDescription ?? "";
     const existingBrief = existingSheet?.profile.briefDescription ?? "";
-    const noChange = !avatarBlob && !coverBlob && briefDesc === existingBrief;
+    const noChange =
+      !avatarBlob &&
+      !coverBlob &&
+      briefDesc === existingBrief &&
+      (charSheet.profile.avatarUrl ?? null) === (existingSheet?.profile.avatarUrl ?? null) &&
+      (charSheet.profile.coverUrl ?? null) === (existingSheet?.profile.coverUrl ?? null);
     if (noChange) {
       navigate(-1);
       return;

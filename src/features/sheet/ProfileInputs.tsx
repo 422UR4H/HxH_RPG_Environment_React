@@ -68,8 +68,8 @@ export default function ProfileInputs({
       <ProfileDescriptionTextarea
         placeholder="Breve descrição do personagem"
         rows={2}
-        value={profile?.description || ""}
-        onChange={(e) => handleInputChange("description", e.target.value)}
+        value={profile?.briefDescription || ""}
+        onChange={(e) => handleInputChange("briefDescription", e.target.value)}
       />
 
       <ProfileContent>
