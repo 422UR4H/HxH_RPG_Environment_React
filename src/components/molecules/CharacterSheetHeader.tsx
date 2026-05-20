@@ -325,6 +325,14 @@ const NicknameOverlay = styled.div`
   position: absolute;
   bottom: calc(9.3cqi + 20px);
   left: 30cqi;
+
+  @container (max-width: 499px) {
+    bottom: calc(9.3cqi + 15px);
+  }
+
+  @container (max-width: 333px) {
+    bottom: calc(9.3cqi + 10px);
+  }
 `;
 
 const NicknameInputContainer = styled.div`
@@ -376,10 +384,14 @@ const CharacterClass = styled.h2`
   font-family: "Roboto", sans-serif;
   font-size: min(3.6cqi, 2.2rem);
   font-weight: 600;
-  color: #c4c4c4;
+  color: white;
   display: inline-block;
   padding: 0 0.8cqi;
   text-shadow: 1px 1px 6px rgba(0, 0, 0, 1);
+
+  @container (max-width: 259px) {
+    display: block;
+  }
 `;
 
 const CharacterClassSelect = styled.select`

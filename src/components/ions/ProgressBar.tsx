@@ -38,13 +38,8 @@ export default function ProgressBar({
 }
 
 const ProgressBarContainer = styled.div`
-  /* container-type: inline-size; */
   width: 100%;
-  border: 3px solid black;
-
-  @container (max-width: 609px) {
-    border-width: 0.6cqi;
-  }
+  border: min(0.6cqi, 3px) solid black;
 `;
 
 // const Label = styled.span`
