@@ -8,5 +8,19 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "html"],
+      include: [
+        "src/pages/CampaignPage.tsx",
+        "src/pages/MatchPage.tsx",
+        "src/pages/CampaignsPage.tsx",
+        "src/pages/PublicCampaignsPage.tsx",
+        "src/pages/CharacterSheetsPage.tsx",
+        "src/pages/CreateCampaignPage.tsx",
+        "src/pages/CreateMatchPage.tsx",
+        "src/pages/CharacterSheetPage.tsx",
+      ],
+    },
   },
 } as any);
