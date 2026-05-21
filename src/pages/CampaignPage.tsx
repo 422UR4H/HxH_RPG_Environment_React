@@ -9,7 +9,7 @@ import worldMap from "../assets/images/worldmap.png";
 import styled from "styled-components";
 import CharacterSidebarItem from "../components/molecules/CharacterSidebarItem";
 import MatchItem from "../features/campaign/MatchItem";
-import AdaptiveActionButton from "../features/campaign/AdaptativeActionButton";
+import AdaptiveActionButton from "../components/molecules/AdaptiveActionButton";
 import { getSortedCharacters } from "../features/campaign/utils/characterUtils";
 import PageHeader from "../components/atoms/PageHeader";
 import { LoadingContainer, ErrorContainer } from "../components/atoms/PageStates";

@@ -13,7 +13,7 @@ import worldMap from "../assets/images/worldmap.png";
 import styled from "styled-components";
 import EnrollmentSidebarItem from "../features/match/EnrollmentSidebarItem";
 import CharacterSidebarItem from "../components/molecules/CharacterSidebarItem";
-import AdaptiveActionButton from "../features/campaign/AdaptativeActionButton";
+import AdaptiveActionButton from "../components/molecules/AdaptiveActionButton";
 import ExpandableText from "../components/molecules/ExpandableText";
 import PageHeader from "../components/atoms/PageHeader";
 import { LoadingContainer, ErrorContainer } from "../components/atoms/PageStates";
