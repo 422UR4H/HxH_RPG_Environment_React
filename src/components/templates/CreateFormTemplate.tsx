@@ -45,7 +45,7 @@ export default function CreateFormTemplate({
                   Cancelar
                 </CancelButton>
                 <SubmitButton type="submit" disabled={isSubmitting}>
-                  <label>{isSubmitting ? "Criando..." : submitLabel}</label>
+                  {isSubmitting ? "Criando..." : submitLabel}
                 </SubmitButton>
               </ButtonsContainer>
             </Form>
@@ -155,10 +155,6 @@ const SubmitButton = styled(Button)`
   margin: 0 16px;
 
   transition: all 0.2s ease;
-
-  * {
-    cursor: pointer;
-  }
 
   &:hover {
     transform: translateY(-5px);
