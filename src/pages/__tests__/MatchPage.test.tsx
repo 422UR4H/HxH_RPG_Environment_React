@@ -209,4 +209,22 @@ describe("MatchPage", () => {
       expect(await screen.findByText("Participant")).toBeInTheDocument();
     });
   });
+
+  describe("sidebar de regras", () => {
+    it("exibe a sidebar de regras com as seções", async () => {
+      renderPage();
+      expect(
+        await screen.findByRole("heading", { name: /^REGRAS$/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("heading", { name: "Sistema de Combate" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("heading", { name: "Progressão de Personagens" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("heading", { name: "Nen & Habilidades" }),
+      ).toBeInTheDocument();
+    });
+  });
 });

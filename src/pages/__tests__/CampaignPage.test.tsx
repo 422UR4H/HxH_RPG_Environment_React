@@ -212,4 +212,22 @@ describe("CampaignPage", () => {
       expect(mockNavigate).toHaveBeenCalledWith("/campaigns/campaign-1/npcs/new");
     });
   });
+
+  describe("sidebar de regras", () => {
+    it("exibe a sidebar de regras com as seções", async () => {
+      renderPage();
+      expect(
+        await screen.findByRole("heading", { name: /^REGRAS$/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("heading", { name: "Sistema de Combate" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("heading", { name: "Progressão de Personagens" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("heading", { name: "Nen & Habilidades" }),
+      ).toBeInTheDocument();
+    });
+  });
 });

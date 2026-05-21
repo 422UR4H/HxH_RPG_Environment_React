@@ -1,7 +1,7 @@
 import styled from "styled-components";
 import type { CharacterBaseSummary, StatusBar } from "../../types/characterSheet";
 import { createEmptyCharacterSheet } from "../../features/sheet/factories/characterSheet.factory";
-import CharacterSheetHeader from "../../components/molecules/CharacterSheetHeader";
+import CharacterSheetHeader from "./CharacterSheetHeader";
 
 interface CharacterSidebarItemProps {
   character: CharacterBaseSummary & {

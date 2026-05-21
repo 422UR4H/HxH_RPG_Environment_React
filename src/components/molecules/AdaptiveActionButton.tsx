@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState } from "react";
 import { useDebounce } from "../../hooks/useDebounce";
-import PlusIcon from "../../components/ions/PlusIcon";
+import PlusIcon from "../ions/PlusIcon";
 import styled from "styled-components";
 
 interface AdaptiveActionButtonProps {

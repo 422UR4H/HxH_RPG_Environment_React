@@ -9,15 +9,17 @@ import { useAcceptEnrollment } from "../hooks/useAcceptEnrollment";
 import { useRejectEnrollment } from "../hooks/useRejectEnrollment";
 import { useEnrollCharacterSheet } from "../hooks/useEnrollCharacterSheet";
 import type { CharacterPrivateSummary } from "../types/characterSheet";
-import worldMap from "../assets/images/worldmap.png";
 import styled from "styled-components";
 import EnrollmentSidebarItem from "../features/match/EnrollmentSidebarItem";
-import CharacterSidebarItem from "../features/campaign/CharacterSidebarItem";
-import AdaptiveActionButton from "../features/campaign/AdaptativeActionButton";
+import CharacterSidebarItem from "../components/molecules/CharacterSidebarItem";
+import AdaptiveActionButton from "../components/molecules/AdaptiveActionButton";
 import ExpandableText from "../components/molecules/ExpandableText";
-import PageHeader from "../components/atoms/PageHeader";
 import { LoadingContainer, ErrorContainer } from "../components/atoms/PageStates";
 import ConfirmDialog from "../components/molecules/ConfirmDialog";
+import DetailPageTemplate from "../components/templates/DetailPageTemplate";
+import CharactersSidebar from "../components/organisms/CharactersSidebar";
+import RulesSidebar from "../components/organisms/RulesSidebar";
+import RuleSection from "../components/molecules/RuleSection";
 
 type MatchStatus = "scheduled" | "ongoing" | "ended";
 
@@ -130,132 +132,141 @@ export default function MatchPage() {
     !enrollments.some((e) => e.characterSheet.uuid === sheetId);
 
   return (
-    <MatchContainer>
-      <PageHeader backgroundColor="#08491f" />
-      <PageBody>
-        <SidebarContainer>
-          <SidebarTitle>PERSONAGENS</SidebarTitle>
-          <CharactersList>
-            {!match.gameStartAt
-              ? enrollments.map((enrollment) => (
-                  <EnrollmentSidebarItem
-                    key={enrollment.uuid}
-                    enrollment={enrollment}
+    <>
+      <DetailPageTemplate
+        mainRef={mainContentRef}
+        leftSidebar={
+          !match.gameStartAt ? (
+            <CharactersSidebar
+              items={enrollments}
+              renderItem={(enrollment) => (
+                <EnrollmentSidebarItem
+                  key={enrollment.uuid}
+                  enrollment={enrollment}
+                  isMaster={isMaster}
+                  isLoading={!!actionLoading[enrollment.uuid]}
+                  onAccept={handleAccept}
+                  onReject={handleReject}
+                  onClick={() =>
+                    navigate(`/charactersheet/${enrollment.characterSheet.uuid}`)
+                  }
+                />
+              )}
+            />
+          ) : (
+            <CharactersSidebar
+              items={participants}
+              renderItem={(participant) => {
+                const priv = participant.characterSheet.private;
+                if (!priv) {
+                  return (
+                    <BasicParticipantItem key={participant.uuid}>
+                      <span>{participant.characterSheet.nickName}</span>
+                      {participant.leftAt && <LeftBadge>Saiu</LeftBadge>}
+                    </BasicParticipantItem>
+                  );
+                }
+                const character = {
+                  ...participant.characterSheet,
+                  ...priv,
+                  isPending: false,
+                } as CharacterPrivateSummary & { isPending?: boolean };
+                return (
+                  <CharacterSidebarItem
+                    key={participant.uuid}
+                    character={character}
                     isMaster={isMaster}
-                    isLoading={!!actionLoading[enrollment.uuid]}
-                    onAccept={handleAccept}
-                    onReject={handleReject}
+                    hasLeft={!!participant.leftAt}
                     onClick={() =>
-                      navigate(
-                        `/charactersheet/${enrollment.characterSheet.uuid}`
-                      )
+                      navigate(`/charactersheet/${participant.characterSheet.uuid}`)
                     }
                   />
-                ))
-              : participants.map((participant) => {
-                  const priv = participant.characterSheet.private;
-                  if (!priv) {
-                    return (
-                      <BasicParticipantItem key={participant.uuid}>
-                        <span>{participant.characterSheet.nickName}</span>
-                        {participant.leftAt && (
-                          <LeftBadge>Saiu</LeftBadge>
-                        )}
-                      </BasicParticipantItem>
-                    );
-                  }
-                  const character = {
-                    ...participant.characterSheet,
-                    ...priv,
-                    isPending: false,
-                  } as CharacterPrivateSummary & { isPending?: boolean };
-                  return (
-                    <CharacterSidebarItem
-                      key={participant.uuid}
-                      character={character}
-                      isMaster={isMaster}
-                      hasLeft={!!participant.leftAt}
-                      onClick={() =>
-                        navigate(
-                          `/charactersheet/${participant.characterSheet.uuid}`
-                        )
-                      }
-                    />
-                  );
-                })}
-          </CharactersList>
-        </SidebarContainer>
+                );
+              }}
+            />
+          )
+        }
+        rightSidebar={
+          <RulesSidebar>
+            <RuleSection title="Configurações Gerais">
+              As regras da partida seguem as definições da campanha.
+            </RuleSection>
+            <RuleSection title="Sistema de Combate">
+              Configure o sistema de combate da partida.
+            </RuleSection>
+            <RuleSection title="Progressão de Personagens">
+              Define como os personagens evoluem durante a partida.
+            </RuleSection>
+            <RuleSection title="Nen & Habilidades">
+              Configure as regras para uso e desenvolvimento de Nen.
+            </RuleSection>
+          </RulesSidebar>
+        }
+      >
+        <MatchHeader>
+          <MatchTitle>{match.title.toUpperCase()}</MatchTitle>
+          <DateSection>
+            <StatusPill $status={status}>{statusLabels[status]}</StatusPill>
+            {status === "scheduled" ? (
+              <DateLabel>
+                Agendada para:{" "}
+                <span>{formatDateTime(match.gameScheduledAt)}</span>
+              </DateLabel>
+            ) : (
+              <DateLabel>
+                Iniciada em:{" "}
+                <DateValueWithTooltip
+                  title={`Agendada para: ${formatDateTime(match.gameScheduledAt)}`}
+                >
+                  {formatDateTime(match.gameStartAt!)}
+                </DateValueWithTooltip>
+              </DateLabel>
+            )}
+          </DateSection>
+        </MatchHeader>
 
-        <MainContentContainer ref={mainContentRef}>
-          <MatchHeader>
-            <MatchTitle>{match.title.toUpperCase()}</MatchTitle>
-            <DateSection>
-              <StatusPill $status={status}>{statusLabels[status]}</StatusPill>
-              {status === "scheduled" ? (
-                <DateLabel>
-                  Agendada para:{" "}
-                  <span>{formatDateTime(match.gameScheduledAt)}</span>
-                </DateLabel>
-              ) : (
-                <DateLabel>
-                  Iniciada em:{" "}
-                  <DateValueWithTooltip
-                    title={`Agendada para: ${formatDateTime(match.gameScheduledAt)}`}
-                  >
-                    {formatDateTime(match.gameStartAt!)}
-                  </DateValueWithTooltip>
-                </DateLabel>
-              )}
-            </DateSection>
-          </MatchHeader>
+        <StoryDate>Início na história: {formatDate(match.storyStartAt)}</StoryDate>
 
-          <StoryDate>Início na história: {formatDate(match.storyStartAt)}</StoryDate>
+        <MatchBriefDescription>
+          {match.briefInitialDescription}
+        </MatchBriefDescription>
 
-          <MatchBriefDescription>
-            {match.briefInitialDescription}
-          </MatchBriefDescription>
+        <ExpandableText onToggle={() => setDescriptionSignal((s) => !s)}>
+          {match.description}
+        </ExpandableText>
 
-          <ExpandableText
-            onToggle={() => setDescriptionSignal((s) => !s)}
-          >
-            {match.description}
-          </ExpandableText>
+        {match.briefFinalDescription && (
+          <MatchFinalDescription>
+            {match.briefFinalDescription}
+          </MatchFinalDescription>
+        )}
 
-          {match.briefFinalDescription && (
-            <MatchFinalDescription>
-              {match.briefFinalDescription}
-            </MatchFinalDescription>
+        {match.storyEndAt && (
+          <StoryDate>Fim na história: {formatDate(match.storyEndAt)}</StoryDate>
+        )}
+
+        <ActionsList>
+          {isMaster && !match.gameStartAt && (
+            <AdaptiveActionButton
+              label="Abrir Lobby"
+              type="match"
+              onClick={() => setShowLobbyConfirm(true)}
+              containerRef={mainContentRef}
+              contentChangeSignal={descriptionSignal}
+            />
           )}
 
-          {match.storyEndAt && (
-            <StoryDate>
-              Fim na história: {formatDate(match.storyEndAt)}
-            </StoryDate>
+          {canEnroll && (
+            <AdaptiveActionButton
+              label={enrollPending ? "Inscrevendo..." : "Inscrever-se"}
+              type="match"
+              onClick={enrollPending ? () => {} : () => setShowEnrollConfirm(true)}
+              containerRef={mainContentRef}
+              contentChangeSignal={descriptionSignal}
+            />
           )}
-
-          <ActionsList>
-            {isMaster && !match.gameStartAt && (
-              <AdaptiveActionButton
-                label="Abrir Lobby"
-                type="match"
-                onClick={() => setShowLobbyConfirm(true)}
-                containerRef={mainContentRef}
-                contentChangeSignal={descriptionSignal}
-              />
-            )}
-
-            {canEnroll && (
-              <AdaptiveActionButton
-                label={enrollPending ? "Inscrevendo..." : "Inscrever-se"}
-                type="match"
-                onClick={enrollPending ? () => {} : () => setShowEnrollConfirm(true)}
-                containerRef={mainContentRef}
-                contentChangeSignal={descriptionSignal}
-              />
-            )}
-          </ActionsList>
-        </MainContentContainer>
-      </PageBody>
+        </ActionsList>
+      </DetailPageTemplate>
 
       {showLobbyConfirm && (
         <ConfirmOverlay onClick={() => setShowLobbyConfirm(false)}>
@@ -287,52 +298,9 @@ export default function MatchPage() {
           onCancel={() => setShowEnrollConfirm(false)}
         />
       )}
-    </MatchContainer>
+    </>
   );
 }
-
-const MatchContainer = styled.div`
-  display: grid;
-  grid-template-rows: auto 1fr;
-  height: 100vh;
-  height: 100dvh;
-  overflow: hidden;
-`;
-
-const PageBody = styled.main`
-  display: flex;
-  color: white;
-  min-height: 0;
-  overflow: hidden;
-`;
-
-const SidebarContainer = styled.div`
-  width: 300px;
-  background-color: #2d2215;
-  padding: 20px;
-  position: relative;
-  overflow-y: auto;
-  flex-shrink: 0;
-`;
-
-const SidebarTitle = styled.h2`
-  font-family: "Roboto", sans-serif;
-  font-weight: 700;
-  font-size: 32px;
-  text-align: center;
-  color: white;
-  margin-bottom: 20px;
-  border-bottom: 1px solid #696969;
-  padding-bottom: 10px;
-`;
-
-const CharactersList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  position: relative;
-  padding-bottom: 103px;
-`;
 
 const BasicParticipantItem = styled.div`
   background-color: #333;
@@ -355,17 +323,6 @@ const LeftBadge = styled.span`
   font-weight: bold;
   background-color: #555;
   color: #ccc;
-`;
-
-const MainContentContainer = styled.div`
-  flex: 1;
-  padding: 30px 30px 20px 30px;
-  overflow-y: auto;
-  background-image: url(${worldMap});
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
 `;
 
 const MatchHeader = styled.div`
