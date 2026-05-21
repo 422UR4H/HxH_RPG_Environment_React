@@ -12,7 +12,7 @@ import type { CharacterPrivateSummary } from "../types/characterSheet";
 import worldMap from "../assets/images/worldmap.png";
 import styled from "styled-components";
 import EnrollmentSidebarItem from "../features/match/EnrollmentSidebarItem";
-import CharacterSidebarItem from "../features/campaign/CharacterSidebarItem";
+import CharacterSidebarItem from "../components/molecules/CharacterSidebarItem";
 import AdaptiveActionButton from "../features/campaign/AdaptativeActionButton";
 import ExpandableText from "../components/molecules/ExpandableText";
 import PageHeader from "../components/atoms/PageHeader";

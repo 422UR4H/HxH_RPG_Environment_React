@@ -7,7 +7,7 @@ import { useSubmitCharacterSheet } from "../hooks/useSubmitCharacterSheet";
 import type { CharacterPrivateSummary } from "../types/campaign";
 import worldMap from "../assets/images/worldmap.png";
 import styled from "styled-components";
-import CharacterSidebarItem from "../features/campaign/CharacterSidebarItem";
+import CharacterSidebarItem from "../components/molecules/CharacterSidebarItem";
 import MatchItem from "../features/campaign/MatchItem";
 import AdaptiveActionButton from "../features/campaign/AdaptativeActionButton";
 import { getSortedCharacters } from "../features/campaign/utils/characterUtils";
