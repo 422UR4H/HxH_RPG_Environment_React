@@ -1,0 +1,72 @@
+// src/test/fixtures/sheet.ts
+import type { CharacterSheet, CharacterSheetSummary, CharacterPrivateSummary } from "../../types/characterSheet";
+import { createEmptyCharacterSheet } from "../../features/sheet/factories/characterSheet.factory";
+
+export const sheetFixture: CharacterSheet = {
+  ...createEmptyCharacterSheet(),
+  uuid: "sheet-1",
+  playerUuid: "user-1",
+  characterClass: "Especialista",
+  categoryName: "Emissor",
+  profile: {
+    ...createEmptyCharacterSheet().profile,
+    nickname: "TestNick",
+    fullname: "Test Character",
+    alignment: "Neutral",
+    briefDescription: "A test character",
+    birthday: "2000-01-01T00:00:00.000Z",
+    age: 25,
+  },
+};
+
+export const sheetSummaryFixture: CharacterSheetSummary = {
+  uuid: "sheet-1",
+  playerUUID: "user-1",
+  masterUUID: "master-1",
+  campaignUUID: "campaign-1",
+  nickName: "TestNick",
+  fullName: "Test Character",
+  alignment: "Neutral",
+  age: 25,
+  characterClass: "Especialista",
+  categoryName: "Emissor",
+  currHexValue: null,
+  level: 1,
+  points: 0,
+  currExp: 0,
+  nextLvlBaseExp: 100,
+  talentLvl: 1,
+  physicalsLvl: 1,
+  mentalsLvl: 1,
+  spiritualsLvl: 1,
+  skillsLvl: 1,
+  stamina: { min: 0, current: 100, max: 100 },
+  health: { min: 0, current: 100, max: 100 },
+  aura: { min: 0, current: 100, max: 100 },
+  createdAt: "2025-01-01T00:00:00.000Z",
+  updatedAt: "2025-01-01T00:00:00.000Z",
+};
+
+export const pendingSheetFixture: CharacterPrivateSummary = {
+  uuid: "sheet-pending",
+  nickName: "PendingChar",
+  playerUuid: "user-2",
+  fullName: "Pending Character",
+  alignment: "Chaotic",
+  characterClass: "Manipulador",
+  birthday: "1995-05-05",
+  categoryName: "Transmutador",
+  level: 1,
+  points: 0,
+  currExp: 0,
+  nextLvlBaseExp: 100,
+  talentLvl: 1,
+  physicalsLvl: 1,
+  mentalsLvl: 1,
+  spiritualsLvl: 1,
+  skillsLvl: 1,
+  stamina: { min: 0, current: 100, max: 100 },
+  health: { min: 0, current: 100, max: 100 },
+  createdAt: "2025-01-01T00:00:00.000Z",
+  updatedAt: "2025-01-01T00:00:00.000Z",
+};
