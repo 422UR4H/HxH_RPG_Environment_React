@@ -1,12 +1,16 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useCreateMatch } from "../hooks/useCreateMatch";
-import worldMap from "../assets/images/worldmap.png";
-import styled from "styled-components";
 import useToken from "../hooks/useToken";
 import useForm from "../hooks/useForm";
-import PageHeader from "../components/atoms/PageHeader";
-import PageTitle from "../components/ions/PageTitle";
+import CreateFormTemplate from "../components/templates/CreateFormTemplate";
+import FormField from "../components/molecules/FormField";
+import FormRow from "../components/molecules/FormRow";
+import FormCheckbox from "../components/molecules/FormCheckbox";
+import FormInput from "../components/ions/FormInput";
+import FormTextArea from "../components/ions/FormTextArea";
+import RulesSidebar from "../components/organisms/RulesSidebar";
+import RuleSection from "../components/molecules/RuleSection";
 
 interface MatchFormData {
   title: string;
@@ -67,432 +71,109 @@ export default function CreateMatchPage() {
   };
 
   return (
-    <PageContainer>
-      <PageHeader backgroundColor="#08491f" />
-      <PageBody>
-        <MainContentContainer>
-          <CreateMatchContainer>
-            <PageTitle>CRIAR NOVA PARTIDA</PageTitle>
-
-            {error && <ErrorMessage>{error}</ErrorMessage>}
-
-            <FormContainer onSubmit={handleSubmit}>
-              <FormGroup>
-                <Label htmlFor="title">Título da Partida</Label>
-                <Input
-                  id="title"
-                  name="title"
-                  value={form.title}
-                  onChange={handleForm}
-                  placeholder="Digite o título da partida"
-                  autoComplete="off"
-                  required
-                />
-              </FormGroup>
-
-              <FormGroup>
-                <Label htmlFor="briefInitialDescription">Descrição Breve</Label>
-                <TextArea
-                  id="briefInitialDescription"
-                  name="briefInitialDescription"
-                  value={form.briefInitialDescription}
-                  onChange={handleForm}
-                  placeholder="Uma breve descrição inicial da partida"
-                  resize="none"
-                  rows={2}
-                  required
-                />
-              </FormGroup>
-
-              <FormGroup>
-                <Label htmlFor="description">
-                  Descrição Completa (Opcional)
-                </Label>
-                <TextArea
-                  id="description"
-                  name="description"
-                  value={form.description}
-                  onChange={handleForm}
-                  placeholder="Detalhes adicionais da partida (apenas para o mestre)"
-                  rows={3}
-                />
-              </FormGroup>
-
-              <FormRow>
-                <FormGroup style={{ flex: 1 }}>
-                  <Label htmlFor="gameScheduledAt">Data e Hora da Sessão</Label>
-                  <Input
-                    id="gameScheduledAt"
-                    name="gameScheduledAt"
-                    type="datetime-local"
-                    value={form.gameScheduledAt}
-                    onChange={handleForm}
-                    required
-                  />
-                  <HelpText>
-                    Esta é a data e hora real em que a sessão de jogo acontecerá
-                  </HelpText>
-                </FormGroup>
-
-                <FormGroup style={{ flex: 1 }}>
-                  <Label htmlFor="storyStartAt">
-                    Data de Início na História
-                  </Label>
-                  <Input
-                    id="storyStartAt"
-                    name="storyStartAt"
-                    type="date"
-                    value={form.storyStartAt}
-                    onChange={handleForm}
-                    required
-                  />
-                  <HelpText>
-                    Esta é a data dentro do universo da história
-                  </HelpText>
-                </FormGroup>
-              </FormRow>
-
-              <FormGroup>
-                <CheckboxContainer>
-                  <Checkbox
-                    id="isPublic"
-                    name="isPublic"
-                    type="checkbox"
-                    checked={form.isPublic}
-                    onChange={handleTogglePublic}
-                  />
-                  <CheckboxLabel htmlFor="isPublic">
-                    Partida Pública
-                  </CheckboxLabel>
-                </CheckboxContainer>
-                <HelpText>
-                  Partidas públicas podem ser vistas por todos os jogadores
-                </HelpText>
-              </FormGroup>
-
-              <ButtonsContainer>
-                <CancelButton
-                  type="button"
-                  onClick={() => navigate(-1)}
-                >
-                  Cancelar
-                </CancelButton>
-                <SubmitButton type="submit" disabled={isPending}>
-                  <label>{isPending ? "Criando..." : "Criar Partida"}</label>
-                </SubmitButton>
-              </ButtonsContainer>
-            </FormContainer>
-          </CreateMatchContainer>
-        </MainContentContainer>
-
-        <RulesSidebar>
-          <SidebarTitle>Regras da Partida</SidebarTitle>
-          <RulesContent>
-            <RuleSection>
-              <RuleSectionTitle>Configurações da Partida</RuleSectionTitle>
-              <RuleInfo>
-                Configure regras específicas para esta sessão de jogo.
-              </RuleInfo>
-            </RuleSection>
-
-            <RuleSection>
-              <RuleSectionTitle>Sistema de Encontros</RuleSectionTitle>
-              <RuleInfo>
-                Configure os encontros e desafios para esta partida.
-              </RuleInfo>
-            </RuleSection>
-
-            <RuleSection>
-              <RuleSectionTitle>Recompensas</RuleSectionTitle>
-              <RuleInfo>
-                Defina as recompensas que os jogadores poderão obter.
-              </RuleInfo>
-            </RuleSection>
-
-            <RuleSection>
-              <RuleSectionTitle>Eventos Narrativos</RuleSectionTitle>
-              <RuleInfo>
-                Configure eventos especiais que ocorrerão nesta partida.
-              </RuleInfo>
-            </RuleSection>
-          </RulesContent>
-          <SidebarFooter>
-            Mais opções de configuração serão adicionadas em breve.
-          </SidebarFooter>
+    <CreateFormTemplate
+      title="CRIAR NOVA PARTIDA"
+      error={error}
+      onSubmit={handleSubmit}
+      submitLabel="Criar Partida"
+      isSubmitting={isPending}
+      onCancel={() => navigate(-1)}
+      rulesContent={
+        <RulesSidebar
+          title="Regras da Partida"
+          footer="Mais opções de configuração serão adicionadas em breve."
+        >
+          <RuleSection title="Configurações da Partida">
+            Configure regras específicas para esta sessão de jogo.
+          </RuleSection>
+          <RuleSection title="Sistema de Encontros">
+            Configure os encontros e desafios para esta partida.
+          </RuleSection>
+          <RuleSection title="Recompensas">
+            Defina as recompensas que os jogadores poderão obter.
+          </RuleSection>
+          <RuleSection title="Eventos Narrativos">
+            Configure eventos especiais que ocorrerão nesta partida.
+          </RuleSection>
         </RulesSidebar>
-      </PageBody>
-    </PageContainer>
+      }
+    >
+      <FormField label="Título da Partida" htmlFor="title">
+        <FormInput
+          id="title"
+          name="title"
+          value={form.title}
+          onChange={handleForm}
+          placeholder="Digite o título da partida"
+          autoComplete="off"
+          required
+        />
+      </FormField>
+
+      <FormField label="Descrição Breve" htmlFor="briefInitialDescription">
+        <FormTextArea
+          id="briefInitialDescription"
+          name="briefInitialDescription"
+          value={form.briefInitialDescription}
+          onChange={handleForm}
+          placeholder="Uma breve descrição inicial da partida"
+          $resize="none"
+          rows={2}
+          required
+        />
+      </FormField>
+
+      <FormField label="Descrição Completa (Opcional)" htmlFor="description">
+        <FormTextArea
+          id="description"
+          name="description"
+          value={form.description}
+          onChange={handleForm}
+          placeholder="Detalhes adicionais da partida (apenas para o mestre)"
+          rows={3}
+        />
+      </FormField>
+
+      <FormRow>
+        <FormField
+          label="Data e Hora da Sessão"
+          htmlFor="gameScheduledAt"
+          helpText="Esta é a data e hora real em que a sessão de jogo acontecerá"
+        >
+          <FormInput
+            id="gameScheduledAt"
+            name="gameScheduledAt"
+            type="datetime-local"
+            value={form.gameScheduledAt}
+            onChange={handleForm}
+            required
+          />
+        </FormField>
+
+        <FormField
+          label="Data de Início na História"
+          htmlFor="storyStartAt"
+          helpText="Esta é a data dentro do universo da história"
+        >
+          <FormInput
+            id="storyStartAt"
+            name="storyStartAt"
+            type="date"
+            value={form.storyStartAt}
+            onChange={handleForm}
+            required
+          />
+        </FormField>
+      </FormRow>
+
+      <FormCheckbox
+        id="isPublic"
+        name="isPublic"
+        label="Partida Pública"
+        checked={form.isPublic}
+        onChange={handleTogglePublic}
+        helpText="Partidas públicas podem ser vistas por todos os jogadores"
+      />
+    </CreateFormTemplate>
   );
 }
-
-const PageContainer = styled.div`
-  display: grid;
-  grid-template-rows: auto 1fr;
-  height: 100vh;
-  height: 100dvh;
-  overflow: hidden;
-
-  /* scrollbars custom */
-  * {
-    /* Webkit (Chrome, Safari, Edge) */
-    &::-webkit-scrollbar {
-      width: 12px;
-      height: 12px;
-    }
-    &::-webkit-scrollbar-track {
-      background: #42331f;
-    }
-    &::-webkit-scrollbar-thumb {
-      background: #493823;
-      border-radius: 6px;
-      border: 2px solid #2d2215;
-    }
-    &::-webkit-scrollbar-thumb:hover {
-      background: #5a4529;
-    }
-    &::-webkit-scrollbar-corner {
-      background: #2d2215;
-    }
-  }
-`;
-
-const PageBody = styled.main`
-  display: flex;
-  color: white;
-  min-height: 0;
-  overflow: hidden;
-`;
-
-const MainContentContainer = styled.div`
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  overflow-y: auto;
-
-  /* world map */
-  background-image: url(${worldMap});
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
-`;
-
-const CreateMatchContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 30px;
-  max-width: 940px;
-  width: 100%;
-  padding: 30px;
-`;
-
-const RulesSidebar = styled.div`
-  width: 50%;
-  max-width: 450px;
-  min-width: 350px;
-  background-color: #2d2215;
-  padding: 20px;
-  position: relative;
-  overflow-y: auto;
-  flex-shrink: 0;
-`;
-
-const FormContainer = styled.form`
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-`;
-
-const FormGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-`;
-
-const FormRow = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-
-  gap: 30px;
-  width: 100%;
-`;
-
-const Label = styled.label`
-  font-family: "Roboto", sans-serif;
-  font-weight: 700;
-  font-size: 26px;
-  color: white;
-`;
-
-const Input = styled.input`
-  font-family: "Roboto", sans-serif;
-  padding: 12px 16px;
-  background-color: #493823;
-  border: 2px solid #604d31;
-  border-radius: 6px;
-  color: white;
-  font-size: 24px;
-
-  &:focus {
-    outline: none;
-    border-color: #107135;
-  }
-`;
-
-const TextArea = styled.textarea<{ resize?: string }>`
-  font-family: "Roboto", sans-serif;
-  padding: 12px 16px;
-  background-color: #493823;
-  border: 2px solid #604d31;
-  border-radius: 6px;
-  color: white;
-  font-size: 24px;
-  resize: ${({ resize }) => resize || "vertical"};
-
-  &:focus {
-    outline: none;
-    border-color: #107135;
-  }
-`;
-
-const CheckboxContainer = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-`;
-
-const Checkbox = styled.input`
-  width: 24px;
-  height: 24px;
-  cursor: pointer;
-`;
-
-const CheckboxLabel = styled.label`
-  font-family: "Roboto", sans-serif;
-  font-weight: 500;
-  font-size: 26px;
-  cursor: pointer;
-`;
-
-const HelpText = styled.p`
-  font-family: "Roboto", sans-serif;
-  font-weight: 400;
-  font-size: 18px;
-  color: white;
-  margin-top: 4px;
-`;
-
-const ButtonsContainer = styled.div`
-  display: flex;
-  gap: 15px;
-`;
-
-const Button = styled.button`
-  padding: 16px 32px;
-  border-radius: 6px;
-  font-family: "Roboto", sans-serif;
-  font-size: 26px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background-color 0.2s;
-`;
-
-const SubmitButton = styled(Button)`
-  background-color: #107135;
-  color: white;
-  border: none;
-  margin: 0 16px;
-
-  transition: all 0.2s ease;
-
-  * {
-    cursor: pointer;
-  }
-
-  &:hover {
-    transform: translateY(-5px);
-    filter: brightness(1.1);
-  }
-  &:active {
-    transform: scale(0.98);
-  }
-
-  &:disabled {
-    background-color: #7a5618;
-    cursor: not-allowed;
-  }
-`;
-
-const CancelButton = styled(Button)`
-  background-color: transparent;
-  color: white;
-  border: 1px solid white;
-
-  transition: all 0.2s ease;
-
-  &:hover {
-    transform: translateY(-5px);
-    filter: brightness(1.1);
-  }
-  &:active {
-    transform: scale(0.98);
-  }
-`;
-
-const ErrorMessage = styled.div`
-  background-color: rgba(231, 76, 60, 0.2);
-  color: #e74c3c;
-  padding: 15px;
-  border-radius: 6px;
-  margin-bottom: 20px;
-`;
-
-const SidebarTitle = styled.h2`
-  font-family: "Roboto", sans-serif;
-  font-weight: 600;
-  font-size: 32px;
-  color: white;
-
-  margin-bottom: 20px;
-  border-bottom: 1px solid #696969;
-  padding-bottom: 10px;
-`;
-
-const RulesContent = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-`;
-
-const RuleSection = styled.div`
-  background-color: #493823;
-  border-radius: 8px;
-  padding: 15px;
-`;
-
-const RuleSectionTitle = styled.h3`
-  font-family: "Roboto", sans-serif;
-  font-weight: 600;
-  font-size: 24px;
-  margin-bottom: 10px;
-  color: white;
-`;
-
-const RuleInfo = styled.p`
-  font-family: "Roboto", sans-serif;
-  font-weight: 300;
-  font-size: 20px;
-  color: white;
-  line-height: 1.4;
-`;
-
-const SidebarFooter = styled.div`
-  font-family: "Roboto", sans-serif;
-  font-weight: 300;
-  margin-top: 30px;
-  font-size: 18px;
-  color: white;
-  font-style: italic;
-  text-align: center;
-`;
