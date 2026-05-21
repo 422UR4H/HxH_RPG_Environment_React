@@ -216,10 +216,18 @@ describe("CampaignPage", () => {
   describe("sidebar de regras", () => {
     it("exibe a sidebar de regras com as seções", async () => {
       renderPage();
-      expect(await screen.findByText(/^REGRAS$/i)).toBeInTheDocument();
-      expect(screen.getAllByText(/Sistema de Combate/i).length).toBeGreaterThan(0);
-      expect(screen.getAllByText(/Progressão de Personagens/i).length).toBeGreaterThan(0);
-      expect(screen.getAllByText(/Nen & Habilidades/i).length).toBeGreaterThan(0);
+      expect(
+        await screen.findByRole("heading", { name: /^REGRAS$/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("heading", { name: "Sistema de Combate" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("heading", { name: "Progressão de Personagens" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("heading", { name: "Nen & Habilidades" }),
+      ).toBeInTheDocument();
     });
   });
 });
