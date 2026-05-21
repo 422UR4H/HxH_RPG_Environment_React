@@ -27,7 +27,7 @@ export default function CharactersSidebar<T>({
   );
 }
 
-const SidebarContainer = styled.div`
+const SidebarContainer = styled.aside`
   width: 300px;
   background-color: #2d2215;
   padding: 20px;

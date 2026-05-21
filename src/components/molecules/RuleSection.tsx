@@ -29,7 +29,9 @@ const SectionTitle = styled.h3`
   color: white;
 `;
 
-const SectionBody = styled.p`
+// div (não p): children é ReactNode — pode receber conteúdo em bloco
+// quando o sistema de regras real existir (listas, etc.).
+const SectionBody = styled.div`
   font-family: "Roboto", sans-serif;
   font-weight: 300;
   font-size: 20px;
