@@ -51,19 +51,16 @@ describe("CharacterSheetPage", () => {
     expect(container.textContent ?? "").not.toContain("Carregando");
   });
 
-  it("chama mutation accept quando o handler é invocado via state isPending", async () => {
-    let acceptedCalled = false;
-    server.use(
-      http.patch(`${baseUrl}/charactersheets/:id/submissions/accept`, () => {
-        acceptedCalled = true;
-        return HttpResponse.json({});
-      }),
-    );
+  it("renderiza a página em modo isPending (location.state) sem erro", async () => {
+    // Quando aberta a partir de uma ficha pendente, a página recebe
+    // isPending no location.state. A UI de aceitar/rejeitar mora dentro
+    // de CharacterSheetTemplate — interação completa fica para a fase de
+    // refactor do template. Aqui apenas travamos que a página monta nesse
+    // modo sem quebrar.
     renderPage({
       user: userFixture,
       state: { isPending: true, campaignId: "campaign-1" },
     });
-    await screen.findByText(/TestNick/i);
-    expect(acceptedCalled).toBe(false);
+    expect(await screen.findByText(/TestNick/i)).toBeInTheDocument();
   });
 });
