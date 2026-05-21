@@ -5,16 +5,18 @@ import useUser from "../hooks/useUser";
 import { useCampaignDetails } from "../hooks/useCampaignDetails";
 import { useSubmitCharacterSheet } from "../hooks/useSubmitCharacterSheet";
 import type { CharacterPrivateSummary } from "../types/campaign";
-import worldMap from "../assets/images/worldmap.png";
 import styled from "styled-components";
 import CharacterSidebarItem from "../components/molecules/CharacterSidebarItem";
 import MatchItem from "../features/campaign/MatchItem";
 import AdaptiveActionButton from "../components/molecules/AdaptiveActionButton";
 import { getSortedCharacters } from "../features/campaign/utils/characterUtils";
-import PageHeader from "../components/atoms/PageHeader";
 import { LoadingContainer, ErrorContainer } from "../components/atoms/PageStates";
 import ExpandableText from "../components/molecules/ExpandableText";
 import ConfirmDialog from "../components/molecules/ConfirmDialog";
+import DetailPageTemplate from "../components/templates/DetailPageTemplate";
+import CharactersSidebar from "../components/organisms/CharactersSidebar";
+import RulesSidebar from "../components/organisms/RulesSidebar";
+import RuleSection from "../components/molecules/RuleSection";
 import { isApiError } from "../services/httpClient";
 
 export default function CampaignPage() {
@@ -92,13 +94,14 @@ export default function CampaignPage() {
   }
 
   return (
-    <CampaignContainer>
-      <PageHeader backgroundColor="#08491f" />
-      <PageBody>
-        <SidebarContainer ref={sidebarRef}>
-          <SidebarTitle>PERSONAGENS</SidebarTitle>
-          <CharactersList>
-            {sortedSheets.map((character) => (
+    <>
+      <DetailPageTemplate
+        mainRef={mainContentRef}
+        leftSidebar={
+          <CharactersSidebar
+            containerRef={sidebarRef}
+            items={sortedSheets}
+            renderItem={(character) => (
               <CharacterSidebarItem
                 key={character.uuid}
                 character={character}
@@ -110,99 +113,115 @@ export default function CampaignPage() {
                   })
                 }
               />
-            ))}
-
-            {isMaster && (
-              <AdaptiveActionButton
-                label="Criar NPC"
-                type="character"
-                onClick={handleCreateNpc}
-                containerRef={sidebarRef}
-                contentChangeSignal={descriptionSignal}
-              />
             )}
-          </CharactersList>
-        </SidebarContainer>
-
-        <MainContentContainer ref={mainContentRef}>
-          <CampaignHeader>
-            <CampaignTitle>{campaign.name.toUpperCase()}</CampaignTitle>
-            <CampaignDate>
-              Data Atual:{" "}
-              {(() => {
-                if (!campaign.storyCurrentAt) return "Data não disponível";
-                const [date] = campaign.storyCurrentAt.split("T");
-                const [year, month, day] = date.split("-");
-                return `${day}/${month}/${year}`;
-              })()}
-            </CampaignDate>
-          </CampaignHeader>
-
-          <CampaignBriefDescription>
-            {campaign.briefInitialDescription}
-          </CampaignBriefDescription>
-
-          <ExpandableText onToggle={() => setDescriptionSignal((s) => !s)}>
-            {campaign.description}
-          </ExpandableText>
-
+            footer={
+              isMaster && (
+                <AdaptiveActionButton
+                  label="Criar NPC"
+                  type="character"
+                  onClick={handleCreateNpc}
+                  containerRef={sidebarRef}
+                  contentChangeSignal={descriptionSignal}
+                />
+              )
+            }
+          />
+        }
+        rightSidebar={
+          <RulesSidebar>
+            <RuleSection title="Configurações Gerais">
+              As regras da campanha serão configuradas aqui.
+            </RuleSection>
+            <RuleSection title="Sistema de Combate">
+              Configure o sistema de combate da sua campanha.
+            </RuleSection>
+            <RuleSection title="Progressão de Personagens">
+              Define como os personagens evoluem durante a campanha.
+            </RuleSection>
+            <RuleSection title="Nen & Habilidades">
+              Configure as regras para uso e desenvolvimento de Nen.
+            </RuleSection>
+          </RulesSidebar>
+        }
+      >
+        <CampaignHeader>
+          <CampaignTitle>{campaign.name.toUpperCase()}</CampaignTitle>
           <CampaignDate>
-            Início:{" "}
+            Data Atual:{" "}
             {(() => {
-              const [year, month, day] = campaign.storyStartAt.split("-");
+              if (!campaign.storyCurrentAt) return "Data não disponível";
+              const [date] = campaign.storyCurrentAt.split("T");
+              const [year, month, day] = date.split("-");
               return `${day}/${month}/${year}`;
             })()}
           </CampaignDate>
+        </CampaignHeader>
 
-          <MatchesList>
-            {(campaign.matches || []).map((match) => (
-              <MatchItem
-                key={match.uuid}
-                match={match}
-                onClick={() =>
-                  navigate(`/campaigns/${campaign.uuid}/matches/${match.uuid}`, {
-                    state: { sheetId: playerSheetId },
-                  })
-                }
-              />
-            ))}
+        <CampaignBriefDescription>
+          {campaign.briefInitialDescription}
+        </CampaignBriefDescription>
 
-            {isMaster && (
+        <ExpandableText onToggle={() => setDescriptionSignal((s) => !s)}>
+          {campaign.description}
+        </ExpandableText>
+
+        <CampaignDate>
+          Início:{" "}
+          {(() => {
+            const [year, month, day] = campaign.storyStartAt.split("-");
+            return `${day}/${month}/${year}`;
+          })()}
+        </CampaignDate>
+
+        <MatchesList>
+          {(campaign.matches || []).map((match) => (
+            <MatchItem
+              key={match.uuid}
+              match={match}
+              onClick={() =>
+                navigate(`/campaigns/${campaign.uuid}/matches/${match.uuid}`, {
+                  state: { sheetId: playerSheetId },
+                })
+              }
+            />
+          ))}
+
+          {isMaster && (
+            <AdaptiveActionButton
+              label="Criar Partida"
+              type="match"
+              onClick={handleCreateMatch}
+              containerRef={mainContentRef}
+              contentChangeSignal={descriptionSignal}
+            />
+          )}
+
+          {!isMaster && !submitted && sheetId && (
+            <>
               <AdaptiveActionButton
-                label="Criar Partida"
+                label={submitPending ? "Submetendo..." : "Submeter Ficha"}
                 type="match"
-                onClick={handleCreateMatch}
+                onClick={submitPending ? () => {} : handleRequestSubmit}
                 containerRef={mainContentRef}
                 contentChangeSignal={descriptionSignal}
               />
-            )}
+              {nickConflictError && (
+                <NickConflictMessage>
+                  Já existe um personagem com o nick &quot;{sheetNick}&quot; nesta campanha. Escolha outro nick antes de submeter.
+                </NickConflictMessage>
+              )}
+              {submitFailed && !nickConflictError && (
+                <NickConflictMessage>
+                  {isApiError(submitError, 409)
+                    ? `Já existe um personagem com o nick "${sheetNick}" nesta campanha. Escolha outro nick antes de submeter.`
+                    : "Erro ao submeter ficha. Tente novamente."}
+                </NickConflictMessage>
+              )}
+            </>
+          )}
+        </MatchesList>
+      </DetailPageTemplate>
 
-            {!isMaster && !submitted && sheetId && (
-              <>
-                <AdaptiveActionButton
-                  label={submitPending ? "Submetendo..." : "Submeter Ficha"}
-                  type="match"
-                  onClick={submitPending ? () => {} : handleRequestSubmit}
-                  containerRef={mainContentRef}
-                  contentChangeSignal={descriptionSignal}
-                />
-                {nickConflictError && (
-                  <NickConflictMessage>
-                    Já existe um personagem com o nick &quot;{sheetNick}&quot; nesta campanha. Escolha outro nick antes de submeter.
-                  </NickConflictMessage>
-                )}
-                {submitFailed && !nickConflictError && (
-                  <NickConflictMessage>
-                    {isApiError(submitError, 409)
-                      ? `Já existe um personagem com o nick "${sheetNick}" nesta campanha. Escolha outro nick antes de submeter.`
-                      : "Erro ao submeter ficha. Tente novamente."}
-                  </NickConflictMessage>
-                )}
-              </>
-            )}
-          </MatchesList>
-        </MainContentContainer>
-      </PageBody>
       {showSubmitConfirm && (
         <ConfirmDialog
           message="Tem certeza que deseja submeter esta ficha para a campanha? Esta ação não pode ser desfeita."
@@ -214,66 +233,9 @@ export default function CampaignPage() {
           onCancel={() => setShowSubmitConfirm(false)}
         />
       )}
-    </CampaignContainer>
+    </>
   );
 }
-
-const CampaignContainer = styled.div`
-  display: grid;
-  grid-template-rows: auto 1fr;
-  height: 100vh;
-  height: 100dvh;
-  overflow: hidden;
-`;
-
-const PageBody = styled.main`
-  display: flex;
-  color: white;
-  min-height: 0;
-  overflow: hidden;
-`;
-
-const SidebarContainer = styled.div`
-  width: 300px;
-  background-color: #2d2215;
-  padding: 20px;
-  position: relative;
-  overflow-y: auto;
-  flex-shrink: 0;
-`;
-
-const SidebarTitle = styled.h2`
-  font-family: "Roboto", sans-serif;
-  font-weight: 700;
-  font-size: 32px;
-  text-align: center;
-  color: white;
-
-  margin-bottom: 20px;
-  border-bottom: 1px solid #696969;
-  padding-bottom: 10px;
-`;
-
-const CharactersList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  position: relative;
-  padding-bottom: 103px;
-`;
-
-const MainContentContainer = styled.div`
-  flex: 1;
-  padding: 30px 30px 20px 30px;
-  overflow-y: auto;
-
-  /* world map */
-  background-image: url(${worldMap});
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-attachment: fixed; /* fixes the background during scrolling */
-`;
 
 const CampaignHeader = styled.div`
   display: flex;
