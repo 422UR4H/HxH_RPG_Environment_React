@@ -2,6 +2,7 @@ import { type ReactNode, type RefObject } from "react";
 import styled from "styled-components";
 import PageHeader from "../atoms/PageHeader";
 import worldMap from "../../assets/images/worldmap.png";
+import { colors } from "../../styles/tokens";
 
 interface DetailPageTemplateProps {
   headerColor?: string;
@@ -13,7 +14,7 @@ interface DetailPageTemplateProps {
 }
 
 export default function DetailPageTemplate({
-  headerColor = "#08491f",
+  headerColor = colors.brandPrimary,
   bgImage = worldMap,
   mainRef,
   leftSidebar,
@@ -44,7 +45,7 @@ const PageContainer = styled.div`
 
 const PageBody = styled.main`
   display: flex;
-  color: white;
+  color: ${colors.textPrimary};
   min-height: 0;
   overflow: hidden;
 `;

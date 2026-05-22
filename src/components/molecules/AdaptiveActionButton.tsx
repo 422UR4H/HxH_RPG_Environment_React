@@ -2,6 +2,7 @@ import { useRef, useEffect, useState } from "react";
 import { useDebounce } from "../../hooks/useDebounce";
 import PlusIcon from "../ions/PlusIcon";
 import styled from "styled-components";
+import { colors, fonts } from "../../styles/tokens";
 
 interface AdaptiveActionButtonProps {
   label: string;
@@ -143,19 +144,19 @@ const ActionButton = styled.button<{
         ${$type === "character" ? "left: 20px;" : "left: 340px;"}
         border-radius: 50px;
         padding: 15px 30px 15px 26px;
-        background-color: #107135;
-        color: white;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        background-color: ${colors.brandAccent};
+        color: ${colors.textPrimary};
+        box-shadow: 0 4px 10px ${colors.shadowSoft};
         gap: 10px;
 
-        font-family: "Roboto", sans-serif;
+        font-family: ${fonts.sans};
         font-size: 26px;
         font-weight: 600;
 
         &:hover {
           transform: translateY(-5px);
           filter: brightness(1.1);
-          box-shadow: 0 8px 15px rgba(0, 0, 0, 0.4);
+          box-shadow: 0 8px 15px ${colors.shadowStrong};
         }
         &:active {
           transform: scale(0.98);
@@ -169,12 +170,12 @@ const ActionButton = styled.button<{
         justify-content: center;
         padding: ${$type === "character" ? "15px" : "20px"};
         border-radius: 8px;
-        background-color: #107135;
-        color: white;
+        background-color: ${colors.brandAccent};
+        color: ${colors.textPrimary};
         box-shadow: none;
         gap: 15px;
 
-        font-family: "Roboto", sans-serif;
+        font-family: ${fonts.sans};
         font-size: 26px;
         font-weight: 600;
 

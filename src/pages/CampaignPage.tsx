@@ -6,6 +6,7 @@ import { useCampaignDetails } from "../hooks/useCampaignDetails";
 import { useSubmitCharacterSheet } from "../hooks/useSubmitCharacterSheet";
 import type { CharacterPrivateSummary } from "../types/campaign";
 import styled from "styled-components";
+import { colors, fonts } from "../styles/tokens";
 import CharacterSidebarItem from "../components/molecules/CharacterSidebarItem";
 import MatchItem from "../features/campaign/MatchItem";
 import AdaptiveActionButton from "../components/molecules/AdaptiveActionButton";
@@ -246,28 +247,28 @@ const CampaignHeader = styled.div`
 `;
 
 const CampaignTitle = styled.h1`
-  font-family: "Roboto", sans-serif;
+  font-family: ${fonts.sans};
   font-size: 42px;
   font-weight: 900;
-  color: white;
+  color: ${colors.textPrimary};
 `;
 
 const CampaignDate = styled.div`
-  font-family: "Roboto", sans-serif;
+  font-family: ${fonts.sans};
   font-weight: 400;
   text-align: right;
-  color: white;
+  color: ${colors.textPrimary};
   font-size: 18px;
   line-height: 1.5;
 `;
 
 const CampaignBriefDescription = styled.p`
-  font-family: "Roboto", sans-serif;
+  font-family: ${fonts.sans};
   font-weight: 400;
   font-size: 26px;
   line-height: 1.5;
   margin-bottom: 20px;
-  color: white;
+  color: ${colors.textPrimary};
   font-style: italic;
 `;
 
@@ -280,12 +281,12 @@ const MatchesList = styled.div`
 `;
 
 const NickConflictMessage = styled.p`
-  font-family: "Roboto", sans-serif;
+  font-family: ${fonts.sans};
   font-size: max(2.6cqi, 12px);
   line-height: 1.2;
-  color: #ff1c1c;
-  background: rgba(0, 0, 0, 0.44);
-  border-left: 3px solid #ff1c1c;
+  color: ${colors.accentDanger};
+  background: ${colors.overlaySoft};
+  border-left: 3px solid ${colors.accentDanger};
   padding: 10px 14px;
   border-radius: 0 8px 8px 0;
   white-space: pre-line;

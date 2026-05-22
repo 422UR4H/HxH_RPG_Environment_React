@@ -1,5 +1,6 @@
 import styled from "styled-components";
 import PlusIcon from "../ions/PlusIcon";
+import { colors, fonts, gradients } from "../../styles/tokens";
 
 interface CreateButtonProps {
   variant: "green" | "orange";
@@ -17,13 +18,13 @@ export default function CreateButton({ variant, label, onClick }: CreateButtonPr
 }
 
 const StyledButton = styled.button<{ $variant: "green" | "orange" }>`
-  font-family: "Roboto", sans-serif;
+  font-family: ${fonts.sans};
   font-size: 26px;
   font-weight: 600;
   ${({ $variant }) =>
     $variant === "green"
-      ? "background-color: #107135; color: white;"
-      : "background: linear-gradient(to bottom, #ffa216 0%, #ffa216 20%, #e60000 100%); color: black;"}
+      ? `background-color: ${colors.brandAccent}; color: ${colors.textPrimary};`
+      : `background: ${gradients.orange}; color: ${colors.textOnLight};`}
   height: 100px;
   width: 80vw;
   max-width: 940px;
@@ -34,14 +35,14 @@ const StyledButton = styled.button<{ $variant: "green" | "orange" }>`
   justify-content: center;
   gap: 15px;
   transition: transform 0.2s, box-shadow 0.2s;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 6px ${colors.shadowSoft};
   cursor: pointer;
 
   &:hover {
     transform: translateY(-5px);
     filter: brightness(1.1);
-    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.4);
-    border: 4px solid ${({ $variant }) => ($variant === "green" ? "white" : "black")};
+    box-shadow: 0 8px 15px ${colors.shadowStrong};
+    border: 4px solid ${({ $variant }) => ($variant === "green" ? colors.textPrimary : colors.textOnLight)};
   }
   &:active {
     transform: scale(0.98);

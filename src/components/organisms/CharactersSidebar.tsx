@@ -1,5 +1,6 @@
 import { type ReactNode, type RefObject } from "react";
 import styled from "styled-components";
+import { colors, fonts } from "../../styles/tokens";
 
 interface CharactersSidebarProps<T> {
   title?: string;
@@ -29,7 +30,7 @@ export default function CharactersSidebar<T>({
 
 const SidebarContainer = styled.aside`
   width: 300px;
-  background-color: #2d2215;
+  background-color: ${colors.surfaceSidebar};
   padding: 20px;
   position: relative;
   overflow-y: auto;
@@ -37,13 +38,13 @@ const SidebarContainer = styled.aside`
 `;
 
 const SidebarTitle = styled.h2`
-  font-family: "Roboto", sans-serif;
+  font-family: ${fonts.sans};
   font-weight: 700;
   font-size: 32px;
   text-align: center;
-  color: white;
+  color: ${colors.textPrimary};
   margin-bottom: 20px;
-  border-bottom: 1px solid #696969;
+  border-bottom: 1px solid ${colors.borderDivider};
   padding-bottom: 10px;
 `;
 

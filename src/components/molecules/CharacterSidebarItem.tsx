@@ -2,6 +2,7 @@ import styled from "styled-components";
 import type { CharacterBaseSummary, StatusBar } from "../../types/characterSheet";
 import { createEmptyCharacterSheet } from "../../features/sheet/factories/characterSheet.factory";
 import CharacterSheetHeader from "./CharacterSheetHeader";
+import { colors } from "../../styles/tokens";
 
 interface CharacterSidebarItemProps {
   character: CharacterBaseSummary & {
@@ -90,12 +91,12 @@ const ItemContainer = styled.div<{
   border-left: 4px solid
     ${({ $isDead, $isPending, $isNpc }) =>
       $isDead
-        ? "#e74c3c"
+        ? colors.danger
         : $isPending
-        ? "#3498db"
+        ? colors.statusPending
         : $isNpc
-        ? "#2ecc71"
-        : "#ffa216"};
+        ? colors.statusNpc
+        : colors.orange};
 
   &:hover {
     filter: ${({ $clickable }) => ($clickable ? "brightness(1.05)" : "none")};
@@ -114,21 +115,21 @@ const Badge = styled.span`
 `;
 
 const PendingBadge = styled(Badge)`
-  background-color: #3498db;
-  color: white;
+  background-color: ${colors.statusPending};
+  color: ${colors.textPrimary};
 `;
 
 const DeadBadge = styled(Badge)`
-  background-color: #e74c3c;
-  color: white;
+  background-color: ${colors.danger};
+  color: ${colors.textPrimary};
 `;
 
 const NpcBadge = styled(Badge)`
-  background-color: #2ecc71;
-  color: white;
+  background-color: ${colors.statusNpc};
+  color: ${colors.textPrimary};
 `;
 
 const LeftBadge = styled(Badge)`
-  background-color: #555;
-  color: #ccc;
+  background-color: ${colors.statusLeft};
+  color: ${colors.textDisabled};
 `;
