@@ -26,8 +26,7 @@ export const colors = {
 
   // actions
   submitDisabled: "#7a5618",
-  orangeStart: "#ffa216", // create-button orange gradient start
-  orangeEnd: "#e60000", // create-button orange gradient end
+  orange: "#ffa216", // standalone orange: item borders, badges
 
   // domain status
   statusScheduled: "#b8860b",
@@ -54,4 +53,11 @@ export const colors = {
 export const fonts = {
   sans: '"Roboto", sans-serif',
   display: '"Oswald", sans-serif',
+} as const;
+
+// Gradients are single, atomic design decisions — one token per gradient,
+// not one per color stop.
+export const gradients = {
+  // "orange" CreateButton variant background
+  orange: `linear-gradient(to bottom, ${colors.orange} 0%, ${colors.orange} 20%, #e60000 100%)`,
 } as const;

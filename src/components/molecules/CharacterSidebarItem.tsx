@@ -96,7 +96,7 @@ const ItemContainer = styled.div<{
         ? colors.statusPending
         : $isNpc
         ? colors.statusNpc
-        : colors.orangeStart};
+        : colors.orange};
 
   &:hover {
     filter: ${({ $clickable }) => ($clickable ? "brightness(1.05)" : "none")};

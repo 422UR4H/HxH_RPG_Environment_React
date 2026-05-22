@@ -1,6 +1,6 @@
 import styled from "styled-components";
 import PlusIcon from "../ions/PlusIcon";
-import { colors, fonts } from "../../styles/tokens";
+import { colors, fonts, gradients } from "../../styles/tokens";
 
 interface CreateButtonProps {
   variant: "green" | "orange";
@@ -24,7 +24,7 @@ const StyledButton = styled.button<{ $variant: "green" | "orange" }>`
   ${({ $variant }) =>
     $variant === "green"
       ? `background-color: ${colors.brandAccent}; color: ${colors.textPrimary};`
-      : `background: linear-gradient(to bottom, ${colors.orangeStart} 0%, ${colors.orangeStart} 20%, ${colors.orangeEnd} 100%); color: ${colors.textOnLight};`}
+      : `background: ${gradients.orange}; color: ${colors.textOnLight};`}
   height: 100px;
   width: 80vw;
   max-width: 940px;
