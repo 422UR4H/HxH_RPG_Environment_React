@@ -115,41 +115,6 @@ function CharacterSheetTemplate({
         }}
       />
 
-      {/* <HeaderSection>
-        <CharacterMeta>
-          {categoryName && (
-            <MetaItem>
-              <Label>Categoria:</Label> {categoryName}
-            </MetaItem>
-          )}
-        </CharacterMeta>
-      </HeaderSection>
-
-      <StatusSection>
-        <ExperienceSection>
-          <SectionTitle>Experiência</SectionTitle>
-          <ExperienceBar>
-            <ExpLabel>Nível {characterExp.level}</ExpLabel>
-            <ExpBarContainer>
-              <ExpBarFill
-                style={{
-                  width: `${
-                    (characterExp.currExp /
-                      (characterExp.currExp + characterExp.nextLvlBaseExp)) *
-                    100
-                  }%`,
-                }}
-              />
-            </ExpBarContainer>
-            <ExpValue>
-              {characterExp.currExp} /{" "}
-              {characterExp.currExp + characterExp.nextLvlBaseExp}
-            </ExpValue>
-          </ExperienceBar>
-          <ExpTotal>EXP Total: {characterExp.exp}</ExpTotal>
-        </ExperienceSection>
-      </StatusSection> */}
-
       <CharacterProfile
         mode={sheetMode.profileMode}
         charSheet={charSheet}
@@ -219,21 +184,6 @@ function CharacterSheetTemplate({
             )}
           </SkillsSection>
         </GridSection>
-
-        {/* <AbilitiesSection>
-        <SectionTitle>Habilidades</SectionTitle>
-        <AbilitiesList>
-          {Object.entries(abilities).map(([name, ability]) => (
-            <AbilityItem key={name}>
-              <AbilityName>{name}</AbilityName>
-              <AbilityMeta>
-                <AbilityLevel>Nível: {ability.level}</AbilityLevel>
-                <AbilityBonus>Bônus: +{ability.bonus}</AbilityBonus>
-              </AbilityMeta>
-            </AbilityItem>
-          ))}
-        </AbilitiesList>
-      </AbilitiesSection> */}
 
         <ProficienciesSection>
           <SectionTitle>Proficiências</SectionTitle>
@@ -310,90 +260,6 @@ const SheetContainer = styled.div`
   background-color: black;
   position: relative;
 `;
-
-// const HeaderSection = styled.div`
-//   margin-bottom: 30px;
-//   border-bottom: 1px solid #444;
-//   padding-bottom: 20px;
-// `;
-
-// const CharacterMeta = styled.div`
-//   display: flex;
-//   flex-wrap: wrap;
-//   gap: 15px;
-//   margin-bottom: 15px;
-// `;
-
-// const MetaItem = styled.div`
-//   font-size: 26px;
-// `;
-
-// const Label = styled.span`
-//   color: #9f9f9f;
-//   margin-right: 5px;
-// `;
-
-// const StatusSection = styled.section`
-//   margin-bottom: 30px;
-//   background-color: #333333;
-//   border-radius: 8px;
-//   padding: 20px;
-// `;
-
-// const BarContainer = styled.div`
-//   flex-grow: 1;
-//   height: 20px;
-//   background-color: #444;
-//   border-radius: 7px;
-//   overflow: hidden;
-// `;
-
-// const BarFill = styled.div`
-//   height: 100%;
-//   transition: width 0.3s ease;
-// `;
-
-// const ExperienceSection = styled.div`
-//   margin-top: 20px;
-// `;
-
-// const ExperienceBar = styled.div`
-//   font-size: 24px;
-//   display: flex;
-//   align-items: center;
-//   gap: 10px;
-//   margin-top: 10px;
-// `;
-
-// const ExpLabel = styled.span`
-//   width: 90px;
-//   font-weight: bold;
-// `;
-
-// const ExpBarContainer = styled.div`
-//   flex-grow: 1;
-//   height: 20px;
-//   background-color: #444;
-//   border-radius: 7px;
-//   overflow: hidden;
-// `;
-
-// const ExpBarFill = styled.div`
-//   height: 100%;
-//   background-color: #f39c12;
-//   transition: width 0.3s ease;
-// `;
-
-// const ExpValue = styled.span`
-//   width: 120px;
-//   text-align: right;
-// `;
-
-// const ExpTotal = styled.div`
-//   margin-top: 10px;
-//   text-align: right;
-//   color: #9f9f9f;
-// `;
 
 const MainContent = styled.main<{ $hasBottomActions?: boolean }>`
   position: relative;
@@ -472,47 +338,6 @@ const SkillsSection = styled.section`
 const SkillsGroup = styled.div`
   /* margin-bottom: 20px; */
 `;
-
-// const AbilitiesSection = styled.section`
-//   container-type: inline-size;
-//   background-color: #333333;
-//   border-radius: 8px;
-//   padding: 20px;
-//   margin-bottom: 30px;
-// `;
-
-// const AbilitiesList = styled.div`
-//   display: grid;
-//   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-//   gap: 15px;
-// `;
-
-// const AbilityItem = styled.div`
-//   background-color: #444;
-//   border-radius: 6px;
-//   padding: 15px;
-// `;
-
-// const AbilityName = styled.div`
-//   font-weight: bold;
-//   font-size: 26px;
-//   margin-bottom: 10px;
-// `;
-
-// const AbilityMeta = styled.div`
-//   display: flex;
-//   justify-content: space-between;
-// `;
-
-// const AbilityLevel = styled.div`
-//   font-size: 22px;
-//   color: #e0e0e0;
-// `;
-
-// const AbilityBonus = styled.div`
-//   font-size: 22px;
-//   color: #2ecc71;
-// `;
 
 const ProficienciesSection = styled.section`
   container-type: inline-size;
