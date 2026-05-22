@@ -48,7 +48,13 @@ Types in `src/types/` assume camelCase is already applied.
 
 ## Components: Atomic Design
 
-`src/components/` layers: `ions/` (primitives) → `atoms/` (small composed UI) → `molecules/` → `templates/` (page shells). Place new shared UI at the lowest layer that fits; promote upward only when reused across layers.
+`src/components/` layers: `ions/` (primitives) → `atoms/` (small composed UI) → `molecules/` → `organisms/` (large UI pieces) → `templates/` (page shells). Place new shared UI at the lowest layer that fits; promote upward only when reused across layers.
+
+**See `src/components/CLAUDE.md`** for the full architecture: `components/` vs `features/` rule, the migration policy, the available templates, design-token rules, and the pixel-tuned do-not-normalize zone.
+
+## Design tokens
+
+Colors, fonts and gradients live in `src/styles/tokens.ts` (`colors`, `fonts`, `gradients`). No raw hex/rgba in styled-components outside the pixel-tuned zone — add a token instead. Currently applied across the refactored surface (templates, organisms, form components, `CampaignPage`/`MatchPage`).
 
 ## Styling
 
