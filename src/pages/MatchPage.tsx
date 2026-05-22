@@ -304,14 +304,14 @@ export default function MatchPage() {
 }
 
 const BasicParticipantItem = styled.div`
-  background-color: #333;
+  background-color: ${colors.surfaceMuted};
   border-radius: 8px;
   padding: 15px;
   border-left: 4px solid ${colors.orangeStart};
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-family: "Oswald", sans-serif;
+  font-family: ${fonts.display};
   font-size: 18px;
   font-weight: bold;
   color: ${colors.textPrimary};

@@ -11,6 +11,7 @@ export const colors = {
   surfaceInput: "#493823", // form field background, rule-section background
   surfaceScrollTrack: "#42331f", // webkit scrollbar track
   surfaceScrollThumbHover: "#5a4529", // webkit scrollbar thumb on hover
+  surfaceMuted: "#333", // fallback dark card (participant without private data)
 
   // borders
   borderInput: "#604d31",
