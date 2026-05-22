@@ -3,6 +3,7 @@ import styled from "styled-components";
 import PageHeader from "../atoms/PageHeader";
 import PageTitle from "../ions/PageTitle";
 import worldMap from "../../assets/images/worldmap.png";
+import { colors, fonts } from "../../styles/tokens";
 
 interface CreateFormTemplateProps {
   title: string;
@@ -18,7 +19,7 @@ interface CreateFormTemplateProps {
 
 export default function CreateFormTemplate({
   title,
-  headerColor = "#08491f",
+  headerColor = colors.brandPrimary,
   error,
   onSubmit,
   submitLabel,
@@ -72,25 +73,25 @@ const PageContainer = styled.div`
       height: 12px;
     }
     &::-webkit-scrollbar-track {
-      background: #42331f;
+      background: ${colors.surfaceScrollTrack};
     }
     &::-webkit-scrollbar-thumb {
-      background: #493823;
+      background: ${colors.surfaceInput};
       border-radius: 6px;
-      border: 2px solid #2d2215;
+      border: 2px solid ${colors.surfaceSidebar};
     }
     &::-webkit-scrollbar-thumb:hover {
-      background: #5a4529;
+      background: ${colors.surfaceScrollThumbHover};
     }
     &::-webkit-scrollbar-corner {
-      background: #2d2215;
+      background: ${colors.surfaceSidebar};
     }
   }
 `;
 
 const PageBody = styled.main`
   display: flex;
-  color: white;
+  color: ${colors.textPrimary};
   min-height: 0;
   overflow: hidden;
 `;
@@ -120,8 +121,8 @@ const FormColumn = styled.div`
 `;
 
 const ErrorMessage = styled.div`
-  background-color: rgba(231, 76, 60, 0.2);
-  color: #e74c3c;
+  background-color: ${colors.errorBg};
+  color: ${colors.danger};
   padding: 15px;
   border-radius: 6px;
   margin-bottom: 20px;
@@ -141,7 +142,7 @@ const ButtonsContainer = styled.div`
 const Button = styled.button`
   padding: 16px 32px;
   border-radius: 6px;
-  font-family: "Roboto", sans-serif;
+  font-family: ${fonts.sans};
   font-size: 26px;
   font-weight: bold;
   cursor: pointer;
@@ -149,8 +150,8 @@ const Button = styled.button`
 `;
 
 const SubmitButton = styled(Button)`
-  background-color: #107135;
-  color: white;
+  background-color: ${colors.brandAccent};
+  color: ${colors.textPrimary};
   border: none;
   margin: 0 16px;
 
@@ -165,15 +166,15 @@ const SubmitButton = styled(Button)`
   }
 
   &:disabled {
-    background-color: #7a5618;
+    background-color: ${colors.submitDisabled};
     cursor: not-allowed;
   }
 `;
 
 const CancelButton = styled(Button)`
   background-color: transparent;
-  color: white;
-  border: 1px solid white;
+  color: ${colors.textPrimary};
+  border: 1px solid ${colors.textPrimary};
 
   transition: all 0.2s ease;
 

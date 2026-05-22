@@ -2,6 +2,7 @@ import { type ReactNode } from "react";
 import styled from "styled-components";
 import PageHeader from "../atoms/PageHeader";
 import { LoadingContainer, ErrorContainer } from "../atoms/PageStates";
+import { colors } from "../../styles/tokens";
 
 interface ListPageTemplateProps {
   bgImage: string;
@@ -16,7 +17,7 @@ interface ListPageTemplateProps {
 
 export default function ListPageTemplate({
   bgImage,
-  headerColor = "#08491f",
+  headerColor = colors.brandPrimary,
   bgAttachment = "fixed",
   isPending,
   isError,
