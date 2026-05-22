@@ -1,5 +1,6 @@
 import { type ReactNode } from "react";
 import styled from "styled-components";
+import { colors, fonts } from "../../styles/tokens";
 
 interface EmptyStateProps {
   children: ReactNode;
@@ -22,9 +23,9 @@ const Container = styled.div`
 `;
 
 const Message = styled.p`
-  font-family: "Roboto", sans-serif;
+  font-family: ${fonts.sans};
   font-weight: 600;
-  color: white;
+  color: ${colors.textPrimary};
   font-size: 28px;
   margin-bottom: 20px;
 `;

@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import { colors, fonts } from "../../styles/tokens";
 
 interface FormCheckboxProps {
   id: string;
@@ -38,10 +39,10 @@ const Group = styled.div`
 `;
 
 const GroupLabel = styled.span`
-  font-family: "Roboto", sans-serif;
+  font-family: ${fonts.sans};
   font-weight: 700;
   font-size: 26px;
-  color: white;
+  color: ${colors.textPrimary};
 `;
 
 const CheckboxContainer = styled.div`
@@ -57,16 +58,16 @@ const Checkbox = styled.input`
 `;
 
 const CheckboxLabel = styled.label`
-  font-family: "Roboto", sans-serif;
+  font-family: ${fonts.sans};
   font-weight: 500;
   font-size: 26px;
   cursor: pointer;
 `;
 
 const HelpText = styled.p`
-  font-family: "Roboto", sans-serif;
+  font-family: ${fonts.sans};
   font-weight: 400;
   font-size: 18px;
-  color: white;
+  color: ${colors.textPrimary};
   margin-top: 4px;
 `;
