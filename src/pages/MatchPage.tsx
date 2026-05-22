@@ -10,6 +10,7 @@ import { useRejectEnrollment } from "../hooks/useRejectEnrollment";
 import { useEnrollCharacterSheet } from "../hooks/useEnrollCharacterSheet";
 import type { CharacterPrivateSummary } from "../types/characterSheet";
 import styled from "styled-components";
+import { colors, fonts } from "../styles/tokens";
 import EnrollmentSidebarItem from "../features/match/EnrollmentSidebarItem";
 import CharacterSidebarItem from "../components/molecules/CharacterSidebarItem";
 import AdaptiveActionButton from "../components/molecules/AdaptiveActionButton";
@@ -306,14 +307,14 @@ const BasicParticipantItem = styled.div`
   background-color: #333;
   border-radius: 8px;
   padding: 15px;
-  border-left: 4px solid #ffa216;
+  border-left: 4px solid ${colors.orangeStart};
   display: flex;
   justify-content: space-between;
   align-items: center;
   font-family: "Oswald", sans-serif;
   font-size: 18px;
   font-weight: bold;
-  color: white;
+  color: ${colors.textPrimary};
 `;
 
 const LeftBadge = styled.span`
@@ -321,8 +322,8 @@ const LeftBadge = styled.span`
   padding: 2px 6px;
   font-size: 12px;
   font-weight: bold;
-  background-color: #555;
-  color: #ccc;
+  background-color: ${colors.statusLeft};
+  color: ${colors.textDisabled};
 `;
 
 const MatchHeader = styled.div`
@@ -334,10 +335,10 @@ const MatchHeader = styled.div`
 `;
 
 const MatchTitle = styled.h1`
-  font-family: "Roboto", sans-serif;
+  font-family: ${fonts.sans};
   font-size: 42px;
   font-weight: 900;
-  color: white;
+  color: ${colors.textPrimary};
 `;
 
 const DateSection = styled.div`
@@ -349,7 +350,7 @@ const DateSection = styled.div`
 `;
 
 const StatusPill = styled.span<{ $status: MatchStatus }>`
-  font-family: "Roboto", sans-serif;
+  font-family: ${fonts.sans};
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -357,18 +358,18 @@ const StatusPill = styled.span<{ $status: MatchStatus }>`
   border-radius: 20px;
   background-color: ${({ $status }) =>
     $status === "scheduled"
-      ? "#b8860b"
+      ? colors.statusScheduled
       : $status === "ongoing"
-      ? "#27ae60"
-      : "#7d3030"};
-  color: white;
+      ? colors.statusOngoing
+      : colors.statusEnded};
+  color: ${colors.textPrimary};
 `;
 
 const DateLabel = styled.div`
-  font-family: "Roboto", sans-serif;
+  font-family: ${fonts.sans};
   font-weight: 400;
   font-size: 18px;
-  color: white;
+  color: ${colors.textPrimary};
   text-align: right;
 `;
 
@@ -378,31 +379,31 @@ const DateValueWithTooltip = styled.span`
 `;
 
 const StoryDate = styled.div`
-  font-family: "Roboto", sans-serif;
+  font-family: ${fonts.sans};
   font-weight: 400;
   font-size: 18px;
-  color: white;
+  color: ${colors.textPrimary};
   margin-bottom: 20px;
 `;
 
 const MatchBriefDescription = styled.p`
-  font-family: "Roboto", sans-serif;
+  font-family: ${fonts.sans};
   font-weight: 400;
   font-size: 26px;
   line-height: 1.5;
   margin-bottom: 20px;
-  color: white;
+  color: ${colors.textPrimary};
   font-style: italic;
 `;
 
 const MatchFinalDescription = styled.p`
-  font-family: "Roboto", sans-serif;
+  font-family: ${fonts.sans};
   font-weight: 400;
   font-size: 18px;
   line-height: 1.5;
   font-style: italic;
-  color: #e0e0e0;
-  border-top: 1px solid #555;
+  color: ${colors.textMuted};
+  border-top: 1px solid ${colors.statusLeft};
   padding-top: 15px;
   margin-bottom: 20px;
 `;
@@ -415,7 +416,7 @@ const ActionsList = styled.div`
 const ConfirmOverlay = styled.div`
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: ${colors.overlay};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -423,7 +424,7 @@ const ConfirmOverlay = styled.div`
 `;
 
 const StyledLobbyDialog = styled.div`
-  background-color: #2d2215;
+  background-color: ${colors.surfaceSidebar};
   border-radius: 12px;
   padding: 30px;
   max-width: 480px;
@@ -434,9 +435,9 @@ const StyledLobbyDialog = styled.div`
 `;
 
 const ConfirmText = styled.p`
-  font-family: "Roboto", sans-serif;
+  font-family: ${fonts.sans};
   font-size: 20px;
-  color: white;
+  color: ${colors.textPrimary};
   line-height: 1.5;
 `;
 
@@ -447,7 +448,7 @@ const ConfirmButtons = styled.div`
 `;
 
 const BaseDialogButton = styled.button`
-  font-family: "Roboto", sans-serif;
+  font-family: ${fonts.sans};
   font-size: 18px;
   font-weight: 600;
   padding: 12px 24px;
@@ -465,12 +466,12 @@ const BaseDialogButton = styled.button`
 
 const DialogCancelButton = styled(BaseDialogButton)`
   background-color: transparent;
-  border: 1px solid white;
-  color: white;
+  border: 1px solid ${colors.textPrimary};
+  color: ${colors.textPrimary};
 `;
 
 const DialogLobbyButton = styled(BaseDialogButton)`
-  background-color: #107135;
+  background-color: ${colors.brandAccent};
   border: none;
-  color: white;
+  color: ${colors.textPrimary};
 `;
