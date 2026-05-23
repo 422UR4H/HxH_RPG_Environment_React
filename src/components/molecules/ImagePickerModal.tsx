@@ -5,6 +5,7 @@ import "react-advanced-cropper/dist/style.css";
 import type { CropperRef } from "react-advanced-cropper";
 import imageCompression from "browser-image-compression";
 import styled from "styled-components";
+import { colors } from "../../styles/tokens";
 
 export type ImageType = "avatar" | "cover";
 
@@ -179,7 +180,7 @@ export default function ImagePickerModal({
 const Overlay = styled.div`
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: ${colors.overlay};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -187,7 +188,7 @@ const Overlay = styled.div`
 `;
 
 const Modal = styled.div`
-  background: #2a2a2a;
+  background: ${colors.grayBgModal};
   border-radius: 12px;
   padding: 28px;
   width: min(560px, 92vw);
@@ -202,14 +203,14 @@ const ModalTitle = styled.h2`
   font-family: "Roboto", sans-serif;
   font-size: 1.4rem;
   font-weight: 700;
-  color: white;
+  color: ${colors.textPrimary};
   margin: 0;
 `;
 
 const Subtitle = styled.p`
   font-family: "Roboto", sans-serif;
   font-size: 0.85rem;
-  color: #aaa;
+  color: ${colors.textPlaceholderStrong};
   margin: 0;
   text-align: center;
 `;
@@ -225,16 +226,16 @@ const ModeButton = styled.button<{ $active: boolean }>`
   font-family: "Roboto", sans-serif;
   font-size: 0.9rem;
   font-weight: ${({ $active }) => ($active ? "600" : "400")};
-  color: ${({ $active }) => ($active ? "white" : "#aaa")};
-  background: ${({ $active }) => ($active ? "#107135" : "transparent")};
-  border: 2px solid ${({ $active }) => ($active ? "#107135" : "#555")};
+  color: ${({ $active }) => ($active ? colors.textPrimary : colors.textPlaceholderStrong)};
+  background: ${({ $active }) => ($active ? colors.brandAccent : "transparent")};
+  border: 2px solid ${({ $active }) => ($active ? colors.brandAccent : colors.grayMid)};
   border-radius: 6px;
   cursor: pointer;
 `;
 
 const OverwriteWarning = styled.div`
-  background: #3a2a00;
-  border: 1px solid #a07000;
+  background: ${colors.warningBgDark};
+  border: 1px solid ${colors.warningBorder};
   border-radius: 6px;
   padding: 12px 16px;
   display: flex;
@@ -245,7 +246,7 @@ const OverwriteWarning = styled.div`
 const WarningText = styled.p`
   font-family: "Roboto", sans-serif;
   font-size: 0.9rem;
-  color: #ffc107;
+  color: ${colors.warningText};
   margin: 0;
 `;
 
@@ -254,39 +255,39 @@ const WarningActions = styled.div`display: flex; gap: 8px;`;
 const WarningButton = styled.button`
   padding: 6px 14px;
   background: transparent;
-  color: #aaa;
-  border: 1px solid #555;
+  color: ${colors.textPlaceholderStrong};
+  border: 1px solid ${colors.grayMid};
   border-radius: 4px;
   cursor: pointer;
   font-size: 0.85rem;
 `;
 
 const DiscardButton = styled(WarningButton)`
-  background: #a07000;
-  color: white;
-  border-color: #a07000;
+  background: ${colors.warningBorder};
+  color: ${colors.textPrimary};
+  border-color: ${colors.warningBorder};
 `;
 
 const UrlSection = styled.div`display: flex; flex-direction: column; gap: 10px;`;
 
 const UrlInput = styled.input`
   padding: 10px 14px;
-  background: #1a1a1a;
-  border: 2px solid #555;
+  background: ${colors.grayBgDeeper};
+  border: 2px solid ${colors.grayMid};
   border-radius: 6px;
-  color: white;
+  color: ${colors.textPrimary};
   font-family: "Roboto", sans-serif;
   font-size: 0.9rem;
-  &:focus { outline: none; border-color: #107135; }
+  &:focus { outline: none; border-color: ${colors.brandAccent}; }
 `;
 
-const PreviewLabel = styled.p`font-family: "Roboto", sans-serif; font-size: 0.8rem; color: #888; margin: 0;`;
+const PreviewLabel = styled.p`font-family: "Roboto", sans-serif; font-size: 0.8rem; color: ${colors.textPlaceholder}; margin: 0;`;
 
 const PreviewContainer = styled.div<{ $aspectRatio: string; $borderRadius: string }>`
   aspect-ratio: ${({ $aspectRatio }) => $aspectRatio};
   border-radius: ${({ $borderRadius }) => $borderRadius};
   overflow: hidden;
-  border: 2px dashed #555;
+  border: 2px dashed ${colors.grayMid};
 `;
 
 const PreviewImage = styled.img`width: 100%; height: 100%; object-fit: cover;`;
@@ -294,30 +295,30 @@ const PreviewImage = styled.img`width: 100%; height: 100%; object-fit: cover;`;
 const UploadSection = styled.div`display: flex; flex-direction: column; gap: 10px;`;
 
 const DropZone = styled.div`
-  background: #1a1a1a;
-  border: 2px dashed #555;
+  background: ${colors.grayBgDeeper};
+  border: 2px dashed ${colors.grayMid};
   border-radius: 8px;
   padding: 48px 20px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  &:hover { border-color: #107135; }
+  &:hover { border-color: ${colors.brandAccent}; }
 `;
 
-const DropZoneText = styled.p`color: #666; font-family: "Roboto", sans-serif; font-size: 0.9rem; margin: 0;`;
+const DropZoneText = styled.p`color: ${colors.grayMidStrong}; font-family: "Roboto", sans-serif; font-size: 0.9rem; margin: 0;`;
 
 const CropArea = styled.div`display: flex; flex-direction: column; gap: 8px;`;
 
-const CropHint = styled.p`color: #666; font-family: "Roboto", sans-serif; font-size: 0.75rem; text-align: center; margin: 0;`;
+const CropHint = styled.p`color: ${colors.grayMidStrong}; font-family: "Roboto", sans-serif; font-size: 0.75rem; text-align: center; margin: 0;`;
 
 const ModalActions = styled.div`display: flex; justify-content: space-between;`;
 
 const CancelButton = styled.button`
   padding: 10px 20px;
   background: transparent;
-  color: #aaa;
-  border: 2px solid #555;
+  color: ${colors.textPlaceholderStrong};
+  border: 2px solid ${colors.grayMid};
   border-radius: 6px;
   cursor: pointer;
   font-family: "Roboto", sans-serif;
@@ -325,8 +326,8 @@ const CancelButton = styled.button`
 
 const ConfirmButton = styled.button`
   padding: 10px 24px;
-  background: #107135;
-  color: white;
+  background: ${colors.brandAccent};
+  color: ${colors.textPrimary};
   border: none;
   border-radius: 6px;
   cursor: pointer;

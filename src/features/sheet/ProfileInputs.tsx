@@ -3,6 +3,7 @@ import BackgroundButton from "../../components/atoms/BackgroundButton";
 import type { Profile, CharacterSheet } from "../../types/characterSheet";
 import BaseOption from "../../components/ions/BaseOption";
 import BaseSelect from "../../components/ions/BaseSelect";
+import { colors } from "../../styles/tokens";
 
 interface ProfileInputsProps {
   charSheet?: CharacterSheet;
@@ -174,22 +175,22 @@ const ProfileNameInput = styled.input`
   font-family: "Roboto", sans-serif;
   font-size: min(4.2cqi, 32px);
   font-weight: bold;
-  color: white;
-  background-color: #555;
-  border: 2px solid #666;
+  color: ${colors.textPrimary};
+  background-color: ${colors.grayMid};
+  border: 2px solid ${colors.grayMidStrong};
   border-radius: 6px;
   padding: 12px 16px;
   margin-bottom: 2cqi;
   width: 100%;
 
   &::placeholder {
-    color: #9f9f9f;
+    color: ${colors.textInputDisabled};
     font-weight: normal;
   }
 
   &:focus {
     outline: none;
-    border-color: #088e3b;
+    border-color: ${colors.brandAccentBright};
   }
 
   @media (max-width: 609px) {
@@ -201,9 +202,9 @@ const ProfileDescriptionTextarea = styled.textarea`
   font-family: "Roboto", sans-serif;
   font-size: min(3.4cqi, 24px);
   line-height: 1.6;
-  color: white;
-  background-color: #555;
-  border: 2px solid #666;
+  color: ${colors.textPrimary};
+  background-color: ${colors.grayMid};
+  border: 2px solid ${colors.grayMidStrong};
   border-radius: 6px;
   padding: 12px 16px;
   margin-bottom: 2cqi;
@@ -212,12 +213,12 @@ const ProfileDescriptionTextarea = styled.textarea`
   min-height: 80px;
 
   &::placeholder {
-    color: #9f9f9f;
+    color: ${colors.textInputDisabled};
   }
 
   &:focus {
     outline: none;
-    border-color: #088e3b;
+    border-color: ${colors.brandAccentBright};
   }
 
   @media (max-width: 609px) {
@@ -258,7 +259,7 @@ const DetailItem = styled.div`
 const DetailLabel = styled.span`
   font-family: "Roboto", sans-serif;
   font-size: min(3.4cqi, 24px);
-  color: #9f9f9f;
+  color: ${colors.textInputDisabled};
   font-weight: 500;
 
   @media (max-width: 609px) {
@@ -270,20 +271,20 @@ const DetailInput = styled.input`
   font-family: "Roboto", sans-serif;
   font-size: min(3.8cqi, 28px);
   font-weight: 600;
-  color: white;
-  background-color: #555;
-  border: 2px solid #666;
+  color: ${colors.textPrimary};
+  background-color: ${colors.grayMid};
+  border: 2px solid ${colors.grayMidStrong};
   border-radius: 6px;
   padding: 12px 16px;
 
   &::placeholder {
-    color: #9f9f9f;
+    color: ${colors.textInputDisabled};
     font-weight: normal;
   }
 
   &:focus {
     outline: none;
-    border-color: #088e3b;
+    border-color: ${colors.brandAccentBright};
   }
 
   /* Remove increment/decrement from input type number */

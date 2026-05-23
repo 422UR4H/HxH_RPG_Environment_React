@@ -1,6 +1,7 @@
 import { useState } from "react";
 import styled from "styled-components";
 import ExpandButton from "../../components/ions/ExpandButton";
+import { colors } from "../../styles/tokens";
 import type { ProfileMode } from "./types/profileMode";
 import type { CharacterSheet } from "../../types/characterSheet";
 import ProfileDetails from "./ProfileDetails";
@@ -57,8 +58,8 @@ export default function CharacterProfile({
 const ProfileContainer = styled.div`
   container-type: inline-size;
   width: 100%;
-  background-color: #444;
-  border: 3px solid black;
+  background-color: ${colors.surfaceControl};
+  border: 3px solid ${colors.textOnLight};
   /* border-bottom: none; */
   /* margin-bottom: 2cqi; */
   overflow: visible;
@@ -79,7 +80,7 @@ const ProfileHeader = styled.div`
   position: relative;
   z-index: 1;
   cursor: pointer;
-  background-color: #333333;
+  background-color: ${colors.surfaceMuted};
   transition: background-color 0.2s ease;
   overflow: visible;
 

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import ExpandButton from "../ions/ExpandButton";
+import { colors } from "../../styles/tokens";
 
 interface ExpandableTextProps {
   children: React.ReactNode;
@@ -10,7 +11,7 @@ interface ExpandableTextProps {
 
 export default function ExpandableText({
   children,
-  backgroundColor = "#493823",
+  backgroundColor = colors.surfaceInput,
   onToggle,
 }: ExpandableTextProps) {
   const [expanded, setExpanded] = useState(false);
@@ -69,7 +70,7 @@ const Container = styled.div<{
 
   p {
     line-height: 1.6;
-    color: white;
+    color: ${colors.textPrimary};
     max-height: ${({ $expanded }) => ($expanded ? "none" : "calc(1.6em * 5)")};
     overflow: hidden;
     position: relative;
@@ -85,7 +86,7 @@ const Container = styled.div<{
         left: 0;
         right: 0;
         height: 50px;
-        box-shadow: inset 0 -40px 50px 0 rgba(73, 56, 35, 0.9);
+        box-shadow: inset 0 -40px 50px 0 ${colors.fadeSurfaceInput};
         pointer-events: none;
       }
     `}

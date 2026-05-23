@@ -1,6 +1,7 @@
 import { styled } from "styled-components";
 import { type ReactNode } from "react";
 import Logo from "../ions/Logo";
+import { colors, gradients } from "../../styles/tokens";
 
 interface SignPagesTemplateProps {
   children: ReactNode;
@@ -20,7 +21,7 @@ export default function SignPagesTemplate({
 }
 
 export const StyledSignTemplates = styled.div`
-  background: linear-gradient(to bottom, #4b70a4 0%, #2e5397 100%);
+  background: ${gradients.signBg};
   display: flex;
   justify-content: center;
   align-items: center;
@@ -29,7 +30,7 @@ export const StyledSignTemplates = styled.div`
   padding: 30px;
 
   .form-div {
-    background-color: white;
+    background-color: ${colors.textPrimary};
     width: min(535px, 100vw);
     border-radius: 24px;
     padding: 30px;
@@ -45,11 +46,7 @@ export const StyledSignTemplates = styled.div`
     font-size: min(20px, 6vw);
     font-weight: 600;
     line-height: 24px;
-    /* color: white;
-    color: #b91a40;
-    color: black;
-    color: #107135; */
-    color: #2e5397;
+    color: ${colors.linkBlue};
   }
 
   @media (max-width: 480px) {

@@ -2,6 +2,7 @@ import styled from "styled-components";
 import type { Enrollment } from "../../types/match";
 import { createEmptyCharacterSheet } from "../../features/sheet/factories/characterSheet.factory";
 import CharacterSheetHeader from "../../components/molecules/CharacterSheetHeader";
+import { colors } from "../../styles/tokens";
 
 interface EnrollmentSidebarItemProps {
   enrollment: Enrollment;
@@ -91,7 +92,7 @@ const ItemContainer = styled.div<{ $clickable: boolean }>`
   position: relative;
   overflow: hidden;
   border-radius: 0px 16px 0 0;
-  border-left: 4px solid #ffa216;
+  border-left: 4px solid ${colors.orange};
   cursor: ${({ $clickable }) => ($clickable ? "pointer" : "default")};
 
   &:hover {
@@ -110,18 +111,18 @@ const StatusBadge = styled.span<{ $status: string }>`
   font-weight: bold;
   background-color: ${({ $status }) =>
     $status === "pending"
-      ? "#3498db"
+      ? colors.statusPending
       : $status === "accepted"
-      ? "#2ecc71"
-      : "#e74c3c"};
-  color: white;
+      ? colors.statusNpc
+      : colors.danger};
+  color: ${colors.textPrimary};
 `;
 
 const Actions = styled.div`
   display: flex;
   gap: 8px;
   padding: 6px 8px;
-  background-color: rgba(0, 0, 0, 0.6);
+  background-color: ${colors.overlayMedium};
 `;
 
 const ActionButton = styled.button<{ $variant: "accept" | "reject" }>`
@@ -132,8 +133,8 @@ const ActionButton = styled.button<{ $variant: "accept" | "reject" }>`
   font-weight: bold;
   cursor: pointer;
   background-color: ${({ $variant }) =>
-    $variant === "accept" ? "#27ae60" : "#c0392b"};
-  color: white;
+    $variant === "accept" ? colors.statusOngoing : colors.dangerDark};
+  color: ${colors.textPrimary};
   transition: filter 0.2s;
 
   &:hover:not(:disabled) {

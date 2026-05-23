@@ -3,6 +3,7 @@ import { useDebounce } from "../../hooks/useDebounce";
 import PlusIcon from "../../components/ions/PlusIcon";
 import ManageButton from "./ManageButton";
 import styled from "styled-components";
+import { colors, gradients } from "../../styles/tokens";
 
 interface SheetBottomActionsProps {
   onCampaignClick?: () => void;
@@ -118,8 +119,8 @@ const CampaignButton = styled.button`
   height: 100%;
   border: none;
   border-radius: 8px;
-  background: linear-gradient(to bottom, #ffa216 0%, #ffa216 20%, #e60000 100%);
-  color: black;
+  background: ${gradients.orange};
+  color: ${colors.textOnLight};
   font-family: "Roboto", sans-serif;
   font-size: min(26px, 5cqi);
   font-weight: 600;
@@ -159,8 +160,8 @@ const FloatingRight = styled.button`
   border: none;
   border-radius: 50px;
   padding: min(15px, 2.4cqi) min(30px, 5cqi) min(15px, 2.4cqi) min(26px, 5cqi);
-  background: linear-gradient(to bottom, #ffa216 0%, #ffa216 20%, #e60000 100%);
-  color: black;
+  background: ${gradients.orange};
+  color: ${colors.textOnLight};
   font-family: "Roboto", sans-serif;
   font-size: 4cqi;
   font-weight: 600;
@@ -168,12 +169,12 @@ const FloatingRight = styled.button`
   align-items: center;
   gap: 10px;
   cursor: pointer;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 10px ${colors.shadowSoft};
   transition: all 0.3s ease;
   &:hover {
     transform: translateY(-5px);
     filter: brightness(1.1);
-    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 8px 15px ${colors.shadowStrong};
   }
   &:active {
     transform: scale(0.98);

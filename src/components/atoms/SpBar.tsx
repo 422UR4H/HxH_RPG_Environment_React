@@ -1,4 +1,5 @@
 import ProgressBar from "../ions/ProgressBar";
+import { colors } from "../../styles/tokens";
 
 interface SpBarProps {
   current?: number;
@@ -10,9 +11,7 @@ export default function SpBar({ current = 0, max = 0 }: SpBarProps) {
     <ProgressBar
       current={current}
       max={max}
-      // label="Stamina"
-      // color="#2ecc71"
-      color="#088E3B"
+      color={colors.brandAccentBright}
     />
   );
 }

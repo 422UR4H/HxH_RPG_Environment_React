@@ -1,6 +1,7 @@
 import styled from "styled-components";
 import { Link } from "react-router-dom";
 import type { CampaignSummary } from "../../types/campaigns";
+import { colors } from "../../styles/tokens";
 
 function formatNextGame(dateStr: string): string {
   const today = new Date();
@@ -55,25 +56,23 @@ export default function CampaignCard({ campaign, to, nextGameScheduledAt, state 
 
 const CardContainer = styled(Link)`
   display: block;
-  background-color: #493823;
-  color: white;
+  background-color: ${colors.surfaceInput};
+  color: ${colors.textPrimary};
   text-decoration: none;
   overflow: hidden;
   transition: transform 0.2s, box-shadow 0.2s;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 6px ${colors.shadowSoft};
   cursor: pointer;
 
   width: 80vw;
   max-width: 940px;
-  border: 4px solid #604d31;
+  border: 4px solid ${colors.borderInput};
   border-radius: 12px;
 
   &:hover {
     transform: translateY(-5px);
-    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.4);
-    /* border-color: rgb(255, 162, 22); */
-    /* border-color: #ba1a3e; */
-    border-color: #107135;
+    box-shadow: 0 8px 15px ${colors.shadowStrong};
+    border-color: ${colors.brandAccent};
   }
   &:active {
     transform: scale(0.98);
@@ -101,15 +100,8 @@ const CampaignName = styled.h2`
   font-family: "Roboto", sans-serif;
   font-weight: 700;
   font-size: 26px;
-  color: white;
+  color: ${colors.textPrimary};
   margin-bottom: 10px;
-
-  ${CardContainer}:hover & {
-    /* color: #ba1a3e; */
-    /* color: #107135; */
-    /* color: #2ecc71; */
-    /* color: rgb(255, 162, 22); */
-  }
 
   @media (max-width: 500px) {
     font-size: 22px;
@@ -144,19 +136,19 @@ const DateInfo = styled.span`
   font-family: "Roboto", sans-serif;
   font-weight: 300;
   font-size: 16px;
-  color: white;
+  color: ${colors.textPrimary};
 `;
 
 const PublicStatus = styled.span<{ $isPublic: boolean }>`
   font-family: "Roboto", sans-serif;
   font-weight: 500;
   font-size: 16px;
-  color: ${({ $isPublic }) => ($isPublic ? "#2ecc71" : "#e74c3c")};
+  color: ${({ $isPublic }) => ($isPublic ? colors.statusNpc : colors.danger)};
 `;
 
 const NextGameInfo = styled.span`
   font-family: "Roboto", sans-serif;
   font-weight: 400;
   font-size: 16px;
-  color: #f0c040;
+  color: ${colors.goldStar};
 `;

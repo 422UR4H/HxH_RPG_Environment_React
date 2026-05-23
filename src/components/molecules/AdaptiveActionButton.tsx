@@ -188,5 +188,3 @@ const ActionButton = styled.button<{
         }
       `}
 `;
-// background: linear-gradient(to bottom, #ffa216 0%, #ffa216 20%, #e60000 100%);
-// color: black;

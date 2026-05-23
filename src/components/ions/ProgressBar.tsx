@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import { colors } from "../../styles/tokens";
 
 interface ProgressBarProps {
   current: number;
@@ -15,7 +16,7 @@ export default function ProgressBar({
   min = 0,
   // label = "",
   color,
-  backgroundColor = "#444",
+  backgroundColor = colors.surfaceControl,
 }: ProgressBarProps) {
   const percentage = Math.max(((current - min) / (max - min)) * 100, 0);
 
@@ -39,7 +40,7 @@ export default function ProgressBar({
 
 const ProgressBarContainer = styled.div`
   width: 100%;
-  border: min(0.6cqi, 3px) solid black;
+  border: min(0.6cqi, 3px) solid ${colors.textOnLight};
 `;
 
 // const Label = styled.span`
@@ -83,6 +84,6 @@ const ValuesInside = styled.span`
   font-size: 3.8cqi;
   text-align: center;
   font-weight: 600;
-  color: black;
+  color: ${colors.textOnLight};
   padding-top: 1px;
 `;

@@ -51,7 +51,7 @@ Cores, fontes e gradientes vivem em `src/styles/tokens.ts` (`colors`, `fonts`, `
 - Se não existe um token apropriado, **crie o token** antes de hardcodar — é 1 linha em `tokens.ts`.
 - `tokens.ts` é `as const` → autocomplete e erro de TS em typo.
 
-> Escopo atual: os tokens estão aplicados na superfície refatorada (templates, organisms, molecules/atoms/ions de formulário, `CampaignPage`, `MatchPage`). Áreas ainda não refatoradas (feature `sheet/`, login, cards) adotam tokens quando forem refatoradas.
+> Escopo atual: os tokens estão aplicados em toda a árvore (`components/` e `features/`) — exceto na zona pixel-tuned descrita abaixo. Toda nova UI deve consumir tokens.
 
 ## Zona pixel-tuned — NÃO normalizar
 

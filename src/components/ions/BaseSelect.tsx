@@ -1,5 +1,6 @@
 import type { ChangeEvent, JSXElementConstructor, ReactElement } from "react";
 import styled from "styled-components";
+import { colors } from "../../styles/tokens";
 
 interface BaseSelectProps {
   value?: string;
@@ -31,9 +32,9 @@ const StyledBaseSelect = styled.select`
   font-family: "Roboto", sans-serif;
   font-size: min(3.8cqi, 28px);
   font-weight: 600;
-  color: white;
-  background-color: #107135;
-  border: 4px solid #107135;
+  color: ${colors.textPrimary};
+  background-color: ${colors.brandAccent};
+  border: 4px solid ${colors.brandAccent};
   border-radius: 28px;
   padding: 8px min(8cqi, 46px) 8px 16px;
   cursor: pointer;
@@ -51,8 +52,8 @@ const StyledBaseSelect = styled.select`
 
   &:active {
     outline: none;
-    border-color: #088e3b;
-    border-color: white;
+    border-color: ${colors.brandAccentBright};
+    border-color: ${colors.textPrimary};
   }
   &:focus {
     outline: none;

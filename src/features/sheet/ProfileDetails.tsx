@@ -1,6 +1,7 @@
 import styled, { keyframes } from "styled-components";
 import BackgroundButton from "../../components/atoms/BackgroundButton";
 import type { Profile } from "../../types/characterSheet";
+import { colors } from "../../styles/tokens";
 
 interface ProfileDetailsProps {
   profile: Profile;
@@ -77,7 +78,7 @@ const ProfileName = styled.h2`
   font-family: "Roboto", sans-serif;
   font-size: min(4.2cqi, 32px);
   font-weight: bold;
-  color: white;
+  color: ${colors.textPrimary};
   margin-bottom: 1cqi;
 
   @media (max-width: 609px) {
@@ -89,7 +90,7 @@ const ProfileDescription = styled.p`
   font-family: "Roboto", sans-serif;
   font-size: min(3.4cqi, 24px);
   line-height: 1.6;
-  color: #e0e0e0;
+  color: ${colors.textMuted};
   margin-bottom: 2cqi;
 
   @media (max-width: 609px) {
@@ -125,7 +126,7 @@ const DetailItem = styled.div`
 const DetailLabel = styled.span`
   font-family: "Roboto", sans-serif;
   font-size: min(3.4cqi, 24px);
-  color: #9f9f9f;
+  color: ${colors.textInputDisabled};
   font-weight: 500;
 
   @media (max-width: 609px) {
@@ -136,7 +137,7 @@ const DetailLabel = styled.span`
 const DetailValue = styled.span`
   font-family: "Roboto", sans-serif;
   font-size: min(3.8cqi, 28px);
-  color: white;
+  color: ${colors.textPrimary};
   font-weight: 600;
 
   @media (max-width: 609px) {
@@ -154,9 +155,9 @@ const BriefDescriptionTextarea = styled.textarea`
   font-family: "Roboto", sans-serif;
   font-size: min(3.4cqi, 24px);
   line-height: 1.6;
-  color: white;
-  background-color: #555;
-  border: 2px solid #666;
+  color: ${colors.textPrimary};
+  background-color: ${colors.grayMid};
+  border: 2px solid ${colors.grayMidStrong};
   border-radius: 6px;
   padding: 12px 16px;
   margin-bottom: 2cqi;
@@ -166,11 +167,11 @@ const BriefDescriptionTextarea = styled.textarea`
   box-sizing: border-box;
 
   &::placeholder {
-    color: #9f9f9f;
+    color: ${colors.textInputDisabled};
   }
   &:focus {
     outline: none;
-    border-color: #088e3b;
+    border-color: ${colors.brandAccentBright};
   }
 
   @media (max-width: 609px) {
