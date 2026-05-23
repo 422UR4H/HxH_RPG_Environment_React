@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import styled from "styled-components";
 import ConfirmDialog from "../../components/molecules/ConfirmDialog";
 import penIcon from "../../assets/icons/pen.svg";
+import { colors, gradients } from "../../styles/tokens";
 
 interface ManageButtonProps {
   isFree: boolean;
@@ -64,11 +65,11 @@ export default function ManageButton({
         <ConfirmDialog
           message="Tem certeza que deseja excluir esta ficha? Esta ação não pode ser desfeita."
           confirmLabel="Excluir"
-          confirmBackground="linear-gradient(to bottom, #ffa216 0%, #ffa216 20%, #e60000 100%)"
-          confirmTextColor="black"
-          dialogBackground="rgba(0, 0, 0, 0.85)"
-          cancelBackground="#1c1c1c"
-          cancelBorderColor="#555"
+          confirmBackground={gradients.orange}
+          confirmTextColor={colors.textOnLight}
+          dialogBackground={colors.overlayDark}
+          cancelBackground={colors.grayBgPanel}
+          cancelBorderColor={colors.grayMid}
           onConfirm={() => {
             setShowDeleteConfirm(false);
             onDelete();
@@ -87,9 +88,9 @@ const Wrapper = styled.div`
 `;
 
 const Button = styled.button<{ $isFloating: boolean; $open: boolean }>`
-  background: #1c1c1c;
-  border: 1px solid ${({ $open }) => ($open ? "#ffa216" : "#555")};
-  color: white;
+  background: ${colors.grayBgPanel};
+  border: 1px solid ${({ $open }) => ($open ? colors.orange : colors.grayMid)};
+  color: ${colors.textPrimary};
   font-family: "Roboto", sans-serif;
   font-size: min(22px, 4cqi);
   font-weight: 600;
@@ -110,7 +111,7 @@ const Button = styled.button<{ $isFloating: boolean; $open: boolean }>`
       ? `
         border-radius: 50px;
         padding: 14px 22px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        box-shadow: 0 4px 10px ${colors.shadowMedium};
         font-size: 3cqi;
         &:hover { transform: translateY(-3px); filter: brightness(1.2); }
       `
@@ -130,12 +131,12 @@ const Menu = styled.div`
   position: absolute;
   bottom: calc(100% + 6px);
   left: 0;
-  background: #1c1c1c;
-  border: 1px solid #555;
+  background: ${colors.grayBgPanel};
+  border: 1px solid ${colors.grayMid};
   border-radius: 8px;
   overflow: hidden;
   min-width: 160px;
-  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 -4px 16px ${colors.overlayMedium};
   z-index: 20;
 `;
 
@@ -146,12 +147,12 @@ const PenIcon = styled.img`
 
 const MenuItem = styled.div`
   padding: 12px 14px;
-  color: white;
+  color: ${colors.textPrimary};
   font-family: "Roboto", sans-serif;
   font-size: 17px;
   font-weight: 600;
   cursor: pointer;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid ${colors.surfaceMuted};
   display: flex;
   align-items: center;
   gap: 4px;
@@ -159,11 +160,11 @@ const MenuItem = styled.div`
     border-bottom: none;
   }
   &:hover {
-    background: #2a2a2a;
+    background: ${colors.grayBgModal};
   }
 `;
 
 const MenuItemDanger = styled(MenuItem)`
-  color: #f38ba8;
+  color: ${colors.dangerLight};
   padding: 16px 0 16px 18px;
 `;

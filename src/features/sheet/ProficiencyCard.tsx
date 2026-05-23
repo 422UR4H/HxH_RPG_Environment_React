@@ -1,5 +1,6 @@
 import styled from "styled-components";
 import ExpBar from "../../components/ions/ExpBar";
+import { colors } from "../../styles/tokens";
 
 export interface ProficiencyCardProps {
   name: string;
@@ -22,7 +23,7 @@ export default function ProficiencyCard({ name, level, currExp, nextLvlBaseExp }
 
 const ProficiencyItem = styled.div`
   font-size: 24px;
-  background-color: #444;
+  background-color: ${colors.surfaceControl};
   border-radius: 6px;
   display: flex;
   flex-direction: column;
@@ -46,5 +47,5 @@ const ProficiencyLevel = styled.div`
   font-family: "Roboto", sans-serif;
   font-weight: 400;
   font-size: min(22px, 5cqi);
-  color: #9f9f9f;
+  color: ${colors.textInputDisabled};
 `;

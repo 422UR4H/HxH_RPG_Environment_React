@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 // import CardButton from "../../styles/CardButton";
 import styled from "styled-components";
+import { colors } from "../../styles/tokens";
 
 interface ButtonSubmitProps {
   disabled?: boolean;
@@ -34,9 +35,9 @@ const CardButton = styled.button`
   font-size: 27px;
   font-weight: 700;
   line-height: 40px;
-  color: white;
+  color: ${colors.textPrimary};
 
-  background-color: #1877f2;
+  background-color: ${colors.actionBlue};
   width: 500px;
   max-width: calc(100vw - 100px);
   height: 500px;
@@ -48,10 +49,10 @@ const CardButton = styled.button`
     outline: none;
   }
   &:hover {
-    background-color: #0052cc;
+    background-color: ${colors.actionBlueHover};
   }
   &:disabled {
-    background-color: #83b4ef;
+    background-color: ${colors.disabledBlue};
 
     display: flex;
     justify-content: center;

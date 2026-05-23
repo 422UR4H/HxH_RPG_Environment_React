@@ -1,4 +1,5 @@
 import { createGlobalStyle } from "styled-components";
+import { colors } from "./tokens";
 
 const ResetStyle = createGlobalStyle`
 	html, body, span, applet, object, iframe,
@@ -24,7 +25,7 @@ const ResetStyle = createGlobalStyle`
 	html, body {
 		height: 100dvh;
 		height: 100vh;
-    background: #333;
+    background: ${colors.surfaceMuted};
 	}
 
 	body {
@@ -35,7 +36,7 @@ const ResetStyle = createGlobalStyle`
 			width: 10px;
 		}
 		&::-webkit-scrollbar-thumb {
-			background-color:#1877F2;
+			background-color: ${colors.actionBlue};
 			border-radius: 3px;
 		}
 	}

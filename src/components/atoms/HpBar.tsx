@@ -1,4 +1,5 @@
 import ProgressBar from "../ions/ProgressBar";
+import { colors } from "../../styles/tokens";
 
 interface HpBarProps {
   current?: number;
@@ -10,9 +11,7 @@ export default function HpBar({ current = 0, max = 0 }: HpBarProps) {
     <ProgressBar
       current={current}
       max={max}
-      // label="Vida"
-      // color="#e74c3c"
-      color="#B61B40"
+      color={colors.redHp}
     />
   );
 }

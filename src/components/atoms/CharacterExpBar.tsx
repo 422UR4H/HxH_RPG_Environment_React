@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import { colors } from "../../styles/tokens";
 
 interface CharacterExpBarProps {
   currExp: number;
@@ -29,11 +30,11 @@ const ExpLabel = styled.span`
   position: absolute;
   bottom: calc(100% + 2px);
   right: 12px;
-  color: white;
+  color: ${colors.textPrimary};
   font-family: "Roboto", sans-serif;
   font-size: 3cqi;
   font-weight: 600;
-  text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.9);
+  text-shadow: 1px 1px 4px ${colors.shadowText};
   white-space: nowrap;
   pointer-events: none;
   z-index: 10;
@@ -46,7 +47,7 @@ const ExpLabel = styled.span`
 
 const BarBorder = styled.div`
   width: 100%;
-  border: 3px solid black;
+  border: 3px solid ${colors.textOnLight};
 
   @container (max-width: 609px) {
     border-width: 0.6cqi;
@@ -57,13 +58,13 @@ const BarBorder = styled.div`
 const BarBackground = styled.div`
   width: 100%;
   height: 1.3cqi;
-  background-color: #444;
+  background-color: ${colors.surfaceControl};
   overflow: hidden;
 `;
 
 const BarFill = styled.div<{ $percentage: number }>`
   width: ${({ $percentage }) => $percentage}%;
   height: 100%;
-  background-color: #d4af37;
+  background-color: ${colors.goldExp};
   transition: width 0.3s ease;
 `;

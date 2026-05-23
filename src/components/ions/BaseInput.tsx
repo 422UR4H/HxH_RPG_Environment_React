@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import { colors } from "../../styles/tokens";
 
 // TODO: improve componentization to make base button more reusable or splitting it
 interface BaseInputProps {
@@ -22,8 +23,8 @@ const StyledInput = styled.input`
   font-size: min(27px, 6vw);
   font-weight: 700;
   line-height: 40px;
-  color: black;
-  border: 4px solid #b91a40;
+  color: ${colors.textOnLight};
+  border: 4px solid ${colors.redInputError};
 
   width: 429px;
   height: 48px;
@@ -33,7 +34,7 @@ const StyledInput = styled.input`
   padding-bottom: 2px;
 
   &::placeholder {
-    color: #9f9f9f;
+    color: ${colors.textInputDisabled};
   }
   &:focus {
     outline: none;

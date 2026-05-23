@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import { colors } from "../../styles/tokens";
 
 interface ConfirmDialogProps {
   message: string;
@@ -50,7 +51,7 @@ export default function ConfirmDialog({
 const Overlay = styled.div`
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: ${colors.overlay};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -58,7 +59,7 @@ const Overlay = styled.div`
 `;
 
 const Dialog = styled.div<{ $bg?: string }>`
-  background-color: ${({ $bg }) => $bg ?? "#2d2215"};
+  background-color: ${({ $bg }) => $bg ?? colors.surfaceSidebar};
   border-radius: 12px;
   padding: 30px;
   max-width: 480px;
@@ -71,7 +72,7 @@ const Dialog = styled.div<{ $bg?: string }>`
 const Message = styled.p`
   font-family: "Roboto", sans-serif;
   font-size: 20px;
-  color: white;
+  color: ${colors.textPrimary};
   line-height: 1.5;
 `;
 
@@ -101,8 +102,8 @@ const BaseButton = styled.button`
 
 const CancelButton = styled(BaseButton)<{ $bg?: string; $border?: string }>`
   background-color: ${({ $bg }) => $bg ?? "transparent"};
-  border: 1px solid ${({ $border }) => $border ?? "white"};
-  color: white;
+  border: 1px solid ${({ $border }) => $border ?? colors.textPrimary};
+  color: ${colors.textPrimary};
 `;
 
 const ActionButton = styled(BaseButton)<{
@@ -111,6 +112,6 @@ const ActionButton = styled(BaseButton)<{
   $color?: string;
 }>`
   background: ${({ $bg, $variant }) =>
-    $bg ?? ($variant === "danger" ? "#c0392b" : "#107135")};
-  color: ${({ $color }) => $color ?? "white"};
+    $bg ?? ($variant === "danger" ? colors.dangerDark : colors.brandAccent)};
+  color: ${({ $color }) => $color ?? colors.textPrimary};
 `;

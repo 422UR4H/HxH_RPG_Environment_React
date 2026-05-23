@@ -8,6 +8,7 @@ import type {
 } from "../../types/characterSheet";
 import type { Distribution } from "../../types/characterClass";
 import ProficiencyCard from "./ProficiencyCard";
+import { colors } from "../../styles/tokens";
 
 interface ProficienciesListProps {
   mode: ProficiencyMode;
@@ -138,10 +139,10 @@ const ProficienciesListContainer = styled.div`
 `;
 
 const DistributionSlot = styled.div<{ $selected: boolean }>`
-  background-color: #444;
+  background-color: ${colors.surfaceControl};
   border-radius: 12px;
   padding: 15px;
-  border: 4px solid ${({ $selected }) => ($selected ? "#107135" : "#666")};
+  border: 4px solid ${({ $selected }) => ($selected ? colors.brandAccent : colors.grayMidStrong)};
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -151,13 +152,13 @@ const SlotLevel = styled.div`
   font-family: "Roboto", sans-serif;
   font-weight: 700;
   font-size: min(22px, 5cqi);
-  color: white;
+  color: ${colors.textPrimary};
 `;
 
 const SlotExp = styled.span`
   font-weight: 400;
   font-size: 0.8em;
-  color: #9f9f9f;
+  color: ${colors.textInputDisabled};
 `;
 
 const SlotSelect = styled.select`
@@ -165,9 +166,9 @@ const SlotSelect = styled.select`
   font-family: "Roboto", sans-serif;
   font-size: min(3.8cqi, 28px);
   font-weight: 600;
-  color: white;
-  background-color: #107135;
-  border: 4px solid #107135;
+  color: ${colors.textPrimary};
+  background-color: ${colors.brandAccent};
+  border: 4px solid ${colors.brandAccent};
   border-radius: 14px;
   padding: 8px min(8cqi, 46px) 8px 16px;
   cursor: pointer;
@@ -179,18 +180,18 @@ const SlotSelect = styled.select`
   background-position: right 12px center;
   background-size: min(4.4cqi, 28px);
 
-  &:active { outline: none; border-color: white; }
+  &:active { outline: none; border-color: ${colors.textPrimary}; }
   &:focus { outline: none; }
   &:hover { filter: brightness(1.1); }
 
-  option:disabled { color: #555; background-color: #333; }
+  option:disabled { color: ${colors.grayMid}; background-color: ${colors.surfaceMuted}; }
 `;
 
 const SlotOption = styled.option`
   font-family: "Roboto", sans-serif;
   font-size: min(3.8cqi, 28px);
   font-weight: 600;
-  color: white;
-  background-color: #107135;
+  color: ${colors.textPrimary};
+  background-color: ${colors.brandAccent};
   padding-right: 40px;
 `;

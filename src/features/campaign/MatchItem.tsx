@@ -1,5 +1,6 @@
 import styled from "styled-components";
 import type { Match } from "../../types/campaign";
+import { colors } from "../../styles/tokens";
 
 interface MatchItemProps {
   match: Match;
@@ -34,7 +35,7 @@ export default function MatchItem({ match, onClick }: MatchItemProps) {
 }
 
 const MatchContainer = styled.div`
-  background-color: #493823;
+  background-color: ${colors.surfaceInput};
   border-radius: 8px;
   padding: 20px;
   cursor: pointer;
@@ -42,7 +43,7 @@ const MatchContainer = styled.div`
   transition: background-color 0.2s;
 
   &:hover {
-    background-color: #382a1a;
+    background-color: ${colors.surfaceInputHover};
   }
 `;
 
@@ -62,7 +63,7 @@ const MatchDate = styled.div`
   font-family: "Roboto", sans-serif;
   font-weight: 400;
   font-size: 16px;
-  color: white;
+  color: ${colors.textPrimary};
 `;
 
 const MatchEndDate = styled.div`
@@ -73,7 +74,7 @@ const MatchEndDate = styled.div`
   font-family: "Roboto", sans-serif;
   font-weight: 400;
   font-size: 16px;
-  color: white;
+  color: ${colors.textPrimary};
 `;
 
 const MatchDescription = styled.p`
@@ -90,8 +91,8 @@ const MatchFinalDescription = styled.p`
   font-size: 18px;
   line-height: 1.5;
   font-style: italic;
-  color: #e0e0e0;
-  border-top: 1px solid #555;
+  color: ${colors.textMuted};
+  border-top: 1px solid ${colors.grayMid};
   padding-top: 15px;
   padding-right: 140px;
 `;

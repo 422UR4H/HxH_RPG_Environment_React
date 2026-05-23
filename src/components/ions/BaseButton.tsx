@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import { colors, gradients } from "../../styles/tokens";
 
 interface BaseButtonProps {
   disabled?: boolean;
@@ -17,12 +18,11 @@ const StyledButton = styled.button`
   font-size: min(27px, 6vw);
   font-weight: 700;
   line-height: 40px;
-  color: white;
+  color: ${colors.textPrimary};
 
-  border: 4px solid black;
-  /* background-color: #107135; */
-  background: linear-gradient(to bottom, #ffa216 0%, #ffa216 20%, #e60000 100%);
-  color: black;
+  border: 4px solid ${colors.textOnLight};
+  background: ${gradients.orange};
+  color: ${colors.textOnLight};
 
   width: 429px;
   height: 48px;
@@ -40,7 +40,7 @@ const StyledButton = styled.button`
     transform: scale(0.98);
   }
   &:disabled {
-    background-color: #83b4ef;
+    background-color: ${colors.disabledBlue};
 
     display: flex;
     justify-content: center;

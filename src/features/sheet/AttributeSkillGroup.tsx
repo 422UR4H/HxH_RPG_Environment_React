@@ -1,6 +1,7 @@
 import styled from "styled-components";
 import type { Skill } from "../../types/characterSheet.ts";
 import ExpBar from "../../components/ions/ExpBar.tsx";
+import { colors } from "../../styles/tokens";
 
 interface SkillCardProps {
   name: string;
@@ -67,18 +68,18 @@ export default function AttributeSkillGroup({
 
 const AttributeSkillContainer = styled.div`
   margin-bottom: 3cqi;
-  border: 1px solid #555;
+  border: 1px solid ${colors.grayMid};
   border-radius: 8px;
   overflow: hidden;
 `;
 
 const AttributeSectionTitle = styled.div`
-  background-color: #444;
+  background-color: ${colors.surfaceControl};
   padding: 8px 12px;
   font-weight: bold;
   font-family: "Oswald", sans-serif;
   font-size: 24px;
-  border-bottom: 1px solid #555;
+  border-bottom: 1px solid ${colors.grayMid};
   display: flex;
   gap: 16px;
 `;
@@ -86,13 +87,13 @@ const AttributeSectionTitle = styled.div`
 const AttributeTitle = styled.h3`
   font-family: "Roboto", sans-serif;
   font-size: 6cqi;
-  color: #b1b1b1;
+  color: ${colors.textLabelMuted};
 `;
 
 const AttributePower = styled.h3`
   font-family: "Roboto", sans-serif;
   font-size: 6cqi;
-  color: #b1b1b1;
+  color: ${colors.textLabelMuted};
 `;
 
 const SkillsSubList = styled.div`
@@ -100,11 +101,11 @@ const SkillsSubList = styled.div`
   grid-template-columns: repeat(auto-fill, minmax(30cqi, 1fr));
   gap: 2cqi;
   padding: 2cqi;
-  background-color: #333333;
+  background-color: ${colors.surfaceMuted};
 `;
 
 const SkillItem = styled.div`
-  background-color: #444;
+  background-color: ${colors.surfaceControl};
   border-radius: 6px;
   display: flex;
   flex-direction: column;
@@ -134,11 +135,11 @@ const SkillValue = styled.div`
   font-family: "Roboto", sans-serif;
   font-size: 6cqi;
   font-weight: bold;
-  color: white;
+  color: ${colors.textPrimary};
 `;
 
 const SkillLevel = styled.div`
   font-family: "Roboto", sans-serif;
   font-size: 5cqi;
-  color: #9f9f9f;
+  color: ${colors.textInputDisabled};
 `;

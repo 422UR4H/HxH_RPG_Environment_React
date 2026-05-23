@@ -1,5 +1,6 @@
 import styled from "styled-components";
 import backgroundBookIcon from "../../assets/icons/background-book.svg";
+import { colors } from "../../styles/tokens";
 
 export default function BackgroundButton() {
   return (
@@ -11,8 +12,8 @@ export default function BackgroundButton() {
 }
 
 const ButtonContainer = styled.button`
-  background-color: #555;
-  border: 2px solid #777;
+  background-color: ${colors.grayMid};
+  border: 2px solid ${colors.borderGrayLight};
   border-radius: 8px;
   padding: 1.6cqi 4cqi;
   cursor: pointer;
@@ -24,8 +25,8 @@ const ButtonContainer = styled.button`
   transition: all 0.2s ease;
 
   &:hover {
-    background-color: #666;
-    border-color: #888;
+    background-color: ${colors.grayMidStrong};
+    border-color: ${colors.textPlaceholder};
   }
 `;
 
@@ -38,7 +39,7 @@ const BookIcon = styled.img`
 const BackgroundText = styled.span`
   font-family: "Roboto", sans-serif;
   font-size: min(3.4cqi, 28px);
-  color: white;
+  color: ${colors.textPrimary};
   font-weight: 600;
   line-height: 1;
 

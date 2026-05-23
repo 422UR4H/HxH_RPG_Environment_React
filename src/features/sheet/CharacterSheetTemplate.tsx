@@ -13,6 +13,7 @@ import PhysicalSkillsGroup from "./PhysicalSkillsGroup";
 import SpiritualSkillsGroup from "./SpiritualSkillsGroup";
 import ProficienciesList from "./ProficienciesList";
 import SheetBottomActions from "./SheetBottomActions";
+import { colors, gradients } from "../../styles/tokens";
 
 interface Data {
   error: string | null;
@@ -306,7 +307,7 @@ const GridSection = styled.div`
 const GroupTitle = styled.h3`
   font-family: "Roboto", sans-serif;
   font-size: 8cqi;
-  color: #e0e0e0;
+  color: ${colors.textMuted};
   margin-top: 5cqi;
   margin-bottom: 10px;
   padding-left: 1cqi;
@@ -330,7 +331,7 @@ const AttributesSection = styled.section`
 
 const SkillsSection = styled.section`
   container-type: inline-size;
-  background-color: #333333;
+  background-color: ${colors.surfaceMuted};
   border-radius: 8px;
   padding: 4% 3% 1% 3%;
 `;
@@ -341,7 +342,7 @@ const SkillsGroup = styled.div`
 
 const ProficienciesSection = styled.section`
   container-type: inline-size;
-  background-color: #333333;
+  background-color: ${colors.surfaceMuted};
   border-radius: 8px;
   margin: 0 30px;
   padding: 20px;
@@ -357,12 +358,12 @@ const LoadingContainer = styled.div`
   align-items: center;
   min-height: 50vh;
   font-size: 24px;
-  color: white;
+  color: ${colors.textPrimary};
 `;
 
 const ErrorContainer = styled.div`
-  background-color: rgba(231, 76, 60, 0.1);
-  color: #e74c3c;
+  background-color: ${colors.errorBgSoft};
+  color: ${colors.danger};
   padding: 20px;
   border-radius: 8px;
   text-align: center;
@@ -404,13 +405,13 @@ const SubmissionActionBase = styled.button`
 `;
 
 const AcceptButton = styled(SubmissionActionBase)`
-  background: #107135;
-  color: white;
+  background: ${colors.brandAccent};
+  color: ${colors.textPrimary};
 `;
 
 const RejectButton = styled(SubmissionActionBase)`
-  background: #b61b40;
-  color: white;
+  background: ${colors.redHp};
+  color: ${colors.textPrimary};
 `;
 
 const SheetButtonsRow = styled.div`
@@ -449,8 +450,8 @@ const SheetButtonBase = styled.button`
 
 const CreateSheetButton = styled(SheetButtonBase)`
   flex: 1;
-  background: linear-gradient(to bottom, #ffa216 0%, #ffa216 20%, #e60000 100%);
-  color: black;
+  background: ${gradients.orange};
+  color: ${colors.textOnLight};
 `;
 
 const CancelButton = styled(SheetButtonBase)`
@@ -458,8 +459,8 @@ const CancelButton = styled(SheetButtonBase)`
   white-space: nowrap;
   padding-inline: 50px;
   background-color: transparent;
-  color: white;
-  border: 1px solid white;
+  color: ${colors.textPrimary};
+  border: 1px solid ${colors.textPrimary};
 
   @media (max-width: 440px) {
     padding-inline: 28px;
@@ -477,9 +478,9 @@ const SubmitErrorText = styled.p`
   font-family: "Roboto", sans-serif;
   font-size: max(2.7cqi, 12px);
   line-height: 1.2;
-  color: #ff1c1c;
-  background: rgba(231, 76, 60, 0.08);
-  border-left: 3px solid #ff1c1c;
+  color: ${colors.accentDanger};
+  background: ${colors.errorBgFaint};
+  border-left: 3px solid ${colors.accentDanger};
   margin: 16px 30px 0;
   padding: 10px 14px;
   border-radius: 0 8px 8px 0;
