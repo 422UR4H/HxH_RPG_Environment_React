@@ -8,12 +8,13 @@ import { useMatchParticipants } from "../hooks/useMatchParticipants";
 import { useAcceptEnrollment } from "../hooks/useAcceptEnrollment";
 import { useRejectEnrollment } from "../hooks/useRejectEnrollment";
 import { useEnrollCharacterSheet } from "../hooks/useEnrollCharacterSheet";
+import { useDeleteMatch } from "../hooks/useDeleteMatch";
 import type { CharacterPrivateSummary } from "../types/characterSheet";
 import styled from "styled-components";
 import { colors, fonts } from "../styles/tokens";
 import EnrollmentSidebarItem from "../features/match/EnrollmentSidebarItem";
 import CharacterSidebarItem from "../components/molecules/CharacterSidebarItem";
-import AdaptiveActionButton from "../components/molecules/AdaptiveActionButton";
+import MatchBottomActions from "../features/match/MatchBottomActions";
 import ExpandableText from "../components/molecules/ExpandableText";
 import { LoadingContainer, ErrorContainer } from "../components/atoms/PageStates";
 import ConfirmDialog from "../components/molecules/ConfirmDialog";
@@ -82,6 +83,7 @@ export default function MatchPage() {
     isPending: enrollPending,
     isSuccess: isEnrolled,
   } = useEnrollCharacterSheet(token, matchId);
+  const { mutate: deleteMatch } = useDeleteMatch(token, matchId);
 
   if (!token) return <Navigate to="/" replace />;
 
@@ -101,6 +103,14 @@ export default function MatchPage() {
       onSettled: () =>
         setActionLoading((prev) => ({ ...prev, [enrollmentId]: false })),
     });
+  };
+
+  const handleEdit = () => {
+    navigate(`/campaigns/${campaignId}/matches/${matchId}/edit`);
+  };
+
+  const handleDelete = () => {
+    deleteMatch(undefined, { onSuccess: () => navigate(-1) });
   };
 
   const handleLobbyConfirm = () => {
@@ -247,25 +257,33 @@ export default function MatchPage() {
         )}
 
         <ActionsList>
-          {isMaster && !match.gameStartAt && (
-            <AdaptiveActionButton
-              label="Abrir Lobby"
-              type="match"
-              onClick={() => setShowLobbyConfirm(true)}
+          {(isMaster && !match.gameStartAt) || canEnroll ? (
+            <MatchBottomActions
               containerRef={mainContentRef}
               contentChangeSignal={descriptionSignal}
+              manage={
+                isMaster && !match.gameStartAt
+                  ? {
+                      isFree: true,
+                      onEdit: handleEdit,
+                      onDelete: handleDelete,
+                      confirmMessage:
+                        "Tem certeza que deseja excluir esta partida? Esta ação não pode ser desfeita.",
+                    }
+                  : undefined
+              }
+              primaryButton={
+                isMaster && !match.gameStartAt
+                  ? { label: "Abrir Lobby", onClick: () => setShowLobbyConfirm(true) }
+                  : canEnroll
+                  ? {
+                      label: enrollPending ? "Inscrevendo..." : "Inscrever-se",
+                      onClick: enrollPending ? () => {} : () => setShowEnrollConfirm(true),
+                    }
+                  : undefined
+              }
             />
-          )}
-
-          {canEnroll && (
-            <AdaptiveActionButton
-              label={enrollPending ? "Inscrevendo..." : "Inscrever-se"}
-              type="match"
-              onClick={enrollPending ? () => {} : () => setShowEnrollConfirm(true)}
-              containerRef={mainContentRef}
-              contentChangeSignal={descriptionSignal}
-            />
-          )}
+          ) : null}
         </ActionsList>
       </DetailPageTemplate>
 

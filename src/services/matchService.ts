@@ -40,6 +40,16 @@ export const matchService = {
       .post(`/enrollments/${enrollmentId}/reject`, {}, config(token))
       .then(() => undefined),
 
+  updateMatch: (token: string, matchId: string, matchData: object): Promise<Match> =>
+    httpClient
+      .patch<{ match: Match }>(`/matches/${matchId}`, objToSnakeCase(matchData), config(token))
+      .then(({ data }) => objToCamelCase<Match>(data.match)),
+
+  deleteMatch: (token: string, matchId: string): Promise<void> =>
+    httpClient
+      .delete(`/matches/${matchId}`, config(token))
+      .then(() => undefined),
+
   enrollCharacterSheet: (
     token: string,
     sheetUuid: string,
