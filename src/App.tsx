@@ -13,6 +13,7 @@ import CreateCharacterSheetPage from "./pages/CreateCharacterSheetPage";
 import PublicCampaignsPage from "./pages/PublicCampaignsPage";
 import EditCharacterSheetPage from "./pages/EditCharacterSheetPage";
 import CreateNpcPage from "./pages/CreateNpcPage";
+import EditMatchPage from "./pages/EditMatchPage";
 
 function App() {
   return (
@@ -47,6 +48,10 @@ function App() {
         <Route
           path="/campaigns/:campaignId/matches/:matchId"
           element={<MatchPage />}
+        />
+        <Route
+          path="/campaigns/:campaignId/matches/:matchId/edit"
+          element={<EditMatchPage />}
         />
       </Routes>
     </BrowserRouter>
