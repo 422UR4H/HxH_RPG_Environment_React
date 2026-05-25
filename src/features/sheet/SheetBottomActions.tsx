@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useDebounce } from "../../hooks/useDebounce";
 import PlusIcon from "../../components/ions/PlusIcon";
-import ManageButton from "./ManageButton";
+import ManageButton from "../../components/molecules/ManageButton";
 import styled from "styled-components";
 import { colors, gradients } from "../../styles/tokens";
 
@@ -12,6 +12,7 @@ interface SheetBottomActionsProps {
     isFree: boolean;
     onEdit: () => void;
     onDelete: () => void;
+    confirmMessage: string;
   };
 }
 

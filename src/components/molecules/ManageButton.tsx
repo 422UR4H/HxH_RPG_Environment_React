@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import styled from "styled-components";
-import ConfirmDialog from "../../components/molecules/ConfirmDialog";
+import ConfirmDialog from "./ConfirmDialog";
 import penIcon from "../../assets/icons/pen.svg";
 import { colors, gradients } from "../../styles/tokens";
 
 interface ManageButtonProps {
   isFree: boolean;
   isFloating: boolean;
+  confirmMessage: string;
   onEdit: () => void;
   onDelete: () => void;
 }
@@ -14,6 +15,7 @@ interface ManageButtonProps {
 export default function ManageButton({
   isFree,
   isFloating,
+  confirmMessage,
   onEdit,
   onDelete,
 }: ManageButtonProps) {
@@ -47,7 +49,9 @@ export default function ManageButton({
       <Wrapper ref={ref}>
         {open && (
           <Menu>
-            <MenuItem onClick={handleEdit}><PenIcon src={penIcon} alt="" /> Editar</MenuItem>
+            <MenuItem onClick={handleEdit}>
+              <PenIcon src={penIcon} alt="" /> Editar
+            </MenuItem>
             {isFree && (
               <MenuItemDanger onClick={handleDelete}>🗑&nbsp; Excluir</MenuItemDanger>
             )}
@@ -63,7 +67,7 @@ export default function ManageButton({
       </Wrapper>
       {showDeleteConfirm && (
         <ConfirmDialog
-          message="Tem certeza que deseja excluir esta ficha? Esta ação não pode ser desfeita."
+          message={confirmMessage}
           confirmLabel="Excluir"
           confirmBackground={gradients.orange}
           confirmTextColor={colors.textOnLight}

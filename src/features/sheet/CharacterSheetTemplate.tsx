@@ -38,6 +38,7 @@ interface Data {
     isFree: boolean;
     onEdit: () => void;
     onDelete: () => void;
+    confirmMessage: string;
   };
 }
 
