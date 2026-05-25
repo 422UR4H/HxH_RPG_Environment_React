@@ -11,6 +11,7 @@ interface CreateFormTemplateProps {
   error?: string | null;
   onSubmit: (e: FormEvent) => void;
   submitLabel: string;
+  submittingLabel?: string;
   isSubmitting?: boolean;
   onCancel: () => void;
   rulesContent?: ReactNode;
@@ -23,6 +24,7 @@ export default function CreateFormTemplate({
   error,
   onSubmit,
   submitLabel,
+  submittingLabel = "Criando...",
   isSubmitting,
   onCancel,
   rulesContent,
@@ -46,7 +48,7 @@ export default function CreateFormTemplate({
                   Cancelar
                 </CancelButton>
                 <SubmitButton type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? "Criando..." : submitLabel}
+                  {isSubmitting ? submittingLabel : submitLabel}
                 </SubmitButton>
               </ButtonsContainer>
             </Form>

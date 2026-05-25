@@ -103,6 +103,68 @@ describe("MatchPage", () => {
       expect(await screen.findByText(/Abrir Lobby/i)).toBeInTheDocument();
     });
 
+    it("exibe botão 'Gerenciar' quando a partida não começou", async () => {
+      server.use(
+        http.get(`${baseUrl}/matches/:id`, () =>
+          HttpResponse.json({ match: matchAsMaster(masterUserFixture.user.uuid) }),
+        ),
+      );
+      renderPage({ user: masterUserFixture });
+      expect(await screen.findByText(/Gerenciar/i)).toBeInTheDocument();
+    });
+
+    it("clicar em 'Gerenciar' exibe opções Editar e Excluir", async () => {
+      server.use(
+        http.get(`${baseUrl}/matches/:id`, () =>
+          HttpResponse.json({ match: matchAsMaster(masterUserFixture.user.uuid) }),
+        ),
+      );
+      renderPage({ user: masterUserFixture });
+      const u = userEvent.setup();
+      await u.click(await screen.findByText(/Gerenciar/i));
+      expect(await screen.findByText(/Editar/i)).toBeInTheDocument();
+      expect(await screen.findByText(/Excluir/i)).toBeInTheDocument();
+    });
+
+    it("clicar em 'Editar' no menu navega para a página de edição", async () => {
+      server.use(
+        http.get(`${baseUrl}/matches/:id`, () =>
+          HttpResponse.json({ match: matchAsMaster(masterUserFixture.user.uuid) }),
+        ),
+      );
+      renderPage({ user: masterUserFixture });
+      const u = userEvent.setup();
+      await u.click(await screen.findByText(/Gerenciar/i));
+      await u.click(await screen.findByText(/Editar/i));
+      expect(mockNavigate).toHaveBeenCalledWith(
+        "/campaigns/campaign-1/matches/match-1/edit",
+      );
+    });
+
+    it("clicar em 'Excluir' no menu exibe confirmação de exclusão", async () => {
+      server.use(
+        http.get(`${baseUrl}/matches/:id`, () =>
+          HttpResponse.json({ match: matchAsMaster(masterUserFixture.user.uuid) }),
+        ),
+      );
+      renderPage({ user: masterUserFixture });
+      const u = userEvent.setup();
+      await u.click(await screen.findByText(/Gerenciar/i));
+      await u.click(await screen.findByText(/Excluir/i));
+      expect(await screen.findByText(/Tem certeza que deseja excluir esta partida/i)).toBeInTheDocument();
+    });
+
+    it("NÃO exibe 'Gerenciar' quando a partida já começou", async () => {
+      server.use(
+        http.get(`${baseUrl}/matches/:id`, () =>
+          HttpResponse.json({ match: matchOngoing() }),
+        ),
+      );
+      renderPage({ user: masterUserFixture });
+      await screen.findByText("EM ANDAMENTO");
+      expect(screen.queryByText(/Gerenciar/i)).not.toBeInTheDocument();
+    });
+
     it("clicar em 'Abrir Lobby' mostra dialog de confirmação", async () => {
       server.use(
         http.get(`${baseUrl}/matches/:id`, () =>

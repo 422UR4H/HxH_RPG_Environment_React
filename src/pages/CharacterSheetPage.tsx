@@ -90,9 +90,9 @@ function CharacterSheetPage() {
         onAcceptSubmission: !isOwner && !isMasterNpc && isPending && !accepting ? handleAccept : undefined,
         onRejectSubmission: !isOwner && !isMasterNpc && isPending && !rejecting ? handleReject : undefined,
         manage: isMasterNpc
-          ? { isFree: true, onEdit: handleEdit, onDelete: handleDelete }
+          ? { isFree: true, onEdit: handleEdit, onDelete: handleDelete, confirmMessage: "Tem certeza que deseja excluir esta ficha? Esta ação não pode ser desfeita." }
           : isOwner
-          ? { isFree, onEdit: handleEdit, onDelete: handleDelete }
+          ? { isFree, onEdit: handleEdit, onDelete: handleDelete, confirmMessage: "Tem certeza que deseja excluir esta ficha? Esta ação não pode ser desfeita." }
           : undefined,
       }}
     />

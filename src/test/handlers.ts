@@ -22,6 +22,12 @@ export const defaultHandlers = [
   http.get(`${baseUrl}/matches/:id`, () =>
     HttpResponse.json({ match: matchFixture }),
   ),
+  http.patch(`${baseUrl}/matches/:id`, () =>
+    HttpResponse.json({ match: matchFixture }),
+  ),
+  http.delete(`${baseUrl}/matches/:id`, () =>
+    new HttpResponse(null, { status: 204 }),
+  ),
   http.get(`${baseUrl}/matches/:id/enrollments`, () =>
     HttpResponse.json({ enrollments: [] }),
   ),
