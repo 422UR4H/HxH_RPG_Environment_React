@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useCreateMatch } from "../hooks/useCreateMatch";
+import { useCampaignDetails } from "../hooks/useCampaignDetails";
 import useToken from "../hooks/useToken";
 import useForm from "../hooks/useForm";
 import CreateFormTemplate from "../components/templates/CreateFormTemplate";
@@ -38,7 +39,14 @@ export default function CreateMatchPage() {
     storyStartAt: new Date().toISOString().split("T")[0],
   });
 
+  const { data: campaign } = useCampaignDetails(token, campaignId);
   const { mutate: createMatch, isPending } = useCreateMatch(token, campaignId);
+
+  useEffect(() => {
+    if (campaign?.storyStartAt) {
+      setForm((prev) => ({ ...prev, storyStartAt: campaign.storyStartAt }));
+    }
+  }, [campaign?.storyStartAt]);
 
   const formatDateToISOString = (dateTimeString: string): string =>
     `${dateTimeString}:00Z`;
@@ -58,9 +66,27 @@ export default function CreateMatchPage() {
     createMatch(matchData, {
       onSuccess: () => navigate(-1),
       onError: (err: any) => {
+        console.error("[CreateMatch]", err.response?.data);
+        const detail: string = err.response?.data?.detail ?? "";
+        const friendlyMessages: Record<string, string> = {
+          "validation error: game scheduled at cannot be in the past":
+            "A data e hora da sessão não pode estar no passado.",
+          "validation error: game scheduled at cannot be greater than one year from now":
+            "A data da sessão deve ser nos próximos 12 meses.",
+          "validation error: story start date must be after campaign start date":
+            "A data de início na história deve ser igual ou posterior ao início da campanha.",
+          "validation error: story start date must be before campaign end date":
+            "A data de início na história deve ser anterior ao fim da campanha.",
+          "validation error: title must be at least 5 characters":
+            "O título deve ter pelo menos 5 caracteres.",
+          "validation error: title cannot exceed 32 characters":
+            "O título não pode ter mais de 32 caracteres.",
+          "validation error: brief description cannot exceed 255 characters":
+            "A descrição breve não pode ter mais de 255 caracteres.",
+        };
         setError(
-          err.response?.data?.message ||
-            "Erro ao criar partida. Tente novamente."
+          friendlyMessages[detail] ||
+            "Não foi possível criar a partida. Verifique os dados e tente novamente."
         );
       },
     });
@@ -161,6 +187,8 @@ export default function CreateMatchPage() {
             type="date"
             value={form.storyStartAt}
             onChange={handleForm}
+            min={campaign?.storyStartAt}
+            max={campaign?.storyEndAt ?? undefined}
             required
           />
         </FormField>
