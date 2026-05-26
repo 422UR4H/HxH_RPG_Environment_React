@@ -6,6 +6,7 @@ import useForm from "../hooks/useForm";
 import { useMatchDetails } from "../hooks/useMatchDetails";
 import { useUpdateMatch } from "../hooks/useUpdateMatch";
 import { isApiError } from "../services/httpClient";
+import { getMatchValidationMessage } from "../features/match/matchErrorMessages";
 import CreateFormTemplate from "../components/templates/CreateFormTemplate";
 import FormField from "../components/molecules/FormField";
 import FormRow from "../components/molecules/FormRow";
@@ -38,7 +39,10 @@ function getErrorMessage(err: unknown): string {
       return "A partida já foi iniciada e não pode ser editada.";
     if (detail?.toLowerCase().includes("already finished"))
       return "A partida já foi encerrada e não pode ser editada.";
-    return detail || "Dados inválidos. Verifique os campos e tente novamente.";
+    return (
+      getMatchValidationMessage(detail ?? "") ||
+      "Dados inválidos. Verifique os campos e tente novamente."
+    );
   }
   return "Erro ao salvar partida. Tente novamente.";
 }

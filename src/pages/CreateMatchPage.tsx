@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useCreateMatch } from "../hooks/useCreateMatch";
+import { useCampaignDetails } from "../hooks/useCampaignDetails";
 import useToken from "../hooks/useToken";
+import { getMatchValidationMessage } from "../features/match/matchErrorMessages";
 import useForm from "../hooks/useForm";
 import CreateFormTemplate from "../components/templates/CreateFormTemplate";
 import FormField from "../components/molecules/FormField";
@@ -38,7 +40,14 @@ export default function CreateMatchPage() {
     storyStartAt: new Date().toISOString().split("T")[0],
   });
 
+  const { data: campaign } = useCampaignDetails(token, campaignId);
   const { mutate: createMatch, isPending } = useCreateMatch(token, campaignId);
+
+  useEffect(() => {
+    if (campaign?.storyStartAt) {
+      setForm((prev) => ({ ...prev, storyStartAt: campaign.storyStartAt }));
+    }
+  }, [campaign?.storyStartAt]);
 
   const formatDateToISOString = (dateTimeString: string): string =>
     `${dateTimeString}:00Z`;
@@ -58,9 +67,11 @@ export default function CreateMatchPage() {
     createMatch(matchData, {
       onSuccess: () => navigate(-1),
       onError: (err: any) => {
+        console.error("[CreateMatch]", err.response?.data);
+        const detail: string = err.response?.data?.detail ?? "";
         setError(
-          err.response?.data?.message ||
-            "Erro ao criar partida. Tente novamente."
+          getMatchValidationMessage(detail) ||
+            "Não foi possível criar a partida. Verifique os dados e tente novamente."
         );
       },
     });
@@ -161,6 +172,8 @@ export default function CreateMatchPage() {
             type="date"
             value={form.storyStartAt}
             onChange={handleForm}
+            min={campaign?.storyStartAt}
+            max={campaign?.storyEndAt ?? undefined}
             required
           />
         </FormField>
