@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useCreateMatch } from "../hooks/useCreateMatch";
 import { useCampaignDetails } from "../hooks/useCampaignDetails";
 import useToken from "../hooks/useToken";
+import { getMatchValidationMessage } from "../utils/matchErrorMessages";
 import useForm from "../hooks/useForm";
 import CreateFormTemplate from "../components/templates/CreateFormTemplate";
 import FormField from "../components/molecules/FormField";
@@ -68,24 +69,8 @@ export default function CreateMatchPage() {
       onError: (err: any) => {
         console.error("[CreateMatch]", err.response?.data);
         const detail: string = err.response?.data?.detail ?? "";
-        const friendlyMessages: Record<string, string> = {
-          "validation error: game scheduled at cannot be in the past":
-            "A data e hora da sessão não pode estar no passado.",
-          "validation error: game scheduled at cannot be greater than one year from now":
-            "A data da sessão deve ser nos próximos 12 meses.",
-          "validation error: story start date must be after campaign start date":
-            "A data de início na história deve ser igual ou posterior ao início da campanha.",
-          "validation error: story start date must be before campaign end date":
-            "A data de início na história deve ser anterior ao fim da campanha.",
-          "validation error: title must be at least 5 characters":
-            "O título deve ter pelo menos 5 caracteres.",
-          "validation error: title cannot exceed 32 characters":
-            "O título não pode ter mais de 32 caracteres.",
-          "validation error: brief description cannot exceed 255 characters":
-            "A descrição breve não pode ter mais de 255 caracteres.",
-        };
         setError(
-          friendlyMessages[detail] ||
+          getMatchValidationMessage(detail) ||
             "Não foi possível criar a partida. Verifique os dados e tente novamente."
         );
       },
