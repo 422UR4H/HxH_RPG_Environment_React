@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useCreateMatch } from "../hooks/useCreateMatch";
 import { useCampaignDetails } from "../hooks/useCampaignDetails";
 import useToken from "../hooks/useToken";
-import { getMatchValidationMessage } from "../utils/matchErrorMessages";
+import { getMatchValidationMessage } from "../features/match/matchErrorMessages";
 import useForm from "../hooks/useForm";
 import CreateFormTemplate from "../components/templates/CreateFormTemplate";
 import FormField from "../components/molecules/FormField";

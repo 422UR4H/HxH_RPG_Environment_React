@@ -6,7 +6,7 @@ import useForm from "../hooks/useForm";
 import { useMatchDetails } from "../hooks/useMatchDetails";
 import { useUpdateMatch } from "../hooks/useUpdateMatch";
 import { isApiError } from "../services/httpClient";
-import { getMatchValidationMessage } from "../utils/matchErrorMessages";
+import { getMatchValidationMessage } from "../features/match/matchErrorMessages";
 import CreateFormTemplate from "../components/templates/CreateFormTemplate";
 import FormField from "../components/molecules/FormField";
 import FormRow from "../components/molecules/FormRow";
