@@ -35,4 +35,9 @@ export const campaignService = {
         config(token)
       )
       .then(({ data }) => objToCamelCase<CampaignMaster>(data.campaign)),
+
+  deleteCampaign: (token: string, id: string): Promise<void> =>
+    httpClient
+      .delete(`/campaigns/${id}`, config(token))
+      .then(() => undefined),
 };
