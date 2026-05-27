@@ -2,6 +2,23 @@ import "@testing-library/jest-dom/vitest";
 import { afterAll, afterEach, beforeAll, beforeEach } from "vitest";
 import { server } from "./server";
 
+// --- window.matchMedia mock --------------------------------------------------
+// jsdom não implementa matchMedia. O mock abaixo sempre retorna matches: false,
+// colocando o layout no estado "desktop" (sem colapso de sidebars) nos testes.
+Object.defineProperty(window, "matchMedia", {
+  writable: true,
+  value: (query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  }),
+});
+
 // --- MSW lifecycle -------------------------------------------------------
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 afterEach(() => server.resetHandlers());
