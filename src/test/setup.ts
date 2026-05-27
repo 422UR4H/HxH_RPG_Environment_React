@@ -7,6 +7,7 @@ import { server } from "./server";
 // colocando o layout no estado "desktop" (sem colapso de sidebars) nos testes.
 Object.defineProperty(window, "matchMedia", {
   writable: true,
+  configurable: true,
   value: (query: string) => ({
     matches: false,
     media: query,
