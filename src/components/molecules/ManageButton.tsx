@@ -6,6 +6,7 @@ import { colors, gradients } from "../../styles/tokens";
 
 interface ManageButtonProps {
   isFree: boolean;
+  deleteDisabledReason?: string;
   isFloating: boolean;
   confirmMessage: string;
   onEdit: () => void;
@@ -14,6 +15,7 @@ interface ManageButtonProps {
 
 export default function ManageButton({
   isFree,
+  deleteDisabledReason,
   isFloating,
   confirmMessage,
   onEdit,
@@ -52,9 +54,14 @@ export default function ManageButton({
             <MenuItem onClick={handleEdit}>
               <PenIcon src={penIcon} alt="" /> Editar
             </MenuItem>
-            {isFree && (
+            {isFree ? (
               <MenuItemDanger onClick={handleDelete}>🗑&nbsp; Excluir</MenuItemDanger>
-            )}
+            ) : deleteDisabledReason ? (
+              <MenuItemDangerDisabled>
+                🗑&nbsp; Excluir
+                <DisabledReason>{deleteDisabledReason}</DisabledReason>
+              </MenuItemDangerDisabled>
+            ) : null}
           </Menu>
         )}
         <Button
@@ -171,4 +178,19 @@ const MenuItem = styled.div`
 const MenuItemDanger = styled(MenuItem)`
   color: ${colors.dangerLight};
   padding: 16px 0 16px 18px;
+`;
+
+const MenuItemDangerDisabled = styled(MenuItem)`
+  color: ${colors.textDisabled};
+  padding: 16px 0 16px 18px;
+  cursor: not-allowed;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+`;
+
+const DisabledReason = styled.span`
+  font-size: 12px;
+  font-weight: 400;
+  color: ${colors.textDisabled};
 `;
