@@ -160,11 +160,11 @@ const FloatingRight = styled.button`
   z-index: 10;
   border: none;
   border-radius: 50px;
-  padding: min(15px, 2.4cqi) min(30px, 5cqi) min(15px, 2.4cqi) min(26px, 5cqi);
+  padding: min(15px, 3.6cqi) min(30px, 5cqi) min(15px, 3.6cqi) min(26px, 5cqi);
   background: ${gradients.orange};
   color: ${colors.textOnLight};
   font-family: "Roboto", sans-serif;
-  font-size: 4cqi;
+  font-size: min(26px, 5cqi);
   font-weight: 600;
   display: flex;
   align-items: center;

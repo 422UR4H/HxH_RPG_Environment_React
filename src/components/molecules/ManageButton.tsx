@@ -123,7 +123,7 @@ const Button = styled.button<{ $isFloating: boolean; $open: boolean }>`
         border-radius: 50px;
         padding: 14px 22px;
         box-shadow: 0 4px 10px ${colors.shadowMedium};
-        font-size: 3cqi;
+        font-size: min(24px, 4cqi);
         &:hover { transform: translateY(-3px); filter: brightness(1.2); }
       `
       : `

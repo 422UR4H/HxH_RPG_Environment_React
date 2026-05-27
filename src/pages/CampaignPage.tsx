@@ -13,7 +13,10 @@ import MatchItem from "../features/campaign/MatchItem";
 import AdaptiveActionButton from "../components/molecules/AdaptiveActionButton";
 import BottomActions from "../components/molecules/BottomActions";
 import { getSortedCharacters } from "../features/campaign/utils/characterUtils";
-import { LoadingContainer, ErrorContainer } from "../components/atoms/PageStates";
+import {
+  LoadingContainer,
+  ErrorContainer,
+} from "../components/atoms/PageStates";
 import ExpandableText from "../components/molecules/ExpandableText";
 import ConfirmDialog from "../components/molecules/ConfirmDialog";
 import DetailPageTemplate from "../components/templates/DetailPageTemplate";
@@ -28,8 +31,12 @@ export default function CampaignPage() {
   const { user } = useUser();
   const navigate = useNavigate();
   const location = useLocation();
-  const sheetId = (location.state as { sheetId?: string; sheetNick?: string } | null)?.sheetId;
-  const sheetNick = (location.state as { sheetId?: string; sheetNick?: string } | null)?.sheetNick;
+  const sheetId = (
+    location.state as { sheetId?: string; sheetNick?: string } | null
+  )?.sheetId;
+  const sheetNick = (
+    location.state as { sheetId?: string; sheetNick?: string } | null
+  )?.sheetNick;
 
   const [descriptionSignal, setDescriptionSignal] = useState(false);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
@@ -50,10 +57,12 @@ export default function CampaignPage() {
   const { mutate: deleteCampaign } = useDeleteCampaign(token, id);
 
   const isMaster = campaign?.masterUuid === user?.uuid;
-  const hasStartedMatch = (campaign?.matches ?? []).some((m) => !!m.gameStartAt);
+  const hasStartedMatch = (campaign?.matches ?? []).some(
+    (m) => !!m.gameStartAt,
+  );
 
   const playerSheetId = campaign?.characterSheets.find(
-    (s) => s.playerUuid === user?.uuid
+    (s) => s.playerUuid === user?.uuid,
   )?.uuid;
 
   const handleSubmitSheet = () => {
@@ -64,7 +73,7 @@ export default function CampaignPage() {
   const handleRequestSubmit = () => {
     if (sheetNick && campaign) {
       const nickTaken = campaign.characterSheets.some(
-        (s) => s.nickName === sheetNick
+        (s) => s.nickName === sheetNick,
       );
       if (nickTaken) {
         setNickConflictError(true);
@@ -85,7 +94,7 @@ export default function CampaignPage() {
         setDeleteError(
           isApiError(error, 422)
             ? "Esta campanha possui ao menos uma partida iniciada e não pode ser deletada."
-            : "Erro ao deletar campanha. Tente novamente."
+            : "Erro ao deletar campanha. Tente novamente.",
         );
       },
     });
@@ -96,7 +105,8 @@ export default function CampaignPage() {
 
   let sortedSheets: (CharacterPrivateSummary & { isPending?: boolean })[] = [];
   if (campaign) {
-    const ownPending = !isMaster && campaign.myPendingSheet ? [campaign.myPendingSheet] : [];
+    const ownPending =
+      !isMaster && campaign.myPendingSheet ? [campaign.myPendingSheet] : [];
     const pendingSheets = isMaster ? campaign.pendingSheets : ownPending;
     sortedSheets = getSortedCharacters(campaign.characterSheets, pendingSheets);
   }
@@ -105,7 +115,9 @@ export default function CampaignPage() {
     return <LoadingContainer>Carregando campanha...</LoadingContainer>;
   }
   if (isError) {
-    return <ErrorContainer>Falha ao carregar detalhes da campanha.</ErrorContainer>;
+    return (
+      <ErrorContainer>Falha ao carregar detalhes da campanha.</ErrorContainer>
+    );
   }
   if (!campaign) {
     return <ErrorContainer>Campanha não encontrada</ErrorContainer>;
@@ -220,7 +232,10 @@ export default function CampaignPage() {
                 confirmMessage:
                   "Tem certeza que deseja excluir esta campanha? Esta ação não pode ser desfeita.",
               }}
-              primaryButton={{ label: "Criar Partida", onClick: handleCreateMatch }}
+              primaryButton={{
+                label: "Criar Partida",
+                onClick: handleCreateMatch,
+              }}
             />
           ) : !submitted && sheetId ? (
             <>
@@ -233,7 +248,8 @@ export default function CampaignPage() {
               />
               {nickConflictError && (
                 <NickConflictMessage>
-                  Já existe um personagem com o nick &quot;{sheetNick}&quot; nesta campanha. Escolha outro nick antes de submeter.
+                  Já existe um personagem com o nick &quot;{sheetNick}&quot;
+                  nesta campanha. Escolha outro nick antes de submeter.
                 </NickConflictMessage>
               )}
               {submitFailed && !nickConflictError && (
@@ -308,6 +324,7 @@ const MatchesList = styled.div`
 
 const ActionsList = styled.div`
   position: relative;
+  margin-top: 24px;
   padding-bottom: 112px;
 `;
 

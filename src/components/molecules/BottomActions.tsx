@@ -114,7 +114,7 @@ const FloatingPrimary = styled.button`
   background-color: ${colors.brandAccent};
   color: ${colors.textPrimary};
   font-family: "Roboto", sans-serif;
-  font-size: 26px;
+  font-size: min(26px, 5cqi);
   font-weight: 600;
   display: flex;
   align-items: center;
