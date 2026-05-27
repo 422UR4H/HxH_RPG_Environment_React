@@ -311,7 +311,7 @@ const ActionsList = styled.div`
   padding-bottom: 112px;
 `;
 
-const NickConflictMessage = styled.p`
+const InlineErrorMessage = styled.p`
   font-family: ${fonts.sans};
   font-size: max(2.6cqi, 12px);
   line-height: 1.2;
@@ -321,21 +321,14 @@ const NickConflictMessage = styled.p`
   padding: 10px 14px;
   border-radius: 0 8px 8px 0;
   white-space: pre-line;
+`;
 
+const NickConflictMessage = styled(InlineErrorMessage)`
   @media (max-width: 609px) {
     margin: 12px 20px 0;
   }
 `;
 
-const DeleteErrorMessage = styled.p`
-  font-family: ${fonts.sans};
-  font-size: max(2.6cqi, 12px);
-  line-height: 1.2;
-  color: ${colors.accentDanger};
-  background: ${colors.overlaySoft};
-  border-left: 3px solid ${colors.accentDanger};
-  padding: 10px 14px;
-  border-radius: 0 8px 8px 0;
-  white-space: pre-line;
+const DeleteErrorMessage = styled(InlineErrorMessage)`
   margin-top: 8px;
 `;
