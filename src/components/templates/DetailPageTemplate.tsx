@@ -1,5 +1,5 @@
 // src/components/templates/DetailPageTemplate.tsx
-import { type ReactNode, type RefObject, useState } from "react";
+import { type ReactNode, type RefObject, useEffect, useState } from "react";
 import styled, { keyframes } from "styled-components";
 import PageHeader from "../atoms/PageHeader";
 import CloseButton from "../ions/CloseButton";
@@ -40,6 +40,13 @@ export default function DetailPageTemplate({
 
   const anyOpen = isRightOpen || isLeftOpen;
 
+  useEffect(() => {
+    if (!anyOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => { if (e.key === "Escape") closeAll(); };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [anyOpen]);
+
   return (
     <PageContainer>
       <PageHeader backgroundColor={headerColor} />
@@ -62,7 +69,9 @@ export default function DetailPageTemplate({
         {isLeftCollapsed && isLeftOpen && (
           <LeftDrawerPanel>
             <DrawerCloseRow>
-              <CloseButton onClick={closeAll} />
+              <DrawerCloseButton onClick={closeAll} aria-label="Fechar">
+                <CloseButton />
+              </DrawerCloseButton>
             </DrawerCloseRow>
             <DrawerBody>{leftSidebar}</DrawerBody>
           </LeftDrawerPanel>
@@ -71,7 +80,9 @@ export default function DetailPageTemplate({
         {isRightCollapsed && isRightOpen && rightSidebar && (
           <RightDrawerPanel>
             <DrawerCloseRow>
-              <CloseButton onClick={closeAll} />
+              <DrawerCloseButton onClick={closeAll} aria-label="Fechar">
+                <CloseButton />
+              </DrawerCloseButton>
             </DrawerCloseRow>
             <DrawerBody>{rightSidebar}</DrawerBody>
           </RightDrawerPanel>
@@ -201,4 +212,12 @@ const DrawerBody = styled.div`
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+`;
+
+const DrawerCloseButton = styled.button`
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  line-height: 0;
 `;
