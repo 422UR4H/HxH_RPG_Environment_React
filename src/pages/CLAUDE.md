@@ -16,7 +16,7 @@ Mapeie os erros de validação esperados para mensagens em português. O que nã
 
 ## Dados assíncronos no formulário
 
-Se o formulário depende de dados de uma query, bloqueie a renderização até eles chegarem:
+Se o formulário depende de dados de uma query, bloqueie a renderização até eles chegarem (use o padrão loading guard):
 
 ```tsx
 const { data: campaign, isLoading } = useCampaignDetails(token, id);
