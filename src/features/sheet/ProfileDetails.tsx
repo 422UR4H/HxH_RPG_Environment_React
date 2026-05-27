@@ -21,7 +21,7 @@ export default function ProfileDetails({
         <BriefDescriptionTextarea
           value={briefDescription ?? ""}
           onChange={(e) => onBriefDescriptionChange(e.target.value)}
-          placeholder="Descrição breve do personagem..."
+          placeholder="Faça uma breve descrição do seu personagem (roupas, físico e aparência - o que os outros veem ao olhar para ele)"
           maxLength={255}
           rows={3}
         />
