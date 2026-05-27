@@ -52,7 +52,7 @@ const PageBody = styled.main`
 
 const MainContentContainer = styled.div<{ $bgImage: string }>`
   flex: 1;
-  padding: 30px 30px 20px 30px;
+  padding: 30px 30px 0px 30px;
   overflow-y: auto;
 
   /* world map */

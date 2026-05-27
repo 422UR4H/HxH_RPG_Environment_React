@@ -230,4 +230,127 @@ describe("CampaignPage", () => {
       ).toBeInTheDocument();
     });
   });
+
+  describe("delete campanha", () => {
+    it("exibe 'Gerenciar' para master", async () => {
+      server.use(
+        http.get(`${baseUrl}/campaigns/:id`, () =>
+          HttpResponse.json({ campaign: campaignAsMaster(masterUserFixture.user.uuid) }),
+        ),
+      );
+      renderWithProviders(<CampaignPage />, {
+        route: "/campaigns/campaign-1",
+        path: "/campaigns/:id",
+        user: masterUserFixture,
+      });
+      expect(await screen.findByText(/Gerenciar/i)).toBeInTheDocument();
+    });
+
+    it("não exibe 'Gerenciar' para player", async () => {
+      renderWithProviders(<CampaignPage />, {
+        route: "/campaigns/campaign-1",
+        path: "/campaigns/:id",
+        user: userFixture,
+      });
+      expect(await screen.findByText(campaignFixture.name.toUpperCase())).toBeInTheDocument();
+      expect(screen.queryByText(/Gerenciar/i)).not.toBeInTheDocument();
+    });
+
+    it("delete com sucesso navega para /campaigns", async () => {
+      server.use(
+        http.get(`${baseUrl}/campaigns/:id`, () =>
+          HttpResponse.json({ campaign: campaignAsMaster(masterUserFixture.user.uuid) }),
+        ),
+        http.delete(`${baseUrl}/campaigns/:id`, () =>
+          new HttpResponse(null, { status: 204 }),
+        ),
+      );
+      renderWithProviders(<CampaignPage />, {
+        route: "/campaigns/campaign-1",
+        path: "/campaigns/:id",
+        user: masterUserFixture,
+      });
+      const user = userEvent.setup();
+      await user.click(await screen.findByText(/Gerenciar/i));
+      await user.click(screen.getByText(/Excluir/i));
+      await user.click(await screen.findByRole("button", { name: "Excluir" }));
+      await waitFor(() => {
+        expect(mockNavigate).toHaveBeenCalledWith("/campaigns");
+      });
+    });
+
+    it("delete 422 exibe mensagem 'partida iniciada'", async () => {
+      server.use(
+        http.get(`${baseUrl}/campaigns/:id`, () =>
+          HttpResponse.json({ campaign: campaignAsMaster(masterUserFixture.user.uuid) }),
+        ),
+        http.delete(`${baseUrl}/campaigns/:id`, () =>
+          HttpResponse.json({ error: "has started match" }, { status: 422 }),
+        ),
+      );
+      renderWithProviders(<CampaignPage />, {
+        route: "/campaigns/campaign-1",
+        path: "/campaigns/:id",
+        user: masterUserFixture,
+      });
+      const user = userEvent.setup();
+      await user.click(await screen.findByText(/Gerenciar/i));
+      await user.click(screen.getByText(/Excluir/i));
+      await user.click(await screen.findByRole("button", { name: "Excluir" }));
+      expect(
+        await screen.findByText(/partida iniciada e não pode ser deletada/i),
+      ).toBeInTheDocument();
+    });
+
+    it("campanha com partida iniciada exibe 'Excluir' desabilitado com motivo", async () => {
+      const campaignWithStartedMatch = {
+        ...campaignAsMaster(masterUserFixture.user.uuid),
+        matches: [
+          {
+            uuid: "match-started",
+            campaignUuid: "campaign-1",
+            masterUuid: masterUserFixture.user.uuid,
+            title: "Partida Iniciada",
+            briefInitialDescription: "Brief",
+            description: "Desc",
+            isPublic: true,
+            gameScheduledAt: "2025-01-01T10:00:00Z",
+            gameStartAt: "2025-01-01T10:05:00Z",
+            storyStartAt: "2025-01-01",
+            createdAt: "2025-01-01T00:00:00.000Z",
+            updatedAt: "2025-01-01T00:00:00.000Z",
+          },
+        ],
+      };
+      server.use(
+        http.get(`${baseUrl}/campaigns/:id`, () =>
+          HttpResponse.json({ campaign: campaignWithStartedMatch }),
+        ),
+      );
+      renderWithProviders(<CampaignPage />, {
+        route: "/campaigns/campaign-1",
+        path: "/campaigns/:id",
+        user: masterUserFixture,
+      });
+      const user = userEvent.setup();
+      await user.click(await screen.findByText(/Gerenciar/i));
+      expect(await screen.findByText(/Partida iniciada existente/i)).toBeInTheDocument();
+    });
+
+    it("'Criar Partida' em BottomActions chama navigate", async () => {
+      server.use(
+        http.get(`${baseUrl}/campaigns/:id`, () =>
+          HttpResponse.json({ campaign: campaignAsMaster(masterUserFixture.user.uuid) }),
+        ),
+      );
+      renderWithProviders(<CampaignPage />, {
+        route: "/campaigns/campaign-1",
+        path: "/campaigns/:id",
+        user: masterUserFixture,
+      });
+      const user = userEvent.setup();
+      await user.click(await screen.findByRole("button", { name: /Criar Partida/i }));
+      expect(mockNavigate).toHaveBeenCalledWith("/campaigns/campaign-1/matches/new");
+    });
+  });
 });

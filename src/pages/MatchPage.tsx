@@ -14,7 +14,7 @@ import styled from "styled-components";
 import { colors, fonts } from "../styles/tokens";
 import EnrollmentSidebarItem from "../features/match/EnrollmentSidebarItem";
 import CharacterSidebarItem from "../components/molecules/CharacterSidebarItem";
-import MatchBottomActions from "../features/match/MatchBottomActions";
+import BottomActions from "../components/molecules/BottomActions";
 import ExpandableText from "../components/molecules/ExpandableText";
 import { LoadingContainer, ErrorContainer } from "../components/atoms/PageStates";
 import ConfirmDialog from "../components/molecules/ConfirmDialog";
@@ -258,7 +258,7 @@ export default function MatchPage() {
 
         <ActionsList>
           {(isMaster && !match.gameStartAt) || canEnroll ? (
-            <MatchBottomActions
+            <BottomActions
               containerRef={mainContentRef}
               contentChangeSignal={descriptionSignal}
               manage={

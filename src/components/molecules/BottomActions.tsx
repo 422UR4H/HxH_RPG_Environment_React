@@ -1,16 +1,17 @@
 import { useEffect, useState } from "react";
 import type { RefObject } from "react";
 import { useDebounce } from "../../hooks/useDebounce";
-import ManageButton from "../../components/molecules/ManageButton";
-import PlusIcon from "../../components/ions/PlusIcon";
+import ManageButton from "./ManageButton";
+import PlusIcon from "../ions/PlusIcon";
 import styled from "styled-components";
 import { colors } from "../../styles/tokens";
 
-interface MatchBottomActionsProps {
+interface BottomActionsProps {
   containerRef: RefObject<HTMLDivElement | null>;
   contentChangeSignal?: unknown;
   manage?: {
     isFree: boolean;
+    deleteDisabledReason?: string;
     onEdit: () => void;
     onDelete: () => void;
     confirmMessage: string;
@@ -21,12 +22,12 @@ interface MatchBottomActionsProps {
   };
 }
 
-export default function MatchBottomActions({
+export default function BottomActions({
   containerRef,
   contentChangeSignal,
   manage,
   primaryButton,
-}: MatchBottomActionsProps) {
+}: BottomActionsProps) {
   const [isFloating, setIsFloating] = useState(false);
   const [scrollPosition, setScrollPosition] = useState(0);
   const debouncedScroll = useDebounce(scrollPosition, 50);
@@ -113,7 +114,7 @@ const FloatingPrimary = styled.button`
   background-color: ${colors.brandAccent};
   color: ${colors.textPrimary};
   font-family: "Roboto", sans-serif;
-  font-size: 26px;
+  font-size: min(26px, 5cqi);
   font-weight: 600;
   display: flex;
   align-items: center;

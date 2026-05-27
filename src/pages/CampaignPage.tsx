@@ -4,14 +4,19 @@ import useToken from "../hooks/useToken";
 import useUser from "../hooks/useUser";
 import { useCampaignDetails } from "../hooks/useCampaignDetails";
 import { useSubmitCharacterSheet } from "../hooks/useSubmitCharacterSheet";
+import { useDeleteCampaign } from "../hooks/useDeleteCampaign";
 import type { CharacterPrivateSummary } from "../types/campaign";
 import styled from "styled-components";
 import { colors, fonts } from "../styles/tokens";
 import CharacterSidebarItem from "../components/molecules/CharacterSidebarItem";
 import MatchItem from "../features/campaign/MatchItem";
 import AdaptiveActionButton from "../components/molecules/AdaptiveActionButton";
+import BottomActions from "../components/molecules/BottomActions";
 import { getSortedCharacters } from "../features/campaign/utils/characterUtils";
-import { LoadingContainer, ErrorContainer } from "../components/atoms/PageStates";
+import {
+  LoadingContainer,
+  ErrorContainer,
+} from "../components/atoms/PageStates";
 import ExpandableText from "../components/molecules/ExpandableText";
 import ConfirmDialog from "../components/molecules/ConfirmDialog";
 import DetailPageTemplate from "../components/templates/DetailPageTemplate";
@@ -26,12 +31,17 @@ export default function CampaignPage() {
   const { user } = useUser();
   const navigate = useNavigate();
   const location = useLocation();
-  const sheetId = (location.state as { sheetId?: string; sheetNick?: string } | null)?.sheetId;
-  const sheetNick = (location.state as { sheetId?: string; sheetNick?: string } | null)?.sheetNick;
+  const sheetId = (
+    location.state as { sheetId?: string; sheetNick?: string } | null
+  )?.sheetId;
+  const sheetNick = (
+    location.state as { sheetId?: string; sheetNick?: string } | null
+  )?.sheetNick;
 
   const [descriptionSignal, setDescriptionSignal] = useState(false);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [nickConflictError, setNickConflictError] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const sidebarRef = useRef<HTMLDivElement>(null);
   const mainContentRef = useRef<HTMLDivElement>(null);
@@ -44,11 +54,15 @@ export default function CampaignPage() {
     isError: submitFailed,
     error: submitError,
   } = useSubmitCharacterSheet(token, id);
+  const { mutate: deleteCampaign } = useDeleteCampaign(token, id);
 
   const isMaster = campaign?.masterUuid === user?.uuid;
+  const hasStartedMatch = (campaign?.matches ?? []).some(
+    (m) => !!m.gameStartAt,
+  );
 
   const playerSheetId = campaign?.characterSheets.find(
-    (s) => s.playerUuid === user?.uuid
+    (s) => s.playerUuid === user?.uuid,
   )?.uuid;
 
   const handleSubmitSheet = () => {
@@ -59,7 +73,7 @@ export default function CampaignPage() {
   const handleRequestSubmit = () => {
     if (sheetNick && campaign) {
       const nickTaken = campaign.characterSheets.some(
-        (s) => s.nickName === sheetNick
+        (s) => s.nickName === sheetNick,
       );
       if (nickTaken) {
         setNickConflictError(true);
@@ -70,25 +84,40 @@ export default function CampaignPage() {
     setShowSubmitConfirm(true);
   };
 
+  const handleEdit = () => navigate(`/campaigns/${id}/edit`);
+
+  const handleDelete = () => {
+    setDeleteError(null);
+    deleteCampaign(undefined, {
+      onSuccess: () => navigate("/campaigns"),
+      onError: (error) => {
+        setDeleteError(
+          isApiError(error, 422)
+            ? "Esta campanha possui ao menos uma partida iniciada e não pode ser deletada."
+            : "Erro ao deletar campanha. Tente novamente.",
+        );
+      },
+    });
+  };
+
+  const handleCreateNpc = () => navigate(`/campaigns/${id}/npcs/new`);
+  const handleCreateMatch = () => navigate(`/campaigns/${id}/matches/new`);
+
   let sortedSheets: (CharacterPrivateSummary & { isPending?: boolean })[] = [];
   if (campaign) {
-    const ownPending = !isMaster && campaign.myPendingSheet ? [campaign.myPendingSheet] : [];
+    const ownPending =
+      !isMaster && campaign.myPendingSheet ? [campaign.myPendingSheet] : [];
     const pendingSheets = isMaster ? campaign.pendingSheets : ownPending;
     sortedSheets = getSortedCharacters(campaign.characterSheets, pendingSheets);
   }
-
-  const handleCreateNpc = () => {
-    navigate(`/campaigns/${id}/npcs/new`);
-  };
-  const handleCreateMatch = () => {
-    navigate(`/campaigns/${id}/matches/new`);
-  };
 
   if (isPending) {
     return <LoadingContainer>Carregando campanha...</LoadingContainer>;
   }
   if (isError) {
-    return <ErrorContainer>Falha ao carregar detalhes da campanha.</ErrorContainer>;
+    return (
+      <ErrorContainer>Falha ao carregar detalhes da campanha.</ErrorContainer>
+    );
   }
   if (!campaign) {
     return <ErrorContainer>Campanha não encontrada</ErrorContainer>;
@@ -175,7 +204,7 @@ export default function CampaignPage() {
         </CampaignDate>
 
         <MatchesList>
-          {(campaign.matches || []).map((match) => (
+          {(campaign.matches ?? []).map((match) => (
             <MatchItem
               key={match.uuid}
               match={match}
@@ -186,18 +215,29 @@ export default function CampaignPage() {
               }
             />
           ))}
+        </MatchesList>
 
-          {isMaster && (
-            <AdaptiveActionButton
-              label="Criar Partida"
-              type="match"
-              onClick={handleCreateMatch}
+        <ActionsList>
+          {isMaster ? (
+            <BottomActions
               containerRef={mainContentRef}
               contentChangeSignal={descriptionSignal}
+              manage={{
+                isFree: !hasStartedMatch,
+                deleteDisabledReason: hasStartedMatch
+                  ? "Partida iniciada existente"
+                  : undefined,
+                onEdit: handleEdit,
+                onDelete: handleDelete,
+                confirmMessage:
+                  "Tem certeza que deseja excluir esta campanha? Esta ação não pode ser desfeita.",
+              }}
+              primaryButton={{
+                label: "Criar Partida",
+                onClick: handleCreateMatch,
+              }}
             />
-          )}
-
-          {!isMaster && !submitted && sheetId && (
+          ) : !submitted && sheetId ? (
             <>
               <AdaptiveActionButton
                 label={submitPending ? "Submetendo..." : "Submeter Ficha"}
@@ -208,7 +248,8 @@ export default function CampaignPage() {
               />
               {nickConflictError && (
                 <NickConflictMessage>
-                  Já existe um personagem com o nick &quot;{sheetNick}&quot; nesta campanha. Escolha outro nick antes de submeter.
+                  Já existe um personagem com o nick &quot;{sheetNick}&quot;
+                  nesta campanha. Escolha outro nick antes de submeter.
                 </NickConflictMessage>
               )}
               {submitFailed && !nickConflictError && (
@@ -219,8 +260,10 @@ export default function CampaignPage() {
                 </NickConflictMessage>
               )}
             </>
-          )}
-        </MatchesList>
+          ) : null}
+        </ActionsList>
+
+        {deleteError && <DeleteErrorMessage>{deleteError}</DeleteErrorMessage>}
       </DetailPageTemplate>
 
       {showSubmitConfirm && (
@@ -277,10 +320,15 @@ const MatchesList = styled.div`
   flex-direction: column;
   gap: 20px;
   position: relative;
+`;
+
+const ActionsList = styled.div`
+  position: relative;
+  margin-top: 24px;
   padding-bottom: 112px;
 `;
 
-const NickConflictMessage = styled.p`
+const InlineErrorMessage = styled.p`
   font-family: ${fonts.sans};
   font-size: max(2.6cqi, 12px);
   line-height: 1.2;
@@ -290,8 +338,14 @@ const NickConflictMessage = styled.p`
   padding: 10px 14px;
   border-radius: 0 8px 8px 0;
   white-space: pre-line;
+`;
 
+const NickConflictMessage = styled(InlineErrorMessage)`
   @media (max-width: 609px) {
     margin: 12px 20px 0;
   }
+`;
+
+const DeleteErrorMessage = styled(InlineErrorMessage)`
+  margin-top: 8px;
 `;

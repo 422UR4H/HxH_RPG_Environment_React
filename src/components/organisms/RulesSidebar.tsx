@@ -23,7 +23,7 @@ export default function RulesSidebar({
 }
 
 const SidebarContainer = styled.aside`
-  width: 300px;
+  width: 400px;
   background-color: ${colors.surfaceSidebar};
   padding: 20px;
   position: relative;
