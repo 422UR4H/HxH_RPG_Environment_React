@@ -285,8 +285,14 @@ const CampaignHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 40px;
+  gap: 16px;
   margin-bottom: 20px;
+
+  @media (max-width: 750px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
 `;
 
 const CampaignTitle = styled.h1`
@@ -294,6 +300,9 @@ const CampaignTitle = styled.h1`
   font-size: 42px;
   font-weight: 900;
   color: ${colors.textPrimary};
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: break-word;
 `;
 
 const CampaignDate = styled.div`
