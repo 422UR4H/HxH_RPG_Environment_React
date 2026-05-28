@@ -81,6 +81,7 @@ export default function CharacterSheetHeader({
         <Emblem src={iconEmblem} alt="" />
         <GungiFrame src={gungiFrame} alt="frame" />
         <Avatar src={profile?.avatarUrl || avatarPlaceholder} alt={`avatar`} />
+        <AvatarRelief aria-hidden="true" />
         {(mode === "create" || mode === "edit" || mode === "edit-profile") &&
           onAvatarSelected && (
             <AddAvatar onClick={() => setAvatarModalOpen(true)}>
@@ -257,6 +258,31 @@ const Avatar = styled.img`
   position: relative;
   z-index: 4;
   top: -0.5cqi;
+`;
+
+/* Relevo da peça de Gungi (luz de cima). O ícone fica no fundo da rampa
+   interna (3ª camada do chanfro): a parede de cima está na sombra e a de
+   baixo recebe reflexo. Para ler como bisel em etapas — e não um gradiente
+   chapado — cada lado tem duas escalas: uma linha de contato curta no aro
+   mais uma queda ampla e suave. Inset box-shadow não renderiza sobre <img>,
+   então o efeito vai num overlay transparente alinhado ao Avatar. */
+const AvatarRelief = styled.div`
+  position: absolute;
+  width: 70.3%;
+  height: 70.3%;
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, calc(-50% - 0.5cqi));
+  z-index: 4;
+  pointer-events: none;
+  box-shadow:
+    /* topo: contato profundo no aro + oclusão ampla descendo (parte preta) */
+    inset 0 0.55cqi 0.7cqi rgba(0, 0, 0, 0.62),
+    inset 0 1.7cqi 2.4cqi rgba(0, 0, 0, 0.42),
+    /* base: reflexo curto no aro + brilho difuso subindo (cinza que clareia) */
+    inset 0 -0.55cqi 0.75cqi rgba(255, 255, 255, 0.14),
+    inset 0 -1.5cqi 2cqi rgba(255, 255, 255, 0.05);
 `;
 
 const AddAvatar = styled.button`
