@@ -105,6 +105,10 @@ const FloatingGroup = styled.div`
   display: flex;
   gap: 12px;
   align-items: center;
+
+  @media (max-width: 749px) {
+    left: 40px;
+  }
 `;
 
 const FloatingPrimary = styled.button`
