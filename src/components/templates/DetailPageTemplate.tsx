@@ -29,7 +29,7 @@ export default function DetailPageTemplate({
   children,
 }: DetailPageTemplateProps) {
   const isRightCollapsed = useMediaQuery("(max-width: 1149px)");
-  const isLeftCollapsed = useMediaQuery("(max-width: 608px)");
+  const isLeftCollapsed = useMediaQuery("(max-width: 749px)");
 
   const [isRightOpen, setIsRightOpen] = useState(false);
   const [isLeftOpen, setIsLeftOpen] = useState(false);
@@ -73,22 +73,18 @@ export default function DetailPageTemplate({
 
         {isLeftCollapsed && isLeftOpen && (
           <LeftDrawerPanel>
-            <DrawerCloseRow>
-              <DrawerCloseButton onClick={closeAll} aria-label="Fechar">
-                <CloseButton />
-              </DrawerCloseButton>
-            </DrawerCloseRow>
+            <LeftDrawerCloseButton onClick={closeAll} aria-label="Fechar">
+              <DrawerXIcon />
+            </LeftDrawerCloseButton>
             <DrawerBody>{leftSidebar}</DrawerBody>
           </LeftDrawerPanel>
         )}
 
         {isRightCollapsed && isRightOpen && rightSidebar && (
           <RightDrawerPanel>
-            <DrawerCloseRow>
-              <DrawerCloseButton onClick={closeAll} aria-label="Fechar">
-                <CloseButton />
-              </DrawerCloseButton>
-            </DrawerCloseRow>
+            <RightDrawerCloseButton onClick={closeAll} aria-label="Fechar">
+              <DrawerXIcon />
+            </RightDrawerCloseButton>
             <DrawerBody>{rightSidebar}</DrawerBody>
           </RightDrawerPanel>
         )}
@@ -123,7 +119,7 @@ const PageBody = styled.main`
   display: flex;
   color: ${colors.textPrimary};
   min-height: 0;
-  overflow: hidden;
+  overflow: visible;
   position: relative;
 `;
 
@@ -145,16 +141,16 @@ const EdgeTab = styled.button`
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  width: 24px;
-  height: 80px;
+  width: 32px;
+  height: 110px;
   background-color: ${colors.brandAccent};
   border: none;
   color: ${colors.textPrimary};
   writing-mode: vertical-lr;
   font-family: ${fonts.sans};
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
   cursor: pointer;
   z-index: 10;
   transition: filter 0.15s;
@@ -192,6 +188,7 @@ const DrawerPanel = styled.div`
   background-color: ${colors.surfaceSidebar};
   display: flex;
   flex-direction: column;
+  overflow: visible;
 `;
 
 const LeftDrawerPanel = styled(DrawerPanel)`
@@ -206,23 +203,39 @@ const RightDrawerPanel = styled(DrawerPanel)`
   animation: ${slideInFromRight} 250ms ease;
 `;
 
-const DrawerCloseRow = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  padding: 12px 12px 0;
-  flex-shrink: 0;
-`;
-
 const DrawerBody = styled.div`
   flex: 1;
   min-height: 0;
   overflow-y: auto;
 `;
 
-const DrawerCloseButton = styled.button`
+// X button: position: absolute within DrawerPanel (outside flex flow).
+// Bleeds 18px above and to the outer edge — imita o X da logo HxH.
+const DrawerCloseButtonBase = styled.button`
+  position: absolute;
+  z-index: 202;
   background: none;
   border: none;
   padding: 0;
   cursor: pointer;
   line-height: 0;
+`;
+
+// Left drawer: X at top-right corner, bleeding right (into main) and up (into page header)
+const LeftDrawerCloseButton = styled(DrawerCloseButtonBase)`
+  top: -18px;
+  right: -18px;
+`;
+
+// Right drawer: X at top-left corner, bleeding left (into main) and up (into page header)
+const RightDrawerCloseButton = styled(DrawerCloseButtonBase)`
+  top: -18px;
+  left: -18px;
+`;
+
+// Larger X icon for drawers (extends CloseButton ion)
+const DrawerXIcon = styled(CloseButton)`
+  width: 36px;
+  height: 36px;
+  opacity: 1;
 `;
