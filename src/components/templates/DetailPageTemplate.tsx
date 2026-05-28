@@ -119,12 +119,15 @@ const PageBody = styled.main`
   display: flex;
   color: ${colors.textPrimary};
   min-height: 0;
+  min-width: 0;
+  width: 100%;
   overflow: visible;
   position: relative;
 `;
 
 const MainContentContainer = styled.div<{ $bgImage: string }>`
   flex: 1;
+  min-width: 0;
   padding: 30px 30px 0px 30px;
   overflow-y: auto;
 
@@ -221,16 +224,16 @@ const DrawerCloseButtonBase = styled.button`
   line-height: 0;
 `;
 
-// Left drawer: X at top-right corner, bleeding right (into main) and up (into page header)
+// Left drawer: X at top-right corner, mostly inside drawer, small bleed up and right
 const LeftDrawerCloseButton = styled(DrawerCloseButtonBase)`
-  top: -18px;
-  right: -18px;
+  top: -10px;
+  right: -8px;
 `;
 
-// Right drawer: X at top-left corner, bleeding left (into main) and up (into page header)
+// Right drawer: X at top-right corner (screen edge), bleeds only upward — can't bleed right
 const RightDrawerCloseButton = styled(DrawerCloseButtonBase)`
-  top: -18px;
-  left: -18px;
+  top: -10px;
+  right: 8px;
 `;
 
 // Larger X icon for drawers (extends CloseButton ion)
