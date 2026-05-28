@@ -47,6 +47,11 @@ export default function DetailPageTemplate({
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [anyOpen]);
 
+  useEffect(() => {
+    if (!isLeftCollapsed) setIsLeftOpen(false);
+    if (!isRightCollapsed) setIsRightOpen(false);
+  }, [isLeftCollapsed, isRightCollapsed]);
+
   return (
     <PageContainer>
       <PageHeader backgroundColor={headerColor} />
