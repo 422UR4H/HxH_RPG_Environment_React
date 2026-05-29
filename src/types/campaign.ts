@@ -38,3 +38,16 @@ export interface CampaignMaster extends CampaignBase {
 export interface CampaignPlayer extends CampaignBase {
   characterSheets: CharacterPublicSummary[];
 }
+
+export interface CampaignEditResult {
+  uuid: string;
+  masterUuid: string;
+  name: string;
+  briefInitialDescription: string;
+  description: string;
+  isPublic: boolean;
+  callLink: string;
+  storyStartAt: string;
+  storyCurrentAt?: string;
+  updatedAt: string;
+}
