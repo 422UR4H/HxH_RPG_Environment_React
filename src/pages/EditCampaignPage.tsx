@@ -96,13 +96,12 @@ export default function EditCampaignPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.briefInitialDescription) {
+    if ((!hasStartedMatch && !form.name) || !form.briefInitialDescription) {
       setError("Nome e descrição breve são obrigatórios.");
       return;
     }
     setError(null);
     const campaignData: Record<string, unknown> = {
-      name: form.name,
       briefInitialDescription: form.briefInitialDescription,
       description: form.description || undefined,
       isPublic: form.isPublic,
@@ -112,6 +111,7 @@ export default function EditCampaignPage() {
         : undefined,
     };
     if (!hasStartedMatch) {
+      campaignData.name = form.name;
       campaignData.storyStartAt = form.storyStartAt;
     }
     updateCampaign(campaignData, {
