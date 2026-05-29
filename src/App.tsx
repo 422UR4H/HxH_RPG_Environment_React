@@ -14,6 +14,7 @@ import PublicCampaignsPage from "./pages/PublicCampaignsPage";
 import EditCharacterSheetPage from "./pages/EditCharacterSheetPage";
 import CreateNpcPage from "./pages/CreateNpcPage";
 import EditMatchPage from "./pages/EditMatchPage";
+import EditCampaignPage from "./pages/EditCampaignPage";
 
 function App() {
   return (
@@ -37,6 +38,7 @@ function App() {
         <Route path="/campaigns/public" element={<PublicCampaignsPage />} />
         <Route path="/campaigns/new" element={<CreateCampaignPage />} />
         <Route path="/campaigns/:id" element={<CampaignPage />} />
+        <Route path="/campaigns/:id/edit" element={<EditCampaignPage />} />
         <Route
           path="/campaigns/:campaignId/npcs/new"
           element={<CreateNpcPage />}
