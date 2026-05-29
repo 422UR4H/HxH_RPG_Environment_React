@@ -137,6 +137,11 @@ export default function CharacterSheetHeader({
             <CharacterExpBar
               currExp={charExp?.currExp ?? 0}
               maxExp={charExp?.nextLvlBaseExp ?? 0}
+              level={
+                mode === "view" || mode === "edit-profile"
+                  ? charExp?.level
+                  : undefined
+              }
             />
           </CharacterExpBarWrapper>
           <CharacterHpBarWrapper>
