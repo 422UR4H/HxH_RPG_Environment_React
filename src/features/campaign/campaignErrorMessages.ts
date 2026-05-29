@@ -13,6 +13,8 @@ const campaignValidationMessages: Record<string, string> = {
     "Nome e data de início não podem ser alterados após uma partida ter sido iniciada.",
   "validation error: story_current_at cannot be set to a date earlier than the current value":
     "A data corrente da história não pode ser anterior ao valor atual.",
+  "validation error: story_current_at cannot be before story_start_at":
+    "A data corrente da história não pode ser anterior à data de início da história.",
 };
 
 export function getCampaignValidationMessage(detail: string): string | undefined {

@@ -100,10 +100,13 @@ export default function EditCampaignPage() {
       setError("Nome e descrição breve são obrigatórios.");
       return;
     }
-    if (form.storyCurrentAt && campaign.storyCurrentAt) {
+    if (form.storyCurrentAt) {
       const newDate = new Date(`${form.storyCurrentAt}:00Z`);
-      const currentDate = new Date(campaign.storyCurrentAt);
-      if (newDate < currentDate) {
+      if (newDate < new Date(campaign.storyStartAt)) {
+        setError("A data corrente da história não pode ser anterior à data de início da história.");
+        return;
+      }
+      if (campaign.storyCurrentAt && newDate < new Date(campaign.storyCurrentAt)) {
         setError("A data corrente da história não pode ser anterior ao valor atual.");
         return;
       }
@@ -229,7 +232,7 @@ export default function EditCampaignPage() {
             min={
               campaign.storyCurrentAt
                 ? toDateTimeLocal(campaign.storyCurrentAt)
-                : undefined
+                : `${campaign.storyStartAt}T00:00`
             }
           />
         </FormField>
