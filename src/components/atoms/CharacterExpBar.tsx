@@ -4,13 +4,15 @@ import { colors } from "../../styles/tokens";
 interface CharacterExpBarProps {
   currExp: number;
   maxExp: number;
+  level?: number;
 }
 
-export default function CharacterExpBar({ currExp, maxExp }: CharacterExpBarProps) {
+export default function CharacterExpBar({ currExp, maxExp, level }: CharacterExpBarProps) {
   const percentage = maxExp > 0 ? Math.min((currExp / maxExp) * 100, 100) : 0;
 
   return (
     <Container>
+      {level !== undefined && <LvLabel>Lv {level}</LvLabel>}
       {maxExp > 0 && <ExpLabel>{currExp} / {maxExp}</ExpLabel>}
       <BarBorder>
         <BarBackground>
@@ -26,10 +28,9 @@ const Container = styled.div`
   width: 100%;
 `;
 
-const ExpLabel = styled.span`
+const sharedLabelStyles = `
   position: absolute;
   bottom: calc(100% + 2px);
-  right: 12px;
   color: ${colors.textPrimary};
   font-family: "Roboto", sans-serif;
   font-size: 3cqi;
@@ -38,6 +39,21 @@ const ExpLabel = styled.span`
   white-space: nowrap;
   pointer-events: none;
   z-index: 10;
+`;
+
+const LvLabel = styled.span`
+  ${sharedLabelStyles}
+  left: 12px;
+
+  @container (max-width: 609px) {
+    left: 3%;
+    font-size: 4cqi;
+  }
+`;
+
+const ExpLabel = styled.span`
+  ${sharedLabelStyles}
+  right: 12px;
 
   @container (max-width: 609px) {
     right: 3%;
