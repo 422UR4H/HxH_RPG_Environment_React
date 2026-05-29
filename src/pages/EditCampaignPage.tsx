@@ -100,6 +100,14 @@ export default function EditCampaignPage() {
       setError("Nome e descrição breve são obrigatórios.");
       return;
     }
+    if (form.storyCurrentAt && campaign.storyCurrentAt) {
+      const newDate = new Date(`${form.storyCurrentAt}:00Z`);
+      const currentDate = new Date(campaign.storyCurrentAt);
+      if (newDate < currentDate) {
+        setError("A data corrente da história não pode ser anterior ao valor atual.");
+        return;
+      }
+    }
     setError(null);
     const campaignData: Record<string, unknown> = {
       briefInitialDescription: form.briefInitialDescription,
