@@ -1,5 +1,5 @@
 import { httpClient } from "./httpClient";
-import type { CampaignMaster } from "../types/campaign";
+import type { CampaignMaster, CampaignEditResult } from "../types/campaign";
 import { objToCamelCase, objToSnakeCase } from "../utils/caseConverter";
 import config from "./config";
 import type {
@@ -40,4 +40,9 @@ export const campaignService = {
     httpClient
       .delete(`/campaigns/${id}`, config(token))
       .then(() => undefined),
+
+  updateCampaign: (token: string, id: string, data: object): Promise<CampaignEditResult> =>
+    httpClient
+      .patch<{ campaign: CampaignEditResult }>(`/campaigns/${id}`, objToSnakeCase(data), config(token))
+      .then(({ data }) => objToCamelCase<CampaignEditResult>(data.campaign)),
 };
