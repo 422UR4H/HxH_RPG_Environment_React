@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { colors } from "../../styles/tokens";
 import DescriptionMarkdown from "./DescriptionMarkdown";
@@ -14,7 +14,15 @@ export default function BackgroundEditorModal({
   initialValue,
   readOnly,
   onClose,
+  onSave,
 }: BackgroundEditorModalProps) {
+  const [draft, setDraft] = useState(initialValue);
+
+  const handleSaveAndClose = () => {
+    onSave?.(draft);
+    onClose();
+  };
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -31,11 +39,15 @@ export default function BackgroundEditorModal({
           {readOnly ? (
             <DescriptionMarkdown source={initialValue} />
           ) : (
-            <p>edit mode placeholder</p>
+            <Editor
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder="Escreva ou cole o background do seu personagem..."
+            />
           )}
         </Body>
         <Footer>
-          <ActionButton onClick={onClose}>
+          <ActionButton onClick={readOnly ? onClose : handleSaveAndClose}>
             {readOnly ? "Fechar" : "Salvar e Fechar"}
           </ActionButton>
         </Footer>
@@ -96,4 +108,24 @@ const ActionButton = styled.button`
   font-size: 0.95rem;
 
   &:hover { filter: brightness(1.1); }
+`;
+
+const Editor = styled.textarea`
+  width: 100%;
+  min-height: 50vh;
+  padding: 14px 16px;
+  font-family: "Roboto", sans-serif;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: ${colors.textPrimary};
+  background: ${colors.grayMid};
+  border: 2px solid ${colors.grayMidStrong};
+  border-radius: 6px;
+  resize: vertical;
+  tab-size: 4;
+  white-space: pre-wrap;
+  box-sizing: border-box;
+
+  &::placeholder { color: ${colors.textPlaceholder}; }
+  &:focus { outline: none; border-color: ${colors.brandAccentBright}; }
 `;
