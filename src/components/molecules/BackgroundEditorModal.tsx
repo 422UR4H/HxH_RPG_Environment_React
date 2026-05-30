@@ -90,7 +90,9 @@ export default function BackgroundEditorModal({
         <Title>Background do personagem</Title>
         <Body>
           {readOnly ? (
-            <DescriptionMarkdown source={initialValue} />
+            <ReadOnlyView>
+              <DescriptionMarkdown source={initialValue} />
+            </ReadOnlyView>
           ) : (
             <>
               <FormattingTip>
@@ -165,6 +167,9 @@ const Title = styled.h2`
   font-weight: 700;
   color: ${colors.textPrimary};
   margin: 0;
+
+  @media (max-width: 589px) { font-size: 1.2rem; }
+  @media (max-width: 360px) { font-size: 1.05rem; }
 `;
 
 const Body = styled.div`
@@ -175,10 +180,10 @@ const Body = styled.div`
 
 const Footer = styled.div`
   display: flex;
-  justify-content: flex-end;
 `;
 
 const ActionButton = styled.button`
+  width: 100%;
   padding: 10px 24px;
   background: ${colors.brandAccent};
   color: ${colors.textPrimary};
@@ -190,6 +195,8 @@ const ActionButton = styled.button`
   font-size: 0.95rem;
 
   &:hover { filter: brightness(1.1); }
+
+  @media (max-width: 589px) { font-size: 0.9rem; }
 `;
 
 const Editor = styled.textarea`
@@ -236,4 +243,16 @@ const TipText = styled.p`
     padding: 1px 5px;
     border-radius: 3px;
   }
+
+  @media (max-width: 589px) { font-size: 0.8rem; }
+  @media (max-width: 360px) { font-size: 0.75rem; }
+`;
+
+const ReadOnlyView = styled.div`
+  min-height: 50vh;
+  padding: 14px 16px;
+  background: ${colors.grayBgDark};
+  border: 2px solid ${colors.grayMidStrong};
+  border-radius: 6px;
+  overflow-y: auto;
 `;
