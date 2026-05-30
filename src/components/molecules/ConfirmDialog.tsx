@@ -4,6 +4,7 @@ import { colors } from "../../styles/tokens";
 interface ConfirmDialogProps {
   message: string;
   confirmLabel: string;
+  cancelLabel?: string;
   confirmVariant?: "danger" | "primary";
   confirmBackground?: string;
   confirmTextColor?: string;
@@ -17,6 +18,7 @@ interface ConfirmDialogProps {
 export default function ConfirmDialog({
   message,
   confirmLabel,
+  cancelLabel = "Cancelar",
   confirmVariant = "primary",
   confirmBackground,
   confirmTextColor,
@@ -32,7 +34,7 @@ export default function ConfirmDialog({
         <Message>{message}</Message>
         <Buttons>
           <CancelButton $bg={cancelBackground} $border={cancelBorderColor} onClick={onCancel}>
-            Cancelar
+            {cancelLabel}
           </CancelButton>
           <ActionButton
             $variant={confirmVariant}
