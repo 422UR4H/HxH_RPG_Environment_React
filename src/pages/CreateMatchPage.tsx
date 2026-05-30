@@ -71,6 +71,7 @@ export default function CreateMatchPage() {
         const detail: string = err.response?.data?.detail ?? "";
         setError(
           getMatchValidationMessage(detail) ||
+            err.response?.data?.message ||
             "Não foi possível criar a partida. Verifique os dados e tente novamente."
         );
       },
