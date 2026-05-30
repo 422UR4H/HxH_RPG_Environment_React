@@ -148,6 +148,15 @@ const Modal = styled.div`
   display: flex;
   flex-direction: column;
   gap: 16px;
+
+  @media (max-width: 589px) {
+    padding: 22px;
+  }
+
+  @media (max-width: 360px) {
+    gap: 14px;
+    padding: 20px 16px;
+  }
 `;
 
 const Title = styled.h2`
@@ -191,7 +200,7 @@ const Editor = styled.textarea`
   font-size: 1rem;
   line-height: 1.6;
   color: ${colors.textPrimary};
-  background: ${colors.grayMid};
+  background: ${colors.grayBgDark};
   border: 2px solid ${colors.grayMidStrong};
   border-radius: 6px;
   resize: vertical;
@@ -208,6 +217,7 @@ const FormattingTip = styled.div`
   border: 1px solid ${colors.warningBorder};
   border-radius: 6px;
   padding: 10px 14px;
+  margin-bottom: 12px;
   display: flex;
   gap: 10px;
   align-items: flex-start;
