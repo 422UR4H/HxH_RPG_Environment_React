@@ -9,6 +9,7 @@ interface CharacterSidebarItemProps {
     isPending?: boolean;
     fullName?: string;
     characterClass?: string;
+    level?: number;
     currExp?: number;
     nextLvlBaseExp?: number;
     health?: StatusBar;
@@ -49,6 +50,7 @@ export default function CharacterSidebarItem({
   if (character.currExp !== undefined && character.nextLvlBaseExp !== undefined) {
     charSheet.characterExp = {
       ...charSheet.characterExp,
+      level: character.level ?? charSheet.characterExp.level,
       currExp: character.currExp,
       nextLvlBaseExp: character.nextLvlBaseExp,
     };

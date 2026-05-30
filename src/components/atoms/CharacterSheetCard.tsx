@@ -35,6 +35,7 @@ export default function CharacterSheetCard({
   };
   charSheet.characterExp = {
     ...charSheet.characterExp,
+    level: character.level,
     currExp: character.currExp,
     nextLvlBaseExp: character.nextLvlBaseExp,
   };

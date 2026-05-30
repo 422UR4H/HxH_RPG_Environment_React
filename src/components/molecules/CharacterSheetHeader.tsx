@@ -139,7 +139,7 @@ export default function CharacterSheetHeader({
               currExp={charExp?.currExp ?? 0}
               maxExp={charExp?.nextLvlBaseExp ?? 0}
               level={
-                mode === "view" || mode === "edit-profile"
+                mode === "view" || mode === "edit-profile" || mode === "card"
                   ? charExp?.level
                   : undefined
               }

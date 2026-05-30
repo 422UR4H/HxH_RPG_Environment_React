@@ -60,6 +60,8 @@ const RightLabels = styled.div`
 
 const LvLabel = styled.span`
   ${sharedLabelStyles}
+  font-size: 4cqi;
+  margin-right: 2cqi;
 `;
 
 const ExpLabel = styled.span`

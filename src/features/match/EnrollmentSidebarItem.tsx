@@ -42,6 +42,7 @@ export default function EnrollmentSidebarItem({
   if (priv?.currExp !== undefined && priv?.nextLvlBaseExp !== undefined) {
     charSheet.characterExp = {
       ...charSheet.characterExp,
+      level: priv.level ?? charSheet.characterExp.level,
       currExp: priv.currExp,
       nextLvlBaseExp: priv.nextLvlBaseExp,
     };
