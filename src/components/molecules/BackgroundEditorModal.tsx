@@ -92,12 +92,21 @@ export default function BackgroundEditorModal({
           {readOnly ? (
             <DescriptionMarkdown source={initialValue} />
           ) : (
-            <Editor
-              ref={textareaRef}
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              placeholder="Escreva ou cole o background do seu personagem..."
-            />
+            <>
+              <FormattingTip>
+                <TipText>
+                  💡 Os símbolos <code>**</code>, <code>##</code>, <code>-</code> viram{" "}
+                  <strong>negrito</strong>, títulos e listas na visualização.
+                  Cole de qualquer editor — convertemos pra você.
+                </TipText>
+              </FormattingTip>
+              <Editor
+                ref={textareaRef}
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                placeholder="Escreva ou cole o background do seu personagem..."
+              />
+            </>
           )}
         </Body>
         <Footer>
@@ -192,4 +201,29 @@ const Editor = styled.textarea`
 
   &::placeholder { color: ${colors.textPlaceholder}; }
   &:focus { outline: none; border-color: ${colors.brandAccentBright}; }
+`;
+
+const FormattingTip = styled.div`
+  background: ${colors.warningBgDark};
+  border: 1px solid ${colors.warningBorder};
+  border-radius: 6px;
+  padding: 10px 14px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+`;
+
+const TipText = styled.p`
+  font-family: "Roboto", sans-serif;
+  font-size: 0.85rem;
+  color: ${colors.warningText};
+  line-height: 1.5;
+  margin: 0;
+
+  code {
+    font-family: "Courier New", monospace;
+    background: rgba(0, 0, 0, 0.25);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
 `;

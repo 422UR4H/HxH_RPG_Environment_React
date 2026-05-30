@@ -208,3 +208,32 @@ describe("BackgroundEditorModal — paste HTML to markdown", () => {
     expect(textarea.value).toBe("plain text");
   });
 });
+
+describe("BackgroundEditorModal — formatting tip", () => {
+  it("shows tip text in edit mode", () => {
+    render(
+      <BackgroundEditorModal
+        initialValue=""
+        readOnly={false}
+        onClose={vi.fn()}
+        onSave={vi.fn()}
+      />
+    );
+    expect(
+      screen.getByText(/viram.*títulos.*listas/i)
+    ).toBeInTheDocument();
+  });
+
+  it("does NOT show tip in read-only mode", () => {
+    render(
+      <BackgroundEditorModal
+        initialValue="x"
+        readOnly
+        onClose={vi.fn()}
+      />
+    );
+    expect(
+      screen.queryByText(/viram.*títulos.*listas/i)
+    ).not.toBeInTheDocument();
+  });
+});
