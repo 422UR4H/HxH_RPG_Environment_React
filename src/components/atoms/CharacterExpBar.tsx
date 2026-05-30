@@ -4,14 +4,18 @@ import { colors } from "../../styles/tokens";
 interface CharacterExpBarProps {
   currExp: number;
   maxExp: number;
+  level?: number;
 }
 
-export default function CharacterExpBar({ currExp, maxExp }: CharacterExpBarProps) {
+export default function CharacterExpBar({ currExp, maxExp, level }: CharacterExpBarProps) {
   const percentage = maxExp > 0 ? Math.min((currExp / maxExp) * 100, 100) : 0;
 
   return (
     <Container>
-      {maxExp > 0 && <ExpLabel>{currExp} / {maxExp}</ExpLabel>}
+      <RightLabels>
+        {level !== undefined && <LvLabel>Lv {level}</LvLabel>}
+        {maxExp > 0 && <ExpLabel>{currExp} / {maxExp}</ExpLabel>}
+      </RightLabels>
       <BarBorder>
         <BarBackground>
           <BarFill $percentage={percentage} />
@@ -26,23 +30,40 @@ const Container = styled.div`
   width: 100%;
 `;
 
-const ExpLabel = styled.span`
-  position: absolute;
-  bottom: calc(100% + 2px);
-  right: 12px;
+const sharedLabelStyles = `
   color: ${colors.textPrimary};
   font-family: "Roboto", sans-serif;
   font-size: 3cqi;
   font-weight: 600;
   text-shadow: 1px 1px 4px ${colors.shadowText};
   white-space: nowrap;
+
+  @container (max-width: 609px) {
+    font-size: 4cqi;
+  }
+`;
+
+const RightLabels = styled.div`
+  position: absolute;
+  bottom: calc(100% + 2px);
+  right: 12px;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
   pointer-events: none;
   z-index: 10;
 
   @container (max-width: 609px) {
     right: 3%;
-    font-size: 4cqi;
   }
+`;
+
+const LvLabel = styled.span`
+  ${sharedLabelStyles}
+`;
+
+const ExpLabel = styled.span`
+  ${sharedLabelStyles}
 `;
 
 const BarBorder = styled.div`
@@ -51,7 +72,6 @@ const BarBorder = styled.div`
 
   @container (max-width: 609px) {
     border-width: 0.6cqi;
-    bottom: calc(100% + 1px);
   }
 `;
 
