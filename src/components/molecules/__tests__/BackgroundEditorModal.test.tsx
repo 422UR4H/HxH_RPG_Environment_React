@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import BackgroundEditorModal from "../BackgroundEditorModal";
 
@@ -165,5 +165,46 @@ describe("BackgroundEditorModal — dirty prompt", () => {
     await userEvent.click(screen.getByRole("button", { name: "Descartar" }));
     expect(onSave).not.toHaveBeenCalled();
     expect(onClose).toHaveBeenCalledOnce();
+  });
+});
+
+describe("BackgroundEditorModal — paste HTML to markdown", () => {
+  it("converts pasted HTML to markdown via turndown", () => {
+    render(
+      <BackgroundEditorModal
+        initialValue=""
+        readOnly={false}
+        onClose={vi.fn()}
+        onSave={vi.fn()}
+      />
+    );
+    const textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
+
+    fireEvent.paste(textarea, {
+      clipboardData: {
+        types: ["text/html", "text/plain"],
+        getData: (type: string) =>
+          type === "text/html"
+            ? "<p><strong>Bold</strong> and <em>italic</em></p>"
+            : "Bold and italic",
+      },
+    });
+
+    expect(textarea.value).toContain("**Bold**");
+    expect(textarea.value).toContain("_italic_");
+  });
+
+  it("falls through to default behavior when clipboard has no HTML", async () => {
+    render(
+      <BackgroundEditorModal
+        initialValue=""
+        readOnly={false}
+        onClose={vi.fn()}
+        onSave={vi.fn()}
+      />
+    );
+    const textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
+    await userEvent.type(textarea, "plain text");
+    expect(textarea.value).toBe("plain text");
   });
 });

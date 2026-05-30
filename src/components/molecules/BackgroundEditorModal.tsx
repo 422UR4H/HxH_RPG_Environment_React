@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
+import TurndownService from "turndown";
 import { colors } from "../../styles/tokens";
 import DescriptionMarkdown from "./DescriptionMarkdown";
 import ConfirmDialog from "./ConfirmDialog";
@@ -20,6 +21,36 @@ export default function BackgroundEditorModal({
   const [draft, setDraft] = useState(initialValue);
   const [showDiscardPrompt, setShowDiscardPrompt] = useState(false);
   const isDirty = !readOnly && draft !== initialValue;
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (readOnly) return;
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const turndown = new TurndownService({
+      headingStyle: "atx",
+      bulletListMarker: "-",
+      codeBlockStyle: "fenced",
+      emDelimiter: "_",
+    });
+
+    const onPaste = (e: ClipboardEvent) => {
+      const cd = e.clipboardData;
+      if (!cd) return;
+      if (!cd.types.includes("text/html")) return;
+      const html = cd.getData("text/html");
+      if (!html) return;
+      e.preventDefault();
+      const markdown = turndown.turndown(html);
+      const start = textarea.selectionStart ?? draft.length;
+      const end = textarea.selectionEnd ?? draft.length;
+      setDraft(draft.slice(0, start) + markdown + draft.slice(end));
+    };
+
+    textarea.addEventListener("paste", onPaste);
+    return () => textarea.removeEventListener("paste", onPaste);
+  }, [readOnly, draft]);
 
   const attemptClose = () => {
     if (isDirty) {
@@ -62,6 +93,7 @@ export default function BackgroundEditorModal({
             <DescriptionMarkdown source={initialValue} />
           ) : (
             <Editor
+              ref={textareaRef}
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               placeholder="Escreva ou cole o background do seu personagem..."
