@@ -12,8 +12,10 @@ export default function CharacterExpBar({ currExp, maxExp, level }: CharacterExp
 
   return (
     <Container>
-      {level !== undefined && <LvLabel>Lv {level}</LvLabel>}
-      {maxExp > 0 && <ExpLabel>{currExp} / {maxExp}</ExpLabel>}
+      <RightLabels>
+        {level !== undefined && <LvLabel>Lv {level}</LvLabel>}
+        {maxExp > 0 && <ExpLabel>{currExp} / {maxExp}</ExpLabel>}
+      </RightLabels>
       <BarBorder>
         <BarBackground>
           <BarFill $percentage={percentage} />
@@ -29,36 +31,39 @@ const Container = styled.div`
 `;
 
 const sharedLabelStyles = `
-  position: absolute;
-  bottom: calc(100% + 2px);
   color: ${colors.textPrimary};
   font-family: "Roboto", sans-serif;
   font-size: 3cqi;
   font-weight: 600;
   text-shadow: 1px 1px 4px ${colors.shadowText};
   white-space: nowrap;
+
+  @container (max-width: 609px) {
+    font-size: 4cqi;
+  }
+`;
+
+const RightLabels = styled.div`
+  position: absolute;
+  bottom: calc(100% + 2px);
+  right: 12px;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
   pointer-events: none;
   z-index: 10;
+
+  @container (max-width: 609px) {
+    right: 3%;
+  }
 `;
 
 const LvLabel = styled.span`
   ${sharedLabelStyles}
-  left: 12px;
-
-  @container (max-width: 609px) {
-    left: 3%;
-    font-size: 4cqi;
-  }
 `;
 
 const ExpLabel = styled.span`
   ${sharedLabelStyles}
-  right: 12px;
-
-  @container (max-width: 609px) {
-    right: 3%;
-    font-size: 4cqi;
-  }
 `;
 
 const BarBorder = styled.div`
@@ -67,7 +72,6 @@ const BarBorder = styled.div`
 
   @container (max-width: 609px) {
     border-width: 0.6cqi;
-    bottom: calc(100% + 1px);
   }
 `;
 
