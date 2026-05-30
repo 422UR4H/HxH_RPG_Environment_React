@@ -55,6 +55,7 @@ export function useLobbyWs({
   const wsRef = useRef<WebSocket | null>(null);
   const statusRef = useRef<WsStatus>("connecting");
   const reconnectCountRef = useRef<number>(0);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onMatchStartedRef = useRef(onMatchStarted);
   onMatchStartedRef.current = onMatchStarted;
 
@@ -155,7 +156,7 @@ export function useLobbyWs({
       );
 
       updateStatus("disconnected");
-      setTimeout(connect, delay);
+      reconnectTimerRef.current = setTimeout(connect, delay);
     };
 
     ws.onerror = () => {
@@ -168,6 +169,10 @@ export function useLobbyWs({
   useEffect(() => {
     connect();
     return () => {
+      if (reconnectTimerRef.current !== null) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
       if (wsRef.current) {
         wsRef.current.onclose = null; // prevent reconnect on intentional unmount
         wsRef.current.close();
