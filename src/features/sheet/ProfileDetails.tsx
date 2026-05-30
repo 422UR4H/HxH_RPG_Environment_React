@@ -6,11 +6,13 @@ import { colors } from "../../styles/tokens";
 interface ProfileDetailsProps {
   profile: Profile;
   onBriefDescriptionChange?: (value: string) => void;
+  onBackgroundClick: () => void;
 }
 
 export default function ProfileDetails({
   profile,
   onBriefDescriptionChange,
+  onBackgroundClick,
 }: ProfileDetailsProps) {
   const { fullname, briefDescription, birthday, age, alignment } = profile;
 
@@ -50,7 +52,7 @@ export default function ProfileDetails({
         </LeftDetails>
 
         <RightDetails>
-          <BackgroundButton />
+          <BackgroundButton onClick={onBackgroundClick} />
         </RightDetails>
       </ProfileContent>
     </ProfileContainer>

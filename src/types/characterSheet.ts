@@ -74,6 +74,11 @@ export interface CharacterSheet {
 export type Profile = {
   nickname: string;
   fullname: string;
+  /**
+   * Markdown-formatted free text. ALWAYS render via <DescriptionMarkdown>.
+   * Never render as plain text (perde formatação) ou via dangerouslySetInnerHTML.
+   * Editor de origem: BackgroundEditorModal.
+   */
   description?: string;
   briefDescription: string;
   birthday: string;

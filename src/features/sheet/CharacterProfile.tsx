@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Suspense, lazy, useState } from "react";
 import styled from "styled-components";
 import ExpandButton from "../../components/ions/ExpandButton";
 import { colors } from "../../styles/tokens";
@@ -6,6 +6,10 @@ import type { ProfileMode } from "./types/profileMode";
 import type { CharacterSheet } from "../../types/characterSheet";
 import ProfileDetails from "./ProfileDetails";
 import ProfileInputs from "./ProfileInputs";
+
+const BackgroundEditorModal = lazy(
+  () => import("../../components/molecules/BackgroundEditorModal")
+);
 
 interface CharacterProfileProps {
   mode: ProfileMode;
@@ -23,9 +27,19 @@ export default function CharacterProfile({
   // can fill in or edit fields immediately. In "view" mode it starts collapsed,
   // keeping the focus on the sheet's attributes and skills.
   const [isExpanded, setIsExpanded] = useState(mode === "create" || mode === "edit");
+  const [isBackgroundOpen, setIsBackgroundOpen] = useState(false);
 
-  const toggleExpanded = () => {
-    setIsExpanded(!isExpanded);
+  const toggleExpanded = () => setIsExpanded(!isExpanded);
+  const openBackground = () => setIsBackgroundOpen(true);
+  const closeBackground = () => setIsBackgroundOpen(false);
+
+  const handleBackgroundSave = (value: string) => {
+    if (!charSheet || !setCharSheet) return;
+    setCharSheet({
+      ...charSheet,
+      profile: { ...charSheet.profile, description: value },
+    });
+    setIsBackgroundOpen(false);
   };
 
   return (
@@ -37,11 +51,12 @@ export default function CharacterProfile({
       </ProfileHeader>
 
       {isExpanded && profile && mode === "view" && (
-        <ProfileDetails profile={profile} />
+        <ProfileDetails profile={profile} onBackgroundClick={openBackground} />
       )}
       {isExpanded && profile && mode === "edit" && (
         <ProfileDetails
           profile={profile}
+          onBackgroundClick={openBackground}
           onBriefDescriptionChange={(value) => {
             if (!charSheet || !setCharSheet) return;
             setCharSheet({ ...charSheet, profile: { ...charSheet.profile, briefDescription: value } });
@@ -49,7 +64,22 @@ export default function CharacterProfile({
         />
       )}
       {isExpanded && mode === "create" && (
-        <ProfileInputs charSheet={charSheet} setCharSheet={setCharSheet} />
+        <ProfileInputs
+          charSheet={charSheet}
+          setCharSheet={setCharSheet}
+          onBackgroundClick={openBackground}
+        />
+      )}
+
+      {isBackgroundOpen && (
+        <Suspense fallback={null}>
+          <BackgroundEditorModal
+            initialValue={charSheet?.profile?.description ?? ""}
+            readOnly={mode === "view"}
+            onClose={closeBackground}
+            onSave={handleBackgroundSave}
+          />
+        </Suspense>
       )}
     </ProfileContainer>
   );

@@ -21,9 +21,12 @@
     "react-advanced-cropper": "^0.20.1",
     "react-dom": "^19.1.0",
     "react-icons": "^5.5.0",
+    "react-markdown": "^10.1.0",
     "react-router-dom": "^7.6.0",
+    "remark-gfm": "^4.0.1",
     "socket.io-client": "^4.8.1",
-    "styled-components": "^6.1.18"
+    "styled-components": "^6.1.18",
+    "turndown": "^7.2.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",
@@ -32,6 +35,7 @@
     "@testing-library/user-event": "^14.6.1",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
+    "@types/turndown": "^5.0.6",
     "@vitejs/plugin-react-swc": "^3.9.0",
     "@vitest/coverage-v8": "^4.1.7",
     "eslint": "^9.25.0",

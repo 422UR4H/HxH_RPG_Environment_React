@@ -2,9 +2,17 @@ import styled from "styled-components";
 import backgroundBookIcon from "../../assets/icons/background-book.svg";
 import { colors } from "../../styles/tokens";
 
-export default function BackgroundButton() {
+interface BackgroundButtonProps {
+  onClick: () => void;
+  ariaLabel?: string;
+}
+
+export default function BackgroundButton({
+  onClick,
+  ariaLabel = "Abrir background do personagem",
+}: BackgroundButtonProps) {
   return (
-    <ButtonContainer>
+    <ButtonContainer onClick={onClick} aria-label={ariaLabel}>
       <BackgroundText>Background</BackgroundText>
       <BookIcon src={backgroundBookIcon} alt="" />
     </ButtonContainer>
