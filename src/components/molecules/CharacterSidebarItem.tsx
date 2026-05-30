@@ -18,6 +18,7 @@ interface CharacterSidebarItemProps {
   isMaster: boolean;
   isOwn?: boolean;
   hasLeft?: boolean;
+  isOnline?: boolean;
   onClick: () => void;
 }
 
@@ -26,6 +27,7 @@ export default function CharacterSidebarItem({
   isMaster,
   isOwn,
   hasLeft,
+  isOnline,
   onClick,
 }: CharacterSidebarItemProps) {
   const isDead = !!character.deadAt;
@@ -63,6 +65,7 @@ export default function CharacterSidebarItem({
       $isDead={isDead}
       $isPending={isPending}
       $isNpc={isNpc}
+      $isOnline={isOnline}
       $clickable={isClickable}
       onClick={isClickable ? onClick : undefined}
     >
@@ -75,14 +78,36 @@ export default function CharacterSidebarItem({
       {isNpc && <NpcBadge>NPC</NpcBadge>}
       {isDead && <DeadBadge>Morto</DeadBadge>}
       {hasLeft && <LeftBadge>Saiu</LeftBadge>}
+      {isOnline === true && <OnlineBadge>ONLINE</OnlineBadge>}
+      {isOnline === false && <AwaitingBadge>AGUARDANDO</AwaitingBadge>}
     </ItemContainer>
   );
 }
+
+const borderColor = ({
+  $isDead,
+  $isPending,
+  $isOnline,
+  $isNpc,
+}: {
+  $isDead?: boolean;
+  $isPending?: boolean;
+  $isOnline?: boolean;
+  $isNpc?: boolean;
+}): string => {
+  if ($isDead) return colors.danger;
+  if ($isPending) return colors.statusPending;
+  if ($isOnline === false) return colors.statusLeft;
+  if ($isOnline === true) return colors.statusOngoing;
+  if ($isNpc) return colors.statusNpc;
+  return colors.orange;
+};
 
 const ItemContainer = styled.div<{
   $isDead?: boolean;
   $isPending?: boolean;
   $isNpc?: boolean;
+  $isOnline?: boolean;
   $clickable?: boolean;
 }>`
   position: relative;
@@ -91,14 +116,8 @@ const ItemContainer = styled.div<{
   opacity: ${({ $isDead }) => ($isDead ? 0.7 : 1)};
   cursor: ${({ $clickable }) => ($clickable ? "pointer" : "default")};
   border-left: 4px solid
-    ${({ $isDead, $isPending, $isNpc }) =>
-      $isDead
-        ? colors.danger
-        : $isPending
-        ? colors.statusPending
-        : $isNpc
-        ? colors.statusNpc
-        : colors.orange};
+    ${({ $isDead, $isPending, $isOnline, $isNpc }) =>
+      borderColor({ $isDead, $isPending, $isOnline, $isNpc })};
 
   &:hover {
     filter: ${({ $clickable }) => ($clickable ? "brightness(1.05)" : "none")};
@@ -132,6 +151,16 @@ const NpcBadge = styled(Badge)`
 `;
 
 const LeftBadge = styled(Badge)`
+  background-color: ${colors.statusLeft};
+  color: ${colors.textDisabled};
+`;
+
+const OnlineBadge = styled(Badge)`
+  background-color: ${colors.statusOngoing};
+  color: ${colors.textPrimary};
+`;
+
+const AwaitingBadge = styled(Badge)`
   background-color: ${colors.statusLeft};
   color: ${colors.textDisabled};
 `;
