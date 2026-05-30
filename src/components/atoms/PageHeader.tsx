@@ -5,12 +5,13 @@ import { colors } from "../../styles/tokens";
 
 interface PageHeaderProps {
   backgroundColor?: string;
+  showBack?: boolean;
 }
 
-export default function PageHeader({ backgroundColor }: PageHeaderProps) {
+export default function PageHeader({ backgroundColor, showBack = true }: PageHeaderProps) {
   return (
     <StyledPageHeader $backgroundColor={backgroundColor}>
-      <BackButton />
+      {showBack && <BackButton />}
       <LogoButton />
     </StyledPageHeader>
   );

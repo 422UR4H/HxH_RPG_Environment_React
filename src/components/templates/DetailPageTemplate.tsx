@@ -16,6 +16,7 @@ interface DetailPageTemplateProps {
   rightSidebar?: ReactNode;
   rightSidebarLabel?: string;
   children: ReactNode;
+  hideBack?: boolean;
 }
 
 export default function DetailPageTemplate({
@@ -27,6 +28,7 @@ export default function DetailPageTemplate({
   rightSidebar,
   rightSidebarLabel = "REGRAS",
   children,
+  hideBack = false,
 }: DetailPageTemplateProps) {
   const isRightCollapsed = useMediaQuery("(max-width: 1149px)");
   const isLeftCollapsed = useMediaQuery("(max-width: 749px)");
@@ -54,7 +56,7 @@ export default function DetailPageTemplate({
 
   return (
     <PageContainer>
-      <PageHeader backgroundColor={headerColor} />
+      <PageHeader backgroundColor={headerColor} showBack={!hideBack} />
       <PageBody>
         {!isLeftCollapsed && leftSidebar}
         <MainContentContainer ref={mainRef} $bgImage={bgImage}>
