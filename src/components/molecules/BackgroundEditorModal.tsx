@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { colors } from "../../styles/tokens";
 import DescriptionMarkdown from "./DescriptionMarkdown";
+import ConfirmDialog from "./ConfirmDialog";
 
 interface BackgroundEditorModalProps {
   initialValue: string;
@@ -17,22 +18,43 @@ export default function BackgroundEditorModal({
   onSave,
 }: BackgroundEditorModalProps) {
   const [draft, setDraft] = useState(initialValue);
+  const [showDiscardPrompt, setShowDiscardPrompt] = useState(false);
+  const isDirty = !readOnly && draft !== initialValue;
+
+  const attemptClose = () => {
+    if (isDirty) {
+      setShowDiscardPrompt(true);
+    } else {
+      onClose();
+    }
+  };
 
   const handleSaveAndClose = () => {
     onSave?.(draft);
     onClose();
   };
 
+  const handleDiscard = () => {
+    setShowDiscardPrompt(false);
+    onClose();
+  };
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key !== "Escape") return;
+      if (showDiscardPrompt) return;
+      if (isDirty) {
+        setShowDiscardPrompt(true);
+      } else {
+        onClose();
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [onClose]);
+  }, [onClose, showDiscardPrompt, isDirty]);
 
   return (
-    <Overlay onClick={onClose}>
+    <Overlay onClick={attemptClose}>
       <Modal onClick={(e) => e.stopPropagation()}>
         <Title>Background do personagem</Title>
         <Body>
@@ -52,6 +74,16 @@ export default function BackgroundEditorModal({
           </ActionButton>
         </Footer>
       </Modal>
+      {showDiscardPrompt && (
+        <ConfirmDialog
+          message="⚠ Descartar alterações no background?"
+          confirmLabel="Descartar"
+          cancelLabel="Manter editando"
+          confirmVariant="danger"
+          onConfirm={handleDiscard}
+          onCancel={() => setShowDiscardPrompt(false)}
+        />
+      )}
     </Overlay>
   );
 }

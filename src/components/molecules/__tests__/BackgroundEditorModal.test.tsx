@@ -98,3 +98,72 @@ describe("BackgroundEditorModal — edit (basic)", () => {
     expect(onSave).toHaveBeenCalledWith("hello");
   });
 });
+
+describe("BackgroundEditorModal — dirty prompt", () => {
+  it("Esc closes directly when draft is unchanged", async () => {
+    const onClose = vi.fn();
+    render(
+      <BackgroundEditorModal
+        initialValue="hello"
+        readOnly={false}
+        onClose={onClose}
+        onSave={vi.fn()}
+      />
+    );
+    await userEvent.keyboard("{Escape}");
+    expect(onClose).toHaveBeenCalledOnce();
+    expect(screen.queryByText(/Descartar alterações/)).not.toBeInTheDocument();
+  });
+
+  it("Esc opens dirty-prompt when draft has changed", async () => {
+    const onClose = vi.fn();
+    render(
+      <BackgroundEditorModal
+        initialValue="hello"
+        readOnly={false}
+        onClose={onClose}
+        onSave={vi.fn()}
+      />
+    );
+    const textarea = screen.getByRole("textbox");
+    await userEvent.type(textarea, " world");
+    await userEvent.keyboard("{Escape}");
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByText(/Descartar alterações/)).toBeInTheDocument();
+  });
+
+  it("'Manter editando' closes only the prompt, draft preserved", async () => {
+    render(
+      <BackgroundEditorModal
+        initialValue="hello"
+        readOnly={false}
+        onClose={vi.fn()}
+        onSave={vi.fn()}
+      />
+    );
+    const textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
+    await userEvent.type(textarea, " world");
+    await userEvent.keyboard("{Escape}");
+    await userEvent.click(screen.getByRole("button", { name: "Manter editando" }));
+    expect(screen.queryByText(/Descartar alterações/)).not.toBeInTheDocument();
+    expect(textarea.value).toBe("hello world");
+  });
+
+  it("'Descartar' closes everything without calling onSave", async () => {
+    const onSave = vi.fn();
+    const onClose = vi.fn();
+    render(
+      <BackgroundEditorModal
+        initialValue="hello"
+        readOnly={false}
+        onClose={onClose}
+        onSave={onSave}
+      />
+    );
+    await userEvent.type(screen.getByRole("textbox"), " world");
+    await userEvent.keyboard("{Escape}");
+    await userEvent.click(screen.getByRole("button", { name: "Descartar" }));
+    expect(onSave).not.toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+});
