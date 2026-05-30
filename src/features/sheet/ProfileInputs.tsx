@@ -8,6 +8,7 @@ import { colors } from "../../styles/tokens";
 interface ProfileInputsProps {
   charSheet?: CharacterSheet;
   setCharSheet?: (charSheet: CharacterSheet) => void;
+  onBackgroundClick: () => void;
 }
 
 const MONTH_NAMES = [
@@ -25,6 +26,7 @@ function maxDaysForMonth(month: number): number {
 export default function ProfileInputs({
   charSheet,
   setCharSheet,
+  onBackgroundClick,
 }: ProfileInputsProps) {
   const handleInputChange = (field: keyof Profile, value: string | number) => {
     if (!charSheet || !setCharSheet) return;
@@ -141,13 +143,13 @@ export default function ProfileInputs({
               </AlignmentContainer>
             </DetailItem>
             <MobileOnlyButton>
-              <BackgroundButton />
+              <BackgroundButton onClick={onBackgroundClick} />
             </MobileOnlyButton>
           </AlignmentBackgroundRow>
         </LeftDetails>
 
         <RightDetails>
-          <BackgroundButton />
+          <BackgroundButton onClick={onBackgroundClick} />
         </RightDetails>
       </ProfileContent>
     </ProfileContainer>
