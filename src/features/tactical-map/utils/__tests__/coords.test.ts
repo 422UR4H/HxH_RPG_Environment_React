@@ -80,3 +80,39 @@ describe("coords — hex (no skew, no rotation)", () => {
     }
   });
 });
+
+describe("coords — skew + rotation", () => {
+  it("default skew=1, rotation=0 leaves results unchanged", () => {
+    // já coberto nos testes anteriores; aqui só re-afirmamos um caso
+    const g = squareGrid(40);
+    expect(slotToWorld({ kind: "square", col: 1, row: 1 }, g)).toEqual({ x: 60, y: 60 });
+  });
+
+  it("skewRatio < 1 squashes the y coordinate", () => {
+    const g: GridShape = { ...squareGrid(40), skewRatio: 0.5 };
+    // baseline y = 60 → skewed y = 30
+    expect(slotToWorld({ kind: "square", col: 1, row: 1 }, g)).toEqual({ x: 60, y: 30 });
+  });
+
+  it("rotation rotates around the world origin", () => {
+    const g: GridShape = { ...squareGrid(40), rotation: 90 };
+    // baseline (20, 20) → rotated 90° → (-20, 20)
+    const p = slotToWorld({ kind: "square", col: 0, row: 0 }, g);
+    expect(p.x).toBeCloseTo(-20, 6);
+    expect(p.y).toBeCloseTo(20, 6);
+  });
+
+  it("worldToSlot reverses skew + rotation for square", () => {
+    const g: GridShape = { ...squareGrid(40), skewRatio: 0.5, rotation: 30 };
+    const slot = { kind: "square" as const, col: 2, row: 3 };
+    const world = slotToWorld(slot, g);
+    expect(worldToSlot(world, g)).toEqual(slot);
+  });
+
+  it("worldToSlot reverses skew + rotation for hex", () => {
+    const g: GridShape = { ...hexGrid(20), skewRatio: 0.7, rotation: -45 };
+    const slot = { kind: "hex" as const, q: 2, r: -1 };
+    const world = slotToWorld(slot, g);
+    expect(worldToSlot(world, g)).toEqual(slot);
+  });
+});
