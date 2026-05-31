@@ -1,5 +1,5 @@
-import { useState, useRef } from "react";
-import { Navigate, useParams, useNavigate, useLocation } from "react-router-dom";
+import { useState, useRef, useEffect } from "react";
+import { Navigate, useParams, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import useToken from "../hooks/useToken";
 import useUser from "../hooks/useUser";
 import { useMatchDetails } from "../hooks/useMatchDetails";
@@ -9,7 +9,10 @@ import { useAcceptEnrollment } from "../hooks/useAcceptEnrollment";
 import { useRejectEnrollment } from "../hooks/useRejectEnrollment";
 import { useEnrollCharacterSheet } from "../hooks/useEnrollCharacterSheet";
 import { useDeleteMatch } from "../hooks/useDeleteMatch";
+import { useMaps } from "../hooks/useMaps";
 import type { CharacterPrivateSummary } from "../types/characterSheet";
+import PageTabNav from "../components/organisms/PageTabNav";
+import MapCard from "../components/molecules/MapCard";
 import styled from "styled-components";
 import { colors, fonts } from "../styles/tokens";
 import EnrollmentSidebarItem from "../features/match/EnrollmentSidebarItem";
@@ -90,9 +93,40 @@ export default function MatchPage() {
     enrollments.find((e) => e.player?.uuid === user?.uuid && e.status === "accepted")
       ?.characterSheet.uuid;
 
-  if (!token) return <Navigate to="/" replace />;
-
   const isMaster = !!match && match.masterUuid === user?.uuid;
+
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const matchEnded = !!match?.storyEndAt;
+
+  const availableTabs =
+    isMaster || matchEnded
+      ? [
+          { id: "events", label: "Eventos" },
+          { id: "maps", label: "Mapas" },
+        ]
+      : [{ id: "events", label: "Eventos" }];
+
+  const rawTab = searchParams.get("tab");
+  const activeTab = availableTabs.some((t) => t.id === rawTab)
+    ? rawTab!
+    : "events";
+
+  const { data: maps, isPending: mapsPending } = useMaps(
+    token,
+    activeTab === "maps" && isMaster ? campaignId : undefined,
+  );
+
+  useEffect(() => {
+    if (!match) return;
+    const tab = searchParams.get("tab");
+    if (tab && !availableTabs.some((t) => t.id === tab)) {
+      setSearchParams({ tab: "events" }, { replace: true });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [match]);
+
+  if (!token) return <Navigate to="/" replace />;
 
   const handleAccept = (enrollmentId: string) => {
     setActionLoading((prev) => ({ ...prev, [enrollmentId]: true }));
@@ -275,43 +309,73 @@ export default function MatchPage() {
           </LobbyNotOpenBanner>
         )}
 
-        <ActionsList>
-          {(isMaster && !match.gameStartAt) || canEnterLobby || canEnroll ? (
-            <BottomActions
-              containerRef={mainContentRef}
-              contentChangeSignal={descriptionSignal}
-              manage={
-                isMaster && !match.gameStartAt
-                  ? {
-                      isFree: true,
-                      onEdit: handleEdit,
-                      onDelete: handleDelete,
-                      confirmMessage:
-                        "Tem certeza que deseja excluir esta partida? Esta ação não pode ser desfeita.",
-                    }
-                  : undefined
-              }
-              primaryButton={
-                isMaster && !match.gameStartAt
-                  ? { label: "Abrir Lobby", onClick: () => setShowLobbyConfirm(true) }
-                  : canEnterLobby
-                  ? {
-                      label: "Entrar no Lobby",
-                      onClick: () =>
-                        navigate(
-                          `/campaigns/${campaignId}/matches/${matchId}/lobby`
-                        ),
-                    }
-                  : canEnroll
-                  ? {
-                      label: enrollPending ? "Inscrevendo..." : "Inscrever-se",
-                      onClick: enrollPending ? () => {} : () => setShowEnrollConfirm(true),
-                    }
-                  : undefined
-              }
-            />
-          ) : null}
-        </ActionsList>
+        <PageTabNav tabs={availableTabs} />
+
+        {activeTab === "events" && (
+          <ActionsList>
+            {(isMaster && !match.gameStartAt) || canEnterLobby || canEnroll ? (
+              <BottomActions
+                containerRef={mainContentRef}
+                contentChangeSignal={descriptionSignal}
+                manage={
+                  isMaster && !match.gameStartAt
+                    ? {
+                        isFree: true,
+                        onEdit: handleEdit,
+                        onDelete: handleDelete,
+                        confirmMessage:
+                          "Tem certeza que deseja excluir esta partida? Esta ação não pode ser desfeita.",
+                      }
+                    : undefined
+                }
+                primaryButton={
+                  isMaster && !match.gameStartAt
+                    ? { label: "Abrir Lobby", onClick: () => setShowLobbyConfirm(true) }
+                    : canEnterLobby
+                    ? {
+                        label: "Entrar no Lobby",
+                        onClick: () =>
+                          navigate(
+                            `/campaigns/${campaignId}/matches/${matchId}/lobby`
+                          ),
+                      }
+                    : canEnroll
+                    ? {
+                        label: enrollPending ? "Inscrevendo..." : "Inscrever-se",
+                        onClick: enrollPending ? () => {} : () => setShowEnrollConfirm(true),
+                      }
+                    : undefined
+                }
+              />
+            ) : null}
+          </ActionsList>
+        )}
+
+        {activeTab === "maps" && isMaster && (
+          <MapsGrid>
+            {mapsPending ? (
+              <MapsEmptyText>Carregando mapas...</MapsEmptyText>
+            ) : (maps ?? []).length === 0 ? (
+              <MapsEmptyText>Nenhum mapa criado ainda.</MapsEmptyText>
+            ) : (
+              (maps ?? []).map((map) => (
+                <MapCard
+                  key={map.id}
+                  map={map}
+                  onClick={() =>
+                    navigate(`/campaigns/${campaignId}/maps/${map.id}/edit`)
+                  }
+                />
+              ))
+            )}
+          </MapsGrid>
+        )}
+
+        {activeTab === "maps" && !isMaster && matchEnded && (
+          <MapsPlaceholder>
+            Os mapas jogados nesta partida estarão disponíveis em breve.
+          </MapsPlaceholder>
+        )}
       </DetailPageTemplate>
 
       {showLobbyConfirm && (
@@ -539,4 +603,26 @@ const DialogLobbyButton = styled(BaseDialogButton)`
   background-color: ${colors.brandAccent};
   border: none;
   color: ${colors.textPrimary};
+`;
+
+const MapsGrid = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 112px;
+`;
+
+const MapsEmptyText = styled.p`
+  font-family: ${fonts.sans};
+  font-size: 16px;
+  color: ${colors.textMuted};
+  padding: 20px 0;
+`;
+
+const MapsPlaceholder = styled.p`
+  font-family: ${fonts.sans};
+  font-size: 16px;
+  color: ${colors.textMuted};
+  padding: 40px 0;
+  text-align: center;
 `;
