@@ -1,4 +1,5 @@
 import type { GridShape, SlotCoord } from "../../../types/tacticalMap";
+import { hexToPixel, pixelToHex } from "./hex";
 
 export function slotToWorld(slot: SlotCoord, grid: GridShape): { x: number; y: number } {
   if (slot.kind === "square") {
@@ -8,8 +9,7 @@ export function slotToWorld(slot: SlotCoord, grid: GridShape): { x: number; y: n
       y: slot.row * cellSize + cellSize / 2,
     };
   }
-  // hex: implemented in Task 5
-  throw new Error(`slotToWorld: kind "${slot.kind}" not implemented yet`);
+  return hexToPixel({ q: slot.q, r: slot.r }, grid.cellSize);
 }
 
 export function worldToSlot(world: { x: number; y: number }, grid: GridShape): SlotCoord {
@@ -20,6 +20,6 @@ export function worldToSlot(world: { x: number; y: number }, grid: GridShape): S
       row: Math.floor(world.y / grid.cellSize),
     };
   }
-  // hex: implemented in Task 5
-  throw new Error(`worldToSlot: grid.kind "${grid.kind}" not implemented yet`);
+  const { q, r } = pixelToHex(world, grid.cellSize);
+  return { kind: "hex", q, r };
 }
