@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
@@ -17,6 +18,7 @@ import EditMatchPage from "./pages/EditMatchPage";
 import EditCampaignPage from "./pages/EditCampaignPage";
 import LobbyPage from "./pages/LobbyPage";
 import GamePage from "./pages/GamePage";
+const TacticalMapDemoPage = lazy(() => import("./pages/TacticalMapDemoPage"));
 
 function App() {
   return (
@@ -65,6 +67,16 @@ function App() {
           path="/campaigns/:campaignId/matches/:matchId/game"
           element={<GamePage />}
         />
+        {import.meta.env.DEV && (
+          <Route
+            path="/dev/tactical-map-demo"
+            element={
+              <Suspense fallback={<div>Loading map demo…</div>}>
+                <TacticalMapDemoPage />
+              </Suspense>
+            }
+          />
+        )}
       </Routes>
     </BrowserRouter>
   );

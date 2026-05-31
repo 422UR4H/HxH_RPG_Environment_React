@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import { afterAll, afterEach, beforeAll, beforeEach } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, vi } from "vitest";
 import { server } from "./server";
 
 // --- window.matchMedia mock --------------------------------------------------
@@ -24,6 +24,28 @@ Object.defineProperty(window, "matchMedia", {
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
+
+// --- @pixi/react mock --------------------------------------------------------
+vi.mock("@pixi/react", async () => {
+  const React = await import("react");
+  type AnyProps = Record<string, unknown> & { children?: React.ReactNode };
+
+  const make = (tag: string) =>
+    React.forwardRef<HTMLDivElement, AnyProps>((props, ref) =>
+      React.createElement("div", { "data-pixi": tag, ref }, props.children as React.ReactNode),
+    );
+
+  return {
+    Application: make("application"),
+    extend: () => {},
+    pixiContainer: make("container"),
+    pixiGraphics: make("graphics"),
+    pixiSprite: make("sprite"),
+    pixiText: make("text"),
+    useApplication: () => ({ app: null }),
+    useTick: () => {},
+  };
+});
 
 // --- localStorage mock ---------------------------------------------------
 // Os contexts (TokenContext, UserContext) hidratam de localStorage no mount.
