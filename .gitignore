@@ -32,3 +32,6 @@ dist-ssr
 
 # Coverage reports
 coverage/.env
+
+# Visual companion (brainstorm transient files)
+.superpowers/
