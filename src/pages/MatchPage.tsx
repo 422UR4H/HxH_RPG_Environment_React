@@ -136,6 +136,7 @@ export default function MatchPage() {
   };
 
   const canEnterLobby =
+    !!sheetId &&
     !isMaster &&
     !match.gameStartAt &&
     enrollments.some(

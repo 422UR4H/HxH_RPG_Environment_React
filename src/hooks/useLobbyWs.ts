@@ -178,6 +178,7 @@ export function useLobbyWs({
   }, [matchUuid, token, nickname, updateStatus]);
 
   useEffect(() => {
+    if (!token || !matchUuid) return;
     connect();
     return () => {
       if (reconnectTimerRef.current !== null) {
@@ -189,7 +190,7 @@ export function useLobbyWs({
         wsRef.current.close();
       }
     };
-  }, [connect]);
+  }, [connect, token, matchUuid]);
 
   const sendMessage = useCallback((type: string, payload: unknown = {}) => {
     const ws = wsRef.current;

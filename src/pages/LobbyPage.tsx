@@ -14,6 +14,15 @@ import RulesSidebar from "../components/organisms/RulesSidebar";
 import RuleSection from "../components/molecules/RuleSection";
 import LobbyConnectionSidebarItem from "../features/match/LobbyConnectionSidebarItem";
 import { colors, fonts } from "../styles/tokens";
+import type { WsStatus } from "../hooks/useLobbyWs";
+
+const ERROR_STATUSES: WsStatus[] = [
+  "lobby_not_open",
+  "kicked",
+  "lobby_closed",
+  "throttled",
+  "error",
+];
 
 export default function LobbyPage() {
   const { campaignId, matchId } = useParams<{
@@ -125,7 +134,7 @@ export default function LobbyPage() {
         </ConnectedCounter>
 
         {wsStatusMessage && (
-          <WsStatusBar $isError={status !== "connecting" && status !== "disconnected" && status !== "connected"}>
+          <WsStatusBar $isError={ERROR_STATUSES.includes(status)}>
             {wsStatusMessage}
           </WsStatusBar>
         )}

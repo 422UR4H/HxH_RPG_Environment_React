@@ -142,7 +142,7 @@ describe("LobbyPage", () => {
   });
 
   it("exibe mensagem kicked", async () => {
-    setupHandlers();
+    setupHandlers();  // <-- add this
     renderPage({ user: userFixture });
     simulateWsOpen();
     sendFromServer("player_kicked", { uuid: "user-1", nickname: "Gon", reason: "kicked" });
