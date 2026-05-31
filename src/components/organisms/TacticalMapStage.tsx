@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from "react";
-import { Application, extend } from "@pixi/react";
+import { Application, extend, useApplication } from "@pixi/react";
 import { Container, Graphics, Sprite, Text, Texture } from "pixi.js";
+import type { EventSystem } from "pixi.js";
 import { Viewport } from "pixi-viewport";
 import type { Graphics as PixiGraphics } from "pixi.js";
 import type { TacticalMap, GridShape, Piece } from "../../types/tacticalMap";
@@ -18,7 +19,7 @@ declare module "react" {
         screenHeight?: number;
         worldWidth?: number;
         worldHeight?: number;
-        events?: unknown;
+        events?: EventSystem;
         children?: React.ReactNode;
       };
     }
@@ -34,21 +35,30 @@ type Props = {
 export default function TacticalMapStage({ map, width, height }: Props) {
   return (
     <Application width={width} height={height} background={0x101820}>
-      <pixiViewport
-        screenWidth={width}
-        screenHeight={height}
-        worldWidth={map.grid.cols * map.grid.cellSize * 2}
-        worldHeight={map.grid.rows * map.grid.cellSize * 2}
-        events={undefined}
-      >
-        <BgLayer bg={map.bg} />
-        <GridLayer grid={map.grid} />
-        <pixiContainer label="decorations-layer" />
-        <PiecesLayer map={map} />
-        <pixiContainer label="walls-layer" />
-        <pixiContainer label="overlay-layer" />
-      </pixiViewport>
+      <ViewportInner map={map} width={width} height={height} />
     </Application>
+  );
+}
+
+// useApplication() only works inside a child of <Application>, not in the
+// same component that renders it — hence the split.
+function ViewportInner({ map, width, height }: Props) {
+  const { app } = useApplication();
+  return (
+    <pixiViewport
+      screenWidth={width}
+      screenHeight={height}
+      worldWidth={map.grid.cols * map.grid.cellSize * 2}
+      worldHeight={map.grid.rows * map.grid.cellSize * 2}
+      events={app?.renderer.events}
+    >
+      <BgLayer bg={map.bg} />
+      <GridLayer grid={map.grid} />
+      <pixiContainer label="decorations-layer" />
+      <PiecesLayer map={map} />
+      <pixiContainer label="walls-layer" />
+      <pixiContainer label="overlay-layer" />
+    </pixiViewport>
   );
 }
 
