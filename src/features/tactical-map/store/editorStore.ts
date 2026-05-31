@@ -92,12 +92,10 @@ export function createEditorStore(initialMap: TacticalMap) {
           }),
       })),
       {
-        partialize: (state) => {
-          const { isDirty, selection, ...tracked } = state;
-          void isDirty;
-          void selection;
-          return tracked;
-        },
+        partialize: (state) => ({
+          map: state.map,
+          activeTool: state.activeTool,
+        }),
       },
     ),
   );
