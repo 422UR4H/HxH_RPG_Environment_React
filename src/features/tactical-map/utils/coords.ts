@@ -18,19 +18,15 @@ function applyTransform(p: XY, grid: GridShape): XY {
 }
 
 function inverseTransform(p: XY, grid: GridShape): XY {
-  let unrotated: XY = p;
-  if (grid.rotation !== 0) {
-    const t = grid.rotation * DEG_TO_RAD;
-    const cos = Math.cos(t);
-    const sin = Math.sin(t);
-    unrotated = {
-      x: p.x * cos + p.y * sin,
-      y: -p.x * sin + p.y * cos,
-    };
+  if (grid.rotation === 0) {
+    return { x: p.x, y: p.y / grid.skewRatio };
   }
+  const t = grid.rotation * DEG_TO_RAD;
+  const cos = Math.cos(t);
+  const sin = Math.sin(t);
   return {
-    x: unrotated.x,
-    y: unrotated.y / grid.skewRatio,
+    x: p.x * cos + p.y * sin,
+    y: (-p.x * sin + p.y * cos) / grid.skewRatio,
   };
 }
 
