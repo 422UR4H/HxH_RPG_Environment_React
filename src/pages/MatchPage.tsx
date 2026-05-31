@@ -135,6 +135,13 @@ export default function MatchPage() {
     ended: "ENCERRADA",
   };
 
+  const canEnterLobby =
+    !isMaster &&
+    !match.gameStartAt &&
+    enrollments.some(
+      (e) => e.characterSheet.uuid === sheetId && e.status === "accepted"
+    );
+
   const canEnroll =
     !isMaster &&
     !match.gameStartAt &&
@@ -257,7 +264,7 @@ export default function MatchPage() {
         )}
 
         <ActionsList>
-          {(isMaster && !match.gameStartAt) || canEnroll ? (
+          {(isMaster && !match.gameStartAt) || canEnterLobby || canEnroll ? (
             <BottomActions
               containerRef={mainContentRef}
               contentChangeSignal={descriptionSignal}
@@ -275,6 +282,14 @@ export default function MatchPage() {
               primaryButton={
                 isMaster && !match.gameStartAt
                   ? { label: "Abrir Lobby", onClick: () => setShowLobbyConfirm(true) }
+                  : canEnterLobby
+                  ? {
+                      label: "Entrar no Lobby",
+                      onClick: () =>
+                        navigate(
+                          `/campaigns/${campaignId}/matches/${matchId}/lobby`
+                        ),
+                    }
                   : canEnroll
                   ? {
                       label: enrollPending ? "Inscrevendo..." : "Inscrever-se",

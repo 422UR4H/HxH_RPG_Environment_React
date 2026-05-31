@@ -21,7 +21,9 @@ interface UseLobbyWsParams {
   matchUuid: string;
   token: string;
   nickname: string;
+  userUuid?: string;
   onMatchStarted: () => void;
+  onKicked?: () => void;
 }
 
 interface UseLobbyWsResult {
@@ -47,7 +49,9 @@ export function useLobbyWs({
   matchUuid,
   token,
   nickname,
+  userUuid,
   onMatchStarted,
+  onKicked,
 }: UseLobbyWsParams): UseLobbyWsResult {
   const [status, setStatus] = useState<WsStatus>("connecting");
   const [participants, setParticipants] = useState<LobbyParticipant[]>([]);
@@ -58,6 +62,10 @@ export function useLobbyWs({
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onMatchStartedRef = useRef(onMatchStarted);
   onMatchStartedRef.current = onMatchStarted;
+  const onKickedRef = useRef(onKicked);
+  onKickedRef.current = onKicked;
+  const userUuidRef = useRef(userUuid);
+  userUuidRef.current = userUuid;
 
   const updateStatus = useCallback((next: WsStatus) => {
     statusRef.current = next;
@@ -122,8 +130,11 @@ export function useLobbyWs({
         }
         case "player_kicked": {
           // Kicked participants removed from list via player_left broadcast from server.
-          // Self-kick detection (setting status to "kicked") is handled in LobbyPage
-          // which has access to the current user UUID.
+          // Self-kick detection: if the kicked uuid matches the current user, call onKicked.
+          const kicked = payload as { uuid?: string };
+          if (kicked.uuid && kicked.uuid === userUuidRef.current) {
+            onKickedRef.current?.();
+          }
           break;
         }
         case "lobby_not_open":
