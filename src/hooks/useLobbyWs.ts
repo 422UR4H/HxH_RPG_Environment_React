@@ -22,6 +22,7 @@ interface UseLobbyWsParams {
   token: string;
   nickname: string;
   userUuid?: string;
+  enabled?: boolean;
   onMatchStarted: () => void;
   onKicked?: () => void;
 }
@@ -50,6 +51,7 @@ export function useLobbyWs({
   token,
   nickname,
   userUuid,
+  enabled = true,
   onMatchStarted,
   onKicked,
 }: UseLobbyWsParams): UseLobbyWsResult {
@@ -72,130 +74,149 @@ export function useLobbyWs({
     setStatus(next);
   }, []);
 
-  const connect = useCallback(() => {
-    const wsUrl = `${import.meta.env.VITE_WS_URL}/ws?match_uuid=${matchUuid}&token=${encodeURIComponent(token)}&nickname=${encodeURIComponent(nickname)}`;
-    const ws = new WebSocket(wsUrl);
-    wsRef.current = ws;
-    updateStatus("connecting");
-
-    ws.onopen = () => {
-      updateStatus("connected");
-    };
-
-    ws.onmessage = (event: MessageEvent) => {
-      let msg: { type: string; payload: string };
-      try {
-        msg = JSON.parse(event.data as string) as { type: string; payload: string };
-      } catch {
-        return;
-      }
-
-      let payload: Record<string, unknown> = {};
-      try {
-        payload = JSON.parse(msg.payload) as Record<string, unknown>;
-      } catch {
-        // empty payload is fine
-      }
-
-      switch (msg.type) {
-        case "room_state": {
-          const players = (payload.players as Array<{
-            uuid: string;
-            nickname: string;
-            is_master: boolean;
-            is_online: boolean;
-          }> | undefined) ?? [];
-          setParticipants(
-            players.map((p) => ({
-              uuid: p.uuid,
-              nickname: p.nickname,
-              isMaster: p.is_master,
-              isOnline: p.is_online,
-            }))
-          );
-          break;
-        }
-        case "player_joined": {
-          const p = payload as { uuid: string; nickname: string; is_master: boolean; is_online: boolean };
-          setParticipants((prev) => [
-            ...prev,
-            { uuid: p.uuid, nickname: p.nickname, isMaster: p.is_master, isOnline: true },
-          ]);
-          break;
-        }
-        case "player_left": {
-          const p = payload as { uuid: string };
-          setParticipants((prev) => prev.filter((x) => x.uuid !== p.uuid));
-          break;
-        }
-        case "player_kicked": {
-          // Kicked participants removed from list via player_left broadcast from server.
-          // Self-kick detection: if the kicked uuid matches the current user, call onKicked.
-          const kicked = payload as { uuid?: string };
-          if (kicked.uuid && kicked.uuid === userUuidRef.current) {
-            onKickedRef.current?.();
-          }
-          break;
-        }
-        case "lobby_not_open":
-          updateStatus("lobby_not_open");
-          break;
-        case "lobby_closed":
-          updateStatus("lobby_closed");
-          break;
-        case "match_started":
-          onMatchStartedRef.current();
-          break;
-        default:
-          break;
-      }
-    };
-
-    ws.onclose = () => {
-      if (TERMINAL_STATUSES.includes(statusRef.current)) return;
-
-      reconnectCountRef.current += 1;
-
-      if (reconnectCountRef.current >= MAX_RECONNECTS) {
-        updateStatus("throttled");
-        return;
-      }
-
-      const delay = Math.min(
-        BASE_DELAY_MS * Math.pow(2, reconnectCountRef.current - 1),
-        MAX_DELAY_MS
-      );
-
-      updateStatus("disconnected");
-      reconnectTimerRef.current = setTimeout(connect, delay);
-    };
-
-    ws.onerror = () => {
-      if (!TERMINAL_STATUSES.includes(statusRef.current)) {
-        updateStatus("error");
-      }
-    };
-  }, [matchUuid, token, nickname, updateStatus]);
-
   useEffect(() => {
-    if (!token || !matchUuid) return;
+    if (!token || !matchUuid || !enabled) return;
+
+    // active = false once this effect instance is torn down (unmount or dep change).
+    // All WS callbacks check this flag so a stale closure never mutates state
+    // or triggers a reconnect — this correctly handles React Strict Mode's
+    // mount → cleanup → remount cycle in development.
+    let active = true;
+    reconnectCountRef.current = 0;
+
+    const wsUrl = `${import.meta.env.VITE_WS_URL}/ws?match_uuid=${matchUuid}&token=${encodeURIComponent(token)}&nickname=${encodeURIComponent(nickname)}`;
+
+    function connect() {
+      if (!active) return;
+
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
+      updateStatus("connecting");
+
+      ws.onopen = () => {
+        if (!active) {
+          ws.close();
+          return;
+        }
+        updateStatus("connected");
+      };
+
+      ws.onmessage = (event: MessageEvent) => {
+        if (!active) return;
+
+        let msg: { type: string; payload: Record<string, unknown> };
+        try {
+          msg = JSON.parse(event.data as string) as { type: string; payload: Record<string, unknown> };
+        } catch {
+          return;
+        }
+
+        const payload: Record<string, unknown> = msg.payload ?? {};
+
+        switch (msg.type) {
+          case "room_state": {
+            const players = (payload.players as Array<{
+              uuid: string;
+              nickname: string;
+              is_master: boolean;
+              is_online: boolean;
+            }> | undefined) ?? [];
+            setParticipants(
+              players.map((p) => ({
+                uuid: p.uuid,
+                nickname: p.nickname,
+                isMaster: p.is_master,
+                isOnline: p.is_online,
+              }))
+            );
+            break;
+          }
+          case "player_joined": {
+            const p = payload as { uuid: string; nickname: string; is_master: boolean; is_online: boolean };
+            setParticipants((prev) => [
+              ...prev,
+              { uuid: p.uuid, nickname: p.nickname, isMaster: p.is_master, isOnline: true },
+            ]);
+            break;
+          }
+          case "player_left": {
+            const p = payload as { uuid: string };
+            setParticipants((prev) => prev.filter((x) => x.uuid !== p.uuid));
+            break;
+          }
+          case "player_kicked": {
+            const kicked = payload as { uuid?: string };
+            if (kicked.uuid && kicked.uuid === userUuidRef.current) {
+              onKickedRef.current?.();
+            }
+            break;
+          }
+          case "lobby_not_open":
+            updateStatus("lobby_not_open");
+            break;
+          case "lobby_closed":
+            updateStatus("lobby_closed");
+            break;
+          case "match_started":
+            onMatchStartedRef.current();
+            break;
+          default:
+            break;
+        }
+      };
+
+      ws.onclose = (event: CloseEvent) => {
+        if (!active) return;
+
+        if (event.code === 4001) {
+          updateStatus("lobby_not_open");
+          return;
+        }
+        if (TERMINAL_STATUSES.includes(statusRef.current)) return;
+
+        reconnectCountRef.current += 1;
+
+        if (reconnectCountRef.current >= MAX_RECONNECTS) {
+          updateStatus("throttled");
+          return;
+        }
+
+        const delay = Math.min(
+          BASE_DELAY_MS * Math.pow(2, reconnectCountRef.current - 1),
+          MAX_DELAY_MS
+        );
+
+        updateStatus("disconnected");
+        reconnectTimerRef.current = setTimeout(connect, delay);
+      };
+
+      ws.onerror = () => {
+        if (!active) return;
+        if (!TERMINAL_STATUSES.includes(statusRef.current)) {
+          updateStatus("error");
+        }
+      };
+    }
+
     connect();
+
     return () => {
+      active = false;
       if (reconnectTimerRef.current !== null) {
         clearTimeout(reconnectTimerRef.current);
         reconnectTimerRef.current = null;
       }
       if (wsRef.current) {
-        wsRef.current.onclose = null; // prevent reconnect on intentional unmount
         wsRef.current.close();
+        wsRef.current = null;
       }
     };
-  }, [connect, token, matchUuid]);
+  }, [matchUuid, token, nickname, enabled, updateStatus]);
 
   const sendMessage = useCallback((type: string, payload: unknown = {}) => {
     const ws = wsRef.current;
     if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type, payload: JSON.stringify(payload) }));
+      ws.send(JSON.stringify({ type, payload }));
     }
   }, []);
 

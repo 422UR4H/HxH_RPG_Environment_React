@@ -6,7 +6,10 @@ import useUser from "../hooks/useUser";
 import { useMatchDetails } from "../hooks/useMatchDetails";
 import { useMatchEnrollments } from "../hooks/useMatchEnrollments";
 import { useLobbyWs } from "../hooks/useLobbyWs";
-import { LoadingContainer, ErrorContainer } from "../components/atoms/PageStates";
+import {
+  LoadingContainer,
+  ErrorContainer,
+} from "../components/atoms/PageStates";
 import ConfirmDialog from "../components/molecules/ConfirmDialog";
 import DetailPageTemplate from "../components/templates/DetailPageTemplate";
 import CharactersSidebar from "../components/organisms/CharactersSidebar";
@@ -38,25 +41,53 @@ export default function LobbyPage() {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   const { data: match, isPending, isError } = useMatchDetails(token, matchId);
-  const { data: enrollments = [] } = useMatchEnrollments(token, matchId, true);
+  const { data: enrollments = [], isPending: enrollmentsPending } =
+    useMatchEnrollments(token, matchId, true);
 
-  const { status, participants, sendStartMatch, sendKick, sendCancelLobby } = useLobbyWs({
-    matchUuid: matchId ?? "",
-    token: token ?? "",
-    nickname: user?.nick ?? "",
-    userUuid: user?.uuid,
-    onMatchStarted: () =>
-      navigate(`/campaigns/${campaignId}/matches/${matchId}/game`),
-    onKicked: () => setIsKicked(true),
-  });
+  const isMaster = !!(match && user && match.masterUuid === user.uuid);
+  const hasAccess =
+    isMaster ||
+    enrollments.some(
+      (e) => e.player?.uuid === user?.uuid && e.status === "accepted",
+    );
+  const lobbyEnabled =
+    !!token && !!matchId && !isPending && !enrollmentsPending && hasAccess;
+
+  const { status, participants, sendStartMatch, sendKick, sendCancelLobby } =
+    useLobbyWs({
+      matchUuid: matchId ?? "",
+      token: token ?? "",
+      nickname: user?.nick ?? "",
+      userUuid: user?.uuid,
+      enabled: lobbyEnabled,
+      onMatchStarted: () =>
+        navigate(`/campaigns/${campaignId}/matches/${matchId}/game`),
+      onKicked: () => setIsKicked(true),
+    });
 
   if (!token) return <Navigate to="/" replace />;
-  if (isPending) return <LoadingContainer>Carregando lobby...</LoadingContainer>;
-  if (isError || !match) return <ErrorContainer>Falha ao carregar a partida.</ErrorContainer>;
+  if (isPending || enrollmentsPending)
+    return <LoadingContainer>Carregando lobby...</LoadingContainer>;
+  if (isError || !match)
+    return <ErrorContainer>Falha ao carregar a partida.</ErrorContainer>;
+  if (!hasAccess) {
+    return (
+      <Navigate to={`/campaigns/${campaignId}/matches/${matchId}`} replace />
+    );
+  }
+  if (status === "lobby_not_open" && !isMaster) {
+    return (
+      <Navigate
+        to={`/campaigns/${campaignId}/matches/${matchId}`}
+        replace
+        state={{ lobbyNotOpen: true }}
+      />
+    );
+  }
 
-  const isMaster = match.masterUuid === user?.uuid;
-
-  const acceptedEnrollments = enrollments.filter((e) => e.status === "accepted");
+  const acceptedEnrollments = enrollments.filter(
+    (e) => e.status === "accepted",
+  );
   const lobbyEntries = acceptedEnrollments.map((enrollment) => ({
     enrollment,
     isOnline: participants.some((p) => p.uuid === enrollment.player?.uuid),
@@ -90,6 +121,7 @@ export default function LobbyPage() {
   const handleCancelConfirm = () => {
     setShowCancelConfirm(false);
     sendCancelLobby();
+    navigate(-1);
   };
 
   return (
@@ -150,7 +182,9 @@ export default function LobbyPage() {
               </CancelButton>
             </MasterActions>
           ) : (
-            <WaitingMessage>Aguardando o mestre iniciar a partida...</WaitingMessage>
+            <WaitingMessage>
+              Aguardando o mestre iniciar a partida...
+            </WaitingMessage>
           )}
         </ActionsList>
       </DetailPageTemplate>
@@ -219,10 +253,9 @@ const WsStatusBar = styled.div<{ $isError: boolean }>`
   margin-bottom: 20px;
   background-color: ${({ $isError }) =>
     $isError ? colors.errorBgSoft : colors.overlayMedium};
-  color: ${({ $isError }) =>
-    $isError ? colors.danger : colors.textMuted};
-  border: 1px solid ${({ $isError }) =>
-    $isError ? colors.dangerDark : colors.borderDivider};
+  color: ${({ $isError }) => ($isError ? colors.danger : colors.textMuted)};
+  border: 1px solid
+    ${({ $isError }) => ($isError ? colors.dangerDark : colors.borderDivider)};
 `;
 
 const ActionsList = styled.div`

@@ -10,7 +10,10 @@ import LobbyPage from "../LobbyPage";
 
 const mockNavigate = vi.fn();
 vi.mock("react-router-dom", async () => {
-  const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
+  const actual =
+    await vi.importActual<typeof import("react-router-dom")>(
+      "react-router-dom",
+    );
   return { ...actual, useNavigate: () => mockNavigate };
 });
 
@@ -29,22 +32,27 @@ interface MockWsInstance {
 let wsInstance: MockWsInstance;
 const MockWebSocket = vi.fn().mockImplementation(function () {
   wsInstance = {
-    onmessage: null, onclose: null, onerror: null, onopen: null,
-    close: vi.fn(), send: vi.fn(), readyState: 1,
+    onmessage: null,
+    onclose: null,
+    onerror: null,
+    onopen: null,
+    close: vi.fn(),
+    send: vi.fn(),
+    readyState: 1,
   };
   return wsInstance;
 });
-MockWebSocket.CONNECTING = 0;
-MockWebSocket.OPEN = 1;
-MockWebSocket.CLOSING = 2;
-MockWebSocket.CLOSED = 3;
+Object.assign(MockWebSocket, { CONNECTING: 0, OPEN: 1, CLOSING: 2, CLOSED: 3 });
 
+async function waitForWsConnect() {
+  await waitFor(() => expect(MockWebSocket).toHaveBeenCalled());
+}
 function simulateWsOpen() {
   wsInstance.onopen?.({} as Event);
 }
 function sendFromServer(type: string, payload: unknown = {}) {
   wsInstance.onmessage?.({
-    data: JSON.stringify({ type, payload: JSON.stringify(payload) }),
+    data: JSON.stringify({ type, payload }),
   } as MessageEvent);
 }
 
@@ -64,11 +72,13 @@ const acceptedEnrollment = {
 function setupHandlers(masterUuid = "master-1") {
   server.use(
     http.get(`${baseUrl}/matches/:id`, () =>
-      HttpResponse.json({ match: { ...matchFixture, master_uuid: masterUuid } })
+      HttpResponse.json({
+        match: { ...matchFixture, master_uuid: masterUuid },
+      }),
     ),
     http.get(`${baseUrl}/matches/:id/enrollments`, () =>
-      HttpResponse.json({ enrollments: [acceptedEnrollment] })
-    )
+      HttpResponse.json({ enrollments: [acceptedEnrollment] }),
+    ),
   );
 }
 
@@ -99,8 +109,8 @@ describe("LobbyPage", () => {
         return HttpResponse.json({ match: matchFixture });
       }),
       http.get(`${baseUrl}/matches/:id/enrollments`, () =>
-        HttpResponse.json({ enrollments: [] })
-      )
+        HttpResponse.json({ enrollments: [] }),
+      ),
     );
     renderPage();
     expect(screen.getByText(/Carregando/i)).toBeInTheDocument();
@@ -109,43 +119,65 @@ describe("LobbyPage", () => {
   it("mestre vê botão Iniciar Partida e Cancelar Lobby", async () => {
     setupHandlers("master-1");
     renderPage({ user: masterUserFixture });
+    await waitForWsConnect();
     simulateWsOpen();
-    sendFromServer("room_state", { match_uuid: "match-1", state: "lobby", players: [] });
+    sendFromServer("room_state", {
+      match_uuid: "match-1",
+      state: "lobby",
+      players: [],
+    });
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /Iniciar Partida/i })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /Cancelar Lobby/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /Iniciar Partida/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /Cancelar Lobby/i }),
+      ).toBeInTheDocument();
     });
   });
 
   it("jogador não vê botões de ação", async () => {
     setupHandlers("master-1");
     renderPage({ user: userFixture });
+    await waitForWsConnect();
     simulateWsOpen();
-    sendFromServer("room_state", { match_uuid: "match-1", state: "lobby", players: [] });
+    sendFromServer("room_state", {
+      match_uuid: "match-1",
+      state: "lobby",
+      players: [],
+    });
 
     await waitFor(() => {
-      expect(screen.queryByRole("button", { name: /Iniciar Partida/i })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: /Iniciar Partida/i }),
+      ).not.toBeInTheDocument();
       expect(screen.getByText(/Aguardando o mestre/i)).toBeInTheDocument();
     });
   });
 
-  it("exibe mensagem lobby_not_open", async () => {
+  it("redireciona para a partida quando lobby_not_open (não mestre)", async () => {
     setupHandlers();
     renderPage({ user: userFixture });
+    await waitForWsConnect();
     simulateWsOpen();
     sendFromServer("lobby_not_open", {});
 
     await waitFor(() => {
-      expect(screen.getByText(/lobby ainda não foi aberto/i)).toBeInTheDocument();
+      expect(screen.queryByText(/LOBBY ABERTO/i)).not.toBeInTheDocument();
     });
   });
 
   it("exibe mensagem kicked", async () => {
-    setupHandlers();  // <-- add this
+    setupHandlers();
     renderPage({ user: userFixture });
+    await waitForWsConnect();
     simulateWsOpen();
-    sendFromServer("player_kicked", { uuid: "user-1", nickname: "Gon", reason: "kicked" });
+    sendFromServer("player_kicked", {
+      uuid: "user-1",
+      nickname: "Gon",
+      reason: "kicked",
+    });
 
     await waitFor(() => {
       expect(screen.getByText(/removido do lobby/i)).toBeInTheDocument();
@@ -155,24 +187,56 @@ describe("LobbyPage", () => {
   it("navega para /game ao receber match_started", async () => {
     setupHandlers("master-1");
     renderPage({ user: masterUserFixture });
+    await waitForWsConnect();
     simulateWsOpen();
-    sendFromServer("room_state", { match_uuid: "match-1", state: "lobby", players: [] });
+    sendFromServer("room_state", {
+      match_uuid: "match-1",
+      state: "lobby",
+      players: [],
+    });
     sendFromServer("match_started", {});
 
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith(
-        "/campaigns/campaign-1/matches/match-1/game"
+        "/campaigns/campaign-1/matches/match-1/game",
       );
     });
+  });
+
+  it("usuário sem enrollment aceito não vê o lobby e WS não conecta", async () => {
+    server.use(
+      http.get(`${baseUrl}/matches/:id`, () =>
+        HttpResponse.json({
+          match: { ...matchFixture, master_uuid: "master-1" },
+        }),
+      ),
+      http.get(`${baseUrl}/matches/:id/enrollments`, () =>
+        HttpResponse.json({ enrollments: [] }),
+      ),
+    );
+    renderPage({ user: userFixture });
+
+    await waitFor(() => {
+      expect(screen.queryByText(/Carregando/i)).not.toBeInTheDocument();
+    });
+    expect(screen.queryByText(/LOBBY ABERTO/i)).not.toBeInTheDocument();
+    expect(MockWebSocket).not.toHaveBeenCalled();
   });
 
   it("mestre confirma cancelamento antes de enviar cancel_lobby", async () => {
     setupHandlers("master-1");
     renderPage({ user: masterUserFixture });
+    await waitForWsConnect();
     simulateWsOpen();
-    sendFromServer("room_state", { match_uuid: "match-1", state: "lobby", players: [] });
+    sendFromServer("room_state", {
+      match_uuid: "match-1",
+      state: "lobby",
+      players: [],
+    });
 
-    const cancelBtn = await screen.findByRole("button", { name: /Cancelar Lobby/i });
+    const cancelBtn = await screen.findByRole("button", {
+      name: /Cancelar Lobby/i,
+    });
     await userEvent.click(cancelBtn);
 
     // ConfirmDialog should appear

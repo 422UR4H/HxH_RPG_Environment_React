@@ -29,10 +29,7 @@ const MockWebSocket = vi.fn().mockImplementation(function (url: string) {
   };
   return wsInstance;
 });
-MockWebSocket.CONNECTING = 0;
-MockWebSocket.OPEN = 1;
-MockWebSocket.CLOSING = 2;
-MockWebSocket.CLOSED = 3;
+Object.assign(MockWebSocket, { CONNECTING: 0, OPEN: 1, CLOSING: 2, CLOSED: 3 });
 
 const defaultParams = {
   matchUuid: "match-1",
@@ -44,7 +41,7 @@ const defaultParams = {
 function sendFromServer(type: string, payload: unknown = {}) {
   act(() => {
     wsInstance.onmessage?.({
-      data: JSON.stringify({ type, payload: JSON.stringify(payload) }),
+      data: JSON.stringify({ type, payload }),
     } as MessageEvent);
   });
 }
@@ -167,6 +164,21 @@ describe("useLobbyWs", () => {
     expect(MockWebSocket).toHaveBeenCalledTimes(1);
   });
 
+  it("does not reconnect when onclose code 4001 fires before lobby_not_open message", () => {
+    // Race condition: the browser receives the close frame with code 4001 before
+    // processing the lobby_not_open text frame. This happens when the server does
+    // not drain the connection after sending the close frame, causing the browser
+    // to see an abrupt close.
+    const { result } = renderHook(() => useLobbyWs(defaultParams));
+    simulateOpen();
+    // onclose(4001) fires — no message received yet
+    simulateClose(4001);
+    act(() => { vi.advanceTimersByTime(5000); });
+    expect(result.current.status).toBe("lobby_not_open");
+    expect(MockWebSocket).toHaveBeenCalledTimes(1);
+  });
+
+
   it("does not reconnect on lobby_closed (terminal state)", () => {
     renderHook(() => useLobbyWs(defaultParams));
     simulateOpen();
@@ -228,6 +240,6 @@ describe("useLobbyWs", () => {
     act(() => { result.current.sendKick("target-uuid"); });
     const sent = JSON.parse(wsInstance.send.mock.calls[0][0]);
     expect(sent.type).toBe("kick_player");
-    expect(JSON.parse(sent.payload).player_uuid).toBe("target-uuid");
+    expect(sent.payload.player_uuid).toBe("target-uuid");
   });
 });
