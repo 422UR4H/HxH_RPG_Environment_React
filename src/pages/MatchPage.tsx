@@ -52,8 +52,8 @@ export default function MatchPage() {
   const { user } = useUser();
   const navigate = useNavigate();
   const location = useLocation();
-  const locationState = location.state as { sheetId?: string } | null;
-  const sheetId = locationState?.sheetId;
+  const locationState = location.state as { sheetId?: string; lobbyNotOpen?: boolean } | null;
+  const lobbyNotOpen = locationState?.lobbyNotOpen === true;
 
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
   const [showLobbyConfirm, setShowLobbyConfirm] = useState(false);
@@ -84,6 +84,11 @@ export default function MatchPage() {
     isSuccess: isEnrolled,
   } = useEnrollCharacterSheet(token, matchId);
   const { mutate: deleteMatch } = useDeleteMatch(token, matchId);
+
+  const sheetId =
+    locationState?.sheetId ??
+    enrollments.find((e) => e.player?.uuid === user?.uuid && e.status === "accepted")
+      ?.characterSheet.uuid;
 
   if (!token) return <Navigate to="/" replace />;
 
@@ -134,6 +139,14 @@ export default function MatchPage() {
     ongoing: "EM ANDAMENTO",
     ended: "ENCERRADA",
   };
+
+  const canEnterLobby =
+    !!sheetId &&
+    !isMaster &&
+    !match.gameStartAt &&
+    enrollments.some(
+      (e) => e.characterSheet.uuid === sheetId && e.status === "accepted"
+    );
 
   const canEnroll =
     !isMaster &&
@@ -256,8 +269,14 @@ export default function MatchPage() {
           <StoryDate>Fim na história: {formatDate(match.storyEndAt)}</StoryDate>
         )}
 
+        {lobbyNotOpen && (
+          <LobbyNotOpenBanner>
+            O lobby ainda não foi aberto pelo mestre.
+          </LobbyNotOpenBanner>
+        )}
+
         <ActionsList>
-          {(isMaster && !match.gameStartAt) || canEnroll ? (
+          {(isMaster && !match.gameStartAt) || canEnterLobby || canEnroll ? (
             <BottomActions
               containerRef={mainContentRef}
               contentChangeSignal={descriptionSignal}
@@ -275,6 +294,14 @@ export default function MatchPage() {
               primaryButton={
                 isMaster && !match.gameStartAt
                   ? { label: "Abrir Lobby", onClick: () => setShowLobbyConfirm(true) }
+                  : canEnterLobby
+                  ? {
+                      label: "Entrar no Lobby",
+                      onClick: () =>
+                        navigate(
+                          `/campaigns/${campaignId}/matches/${matchId}/lobby`
+                        ),
+                    }
                   : canEnroll
                   ? {
                       label: enrollPending ? "Inscrevendo..." : "Inscrever-se",
@@ -438,6 +465,17 @@ const MatchFinalDescription = styled.p`
 const ActionsList = styled.div`
   position: relative;
   padding-bottom: 112px;
+`;
+
+const LobbyNotOpenBanner = styled.div`
+  font-family: ${fonts.sans};
+  font-size: 16px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  background-color: ${colors.overlayMedium};
+  color: ${colors.textMuted};
+  border: 1px solid ${colors.borderDivider};
 `;
 
 const ConfirmOverlay = styled.div`

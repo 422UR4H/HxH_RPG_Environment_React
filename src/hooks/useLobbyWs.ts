@@ -1,0 +1,231 @@
+import { useEffect, useRef, useState, useCallback } from "react";
+
+export type WsStatus =
+  | "connecting"
+  | "connected"
+  | "disconnected"
+  | "lobby_not_open"
+  | "kicked"
+  | "lobby_closed"
+  | "throttled"
+  | "error";
+
+export type LobbyParticipant = {
+  uuid: string;
+  nickname: string;
+  isMaster: boolean;
+  isOnline: boolean;
+};
+
+interface UseLobbyWsParams {
+  matchUuid: string;
+  token: string;
+  nickname: string;
+  userUuid?: string;
+  enabled?: boolean;
+  onMatchStarted: () => void;
+  onKicked?: () => void;
+}
+
+interface UseLobbyWsResult {
+  status: WsStatus;
+  participants: LobbyParticipant[];
+  sendStartMatch: () => void;
+  sendKick: (userUuid: string) => void;
+  sendCancelLobby: () => void;
+}
+
+const MAX_RECONNECTS = 5;
+const BASE_DELAY_MS = 500;
+const MAX_DELAY_MS = 30_000;
+
+const TERMINAL_STATUSES: WsStatus[] = [
+  "lobby_not_open",
+  "kicked",
+  "lobby_closed",
+  "throttled",
+];
+
+export function useLobbyWs({
+  matchUuid,
+  token,
+  nickname,
+  userUuid,
+  enabled = true,
+  onMatchStarted,
+  onKicked,
+}: UseLobbyWsParams): UseLobbyWsResult {
+  const [status, setStatus] = useState<WsStatus>("connecting");
+  const [participants, setParticipants] = useState<LobbyParticipant[]>([]);
+
+  const wsRef = useRef<WebSocket | null>(null);
+  const statusRef = useRef<WsStatus>("connecting");
+  const reconnectCountRef = useRef<number>(0);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onMatchStartedRef = useRef(onMatchStarted);
+  onMatchStartedRef.current = onMatchStarted;
+  const onKickedRef = useRef(onKicked);
+  onKickedRef.current = onKicked;
+  const userUuidRef = useRef(userUuid);
+  userUuidRef.current = userUuid;
+
+  const updateStatus = useCallback((next: WsStatus) => {
+    statusRef.current = next;
+    setStatus(next);
+  }, []);
+
+  useEffect(() => {
+    if (!token || !matchUuid || !enabled) return;
+
+    // active = false once this effect instance is torn down (unmount or dep change).
+    // All WS callbacks check this flag so a stale closure never mutates state
+    // or triggers a reconnect — this correctly handles React Strict Mode's
+    // mount → cleanup → remount cycle in development.
+    let active = true;
+    reconnectCountRef.current = 0;
+
+    const wsUrl = `${import.meta.env.VITE_WS_URL}/ws?match_uuid=${matchUuid}&token=${encodeURIComponent(token)}&nickname=${encodeURIComponent(nickname)}`;
+
+    function connect() {
+      if (!active) return;
+
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
+      updateStatus("connecting");
+
+      ws.onopen = () => {
+        if (!active) {
+          ws.close();
+          return;
+        }
+        updateStatus("connected");
+      };
+
+      ws.onmessage = (event: MessageEvent) => {
+        if (!active) return;
+
+        let msg: { type: string; payload: Record<string, unknown> };
+        try {
+          msg = JSON.parse(event.data as string) as { type: string; payload: Record<string, unknown> };
+        } catch {
+          return;
+        }
+
+        const payload: Record<string, unknown> = msg.payload ?? {};
+
+        switch (msg.type) {
+          case "room_state": {
+            const players = (payload.players as Array<{
+              uuid: string;
+              nickname: string;
+              is_master: boolean;
+              is_online: boolean;
+            }> | undefined) ?? [];
+            setParticipants(
+              players.map((p) => ({
+                uuid: p.uuid,
+                nickname: p.nickname,
+                isMaster: p.is_master,
+                isOnline: p.is_online,
+              }))
+            );
+            break;
+          }
+          case "player_joined": {
+            const p = payload as { uuid: string; nickname: string; is_master: boolean; is_online: boolean };
+            setParticipants((prev) => [
+              ...prev,
+              { uuid: p.uuid, nickname: p.nickname, isMaster: p.is_master, isOnline: true },
+            ]);
+            break;
+          }
+          case "player_left": {
+            const p = payload as { uuid: string };
+            setParticipants((prev) => prev.filter((x) => x.uuid !== p.uuid));
+            break;
+          }
+          case "player_kicked": {
+            const kicked = payload as { uuid?: string };
+            if (kicked.uuid && kicked.uuid === userUuidRef.current) {
+              onKickedRef.current?.();
+            }
+            break;
+          }
+          case "lobby_not_open":
+            updateStatus("lobby_not_open");
+            break;
+          case "lobby_closed":
+            updateStatus("lobby_closed");
+            break;
+          case "match_started":
+            onMatchStartedRef.current();
+            break;
+          default:
+            break;
+        }
+      };
+
+      ws.onclose = (event: CloseEvent) => {
+        if (!active) return;
+
+        if (event.code === 4001) {
+          updateStatus("lobby_not_open");
+          return;
+        }
+        if (TERMINAL_STATUSES.includes(statusRef.current)) return;
+
+        reconnectCountRef.current += 1;
+
+        if (reconnectCountRef.current >= MAX_RECONNECTS) {
+          updateStatus("throttled");
+          return;
+        }
+
+        const delay = Math.min(
+          BASE_DELAY_MS * Math.pow(2, reconnectCountRef.current - 1),
+          MAX_DELAY_MS
+        );
+
+        updateStatus("disconnected");
+        reconnectTimerRef.current = setTimeout(connect, delay);
+      };
+
+      ws.onerror = () => {
+        if (!active) return;
+        if (!TERMINAL_STATUSES.includes(statusRef.current)) {
+          updateStatus("error");
+        }
+      };
+    }
+
+    connect();
+
+    return () => {
+      active = false;
+      if (reconnectTimerRef.current !== null) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+    };
+  }, [matchUuid, token, nickname, enabled, updateStatus]);
+
+  const sendMessage = useCallback((type: string, payload: unknown = {}) => {
+    const ws = wsRef.current;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type, payload }));
+    }
+  }, []);
+
+  const sendStartMatch = useCallback(() => sendMessage("start_match"), [sendMessage]);
+  const sendCancelLobby = useCallback(() => sendMessage("cancel_lobby"), [sendMessage]);
+  const sendKick = useCallback(
+    (userUuid: string) => sendMessage("kick_player", { player_uuid: userUuid }),
+    [sendMessage]
+  );
+
+  return { status, participants, sendStartMatch, sendKick, sendCancelLobby };
+}
