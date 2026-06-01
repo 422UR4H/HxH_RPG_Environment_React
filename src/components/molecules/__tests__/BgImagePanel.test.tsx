@@ -39,3 +39,71 @@ describe("BgImagePanel — no image", () => {
     expect(screen.getByRole("button", { name: /adicionar/i })).not.toBeDisabled();
   });
 });
+
+const bgFixture: NonNullable<BgImage> = {
+  url: "https://img.example.com/map.png",
+  x: 10,
+  y: 20,
+  width: 800,
+  height: 600,
+  rotation: 0,
+  opacity: 0.8,
+};
+
+describe("BgImagePanel — with image", () => {
+  it("renders calibration controls", () => {
+    renderWithProviders(<BgImagePanel {...baseProps} bg={bgFixture} />);
+    expect(screen.getByLabelText(/pos x/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/pos y/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/rotação/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/opacidade/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /trocar imagem/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /remover/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /encaixar no grid/i })).toBeInTheDocument();
+  });
+
+  it("calls onBgChange when Pos X input changes", async () => {
+    const user = userEvent.setup();
+    const onBgChange = vi.fn();
+    renderWithProviders(<BgImagePanel {...baseProps} bg={bgFixture} onBgChange={onBgChange} />);
+    const input = screen.getByLabelText(/pos x/i);
+    await user.clear(input);
+    await user.type(input, "50");
+    expect(onBgChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({ x: 50 }),
+    );
+  });
+
+  it("calls onBgChange(null) when Remover is clicked", async () => {
+    const user = userEvent.setup();
+    const onBgChange = vi.fn();
+    renderWithProviders(<BgImagePanel {...baseProps} bg={bgFixture} onBgChange={onBgChange} />);
+    await user.click(screen.getByRole("button", { name: /remover/i }));
+    expect(onBgChange).toHaveBeenCalledWith(null);
+  });
+
+  it("calls onBgChange when Encaixar no grid is clicked", async () => {
+    const user = userEvent.setup();
+    const onBgChange = vi.fn();
+    renderWithProviders(<BgImagePanel {...baseProps} bg={bgFixture} onBgChange={onBgChange} />);
+    await user.click(screen.getByRole("button", { name: /encaixar no grid/i }));
+    expect(onBgChange).toHaveBeenCalledWith(
+      expect.objectContaining({ url: bgFixture.url }),
+    );
+  });
+
+  it("lock aspect ratio — changing scale X also changes scale Y proportionally", async () => {
+    const user = userEvent.setup();
+    const onBgChange = vi.fn();
+    renderWithProviders(<BgImagePanel {...baseProps} bg={bgFixture} onBgChange={onBgChange} />);
+    const scaleX = screen.getByLabelText(/escala x/i);
+    await user.clear(scaleX);
+    await user.type(scaleX, "150");
+    const calls = onBgChange.mock.calls;
+    expect(calls.length).toBeGreaterThan(0);
+    const lastCall = calls[calls.length - 1]![0] as NonNullable<BgImage>;
+    const ratio = lastCall.height / lastCall.width;
+    const originalRatio = bgFixture.height / bgFixture.width;
+    expect(ratio).toBeCloseTo(originalRatio, 1);
+  });
+});
