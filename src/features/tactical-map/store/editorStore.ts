@@ -23,6 +23,8 @@ export type EditorState = {
   selection: Selection;
 
   setGrid: (grid: GridShape) => void;
+  setName: (name: string) => void;
+  setDescription: (desc: string) => void;
   setBg: (bg: BgImage) => void;
   placePiece: (piece: Piece) => void;
   movePiece: (pieceId: string, slot: SlotCoord) => void;
@@ -45,6 +47,16 @@ export function createEditorStore(initialMap: TacticalMap) {
         setGrid: (grid) =>
           set((s) => {
             s.map.grid = grid;
+            s.isDirty = true;
+          }),
+        setName: (name) =>
+          set((s) => {
+            s.map.name = name;
+            s.isDirty = true;
+          }),
+        setDescription: (desc) =>
+          set((s) => {
+            s.map.description = desc;
             s.isDirty = true;
           }),
         setBg: (bg) =>

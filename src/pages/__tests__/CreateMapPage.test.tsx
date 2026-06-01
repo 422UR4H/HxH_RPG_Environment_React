@@ -1,4 +1,3 @@
-// src/pages/__tests__/CreateMapPage.test.tsx
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { http, HttpResponse } from "msw";
 import { screen, waitFor } from "@testing-library/react";
@@ -31,82 +30,65 @@ describe("CreateMapPage", () => {
     mockNavigate.mockReset();
   });
 
-  it("exibe campo de nome e descrição", () => {
+  it("exibe campo de nome do mapa na toolbar", () => {
     renderPage();
-    expect(screen.getByPlaceholderText(/Ex.: Floresta do Norte/i)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/Descrição opcional/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/nome do mapa/i)).toBeInTheDocument();
   });
 
-  it("submit sem nome exibe mensagem de erro em português sem chamar API", async () => {
+  it("clicar Salvar sem nome exibe erro em português", async () => {
     renderPage();
-    const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: /Criar Mapa/i }));
+    await userEvent.click(screen.getByRole("button", { name: /criar mapa/i }));
     expect(
       await screen.findByText(/O nome do mapa é obrigatório/i),
     ).toBeInTheDocument();
   });
 
-  it("submit válido chama POST e navega para /campaigns/:id", async () => {
+  it("salvar com nome chama POST e navega para /campaigns/:id", async () => {
     server.use(
       http.post(`${baseUrl}/campaigns/:campaignId/maps`, () =>
         HttpResponse.json({ map: mapFixture }, { status: 201 }),
       ),
     );
     renderPage();
-    const user = userEvent.setup();
-    await user.type(
-      screen.getByPlaceholderText(/Ex.: Floresta do Norte/i),
+    await userEvent.type(
+      screen.getByPlaceholderText(/nome do mapa/i),
       "Floresta do Norte",
     );
-    await user.click(screen.getByRole("button", { name: /Criar Mapa/i }));
+    await userEvent.click(screen.getByRole("button", { name: /criar mapa/i }));
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith("/campaigns/campaign-1");
     });
   });
 
-  it("erro 422 do servidor exibe mensagem em português", async () => {
-    server.use(
-      http.post(`${baseUrl}/campaigns/:campaignId/maps`, () =>
-        HttpResponse.json(
-          { detail: "name is required" },
-          { status: 422 },
-        ),
-      ),
-    );
-    renderPage();
-    const user = userEvent.setup();
-    await user.type(
-      screen.getByPlaceholderText(/Ex.: Floresta do Norte/i),
-      "Mapa X",
-    );
-    await user.click(screen.getByRole("button", { name: /Criar Mapa/i }));
-    expect(
-      await screen.findByText(/O nome do mapa é obrigatório/i),
-    ).toBeInTheDocument();
-  });
-
-  it("erro genérico do servidor exibe mensagem de fallback", async () => {
+  it("erro do servidor exibe mensagem de fallback sem navegar", async () => {
     server.use(
       http.post(`${baseUrl}/campaigns/:campaignId/maps`, () =>
         HttpResponse.json({ detail: "unexpected_error" }, { status: 422 }),
       ),
     );
     renderPage();
-    const user = userEvent.setup();
-    await user.type(
-      screen.getByPlaceholderText(/Ex.: Floresta do Norte/i),
+    await userEvent.type(
+      screen.getByPlaceholderText(/nome do mapa/i),
       "Mapa X",
     );
-    await user.click(screen.getByRole("button", { name: /Criar Mapa/i }));
+    await userEvent.click(screen.getByRole("button", { name: /criar mapa/i }));
     expect(
-      await screen.findByText(/Erro ao criar mapa\. Tente novamente/i),
+      await screen.findByText(/Não foi possível salvar/i),
     ).toBeInTheDocument();
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 
-  it("botão Cancelar navega para /campaigns/:id", async () => {
+  it("digitar no nome registra beforeunload handler", async () => {
+    const addEventSpy = vi.spyOn(window, "addEventListener");
     renderPage();
-    const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: /Cancelar/i }));
-    expect(mockNavigate).toHaveBeenCalledWith("/campaigns/campaign-1");
+    await userEvent.type(
+      screen.getByPlaceholderText(/nome do mapa/i),
+      "A",
+    );
+    expect(addEventSpy).toHaveBeenCalledWith(
+      "beforeunload",
+      expect.any(Function),
+    );
+    addEventSpy.mockRestore();
   });
 });

@@ -8,7 +8,8 @@ export function useUpdateMap(
 ) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: object) => mapsService.updateMap(token!, mapId!, data),
+    mutationFn: (data: object) =>
+      mapsService.updateMap(token!, mapId!, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["maps", campaignId, token] });
       queryClient.invalidateQueries({ queryKey: ["map", mapId, token] });
