@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { ChangeEvent } from "react";
 import styled from "styled-components";
 import type { GridShape } from "../../types/tacticalMap";
 import { colors, fonts } from "../../styles/tokens";
@@ -18,7 +19,7 @@ export default function GridConfigPanel({ grid, onChange }: Props) {
 
   const handleInt =
     (key: IntField, min: number, max: number) =>
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    (e: ChangeEvent<HTMLInputElement>) => {
       const raw = e.target.value;
       setDrafts((prev) => ({ ...prev, [key]: raw }));
       const v = parseInt(raw, 10);
@@ -37,6 +38,7 @@ export default function GridConfigPanel({ grid, onChange }: Props) {
         <KindRow>
           <KindButton
             type="button"
+            $active={grid.kind === "square"}
             data-active={grid.kind === "square"}
             onClick={() => update({ kind: "square" })}
           >
@@ -44,6 +46,7 @@ export default function GridConfigPanel({ grid, onChange }: Props) {
           </KindButton>
           <KindButton
             type="button"
+            $active={grid.kind === "hex"}
             data-active={grid.kind === "hex"}
             onClick={() => update({ kind: "hex" })}
           >
@@ -151,13 +154,12 @@ const KindRow = styled.div`
   gap: 8px;
 `;
 
-const KindButton = styled.button<{ "data-active"?: boolean }>`
+const KindButton = styled.button<{ $active: boolean }>`
   flex: 1;
   padding: 8px;
   border-radius: 6px;
   border: 1px solid ${colors.borderInput};
-  background: ${({ "data-active": active }) =>
-    active ? colors.brandAccent : "transparent"};
+  background: ${({ $active }) => ($active ? colors.brandAccent : "transparent")};
   color: ${colors.textPrimary};
   font-family: ${fonts.sans};
   font-size: 13px;
