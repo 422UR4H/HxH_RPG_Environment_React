@@ -1,13 +1,13 @@
 import { httpClient } from "./httpClient";
 import { objToCamelCase, objToSnakeCase } from "../utils/caseConverter";
 import config from "./config";
-import type { TacticalMap } from "../types/tacticalMap";
+import type { TacticalMap, GridShape } from "../types/tacticalMap";
 
 export const mapsService = {
   createMap: (
     token: string,
     campaignId: string,
-    data: { name: string; description?: string },
+    data: { name: string; description?: string; grid: GridShape },
   ): Promise<TacticalMap> =>
     httpClient
       .post<{ map: TacticalMap }>(
