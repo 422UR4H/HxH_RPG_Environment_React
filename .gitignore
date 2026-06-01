@@ -35,3 +35,6 @@ coverage/.env
 
 # Visual companion (brainstorm transient files)
 .superpowers/
+
+# Claude Code local session config
+.claude/
