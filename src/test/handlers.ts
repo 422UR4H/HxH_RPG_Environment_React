@@ -16,6 +16,9 @@ export const defaultHandlers = [
   http.get(`${baseUrl}/campaigns/:id`, () =>
     HttpResponse.json({ campaign: campaignFixture }),
   ),
+  http.get(`${baseUrl}/campaigns/:id/maps`, () =>
+    HttpResponse.json({ maps: [] }),
+  ),
   http.get(`${baseUrl}/public/campaigns`, () =>
     HttpResponse.json({ campaigns: [campaignSummaryFixture] }),
   ),

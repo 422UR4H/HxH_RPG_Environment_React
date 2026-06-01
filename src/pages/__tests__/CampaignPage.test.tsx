@@ -8,6 +8,7 @@ import { renderWithProviders } from "../../test/render";
 import { campaignFixture, campaignAsMaster } from "../../test/fixtures/campaign";
 import { pendingSheetFixture } from "../../test/fixtures/sheet";
 import { masterUserFixture, userFixture } from "../../test/fixtures/user";
+import { mapFixture } from "../../test/fixtures/map";
 import CampaignPage from "../CampaignPage";
 
 const mockNavigate = vi.fn();
@@ -351,6 +352,107 @@ describe("CampaignPage", () => {
       const user = userEvent.setup();
       await user.click(await screen.findByRole("button", { name: /Criar Partida/i }));
       expect(mockNavigate).toHaveBeenCalledWith("/campaigns/campaign-1/matches/new");
+    });
+  });
+
+  describe("aba Mapas — como Master", () => {
+    function renderAsMasterOnMapsTab() {
+      server.use(
+        http.get(`${baseUrl}/campaigns/:id`, () =>
+          HttpResponse.json({
+            campaign: campaignAsMaster(masterUserFixture.user.uuid),
+          }),
+        ),
+        http.get(`${baseUrl}/campaigns/:id/maps`, () =>
+          HttpResponse.json({ maps: [mapFixture] }),
+        ),
+      );
+      return renderWithProviders(<CampaignPage />, {
+        route: "/campaigns/campaign-1?tab=maps",
+        path: "/campaigns/:id",
+        user: masterUserFixture,
+      });
+    }
+
+    it("exibe aba 'Mapas' para master", async () => {
+      server.use(
+        http.get(`${baseUrl}/campaigns/:id`, () =>
+          HttpResponse.json({
+            campaign: campaignAsMaster(masterUserFixture.user.uuid),
+          }),
+        ),
+      );
+      renderWithProviders(<CampaignPage />, {
+        route: "/campaigns/campaign-1",
+        path: "/campaigns/:id",
+        user: masterUserFixture,
+      });
+      expect(await screen.findByRole("button", { name: "Mapas" })).toBeInTheDocument();
+    });
+
+    it("NÃO exibe aba 'Mapas' para player", async () => {
+      renderWithProviders(<CampaignPage />, {
+        route: "/campaigns/campaign-1",
+        path: "/campaigns/:id",
+        user: userFixture,
+      });
+      expect(await screen.findByText(campaignFixture.name.toUpperCase())).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Mapas" })).not.toBeInTheDocument();
+    });
+
+    it("aba Mapas exibe MapCard com nome do mapa", async () => {
+      renderAsMasterOnMapsTab();
+      expect(
+        await screen.findByText("Floresta do Norte"),
+      ).toBeInTheDocument();
+    });
+
+    it("aba Mapas exibe botão 'Criar Mapa'", async () => {
+      renderAsMasterOnMapsTab();
+      expect(
+        await screen.findByRole("button", { name: /Criar Mapa/i }),
+      ).toBeInTheDocument();
+    });
+
+    it("clicar em 'Criar Mapa' navega para /campaigns/:id/maps/new", async () => {
+      renderAsMasterOnMapsTab();
+      const user = userEvent.setup();
+      await user.click(
+        await screen.findByRole("button", { name: /Criar Mapa/i }),
+      );
+      expect(mockNavigate).toHaveBeenCalledWith(
+        "/campaigns/campaign-1/maps/new",
+      );
+    });
+
+    it("clicar em MapCard navega para /campaigns/:id/maps/:mapId/edit", async () => {
+      renderAsMasterOnMapsTab();
+      const user = userEvent.setup();
+      await user.click(await screen.findByText("Floresta do Norte"));
+      expect(mockNavigate).toHaveBeenCalledWith(
+        "/campaigns/campaign-1/maps/map-1/edit",
+      );
+    });
+
+    it("aba Mapas mostra 'Nenhum mapa criado ainda.' quando lista está vazia", async () => {
+      server.use(
+        http.get(`${baseUrl}/campaigns/:id`, () =>
+          HttpResponse.json({
+            campaign: campaignAsMaster(masterUserFixture.user.uuid),
+          }),
+        ),
+        http.get(`${baseUrl}/campaigns/:id/maps`, () =>
+          HttpResponse.json({ maps: [] }),
+        ),
+      );
+      renderWithProviders(<CampaignPage />, {
+        route: "/campaigns/campaign-1?tab=maps",
+        path: "/campaigns/:id",
+        user: masterUserFixture,
+      });
+      expect(
+        await screen.findByText(/Nenhum mapa criado ainda\./i),
+      ).toBeInTheDocument();
     });
   });
 });

@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useParams, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import useToken from "../hooks/useToken";
 import useUser from "../hooks/useUser";
 import { useCampaignDetails } from "../hooks/useCampaignDetails";
@@ -24,6 +24,9 @@ import CharactersSidebar from "../components/organisms/CharactersSidebar";
 import RulesSidebar from "../components/organisms/RulesSidebar";
 import RuleSection from "../components/molecules/RuleSection";
 import { isApiError } from "../services/httpClient";
+import { useMaps } from "../hooks/useMaps";
+import PageTabNav from "../components/organisms/PageTabNav";
+import MapCard from "../components/molecules/MapCard";
 
 export default function CampaignPage() {
   const { id } = useParams<{ id: string }>();
@@ -57,6 +60,26 @@ export default function CampaignPage() {
   const { mutate: deleteCampaign } = useDeleteCampaign(token, id);
 
   const isMaster = campaign?.masterUuid === user?.uuid;
+
+  const [searchParams] = useSearchParams();
+
+  const availableTabs = isMaster
+    ? [
+        { id: "matches", label: "Partidas" },
+        { id: "maps", label: "Mapas" },
+      ]
+    : [{ id: "matches", label: "Partidas" }];
+
+  const rawTab = searchParams.get("tab");
+  const activeTab = availableTabs.some((t) => t.id === rawTab)
+    ? rawTab!
+    : "matches";
+
+  const { data: maps, isPending: mapsPending } = useMaps(
+    token,
+    isMaster ? id : undefined,
+  );
+
   const hasStartedMatch = (campaign?.matches ?? []).some(
     (m) => !!m.gameStartAt,
   );
@@ -203,67 +226,110 @@ export default function CampaignPage() {
           })()}
         </CampaignDate>
 
-        <MatchesList>
-          {(campaign.matches ?? []).map((match) => (
-            <MatchItem
-              key={match.uuid}
-              match={match}
-              onClick={() =>
-                navigate(`/campaigns/${campaign.uuid}/matches/${match.uuid}`, {
-                  state: { sheetId: playerSheetId },
-                })
-              }
-            />
-          ))}
-        </MatchesList>
+        <PageTabNav tabs={availableTabs} />
 
-        <ActionsList>
-          {isMaster ? (
-            <BottomActions
-              containerRef={mainContentRef}
-              contentChangeSignal={descriptionSignal}
-              manage={{
-                isFree: !hasStartedMatch,
-                deleteDisabledReason: hasStartedMatch
-                  ? "Partida iniciada existente"
-                  : undefined,
-                onEdit: handleEdit,
-                onDelete: handleDelete,
-                confirmMessage:
-                  "Tem certeza que deseja excluir esta campanha? Esta ação não pode ser desfeita.",
-              }}
-              primaryButton={{
-                label: "Criar Partida",
-                onClick: handleCreateMatch,
-              }}
-            />
-          ) : !submitted && sheetId ? (
-            <>
+        {activeTab === "matches" && (
+          <>
+            <MatchesList>
+              {(campaign.matches ?? []).map((match) => (
+                <MatchItem
+                  key={match.uuid}
+                  match={match}
+                  onClick={() =>
+                    navigate(
+                      `/campaigns/${campaign.uuid}/matches/${match.uuid}`,
+                      {
+                        state: { sheetId: playerSheetId },
+                      },
+                    )
+                  }
+                />
+              ))}
+            </MatchesList>
+
+            <ActionsList>
+              {isMaster ? (
+                <BottomActions
+                  containerRef={mainContentRef}
+                  contentChangeSignal={descriptionSignal}
+                  manage={{
+                    isFree: !hasStartedMatch,
+                    deleteDisabledReason: hasStartedMatch
+                      ? "Partida iniciada existente"
+                      : undefined,
+                    onEdit: handleEdit,
+                    onDelete: handleDelete,
+                    confirmMessage:
+                      "Tem certeza que deseja excluir esta campanha? Esta ação não pode ser desfeita.",
+                  }}
+                  primaryButton={{
+                    label: "Criar Partida",
+                    onClick: handleCreateMatch,
+                  }}
+                />
+              ) : !submitted && sheetId ? (
+                <>
+                  <AdaptiveActionButton
+                    label={submitPending ? "Submetendo..." : "Submeter Ficha"}
+                    type="match"
+                    onClick={submitPending ? () => {} : handleRequestSubmit}
+                    containerRef={mainContentRef}
+                    contentChangeSignal={descriptionSignal}
+                  />
+                  {nickConflictError && (
+                    <NickConflictMessage>
+                      Já existe um personagem com o nick &quot;{sheetNick}&quot;
+                      nesta campanha. Escolha outro nick antes de submeter.
+                    </NickConflictMessage>
+                  )}
+                  {submitFailed && !nickConflictError && (
+                    <NickConflictMessage>
+                      {isApiError(submitError, 409)
+                        ? `Já existe um personagem com o nick "${sheetNick}" nesta campanha. Escolha outro nick antes de submeter.`
+                        : "Erro ao submeter ficha. Tente novamente."}
+                    </NickConflictMessage>
+                  )}
+                </>
+              ) : null}
+            </ActionsList>
+
+            {deleteError && (
+              <DeleteErrorMessage>{deleteError}</DeleteErrorMessage>
+            )}
+          </>
+        )}
+
+        {activeTab === "maps" && (
+          <>
+            <MapsGrid>
+              {mapsPending ? (
+                <MapsEmptyText>Carregando mapas...</MapsEmptyText>
+              ) : (maps ?? []).length === 0 ? (
+                <MapsEmptyText>Nenhum mapa criado ainda.</MapsEmptyText>
+              ) : (
+                (maps ?? []).map((map) => (
+                  <MapCard
+                    key={map.id}
+                    map={map}
+                    onClick={() =>
+                      navigate(`/campaigns/${id}/maps/${map.id}/edit`)
+                    }
+                  />
+                ))
+              )}
+            </MapsGrid>
+
+            <ActionsList>
               <AdaptiveActionButton
-                label={submitPending ? "Submetendo..." : "Submeter Ficha"}
+                label="Criar Mapa"
                 type="match"
-                onClick={submitPending ? () => {} : handleRequestSubmit}
+                onClick={() => navigate(`/campaigns/${id}/maps/new`)}
                 containerRef={mainContentRef}
                 contentChangeSignal={descriptionSignal}
               />
-              {nickConflictError && (
-                <NickConflictMessage>
-                  Já existe um personagem com o nick &quot;{sheetNick}&quot;
-                  nesta campanha. Escolha outro nick antes de submeter.
-                </NickConflictMessage>
-              )}
-              {submitFailed && !nickConflictError && (
-                <NickConflictMessage>
-                  {isApiError(submitError, 409)
-                    ? `Já existe um personagem com o nick "${sheetNick}" nesta campanha. Escolha outro nick antes de submeter.`
-                    : "Erro ao submeter ficha. Tente novamente."}
-                </NickConflictMessage>
-              )}
-            </>
-          ) : null}
-        </ActionsList>
-
-        {deleteError && <DeleteErrorMessage>{deleteError}</DeleteErrorMessage>}
+            </ActionsList>
+          </>
+        )}
       </DetailPageTemplate>
 
       {showSubmitConfirm && (
@@ -357,4 +423,18 @@ const NickConflictMessage = styled(InlineErrorMessage)`
 
 const DeleteErrorMessage = styled(InlineErrorMessage)`
   margin-top: 8px;
+`;
+
+const MapsGrid = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+`;
+
+const MapsEmptyText = styled.p`
+  font-family: ${fonts.sans};
+  font-size: 16px;
+  color: ${colors.textMuted};
+  padding: 20px 0;
 `;

@@ -19,6 +19,8 @@ import EditCampaignPage from "./pages/EditCampaignPage";
 import LobbyPage from "./pages/LobbyPage";
 import GamePage from "./pages/GamePage";
 const TacticalMapDemoPage = lazy(() => import("./pages/TacticalMapDemoPage"));
+const CreateMapPage = lazy(() => import("./pages/CreateMapPage"));
+const EditMapPage = lazy(() => import("./pages/EditMapPage"));
 
 function App() {
   return (
@@ -66,6 +68,22 @@ function App() {
         <Route
           path="/campaigns/:campaignId/matches/:matchId/game"
           element={<GamePage />}
+        />
+        <Route
+          path="/campaigns/:campaignId/maps/new"
+          element={
+            <Suspense fallback={<div>Loading...</div>}>
+              <CreateMapPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/campaigns/:campaignId/maps/:mapId/edit"
+          element={
+            <Suspense fallback={<div>Loading...</div>}>
+              <EditMapPage />
+            </Suspense>
+          }
         />
         {import.meta.env.DEV && (
           <Route
