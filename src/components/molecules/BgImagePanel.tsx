@@ -5,14 +5,8 @@ import { colors, fonts } from "../../styles/tokens";
 import { IMAGE_PICKER_TIP } from "../../constants/uiStrings";
 import { computeCoverFit, deriveGridFromImage } from "../../features/tactical-map/utils/bgFit";
 import useToken from "../../hooks/useToken";
+import { usePresignedUpload } from "../../hooks/usePresignedUpload";
 import type { BgImage, GridShape } from "../../types/tacticalMap";
-
-// Temporary stub — replaced in Task 9
-const usePresignedUpload = () => ({
-  getPresignedUrl: async (_token: string, _mapId: string) =>
-    ({ uploadUrl: "", publicUrl: "" }),
-  uploadToR2: async (_url: string, _blob: Blob): Promise<void> => {},
-});
 
 type Props = {
   bg: BgImage;
