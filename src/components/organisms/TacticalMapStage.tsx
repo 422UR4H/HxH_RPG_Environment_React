@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MutableRefObject } from "react";
 import { Application, extend, useApplication } from "@pixi/react";
-import { Assets, Container, Graphics, Sprite, Text } from "pixi.js";
-import type { EventSystem, FederatedPointerEvent, Texture } from "pixi.js";
+import { Assets, Container, Graphics, ImageSource, Sprite, Text, Texture } from "pixi.js";
+import type { EventSystem, FederatedPointerEvent } from "pixi.js";
 import { Viewport } from "pixi-viewport";
 import type { Graphics as PixiGraphics } from "pixi.js";
 import type { TacticalMap, GridShape, Piece } from "../../types/tacticalMap";
@@ -147,23 +147,37 @@ function BgLayer({
 }) {
   const [texture, setTexture] = useState<Texture | null>(null);
 
-  // Texture.from() is a synchronous cache lookup and warns when the URL is
-  // not yet cached. Assets.load() is the correct async path for new URLs;
-  // pixi.js caches the result so subsequent calls with the same URL are free.
   useEffect(() => {
     if (!bg?.url) {
       setTexture(null);
       return;
     }
     let cancelled = false;
-    Assets.load(bg.url)
-      .then((t: Texture) => {
-        if (!cancelled) setTexture(t);
-      })
-      .catch(() => {
-        // Stale blob URL after reload, or CORS-blocked R2 URL: hide the sprite.
+
+    if (bg.url.startsWith("blob:")) {
+      // blob: URLs have no file extension so Assets.load() can't determine
+      // the parser and bails. Load via HTMLImageElement (same-origin blob,
+      // no CORS) and wrap in a Texture using the v8 ImageSource API.
+      const img = new Image();
+      img.onload = () => {
+        if (cancelled) return;
+        setTexture(new Texture({ source: new ImageSource({ resource: img }) }));
+      };
+      img.onerror = () => {
         if (!cancelled) setTexture(null);
-      });
+      };
+      img.src = bg.url;
+    } else {
+      // Regular URL (R2 or external): requires CORS headers on the server.
+      Assets.load(bg.url)
+        .then((t: Texture) => {
+          if (!cancelled) setTexture(t);
+        })
+        .catch(() => {
+          if (!cancelled) setTexture(null);
+        });
+    }
+
     return () => {
       cancelled = true;
     };
