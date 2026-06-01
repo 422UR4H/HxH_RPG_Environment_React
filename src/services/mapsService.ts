@@ -1,13 +1,13 @@
 import { httpClient } from "./httpClient";
 import { objToCamelCase, objToSnakeCase } from "../utils/caseConverter";
 import config from "./config";
-import type { TacticalMap } from "../types/tacticalMap";
+import type { TacticalMap, GridShape } from "../types/tacticalMap";
 
 export const mapsService = {
   createMap: (
     token: string,
     campaignId: string,
-    data: { name: string; description?: string },
+    data: { name: string; description?: string; grid?: GridShape },
   ): Promise<TacticalMap> =>
     httpClient
       .post<{ map: TacticalMap }>(
@@ -32,18 +32,10 @@ export const mapsService = {
       .get<{ map: TacticalMap }>(`/maps/${mapId}`, config(token))
       .then(({ data: res }) => objToCamelCase<TacticalMap>(res.map)),
 
-  updateMap: (
-    token: string,
-    mapId: string,
-    data: object,
-  ): Promise<TacticalMap> =>
+  updateMap: (token: string, mapId: string, data: object): Promise<void> =>
     httpClient
-      .put<{ map: TacticalMap }>(
-        `/maps/${mapId}`,
-        objToSnakeCase(data),
-        config(token),
-      )
-      .then(({ data: res }) => objToCamelCase<TacticalMap>(res.map)),
+      .put(`/maps/${mapId}`, objToSnakeCase(data), config(token))
+      .then(() => undefined),
 
   deleteMap: (token: string, mapId: string): Promise<void> =>
     httpClient
