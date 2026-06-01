@@ -48,7 +48,10 @@ export default function BgImagePanel({ bg, grid, mapId, onBgChange, onGridChange
   };
 
   const handleFileSelect = async (file: File) => {
-    if (!token) return;
+    if (!token) {
+      setUploadError("Sessão expirada. Faça login novamente.");
+      return;
+    }
     setUploadError(null);
     setIsUploading(true);
     try {
@@ -63,6 +66,10 @@ export default function BgImagePanel({ bg, grid, mapId, onBgChange, onGridChange
       img.onload = () => {
         applyImage(publicUrl, img.naturalWidth, img.naturalHeight);
         URL.revokeObjectURL(blobUrl);
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(blobUrl);
+        setUploadError("Imagem carregada mas não foi possível processar. Tente novamente.");
       };
       img.src = blobUrl;
     } catch {

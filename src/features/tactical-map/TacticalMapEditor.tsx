@@ -84,21 +84,29 @@ export default function TacticalMapEditor({
       const uncoveredRows = bgBottom < gridH
         ? Math.floor((gridH - bgBottom) / map.grid.cellSize)
         : 0;
+      const uncoveredLeftCols = map.bg.x > 0
+        ? Math.floor(map.bg.x / map.grid.cellSize)
+        : 0;
+      const uncoveredTopRows = map.bg.y > 0
+        ? Math.floor(map.bg.y / map.grid.cellSize)
+        : 0;
 
-      if (uncoveredCols > 0 || uncoveredRows > 0) {
+      const totalUncoveredCols = uncoveredLeftCols + uncoveredCols;
+      const totalUncoveredRows = uncoveredTopRows + uncoveredRows;
+
+      if (totalUncoveredCols > 0 || totalUncoveredRows > 0) {
         const parts: string[] = [];
-        if (uncoveredCols > 0) parts.push(`${uncoveredCols} coluna${uncoveredCols > 1 ? "s" : ""}`);
-        if (uncoveredRows > 0) parts.push(`${uncoveredRows} linha${uncoveredRows > 1 ? "s" : ""}`);
-        const count = uncoveredCols + uncoveredRows;
-        const msg = `${parts.join(" e ")} fora da imagem ser${count > 1 ? "ão removidas" : "á removida"} ao salvar. Deseja continuar?`;
+        if (totalUncoveredCols > 0) parts.push(`${totalUncoveredCols} coluna${totalUncoveredCols > 1 ? "s" : ""}`);
+        if (totalUncoveredRows > 0) parts.push(`${totalUncoveredRows} linha${totalUncoveredRows > 1 ? "s" : ""}`);
+        const msg = `${parts.join(" e ")} não cobertas pela imagem. Deseja continuar e remover as colunas/linhas descobertas à direita/baixo?`;
         if (!window.confirm(msg)) return;
 
         mapToSave = {
           ...map,
           grid: {
             ...map.grid,
-            cols: map.grid.cols - uncoveredCols,
-            rows: map.grid.rows - uncoveredRows,
+            cols: map.grid.cols - uncoveredCols,   // only trim right side
+            rows: map.grid.rows - uncoveredRows,   // only trim bottom side
           },
         };
       }
