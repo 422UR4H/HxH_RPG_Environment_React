@@ -1,7 +1,8 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import type { MutableRefObject } from "react";
 import { Application, extend, useApplication } from "@pixi/react";
 import { Container, Graphics, Sprite, Text, Texture } from "pixi.js";
-import type { EventSystem } from "pixi.js";
+import type { EventSystem, FederatedPointerEvent } from "pixi.js";
 import { Viewport } from "pixi-viewport";
 import type { Graphics as PixiGraphics } from "pixi.js";
 import type { TacticalMap, GridShape, Piece } from "../../types/tacticalMap";
@@ -15,6 +16,7 @@ declare module "react" {
   namespace JSX {
     interface IntrinsicElements {
       pixiViewport: {
+        ref?: React.Ref<Viewport>;
         screenWidth?: number;
         screenHeight?: number;
         worldWidth?: number;
@@ -30,29 +32,95 @@ type Props = {
   map: TacticalMap;
   width: number;
   height: number;
+  clampToGrid?: boolean;
+  bgInteractive?: boolean;
+  onBgPositionChange?: (x: number, y: number) => void;
 };
 
-export default function TacticalMapStage({ map, width, height }: Props) {
+export default function TacticalMapStage({
+  map, width, height,
+  clampToGrid = false,
+  bgInteractive = false,
+  onBgPositionChange,
+}: Props) {
   return (
     <Application width={width} height={height} background={0x101820}>
-      <ViewportInner map={map} width={width} height={height} />
+      <ViewportInner
+        map={map}
+        width={width}
+        height={height}
+        clampToGrid={clampToGrid}
+        bgInteractive={bgInteractive}
+        onBgPositionChange={onBgPositionChange}
+      />
     </Application>
   );
 }
 
+type DragState = {
+  startWorldX: number;
+  startWorldY: number;
+  startBgX: number;
+  startBgY: number;
+} | null;
+
 // useApplication() only works inside a child of <Application>, not in the
 // same component that renders it — hence the split.
-function ViewportInner({ map, width, height }: Props) {
+function ViewportInner({
+  map,
+  width,
+  height,
+  clampToGrid,
+  bgInteractive,
+  onBgPositionChange,
+}: Props) {
   const { app } = useApplication();
+  const vpRef = useRef<Viewport | null>(null);
+  const dragState = useRef<DragState>(null);
+
+  useEffect(() => {
+    const vp = vpRef.current;
+    if (!vp) return;
+    vp.drag().pinch().wheel().decelerate();
+    if (clampToGrid) {
+      vp.clamp({
+        left: 0,
+        right: map.grid.cols * map.grid.cellSize,
+        top: 0,
+        bottom: map.grid.rows * map.grid.cellSize,
+        underflow: "center",
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // intentionally run once
+
+  useEffect(() => {
+    const vp = vpRef.current;
+    if (!vp || !clampToGrid) return;
+    vp.clamp({
+      left: 0,
+      right: map.grid.cols * map.grid.cellSize,
+      top: 0,
+      bottom: map.grid.rows * map.grid.cellSize,
+      underflow: "center",
+    });
+  }, [clampToGrid, map.grid.cols, map.grid.cellSize, map.grid.rows]);
+
   return (
     <pixiViewport
+      ref={vpRef}
       screenWidth={width}
       screenHeight={height}
       worldWidth={map.grid.cols * map.grid.cellSize * 2}
       worldHeight={map.grid.rows * map.grid.cellSize * 2}
       events={app?.renderer.events}
     >
-      <BgLayer bg={map.bg} />
+      <BgLayer
+        bg={map.bg}
+        bgInteractive={bgInteractive}
+        dragState={dragState}
+        onBgPositionChange={onBgPositionChange}
+      />
       <GridLayer grid={map.grid} />
       <pixiContainer label="decorations-layer" />
       <PiecesLayer map={map} />
@@ -62,8 +130,44 @@ function ViewportInner({ map, width, height }: Props) {
   );
 }
 
-function BgLayer({ bg }: { bg: TacticalMap["bg"] }) {
+function BgLayer({
+  bg,
+  bgInteractive,
+  dragState,
+  onBgPositionChange,
+}: {
+  bg: TacticalMap["bg"];
+  bgInteractive?: boolean;
+  dragState?: MutableRefObject<DragState>;
+  onBgPositionChange?: (x: number, y: number) => void;
+}) {
   if (!bg) return null;
+
+  const handlePointerDown = (e: FederatedPointerEvent) => {
+    if (!bgInteractive || !dragState || !bg) return;
+    e.stopPropagation();
+    dragState.current = {
+      startWorldX: e.global.x,
+      startWorldY: e.global.y,
+      startBgX: bg.x,
+      startBgY: bg.y,
+    };
+  };
+
+  const handlePointerMove = (e: FederatedPointerEvent) => {
+    if (!bgInteractive || !dragState?.current || !onBgPositionChange) return;
+    const dx = e.global.x - dragState.current.startWorldX;
+    const dy = e.global.y - dragState.current.startWorldY;
+    onBgPositionChange(
+      dragState.current.startBgX + dx,
+      dragState.current.startBgY + dy,
+    );
+  };
+
+  const handlePointerUp = () => {
+    if (dragState) dragState.current = null;
+  };
+
   return (
     <pixiSprite
       texture={Texture.from(bg.url)}
@@ -73,6 +177,12 @@ function BgLayer({ bg }: { bg: TacticalMap["bg"] }) {
       height={bg.height}
       rotation={(bg.rotation * Math.PI) / 180}
       alpha={bg.opacity}
+      eventMode={bgInteractive ? "static" : "none"}
+      cursor={bgInteractive ? "grab" : "default"}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerUpOutside={handlePointerUp}
     />
   );
 }
