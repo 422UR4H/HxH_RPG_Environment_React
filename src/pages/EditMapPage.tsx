@@ -26,6 +26,7 @@ export default function EditMapPage() {
       name: updatedMap.name.trim(),
       description: updatedMap.description,
       grid: updatedMap.grid,
+      bg: updatedMap.bg,
     });
   };
 

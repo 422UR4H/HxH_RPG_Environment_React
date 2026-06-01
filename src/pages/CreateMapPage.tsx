@@ -31,6 +31,7 @@ export default function CreateMapPage() {
       name: map.name.trim(),
       description: map.description?.trim() || undefined,
       grid: map.grid,
+      bg: map.bg,
     });
   };
 
