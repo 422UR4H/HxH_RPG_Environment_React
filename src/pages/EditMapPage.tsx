@@ -1,55 +1,39 @@
-import { useParams, useNavigate } from "react-router-dom";
-import styled from "styled-components";
-import { colors, fonts } from "../styles/tokens";
+import { Navigate, useParams } from "react-router-dom";
+import useToken from "../hooks/useToken";
+import { useMap } from "../hooks/useMap";
+import { useUpdateMap } from "../hooks/useUpdateMap";
+import { LoadingContainer } from "../components/atoms/PageStates";
+import TacticalMapEditor from "../features/tactical-map/TacticalMapEditor";
+import type { TacticalMap } from "../types/tacticalMap";
 
 export default function EditMapPage() {
-  const { campaignId } = useParams<{ campaignId: string; mapId: string }>();
-  const navigate = useNavigate();
+  const { campaignId, mapId } = useParams<{
+    campaignId: string;
+    mapId: string;
+  }>();
+  const token = useToken();
+
+  const { data: map, isLoading } = useMap(token, mapId);
+  const { mutateAsync } = useUpdateMap(token, campaignId, mapId);
+
+  if (!token) return <Navigate to="/" replace />;
+
+  if (isLoading || !map)
+    return <LoadingContainer>Carregando mapa...</LoadingContainer>;
+
+  const handleSave = async (updatedMap: TacticalMap): Promise<void> => {
+    await mutateAsync({
+      name: updatedMap.name.trim(),
+      description: updatedMap.description,
+      grid: updatedMap.grid,
+    });
+  };
 
   return (
-    <PageWrapper>
-      <PageTitle>Editor de Mapa</PageTitle>
-      <Message>O editor de mapas será implementado na Fase 2.</Message>
-      <BackButton onClick={() => navigate(`/campaigns/${campaignId}`)}>
-        Voltar para a campanha
-      </BackButton>
-    </PageWrapper>
+    <TacticalMapEditor
+      campaignId={campaignId ?? ""}
+      initialMap={map}
+      onSave={handleSave}
+    />
   );
 }
-
-const PageWrapper = styled.div`
-  max-width: 600px;
-  margin: 60px auto;
-  padding: 0 24px;
-`;
-
-const PageTitle = styled.h1`
-  font-family: ${fonts.sans};
-  font-size: 32px;
-  font-weight: 900;
-  color: ${colors.textPrimary};
-  margin-bottom: 24px;
-`;
-
-const Message = styled.p`
-  font-family: ${fonts.sans};
-  font-size: 18px;
-  color: ${colors.textMuted};
-  margin-bottom: 32px;
-`;
-
-const BackButton = styled.button`
-  font-family: ${fonts.sans};
-  font-size: 16px;
-  font-weight: 600;
-  color: ${colors.textPrimary};
-  background: transparent;
-  border: 1px solid ${colors.textPrimary};
-  border-radius: 6px;
-  padding: 12px 24px;
-  cursor: pointer;
-
-  &:hover {
-    filter: brightness(1.1);
-  }
-`;
