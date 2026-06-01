@@ -70,9 +70,43 @@ export default function TacticalMapEditor({
     }
     setNameError(null);
     setSaveError(null);
+
+    // Truncation check
+    let mapToSave = map;
+    if (map.bg) {
+      const gridW = map.grid.cols * map.grid.cellSize;
+      const gridH = map.grid.rows * map.grid.cellSize;
+      const bgRight = map.bg.x + map.bg.width;
+      const bgBottom = map.bg.y + map.bg.height;
+      const uncoveredCols = bgRight < gridW
+        ? Math.floor((gridW - bgRight) / map.grid.cellSize)
+        : 0;
+      const uncoveredRows = bgBottom < gridH
+        ? Math.floor((gridH - bgBottom) / map.grid.cellSize)
+        : 0;
+
+      if (uncoveredCols > 0 || uncoveredRows > 0) {
+        const parts: string[] = [];
+        if (uncoveredCols > 0) parts.push(`${uncoveredCols} coluna${uncoveredCols > 1 ? "s" : ""}`);
+        if (uncoveredRows > 0) parts.push(`${uncoveredRows} linha${uncoveredRows > 1 ? "s" : ""}`);
+        const count = uncoveredCols + uncoveredRows;
+        const msg = `${parts.join(" e ")} fora da imagem ser${count > 1 ? "ão removidas" : "á removida"} ao salvar. Deseja continuar?`;
+        if (!window.confirm(msg)) return;
+
+        mapToSave = {
+          ...map,
+          grid: {
+            ...map.grid,
+            cols: map.grid.cols - uncoveredCols,
+            rows: map.grid.rows - uncoveredRows,
+          },
+        };
+      }
+    }
+
     setIsSaving(true);
     try {
-      await onSave(map);
+      await onSave(mapToSave);
       markClean();
       onSaveSuccess?.();
     } catch {
