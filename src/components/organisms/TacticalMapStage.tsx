@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MutableRefObject } from "react";
 import { Application, extend, useApplication } from "@pixi/react";
-import { Container, Graphics, Sprite, Text, Texture } from "pixi.js";
-import type { EventSystem, FederatedPointerEvent } from "pixi.js";
+import { Assets, Container, Graphics, Sprite, Text } from "pixi.js";
+import type { EventSystem, FederatedPointerEvent, Texture } from "pixi.js";
 import { Viewport } from "pixi-viewport";
 import type { Graphics as PixiGraphics } from "pixi.js";
 import type { TacticalMap, GridShape, Piece } from "../../types/tacticalMap";
@@ -77,22 +77,19 @@ function ViewportInner({
   const { app } = useApplication();
   const vpRef = useRef<Viewport | null>(null);
   const dragState = useRef<DragState>(null);
+  const [vpScale, setVpScale] = useState(1);
 
-  useEffect(() => {
-    const vp = vpRef.current;
+  // Callback ref instead of useEffect([], []): PixiJS v8 initialises async,
+  // so the first render may return null (see guard below). A plain effect
+  // with [] deps fires on that first null render and never again, leaving
+  // plugins unwired. A callback ref fires at Viewport construction time,
+  // whenever that happens.
+  const vpCallback = useCallback((vp: Viewport | null) => {
+    vpRef.current = vp;
     if (!vp) return;
     vp.drag().pinch().wheel().decelerate();
-    if (clampToGrid) {
-      vp.clamp({
-        left: 0,
-        right: map.grid.cols * map.grid.cellSize,
-        top: 0,
-        bottom: map.grid.rows * map.grid.cellSize,
-        underflow: "center",
-      });
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // intentionally run once
+    vp.on("zoomed", () => setVpScale(vp.scale.x));
+  }, []);
 
   useEffect(() => {
     const vp = vpRef.current;
@@ -106,14 +103,21 @@ function ViewportInner({
     });
   }, [clampToGrid, map.grid.cols, map.grid.cellSize, map.grid.rows]);
 
+  // app.renderer is undefined until PixiJS async init completes. Passing
+  // undefined as events to the Viewport constructor crashes in addListeners()
+  // when it tries to access events.domElement. Guard here; @pixi/react will
+  // re-render once the app is ready.
+  const events = app?.renderer?.events;
+  if (!events) return null;
+
   return (
     <pixiViewport
-      ref={vpRef}
+      ref={vpCallback}
       screenWidth={width}
       screenHeight={height}
       worldWidth={map.grid.cols * map.grid.cellSize * 2}
       worldHeight={map.grid.rows * map.grid.cellSize * 2}
-      events={app?.renderer?.events}
+      events={events}
     >
       <BgLayer
         bg={map.bg}
@@ -121,7 +125,7 @@ function ViewportInner({
         dragState={dragState}
         onBgPositionChange={onBgPositionChange}
       />
-      <GridLayer grid={map.grid} />
+      <GridLayer grid={map.grid} vpScale={vpScale} />
       <pixiContainer label="decorations-layer" />
       <PiecesLayer map={map} />
       <pixiContainer label="walls-layer" />
@@ -141,7 +145,26 @@ function BgLayer({
   dragState?: MutableRefObject<DragState>;
   onBgPositionChange?: (x: number, y: number) => void;
 }) {
-  if (!bg) return null;
+  const [texture, setTexture] = useState<Texture | null>(null);
+
+  // Texture.from() is a synchronous cache lookup and warns when the URL is
+  // not yet cached. Assets.load() is the correct async path for new URLs;
+  // pixi.js caches the result so subsequent calls with the same URL are free.
+  useEffect(() => {
+    if (!bg?.url) {
+      setTexture(null);
+      return;
+    }
+    let cancelled = false;
+    Assets.load(bg.url).then((t: Texture) => {
+      if (!cancelled) setTexture(t);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [bg?.url]);
+
+  if (!bg || !texture) return null;
 
   const handlePointerDown = (e: FederatedPointerEvent) => {
     if (!bgInteractive || !dragState || !bg) return;
@@ -170,7 +193,7 @@ function BgLayer({
 
   return (
     <pixiSprite
-      texture={Texture.from(bg.url)}
+      texture={texture}
       x={bg.x}
       y={bg.y}
       width={bg.width}
@@ -187,12 +210,16 @@ function BgLayer({
   );
 }
 
-function GridLayer({ grid }: { grid: GridShape }) {
+function GridLayer({ grid, vpScale }: { grid: GridShape; vpScale: number }) {
   const draw = useCallback(
     (g: PixiGraphics) => {
       g.clear();
       const colorHex = parseInt(grid.color.replace("#", ""), 16);
-      g.setStrokeStyle({ width: 1, color: colorHex, alpha: grid.opacity });
+      // Stroke width is in world coordinates and scales with viewport zoom.
+      // Dividing by vpScale keeps lines at a constant 1 CSS pixel regardless
+      // of zoom level, preventing thick lines on zoom-in and vanishing lines
+      // on zoom-out.
+      g.setStrokeStyle({ width: 1 / vpScale, color: colorHex, alpha: grid.opacity });
       if (grid.kind === "square") {
         const { cols, rows, cellSize } = grid;
         for (let c = 0; c <= cols; c++) {
@@ -219,7 +246,7 @@ function GridLayer({ grid }: { grid: GridShape }) {
       }
       g.stroke();
     },
-    [grid],
+    [grid, vpScale],
   );
 
   return <pixiGraphics draw={draw} />;
