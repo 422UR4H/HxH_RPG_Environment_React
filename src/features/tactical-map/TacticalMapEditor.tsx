@@ -94,7 +94,6 @@ export default function TacticalMapEditor({
           mapDescription={map.description ?? ""}
           onNameChange={setName}
           onDescriptionChange={setDescription}
-          isDirty={isDirty}
           onSave={handleSave}
           isSaving={isSaving}
           saveLabel={saveLabel}

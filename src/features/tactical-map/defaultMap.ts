@@ -2,13 +2,13 @@ import type { TacticalMap } from "../../types/tacticalMap";
 
 export const DEFAULT_GRID: TacticalMap["grid"] = {
   kind: "square",
-  cols: 10,
-  rows: 10,
-  cellSize: 40,
+  cols: 25,
+  rows: 25,
+  cellSize: 64,
   skewRatio: 1,
   rotation: 0,
-  color: "#4a90a4",
-  opacity: 0.6,
+  color: "#ffffff",
+  opacity: 0.5,
   lineStyle: "solid",
 };
 

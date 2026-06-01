@@ -25,7 +25,6 @@ export default function EditMapPage() {
     await mutateAsync({
       name: updatedMap.name.trim(),
       description: updatedMap.description,
-      grid: updatedMap.grid,
     });
   };
 

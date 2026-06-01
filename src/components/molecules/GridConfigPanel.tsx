@@ -105,7 +105,7 @@ export default function GridConfigPanel({ grid, onChange }: Props) {
         <FieldLabel htmlFor="grid-opacity">
           Opacidade ({Math.round(grid.opacity * 100)}%)
         </FieldLabel>
-        <input
+        <OpacityRange
           id="grid-opacity"
           type="range"
           min={0}
@@ -184,4 +184,10 @@ const NumInput = styled.input`
   &:focus {
     border-color: ${colors.brandAccentBright};
   }
+`;
+
+const OpacityRange = styled.input`
+  width: 100%;
+  accent-color: ${colors.brandAccent};
+  cursor: pointer;
 `;

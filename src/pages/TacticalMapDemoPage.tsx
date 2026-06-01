@@ -49,8 +49,11 @@ const demoMap: TacticalMap = {
 
 export default function TacticalMapDemoPage() {
   return (
-    <div style={{ width: "100vw", height: "100vh", margin: 0, overflow: "hidden" }}>
-      <TacticalMapEditor map={demoMap} width={window.innerWidth} height={window.innerHeight} />
-    </div>
+    <TacticalMapEditor
+      campaignId="demo-campaign"
+      initialMap={demoMap}
+      onSave={async () => {}}
+      saveLabel="Salvar Demo"
+    />
   );
 }

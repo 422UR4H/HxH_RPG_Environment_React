@@ -14,7 +14,6 @@ type Props = {
   mapDescription: string;
   onNameChange: (name: string) => void;
   onDescriptionChange: (desc: string) => void;
-  isDirty: boolean;
   onSave: () => void;
   isSaving: boolean;
   saveLabel: string;
@@ -45,7 +44,6 @@ export default function MapEditorToolbar({
   mapDescription,
   onNameChange,
   onDescriptionChange,
-  isDirty,
   onSave,
   isSaving,
   saveLabel,
@@ -106,7 +104,6 @@ export default function MapEditorToolbar({
         {saveError && <ErrorText>{saveError}</ErrorText>}
         <SaveButton
           type="button"
-          $dirty={isDirty}
           disabled={isSaving}
           onClick={onSave}
         >
@@ -223,19 +220,18 @@ const SaveArea = styled.div`
   border-top: 1px solid ${colors.borderInput};
 `;
 
-const SaveButton = styled.button<{ $dirty: boolean }>`
+const SaveButton = styled.button`
   width: 100%;
   padding: 10px;
   border-radius: 6px;
   border: none;
-  background: ${({ $dirty }) =>
-    $dirty ? colors.brandAccent : colors.submitDisabled};
+  background: ${colors.brandAccent};
   color: ${colors.textPrimary};
   font-family: ${fonts.sans};
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: filter 0.15s;
 
   &:disabled {
     opacity: 0.6;
