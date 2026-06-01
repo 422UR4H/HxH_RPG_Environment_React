@@ -114,7 +114,13 @@ export default function TacticalMapEditor({
 
     setIsSaving(true);
     try {
-      await onSave(mapToSave);
+      // bg.url may be a blob: URL (same-origin display workaround when R2 has
+      // no CORS headers). Replace with the R2 URL for persistence. r2Url is
+      // absent on the URL-input path, in which case url is already the final URL.
+      const finalMap = mapToSave.bg?.r2Url
+        ? { ...mapToSave, bg: { ...mapToSave.bg, url: mapToSave.bg.r2Url, r2Url: undefined } }
+        : mapToSave;
+      await onSave(finalMap);
       markClean();
       onSaveSuccess?.();
     } catch {

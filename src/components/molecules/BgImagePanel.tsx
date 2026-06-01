@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import imageCompression from "browser-image-compression";
 import { colors, fonts } from "../../styles/tokens";
@@ -28,13 +28,16 @@ export default function BgImagePanel({ bg, grid, mapId, onBgChange, onGridChange
   const [aspectLocked, setAspectLocked] = useState(true);
   type NumField = "x" | "y" | "scaleX" | "scaleY" | "rotation";
   const [drafts, setDrafts] = useState<Partial<Record<NumField, string>>>({});
+  // Tracks the blob URL created during file upload so we can revoke it on unmount.
+  const blobUrlRef = useRef<string | null>(null);
+  useEffect(() => () => { if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current); }, []);
 
-  const applyImage = (url: string, nw: number, nh: number) => {
+  const applyImage = (url: string, nw: number, nh: number, r2Url?: string) => {
     setNaturalSize({ w: nw, h: nh });
     const fit = computeCoverFit(nw, nh, grid);
     const newGrid = deriveGridFromImage(nw, nh, grid);
     onGridChange(newGrid);
-    onBgChange({ ...fit, url });
+    onBgChange({ ...fit, url, r2Url });
     setScaleXPct(100);
   };
 
@@ -61,14 +64,20 @@ export default function BgImagePanel({ bg, grid, mapId, onBgChange, onGridChange
       });
       const { uploadUrl, publicUrl } = await getPresignedUrl(token, mapId);
       await uploadToR2(uploadUrl, compressed);
+      // Use a blob URL for display: same-origin, no CORS headers required.
+      // The R2 public URL is stored in r2Url and only used when persisting
+      // to the server. Without CORS configured on the R2 bucket, Assets.load()
+      // would fail on the R2 URL because the browser blocks cross-origin fetch.
+      if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
       const blobUrl = URL.createObjectURL(compressed);
+      blobUrlRef.current = blobUrl;
       const img = new Image();
       img.onload = () => {
-        applyImage(publicUrl, img.naturalWidth, img.naturalHeight);
-        URL.revokeObjectURL(blobUrl);
+        applyImage(blobUrl, img.naturalWidth, img.naturalHeight, publicUrl);
       };
       img.onerror = () => {
         URL.revokeObjectURL(blobUrl);
+        blobUrlRef.current = null;
         setUploadError("Imagem carregada mas não foi possível processar. Tente novamente.");
       };
       img.src = blobUrl;
@@ -137,7 +146,7 @@ export default function BgImagePanel({ bg, grid, mapId, onBgChange, onGridChange
     const nw = naturalSize?.w ?? bg.width;
     const nh = naturalSize?.h ?? bg.height;
     const fit = computeCoverFit(nw, nh, grid);
-    onBgChange({ ...fit, url: bg.url });
+    onBgChange({ ...fit, url: bg.url, r2Url: bg.r2Url });
     setScaleXPct(100);
     setDrafts({});
   };

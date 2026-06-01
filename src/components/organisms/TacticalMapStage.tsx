@@ -156,9 +156,14 @@ function BgLayer({
       return;
     }
     let cancelled = false;
-    Assets.load(bg.url).then((t: Texture) => {
-      if (!cancelled) setTexture(t);
-    });
+    Assets.load(bg.url)
+      .then((t: Texture) => {
+        if (!cancelled) setTexture(t);
+      })
+      .catch(() => {
+        // Stale blob URL after reload, or CORS-blocked R2 URL: hide the sprite.
+        if (!cancelled) setTexture(null);
+      });
     return () => {
       cancelled = true;
     };
