@@ -14,7 +14,6 @@ const baseProps = {
   mapDescription: "",
   onNameChange: vi.fn(),
   onDescriptionChange: vi.fn(),
-  isDirty: false,
   onSave: vi.fn(),
   isSaving: false,
   saveLabel: "Criar Mapa",
