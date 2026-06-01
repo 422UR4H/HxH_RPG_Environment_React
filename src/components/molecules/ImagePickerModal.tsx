@@ -6,6 +6,7 @@ import type { CropperRef } from "react-advanced-cropper";
 import imageCompression from "browser-image-compression";
 import styled from "styled-components";
 import { colors } from "../../styles/tokens";
+import { IMAGE_PICKER_TIP } from '../../constants/uiStrings';
 
 export type ImageType = "avatar" | "cover";
 
@@ -91,7 +92,7 @@ export default function ImagePickerModal({
     <Overlay onClick={onClose}>
       <Modal onClick={(e) => e.stopPropagation()}>
         <ModalTitle>{type === "avatar" ? "Adicionar Avatar" : "Adicionar Capa"}</ModalTitle>
-        <Subtitle>Escolha <strong>uma</strong> forma de adicionar a imagem — upload ou link</Subtitle>
+        <Subtitle>{IMAGE_PICKER_TIP}</Subtitle>
 
         <ModeToggle>
           <ModeButton $active={mode === "upload"} onClick={() => handleModeClick("upload")}>
