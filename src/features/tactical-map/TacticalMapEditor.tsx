@@ -32,6 +32,7 @@ export default function TacticalMapEditor({
   const setGrid = store((s) => s.setGrid);
   const setName = store((s) => s.setName);
   const setDescription = store((s) => s.setDescription);
+  const bg = store((s) => s.map.bg);
   const setBg = store((s) => s.setBg);
   const setActiveTool = store((s) => s.setActiveTool);
   const markClean = store((s) => s.markClean);
@@ -108,7 +109,13 @@ export default function TacticalMapEditor({
     >
       <div ref={canvasRef} style={{ width: "100%", height: "100%" }}>
         {width > 0 && height > 0 && (
-          <TacticalMapStage map={map} width={width} height={height} />
+          <TacticalMapStage
+                  map={map}
+                  width={width}
+                  height={height}
+                  bgInteractive={activeTool === "bg"}
+                  onBgPositionChange={(x, y) => setBg(bg ? { ...bg, x, y } : null)}
+                />
         )}
       </div>
     </MapEditorTemplate>
