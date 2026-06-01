@@ -30,6 +30,7 @@ export default function CreateMapPage() {
     await mutateAsync({
       name: map.name.trim(),
       description: map.description?.trim() || undefined,
+      grid: map.grid,
     });
   };
 
