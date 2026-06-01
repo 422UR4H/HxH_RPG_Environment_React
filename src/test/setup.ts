@@ -2,6 +2,15 @@ import "@testing-library/jest-dom/vitest";
 import { afterAll, afterEach, beforeAll, beforeEach, vi } from "vitest";
 import { server } from "./server";
 
+// --- ResizeObserver mock -----------------------------------------------------
+// jsdom não implementa ResizeObserver. O mock abaixo retorna dimensões zero,
+// o que faz TacticalMapStage não renderizar (condição width > 0 && height > 0).
+global.ResizeObserver = class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+
 // --- window.matchMedia mock --------------------------------------------------
 // jsdom não implementa matchMedia. O mock abaixo sempre retorna matches: false,
 // colocando o layout no estado "desktop" (sem colapso de sidebars) nos testes.
