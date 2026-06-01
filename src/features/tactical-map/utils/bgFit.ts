@@ -4,7 +4,7 @@ export function computeCoverFit(
   naturalWidth: number,
   naturalHeight: number,
   grid: GridShape,
-): BgImage {
+): NonNullable<BgImage> {
   const gridW = grid.cols * grid.cellSize;
   const gridH = grid.rows * grid.cellSize;
 
