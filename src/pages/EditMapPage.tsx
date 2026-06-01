@@ -11,7 +11,7 @@ export default function EditMapPage() {
     campaignId: string;
     mapId: string;
   }>();
-  const token = useToken();
+  const { token } = useToken();
 
   const { data: map, isLoading } = useMap(token, mapId);
   const { mutateAsync } = useUpdateMap(token, campaignId, mapId);
