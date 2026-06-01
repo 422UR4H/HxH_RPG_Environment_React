@@ -113,7 +113,7 @@ function ViewportInner({
       screenHeight={height}
       worldWidth={map.grid.cols * map.grid.cellSize * 2}
       worldHeight={map.grid.rows * map.grid.cellSize * 2}
-      events={app?.renderer.events}
+      events={app?.renderer?.events}
     >
       <BgLayer
         bg={map.bg}
