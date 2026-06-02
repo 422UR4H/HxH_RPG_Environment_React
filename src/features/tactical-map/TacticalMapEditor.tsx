@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import avatarPlaceholderUrl from "../../assets/placeholder/avatar.png";
 import MapEditorTemplate from "../../components/templates/MapEditorTemplate";
@@ -117,12 +117,27 @@ export default function TacticalMapEditor({
     setPlacingNpcData(npc);
   };
 
+  // Always reset placing state — called by TacticalMapStage on any failed
+  // placement (outside canvas, pointercancel, occupied slot).
+  const handleNpcPlacementCancel = useCallback(() => {
+    setPlacingNpcId(null);
+    setPlacingNpcData(null);
+  }, []);
+
   const handleNpcPlaced = (slot: SlotCoord) => {
-    if (!placingNpcData) return;
+    if (!placingNpcData) {
+      setPlacingNpcId(null);
+      return;
+    }
     const occupied = pieces.some(
       (p) => JSON.stringify(p.coord.slot) === JSON.stringify(slot),
     );
-    if (occupied) return;
+    if (occupied) {
+      // Slot taken — cancel silently so the user can try another slot
+      setPlacingNpcId(null);
+      setPlacingNpcData(null);
+      return;
+    }
     placePiece({
       id: crypto.randomUUID(),
       characterId: placingNpcData.uuid,
@@ -132,6 +147,14 @@ export default function TacticalMapEditor({
     setPlacingNpcId(null);
     setPlacingNpcData(null);
   };
+
+  // Stable callback: prevents PiecesLayer's useEffect from re-running on every
+  // TacticalMapEditor render (which would tear down and re-register all stage
+  // event listeners mid-interaction).
+  const handlePieceSelect = useCallback(
+    (id: string) => setSelection({ kind: "piece", id }),
+    [setSelection],
+  );
 
   const handlePieceDragToRoster = (pieceId: string) => {
     removePiece(pieceId);
@@ -260,8 +283,9 @@ export default function TacticalMapEditor({
             npcMap={npcMap}
             placingNpcId={placingNpcId}
             onNpcPlaced={handleNpcPlaced}
+            onNpcPlacementCancel={handleNpcPlacementCancel}
             onBgPositionChange={(x, y) => setBg(bg ? { ...bg, x, y } : null)}
-            onPieceSelect={(id) => setSelection({ kind: "piece", id })}
+            onPieceSelect={handlePieceSelect}
             onPieceMove={movePiece}
             onPieceDragToRoster={handlePieceDragToRoster}
             onStageDeselect={handleStageDeselect}
