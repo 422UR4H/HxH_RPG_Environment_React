@@ -33,7 +33,7 @@ export const pieceFixture: Piece = {
   visible: true,
 };
 
-export const mapWithPieces = (pieces: Piece[]) => ({
+export const mapWithPieces = (pieces: Piece[]): TacticalMap => ({
   ...mapFixture,
   pieces,
 });
