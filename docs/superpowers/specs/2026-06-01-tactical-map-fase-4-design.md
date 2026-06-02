@@ -143,12 +143,26 @@ z > 0:
 
 ### 5.3 Seleção
 
-Anel branco ao redor do token:
+A peça selecionada **cresce** — como se estivesse suspensa acima do board. Escala aplicada ao container inteiro (`pixiContainer.scale`), não ao raio do círculo — isso mantém a sombra e o frame escalando juntos sem recalcular geometrias individuais.
 
 ```
-strokeCircle(center, tokenRadius + 5, { color: 0xffffff, width: 2, alpha: 0.9 })
-outerGlow(center, tokenRadius + 8, { color: 0xffffff, alpha: 0.2 })
+selected = false:
+  containerScale = 1.0
+  shadowRadius   = tokenRadius + 2
+  shadowAlpha    = 0.50
+  shadowBlur     = 4
+
+selected = true:
+  containerScale = 1.35           ← peça fica ~35% maior
+  shadowRadius   = tokenRadius + 8 ← sombra cresce mais (elevação maior)
+  shadowAlpha    = 0.30           ← mais diluída nas bordas (luz mais distante)
+  shadowBlur     = 10             ← mais suave/difusa
+
+  + anel branco externo:
+  strokeCircle(center, tokenRadius + 6, { color: 0xffffff, width: 2, alpha: 0.85 })
 ```
+
+A sombra mais larga e difusa quando selecionado reforça a ilusão de que a peça está "levitando" acima das demais. Implementado ajustando apenas valores de `Graphics.draw` no re-render — sem filtros externos, sem risco de bug de performance.
 
 ### 5.4 Carregamento da avatarUrl
 
@@ -198,13 +212,18 @@ Layout:
 │ [avatar 32px] Nome do NPC       │
 │              NPC · no campo     │
 ├─────────────────────────────────┤
-│ ALTURA (Z)                      │
-│ ──────────────●──── [2.0m]     │  ← range 0–10, step 0.5
+│ ▶ mais configurações            │  ← collapsible, fechado por padrão
+│   ┌─────────────────────────┐   │
+│   │ ALTURA (Z)              │   │  ← só aparece quando expandido
+│   │ ────────●──── [2.0m]   │   │
+│   └─────────────────────────┘   │
 ├─────────────────────────────────┤
 │ [✕ Remover do mapa]             │
 │  ou arraste para a lista        │
 └─────────────────────────────────┘
 ```
+
+O collapsible "mais configurações" usa `<details>`/`<summary>` nativo (acessível, zero JS extra) ou um `useState` com animação de altura. Preferir `<details>` pela simplicidade. Fechado por padrão — a altura Z é raramente ajustada. Novos controles menos usados (visibilidade, label, cor do token no futuro) entram neste mesmo grupo.
 
 ### 6.3 `MapEditorToolbar` — aba Peças
 
@@ -232,7 +251,7 @@ Layout:
 )}
 ```
 
-O `PiecePropertyPanel` aparece acima do roster quando há seleção, e some com auto-deselect (sem botão "voltar").
+O `PiecePropertyPanel` aparece acima do roster quando há seleção, e some com auto-deselect — sem botão "voltar", sem contador de peças no rodapé.
 
 ### 6.4 Estado local no `TacticalMapEditor`
 
