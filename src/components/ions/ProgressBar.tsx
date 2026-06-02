@@ -27,8 +27,8 @@ export default function ProgressBar({
           {label}: {current}/{max}
         </Label>
       )} */}
-      <BarBackground backgroundColor={backgroundColor}>
-        <BarFill percentage={percentage} color={color}>
+      <BarBackground $backgroundColor={backgroundColor}>
+        <BarFill $percentage={percentage} $color={color}>
           <ValuesInside>
             {current}/{max}
           </ValuesInside>
@@ -52,21 +52,21 @@ const ProgressBarContainer = styled.div`
 // `;
 
 const BarBackground = styled.div<{
-  backgroundColor: string;
+  $backgroundColor: string;
 }>`
   width: 100%;
-  background-color: ${({ backgroundColor }) => backgroundColor};
+  background-color: ${({ $backgroundColor }) => $backgroundColor};
   /* border-radius: 4px; */
   overflow: hidden;
   position: relative;
 `;
 
 const BarFill = styled.div<{
-  percentage: number;
-  color: string;
+  $percentage: number;
+  $color: string;
 }>`
-  width: ${({ percentage }) => percentage}%;
-  background-color: ${({ color }) => color};
+  width: ${({ $percentage }) => $percentage}%;
+  background-color: ${({ $color }) => $color};
   transition: width 0.3s ease;
   position: relative;
 
@@ -75,8 +75,8 @@ const BarFill = styled.div<{
   justify-content: flex-end;
   padding-right: 8px;
 
-  /* ${({ percentage }) =>
-    percentage < 20 && `animation: pulse 1.5s infinite;`} */
+  /* ${({ $percentage }) =>
+    $percentage < 20 && `animation: pulse 1.5s infinite;`} */
 `;
 
 const ValuesInside = styled.span`
