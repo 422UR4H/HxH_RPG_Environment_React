@@ -3,7 +3,7 @@ import type { MutableRefObject } from "react";
 import { Application, extend, useApplication } from "@pixi/react";
 import { Assets, BlurFilter, Container, Graphics, ImageSource, Sprite, Text, Texture } from "pixi.js";
 import type { EventSystem, FederatedPointerEvent } from "pixi.js";
-import type { Graphics as PixiGraphics, Sprite as PixiSprite } from "pixi.js";
+import type { Graphics as PixiGraphics } from "pixi.js";
 import gungiFrameUrl from "../../assets/icons/gungi.svg";
 import avatarPlaceholderUrl from "../../assets/placeholder/avatar.png";
 import { Viewport } from "pixi-viewport";
@@ -49,8 +49,6 @@ type Props = {
   onPieceMove?: (pieceId: string, slot: SlotCoord) => void;
   onPieceDragToRoster?: (pieceId: string) => void;
   onNpcPlaced?: (slot: SlotCoord) => void;
-  // Fired whenever NPC placement is cancelled (outside canvas, pointercancel,
-  // or occupied slot). Caller must reset placingNpcId on this callback.
   onNpcPlacementCancel?: () => void;
   onStageDeselect?: () => void;
 };
@@ -147,27 +145,21 @@ function ViewportInner({
 
   // ─── Viewport pan via DOM events ─────────────────────────────────────────
   //
-  // Why canvas.addEventListener instead of stage.on("pointerdown"):
-  //   Pixi stage events require a hit-testable object under the pointer. On
-  //   empty canvas areas pixi-viewport's InputManager can swallow the event
-  //   before it bubbles to the stage listener. canvas.addEventListener fires
-  //   unconditionally for every press on the canvas.
+  // canvas.addEventListener fires unconditionally; stage.on("pointerdown")
+  // misses empty areas when pixi-viewport swallows the hit-test.
   //
-  // Piece-drag priority via requestAnimationFrame:
-  //   Pixi's canvas listener (registered at app init) fires BEFORE ours
-  //   (registered in this effect, after mount). When a piece is clicked, its
-  //   Pixi onPointerDown sets pieceDragActiveRef.current = true synchronously,
-  //   before our requestAnimationFrame callback runs. The RAF then skips pan.
-  //
-  // bgInteractive=true: BgLayer owns dragging in this mode — skip viewport pan.
-  // placingNpcId set: NPC placement mode — skip viewport pan.
+  // pieceDragActiveRef: piece onPointerDown sets this synchronously BEFORE our
+  // requestAnimationFrame callback runs (Pixi's canvas listener fires first,
+  // registered at app-init time). RAF checks the flag and skips pan start.
   const pieceDragActiveRef = useRef(false);
   const isPanningRef = useRef(false);
   const panStartClientRef = useRef({ x: 0, y: 0 });
   const panStartVpRef = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
-    const canvas = app?.canvas;
+    // app?.canvas getter throws when Pixi hasn't finished init (StrictMode
+    // double-invoke). Guard via renderer presence.
+    const canvas = app?.renderer ? app.canvas : null;
     if (!canvas) return;
 
     const onCanvasDown = (e: PointerEvent) => {
@@ -212,22 +204,12 @@ function ViewportInner({
   }, [app, placingNpcId, bgInteractive]);
 
   // ─── NPC placement ────────────────────────────────────────────────────────
-  //
-  // The gesture starts on an HTML sidebar card that disappears from the DOM
-  // when placingNpcId is set (React re-render). Some browsers fire pointercancel
-  // when the source element is unmounted mid-gesture. We handle both events and
-  // ALWAYS reset placingNpcId (via onNpcPlacementCancel or via onNpcPlaced which
-  // the caller must use to reset state).
-  //
-  // Hover highlight uses window.pointermove (DOM) so it works even when the
-  // cursor is over empty canvas with no hit-testable Pixi object below it.
   useEffect(() => {
     if (!placingNpcId) return;
-    const canvas = app?.canvas;
+    const canvas = app?.renderer ? app.canvas : null;
     if (!canvas) return;
 
     const handlePointerUp = (e: PointerEvent) => {
-      // pointercancel = drag interrupted (DOM removal, system) → always cancel
       if (e.type === "pointercancel") {
         onNpcPlacementCancel?.();
         return;
@@ -451,12 +433,13 @@ function GridLayer({ grid, vpScale }: { grid: GridShape; vpScale: number }) {
   return <pixiGraphics draw={draw} />;
 }
 
+// No containerRef: piece position is driven by React state (dragWorldPos) to
+// avoid @pixi/react reconciler overwriting imperative position.set() calls.
 type PieceLocalDragState = {
   pieceId: string;
   startScreen: { x: number; y: number };
   isDragging: boolean;
   currentSlot: SlotCoord | null;
-  containerRef: React.MutableRefObject<Container | null>;
 } | null;
 
 function PiecesLayer({
@@ -478,28 +461,39 @@ function PiecesLayer({
   const localDrag = useRef<PieceLocalDragState>(null);
   const [draggingPieceId, setDraggingPieceId] = useState<string | null>(null);
   const [hoverSlot, setHoverSlot] = useState<SlotCoord | null>(null);
+  // World-space position of the piece being dragged — updated on every
+  // pointermove and passed down as props so the reconciler positions it
+  // correctly (imperative position.set() gets overwritten by reconciler).
+  const [dragWorldPos, setDragWorldPos] = useState<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     const stage = app?.stage;
     if (!stage || !piecesInteractive) return;
+    // Guard getter: canvas getter throws if Pixi hasn't finished init yet.
+    const canvas = app?.renderer ? app.canvas : null;
 
-    const handleMove = (e: FederatedPointerEvent) => {
+    // window.addEventListener fires even over empty canvas areas where Pixi
+    // stage events would be swallowed (no hit-testable object under cursor).
+    const handleMoveDOM = (e: PointerEvent) => {
       const drag = localDrag.current;
       if (!drag) return;
-      const dx = e.global.x - drag.startScreen.x;
-      const dy = e.global.y - drag.startScreen.y;
+      const rect = canvas?.getBoundingClientRect();
+      if (!rect) return;
+      const stageX = e.clientX - rect.left;
+      const stageY = e.clientY - rect.top;
+      const dx = stageX - drag.startScreen.x;
+      const dy = stageY - drag.startScreen.y;
       if (!drag.isDragging && Math.hypot(dx, dy) > 4) {
         drag.isDragging = true;
         setDraggingPieceId(drag.pieceId);
       }
       if (!drag.isDragging) return;
       const vp = vpRef.current;
-      if (vp && drag.containerRef.current) {
-        const world = vp.toWorld(e.global.x, e.global.y);
-        drag.containerRef.current.position.set(world.x, world.y - 8);
-        drag.currentSlot = worldToSlot(world, map.grid);
-        setHoverSlot(drag.currentSlot);
-      }
+      if (!vp) return;
+      const world = vp.toWorld(stageX, stageY);
+      setDragWorldPos({ x: world.x, y: world.y });
+      drag.currentSlot = worldToSlot(world, map.grid);
+      setHoverSlot(drag.currentSlot);
     };
 
     const handleUp = (e: FederatedPointerEvent) => {
@@ -507,12 +501,12 @@ function PiecesLayer({
       if (!drag) return;
       localDrag.current = null;
       setDraggingPieceId(null);
+      setDragWorldPos(null);
       setHoverSlot(null);
       if (!drag.isDragging) {
         onPieceSelect?.(drag.pieceId);
         return;
       }
-      // app.screen gives CSS-pixel dimensions, matching e.global stage coords.
       const { width: cw, height: ch } = app.screen;
       const overSidebar =
         e.global.x < 0 || e.global.x > cw || e.global.y < 0 || e.global.y > ch;
@@ -528,30 +522,23 @@ function PiecesLayer({
       if (!occupied) onPieceMove?.(drag.pieceId, slot);
     };
 
-    // Fires for ALL releases anywhere on the page.
-    // DOM bubble order: canvas element listeners fire first, then window.
-    // If stage.on("pointerup") already handled the release it clears
-    // localDrag → this exits immediately (no double-handling).
-    // If stage.on("pointerup") missed the event (Pixi v8 can miss pointerup on
-    // the stage when the release is exactly on a child container boundary),
-    // this handler acts as a reliable fallback for BOTH clicks and drags.
+    // Fallback: stage.on("pointerup") can miss events on child container
+    // boundaries. Window handler acts as reliable safety net for both clicks
+    // (selection) and drags. The if(!drag) guard prevents double-handling.
     const handleWindowUp = (e: PointerEvent) => {
       const drag = localDrag.current;
-      if (!drag) return; // stage handler already cleared it
+      if (!drag) return;
       localDrag.current = null;
       setDraggingPieceId(null);
+      setDragWorldPos(null);
       setHoverSlot(null);
       if (e.type === "pointercancel") return;
-
-      const canvas = app?.canvas;
       const rect = canvas?.getBoundingClientRect();
       const overCanvas =
         !!rect &&
         e.clientX >= rect.left && e.clientX <= rect.right &&
         e.clientY >= rect.top  && e.clientY <= rect.bottom;
-
       if (!drag.isDragging) {
-        // Quick click — fire select as fallback if released over canvas
         if (overCanvas) onPieceSelect?.(drag.pieceId);
         return;
       }
@@ -569,16 +556,16 @@ function PiecesLayer({
       }
     };
 
-    stage.on("pointermove", handleMove);
     stage.on("pointerup", handleUp);
     stage.on("pointerupoutside", handleUp);
+    window.addEventListener("pointermove", handleMoveDOM);
     window.addEventListener("pointerup", handleWindowUp);
     window.addEventListener("pointercancel", handleWindowUp);
 
     return () => {
-      stage.off("pointermove", handleMove);
       stage.off("pointerup", handleUp);
       stage.off("pointerupoutside", handleUp);
+      window.removeEventListener("pointermove", handleMoveDOM);
       window.removeEventListener("pointerup", handleWindowUp);
       window.removeEventListener("pointercancel", handleWindowUp);
     };
@@ -621,18 +608,15 @@ function PiecesLayer({
           npc={npcMap?.get(p.characterId)}
           isSelected={selection?.kind === "piece" && selection.id === p.id}
           isDragging={draggingPieceId === p.id}
-          localDrag={localDrag}
+          dragWorldPos={draggingPieceId === p.id ? dragWorldPos : null}
           onPointerDown={(_piece, e) => {
             if (!piecesInteractive || localDrag.current) return;
-            // Tell the pan effect's RAF that this press belongs to a piece.
             pieceDragActiveRef.current = true;
-            const containerRef: React.MutableRefObject<Container | null> = { current: null };
             localDrag.current = {
               pieceId: p.id,
               startScreen: { x: e.global.x, y: e.global.y },
               isDragging: false,
               currentSlot: null,
-              containerRef,
             };
             e.stopPropagation();
           }}
@@ -648,16 +632,21 @@ type PieceSpriteProps = {
   npc?: CharacterPrivateSummary;
   isSelected: boolean;
   isDragging: boolean;
-  localDrag: React.MutableRefObject<PieceLocalDragState>;
+  dragWorldPos?: { x: number; y: number } | null;
   onPointerDown: (piece: Piece, e: FederatedPointerEvent) => void;
 };
 
-function PieceSprite({ piece, grid, npc, isSelected, isDragging, localDrag, onPointerDown }: PieceSpriteProps) {
+function PieceSprite({ piece, grid, npc, isSelected, isDragging, dragWorldPos, onPointerDown }: PieceSpriteProps) {
   const center = useMemo(() => slotToWorld(piece.coord.slot, grid), [piece.coord.slot, grid]);
   const tokenRadius = grid.cellSize * 0.45;
   const avatarRadius = tokenRadius * 0.7;
   const z = piece.coord.z;
   const zOffsetPx = z * 10;
+
+  // Piece position: use dragWorldPos during drag so React reconciler is always
+  // in control — imperative position.set() gets overwritten on each re-render.
+  const posX = dragWorldPos?.x ?? center.x;
+  const posY = dragWorldPos?.y ?? center.y;
 
   const [avatarTexture, setAvatarTexture] = useState<Texture | null>(null);
   useEffect(() => {
@@ -678,14 +667,12 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, localDrag, onPo
     const run = async () => {
       const externalUrl = npc?.avatarUrl ?? null;
       if (externalUrl) {
-        // External URL (e.g. R2): must use crossOrigin="anonymous" so the image
-        // is not "tainted". If R2 lacks CORS headers the load fails and we fall
-        // back to the same-origin placeholder which is always safe for WebGL.
+        // R2 requires crossOrigin="anonymous" to avoid WebGL taint.
+        // If R2 lacks CORS headers the load fails → fall back to placeholder.
         const img = await loadImg(externalUrl, true);
         if (cancelled) return;
         if (img) { setAvatarTexture(makeTexture(img)); return; }
       }
-      // Same-origin bundled placeholder — no crossOrigin needed.
       const fallback = await loadImg(avatarPlaceholderUrl, false);
       if (!cancelled) setAvatarTexture(fallback ? makeTexture(fallback) : null);
     };
@@ -728,7 +715,7 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, localDrag, onPo
     [avatarRadius, zOffsetPx],
   );
 
-  const avatarSpriteRef = useRef<PixiSprite | null>(null);
+  const avatarSpriteRef = useRef<import("pixi.js").Sprite | null>(null);
   const maskRef = useRef<PixiGraphics | null>(null);
   const drawMask = useCallback(
     (g: PixiGraphics) => {
@@ -783,19 +770,11 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, localDrag, onPo
     [isSelected, tokenRadius, zOffsetPx],
   );
 
-  const containerRef = useRef<Container | null>(null);
-  useEffect(() => {
-    if (isDragging && localDrag.current?.pieceId === piece.id) {
-      localDrag.current.containerRef.current = containerRef.current;
-    }
-  }, [isDragging, piece.id, localDrag]);
-
   return (
     <pixiContainer
-      ref={containerRef}
       label={`piece-${piece.id}`}
-      x={center.x}
-      y={isDragging ? center.y - 8 : center.y}
+      x={posX}
+      y={isDragging ? posY - 8 : posY}
       scale={isDragging ? DRAG_LIFT_SCALE : 1.0}
       eventMode="static"
       cursor="pointer"
