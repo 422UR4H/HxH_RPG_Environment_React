@@ -5,6 +5,7 @@ import { Assets, BlurFilter, Container, Graphics, ImageSource, Sprite, Text, Tex
 import type { EventSystem, FederatedPointerEvent } from "pixi.js";
 import type { Graphics as PixiGraphics, Sprite as PixiSprite } from "pixi.js";
 import gungiFrameUrl from "../../assets/icons/gungi.svg";
+import avatarPlaceholderUrl from "../../assets/placeholder/avatar.png";
 import { Viewport } from "pixi-viewport";
 import type { TacticalMap, GridShape, Piece, SlotCoord } from "../../types/tacticalMap";
 import type { CharacterPrivateSummary } from "../../types/characterSheet";
@@ -418,9 +419,10 @@ function PiecesLayer({
         onPieceSelect?.(drag.pieceId);
         return;
       }
-      // Detect if pointer ended outside the canvas (drag to roster)
-      const target = (e.nativeEvent as PointerEvent).target as Node | null;
-      const isOverSidebar = target && !app.canvas.contains(target);
+      // Detect if pointer ended outside the canvas (drag to roster).
+      // e.global is in canvas-relative coords: negative or beyond canvas dims = outside.
+      const { width: cw, height: ch } = app.canvas;
+      const isOverSidebar = e.global.x < 0 || e.global.x > cw || e.global.y < 0 || e.global.y > ch;
       if (isOverSidebar) {
         onPieceDragToRoster?.(drag.pieceId);
         return;
@@ -513,21 +515,24 @@ type PieceSpriteProps = {
 function PieceSprite({ piece, grid, npc, isSelected, isDragging, localDrag, onPointerDown }: PieceSpriteProps) {
   const center = useMemo(() => slotToWorld(piece.coord.slot, grid), [piece.coord.slot, grid]);
   const tokenRadius = grid.cellSize * 0.45;
+  // Avatar occupies 70% of token radius (same ratio as CharacterSheetHeader's Avatar inside AvatarContainer)
+  const avatarRadius = tokenRadius * 0.7;
   const z = piece.coord.z;
   const zOffsetPx = z * 10;
 
-  // Async avatar texture (same pattern as BgLayer)
+  // Always load avatar — falls back to avatarPlaceholder (same image as in CharacterSheetHeader).
+  // This ensures the token interior matches the sidebar card even when the NPC has no custom avatar.
   const [avatarTexture, setAvatarTexture] = useState<Texture | null>(null);
   useEffect(() => {
-    if (!npc?.avatarUrl) { setAvatarTexture(null); return; }
+    const url = npc?.avatarUrl ?? avatarPlaceholderUrl;
     let cancelled = false;
-    if (npc.avatarUrl.startsWith("blob:")) {
+    if (url.startsWith("blob:")) {
       const img = new Image();
       img.onload = () => { if (!cancelled) setAvatarTexture(new Texture({ source: new ImageSource({ resource: img }) })); };
       img.onerror = () => { if (!cancelled) setAvatarTexture(null); };
-      img.src = npc.avatarUrl;
+      img.src = url;
     } else {
-      Assets.load(npc.avatarUrl).then((t: Texture) => { if (!cancelled) setAvatarTexture(t); }).catch(() => { if (!cancelled) setAvatarTexture(null); });
+      Assets.load(url).then((t: Texture) => { if (!cancelled) setAvatarTexture(t); }).catch(() => { if (!cancelled) setAvatarTexture(null); });
     }
     return () => { cancelled = true; };
   }, [npc?.avatarUrl]);
@@ -539,10 +544,6 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, localDrag, onPo
     Assets.load(gungiFrameUrl).then((t: Texture) => { if (!cancelled) setFrameTexture(t); }).catch(() => { if (!cancelled) setFrameTexture(null); });
     return () => { cancelled = true; };
   }, []);
-
-  // Neutral dark token base — no random color that could look like a red emblem
-  const fallbackColor = 0x2d2d3a;
-  const initial = npc?.nickName?.[0]?.toUpperCase() ?? "?";
 
   // Shadow values
   const shadowRadius = isDragging ? tokenRadius + 6 : z > 0 ? tokenRadius + 2 + z * 2 : tokenRadius + 2;
@@ -560,17 +561,18 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, localDrag, onPo
     [shadowRadius, shadowAlpha],
   );
 
+  // Neutral dark base shown only while avatar texture is still loading
   const drawFallback = useCallback(
     (g: PixiGraphics) => {
       g.clear();
-      g.setFillStyle({ color: fallbackColor });
-      g.circle(0, -zOffsetPx, tokenRadius);
+      g.setFillStyle({ color: 0x2d2d3a });
+      g.circle(0, -zOffsetPx, avatarRadius);
       g.fill();
     },
-    [fallbackColor, tokenRadius, zOffsetPx],
+    [avatarRadius, zOffsetPx],
   );
 
-  // Avatar circular mask
+  // Circular mask for avatar sprite (clipped to avatarRadius, not tokenRadius)
   const avatarSpriteRef = useRef<PixiSprite | null>(null);
   const maskRef = useRef<PixiGraphics | null>(null);
   const drawMask = useCallback(
@@ -578,22 +580,41 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, localDrag, onPo
       maskRef.current = g;
       g.clear();
       g.setFillStyle({ color: 0xffffff });
-      g.circle(0, -zOffsetPx, tokenRadius);
+      g.circle(0, -zOffsetPx, avatarRadius);
       g.fill();
       if (avatarSpriteRef.current) avatarSpriteRef.current.mask = g;
     },
-    [tokenRadius, zOffsetPx],
+    [avatarRadius, zOffsetPx],
   );
 
-  // Selection ring
+  // Inset relief — replicates CharacterSheetHeader's AvatarRelief box-shadow effect.
+  // Dark ellipse from top + faint light from bottom = 3D coin impression.
+  // Rendered unmasked; the ~4 px blur bleed is hidden by the gungi frame ring above it.
+  const reliefBlur = useMemo(() => new BlurFilter({ strength: Math.max(2, avatarRadius * 0.18) }), [avatarRadius]);
+  const drawRelief = useCallback(
+    (g: PixiGraphics) => {
+      g.clear();
+      const r = avatarRadius, cy = -zOffsetPx;
+      g.setFillStyle({ color: 0x000000, alpha: 0.52 });
+      g.ellipse(0, cy - r * 0.22, r * 0.95, r * 0.58);
+      g.fill();
+      g.setFillStyle({ color: 0xffffff, alpha: 0.10 });
+      g.ellipse(0, cy + r * 0.32, r * 0.78, r * 0.36);
+      g.fill();
+    },
+    [avatarRadius, zOffsetPx],
+  );
+
+  // Selection ring — bright white stroke + cyan outer glow so it's unmissable
+  const selectionGlow = useMemo(() => new BlurFilter({ strength: 8 }), []);
   const drawSelection = useCallback(
     (g: PixiGraphics) => {
       g.clear();
       if (!isSelected) return;
-      g.setStrokeStyle({ color: 0xffffff, width: 2, alpha: 0.9 });
-      g.circle(0, -zOffsetPx, tokenRadius + 5);
+      g.setStrokeStyle({ color: 0xffffff, width: 3.5, alpha: 1.0 });
+      g.circle(0, -zOffsetPx, tokenRadius + 4);
       g.stroke();
-      g.setStrokeStyle({ color: 0xffffff, width: 3, alpha: 0.2 });
+      g.setStrokeStyle({ color: 0x88ccff, width: 2.5, alpha: 0.65 });
       g.circle(0, -zOffsetPx, tokenRadius + 8);
       g.stroke();
     },
@@ -627,34 +648,7 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, localDrag, onPo
         scale={isDragging ? 1 / DRAG_LIFT_SCALE : 1}
       />
 
-      {avatarTexture ? (
-        <>
-          <pixiGraphics draw={drawMask} />
-          <pixiSprite
-            ref={(s) => {
-              avatarSpriteRef.current = s;
-              if (s && maskRef.current) s.mask = maskRef.current;
-            }}
-            texture={avatarTexture}
-            x={-tokenRadius}
-            y={-zOffsetPx - tokenRadius}
-            width={tokenRadius * 2}
-            height={tokenRadius * 2}
-          />
-        </>
-      ) : (
-        <>
-          <pixiGraphics draw={drawFallback} />
-          <pixiText
-            text={initial}
-            x={0}
-            y={-zOffsetPx}
-            anchor={{ x: 0.5, y: 0.5 }}
-            style={{ fontSize: Math.round(tokenRadius * 0.85), fill: 0xffffff, fontWeight: "bold" }}
-          />
-        </>
-      )}
-
+      {/* Gungi frame BEHIND avatar — same stacking order as CharacterSheetHeader (frame z:3, avatar z:4) */}
       {frameTexture && (
         <pixiSprite
           texture={frameTexture}
@@ -665,7 +659,31 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, localDrag, onPo
         />
       )}
 
-      <pixiGraphics draw={drawSelection} />
+      {/* Avatar (or dark placeholder while loading) ON TOP of gungi frame */}
+      {avatarTexture ? (
+        <>
+          <pixiGraphics draw={drawMask} />
+          <pixiSprite
+            ref={(s) => {
+              avatarSpriteRef.current = s;
+              if (s && maskRef.current) s.mask = maskRef.current;
+            }}
+            texture={avatarTexture}
+            x={-avatarRadius}
+            y={-zOffsetPx - avatarRadius}
+            width={avatarRadius * 2}
+            height={avatarRadius * 2}
+          />
+        </>
+      ) : (
+        <pixiGraphics draw={drawFallback} />
+      )}
+
+      {/* Inset 3D relief — dark top shadow + faint bottom highlight */}
+      <pixiGraphics draw={drawRelief} filters={[reliefBlur]} />
+
+      {/* Selection ring with glow — renders last so it's always on top */}
+      <pixiGraphics draw={drawSelection} filters={[selectionGlow]} />
 
       {z > 0 && (
         <pixiText
