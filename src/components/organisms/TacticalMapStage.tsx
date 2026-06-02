@@ -9,7 +9,6 @@ import type { TacticalMap, GridShape, Piece, SlotCoord } from "../../types/tacti
 import type { CharacterPrivateSummary } from "../../types/characterSheet";
 import type { Selection } from "../../features/tactical-map/store/editorStore";
 import { slotToWorld, worldToSlot } from "../../features/tactical-map/utils/coords";
-import gungiFrameUrl from "../../assets/icons/gungi.svg";
 
 function npcColor(id: string): number {
   let hash = 0;
@@ -165,6 +164,30 @@ function ViewportInner({
     });
   }, [clampToGrid, map.grid.cols, map.grid.cellSize, map.grid.rows]);
 
+  // When placing an NPC, pause viewport panning so the canvas doesn't drag
+  // while the user positions the cursor. Listen for pointerup (not pointerdown)
+  // so that both "click on canvas" and "drag from sidebar → release on canvas"
+  // workflows trigger placement.
+  useEffect(() => {
+    const vp = vpRef.current;
+    if (!vp || !placingNpcId) return;
+
+    vp.plugins.pause("drag");
+
+    const handleUp = (e: FederatedPointerEvent) => {
+      if (!onNpcPlaced) return;
+      const world = vp.toWorld(e.global.x, e.global.y);
+      onNpcPlaced(worldToSlot(world, map.grid));
+    };
+
+    vp.on("pointerup", handleUp);
+
+    return () => {
+      vp.off("pointerup", handleUp);
+      vp.plugins.resume("drag");
+    };
+  }, [placingNpcId, onNpcPlaced, map.grid]);
+
   // app.renderer is undefined until PixiJS async init completes. Passing
   // undefined as events to the Viewport constructor crashes in addListeners()
   // when it tries to access events.domElement. Guard here; @pixi/react will
@@ -181,13 +204,6 @@ function ViewportInner({
       worldHeight={map.grid.rows * map.grid.cellSize * 2}
       events={events}
       eventMode={placingNpcId ? "static" : "passive"}
-      onPointerDown={(e: FederatedPointerEvent) => {
-        if (!placingNpcId || !onNpcPlaced) return;
-        const vp = vpRef.current;
-        if (!vp) return;
-        const world = vp.toWorld(e.global.x, e.global.y);
-        onNpcPlaced(worldToSlot(world, map.grid));
-      }}
     >
       <BgLayer
         bg={map.bg}
@@ -513,7 +529,7 @@ type PieceSpriteProps = {
 
 function PieceSprite({ piece, grid, npc, isSelected, isDragging, localDrag, onPointerDown }: PieceSpriteProps) {
   const center = useMemo(() => slotToWorld(piece.coord.slot, grid), [piece.coord.slot, grid]);
-  const tokenRadius = grid.cellSize / 3;
+  const tokenRadius = grid.cellSize * 0.45;
   const z = piece.coord.z;
   const zOffsetPx = z * 10;
 
@@ -532,14 +548,6 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, localDrag, onPo
     }
     return () => { cancelled = true; };
   }, [npc?.avatarUrl]);
-
-  // Gungi frame texture
-  const [frameTexture, setFrameTexture] = useState<Texture | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-    Assets.load(gungiFrameUrl).then((t: Texture) => { if (!cancelled) setFrameTexture(t); }).catch(() => { if (!cancelled) setFrameTexture(null); });
-    return () => { cancelled = true; };
-  }, []);
 
   const fallbackColor = useMemo(() => npcColor(piece.id), [piece.id]);
   const initial = npc?.nickName?.[0]?.toUpperCase() ?? "?";
@@ -653,16 +661,6 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, localDrag, onPo
             style={{ fontSize: Math.round(tokenRadius * 0.85), fill: 0xffffff, fontWeight: "bold" }}
           />
         </>
-      )}
-
-      {frameTexture && (
-        <pixiSprite
-          texture={frameTexture}
-          x={-tokenRadius}
-          y={-zOffsetPx - tokenRadius}
-          width={tokenRadius * 2}
-          height={tokenRadius * 2}
-        />
       )}
 
       <pixiGraphics draw={drawSelection} />
