@@ -655,25 +655,46 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, dragWorldPos, o
     const makeTexture = (img: HTMLImageElement) =>
       new Texture({ source: new ImageSource({ resource: img }) });
 
-    const loadImg = (src: string, useCors: boolean) =>
+    const loadFromBlobUrl = (blobUrl: string) =>
       new Promise<HTMLImageElement | null>((resolve) => {
         const img = new Image();
-        if (useCors) img.crossOrigin = "anonymous";
         img.onload = () => resolve(img);
         img.onerror = () => resolve(null);
-        img.src = src;
+        img.src = blobUrl;
+      });
+
+    const loadPlaceholder = () =>
+      new Promise<HTMLImageElement | null>((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = avatarPlaceholderUrl;
       });
 
     const run = async () => {
       const externalUrl = npc?.avatarUrl ?? null;
       if (externalUrl) {
-        // R2 requires crossOrigin="anonymous" to avoid WebGL taint.
-        // If R2 lacks CORS headers the load fails → fall back to placeholder.
-        const img = await loadImg(externalUrl, true);
-        if (cancelled) return;
-        if (img) { setAvatarTexture(makeTexture(img)); return; }
+        // Use fetch instead of new Image() to bypass the browser's image
+        // cache. The sidebar <img> tag loads the same URL without crossOrigin,
+        // caching the response without CORS headers. A subsequent Image load
+        // with crossOrigin="anonymous" would get the cached (no-CORS) version
+        // and fail. fetch uses a separate cache that always sends the Origin
+        // header, so R2's CORS policy is respected.
+        try {
+          const res = await fetch(externalUrl, { mode: "cors" });
+          if (!res.ok) throw new Error();
+          const blob = await res.blob();
+          const blobUrl = URL.createObjectURL(blob);
+          const img = await loadFromBlobUrl(blobUrl);
+          URL.revokeObjectURL(blobUrl);
+          if (cancelled) return;
+          if (img) { setAvatarTexture(makeTexture(img)); return; }
+        } catch {
+          // CORS failed or network error — fall through to placeholder
+        }
       }
-      const fallback = await loadImg(avatarPlaceholderUrl, false);
+      if (cancelled) return;
+      const fallback = await loadPlaceholder();
       if (!cancelled) setAvatarTexture(fallback ? makeTexture(fallback) : null);
     };
 
