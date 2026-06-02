@@ -651,6 +651,7 @@ function PiecesLayer({
           npc={npcMap?.get(p.characterId)}
           isSelected={selection?.kind === "piece" && selection.id === p.id}
           isDragging={draggingPieceId === p.id}
+          isAnyDragging={!!draggingPieceId}
           dragWorldPos={draggingPieceId === p.id ? dragWorldPos : null}
           overlayRef={overlayRef}
           vpRef={vpRef}
@@ -677,13 +678,14 @@ type PieceSpriteProps = {
   npc?: CharacterPrivateSummary;
   isSelected: boolean;
   isDragging: boolean;
+  isAnyDragging: boolean;
   dragWorldPos?: { x: number; y: number } | null;
   overlayRef: React.RefObject<HTMLDivElement | null>;
   vpRef: React.MutableRefObject<Viewport | null>;
   onPointerDown: (piece: Piece, e: FederatedPointerEvent) => void;
 };
 
-function PieceSprite({ piece, grid, npc, isSelected, isDragging, dragWorldPos, overlayRef, vpRef, onPointerDown }: PieceSpriteProps) {
+function PieceSprite({ piece, grid, npc, isSelected, isDragging, isAnyDragging, dragWorldPos, overlayRef, vpRef, onPointerDown }: PieceSpriteProps) {
   const center = useMemo(() => slotToWorld(piece.coord.slot, grid), [piece.coord.slot, grid]);
   const tokenRadius = grid.cellSize * 0.45;
   const avatarRadius = tokenRadius * 0.7;
@@ -850,8 +852,12 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, dragWorldPos, o
 
   useEffect(() => {
     const div = overlayDivRef.current;
-    if (div) div.style.display = avatarTexture ? "block" : "none";
-  }, [avatarTexture]);
+    if (!div) return;
+    // Hide idle pieces' overlay divs while any drag is active — their DOM divs
+    // sit above the canvas and would otherwise render on top of the dragged piece.
+    const visible = !!avatarTexture && !(isAnyDragging && !isDragging);
+    div.style.display = visible ? "block" : "none";
+  }, [avatarTexture, isAnyDragging, isDragging]);
 
   useEffect(() => {
     if (!app) return;
