@@ -528,32 +528,38 @@ function PiecesLayer({
       if (!occupied) onPieceMove?.(drag.pieceId, slot);
     };
 
-    // Fires for ALL releases, including outside the canvas where Pixi's
-    // stage.on("pointerup/pointerupoutside") never fires.
-    // DOM bubble order: canvas handler fires first. If the stage handler already
-    // cleared localDrag, this exits immediately — no double-handling.
+    // Fires for ALL releases anywhere on the page.
+    // DOM bubble order: canvas element listeners fire first, then window.
+    // If stage.on("pointerup") already handled the release it clears
+    // localDrag → this exits immediately (no double-handling).
+    // If stage.on("pointerup") missed the event (Pixi v8 can miss pointerup on
+    // the stage when the release is exactly on a child container boundary),
+    // this handler acts as a reliable fallback for BOTH clicks and drags.
     const handleWindowUp = (e: PointerEvent) => {
       const drag = localDrag.current;
-      if (!drag) return;
+      if (!drag) return; // stage handler already cleared it
       localDrag.current = null;
       setDraggingPieceId(null);
       setHoverSlot(null);
-      // pointercancel = interrupted drag (focus loss, etc.) → just cleanup
-      if (!drag.isDragging || e.type === "pointercancel") return;
+      if (e.type === "pointercancel") return;
+
       const canvas = app?.canvas;
-      if (!canvas) {
-        onPieceDragToRoster?.(drag.pieceId);
-        return;
-      }
-      const rect = canvas.getBoundingClientRect();
+      const rect = canvas?.getBoundingClientRect();
       const overCanvas =
+        !!rect &&
         e.clientX >= rect.left && e.clientX <= rect.right &&
         e.clientY >= rect.top  && e.clientY <= rect.bottom;
+
+      if (!drag.isDragging) {
+        // Quick click — fire select as fallback if released over canvas
+        if (overCanvas) onPieceSelect?.(drag.pieceId);
+        return;
+      }
       if (!overCanvas) {
         onPieceDragToRoster?.(drag.pieceId);
       } else {
         const vp = vpRef.current;
-        if (!vp) return;
+        if (!vp || !rect) return;
         const world = vp.toWorld(e.clientX - rect.left, e.clientY - rect.top);
         const slot = worldToSlot(world, map.grid);
         const occupied = map.pieces.some(
@@ -655,14 +661,36 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, localDrag, onPo
 
   const [avatarTexture, setAvatarTexture] = useState<Texture | null>(null);
   useEffect(() => {
-    const url = npc?.avatarUrl ?? avatarPlaceholderUrl;
     let cancelled = false;
-    const img = new Image();
-    img.onload = () => {
-      if (!cancelled) setAvatarTexture(new Texture({ source: new ImageSource({ resource: img }) }));
+
+    const makeTexture = (img: HTMLImageElement) =>
+      new Texture({ source: new ImageSource({ resource: img }) });
+
+    const loadImg = (src: string, useCors: boolean) =>
+      new Promise<HTMLImageElement | null>((resolve) => {
+        const img = new Image();
+        if (useCors) img.crossOrigin = "anonymous";
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = src;
+      });
+
+    const run = async () => {
+      const externalUrl = npc?.avatarUrl ?? null;
+      if (externalUrl) {
+        // External URL (e.g. R2): must use crossOrigin="anonymous" so the image
+        // is not "tainted". If R2 lacks CORS headers the load fails and we fall
+        // back to the same-origin placeholder which is always safe for WebGL.
+        const img = await loadImg(externalUrl, true);
+        if (cancelled) return;
+        if (img) { setAvatarTexture(makeTexture(img)); return; }
+      }
+      // Same-origin bundled placeholder — no crossOrigin needed.
+      const fallback = await loadImg(avatarPlaceholderUrl, false);
+      if (!cancelled) setAvatarTexture(fallback ? makeTexture(fallback) : null);
     };
-    img.onerror = () => { if (!cancelled) setAvatarTexture(null); };
-    img.src = url;
+
+    run();
     return () => { cancelled = true; };
   }, [npc?.avatarUrl]);
 
