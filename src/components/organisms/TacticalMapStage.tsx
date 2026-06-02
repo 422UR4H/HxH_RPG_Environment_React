@@ -738,7 +738,8 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, dragWorldPos, o
   const shadowBlurStrength = isDragging ? 5 : z > 0 ? 2 + z : 2;
   const shadowFilter = useMemo(() => {
     const f = new BlurFilter({ strength: shadowBlurStrength, quality: 4 });
-    f.padding = shadowBlurStrength * 6;
+    // Fixed large padding prevents square-corner artifacts at any blur strength or zoom level.
+    f.padding = 80;
     return f;
   }, [shadowBlurStrength]);
 
@@ -786,11 +787,46 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, dragWorldPos, o
   const isDraggingRef = useRef(isDragging);
   const avatarRadiusRef = useRef(avatarRadius);
   const zOffsetPxRef = useRef(zOffsetPx);
+  const liftTRef = useRef(0);
+  const animScaleRef = useRef(1);
   posXRef.current = posX;
   posYRef.current = posY;
   isDraggingRef.current = isDragging;
   avatarRadiusRef.current = avatarRadius;
   zOffsetPxRef.current = zOffsetPx;
+
+  const [animLiftT, setAnimLiftT] = useState(0);
+
+  // Animates lift t (0=ground, 1=lifted) over 130ms with ease-out cubic when
+  // isDragging changes — eliminates the instant scale/y "teleport" on pickup/release.
+  useEffect(() => {
+    const target = isDragging ? 1 : 0;
+    if (Math.abs(liftTRef.current - target) < 0.001) {
+      liftTRef.current = target;
+      animScaleRef.current = 1 + (DRAG_LIFT_SCALE - 1) * target;
+      setAnimLiftT(target);
+      return;
+    }
+    const DURATION = 130;
+    const startT = liftTRef.current;
+    const startTime = performance.now();
+    let raf = 0;
+    const animate = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / DURATION, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const t = startT + (target - startT) * eased;
+      liftTRef.current = t;
+      animScaleRef.current = 1 + (DRAG_LIFT_SCALE - 1) * t;
+      setAnimLiftT(t);
+      if (progress < 1) raf = requestAnimationFrame(animate);
+    };
+    raf = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(raf);
+  }, [isDragging]);
+
+  const animScale = 1 + (DRAG_LIFT_SCALE - 1) * animLiftT;
+  const animLiftY = -8 * animLiftT;
 
   useEffect(() => {
     const container = overlayRef.current;
@@ -816,14 +852,13 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, dragWorldPos, o
       const vp = vpRef.current;
       if (!div || !vp || div.style.display === "none") return;
       const scale = vp.scale.x;
-      const dragging = isDraggingRef.current;
-      const pieceScale = dragging ? DRAG_LIFT_SCALE : 1;
+      const pieceScale = animScaleRef.current;
       const r = avatarRadiusRef.current;
       const sr = r * scale * pieceScale;
       const sz = sr * 2;
       const sp = vp.toScreen(
         posXRef.current,
-        dragging ? posYRef.current - 8 : posYRef.current,
+        posYRef.current - 8 * liftTRef.current,
       );
       const zOff = zOffsetPxRef.current * scale * pieceScale;
       div.style.left = `${sp.x - sr}px`;
@@ -867,8 +902,8 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, dragWorldPos, o
     <pixiContainer
       label={`piece-${piece.id}`}
       x={posX}
-      y={isDragging ? posY - 8 : posY}
-      scale={isDragging ? DRAG_LIFT_SCALE : 1.0}
+      y={posY + animLiftY}
+      scale={animScale}
       eventMode="static"
       cursor="pointer"
       onPointerDown={(e: FederatedPointerEvent) => onPointerDown(piece, e)}
@@ -876,8 +911,8 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, dragWorldPos, o
       <pixiGraphics
         draw={drawShadow}
         filters={[shadowFilter]}
-        y={isDragging ? 8 : 0}
-        scale={isDragging ? 1 / DRAG_LIFT_SCALE : 1}
+        y={8 * animLiftT / animScale}
+        scale={1 / animScale}
       />
 
       {frameTexture && (
