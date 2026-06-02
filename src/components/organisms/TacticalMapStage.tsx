@@ -681,7 +681,7 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, dragWorldPos, o
         // and fail. fetch uses a separate cache that always sends the Origin
         // header, so R2's CORS policy is respected.
         try {
-          const res = await fetch(externalUrl, { mode: "cors" });
+          const res = await fetch(externalUrl, { mode: "cors", cache: "no-cache" });
           if (!res.ok) throw new Error();
           const blob = await res.blob();
           const blobUrl = URL.createObjectURL(blob);
