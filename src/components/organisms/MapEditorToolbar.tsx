@@ -179,7 +179,7 @@ const Toolbar = styled.div`
   font-family: ${fonts.sans};
   min-width: 240px;
   height: 100%;
-  overflow-y: auto;
+  overflow: hidden;
 `;
 
 const TabRow = styled.div`
@@ -214,6 +214,7 @@ const TabButton = styled.button<{ $active: boolean }>`
 
 const PanelArea = styled.div`
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
 `;
 

@@ -51,7 +51,7 @@ export default function NpcRosterPanel({
             key={npc.uuid}
             data-testid={`npc-card-${npc.uuid}`}
             $isPlacing={placingNpcId === npc.uuid}
-            onPointerDown={(e) => onPointerDownNpc(npc, e)}
+            onPointerDown={(e) => { e.preventDefault(); onPointerDownNpc(npc, e); }}
           >
             <CharacterSidebarItem
               character={npc}
@@ -74,6 +74,7 @@ export default function NpcRosterPanel({
 
 const DropZone = styled.div<{ $isDropTarget: boolean }>`
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   padding: 8px;
@@ -107,6 +108,8 @@ const SearchInput = styled.input`
 `;
 
 const List = styled.div`
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -114,6 +117,7 @@ const List = styled.div`
 `;
 
 const CardWrapper = styled.div<{ $isPlacing: boolean }>`
+  user-select: none;
   border-radius: 6px;
   border: 2px solid
     ${({ $isPlacing }) =>

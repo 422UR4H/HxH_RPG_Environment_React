@@ -4,29 +4,12 @@ import { Application, extend, useApplication } from "@pixi/react";
 import { Assets, BlurFilter, Container, Graphics, ImageSource, Sprite, Text, Texture } from "pixi.js";
 import type { EventSystem, FederatedPointerEvent } from "pixi.js";
 import type { Graphics as PixiGraphics, Sprite as PixiSprite } from "pixi.js";
+import gungiFrameUrl from "../../assets/icons/gungi.svg";
 import { Viewport } from "pixi-viewport";
 import type { TacticalMap, GridShape, Piece, SlotCoord } from "../../types/tacticalMap";
 import type { CharacterPrivateSummary } from "../../types/characterSheet";
 import type { Selection } from "../../features/tactical-map/store/editorStore";
 import { slotToWorld, worldToSlot } from "../../features/tactical-map/utils/coords";
-
-function npcColor(id: string): number {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) & 0xffffffff;
-  const hue = Math.abs(hash) % 360;
-  const h = hue / 360, s = 0.55, l = 0.4;
-  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-  const p = 2 * l - q;
-  const toRgb = (t: number) => {
-    const tt = ((t % 1) + 1) % 1;
-    if (tt < 1/6) return p + (q - p) * 6 * tt;
-    if (tt < 1/2) return q;
-    if (tt < 2/3) return p + (q - p) * (2/3 - tt) * 6;
-    return p;
-  };
-  const r = toRgb(h + 1/3), g2 = toRgb(h), b = toRgb(h - 1/3);
-  return (Math.round(r * 255) << 16) | (Math.round(g2 * 255) << 8) | Math.round(b * 255);
-}
 
 extend({ Container, Graphics, Sprite, Text, Viewport });
 
@@ -549,7 +532,16 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, localDrag, onPo
     return () => { cancelled = true; };
   }, [npc?.avatarUrl]);
 
-  const fallbackColor = useMemo(() => npcColor(piece.id), [piece.id]);
+  // Gungi frame texture (coin-style token visual)
+  const [frameTexture, setFrameTexture] = useState<Texture | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    Assets.load(gungiFrameUrl).then((t: Texture) => { if (!cancelled) setFrameTexture(t); }).catch(() => { if (!cancelled) setFrameTexture(null); });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Neutral dark token base — no random color that could look like a red emblem
+  const fallbackColor = 0x2d2d3a;
   const initial = npc?.nickName?.[0]?.toUpperCase() ?? "?";
 
   // Shadow values
@@ -661,6 +653,16 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, localDrag, onPo
             style={{ fontSize: Math.round(tokenRadius * 0.85), fill: 0xffffff, fontWeight: "bold" }}
           />
         </>
+      )}
+
+      {frameTexture && (
+        <pixiSprite
+          texture={frameTexture}
+          x={-tokenRadius}
+          y={-zOffsetPx - tokenRadius}
+          width={tokenRadius * 2}
+          height={tokenRadius * 2}
+        />
       )}
 
       <pixiGraphics draw={drawSelection} />
