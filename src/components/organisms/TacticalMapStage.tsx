@@ -31,6 +31,8 @@ function npcColor(id: string): number {
 
 extend({ Container, Graphics, Sprite, Text, Viewport });
 
+const DRAG_LIFT_SCALE = 1.18;
+
 // @pixi/react v8 auto-generates JSX intrinsics only for pixi.js exports.
 // Viewport comes from pixi-viewport, so we declare it manually here.
 declare module "react" {
@@ -612,7 +614,7 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, localDrag, onPo
       label={`piece-${piece.id}`}
       x={center.x}
       y={isDragging ? center.y - 8 : center.y}
-      scale={isDragging ? 1.18 : 1.0}
+      scale={isDragging ? DRAG_LIFT_SCALE : 1.0}
       eventMode="static"
       cursor="pointer"
       onPointerDown={(e: FederatedPointerEvent) => onPointerDown(piece, e)}
@@ -622,7 +624,7 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, localDrag, onPo
         draw={drawShadow}
         filters={[shadowFilter]}
         y={isDragging ? 8 : 0}
-        scale={isDragging ? 1 / 1.18 : 1}
+        scale={isDragging ? 1 / DRAG_LIFT_SCALE : 1}
       />
 
       {avatarTexture ? (
