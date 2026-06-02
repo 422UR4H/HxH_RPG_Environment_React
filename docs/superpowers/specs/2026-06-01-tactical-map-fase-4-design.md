@@ -143,28 +143,42 @@ z > 0:
 
 ### 5.3 Seleção
 
-A peça selecionada **cresce** — como se estivesse suspensa acima do board. Escala aplicada ao container inteiro (`pixiContainer.scale`), não ao raio do círculo — isso mantém a sombra e o frame escalando juntos sem recalcular geometrias individuais.
+Anel branco ao redor do token indica peça selecionada — simples e legível em qualquer fundo:
 
 ```
-selected = false:
+selected = true:
+  strokeCircle(center, tokenRadius + 5, { color: 0xffffff, width: 2, alpha: 0.90 })
+  outerGlow(center, tokenRadius + 8,   { color: 0xffffff, alpha: 0.20 })
+```
+
+Sombra e escala permanecem iguais ao estado normal — a seleção só adiciona o anel, sem crescer a peça.
+
+### 5.4 Drag (arrastar)
+
+Durante o drag, a peça **levanta da mesa**: cresce levemente e sobe no plano 2D para simular que foi "pego". Escala aplicada ao `pixiContainer` inteiro, Y offset negativo aplicado à posição do container.
+
+```
+dragging = false:
   containerScale = 1.0
+  containerOffsetY = 0
   shadowRadius   = tokenRadius + 2
   shadowAlpha    = 0.50
   shadowBlur     = 4
 
-selected = true:
-  containerScale = 1.35           ← peça fica ~35% maior
-  shadowRadius   = tokenRadius + 8 ← sombra cresce mais (elevação maior)
-  shadowAlpha    = 0.30           ← mais diluída nas bordas (luz mais distante)
-  shadowBlur     = 10             ← mais suave/difusa
+dragging = true:
+  containerScale   = 1.18          ← crescimento sutil (~18%)
+  containerOffsetY = -8px          ← sobe levemente no 2D
+  shadowRadius     = tokenRadius + 6  ← sombra cresce (peça mais alta)
+  shadowAlpha      = 0.35          ← mais diluída
+  shadowBlur       = 9             ← mais suave
 
-  + anel branco externo:
-  strokeCircle(center, tokenRadius + 6, { color: 0xffffff, width: 2, alpha: 0.85 })
+  ← sombra permanece na posição do slot original (não acompanha o drag)
+     — isso cria o efeito de "projeção no chão enquanto voa"
 ```
 
-A sombra mais larga e difusa quando selecionado reforça a ilusão de que a peça está "levitando" acima das demais. Implementado ajustando apenas valores de `Graphics.draw` no re-render — sem filtros externos, sem risco de bug de performance.
+A sombra fixa no slot de origem durante o drag é o mesmo truque que FoundryVTT usa: o jogador vê exatamente de onde a peça partiu enquanto arrasta.
 
-### 5.4 Carregamento da avatarUrl
+### 5.5 Carregamento da avatarUrl
 
 Mesmo padrão do `BgLayer` (já existente no projeto):
 - `blob:` URL → carrega via `HTMLImageElement` + `ImageSource` (evita problema de parser do Assets)
@@ -264,7 +278,33 @@ O `selectedPieceId` já vive na store (`selection`). O `placingNpcId` é UI-only
 
 ---
 
-## 7. TODOs — Tipos genéricos de NPC (futuro)
+## 7. TODOs — Funcionalidades futuras
+
+### 7.1 Empilhamento de peças no mesmo slot
+
+Comportamento atual (Fase 4): tentar colocar uma peça em slot ocupado → flash vermelho + drag cancela. Slot sempre tem no máximo 1 peça.
+
+Comportamento futuro desejado:
+
+```
+Slot com N peças empilhadas:
+  - A peça do "topo" (última colocada) é exibida normalmente no centro do slot
+  - As peças embaixo são exibidas como thumbnails menores (~50% do token)
+    posicionados ao redor do slot (Norte, Sul, Leste, Oeste conforme N)
+  - Clicar num thumbnail seleciona diretamente a peça correspondente
+    sem precisar interagir com a pilha
+  - Arrastar um thumbnail para fora do slot a extrai da pilha
+```
+
+A lógica de renderização precisará de um índice de "quem está em cima" por slot. A store (`editorStore`) precisa de `pieceStackOrder: Record<slotKey, pieceId[]>` ou derivar a ordem de `pieces[]` (último colocado = topo). O componente `PiecesLayer` agrupará peças por slot antes de renderizar.
+
+```ts
+// TODO(piece-stacking): quando empilhamento for implementado,
+// remover o bloqueio de "slot ocupado" e renderizar thumbnails ao redor.
+// slotKey = `${slot.kind}:${col},${row}` (square) ou `${slot.kind}:${q},${r}` (hex)
+```
+
+### 7.2 Tipos genéricos de NPC (futuro)
 
 Atualmente, cada NPC é uma `CharacterSheet` única — 1 instância no mapa por NPC. Em versão futura, o sistema vai suportar **tipos genéricos** (ex: "Soldado Zoldyck", "Agente da IHA") que podem ser adicionados ao mapa múltiplas vezes, gerando instâncias independentes.
 
