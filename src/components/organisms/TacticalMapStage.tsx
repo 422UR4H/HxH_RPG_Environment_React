@@ -248,14 +248,20 @@ function GridLayer({ grid, vpScale }: { grid: GridShape; vpScale: number }) {
           g.moveTo(0, r * cellSize).lineTo(cols * cellSize, r * cellSize);
         }
       } else {
+        // Pointy-top hexagons in offset coordinates (odd-r layout).
+        // Column/row indices are NOT axial coords — compute pixel centers directly
+        // so rows tile horizontally like a brick wall, not on the diagonal.
+        const size = grid.cellSize;
+        const hexW = size * Math.sqrt(3); // center-to-center horizontal
+        const hexH = size * 1.5;          // center-to-center vertical
         for (let r = 0; r < grid.rows; r++) {
           for (let c = 0; c < grid.cols; c++) {
-            const center = slotToWorld({ kind: "hex", q: c, r }, grid);
-            const size = grid.cellSize;
+            const cx = c * hexW + (r % 2 === 1 ? hexW / 2 : 0);
+            const cy = r * hexH;
             for (let i = 0; i < 6; i++) {
               const angle = ((60 * i - 30) * Math.PI) / 180;
-              const x = center.x + size * Math.cos(angle);
-              const y = center.y + size * Math.sin(angle);
+              const x = cx + size * Math.cos(angle);
+              const y = cy + size * Math.sin(angle);
               if (i === 0) g.moveTo(x, y);
               else g.lineTo(x, y);
             }
