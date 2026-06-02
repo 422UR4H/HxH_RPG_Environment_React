@@ -1,8 +1,9 @@
 import type { ChangeEvent } from "react";
 import styled from "styled-components";
 import type { ToolKind } from "../../features/tactical-map/store/editorStore";
-import type { GridShape } from "../../types/tacticalMap";
+import type { BgImage, GridShape } from "../../types/tacticalMap";
 import GridConfigPanel from "../molecules/GridConfigPanel";
+import BgImagePanel from "../molecules/BgImagePanel";
 import { colors, fonts } from "../../styles/tokens";
 
 type Props = {
@@ -10,6 +11,9 @@ type Props = {
   onToolChange: (tool: ToolKind) => void;
   grid: GridShape;
   onGridChange: (grid: GridShape) => void;
+  bg: BgImage;
+  onBgChange: (bg: BgImage | null) => void;
+  mapId: string;
   mapName: string;
   mapDescription: string;
   onNameChange: (name: string) => void;
@@ -29,7 +33,7 @@ type TabDef = {
 
 const TABS: TabDef[] = [
   { tool: "grid", label: "Grade", enabled: true },
-  { tool: "bg", label: "Fundo", enabled: false },
+  { tool: "bg", label: "Fundo", enabled: true },
   { tool: "pieces", label: "Peças", enabled: false },
   { tool: "walls", label: "Paredes", enabled: false },
   { tool: "decorations", label: "Decorações", enabled: false },
@@ -40,6 +44,9 @@ export default function MapEditorToolbar({
   onToolChange,
   grid,
   onGridChange,
+  bg,
+  onBgChange,
+  mapId,
   mapName,
   mapDescription,
   onNameChange,
@@ -78,6 +85,15 @@ export default function MapEditorToolbar({
       <PanelArea>
         {activeTool === "grid" && (
           <GridConfigPanel grid={grid} onChange={onGridChange} />
+        )}
+        {activeTool === "bg" && (
+          <BgImagePanel
+            bg={bg}
+            grid={grid}
+            mapId={mapId}
+            onBgChange={onBgChange}
+            onGridChange={onGridChange}
+          />
         )}
       </PanelArea>
 

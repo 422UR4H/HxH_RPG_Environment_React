@@ -33,7 +33,8 @@ export type GridShape = {
 
 // ─── Imagem de fundo ───────────────────────────────────────────────────────
 export type BgImage = {
-  url: string;
+  url: string;      // display URL — blob: during current session, R2 URL after reload
+  r2Url?: string;   // R2 public URL kept only for persistence; absent on URL-input path
   x: number;
   y: number;
   width: number;

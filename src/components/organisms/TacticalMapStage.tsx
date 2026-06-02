@@ -1,7 +1,8 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { MutableRefObject } from "react";
 import { Application, extend, useApplication } from "@pixi/react";
-import { Container, Graphics, Sprite, Text, Texture } from "pixi.js";
-import type { EventSystem } from "pixi.js";
+import { Assets, Container, Graphics, ImageSource, Sprite, Text, Texture } from "pixi.js";
+import type { EventSystem, FederatedPointerEvent } from "pixi.js";
 import { Viewport } from "pixi-viewport";
 import type { Graphics as PixiGraphics } from "pixi.js";
 import type { TacticalMap, GridShape, Piece } from "../../types/tacticalMap";
@@ -15,6 +16,7 @@ declare module "react" {
   namespace JSX {
     interface IntrinsicElements {
       pixiViewport: {
+        ref?: React.Ref<Viewport>;
         screenWidth?: number;
         screenHeight?: number;
         worldWidth?: number;
@@ -30,30 +32,100 @@ type Props = {
   map: TacticalMap;
   width: number;
   height: number;
+  clampToGrid?: boolean;
+  bgInteractive?: boolean;
+  onBgPositionChange?: (x: number, y: number) => void;
 };
 
-export default function TacticalMapStage({ map, width, height }: Props) {
+export default function TacticalMapStage({
+  map, width, height,
+  clampToGrid = false,
+  bgInteractive = false,
+  onBgPositionChange,
+}: Props) {
   return (
     <Application width={width} height={height} background={0x101820}>
-      <ViewportInner map={map} width={width} height={height} />
+      <ViewportInner
+        map={map}
+        width={width}
+        height={height}
+        clampToGrid={clampToGrid}
+        bgInteractive={bgInteractive}
+        onBgPositionChange={onBgPositionChange}
+      />
     </Application>
   );
 }
 
+type DragState = {
+  startWorldX: number;
+  startWorldY: number;
+  startBgX: number;
+  startBgY: number;
+} | null;
+
 // useApplication() only works inside a child of <Application>, not in the
 // same component that renders it — hence the split.
-function ViewportInner({ map, width, height }: Props) {
+function ViewportInner({
+  map,
+  width,
+  height,
+  clampToGrid,
+  bgInteractive,
+  onBgPositionChange,
+}: Props) {
   const { app } = useApplication();
+  const vpRef = useRef<Viewport | null>(null);
+  const dragState = useRef<DragState>(null);
+  const [vpScale, setVpScale] = useState(1);
+
+  // Callback ref instead of useEffect([], []): PixiJS v8 initialises async,
+  // so the first render may return null (see guard below). A plain effect
+  // with [] deps fires on that first null render and never again, leaving
+  // plugins unwired. A callback ref fires at Viewport construction time,
+  // whenever that happens.
+  const vpCallback = useCallback((vp: Viewport | null) => {
+    vpRef.current = vp;
+    if (!vp) return;
+    vp.drag().pinch().wheel().decelerate();
+    vp.on("zoomed", () => setVpScale(vp.scale.x));
+  }, []);
+
+  useEffect(() => {
+    const vp = vpRef.current;
+    if (!vp || !clampToGrid) return;
+    vp.clamp({
+      left: 0,
+      right: map.grid.cols * map.grid.cellSize,
+      top: 0,
+      bottom: map.grid.rows * map.grid.cellSize,
+      underflow: "center",
+    });
+  }, [clampToGrid, map.grid.cols, map.grid.cellSize, map.grid.rows]);
+
+  // app.renderer is undefined until PixiJS async init completes. Passing
+  // undefined as events to the Viewport constructor crashes in addListeners()
+  // when it tries to access events.domElement. Guard here; @pixi/react will
+  // re-render once the app is ready.
+  const events = app?.renderer?.events;
+  if (!events) return null;
+
   return (
     <pixiViewport
+      ref={vpCallback}
       screenWidth={width}
       screenHeight={height}
       worldWidth={map.grid.cols * map.grid.cellSize * 2}
       worldHeight={map.grid.rows * map.grid.cellSize * 2}
-      events={app?.renderer.events}
+      events={events}
     >
-      <BgLayer bg={map.bg} />
-      <GridLayer grid={map.grid} />
+      <BgLayer
+        bg={map.bg}
+        bgInteractive={bgInteractive}
+        dragState={dragState}
+        onBgPositionChange={onBgPositionChange}
+      />
+      <GridLayer grid={map.grid} vpScale={vpScale} />
       <pixiContainer label="decorations-layer" />
       <PiecesLayer map={map} />
       <pixiContainer label="walls-layer" />
@@ -62,27 +134,111 @@ function ViewportInner({ map, width, height }: Props) {
   );
 }
 
-function BgLayer({ bg }: { bg: TacticalMap["bg"] }) {
-  if (!bg) return null;
+function BgLayer({
+  bg,
+  bgInteractive,
+  dragState,
+  onBgPositionChange,
+}: {
+  bg: TacticalMap["bg"];
+  bgInteractive?: boolean;
+  dragState?: MutableRefObject<DragState>;
+  onBgPositionChange?: (x: number, y: number) => void;
+}) {
+  const [texture, setTexture] = useState<Texture | null>(null);
+
+  useEffect(() => {
+    if (!bg?.url) {
+      setTexture(null);
+      return;
+    }
+    let cancelled = false;
+
+    if (bg.url.startsWith("blob:")) {
+      // blob: URLs have no file extension so Assets.load() can't determine
+      // the parser and bails. Load via HTMLImageElement (same-origin blob,
+      // no CORS) and wrap in a Texture using the v8 ImageSource API.
+      const img = new Image();
+      img.onload = () => {
+        if (cancelled) return;
+        setTexture(new Texture({ source: new ImageSource({ resource: img }) }));
+      };
+      img.onerror = () => {
+        if (!cancelled) setTexture(null);
+      };
+      img.src = bg.url;
+    } else {
+      // Regular URL (R2 or external): requires CORS headers on the server.
+      Assets.load(bg.url)
+        .then((t: Texture) => {
+          if (!cancelled) setTexture(t);
+        })
+        .catch(() => {
+          if (!cancelled) setTexture(null);
+        });
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [bg?.url]);
+
+  if (!bg || !texture) return null;
+
+  const handlePointerDown = (e: FederatedPointerEvent) => {
+    if (!bgInteractive || !dragState || !bg) return;
+    e.stopPropagation();
+    dragState.current = {
+      startWorldX: e.global.x,
+      startWorldY: e.global.y,
+      startBgX: bg.x,
+      startBgY: bg.y,
+    };
+  };
+
+  const handlePointerMove = (e: FederatedPointerEvent) => {
+    if (!bgInteractive || !dragState?.current || !onBgPositionChange) return;
+    const dx = e.global.x - dragState.current.startWorldX;
+    const dy = e.global.y - dragState.current.startWorldY;
+    onBgPositionChange(
+      dragState.current.startBgX + dx,
+      dragState.current.startBgY + dy,
+    );
+  };
+
+  const handlePointerUp = () => {
+    if (dragState) dragState.current = null;
+  };
+
   return (
     <pixiSprite
-      texture={Texture.from(bg.url)}
+      texture={texture}
       x={bg.x}
       y={bg.y}
       width={bg.width}
       height={bg.height}
       rotation={(bg.rotation * Math.PI) / 180}
       alpha={bg.opacity}
+      eventMode={bgInteractive ? "static" : "none"}
+      cursor={bgInteractive ? "grab" : "default"}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerUpOutside={handlePointerUp}
     />
   );
 }
 
-function GridLayer({ grid }: { grid: GridShape }) {
+function GridLayer({ grid, vpScale }: { grid: GridShape; vpScale: number }) {
   const draw = useCallback(
     (g: PixiGraphics) => {
       g.clear();
       const colorHex = parseInt(grid.color.replace("#", ""), 16);
-      g.setStrokeStyle({ width: 1, color: colorHex, alpha: grid.opacity });
+      // Stroke width is in world coordinates and scales with viewport zoom.
+      // Dividing by vpScale keeps lines at a constant 1 CSS pixel regardless
+      // of zoom level, preventing thick lines on zoom-in and vanishing lines
+      // on zoom-out.
+      g.setStrokeStyle({ width: 1 / vpScale, color: colorHex, alpha: grid.opacity });
       if (grid.kind === "square") {
         const { cols, rows, cellSize } = grid;
         for (let c = 0; c <= cols; c++) {
@@ -92,14 +248,20 @@ function GridLayer({ grid }: { grid: GridShape }) {
           g.moveTo(0, r * cellSize).lineTo(cols * cellSize, r * cellSize);
         }
       } else {
+        // Pointy-top hexagons in offset coordinates (odd-r layout).
+        // Column/row indices are NOT axial coords — compute pixel centers directly
+        // so rows tile horizontally like a brick wall, not on the diagonal.
+        const size = grid.cellSize;
+        const hexW = size * Math.sqrt(3); // center-to-center horizontal
+        const hexH = size * 1.5;          // center-to-center vertical
         for (let r = 0; r < grid.rows; r++) {
           for (let c = 0; c < grid.cols; c++) {
-            const center = slotToWorld({ kind: "hex", q: c, r }, grid);
-            const size = grid.cellSize;
+            const cx = c * hexW + (r % 2 === 1 ? hexW / 2 : 0);
+            const cy = r * hexH;
             for (let i = 0; i < 6; i++) {
               const angle = ((60 * i - 30) * Math.PI) / 180;
-              const x = center.x + size * Math.cos(angle);
-              const y = center.y + size * Math.sin(angle);
+              const x = cx + size * Math.cos(angle);
+              const y = cy + size * Math.sin(angle);
               if (i === 0) g.moveTo(x, y);
               else g.lineTo(x, y);
             }
@@ -109,7 +271,7 @@ function GridLayer({ grid }: { grid: GridShape }) {
       }
       g.stroke();
     },
-    [grid],
+    [grid, vpScale],
   );
 
   return <pixiGraphics draw={draw} />;

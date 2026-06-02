@@ -4,12 +4,17 @@ import userEvent from "@testing-library/user-event";
 import MapEditorToolbar from "../MapEditorToolbar";
 import type { ToolKind } from "../../../features/tactical-map/store/editorStore";
 import { DEFAULT_GRID } from "../../../features/tactical-map/defaultMap";
+import { renderWithProviders } from "../../../test/render";
+import type { BgImage } from "../../../types/tacticalMap";
 
 const baseProps = {
   activeTool: "grid" as ToolKind,
   onToolChange: vi.fn(),
   grid: DEFAULT_GRID,
   onGridChange: vi.fn(),
+  bg: null as BgImage,
+  onBgChange: vi.fn(),
+  mapId: "map-test-1",
   mapName: "",
   mapDescription: "",
   onNameChange: vi.fn(),
@@ -33,7 +38,7 @@ describe("MapEditorToolbar", () => {
 
   it("abas não-grid estão desabilitadas", () => {
     render(<MapEditorToolbar {...baseProps} />);
-    expect(screen.getByRole("button", { name: /fundo/i })).toBeDisabled();
+    // "Fundo" is now enabled — removed from this test
     expect(screen.getByRole("button", { name: /peças/i })).toBeDisabled();
     expect(screen.getByRole("button", { name: /paredes/i })).toBeDisabled();
     expect(screen.getByRole("button", { name: /decorações/i })).toBeDisabled();
@@ -73,5 +78,17 @@ describe("MapEditorToolbar", () => {
   it("botão salvar fica desabilitado enquanto isSaving", () => {
     render(<MapEditorToolbar {...baseProps} isSaving />);
     expect(screen.getByRole("button", { name: /salvando/i })).toBeDisabled();
+  });
+
+  it("aba Fundo está habilitada", () => {
+    render(<MapEditorToolbar {...baseProps} />);
+    expect(screen.getByRole("button", { name: /fundo/i })).not.toBeDisabled();
+  });
+
+  it("aba Fundo ativa exibe BgImagePanel", () => {
+    renderWithProviders(
+      <MapEditorToolbar {...baseProps} activeTool="bg" />,
+    );
+    expect(screen.getByText(/clique ou solte/i)).toBeInTheDocument();
   });
 });

@@ -32,6 +32,8 @@ export default function TacticalMapEditor({
   const setGrid = store((s) => s.setGrid);
   const setName = store((s) => s.setName);
   const setDescription = store((s) => s.setDescription);
+  const bg = store((s) => s.map.bg);
+  const setBg = store((s) => s.setBg);
   const setActiveTool = store((s) => s.setActiveTool);
   const markClean = store((s) => s.markClean);
 
@@ -68,9 +70,57 @@ export default function TacticalMapEditor({
     }
     setNameError(null);
     setSaveError(null);
+
+    // Truncation check
+    let mapToSave = map;
+    if (map.bg) {
+      const gridW = map.grid.cols * map.grid.cellSize;
+      const gridH = map.grid.rows * map.grid.cellSize;
+      const bgRight = map.bg.x + map.bg.width;
+      const bgBottom = map.bg.y + map.bg.height;
+      const uncoveredCols = bgRight < gridW
+        ? Math.floor((gridW - bgRight) / map.grid.cellSize)
+        : 0;
+      const uncoveredRows = bgBottom < gridH
+        ? Math.floor((gridH - bgBottom) / map.grid.cellSize)
+        : 0;
+      const uncoveredLeftCols = map.bg.x > 0
+        ? Math.floor(map.bg.x / map.grid.cellSize)
+        : 0;
+      const uncoveredTopRows = map.bg.y > 0
+        ? Math.floor(map.bg.y / map.grid.cellSize)
+        : 0;
+
+      const totalUncoveredCols = uncoveredLeftCols + uncoveredCols;
+      const totalUncoveredRows = uncoveredTopRows + uncoveredRows;
+
+      if (totalUncoveredCols > 0 || totalUncoveredRows > 0) {
+        const parts: string[] = [];
+        if (totalUncoveredCols > 0) parts.push(`${totalUncoveredCols} coluna${totalUncoveredCols > 1 ? "s" : ""}`);
+        if (totalUncoveredRows > 0) parts.push(`${totalUncoveredRows} linha${totalUncoveredRows > 1 ? "s" : ""}`);
+        const msg = `${parts.join(" e ")} não cobertas pela imagem. Deseja continuar e remover as colunas/linhas descobertas à direita/baixo?`;
+        if (!window.confirm(msg)) return;
+
+        mapToSave = {
+          ...map,
+          grid: {
+            ...map.grid,
+            cols: map.grid.cols - uncoveredCols,   // only trim right side
+            rows: map.grid.rows - uncoveredRows,   // only trim bottom side
+          },
+        };
+      }
+    }
+
     setIsSaving(true);
     try {
-      await onSave(map);
+      // bg.url may be a blob: URL (same-origin display workaround when R2 has
+      // no CORS headers). Replace with the R2 URL for persistence. r2Url is
+      // absent on the URL-input path, in which case url is already the final URL.
+      const finalMap = mapToSave.bg?.r2Url
+        ? { ...mapToSave, bg: { ...mapToSave.bg, url: mapToSave.bg.r2Url, r2Url: undefined } }
+        : mapToSave;
+      await onSave(finalMap);
       markClean();
       onSaveSuccess?.();
     } catch {
@@ -90,6 +140,9 @@ export default function TacticalMapEditor({
           onToolChange={setActiveTool}
           grid={map.grid}
           onGridChange={setGrid}
+          bg={map.bg}
+          onBgChange={setBg}
+          mapId={map.id}
           mapName={map.name}
           mapDescription={map.description ?? ""}
           onNameChange={setName}
@@ -104,7 +157,13 @@ export default function TacticalMapEditor({
     >
       <div ref={canvasRef} style={{ width: "100%", height: "100%" }}>
         {width > 0 && height > 0 && (
-          <TacticalMapStage map={map} width={width} height={height} />
+          <TacticalMapStage
+                  map={map}
+                  width={width}
+                  height={height}
+                  bgInteractive={activeTool === "bg"}
+                  onBgPositionChange={(x, y) => setBg(bg ? { ...bg, x, y } : null)}
+                />
         )}
       </div>
     </MapEditorTemplate>

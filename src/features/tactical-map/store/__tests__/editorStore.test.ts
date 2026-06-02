@@ -24,4 +24,14 @@ describe("editorStore", () => {
     store.getState().markClean();
     expect(store.getState().isDirty).toBe(false);
   });
+
+  it("setBg(null) removes the background", () => {
+    const store = createEditorStore({
+      ...mapFixture,
+      bg: { url: "https://x.com/img.webp", x: 0, y: 0, width: 100, height: 100, rotation: 0, opacity: 1 },
+    });
+    store.getState().setBg(null);
+    expect(store.getState().map.bg).toBeNull();
+    expect(store.getState().isDirty).toBe(true);
+  });
 });
