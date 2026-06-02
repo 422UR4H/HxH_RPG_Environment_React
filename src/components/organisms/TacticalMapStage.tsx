@@ -14,6 +14,25 @@ import { slotToWorld, worldToSlot } from "../../features/tactical-map/utils/coor
 
 extend({ Container, Graphics, Sprite, Text, Viewport });
 
+// Module-level CORS-safe avatar cache: R2 URL → Promise<same-origin blob URL>.
+// Fetching with mode:"cors" always sends Origin and gets Access-Control-Allow-Origin
+// regardless of what the browser HTTP cache holds from non-CORS <img> loads.
+// Blob URLs are same-origin so they're safe for WebGL textures.
+// Kept alive for the page lifetime (~20 NPCs × ~100 KB ≈ negligible).
+const avatarBlobUrlCache = new Map<string, Promise<string | null>>();
+
+function getAvatarBlobUrl(url: string): Promise<string | null> {
+  let p = avatarBlobUrlCache.get(url);
+  if (!p) {
+    p = fetch(url, { mode: "cors" })
+      .then((res) => (res.ok ? res.blob() : null))
+      .then((blob) => (blob ? URL.createObjectURL(blob) : null))
+      .catch(() => null);
+    avatarBlobUrlCache.set(url, p);
+  }
+  return p;
+}
+
 const DRAG_LIFT_SCALE = 1.18;
 
 declare module "react" {
@@ -655,47 +674,31 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, dragWorldPos, o
     const makeTexture = (img: HTMLImageElement) =>
       new Texture({ source: new ImageSource({ resource: img }) });
 
-    const loadFromBlobUrl = (blobUrl: string) =>
+    const loadImg = (src: string) =>
       new Promise<HTMLImageElement | null>((resolve) => {
         const img = new Image();
         img.onload = () => resolve(img);
         img.onerror = () => resolve(null);
-        img.src = blobUrl;
-      });
-
-    const loadPlaceholder = () =>
-      new Promise<HTMLImageElement | null>((resolve) => {
-        const img = new Image();
-        img.onload = () => resolve(img);
-        img.onerror = () => resolve(null);
-        img.src = avatarPlaceholderUrl;
+        img.src = src;
       });
 
     const run = async () => {
       const externalUrl = npc?.avatarUrl ?? null;
       if (externalUrl) {
-        // Use fetch instead of new Image() to bypass the browser's image
-        // cache. The sidebar <img> tag loads the same URL without crossOrigin,
-        // caching the response without CORS headers. A subsequent Image load
-        // with crossOrigin="anonymous" would get the cached (no-CORS) version
-        // and fail. fetch uses a separate cache that always sends the Origin
-        // header, so R2's CORS policy is respected.
-        try {
-          const res = await fetch(externalUrl, { mode: "cors", cache: "no-cache" });
-          if (!res.ok) throw new Error();
-          const blob = await res.blob();
-          const blobUrl = URL.createObjectURL(blob);
-          const img = await loadFromBlobUrl(blobUrl);
-          URL.revokeObjectURL(blobUrl);
+        // getAvatarBlobUrl fetches once with mode:"cors" and caches the
+        // resulting blob URL. Blob URLs are same-origin → safe for WebGL.
+        // All subsequent PieceSprites for the same NPC reuse the cached promise.
+        const blobUrl = await getAvatarBlobUrl(externalUrl);
+        if (cancelled) return;
+        if (blobUrl) {
+          const img = await loadImg(blobUrl);
           if (cancelled) return;
           if (img) { setAvatarTexture(makeTexture(img)); return; }
-        } catch {
-          // CORS failed or network error — fall through to placeholder
         }
       }
       if (cancelled) return;
-      const fallback = await loadPlaceholder();
-      if (!cancelled) setAvatarTexture(fallback ? makeTexture(fallback) : null);
+      const img = await loadImg(avatarPlaceholderUrl);
+      if (!cancelled) setAvatarTexture(img ? makeTexture(img) : null);
     };
 
     run();
