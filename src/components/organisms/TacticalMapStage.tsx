@@ -625,6 +625,15 @@ function PiecesLayer({
     [hoverSlot, draggingPieceId, map.pieces, map.grid],
   );
 
+  // Dragging piece is rendered last so PixiJS draws it on top of all others.
+  const sortedPieces = useMemo(() => {
+    if (!draggingPieceId) return map.pieces;
+    return [
+      ...map.pieces.filter((p) => p.id !== draggingPieceId),
+      ...map.pieces.filter((p) => p.id === draggingPieceId),
+    ];
+  }, [map.pieces, draggingPieceId]);
+
   return (
     <pixiContainer
       label="pieces-layer"
@@ -634,7 +643,7 @@ function PiecesLayer({
       }}
     >
       <pixiGraphics draw={drawHoverSlot} />
-      {map.pieces.map((p) => (
+      {sortedPieces.map((p) => (
         <PieceSprite
           key={p.id}
           piece={p}
@@ -851,6 +860,7 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, dragWorldPos, o
       const div = overlayDivRef.current;
       const vp = vpRef.current;
       if (!div || !vp || div.style.display === "none") return;
+      div.style.zIndex = isDraggingRef.current ? "10" : "";
       const scale = vp.scale.x;
       const pieceScale = animScaleRef.current;
       const r = avatarRadiusRef.current;
