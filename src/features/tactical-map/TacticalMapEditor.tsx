@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import avatarPlaceholderUrl from "../../assets/placeholder/avatar.png";
 import MapEditorTemplate from "../../components/templates/MapEditorTemplate";
 import MapEditorToolbar from "../../components/organisms/MapEditorToolbar";
 import TacticalMapStage from "../../components/organisms/TacticalMapStage";
@@ -56,6 +58,20 @@ export default function TacticalMapEditor({
   // TODO: wire to PiecesLayer drag state so isDropTarget highlights roster during drag.
   // Requires surfacing dragging state from PiecesLayer up to TacticalMapEditor.
   const isDraggingPieceToRoster = false;
+
+  const ghostRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!placingNpcId) return;
+    const handleMove = (e: PointerEvent) => {
+      if (ghostRef.current) {
+        ghostRef.current.style.left = `${e.clientX}px`;
+        ghostRef.current.style.top = `${e.clientY}px`;
+      }
+    };
+    window.addEventListener("pointermove", handleMove, { passive: true });
+    return () => window.removeEventListener("pointermove", handleMove);
+  }, [placingNpcId]);
 
   // Set of character IDs already on the map
   const placedCharacterIds = useMemo(
@@ -196,6 +212,7 @@ export default function TacticalMapEditor({
   };
 
   return (
+    <>
     <MapEditorTemplate
       sidebar={
         <MapEditorToolbar
@@ -252,5 +269,31 @@ export default function TacticalMapEditor({
         )}
       </div>
     </MapEditorTemplate>
+    {placingNpcId && placingNpcData && createPortal(
+      <div
+        ref={ghostRef}
+        style={{
+          position: "fixed",
+          pointerEvents: "none",
+          zIndex: 9999,
+          transform: "translate(-50%, -50%)",
+          width: 48,
+          height: 48,
+          borderRadius: "50%",
+          overflow: "hidden",
+          border: "2px solid #7c4dff",
+          opacity: 0.9,
+          boxShadow: "0 4px 12px rgba(0,0,0,0.5)",
+        }}
+      >
+        <img
+          src={placingNpcData.avatarUrl ?? avatarPlaceholderUrl}
+          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          alt=""
+        />
+      </div>,
+      document.body,
+    )}
+    </>
   );
 }

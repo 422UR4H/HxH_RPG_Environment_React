@@ -31,6 +31,7 @@ export default function NpcRosterPanel({
   const available = npcs.filter(
     (npc) =>
       !placedCharacterIds.has(npc.uuid) &&
+      npc.uuid !== placingNpcId &&
       npc.nickName.toLowerCase().includes(search.toLowerCase()),
   );
 

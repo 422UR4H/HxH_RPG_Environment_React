@@ -123,6 +123,7 @@ function ViewportInner({
   const vpRef = useRef<Viewport | null>(null);
   const dragState = useRef<DragState>(null);
   const [vpScale, setVpScale] = useState(1);
+  const [placementHoverSlot, setPlacementHoverSlot] = useState<SlotCoord | null>(null);
 
   // Callback ref instead of useEffect([], []): PixiJS v8 initialises async,
   // so the first render may return null (see guard below). A plain effect
@@ -151,7 +152,7 @@ function ViewportInner({
   // When placing an NPC, pause viewport panning so the canvas doesn't drag
   // while the user positions the cursor. Listen for pointerup (not pointerdown)
   // so that both "click on canvas" and "drag from sidebar → release on canvas"
-  // workflows trigger placement.
+  // workflows trigger placement. Also track pointermove for hover slot feedback.
   useEffect(() => {
     const vp = vpRef.current;
     if (!vp || !placingNpcId) return;
@@ -164,13 +165,40 @@ function ViewportInner({
       onNpcPlaced(worldToSlot(world, map.grid));
     };
 
+    const handleMove = (e: FederatedPointerEvent) => {
+      const world = vp.toWorld(e.global.x, e.global.y);
+      setPlacementHoverSlot(worldToSlot(world, map.grid));
+    };
+
     vp.on("pointerup", handleUp);
+    vp.on("pointermove", handleMove);
 
     return () => {
       vp.off("pointerup", handleUp);
+      vp.off("pointermove", handleMove);
       vp.plugins.resume("drag");
+      setPlacementHoverSlot(null);
     };
   }, [placingNpcId, onNpcPlaced, map.grid]);
+
+  const drawPlacementHover = useCallback(
+    (g: PixiGraphics) => {
+      g.clear();
+      if (!placementHoverSlot || !placingNpcId) return;
+      const center = slotToWorld(placementHoverSlot, map.grid);
+      const r = map.grid.cellSize / 2 - 2;
+      g.setFillStyle({ color: 0x30ff80, alpha: 0.3 });
+      g.setStrokeStyle({ color: 0x30ff80, width: 2, alpha: 0.9 });
+      if (map.grid.kind === "square") {
+        g.rect(center.x - r, center.y - r, r * 2, r * 2);
+      } else {
+        g.circle(center.x, center.y, r);
+      }
+      g.fill();
+      g.stroke();
+    },
+    [placementHoverSlot, placingNpcId, map.grid],
+  );
 
   // app.renderer is undefined until PixiJS async init completes. Passing
   // undefined as events to the Viewport constructor crashes in addListeners()
@@ -187,7 +215,7 @@ function ViewportInner({
       worldWidth={map.grid.cols * map.grid.cellSize * 2}
       worldHeight={map.grid.rows * map.grid.cellSize * 2}
       events={events}
-      eventMode={placingNpcId ? "static" : "passive"}
+      eventMode="static"
     >
       <BgLayer
         bg={map.bg}
@@ -197,6 +225,7 @@ function ViewportInner({
       />
       <GridLayer grid={map.grid} vpScale={vpScale} />
       <pixiContainer label="decorations-layer" />
+      <pixiGraphics draw={drawPlacementHover} />
       <PiecesLayer
         map={map}
         vpRef={vpRef}
@@ -526,14 +555,12 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, localDrag, onPo
   useEffect(() => {
     const url = npc?.avatarUrl ?? avatarPlaceholderUrl;
     let cancelled = false;
-    if (url.startsWith("blob:")) {
-      const img = new Image();
-      img.onload = () => { if (!cancelled) setAvatarTexture(new Texture({ source: new ImageSource({ resource: img }) })); };
-      img.onerror = () => { if (!cancelled) setAvatarTexture(null); };
-      img.src = url;
-    } else {
-      Assets.load(url).then((t: Texture) => { if (!cancelled) setAvatarTexture(t); }).catch(() => { if (!cancelled) setAvatarTexture(null); });
-    }
+    const img = new Image();
+    img.onload = () => {
+      if (!cancelled) setAvatarTexture(new Texture({ source: new ImageSource({ resource: img }) }));
+    };
+    img.onerror = () => { if (!cancelled) setAvatarTexture(null); };
+    img.src = url;
     return () => { cancelled = true; };
   }, [npc?.avatarUrl]);
 
@@ -588,33 +615,46 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, localDrag, onPo
   );
 
   // Inset relief — replicates CharacterSheetHeader's AvatarRelief box-shadow effect.
-  // Dark ellipse from top + faint light from bottom = 3D coin impression.
-  // Rendered unmasked; the ~4 px blur bleed is hidden by the gungi frame ring above it.
-  const reliefBlur = useMemo(() => new BlurFilter({ strength: Math.max(2, avatarRadius * 0.18) }), [avatarRadius]);
+  // Dark circle from top + faint light from bottom = subtle inset shadow impression.
+  // Masked to avatarRadius so blurred edges don't spill outside the avatar circle.
+  const reliefBlur = useMemo(() => new BlurFilter({ strength: 2.5 }), []);
   const drawRelief = useCallback(
     (g: PixiGraphics) => {
       g.clear();
       const r = avatarRadius, cy = -zOffsetPx;
-      g.setFillStyle({ color: 0x000000, alpha: 0.52 });
-      g.ellipse(0, cy - r * 0.22, r * 0.95, r * 0.58);
+      // Upper shadow — fills the full circle then a large clearing circle leaves only the rim
+      g.setFillStyle({ color: 0x000000, alpha: 0.42 });
+      g.circle(0, cy - r * 0.18, r * 1.0);
       g.fill();
-      g.setFillStyle({ color: 0xffffff, alpha: 0.10 });
-      g.ellipse(0, cy + r * 0.32, r * 0.78, r * 0.36);
+      // Lower highlight
+      g.setFillStyle({ color: 0xffffff, alpha: 0.07 });
+      g.circle(0, cy + r * 0.22, r * 0.9);
       g.fill();
     },
     [avatarRadius, zOffsetPx],
   );
 
-  // Selection ring — bright white stroke + cyan outer glow so it's unmissable
-  const selectionGlow = useMemo(() => new BlurFilter({ strength: 8 }), []);
+  const reliefMaskRef = useRef<PixiGraphics | null>(null);
+  const reliefContainerRef = useRef<Container | null>(null);
+
+  const drawReliefMask = useCallback((g: PixiGraphics) => {
+    reliefMaskRef.current = g;
+    g.clear();
+    g.setFillStyle({ color: 0xffffff });
+    g.circle(0, -zOffsetPx, avatarRadius);
+    g.fill();
+    if (reliefContainerRef.current) reliefContainerRef.current.mask = g;
+  }, [avatarRadius, zOffsetPx]);
+
+  // Selection ring — bright gold stroke clearly visible on dark backgrounds
   const drawSelection = useCallback(
     (g: PixiGraphics) => {
       g.clear();
       if (!isSelected) return;
-      g.setStrokeStyle({ color: 0xffffff, width: 3.5, alpha: 1.0 });
+      g.setStrokeStyle({ color: 0xffd700, width: 3.5, alpha: 1.0 });
       g.circle(0, -zOffsetPx, tokenRadius + 4);
       g.stroke();
-      g.setStrokeStyle({ color: 0x88ccff, width: 2.5, alpha: 0.65 });
+      g.setStrokeStyle({ color: 0xffe066, width: 2, alpha: 0.5 });
       g.circle(0, -zOffsetPx, tokenRadius + 8);
       g.stroke();
     },
@@ -679,11 +719,19 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, localDrag, onPo
         <pixiGraphics draw={drawFallback} />
       )}
 
-      {/* Inset 3D relief — dark top shadow + faint bottom highlight */}
-      <pixiGraphics draw={drawRelief} filters={[reliefBlur]} />
+      {/* Inset 3D relief — masked so blur doesn't spill outside avatar circle */}
+      <pixiGraphics draw={drawReliefMask} />
+      <pixiContainer
+        ref={(c: Container | null) => {
+          reliefContainerRef.current = c;
+          if (c && reliefMaskRef.current) c.mask = reliefMaskRef.current;
+        }}
+      >
+        <pixiGraphics draw={drawRelief} filters={[reliefBlur]} />
+      </pixiContainer>
 
-      {/* Selection ring with glow — renders last so it's always on top */}
-      <pixiGraphics draw={drawSelection} filters={[selectionGlow]} />
+      {/* Selection ring — bright gold ring, renders last so it's always on top */}
+      <pixiGraphics draw={drawSelection} />
 
       {z > 0 && (
         <pixiText

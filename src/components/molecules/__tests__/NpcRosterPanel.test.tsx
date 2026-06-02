@@ -85,4 +85,20 @@ describe("NpcRosterPanel — lista", () => {
       "true",
     );
   });
+
+  it("oculta o card do NPC que está sendo colocado no campo", async () => {
+    server.use(
+      http.get("http://localhost:5000/campaigns/:id", () =>
+        HttpResponse.json({ campaign: campaignWithNpcs([npcFixture, npc2Fixture]) })
+      )
+    );
+    renderWithProviders(
+      <NpcRosterPanel
+        {...baseProps}
+        placingNpcId={npcFixture.uuid}
+      />
+    );
+    await screen.findByTestId(`npc-card-${npc2Fixture.uuid}`);
+    expect(screen.queryByTestId(`npc-card-${npcFixture.uuid}`)).toBeNull();
+  });
 });
