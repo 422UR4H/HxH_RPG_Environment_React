@@ -733,9 +733,9 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, dragWorldPos, o
     return () => { cancelled = true; };
   }, []);
 
-  const shadowRadius = isDragging ? tokenRadius + 6 : z > 0 ? tokenRadius + 2 + z * 2 : tokenRadius + 2;
-  const shadowAlpha = isDragging ? 0.38 : z > 0 ? 0.45 : 0.58;
-  const shadowBlurStrength = isDragging ? 5 : z > 0 ? 2 + z : 2;
+  const shadowRadius = isDragging ? tokenRadius + 6 : z > 0 ? tokenRadius + 0.1 + z * 0.1 : tokenRadius + 0.1;
+  const shadowAlpha = isDragging ? 0.65 : z > 0 ? 0.5 : 0.7;
+  const shadowBlurStrength = isDragging ? 4.5 : z > 0 ? 3 + z : 3;
   const shadowFilter = useMemo(() => {
     const f = new BlurFilter({ strength: shadowBlurStrength, quality: 4 });
     // Fixed large padding prevents square-corner artifacts at any blur strength or zoom level.
