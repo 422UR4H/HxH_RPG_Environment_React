@@ -720,7 +720,11 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, dragWorldPos, o
   const shadowRadius = isDragging ? tokenRadius + 6 : z > 0 ? tokenRadius + 2 + z * 2 : tokenRadius + 2;
   const shadowAlpha = isDragging ? 0.38 : z > 0 ? 0.45 : 0.58;
   const shadowBlurStrength = isDragging ? 5 : z > 0 ? 2 + z : 2;
-  const shadowFilter = useMemo(() => new BlurFilter({ strength: shadowBlurStrength }), [shadowBlurStrength]);
+  const shadowFilter = useMemo(() => {
+    const f = new BlurFilter({ strength: shadowBlurStrength, quality: 4 });
+    f.padding = shadowBlurStrength * 6;
+    return f;
+  }, [shadowBlurStrength]);
 
   const drawShadow = useCallback(
     (g: PixiGraphics) => {
@@ -742,8 +746,8 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, dragWorldPos, o
     [avatarRadius, zOffsetPx],
   );
 
-  const avatarSpriteRef = useRef<import("pixi.js").Sprite | null>(null);
   const maskRef = useRef<PixiGraphics | null>(null);
+  const avatarGroupRef = useRef<Container | null>(null);
   const drawMask = useCallback(
     (g: PixiGraphics) => {
       maskRef.current = g;
@@ -751,37 +755,36 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, dragWorldPos, o
       g.setFillStyle({ color: 0xffffff });
       g.circle(0, -zOffsetPx, avatarRadius);
       g.fill();
-      if (avatarSpriteRef.current) avatarSpriteRef.current.mask = g;
+      if (avatarGroupRef.current) avatarGroupRef.current.mask = g;
     },
     [avatarRadius, zOffsetPx],
   );
 
-  const reliefBlur = useMemo(() => new BlurFilter({ strength: 2.5 }), []);
-  const drawRelief = useCallback(
+  const reliefBlur = useMemo(() => {
+    const f = new BlurFilter({ strength: 2.5, quality: 4 });
+    f.padding = 16;
+    return f;
+  }, []);
+  // Relief circles are in container-local space: origin = top-left of avatar, center = (r, r).
+  // Offset dark circles far above center so only a thin top arc is visible within the mask —
+  // equivalent to CSS inset box-shadow from top on the HTML AvatarRelief.
+  const drawAvatarRelief = useCallback(
     (g: PixiGraphics) => {
       g.clear();
-      const r = avatarRadius, cy = -zOffsetPx;
-      g.setFillStyle({ color: 0x000000, alpha: 0.42 });
-      g.circle(0, cy - r * 0.18, r * 1.0);
+      const r = avatarRadius;
+      const cx = r, cy = r;
+      g.setFillStyle({ color: 0x000000, alpha: 0.62 });
+      g.circle(cx, cy - r * 1.7, r);
       g.fill();
-      g.setFillStyle({ color: 0xffffff, alpha: 0.07 });
-      g.circle(0, cy + r * 0.22, r * 0.9);
+      g.setFillStyle({ color: 0x000000, alpha: 0.42 });
+      g.circle(cx, cy - r * 1.35, r);
+      g.fill();
+      g.setFillStyle({ color: 0xffffff, alpha: 0.10 });
+      g.circle(cx, cy + r * 0.5, r * 0.85);
       g.fill();
     },
-    [avatarRadius, zOffsetPx],
+    [avatarRadius],
   );
-
-  const reliefMaskRef = useRef<PixiGraphics | null>(null);
-  const reliefContainerRef = useRef<Container | null>(null);
-
-  const drawReliefMask = useCallback((g: PixiGraphics) => {
-    reliefMaskRef.current = g;
-    g.clear();
-    g.setFillStyle({ color: 0xffffff });
-    g.circle(0, -zOffsetPx, avatarRadius);
-    g.fill();
-    if (reliefContainerRef.current) reliefContainerRef.current.mask = g;
-  }, [avatarRadius, zOffsetPx]);
 
   const drawSelection = useCallback(
     (g: PixiGraphics) => {
@@ -827,31 +830,25 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, dragWorldPos, o
       {avatarTexture ? (
         <>
           <pixiGraphics draw={drawMask} />
-          <pixiSprite
-            ref={(s) => {
-              avatarSpriteRef.current = s;
-              if (s && maskRef.current) s.mask = maskRef.current;
+          <pixiContainer
+            ref={(c: Container | null) => {
+              avatarGroupRef.current = c;
+              if (c && maskRef.current) c.mask = maskRef.current;
             }}
-            texture={avatarTexture}
             x={-avatarRadius}
             y={-zOffsetPx - avatarRadius}
-            width={avatarRadius * 2}
-            height={avatarRadius * 2}
-          />
+          >
+            <pixiSprite
+              texture={avatarTexture}
+              width={avatarRadius * 2}
+              height={avatarRadius * 2}
+            />
+            <pixiGraphics draw={drawAvatarRelief} filters={[reliefBlur]} />
+          </pixiContainer>
         </>
       ) : (
         <pixiGraphics draw={drawFallback} />
       )}
-
-      <pixiGraphics draw={drawReliefMask} />
-      <pixiContainer
-        ref={(c: Container | null) => {
-          reliefContainerRef.current = c;
-          if (c && reliefMaskRef.current) c.mask = reliefMaskRef.current;
-        }}
-      >
-        <pixiGraphics draw={drawRelief} filters={[reliefBlur]} />
-      </pixiContainer>
 
       <pixiGraphics draw={drawSelection} />
 
