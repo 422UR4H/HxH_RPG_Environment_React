@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type React from "react";
 import MapEditorTemplate from "../../components/templates/MapEditorTemplate";
 import MapEditorToolbar from "../../components/organisms/MapEditorToolbar";
 import TacticalMapStage from "../../components/organisms/TacticalMapStage";
@@ -95,7 +94,7 @@ export default function TacticalMapEditor({
     localStorage.setItem(key, JSON.stringify(map));
   }, [map, isDirty]);
 
-  const handleNpcPointerDown = (npc: CharacterPrivateSummary, _e: unknown) => {
+  const handleNpcPointerDown = (npc: CharacterPrivateSummary, _e: React.PointerEvent) => {
     setPlacingNpcId(npc.uuid);
     setPlacingNpcData(npc);
   };
@@ -194,16 +193,10 @@ export default function TacticalMapEditor({
     }
   };
 
-  // TODO Task 7: MapEditorToolbar will declare these pieces-related props.
-  // Until then, cast to bypass the type check so the props are wired now.
-  const MapEditorToolbarWithPieces = MapEditorToolbar as React.ComponentType<
-    React.ComponentProps<typeof MapEditorToolbar> & Record<string, unknown>
-  >;
-
   return (
     <MapEditorTemplate
       sidebar={
-        <MapEditorToolbarWithPieces
+        <MapEditorToolbar
           activeTool={activeTool}
           onToolChange={setActiveTool}
           grid={map.grid}

@@ -1,9 +1,12 @@
 import type { ChangeEvent } from "react";
 import styled from "styled-components";
 import type { ToolKind } from "../../features/tactical-map/store/editorStore";
-import type { BgImage, GridShape } from "../../types/tacticalMap";
+import type { BgImage, GridShape, Piece } from "../../types/tacticalMap";
+import type { CharacterPrivateSummary } from "../../types/characterSheet";
 import GridConfigPanel from "../molecules/GridConfigPanel";
 import BgImagePanel from "../molecules/BgImagePanel";
+import NpcRosterPanel from "../molecules/NpcRosterPanel";
+import PiecePropertyPanel from "../molecules/PiecePropertyPanel";
 import { colors, fonts } from "../../styles/tokens";
 
 type Props = {
@@ -23,6 +26,16 @@ type Props = {
   saveLabel: string;
   nameError?: string | null;
   saveError?: string | null;
+  // Fase 4 — pieces
+  campaignId: string;
+  placedCharacterIds: Set<string>;
+  placingNpcId: string | null;
+  isDraggingPieceToRoster: boolean;
+  selectedPiece: Piece | null;
+  npcMap: Map<string, CharacterPrivateSummary>;
+  onPointerDownNpc: (npc: CharacterPrivateSummary, e: React.PointerEvent) => void;
+  onZChange: (pieceId: string, z: number) => void;
+  onRemovePiece: (pieceId: string) => void;
 };
 
 type TabDef = {
@@ -34,7 +47,7 @@ type TabDef = {
 const TABS: TabDef[] = [
   { tool: "grid", label: "Grade", enabled: true },
   { tool: "bg", label: "Fundo", enabled: true },
-  { tool: "pieces", label: "Peças", enabled: false },
+  { tool: "pieces", label: "Peças", enabled: true },
   { tool: "walls", label: "Paredes", enabled: false },
   { tool: "decorations", label: "Decorações", enabled: false },
 ];
@@ -56,6 +69,16 @@ export default function MapEditorToolbar({
   saveLabel,
   nameError,
   saveError,
+  // Fase 4 — pieces
+  campaignId,
+  placedCharacterIds,
+  placingNpcId,
+  isDraggingPieceToRoster,
+  selectedPiece,
+  npcMap,
+  onPointerDownNpc,
+  onZChange,
+  onRemovePiece,
 }: Props) {
   const handleNameChange = (e: ChangeEvent<HTMLInputElement>) => {
     onNameChange(e.target.value);
@@ -94,6 +117,25 @@ export default function MapEditorToolbar({
             onBgChange={onBgChange}
             onGridChange={onGridChange}
           />
+        )}
+        {activeTool === "pieces" && (
+          <PiecesPanel>
+            {selectedPiece && npcMap.get(selectedPiece.characterId) && (
+              <PiecePropertyPanel
+                piece={selectedPiece}
+                npc={npcMap.get(selectedPiece.characterId)!}
+                onZChange={(z) => onZChange(selectedPiece.id, z)}
+                onRemove={() => onRemovePiece(selectedPiece.id)}
+              />
+            )}
+            <NpcRosterPanel
+              campaignId={campaignId}
+              placedCharacterIds={placedCharacterIds}
+              placingNpcId={placingNpcId}
+              isDropTarget={isDraggingPieceToRoster}
+              onPointerDownNpc={onPointerDownNpc}
+            />
+          </PiecesPanel>
         )}
       </PanelArea>
 
@@ -173,6 +215,13 @@ const TabButton = styled.button<{ $active: boolean }>`
 const PanelArea = styled.div`
   flex: 1;
   overflow-y: auto;
+`;
+
+const PiecesPanel = styled.div`
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
 `;
 
 const MetaSection = styled.div`
