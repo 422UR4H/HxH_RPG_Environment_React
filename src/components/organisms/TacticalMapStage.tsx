@@ -130,10 +130,15 @@ function ViewportInner({
   // with [] deps fires on that first null render and never again, leaving
   // plugins unwired. A callback ref fires at Viewport construction time,
   // whenever that happens.
+  //
+  // NOTE: vp.drag() is intentionally omitted — pan is implemented via stage
+  // events below so it is guaranteed to work regardless of pixi-viewport's
+  // internal event registration. Pinch/wheel/decelerate still delegate to
+  // the pixi-viewport plugins.
   const vpCallback = useCallback((vp: Viewport | null) => {
     vpRef.current = vp;
     if (!vp) return;
-    vp.drag().pinch().wheel().decelerate();
+    vp.pinch().wheel().decelerate();
     vp.on("zoomed", () => setVpScale(vp.scale.x));
   }, []);
 
@@ -149,37 +154,84 @@ function ViewportInner({
     });
   }, [clampToGrid, map.grid.cols, map.grid.cellSize, map.grid.rows]);
 
-  // When placing an NPC, pause viewport panning so the canvas doesn't drag
-  // while the user positions the cursor. Listen for pointerup (not pointerdown)
-  // so that both "click on canvas" and "drag from sidebar → release on canvas"
-  // workflows trigger placement. Also track pointermove for hover slot feedback.
+  // Manual viewport pan via stage events — reliable regardless of pixi-viewport
+  // drag plugin state. Only pans when NOT in NPC placement mode.
+  // Uses refs to avoid stale closures in the event handlers.
+  const isPanningRef = useRef(false);
+  const panStartScreenRef = useRef({ x: 0, y: 0 });
+  const panStartVpRef = useRef({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const vp = vpRef.current;
+    const stage = app?.stage;
+    if (!vp || !stage) return;
+
+    const handlePanDown = (e: FederatedPointerEvent) => {
+      if (placingNpcId) return;
+      if (e.button !== 0) return;
+      isPanningRef.current = true;
+      panStartScreenRef.current = { x: e.global.x, y: e.global.y };
+      panStartVpRef.current = { x: vp.x, y: vp.y };
+    };
+
+    const handlePanMove = (e: FederatedPointerEvent) => {
+      if (!isPanningRef.current) return;
+      vp.x = panStartVpRef.current.x + (e.global.x - panStartScreenRef.current.x);
+      vp.y = panStartVpRef.current.y + (e.global.y - panStartScreenRef.current.y);
+    };
+
+    const handlePanUp = () => { isPanningRef.current = false; };
+
+    stage.on("pointerdown", handlePanDown);
+    stage.on("pointermove", handlePanMove);
+    stage.on("pointerup", handlePanUp);
+    stage.on("pointerupoutside", handlePanUp);
+
+    return () => {
+      stage.off("pointerdown", handlePanDown);
+      stage.off("pointermove", handlePanMove);
+      stage.off("pointerup", handlePanUp);
+      stage.off("pointerupoutside", handlePanUp);
+      isPanningRef.current = false;
+    };
+  }, [app, vpRef, placingNpcId]);
+
+  // NPC placement: window-level pointerup so the release is detected even when
+  // the DOM pointerdown was on the sidebar card (which disappears immediately
+  // when placingNpcId is set, causing the browser to route pointerup to body
+  // rather than to the canvas — pixi-viewport's vp.on("pointerup") never fires
+  // in that case). The canvas bounding rect is used to determine if the release
+  // happened over the map.
   useEffect(() => {
     const vp = vpRef.current;
     if (!vp || !placingNpcId) return;
 
-    vp.plugins.pause("drag");
-
-    const handleUp = (e: FederatedPointerEvent) => {
+    const handleWindowPointerUp = (e: PointerEvent) => {
       if (!onNpcPlaced) return;
-      const world = vp.toWorld(e.global.x, e.global.y);
+      const canvas = app?.canvas;
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) return;
+      const canvasX = e.clientX - rect.left;
+      const canvasY = e.clientY - rect.top;
+      const world = vp.toWorld(canvasX, canvasY);
       onNpcPlaced(worldToSlot(world, map.grid));
     };
 
-    const handleMove = (e: FederatedPointerEvent) => {
+    const handlePixiMove = (e: FederatedPointerEvent) => {
       const world = vp.toWorld(e.global.x, e.global.y);
       setPlacementHoverSlot(worldToSlot(world, map.grid));
     };
 
-    vp.on("pointerup", handleUp);
-    vp.on("pointermove", handleMove);
+    window.addEventListener("pointerup", handleWindowPointerUp);
+    vp.on("pointermove", handlePixiMove);
 
     return () => {
-      vp.off("pointerup", handleUp);
-      vp.off("pointermove", handleMove);
-      vp.plugins.resume("drag");
+      window.removeEventListener("pointerup", handleWindowPointerUp);
+      vp.off("pointermove", handlePixiMove);
       setPlacementHoverSlot(null);
     };
-  }, [placingNpcId, onNpcPlaced, map.grid]);
+  }, [app, placingNpcId, onNpcPlaced, map.grid]);
 
   const drawPlacementHover = useCallback(
     (g: PixiGraphics) => {
