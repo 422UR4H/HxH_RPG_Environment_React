@@ -1,11 +1,15 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type React from "react";
 import MapEditorTemplate from "../../components/templates/MapEditorTemplate";
 import MapEditorToolbar from "../../components/organisms/MapEditorToolbar";
 import TacticalMapStage from "../../components/organisms/TacticalMapStage";
 import { useResizeObserver } from "../../hooks/useResizeObserver";
 import { createEditorStore } from "./store/editorStore";
 import type { EditorStore } from "./store/editorStore";
-import type { TacticalMap } from "../../types/tacticalMap";
+import type { TacticalMap, SlotCoord } from "../../types/tacticalMap";
+import useToken from "../../hooks/useToken";
+import { useCampaignDetails } from "../../hooks/useCampaignDetails";
+import type { CharacterPrivateSummary } from "../../types/characterSheet";
 
 type Props = {
   campaignId: string;
@@ -16,7 +20,7 @@ type Props = {
 };
 
 export default function TacticalMapEditor({
-  campaignId: _campaignId,
+  campaignId,
   initialMap,
   onSave,
   onSaveSuccess,
@@ -36,6 +40,34 @@ export default function TacticalMapEditor({
   const setBg = store((s) => s.setBg);
   const setActiveTool = store((s) => s.setActiveTool);
   const markClean = store((s) => s.markClean);
+  const pieces = store((s) => s.map.pieces);
+  const selection = store((s) => s.selection);
+  const placePiece = store((s) => s.placePiece);
+  const movePiece = store((s) => s.movePiece);
+  const setPieceZ = store((s) => s.setPieceZ);
+  const removePiece = store((s) => s.removePiece);
+  const setSelection = store((s) => s.setSelection);
+
+  const { token } = useToken();
+  const { data: campaign } = useCampaignDetails(token, campaignId);
+
+  // UI-only state — not persisted in store
+  const [placingNpcId, setPlacingNpcId] = useState<string | null>(null);
+  const [placingNpcData, setPlacingNpcData] = useState<CharacterPrivateSummary | null>(null);
+  const isDraggingPieceToRoster = false;
+
+  // Set of character IDs already on the map
+  const placedCharacterIds = useMemo(
+    () => new Set(pieces.map((p) => p.characterId)),
+    [pieces],
+  );
+
+  // Map uuid → CharacterPrivateSummary for PieceSprite lookup
+  const npcMap = useMemo(() => {
+    const m = new Map<string, CharacterPrivateSummary>();
+    (campaign?.characterSheets ?? []).forEach((cs) => m.set(cs.uuid, cs));
+    return m;
+  }, [campaign]);
 
   const canvasRef = useRef<HTMLDivElement>(null);
   const { width, height } = useResizeObserver(canvasRef);
@@ -62,6 +94,36 @@ export default function TacticalMapEditor({
       : "tactical-map-draft:new";
     localStorage.setItem(key, JSON.stringify(map));
   }, [map, isDirty]);
+
+  const handleNpcPointerDown = (npc: CharacterPrivateSummary, _e: unknown) => {
+    setPlacingNpcId(npc.uuid);
+    setPlacingNpcData(npc);
+  };
+
+  const handleNpcPlaced = (slot: SlotCoord) => {
+    if (!placingNpcData) return;
+    const occupied = pieces.some(
+      (p) => JSON.stringify(p.coord.slot) === JSON.stringify(slot),
+    );
+    if (occupied) return;
+    placePiece({
+      id: crypto.randomUUID(),
+      characterId: placingNpcData.uuid,
+      coord: { slot, z: 0 },
+      visible: true,
+    });
+    setPlacingNpcId(null);
+    setPlacingNpcData(null);
+  };
+
+  const handlePieceDragToRoster = (pieceId: string) => {
+    removePiece(pieceId);
+    if (selection?.kind === "piece" && selection.id === pieceId) {
+      setSelection(null);
+    }
+  };
+
+  const handleStageDeselect = () => setSelection(null);
 
   const handleSave = async () => {
     if (!map.name.trim()) {
@@ -132,10 +194,16 @@ export default function TacticalMapEditor({
     }
   };
 
+  // TODO Task 7: MapEditorToolbar will declare these pieces-related props.
+  // Until then, cast to bypass the type check so the props are wired now.
+  const MapEditorToolbarWithPieces = MapEditorToolbar as React.ComponentType<
+    React.ComponentProps<typeof MapEditorToolbar> & Record<string, unknown>
+  >;
+
   return (
     <MapEditorTemplate
       sidebar={
-        <MapEditorToolbar
+        <MapEditorToolbarWithPieces
           activeTool={activeTool}
           onToolChange={setActiveTool}
           grid={map.grid}
@@ -152,18 +220,40 @@ export default function TacticalMapEditor({
           saveLabel={saveLabel}
           nameError={nameError}
           saveError={saveError}
+          campaignId={campaignId}
+          placedCharacterIds={placedCharacterIds}
+          placingNpcId={placingNpcId}
+          isDraggingPieceToRoster={isDraggingPieceToRoster}
+          selectedPiece={
+            selection?.kind === "piece"
+              ? (pieces.find((p) => p.id === selection.id) ?? null)
+              : null
+          }
+          npcMap={npcMap}
+          onPointerDownNpc={handleNpcPointerDown}
+          onZChange={setPieceZ}
+          onRemovePiece={(id: string) => { removePiece(id); setSelection(null); }}
         />
       }
     >
       <div ref={canvasRef} style={{ width: "100%", height: "100%" }}>
         {width > 0 && height > 0 && (
           <TacticalMapStage
-                  map={map}
-                  width={width}
-                  height={height}
-                  bgInteractive={activeTool === "bg"}
-                  onBgPositionChange={(x, y) => setBg(bg ? { ...bg, x, y } : null)}
-                />
+            map={map}
+            width={width}
+            height={height}
+            bgInteractive={activeTool === "bg"}
+            piecesInteractive={activeTool === "pieces"}
+            selection={selection}
+            npcMap={npcMap}
+            placingNpcId={placingNpcId}
+            onNpcPlaced={handleNpcPlaced}
+            onBgPositionChange={(x, y) => setBg(bg ? { ...bg, x, y } : null)}
+            onPieceSelect={(id) => setSelection({ kind: "piece", id })}
+            onPieceMove={movePiece}
+            onPieceDragToRoster={handlePieceDragToRoster}
+            onStageDeselect={handleStageDeselect}
+          />
         )}
       </div>
     </MapEditorTemplate>
