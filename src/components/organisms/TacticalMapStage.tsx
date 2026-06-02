@@ -88,27 +88,36 @@ export default function TacticalMapStage({
   onNpcPlacementCancel,
   onStageDeselect,
 }: Props) {
+  const overlayRef = useRef<HTMLDivElement>(null);
+
   return (
-    <Application width={width} height={height} background={0x101820}>
-      <ViewportInner
-        map={map}
-        width={width}
-        height={height}
-        clampToGrid={clampToGrid}
-        bgInteractive={bgInteractive}
-        onBgPositionChange={onBgPositionChange}
-        piecesInteractive={piecesInteractive}
-        selection={selection}
-        npcMap={npcMap}
-        placingNpcId={placingNpcId}
-        onPieceSelect={onPieceSelect}
-        onPieceMove={onPieceMove}
-        onPieceDragToRoster={onPieceDragToRoster}
-        onNpcPlaced={onNpcPlaced}
-        onNpcPlacementCancel={onNpcPlacementCancel}
-        onStageDeselect={onStageDeselect}
+    <div style={{ position: "relative", width, height, overflow: "hidden" }}>
+      <Application width={width} height={height} background={0x101820}>
+        <ViewportInner
+          map={map}
+          width={width}
+          height={height}
+          clampToGrid={clampToGrid}
+          bgInteractive={bgInteractive}
+          onBgPositionChange={onBgPositionChange}
+          piecesInteractive={piecesInteractive}
+          selection={selection}
+          npcMap={npcMap}
+          placingNpcId={placingNpcId}
+          onPieceSelect={onPieceSelect}
+          onPieceMove={onPieceMove}
+          onPieceDragToRoster={onPieceDragToRoster}
+          onNpcPlaced={onNpcPlaced}
+          onNpcPlacementCancel={onNpcPlacementCancel}
+          onStageDeselect={onStageDeselect}
+          overlayRef={overlayRef}
+        />
+      </Application>
+      <div
+        ref={overlayRef}
+        style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }}
       />
-    </Application>
+    </div>
   );
 }
 
@@ -136,7 +145,8 @@ function ViewportInner({
   onNpcPlaced,
   onNpcPlacementCancel,
   onStageDeselect,
-}: Props) {
+  overlayRef,
+}: Props & { overlayRef: React.RefObject<HTMLDivElement | null> }) {
   const { app } = useApplication();
   const vpRef = useRef<Viewport | null>(null);
   const dragState = useRef<DragState>(null);
@@ -322,6 +332,7 @@ function ViewportInner({
       <PiecesLayer
         map={map}
         vpRef={vpRef}
+        overlayRef={overlayRef}
         piecesInteractive={piecesInteractive}
         selection={selection}
         npcMap={npcMap}
@@ -467,11 +478,12 @@ type PieceLocalDragState = {
 } | null;
 
 function PiecesLayer({
-  map, vpRef, piecesInteractive, selection, npcMap, pieceDragActiveRef,
+  map, vpRef, overlayRef, piecesInteractive, selection, npcMap, pieceDragActiveRef,
   onPieceSelect, onPieceMove, onPieceDragToRoster, onStageDeselect,
 }: {
   map: TacticalMap;
   vpRef: React.MutableRefObject<Viewport | null>;
+  overlayRef: React.RefObject<HTMLDivElement | null>;
   piecesInteractive?: boolean;
   selection?: Selection;
   npcMap?: Map<string, CharacterPrivateSummary>;
@@ -631,6 +643,8 @@ function PiecesLayer({
           isSelected={selection?.kind === "piece" && selection.id === p.id}
           isDragging={draggingPieceId === p.id}
           dragWorldPos={draggingPieceId === p.id ? dragWorldPos : null}
+          overlayRef={overlayRef}
+          vpRef={vpRef}
           onPointerDown={(_piece, e) => {
             if (!piecesInteractive || localDrag.current) return;
             pieceDragActiveRef.current = true;
@@ -655,10 +669,12 @@ type PieceSpriteProps = {
   isSelected: boolean;
   isDragging: boolean;
   dragWorldPos?: { x: number; y: number } | null;
+  overlayRef: React.RefObject<HTMLDivElement | null>;
+  vpRef: React.MutableRefObject<Viewport | null>;
   onPointerDown: (piece: Piece, e: FederatedPointerEvent) => void;
 };
 
-function PieceSprite({ piece, grid, npc, isSelected, isDragging, dragWorldPos, onPointerDown }: PieceSpriteProps) {
+function PieceSprite({ piece, grid, npc, isSelected, isDragging, dragWorldPos, overlayRef, vpRef, onPointerDown }: PieceSpriteProps) {
   const center = useMemo(() => slotToWorld(piece.coord.slot, grid), [piece.coord.slot, grid]);
   const tokenRadius = grid.cellSize * 0.45;
   const avatarRadius = tokenRadius * 0.7;
@@ -760,31 +776,74 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, dragWorldPos, o
     [avatarRadius, zOffsetPx],
   );
 
-  const reliefBlur = useMemo(() => {
-    const f = new BlurFilter({ strength: 2.5, quality: 4 });
-    f.padding = 16;
-    return f;
-  }, []);
-  // Relief circles are in container-local space: origin = top-left of avatar, center = (r, r).
-  // Offset dark circles far above center so only a thin top arc is visible within the mask —
-  // equivalent to CSS inset box-shadow from top on the HTML AvatarRelief.
-  const drawAvatarRelief = useCallback(
-    (g: PixiGraphics) => {
-      g.clear();
-      const r = avatarRadius;
-      const cx = r, cy = r;
-      g.setFillStyle({ color: 0x000000, alpha: 0.62 });
-      g.circle(cx, cy - r * 1.7, r);
-      g.fill();
-      g.setFillStyle({ color: 0x000000, alpha: 0.42 });
-      g.circle(cx, cy - r * 1.35, r);
-      g.fill();
-      g.setFillStyle({ color: 0xffffff, alpha: 0.10 });
-      g.circle(cx, cy + r * 0.5, r * 0.85);
-      g.fill();
-    },
-    [avatarRadius],
-  );
+  // DOM overlay: exact CSS inset box-shadow from AvatarRelief (CharacterSheetHeader).
+  // PixiJS canvas cannot apply CSS box-shadow; we overlay an HTML div on top of the
+  // canvas and update its position/size via a PixiJS ticker each frame.
+  const { app } = useApplication();
+  const overlayDivRef = useRef<HTMLDivElement | null>(null);
+  const posXRef = useRef(posX);
+  const posYRef = useRef(posY);
+  const isDraggingRef = useRef(isDragging);
+  const avatarRadiusRef = useRef(avatarRadius);
+  const zOffsetPxRef = useRef(zOffsetPx);
+  posXRef.current = posX;
+  posYRef.current = posY;
+  isDraggingRef.current = isDragging;
+  avatarRadiusRef.current = avatarRadius;
+  zOffsetPxRef.current = zOffsetPx;
+
+  useEffect(() => {
+    const container = overlayRef.current;
+    if (!container) return;
+    const div = document.createElement("div");
+    div.style.cssText =
+      "position:absolute;border-radius:50%;pointer-events:none;display:none";
+    container.appendChild(div);
+    overlayDivRef.current = div;
+    return () => { div.remove(); overlayDivRef.current = null; };
+  }, [overlayRef]);
+
+  useEffect(() => {
+    const div = overlayDivRef.current;
+    if (div) div.style.display = avatarTexture ? "block" : "none";
+  }, [avatarTexture]);
+
+  useEffect(() => {
+    if (!app) return;
+    let lastSz = 0;
+    const update = () => {
+      const div = overlayDivRef.current;
+      const vp = vpRef.current;
+      if (!div || !vp || div.style.display === "none") return;
+      const scale = vp.scale.x;
+      const dragging = isDraggingRef.current;
+      const pieceScale = dragging ? DRAG_LIFT_SCALE : 1;
+      const r = avatarRadiusRef.current;
+      const sr = r * scale * pieceScale;
+      const sz = sr * 2;
+      const sp = vp.toScreen(
+        posXRef.current,
+        dragging ? posYRef.current - 8 : posYRef.current,
+      );
+      const zOff = zOffsetPxRef.current * scale * pieceScale;
+      div.style.left = `${sp.x - sr}px`;
+      div.style.top = `${sp.y - zOff - sr}px`;
+      if (sz !== lastSz) {
+        lastSz = sz;
+        div.style.width = `${sz}px`;
+        div.style.height = `${sz}px`;
+        const cqi = sz / 100;
+        div.style.boxShadow = [
+          `inset 0 ${0.55 * cqi}px ${0.7 * cqi}px rgba(0,0,0,0.62)`,
+          `inset 0 ${1.7 * cqi}px ${2.4 * cqi}px rgba(0,0,0,0.42)`,
+          `inset 0 ${-0.55 * cqi}px ${0.75 * cqi}px rgba(255,255,255,0.14)`,
+          `inset 0 ${-1.5 * cqi}px ${2.0 * cqi}px rgba(255,255,255,0.05)`,
+        ].join(",");
+      }
+    };
+    app.ticker.add(update);
+    return () => { app.ticker.remove(update); };
+  }, [app, vpRef, overlayRef]);
 
   const drawSelection = useCallback(
     (g: PixiGraphics) => {
@@ -843,7 +902,6 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, dragWorldPos, o
               width={avatarRadius * 2}
               height={avatarRadius * 2}
             />
-            <pixiGraphics draw={drawAvatarRelief} filters={[reliefBlur]} />
           </pixiContainer>
         </>
       ) : (
