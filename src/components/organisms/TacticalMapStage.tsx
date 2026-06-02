@@ -726,10 +726,10 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, dragWorldPos, o
     (g: PixiGraphics) => {
       g.clear();
       g.setFillStyle({ color: 0x000000, alpha: shadowAlpha });
-      g.circle(0, 2, shadowRadius);
+      g.circle(0, -zOffsetPx + 2, shadowRadius);
       g.fill();
     },
-    [shadowRadius, shadowAlpha],
+    [shadowRadius, shadowAlpha, zOffsetPx],
   );
 
   const drawFallback = useCallback(
