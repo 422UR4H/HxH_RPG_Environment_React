@@ -184,14 +184,14 @@ function ViewportInner({
 
     stage.on("pointerdown", handlePanDown);
     stage.on("pointermove", handlePanMove);
-    stage.on("pointerup", handlePanUp);
-    stage.on("pointerupoutside", handlePanUp);
+    // window-level so releasing outside the canvas always clears pan state —
+    // stage events are canvas-scoped and miss outside releases.
+    window.addEventListener("pointerup", handlePanUp);
 
     return () => {
       stage.off("pointerdown", handlePanDown);
       stage.off("pointermove", handlePanMove);
-      stage.off("pointerup", handlePanUp);
-      stage.off("pointerupoutside", handlePanUp);
+      window.removeEventListener("pointerup", handlePanUp);
       isPanningRef.current = false;
     };
   }, [app, vpRef, placingNpcId]);
@@ -517,13 +517,48 @@ function PiecesLayer({
       if (!occupied) onPieceMove?.(drag.pieceId, slot);
     };
 
+    // Window-level cleanup: when the pointer is released OUTSIDE the canvas
+    // (e.g. dragging a piece to the sidebar), stage.on("pointerup") never fires
+    // because Pixi only processes canvas-scoped DOM events. The window handler
+    // fires after the stage handler (DOM events bubble canvas → document → window),
+    // so if localDrag was already cleared by the stage handler it exits immediately.
+    const handleWindowUp = (e: PointerEvent) => {
+      const drag = localDrag.current;
+      if (!drag) return; // stage handler already ran for canvas releases
+      vpRef.current?.plugins.resume("drag");
+      localDrag.current = null;
+      setDraggingPieceId(null);
+      setHoverSlot(null);
+      if (!drag.isDragging) return; // quick click outside: just cleanup
+      // Determine whether the release is outside the canvas
+      const canvas = app?.canvas;
+      if (!canvas) { onPieceDragToRoster?.(drag.pieceId); return; }
+      const rect = canvas.getBoundingClientRect();
+      const overCanvas = e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom;
+      if (!overCanvas) {
+        onPieceDragToRoster?.(drag.pieceId);
+      } else {
+        // Release inside canvas but stage handler missed it — try move
+        const vp = vpRef.current;
+        if (!vp) return;
+        const world = vp.toWorld(e.clientX - rect.left, e.clientY - rect.top);
+        const slot = worldToSlot(world, map.grid);
+        const occupied = map.pieces.some(
+          (p) => p.id !== drag.pieceId && JSON.stringify(p.coord.slot) === JSON.stringify(slot),
+        );
+        if (!occupied) onPieceMove?.(drag.pieceId, slot);
+      }
+    };
+
     stage.on("pointermove", handleMove);
     stage.on("pointerup", handleUp);
     stage.on("pointerupoutside", handleUp);
+    window.addEventListener("pointerup", handleWindowUp);
     return () => {
       stage.off("pointermove", handleMove);
       stage.off("pointerup", handleUp);
       stage.off("pointerupoutside", handleUp);
+      window.removeEventListener("pointerup", handleWindowUp);
     };
   }, [app, vpRef, map.grid, map.pieces, piecesInteractive, onPieceSelect, onPieceMove, onPieceDragToRoster]);
 
