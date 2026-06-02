@@ -1,5 +1,5 @@
 // src/test/fixtures/map.ts
-import type { TacticalMap } from "../../types/tacticalMap";
+import type { Piece, TacticalMap } from "../../types/tacticalMap";
 
 export const mapFixture: TacticalMap = {
   id: "map-1",
@@ -25,3 +25,15 @@ export const mapFixture: TacticalMap = {
   createdAt: "2026-05-31T00:00:00.000Z",
   updatedAt: "2026-05-31T00:00:00.000Z",
 };
+
+export const pieceFixture: Piece = {
+  id: "piece-1",
+  characterId: "npc-1",
+  coord: { slot: { kind: "square", col: 2, row: 3 }, z: 0 },
+  visible: true,
+};
+
+export const mapWithPieces = (pieces: Piece[]) => ({
+  ...mapFixture,
+  pieces,
+});
