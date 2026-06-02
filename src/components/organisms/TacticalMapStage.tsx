@@ -164,25 +164,30 @@ function ViewportInner({
 
   // ─── Viewport pan via DOM events ─────────────────────────────────────────
   //
-  // canvas.addEventListener fires unconditionally; stage.on("pointerdown")
-  // misses empty areas when pixi-viewport swallows the hit-test.
+  // All listeners are on window so they register unconditionally regardless of
+  // whether app.renderer (and therefore app.canvas) is ready at effect time.
+  // If canvas.addEventListener were used instead, the effect would early-return
+  // when Pixi hasn't finished async init — and since app is always the same
+  // reference, the effect never re-runs to register the missed listener.
   //
-  // pieceDragActiveRef: piece onPointerDown sets this synchronously BEFORE our
-  // requestAnimationFrame callback runs (Pixi's canvas listener fires first,
-  // registered at app-init time). RAF checks the flag and skips pan start.
+  // pieceDragActiveRef: piece onPointerDown sets this before our RAF fires so
+  // pan can skip starting when a piece was the actual target.
   const pieceDragActiveRef = useRef(false);
   const isPanningRef = useRef(false);
   const panStartClientRef = useRef({ x: 0, y: 0 });
   const panStartVpRef = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
-    // app?.canvas getter throws when Pixi hasn't finished init (StrictMode
-    // double-invoke). Guard via renderer presence.
-    const canvas = app?.renderer ? app.canvas : null;
-    if (!canvas) return;
-
-    const onCanvasDown = (e: PointerEvent) => {
-      if (placingNpcId || bgInteractive || e.button !== 0) return;
+    const onWindowDown = (e: PointerEvent) => {
+      // Resolve canvas dynamically — avoids storing a possibly-stale reference
+      // captured at effect-registration time.
+      const canvas = app?.renderer ? app.canvas : null;
+      if (!canvas || placingNpcId || bgInteractive || e.button !== 0) return;
+      const rect = canvas.getBoundingClientRect();
+      if (
+        e.clientX < rect.left || e.clientX > rect.right ||
+        e.clientY < rect.top  || e.clientY > rect.bottom
+      ) return;
       const vp = vpRef.current;
       if (!vp) return;
       const snapX = e.clientX;
@@ -208,13 +213,13 @@ function ViewportInner({
 
     const onWindowUp = () => { isPanningRef.current = false; };
 
-    canvas.addEventListener("pointerdown", onCanvasDown);
+    window.addEventListener("pointerdown", onWindowDown);
     window.addEventListener("pointermove", onWindowMove);
     window.addEventListener("pointerup", onWindowUp);
     window.addEventListener("pointercancel", onWindowUp);
 
     return () => {
-      canvas.removeEventListener("pointerdown", onCanvasDown);
+      window.removeEventListener("pointerdown", onWindowDown);
       window.removeEventListener("pointermove", onWindowMove);
       window.removeEventListener("pointerup", onWindowUp);
       window.removeEventListener("pointercancel", onWindowUp);
@@ -225,23 +230,22 @@ function ViewportInner({
   // ─── NPC placement ────────────────────────────────────────────────────────
   useEffect(() => {
     if (!placingNpcId) return;
-    const canvas = app?.renderer ? app.canvas : null;
-    if (!canvas) return;
 
     const handlePointerUp = (e: PointerEvent) => {
       if (e.type === "pointercancel") {
         onNpcPlacementCancel?.();
         return;
       }
+      const canvas = app?.renderer ? app.canvas : null;
       const vp = vpRef.current;
-      const rect = canvas.getBoundingClientRect();
+      const rect = canvas?.getBoundingClientRect();
       const overCanvas =
-        vp != null &&
+        vp != null && rect != null &&
         e.clientX >= rect.left && e.clientX <= rect.right &&
         e.clientY >= rect.top  && e.clientY <= rect.bottom;
 
       if (overCanvas && onNpcPlaced) {
-        const world = vp!.toWorld(e.clientX - rect.left, e.clientY - rect.top);
+        const world = vp!.toWorld(e.clientX - rect!.left, e.clientY - rect!.top);
         onNpcPlaced(worldToSlot(world, map.grid));
       } else {
         onNpcPlacementCancel?.();
@@ -249,8 +253,9 @@ function ViewportInner({
     };
 
     const handlePointerMove = (e: PointerEvent) => {
+      const canvas = app?.renderer ? app.canvas : null;
       const vp = vpRef.current;
-      if (!vp) return;
+      if (!vp || !canvas) return;
       const rect = canvas.getBoundingClientRect();
       const cx = e.clientX - rect.left;
       const cy = e.clientY - rect.top;
@@ -488,15 +493,13 @@ function PiecesLayer({
   useEffect(() => {
     const stage = app?.stage;
     if (!stage || !piecesInteractive) return;
-    // Guard getter: canvas getter throws if Pixi hasn't finished init yet.
-    const canvas = app?.renderer ? app.canvas : null;
 
     // window.addEventListener fires even over empty canvas areas where Pixi
     // stage events would be swallowed (no hit-testable object under cursor).
     const handleMoveDOM = (e: PointerEvent) => {
       const drag = localDrag.current;
       if (!drag) return;
-      const rect = canvas?.getBoundingClientRect();
+      const rect = (app?.renderer ? app.canvas : null)?.getBoundingClientRect();
       if (!rect) return;
       const stageX = e.clientX - rect.left;
       const stageY = e.clientY - rect.top;
@@ -552,7 +555,7 @@ function PiecesLayer({
       setDragWorldPos(null);
       setHoverSlot(null);
       if (e.type === "pointercancel") return;
-      const rect = canvas?.getBoundingClientRect();
+      const rect = (app?.renderer ? app.canvas : null)?.getBoundingClientRect();
       const overCanvas =
         !!rect &&
         e.clientX >= rect.left && e.clientX <= rect.right &&
