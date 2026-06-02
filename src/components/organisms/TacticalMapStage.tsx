@@ -834,10 +834,14 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, dragWorldPos, o
         div.style.height = `${sz}px`;
         const cqi = sz / 100;
         div.style.boxShadow = [
-          `inset 0 ${0.55 * cqi}px ${0.7 * cqi}px rgba(0,0,0,0.62)`,
-          `inset 0 ${1.7 * cqi}px ${2.4 * cqi}px rgba(0,0,0,0.42)`,
-          `inset 0 ${-0.55 * cqi}px ${0.75 * cqi}px rgba(255,255,255,0.14)`,
-          `inset 0 ${-1.5 * cqi}px ${2.0 * cqi}px rgba(255,255,255,0.05)`,
+          `inset 0 ${4 * cqi}px ${5 * cqi}px rgba(0,0,0,0.62)`,
+          // `inset 0 ${0.55 * cqi}px ${0.7 * cqi}px rgba(0,0,0,0.62)`,
+          `inset 0 ${5 * cqi}px ${8 * cqi}px rgba(0,0,0,0.42)`,
+          // `inset 0 ${1.7 * cqi}px ${2.4 * cqi}px rgba(0,0,0,0.42)`,
+          `inset 0 ${-2 * cqi}px ${3 * cqi}px rgba(255,255,255,0.14)`,
+          // `inset 0 ${-0.55 * cqi}px ${0.75 * cqi}px rgba(255,255,255,0.14)`,
+          `inset 0 ${-4 * cqi}px ${8 * cqi}px rgba(255,255,255,0.05)`,
+          // `inset 0 ${-1.5 * cqi}px ${2.0 * cqi}px rgba(255,255,255,0.05)`,
         ].join(",");
       }
     };
