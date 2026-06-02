@@ -53,6 +53,8 @@ export default function TacticalMapEditor({
   // UI-only state — not persisted in store
   const [placingNpcId, setPlacingNpcId] = useState<string | null>(null);
   const [placingNpcData, setPlacingNpcData] = useState<CharacterPrivateSummary | null>(null);
+  // TODO: wire to PiecesLayer drag state so isDropTarget highlights roster during drag.
+  // Requires surfacing dragging state from PiecesLayer up to TacticalMapEditor.
   const isDraggingPieceToRoster = false;
 
   // Set of character IDs already on the map

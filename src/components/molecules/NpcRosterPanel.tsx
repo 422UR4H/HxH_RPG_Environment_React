@@ -25,6 +25,8 @@ export default function NpcRosterPanel({
   const { data: campaign } = useCampaignDetails(token, campaignId);
   const [search, setSearch] = useState("");
 
+  // TODO(generic-npc-types): filter assumes NPC = characterSheet without playerUuid.
+  // Future: support generic/template NPCs not backed by a character sheet.
   const npcs = (campaign?.characterSheets ?? []).filter((cs) => !cs.playerUuid);
   const available = npcs.filter(
     (npc) =>
