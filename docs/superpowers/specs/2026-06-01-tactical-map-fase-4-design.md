@@ -128,14 +128,14 @@ z = 0:
   shadowRadius = tokenRadius + 2
   shadowOffsetY = +2px        ← quase imperceptível, só segue a direção da luz
   shadowOffsetX = 0
-  shadowAlpha   = 0.50
-  shadowBlur    = 4px
+  shadowAlpha   = 0.58
+  shadowBlur    = 2px          ← sólida nas bordas, só levemente suavizada
 
 z > 0:
   shadowRadius = tokenRadius + 2 + z * 2   ← sombra cresce com altitude
   shadowOffsetY = +2px                      ← mesma regra; não muda com z
-  shadowAlpha   = 0.40                      ← mais difusa
-  shadowBlur    = 4 + z * 2
+  shadowAlpha   = 0.45                      ← levemente mais difusa
+  shadowBlur    = 2 + z * 1               ← cresce devagar; nunca muito esparça
   tokenOffsetY  = -z * 10px                ← token sobe; sombra fica no slot real
 ```
 
@@ -162,15 +162,15 @@ dragging = false:
   containerScale = 1.0
   containerOffsetY = 0
   shadowRadius   = tokenRadius + 2
-  shadowAlpha    = 0.50
-  shadowBlur     = 4
+  shadowAlpha    = 0.58
+  shadowBlur     = 2               ← sólida nas bordas
 
 dragging = true:
   containerScale   = 1.18          ← crescimento sutil (~18%)
   containerOffsetY = -8px          ← sobe levemente no 2D
   shadowRadius     = tokenRadius + 6  ← sombra cresce (peça mais alta)
-  shadowAlpha      = 0.35          ← mais diluída
-  shadowBlur       = 9             ← mais suave
+  shadowAlpha      = 0.38          ← levemente mais diluída
+  shadowBlur       = 5             ← mais suave que normal, mas ainda sólida
 
   ← sombra permanece na posição do slot original (não acompanha o drag)
      — isso cria o efeito de "projeção no chão enquanto voa"
