@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MutableRefObject } from "react";
+import styled, { keyframes } from "styled-components";
+import { colors, fonts } from "../../styles/tokens";
 import { Application, extend, useApplication } from "@pixi/react";
 import { Assets, BlurFilter, Container, Graphics, ImageSource, Sprite, Text, Texture } from "pixi.js";
 import type { EventSystem, FederatedPointerEvent } from "pixi.js";
@@ -122,6 +124,7 @@ type Props = {
   onNpcPlaced?: (slot: SlotCoord) => void;
   onNpcPlacementCancel?: () => void;
   onStageDeselect?: () => void;
+  onBgLoadingChange?: (loading: boolean) => void;
 };
 
 export default function TacticalMapStage({
@@ -141,7 +144,15 @@ export default function TacticalMapStage({
   onNpcPlaced,
   onNpcPlacementCancel,
   onStageDeselect,
+  onBgLoadingChange,
 }: Props) {
+  const [isBgLoading, setIsBgLoading] = useState(() => !!map.bg?.url);
+
+  const handleBgLoadingChange = useCallback((loading: boolean) => {
+    setIsBgLoading(loading);
+    onBgLoadingChange?.(loading);
+  }, [onBgLoadingChange]);
+
   return (
     <div style={{ position: "relative", width, height, overflow: "hidden" }}>
       <Application width={width} height={height} background={0x101820}>
@@ -152,6 +163,7 @@ export default function TacticalMapStage({
           clampToGrid={clampToGrid}
           bgInteractive={bgInteractive}
           onBgPositionChange={onBgPositionChange}
+          onBgLoadingChange={handleBgLoadingChange}
           piecesInteractive={piecesInteractive}
           selection={selection}
           npcMap={npcMap}
@@ -166,6 +178,12 @@ export default function TacticalMapStage({
           onStageDeselect={onStageDeselect}
         />
       </Application>
+      {isBgLoading && (
+        <BgLoadingOverlay>
+          <Spinner />
+          <LoadingLabel>Carregando imagem...</LoadingLabel>
+        </BgLoadingOverlay>
+      )}
     </div>
   );
 }
@@ -184,6 +202,7 @@ function ViewportInner({
   clampToGrid,
   bgInteractive,
   onBgPositionChange,
+  onBgLoadingChange,
   piecesInteractive,
   selection,
   npcMap,
@@ -388,6 +407,7 @@ function ViewportInner({
         bgInteractive={bgInteractive}
         dragState={dragState}
         onBgPositionChange={onBgPositionChange}
+        onLoadingChange={onBgLoadingChange}
       />
       <GridLayer grid={map.grid} vpScale={vpScale} />
       <pixiContainer label="decorations-layer" />
@@ -417,35 +437,46 @@ function BgLayer({
   bgInteractive,
   dragState,
   onBgPositionChange,
+  onLoadingChange,
 }: {
   bg: TacticalMap["bg"];
   bgInteractive?: boolean;
   dragState?: MutableRefObject<DragState>;
   onBgPositionChange?: (x: number, y: number) => void;
+  onLoadingChange?: (loading: boolean) => void;
 }) {
   const [texture, setTexture] = useState<Texture | null>(null);
 
   useEffect(() => {
     if (!bg?.url) {
       setTexture(null);
+      onLoadingChange?.(false);
       return;
     }
+    onLoadingChange?.(true);
     let cancelled = false;
     if (bg.url.startsWith("blob:")) {
       const img = new Image();
       img.onload = () => {
         if (cancelled) return;
         setTexture(new Texture({ source: new ImageSource({ resource: img }) }));
+        onLoadingChange?.(false);
       };
-      img.onerror = () => { if (!cancelled) setTexture(null); };
+      img.onerror = () => {
+        if (!cancelled) { setTexture(null); onLoadingChange?.(false); }
+      };
       img.src = bg.url;
     } else {
       Assets.load(bg.url)
-        .then((t: Texture) => { if (!cancelled) setTexture(t); })
-        .catch(() => { if (!cancelled) setTexture(null); });
+        .then((t: Texture) => {
+          if (!cancelled) { setTexture(t); onLoadingChange?.(false); }
+        })
+        .catch(() => {
+          if (!cancelled) { setTexture(null); onLoadingChange?.(false); }
+        });
     }
     return () => { cancelled = true; };
-  }, [bg?.url]);
+  }, [bg?.url, onLoadingChange]);
 
   if (!bg || !texture) return null;
 
@@ -967,3 +998,35 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, dragWorldPos, o
     </pixiContainer>
   );
 }
+
+const spin = keyframes`
+  to { transform: rotate(360deg); }
+`;
+
+const BgLoadingOverlay = styled.div`
+  position: absolute;
+  inset: 0;
+  background: rgba(16, 24, 32, 0.85);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  pointer-events: none;
+`;
+
+const Spinner = styled.div`
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.15);
+  border-top-color: ${colors.brandAccent};
+  border-radius: 50%;
+  animation: ${spin} 0.8s linear infinite;
+`;
+
+const LoadingLabel = styled.p`
+  margin: 0;
+  color: ${colors.textPrimary};
+  font-family: ${fonts.sans};
+  font-size: 14px;
+`;
