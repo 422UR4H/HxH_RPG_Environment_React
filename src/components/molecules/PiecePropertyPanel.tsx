@@ -55,7 +55,7 @@ const Panel = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0;
-  padding: 10px;
+  padding: clamp(8px, 3cqi, 10px);
   border-bottom: 1px solid ${colors.borderInput};
 `;
 
@@ -99,7 +99,7 @@ const NpcInfo = styled.div`
 
 const NpcName = styled.span`
   font-family: ${fonts.sans};
-  font-size: 13px;
+  font-size: clamp(11px, 3cqi, 13px);
   font-weight: 600;
   color: ${colors.textPrimary};
 `;
@@ -153,16 +153,18 @@ const ZRow = styled.div`
 
 const ZSlider = styled.input`
   flex: 1;
+  min-width: 0;
   accent-color: ${colors.brandAccent};
 `;
 
 const ZValue = styled.span`
   font-family: ${fonts.sans};
-  font-size: 12px;
+  font-size: clamp(10px, 2.5cqi, 12px);
   color: ${colors.brandAccent};
   font-weight: 700;
-  min-width: 32px;
+  min-width: 28px;
   text-align: right;
+  flex-shrink: 0;
 `;
 
 const Divider = styled.hr`
@@ -173,13 +175,13 @@ const Divider = styled.hr`
 
 const RemoveButton = styled.button`
   width: 100%;
-  padding: 8px;
+  height: max(40px, 8cqi);
   border: 1px solid ${colors.danger}55;
   background: ${colors.danger}11;
   color: ${colors.danger};
   border-radius: 6px;
   font-family: ${fonts.sans};
-  font-size: 12px;
+  font-size: clamp(10px, 2.8cqi, 12px);
   font-weight: 600;
   cursor: pointer;
   display: flex;

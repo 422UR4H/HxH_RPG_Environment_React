@@ -235,8 +235,9 @@ const TabRow = styled.div`
 
 const TabButton = styled.button<{ $active: boolean }>`
   flex: 1;
-  min-width: 60px;
-  padding: 6px 8px;
+  min-width: 0;
+  padding: clamp(4px, 1.5cqi, 6px) clamp(2px, 1cqi, 8px);
+  height: max(40px, 8cqi);
   border-radius: 6px;
   border: 1px solid
     ${({ $active }) => ($active ? colors.brandAccent : colors.borderInput)};
@@ -245,7 +246,7 @@ const TabButton = styled.button<{ $active: boolean }>`
   color: ${({ disabled }) =>
     disabled ? colors.textPlaceholderStrong : colors.textPrimary};
   font-family: ${fonts.sans};
-  font-size: 12px;
+  font-size: clamp(10px, 2.8cqi, 12px);
   font-weight: 600;
   cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
   transition: background 0.15s;
@@ -271,8 +272,8 @@ const PiecesPanel = styled.div`
 const MetaSection = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px;
+  gap: clamp(6px, 2cqi, 8px);
+  padding: clamp(8px, 3cqi, 12px);
   border-top: 1px solid ${colors.borderInput};
 `;
 
@@ -284,13 +285,14 @@ const FieldGroup = styled.div`
 
 const NameInput = styled.input`
   font-family: ${fonts.sans};
-  font-size: 14px;
+  font-size: clamp(12px, 3.5cqi, 14px);
   color: ${colors.textPrimary};
   background: ${colors.surfaceInput};
   border: 1px solid ${colors.borderInput};
   border-radius: 6px;
-  padding: 8px 12px;
+  padding: clamp(6px, 2cqi, 8px) clamp(8px, 3cqi, 12px);
   outline: none;
+  width: 100%;
 
   &::placeholder {
     color: ${colors.textPlaceholder};
@@ -324,20 +326,20 @@ const DescriptionTextarea = styled.textarea`
 const SaveArea = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 12px;
+  gap: clamp(4px, 1.5cqi, 6px);
+  padding: clamp(8px, 3cqi, 12px);
   border-top: 1px solid ${colors.borderInput};
 `;
 
 const SaveButton = styled.button`
   width: 100%;
-  padding: 10px;
+  height: max(44px, 9cqi);
   border-radius: 6px;
   border: none;
   background: ${colors.brandAccent};
   color: ${colors.textPrimary};
   font-family: ${fonts.sans};
-  font-size: 14px;
+  font-size: clamp(12px, 3.5cqi, 14px);
   font-weight: 700;
   cursor: pointer;
   transition: filter 0.15s;
