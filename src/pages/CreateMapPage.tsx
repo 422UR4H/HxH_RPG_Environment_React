@@ -32,6 +32,7 @@ export default function CreateMapPage() {
       description: map.description?.trim() || undefined,
       grid: map.grid,
       bg: map.bg,
+      pieces: map.pieces,
     });
   };
 

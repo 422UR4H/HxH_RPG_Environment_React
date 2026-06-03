@@ -60,3 +60,14 @@ export function slotToWorld(slot: SlotCoord, grid: GridShape): XY {
 export function worldToSlot(world: XY, grid: GridShape): SlotCoord {
   return baselineToSlot(inverseTransform(world, grid), grid);
 }
+
+// Returns true if slot is within the visible grid bounds.
+// Hex uses odd-r offset → col = q + floor(r/2); valid when 0 ≤ col < cols.
+export function isSlotInBounds(slot: SlotCoord, grid: GridShape): boolean {
+  if (slot.kind === "square") {
+    return slot.col >= 0 && slot.col < grid.cols && slot.row >= 0 && slot.row < grid.rows;
+  }
+  if (slot.r < 0 || slot.r >= grid.rows) return false;
+  const col = slot.q + Math.floor(slot.r / 2);
+  return col >= 0 && col < grid.cols;
+}

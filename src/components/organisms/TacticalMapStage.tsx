@@ -10,7 +10,7 @@ import { Viewport } from "pixi-viewport";
 import type { TacticalMap, GridShape, Piece, SlotCoord } from "../../types/tacticalMap";
 import type { CharacterPrivateSummary } from "../../types/characterSheet";
 import type { Selection } from "../../features/tactical-map/store/editorStore";
-import { slotToWorld, worldToSlot } from "../../features/tactical-map/utils/coords";
+import { slotToWorld, worldToSlot, isSlotInBounds } from "../../features/tactical-map/utils/coords";
 
 extend({ Container, Graphics, Sprite, Text, Viewport });
 
@@ -304,7 +304,12 @@ function ViewportInner({
 
       if (overCanvas && onNpcPlaced) {
         const world = vp!.toWorld(e.clientX - rect!.left, e.clientY - rect!.top);
-        onNpcPlaced(worldToSlot(world, map.grid));
+        const slot = worldToSlot(world, map.grid);
+        if (isSlotInBounds(slot, map.grid)) {
+          onNpcPlaced(slot);
+        } else {
+          onNpcPlacementCancel?.();
+        }
       } else {
         onNpcPlacementCancel?.();
       }
@@ -340,10 +345,12 @@ function ViewportInner({
     (g: PixiGraphics) => {
       g.clear();
       if (!placementHoverSlot || !placingNpcId) return;
+      const inBounds = isSlotInBounds(placementHoverSlot, map.grid);
       const center = slotToWorld(placementHoverSlot, map.grid);
       const r = map.grid.cellSize / 2 - 2;
-      g.setFillStyle({ color: 0x30ff80, alpha: 0.3 });
-      g.setStrokeStyle({ color: 0x30ff80, width: 2, alpha: 0.9 });
+      const color = inBounds ? 0x30ff80 : 0xff3030;
+      g.setFillStyle({ color, alpha: 0.3 });
+      g.setStrokeStyle({ color, width: 2, alpha: 0.9 });
       if (map.grid.kind === "square") {
         g.rect(center.x - r, center.y - r, r * 2, r * 2);
       } else {
@@ -595,7 +602,7 @@ function PiecesLayer({
         return;
       }
       const slot = drag.currentSlot;
-      if (!slot) return;
+      if (!slot || !isSlotInBounds(slot, map.grid)) return;
       const occupied = map.pieces.some(
         (p) => p.id !== drag.pieceId && JSON.stringify(p.coord.slot) === JSON.stringify(slot),
       );
@@ -629,6 +636,7 @@ function PiecesLayer({
         if (!vp || !rect) return;
         const world = vp.toWorld(e.clientX - rect.left, e.clientY - rect.top);
         const slot = worldToSlot(world, map.grid);
+        if (!isSlotInBounds(slot, map.grid)) return;
         const occupied = map.pieces.some(
           (p) => p.id !== drag.pieceId && JSON.stringify(p.coord.slot) === JSON.stringify(slot),
         );
@@ -655,12 +663,13 @@ function PiecesLayer({
     (g: PixiGraphics) => {
       g.clear();
       if (!hoverSlot || !draggingPieceId) return;
-      const occupied = map.pieces.some(
+      const outOfBounds = !isSlotInBounds(hoverSlot, map.grid);
+      const occupied = !outOfBounds && map.pieces.some(
         (p) => p.id !== draggingPieceId && JSON.stringify(p.coord.slot) === JSON.stringify(hoverSlot),
       );
       const center = slotToWorld(hoverSlot, map.grid);
       const r = map.grid.cellSize / 2 - 4;
-      g.setFillStyle({ color: occupied ? 0xff3030 : 0x30ff80, alpha: 0.25 });
+      g.setFillStyle({ color: occupied || outOfBounds ? 0xff3030 : 0x30ff80, alpha: 0.25 });
       if (map.grid.kind === "square") {
         g.rect(center.x - r, center.y - r, r * 2, r * 2);
       } else {
