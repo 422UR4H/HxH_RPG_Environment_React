@@ -36,6 +36,10 @@ type Props = {
   onPointerDownNpc: (npc: CharacterPrivateSummary, e: React.PointerEvent) => void;
   onZChange: (pieceId: string, z: number) => void;
   onRemovePiece: (pieceId: string) => void;
+  onUndo: () => void;
+  onRedo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
 };
 
 type TabDef = {
@@ -79,6 +83,10 @@ export default function MapEditorToolbar({
   onPointerDownNpc,
   onZChange,
   onRemovePiece,
+  onUndo,
+  onRedo,
+  canUndo,
+  canRedo,
 }: Props) {
   const handleNameChange = (e: ChangeEvent<HTMLInputElement>) => {
     onNameChange(e.target.value);
@@ -104,6 +112,27 @@ export default function MapEditorToolbar({
           </TabButton>
         ))}
       </TabRow>
+
+      <HistoryRow>
+        <HistoryButton
+          type="button"
+          disabled={!canUndo}
+          onClick={onUndo}
+          aria-label="Desfazer"
+          title="Desfazer (Ctrl+Z)"
+        >
+          ↺ Desfazer
+        </HistoryButton>
+        <HistoryButton
+          type="button"
+          disabled={!canRedo}
+          onClick={onRedo}
+          aria-label="Refazer"
+          title="Refazer (Shift+Ctrl+Z)"
+        >
+          ↻ Refazer
+        </HistoryButton>
+      </HistoryRow>
 
       <PanelArea>
         {activeTool === "grid" && (
@@ -173,6 +202,7 @@ export default function MapEditorToolbar({
 }
 
 const Toolbar = styled.div`
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
   background: ${colors.surfaceSidebar};
@@ -313,4 +343,34 @@ const ErrorText = styled.span`
   font-family: ${fonts.sans};
   font-size: 12px;
   color: ${colors.danger};
+`;
+
+const HistoryRow = styled.div`
+  display: flex;
+  gap: 4px;
+  padding: 4px 8px;
+  border-bottom: 1px solid ${colors.borderInput};
+`;
+
+const HistoryButton = styled.button`
+  flex: 1;
+  height: max(36px, 7cqi);
+  border-radius: 5px;
+  border: 1px solid ${colors.borderInput};
+  background: transparent;
+  color: ${colors.textPrimary};
+  font-family: ${fonts.sans};
+  font-size: clamp(10px, 2.8cqi, 12px);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  &:not(:disabled):hover {
+    background: ${colors.surfaceInput};
+  }
 `;
