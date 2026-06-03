@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { temporal } from "zundo";
 import { immer } from "zustand/middleware/immer";
+import { debounce } from "../../../utils/debounce";
 import type {
   BgImage,
   GridShape,
@@ -33,6 +34,7 @@ export type EditorState = {
   setActiveTool: (tool: ToolKind) => void;
   setSelection: (sel: Selection) => void;
   markClean: () => void;
+  markDirty: () => void;
 };
 
 export function createEditorStore(initialMap: TacticalMap) {
@@ -102,12 +104,24 @@ export function createEditorStore(initialMap: TacticalMap) {
           set((s) => {
             s.isDirty = false;
           }),
+        markDirty: () =>
+          set((s) => {
+            s.isDirty = true;
+          }),
       })),
       {
-        partialize: (state) => ({
-          map: state.map,
-          activeTool: state.activeTool,
-        }),
+        // Rastrear apenas `map` — mudanças em activeTool/selection/isDirty
+        // não criam passos de undo (são estado de UI, não de conteúdo).
+        partialize: (state) => ({ map: state.map }),
+        // Sem equality: zundo registraria um snapshot em todo set, mesmo que
+        // `map` não tenha mudado (ex: setActiveTool). Com equality por referência
+        // de `map`, snapshots só são criados quando o conteúdo do mapa muda.
+        equality: (a, b) => a.map === b.map,
+        // Trailing debounce de 400ms: agrupa mudanças contínuas (sliders)
+        // num único snapshot. Efeito colateral: ações discretas (placePiece,
+        // movePiece) entram no histórico após ~400ms. Aceito pelo spec.
+        handleSet: (handleSet) => debounce(handleSet, 400),
+        limit: 100,
       },
     ),
   );
