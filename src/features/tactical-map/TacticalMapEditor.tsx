@@ -4,6 +4,7 @@ import avatarPlaceholderUrl from "../../assets/placeholder/avatar.png";
 import MapEditorTemplate from "../../components/templates/MapEditorTemplate";
 import MapEditorToolbar from "../../components/organisms/MapEditorToolbar";
 import TacticalMapStage from "../../components/organisms/TacticalMapStage";
+import ConfirmDialog from "../../components/molecules/ConfirmDialog";
 import { useResizeObserver } from "../../hooks/useResizeObserver";
 import { createEditorStore } from "./store/editorStore";
 import type { EditorStore } from "./store/editorStore";
@@ -57,6 +58,9 @@ export default function TacticalMapEditor({
   const { data: campaign } = useCampaignDetails(token, campaignId);
 
   // UI-only state — not persisted in store
+  const [truncConfirmMsg, setTruncConfirmMsg] = useState<string | null>(null);
+  const truncConfirmResolveRef = useRef<((ok: boolean) => void) | null>(null);
+
   const [placingNpcId, setPlacingNpcId] = useState<string | null>(null);
   const [placingNpcData, setPlacingNpcData] = useState<CharacterPrivateSummary | null>(null);
   const [isDraggingPieceToRoster, setIsDraggingPieceToRoster] = useState(false);
@@ -237,6 +241,12 @@ export default function TacticalMapEditor({
 
   const handleStageDeselect = () => setSelection(null);
 
+  const askTruncConfirm = (msg: string): Promise<boolean> =>
+    new Promise<boolean>((resolve) => {
+      truncConfirmResolveRef.current = resolve;
+      setTruncConfirmMsg(msg);
+    });
+
   const handleSave = async () => {
     if (!map.name.trim()) {
       setNameError("O nome do mapa é obrigatório.");
@@ -273,7 +283,8 @@ export default function TacticalMapEditor({
         if (totalUncoveredCols > 0) parts.push(`${totalUncoveredCols} coluna${totalUncoveredCols > 1 ? "s" : ""}`);
         if (totalUncoveredRows > 0) parts.push(`${totalUncoveredRows} linha${totalUncoveredRows > 1 ? "s" : ""}`);
         const msg = `${parts.join(" e ")} não cobertas pela imagem. Deseja continuar e remover as colunas/linhas descobertas à direita/baixo?`;
-        if (!window.confirm(msg)) return;
+        const ok = await askTruncConfirm(msg);
+        if (!ok) return;
 
         mapToSave = {
           ...map,
@@ -371,6 +382,24 @@ export default function TacticalMapEditor({
         )}
       </div>
     </MapEditorTemplate>
+    {truncConfirmMsg && (
+      <ConfirmDialog
+        message={truncConfirmMsg}
+        confirmLabel="Remover e salvar"
+        cancelLabel="Cancelar"
+        confirmVariant="danger"
+        onConfirm={() => {
+          truncConfirmResolveRef.current?.(true);
+          truncConfirmResolveRef.current = null;
+          setTruncConfirmMsg(null);
+        }}
+        onCancel={() => {
+          truncConfirmResolveRef.current?.(false);
+          truncConfirmResolveRef.current = null;
+          setTruncConfirmMsg(null);
+        }}
+      />
+    )}
     {placingNpcId && placingNpcData && createPortal(
       <div
         ref={ghostRef}
