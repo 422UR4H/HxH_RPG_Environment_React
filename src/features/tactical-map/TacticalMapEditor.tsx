@@ -61,6 +61,13 @@ export default function TacticalMapEditor({
   const [truncConfirmMsg, setTruncConfirmMsg] = useState<string | null>(null);
   const truncConfirmResolveRef = useRef<((ok: boolean) => void) | null>(null);
 
+  // Cleanup truncConfirmResolveRef on unmount to prevent calling dangling resolver
+  useEffect(() => {
+    return () => {
+      truncConfirmResolveRef.current = null;
+    };
+  }, []);
+
   const [placingNpcId, setPlacingNpcId] = useState<string | null>(null);
   const [placingNpcData, setPlacingNpcData] = useState<CharacterPrivateSummary | null>(null);
   const [isDraggingPieceToRoster, setIsDraggingPieceToRoster] = useState(false);
