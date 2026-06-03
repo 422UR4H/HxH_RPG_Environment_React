@@ -24,6 +24,16 @@ const baseProps = {
   saveLabel: "Criar Mapa",
   nameError: null,
   saveError: null,
+  // Fase 4 — pieces
+  campaignId: "campaign-test-1",
+  placedCharacterIds: new Set<string>(),
+  placingNpcId: null,
+  isDraggingPieceToRoster: false,
+  selectedPiece: null,
+  npcMap: new Map(),
+  onPointerDownNpc: vi.fn(),
+  onZChange: vi.fn(),
+  onRemovePiece: vi.fn(),
 };
 
 describe("MapEditorToolbar", () => {
@@ -36,10 +46,8 @@ describe("MapEditorToolbar", () => {
     expect(screen.getByRole("button", { name: /decorações/i })).toBeInTheDocument();
   });
 
-  it("abas não-grid estão desabilitadas", () => {
+  it("abas walls e decorações estão desabilitadas", () => {
     render(<MapEditorToolbar {...baseProps} />);
-    // "Fundo" is now enabled — removed from this test
-    expect(screen.getByRole("button", { name: /peças/i })).toBeDisabled();
     expect(screen.getByRole("button", { name: /paredes/i })).toBeDisabled();
     expect(screen.getByRole("button", { name: /decorações/i })).toBeDisabled();
   });

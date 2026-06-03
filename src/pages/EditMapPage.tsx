@@ -27,6 +27,7 @@ export default function EditMapPage() {
       description: updatedMap.description,
       grid: updatedMap.grid,
       bg: updatedMap.bg,
+      pieces: updatedMap.pieces,
     });
   };
 

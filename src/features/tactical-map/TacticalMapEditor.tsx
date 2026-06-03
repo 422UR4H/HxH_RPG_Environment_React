@@ -1,11 +1,16 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import avatarPlaceholderUrl from "../../assets/placeholder/avatar.png";
 import MapEditorTemplate from "../../components/templates/MapEditorTemplate";
 import MapEditorToolbar from "../../components/organisms/MapEditorToolbar";
 import TacticalMapStage from "../../components/organisms/TacticalMapStage";
 import { useResizeObserver } from "../../hooks/useResizeObserver";
 import { createEditorStore } from "./store/editorStore";
 import type { EditorStore } from "./store/editorStore";
-import type { TacticalMap } from "../../types/tacticalMap";
+import type { TacticalMap, SlotCoord } from "../../types/tacticalMap";
+import useToken from "../../hooks/useToken";
+import { useCampaignDetails } from "../../hooks/useCampaignDetails";
+import type { CharacterPrivateSummary } from "../../types/characterSheet";
 
 type Props = {
   campaignId: string;
@@ -16,7 +21,7 @@ type Props = {
 };
 
 export default function TacticalMapEditor({
-  campaignId: _campaignId,
+  campaignId,
   initialMap,
   onSave,
   onSaveSuccess,
@@ -36,6 +41,50 @@ export default function TacticalMapEditor({
   const setBg = store((s) => s.setBg);
   const setActiveTool = store((s) => s.setActiveTool);
   const markClean = store((s) => s.markClean);
+  const pieces = store((s) => s.map.pieces);
+  const selection = store((s) => s.selection);
+  const placePiece = store((s) => s.placePiece);
+  const movePiece = store((s) => s.movePiece);
+  const setPieceZ = store((s) => s.setPieceZ);
+  const removePiece = store((s) => s.removePiece);
+  const setSelection = store((s) => s.setSelection);
+
+  const { token } = useToken();
+  const { data: campaign } = useCampaignDetails(token, campaignId);
+
+  // UI-only state — not persisted in store
+  const [placingNpcId, setPlacingNpcId] = useState<string | null>(null);
+  const [placingNpcData, setPlacingNpcData] = useState<CharacterPrivateSummary | null>(null);
+  // TODO: wire to PiecesLayer drag state so isDropTarget highlights roster during drag.
+  // Requires surfacing dragging state from PiecesLayer up to TacticalMapEditor.
+  const isDraggingPieceToRoster = false;
+
+  const ghostRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!placingNpcId) return;
+    const handleMove = (e: PointerEvent) => {
+      if (ghostRef.current) {
+        ghostRef.current.style.left = `${e.clientX}px`;
+        ghostRef.current.style.top = `${e.clientY}px`;
+      }
+    };
+    window.addEventListener("pointermove", handleMove, { passive: true });
+    return () => window.removeEventListener("pointermove", handleMove);
+  }, [placingNpcId]);
+
+  // Set of character IDs already on the map
+  const placedCharacterIds = useMemo(
+    () => new Set(pieces.map((p) => p.characterId)),
+    [pieces],
+  );
+
+  // Map uuid → CharacterPrivateSummary for PieceSprite lookup
+  const npcMap = useMemo(() => {
+    const m = new Map<string, CharacterPrivateSummary>();
+    (campaign?.characterSheets ?? []).forEach((cs) => m.set(cs.uuid, cs));
+    return m;
+  }, [campaign]);
 
   const canvasRef = useRef<HTMLDivElement>(null);
   const { width, height } = useResizeObserver(canvasRef);
@@ -62,6 +111,59 @@ export default function TacticalMapEditor({
       : "tactical-map-draft:new";
     localStorage.setItem(key, JSON.stringify(map));
   }, [map, isDirty]);
+
+  const handleNpcPointerDown = (npc: CharacterPrivateSummary, _e: React.PointerEvent) => {
+    setPlacingNpcId(npc.uuid);
+    setPlacingNpcData(npc);
+  };
+
+  // Always reset placing state — called by TacticalMapStage on any failed
+  // placement (outside canvas, pointercancel, occupied slot).
+  const handleNpcPlacementCancel = useCallback(() => {
+    setPlacingNpcId(null);
+    setPlacingNpcData(null);
+  }, []);
+
+  const handleNpcPlaced = (slot: SlotCoord) => {
+    if (!placingNpcData) {
+      setPlacingNpcId(null);
+      return;
+    }
+    const occupied = pieces.some(
+      (p) => JSON.stringify(p.coord.slot) === JSON.stringify(slot),
+    );
+    if (occupied) {
+      // Slot taken — cancel silently so the user can try another slot
+      setPlacingNpcId(null);
+      setPlacingNpcData(null);
+      return;
+    }
+    placePiece({
+      id: crypto.randomUUID(),
+      characterId: placingNpcData.uuid,
+      coord: { slot, z: 0 },
+      visible: true,
+    });
+    setPlacingNpcId(null);
+    setPlacingNpcData(null);
+  };
+
+  // Stable callback: prevents PiecesLayer's useEffect from re-running on every
+  // TacticalMapEditor render (which would tear down and re-register all stage
+  // event listeners mid-interaction).
+  const handlePieceSelect = useCallback(
+    (id: string) => setSelection({ kind: "piece", id }),
+    [setSelection],
+  );
+
+  const handlePieceDragToRoster = (pieceId: string) => {
+    removePiece(pieceId);
+    if (selection?.kind === "piece" && selection.id === pieceId) {
+      setSelection(null);
+    }
+  };
+
+  const handleStageDeselect = () => setSelection(null);
 
   const handleSave = async () => {
     if (!map.name.trim()) {
@@ -133,6 +235,7 @@ export default function TacticalMapEditor({
   };
 
   return (
+    <>
     <MapEditorTemplate
       sidebar={
         <MapEditorToolbar
@@ -152,20 +255,69 @@ export default function TacticalMapEditor({
           saveLabel={saveLabel}
           nameError={nameError}
           saveError={saveError}
+          campaignId={campaignId}
+          placedCharacterIds={placedCharacterIds}
+          placingNpcId={placingNpcId}
+          isDraggingPieceToRoster={isDraggingPieceToRoster}
+          selectedPiece={
+            selection?.kind === "piece"
+              ? (pieces.find((p) => p.id === selection.id) ?? null)
+              : null
+          }
+          npcMap={npcMap}
+          onPointerDownNpc={handleNpcPointerDown}
+          onZChange={setPieceZ}
+          onRemovePiece={(id: string) => { removePiece(id); setSelection(null); }}
         />
       }
     >
       <div ref={canvasRef} style={{ width: "100%", height: "100%" }}>
         {width > 0 && height > 0 && (
           <TacticalMapStage
-                  map={map}
-                  width={width}
-                  height={height}
-                  bgInteractive={activeTool === "bg"}
-                  onBgPositionChange={(x, y) => setBg(bg ? { ...bg, x, y } : null)}
-                />
+            map={map}
+            width={width}
+            height={height}
+            bgInteractive={activeTool === "bg"}
+            piecesInteractive={activeTool === "pieces"}
+            selection={selection}
+            npcMap={npcMap}
+            placingNpcId={placingNpcId}
+            onNpcPlaced={handleNpcPlaced}
+            onNpcPlacementCancel={handleNpcPlacementCancel}
+            onBgPositionChange={(x, y) => setBg(bg ? { ...bg, x, y } : null)}
+            onPieceSelect={handlePieceSelect}
+            onPieceMove={movePiece}
+            onPieceDragToRoster={handlePieceDragToRoster}
+            onStageDeselect={handleStageDeselect}
+          />
         )}
       </div>
     </MapEditorTemplate>
+    {placingNpcId && placingNpcData && createPortal(
+      <div
+        ref={ghostRef}
+        style={{
+          position: "fixed",
+          pointerEvents: "none",
+          zIndex: 9999,
+          transform: "translate(-50%, -50%)",
+          width: 48,
+          height: 48,
+          borderRadius: "50%",
+          overflow: "hidden",
+          border: "2px solid #7c4dff",
+          opacity: 0.9,
+          boxShadow: "0 4px 12px rgba(0,0,0,0.5)",
+        }}
+      >
+        <img
+          src={placingNpcData.avatarUrl ?? avatarPlaceholderUrl}
+          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          alt=""
+        />
+      </div>,
+      document.body,
+    )}
+    </>
   );
 }
