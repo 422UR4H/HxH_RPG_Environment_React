@@ -54,7 +54,9 @@ const Sidebar = styled.div`
   @media (max-width: 749px) {
     width: 100%;
     order: 2;
-    max-height: 50vh;
+    flex: 3;
+    min-height: 0;
+    overflow: hidden;
   }
 `;
 
@@ -66,7 +68,7 @@ const CanvasArea = styled.div`
 
   @media (max-width: 749px) {
     order: 1;
-    height: 50vh;
-    flex: none;
+    flex: 2;
+    height: auto;
   }
 `;

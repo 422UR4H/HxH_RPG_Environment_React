@@ -314,6 +314,10 @@ const DescriptionTextarea = styled.textarea`
   resize: vertical;
   outline: none;
 
+  @media (max-width: 749px) {
+    display: none;
+  }
+
   &::placeholder {
     color: ${colors.textPlaceholder};
   }
