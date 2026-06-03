@@ -1,5 +1,6 @@
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { NavGuardProvider } from "./contexts/NavGuardContext";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import HomePage from "./pages/HomePage";
@@ -24,8 +25,9 @@ const EditMapPage = lazy(() => import("./pages/EditMapPage"));
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
+    <NavGuardProvider>
+      <BrowserRouter>
+        <Routes>
         <Route path="/" element={<LoginPage />} />
         <Route path="/sign-up" element={<RegisterPage />} />
 
@@ -95,8 +97,9 @@ function App() {
             }
           />
         )}
-      </Routes>
-    </BrowserRouter>
+        </Routes>
+      </BrowserRouter>
+    </NavGuardProvider>
   );
 }
 export default App;

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavGuard } from "../../contexts/NavGuardContext";
 import { createPortal } from "react-dom";
 import avatarPlaceholderUrl from "../../assets/placeholder/avatar.png";
 import MapEditorTemplate from "../../components/templates/MapEditorTemplate";
@@ -53,6 +54,11 @@ export default function TacticalMapEditor({
   const setSelection = store((s) => s.setSelection);
 
   const { undo, redo, canUndo, canRedo } = useEditorHistory(store);
+
+  const { registerGuard } = useNavGuard();
+  const [navConfirmPending, setNavConfirmPending] = useState<
+    ((confirmed: boolean) => void) | null
+  >(null);
 
   const { token } = useToken();
   const { data: campaign } = useCampaignDetails(token, campaignId);
@@ -116,6 +122,20 @@ export default function TacticalMapEditor({
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
   }, [isDirty]);
+
+  // Register nav guard when there are unsaved changes
+  useEffect(() => {
+    if (!isDirty) {
+      registerGuard(null);
+      return () => registerGuard(null);
+    }
+    const guardFn = () =>
+      new Promise<boolean>((resolve) => {
+        setNavConfirmPending(() => resolve);
+      });
+    registerGuard(guardFn);
+    return () => registerGuard(null);
+  }, [isDirty, registerGuard]);
 
   // Persist draft to localStorage
   useEffect(() => {
@@ -408,6 +428,22 @@ export default function TacticalMapEditor({
           truncConfirmResolveRef.current?.(false);
           truncConfirmResolveRef.current = null;
           setTruncConfirmMsg(null);
+        }}
+      />
+    )}
+    {navConfirmPending && (
+      <ConfirmDialog
+        message="Você tem alterações não salvas. Deseja sair mesmo assim?"
+        confirmLabel="Sair sem salvar"
+        cancelLabel="Continuar editando"
+        confirmVariant="danger"
+        onConfirm={() => {
+          navConfirmPending(true);
+          setNavConfirmPending(null);
+        }}
+        onCancel={() => {
+          navConfirmPending(false);
+          setNavConfirmPending(null);
         }}
       />
     )}

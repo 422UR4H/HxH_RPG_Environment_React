@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { TokenProvider } from "../contexts/TokenContext";
 import { UserProvider } from "../contexts/UserContext";
+import { NavGuardProvider } from "../contexts/NavGuardContext";
 import { userFixture } from "./fixtures/user";
 import type { UserStorage } from "../types/user";
 
@@ -49,23 +50,25 @@ export function renderWithProviders(
   function Wrapper({ children }: { children: ReactNode }) {
     return (
       <QueryClientProvider client={queryClient}>
-        <TokenProvider>
-          <UserProvider>
-            <MemoryRouter
-              initialEntries={[
-                state !== undefined ? { pathname: route, state } : route,
-              ]}
-            >
-              {path ? (
-                <Routes>
-                  <Route path={path} element={children} />
-                </Routes>
-              ) : (
-                children
-              )}
-            </MemoryRouter>
-          </UserProvider>
-        </TokenProvider>
+        <NavGuardProvider>
+          <TokenProvider>
+            <UserProvider>
+              <MemoryRouter
+                initialEntries={[
+                  state !== undefined ? { pathname: route, state } : route,
+                ]}
+              >
+                {path ? (
+                  <Routes>
+                    <Route path={path} element={children} />
+                  </Routes>
+                ) : (
+                  children
+                )}
+              </MemoryRouter>
+            </UserProvider>
+          </TokenProvider>
+        </NavGuardProvider>
       </QueryClientProvider>
     );
   }
