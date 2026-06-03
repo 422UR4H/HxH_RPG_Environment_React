@@ -95,7 +95,7 @@ const SearchInput = styled.input`
   background: ${colors.surfaceInput};
   border: 1px solid ${colors.borderInput};
   border-radius: 5px;
-  padding: clamp(6px, 2cqi, 5px) clamp(8px, 2.5cqi, 8px);
+  padding: clamp(6px, 2cqi, 8px) clamp(8px, 2.5cqi, 8px);
   height: max(40px, 8cqi);
   margin-bottom: 6px;
   outline: none;
