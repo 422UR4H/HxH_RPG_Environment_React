@@ -1,4 +1,4 @@
-import { createContext, useContext, useRef } from "react";
+import { createContext, useCallback, useContext, useMemo, useRef } from "react";
 import type { ReactNode } from "react";
 
 type NavGuardFn = () => boolean | Promise<boolean>;
@@ -13,17 +13,22 @@ const NavGuardContext = createContext<NavGuardContextValue | null>(null);
 export function NavGuardProvider({ children }: { children: ReactNode }) {
   const guardRef = useRef<NavGuardFn | null>(null);
 
-  const registerGuard = (fn: NavGuardFn | null) => {
+  const registerGuard = useCallback((fn: NavGuardFn | null) => {
     guardRef.current = fn;
-  };
+  }, []);
 
-  const confirmNavigation = async (): Promise<boolean> => {
+  const confirmNavigation = useCallback(async (): Promise<boolean> => {
     if (!guardRef.current) return true;
     return guardRef.current();
-  };
+  }, []);
+
+  const value = useMemo(
+    () => ({ registerGuard, confirmNavigation }),
+    [registerGuard, confirmNavigation],
+  );
 
   return (
-    <NavGuardContext.Provider value={{ registerGuard, confirmNavigation }}>
+    <NavGuardContext.Provider value={value}>
       {children}
     </NavGuardContext.Provider>
   );

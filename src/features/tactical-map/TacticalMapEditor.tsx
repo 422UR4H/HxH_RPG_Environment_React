@@ -120,6 +120,8 @@ export default function TacticalMapEditor({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
 
+  const handleSaveSuccessDismiss = useCallback(() => setSaveSuccess(null), []);
+
   // Protect unsaved changes on tab close
   useEffect(() => {
     if (!isDirty) return;
@@ -375,7 +377,7 @@ export default function TacticalMapEditor({
           nameError={nameError}
           saveError={saveError}
           saveSuccessMsg={saveSuccess}
-          onSaveSuccessDismiss={() => setSaveSuccess(null)}
+          onSaveSuccessDismiss={handleSaveSuccessDismiss}
           campaignId={campaignId}
           placedCharacterIds={placedCharacterIds}
           placingNpcId={placingNpcId}
