@@ -154,7 +154,7 @@ export default function TacticalMapStage({
   }, [onBgLoadingChange]);
 
   return (
-    <div style={{ position: "relative", width, height, overflow: "hidden" }}>
+    <div style={{ position: "relative", width, height, overflow: "hidden", isolation: "isolate" }}>
       <Application width={width} height={height} background={0x101820}>
         <ViewportInner
           map={map}
@@ -242,7 +242,7 @@ function ViewportInner({
   }, [clampToGrid, map.grid.cols, map.grid.cellSize, map.grid.rows]);
 
   useEffect(() => {
-    if (width <= 0 || height <= 0) return;
+    if (!app.renderer || width <= 0 || height <= 0) return;
     app.renderer.resize(width, height);
     vpRef.current?.resize(width, height);
   }, [app, width, height]);
@@ -1008,6 +1008,7 @@ const spin = keyframes`
 const BgLoadingOverlay = styled.div`
   position: absolute;
   inset: 0;
+  z-index: 1;
   background: rgba(16, 24, 32, 0.85);
   display: flex;
   flex-direction: column;
