@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { MutableRefObject } from "react";
 import styled, { keyframes } from "styled-components";
 import { colors, fonts } from "../../styles/tokens";
@@ -147,6 +147,15 @@ export default function TacticalMapStage({
   onBgLoadingChange,
 }: Props) {
   const [isBgLoading, setIsBgLoading] = useState(() => !!map.bg?.url);
+  const bgUrl = map.bg?.url;
+
+  // useLayoutEffect fires synchronously before the browser paints the frame.
+  // When bg.url changes (upload, URL paste, or clear), we set loading state
+  // before paint so the overlay always appears — even for blob: URLs whose
+  // img.onload fires from cache before React would otherwise flush the update.
+  useLayoutEffect(() => {
+    setIsBgLoading(!!bgUrl);
+  }, [bgUrl]);
 
   const handleBgLoadingChange = useCallback((loading: boolean) => {
     setIsBgLoading(loading);
