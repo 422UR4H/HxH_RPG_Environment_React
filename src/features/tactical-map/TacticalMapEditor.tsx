@@ -86,6 +86,9 @@ export default function TacticalMapEditor({
   const [placingNpcData, setPlacingNpcData] = useState<CharacterPrivateSummary | null>(null);
   const [isDraggingPieceToRoster, setIsDraggingPieceToRoster] = useState(false);
   const [draggingCanvasPieceNpc, setDraggingCanvasPieceNpc] = useState<CharacterPrivateSummary | null>(null);
+  // True while BgImagePanel is compressing + uploading a fresh image to R2.
+  // Drives the canvas overlay during the upload phase (before bg.url changes).
+  const [isUploadingBg, setIsUploadingBg] = useState(false);
 
   const ghostRef = useRef<HTMLDivElement>(null);
   const canvasDragGhostRef = useRef<HTMLDivElement>(null);
@@ -388,6 +391,7 @@ export default function TacticalMapEditor({
           onGridChange={setGrid}
           bg={map.bg}
           onBgChange={setBg}
+          onBgUploadingChange={setIsUploadingBg}
           mapId={map.id}
           mapName={map.name}
           mapDescription={map.description ?? ""}
@@ -427,6 +431,7 @@ export default function TacticalMapEditor({
             width={width}
             height={height}
             bgInteractive={activeTool === "bg"}
+            uploading={isUploadingBg}
             piecesInteractive={activeTool === "pieces"}
             selection={selection}
             npcMap={npcMap}

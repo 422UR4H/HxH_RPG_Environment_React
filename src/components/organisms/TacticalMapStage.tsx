@@ -125,6 +125,11 @@ type Props = {
   onNpcPlacementCancel?: () => void;
   onStageDeselect?: () => void;
   onBgLoadingChange?: (loading: boolean) => void;
+  // True while a fresh image is being compressed + uploaded to R2 in the
+  // sidebar (BgImagePanel). This phase happens BEFORE bg.url changes, so the
+  // internal isBgLoading (texture load) can't cover it — the canvas overlay
+  // is driven by this flag too.
+  uploading?: boolean;
 };
 
 export default function TacticalMapStage({
@@ -145,6 +150,7 @@ export default function TacticalMapStage({
   onNpcPlacementCancel,
   onStageDeselect,
   onBgLoadingChange,
+  uploading = false,
 }: Props) {
   const [isBgLoading, setIsBgLoading] = useState(() => !!map.bg?.url);
   const bgUrl = map.bg?.url;
@@ -187,10 +193,12 @@ export default function TacticalMapStage({
           onStageDeselect={onStageDeselect}
         />
       </Application>
-      {isBgLoading && (
+      {(isBgLoading || uploading) && (
         <BgLoadingOverlay>
           <Spinner />
-          <LoadingLabel>Carregando imagem...</LoadingLabel>
+          <LoadingLabel>
+            {uploading ? "Enviando imagem..." : "Carregando imagem..."}
+          </LoadingLabel>
         </BgLoadingOverlay>
       )}
     </div>

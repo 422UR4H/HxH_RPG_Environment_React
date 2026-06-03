@@ -14,13 +14,26 @@ type Props = {
   mapId: string;
   onBgChange: (bg: BgImage | null) => void;
   onGridChange: (grid: GridShape) => void;
+  onUploadingChange?: (uploading: boolean) => void;
 };
 
-export default function BgImagePanel({ bg, grid, mapId, onBgChange, onGridChange }: Props) {
+export default function BgImagePanel({ bg, grid, mapId, onBgChange, onGridChange, onUploadingChange }: Props) {
   const { token } = useToken();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [urlInput, setUrlInput] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+
+  // Keeps local state and the parent (canvas overlay) in sync. The upload
+  // phase (compress + R2) happens before bg.url changes, so the canvas can't
+  // detect it on its own.
+  const setUploading = (v: boolean) => {
+    setIsUploading(v);
+    onUploadingChange?.(v);
+  };
+
+  // If the panel unmounts mid-upload (e.g. user switches toolbar tab), make
+  // sure the parent overlay doesn't get stuck showing forever.
+  useEffect(() => () => onUploadingChange?.(false), [onUploadingChange]);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const { uploadToR2, getPresignedUrl } = usePresignedUpload();
   const [naturalSize, setNaturalSize] = useState<{ w: number; h: number } | null>(null);
@@ -56,7 +69,7 @@ export default function BgImagePanel({ bg, grid, mapId, onBgChange, onGridChange
       return;
     }
     setUploadError(null);
-    setIsUploading(true);
+    setUploading(true);
     try {
       const compressed = await imageCompression(file, {
         maxWidthOrHeight: 4096,
@@ -72,19 +85,23 @@ export default function BgImagePanel({ bg, grid, mapId, onBgChange, onGridChange
       const blobUrl = URL.createObjectURL(compressed);
       blobUrlRef.current = blobUrl;
       const img = new Image();
+      // Keep "uploading" true until the image is actually applied to the map —
+      // not just until the R2 PUT resolves. This closes the gap where the
+      // overlay would flicker off before bg.url changes.
       img.onload = () => {
         applyImage(blobUrl, img.naturalWidth, img.naturalHeight, publicUrl);
+        setUploading(false);
       };
       img.onerror = () => {
         URL.revokeObjectURL(blobUrl);
         blobUrlRef.current = null;
         setUploadError("Imagem carregada mas não foi possível processar. Tente novamente.");
+        setUploading(false);
       };
       img.src = blobUrl;
     } catch {
       setUploadError("Não foi possível fazer upload. Tente novamente.");
-    } finally {
-      setIsUploading(false);
+      setUploading(false);
     }
   };
 
