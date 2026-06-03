@@ -11,6 +11,8 @@ import type { TacticalMap, SlotCoord } from "../../types/tacticalMap";
 import useToken from "../../hooks/useToken";
 import { useCampaignDetails } from "../../hooks/useCampaignDetails";
 import type { CharacterPrivateSummary } from "../../types/characterSheet";
+import { useEditorHistory } from "./hooks/useEditorHistory";
+import { isSlotInBounds } from "./utils/coords";
 
 type Props = {
   campaignId: string;
@@ -48,6 +50,8 @@ export default function TacticalMapEditor({
   const setPieceZ = store((s) => s.setPieceZ);
   const removePiece = store((s) => s.removePiece);
   const setSelection = store((s) => s.setSelection);
+
+  const { undo, redo, canUndo, canRedo } = useEditorHistory(store);
 
   const { token } = useToken();
   const { data: campaign } = useCampaignDetails(token, campaignId);
@@ -111,6 +115,76 @@ export default function TacticalMapEditor({
       : "tactical-map-draft:new";
     localStorage.setItem(key, JSON.stringify(map));
   }, [map, isDirty]);
+
+  // Keyboard shortcuts: undo/redo, arrow keys for selected piece, Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      // Ignorar quando o foco está num campo de texto — deixar o undo nativo agir
+      if (
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.isContentEditable
+      ) return;
+
+      const mod = e.metaKey || e.ctrlKey;
+
+      // Undo: Ctrl/Cmd+Z
+      if (mod && !e.shiftKey && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        undo();
+        return;
+      }
+      // Redo: Shift+Ctrl/Cmd+Z ou Ctrl/Cmd+Y
+      if ((mod && e.shiftKey && e.key.toLowerCase() === "z") || (mod && e.key.toLowerCase() === "y")) {
+        e.preventDefault();
+        redo();
+        return;
+      }
+
+      // Teclas de peça — lê o estado atual via getState() para evitar re-registrar
+      const currentSelection = store.getState().selection;
+      if (!currentSelection || currentSelection.kind !== "piece") return;
+
+      if (e.key === "Escape") {
+        store.getState().setSelection(null);
+        return;
+      }
+
+      const piece = store.getState().map.pieces.find((p) => p.id === currentSelection.id);
+      if (!piece || piece.coord.slot.kind !== "square") return;
+
+      const grid = store.getState().map.grid;
+      if (grid.kind !== "square") return; // setas só para grade quadrada (hex = best-effort futuro)
+
+      const { col, row } = piece.coord.slot;
+      let newCol = col;
+      let newRow = row;
+
+      if (e.key === "ArrowLeft")  newCol = col - 1;
+      else if (e.key === "ArrowRight") newCol = col + 1;
+      else if (e.key === "ArrowUp")    newRow = row - 1;
+      else if (e.key === "ArrowDown")  newRow = row + 1;
+      else return;
+
+      e.preventDefault();
+
+      const newSlot = { kind: "square" as const, col: newCol, row: newRow };
+      if (!isSlotInBounds(newSlot, grid)) return;
+
+      const occupied = store.getState().map.pieces.some(
+        (p) =>
+          p.id !== currentSelection.id &&
+          p.coord.slot.kind === "square" &&
+          p.coord.slot.col === newCol &&
+          p.coord.slot.row === newRow,
+      );
+      if (!occupied) store.getState().movePiece(currentSelection.id, newSlot);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [undo, redo, store]);
 
   const handleNpcPointerDown = (npc: CharacterPrivateSummary, _e: React.PointerEvent) => {
     setPlacingNpcId(npc.uuid);
@@ -268,6 +342,10 @@ export default function TacticalMapEditor({
           onPointerDownNpc={handleNpcPointerDown}
           onZChange={setPieceZ}
           onRemovePiece={(id: string) => { removePiece(id); setSelection(null); }}
+          onUndo={undo}
+          onRedo={redo}
+          canUndo={canUndo}
+          canRedo={canRedo}
         />
       }
     >
