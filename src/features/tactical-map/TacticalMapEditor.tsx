@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavGuard } from "../../contexts/NavGuardContext";
 import { createPortal } from "react-dom";
 import avatarPlaceholderUrl from "../../assets/placeholder/avatar.png";
+import gungiFrameUrl from "../../assets/icons/gungi.svg";
 import MapEditorTemplate from "../../components/templates/MapEditorTemplate";
 import MapEditorToolbar from "../../components/organisms/MapEditorToolbar";
 import TacticalMapStage from "../../components/organisms/TacticalMapStage";
@@ -84,8 +85,10 @@ export default function TacticalMapEditor({
   const [placingNpcId, setPlacingNpcId] = useState<string | null>(null);
   const [placingNpcData, setPlacingNpcData] = useState<CharacterPrivateSummary | null>(null);
   const [isDraggingPieceToRoster, setIsDraggingPieceToRoster] = useState(false);
+  const [draggingCanvasPieceNpc, setDraggingCanvasPieceNpc] = useState<CharacterPrivateSummary | null>(null);
 
   const ghostRef = useRef<HTMLDivElement>(null);
+  const canvasDragGhostRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!placingNpcId) return;
@@ -98,6 +101,25 @@ export default function TacticalMapEditor({
     window.addEventListener("pointermove", handleMove, { passive: true });
     return () => window.removeEventListener("pointermove", handleMove);
   }, [placingNpcId]);
+
+  useEffect(() => {
+    if (!draggingCanvasPieceNpc) return;
+    const handleMove = (e: PointerEvent) => {
+      const ghost = canvasDragGhostRef.current;
+      if (!ghost) return;
+      ghost.style.left = `${e.clientX}px`;
+      ghost.style.top = `${e.clientY}px`;
+      if (canvasRef.current) {
+        const rect = canvasRef.current.getBoundingClientRect();
+        const isOutside =
+          e.clientX < rect.left || e.clientX > rect.right ||
+          e.clientY < rect.top  || e.clientY > rect.bottom;
+        ghost.style.opacity = isOutside ? "1" : "0";
+      }
+    };
+    window.addEventListener("pointermove", handleMove, { passive: true });
+    return () => window.removeEventListener("pointermove", handleMove);
+  }, [draggingCanvasPieceNpc]);
 
   // Set of character IDs already on the map
   const placedCharacterIds = useMemo(
@@ -415,8 +437,14 @@ export default function TacticalMapEditor({
             onPieceSelect={handlePieceSelect}
             onPieceMove={movePiece}
             onPieceDragToRoster={handlePieceDragToRoster}
-            onPieceDragStart={() => setIsDraggingPieceToRoster(true)}
-            onPieceDragEnd={() => setIsDraggingPieceToRoster(false)}
+            onPieceDragStart={(_pieceId, npc) => {
+              setIsDraggingPieceToRoster(true);
+              setDraggingCanvasPieceNpc(npc ?? null);
+            }}
+            onPieceDragEnd={() => {
+              setIsDraggingPieceToRoster(false);
+              setDraggingCanvasPieceNpc(null);
+            }}
             onStageDeselect={handleStageDeselect}
           />
         )}
@@ -463,21 +491,54 @@ export default function TacticalMapEditor({
           position: "fixed",
           pointerEvents: "none",
           zIndex: 9999,
-          transform: "translate(-50%, -50%)",
-          width: 48,
-          height: 48,
-          borderRadius: "50%",
-          overflow: "hidden",
-          border: "2px solid #7c4dff",
-          opacity: 0.9,
-          boxShadow: "0 4px 12px rgba(0,0,0,0.5)",
+          transform: "translate(-50%, -50%) scale(1.18)",
+          width: 56,
+          height: 56,
+          filter: "drop-shadow(0 8px 20px rgba(0,0,0,0.65))",
         }}
       >
-        <img
-          src={placingNpcData.avatarUrl ?? avatarPlaceholderUrl}
-          style={{ width: "100%", height: "100%", objectFit: "cover" }}
-          alt=""
-        />
+        <div style={{ position: "relative", width: "100%", height: "100%" }}>
+          <img
+            src={placingNpcData.avatarUrl ?? avatarPlaceholderUrl}
+            style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }}
+            alt=""
+          />
+          <img
+            src={gungiFrameUrl}
+            style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none" }}
+            alt=""
+          />
+        </div>
+      </div>,
+      document.body,
+    )}
+    {draggingCanvasPieceNpc && createPortal(
+      <div
+        ref={canvasDragGhostRef}
+        style={{
+          position: "fixed",
+          pointerEvents: "none",
+          zIndex: 9999,
+          opacity: 0,
+          transform: "translate(-50%, -50%) scale(1.18)",
+          width: 56,
+          height: 56,
+          filter: "drop-shadow(0 8px 20px rgba(0,0,0,0.65))",
+          transition: "opacity 0.08s",
+        }}
+      >
+        <div style={{ position: "relative", width: "100%", height: "100%" }}>
+          <img
+            src={draggingCanvasPieceNpc.avatarUrl ?? avatarPlaceholderUrl}
+            style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }}
+            alt=""
+          />
+          <img
+            src={gungiFrameUrl}
+            style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none" }}
+            alt=""
+          />
+        </div>
       </div>,
       document.body,
     )}

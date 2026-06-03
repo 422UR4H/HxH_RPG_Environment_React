@@ -119,7 +119,7 @@ type Props = {
   onPieceSelect?: (pieceId: string) => void;
   onPieceMove?: (pieceId: string, slot: SlotCoord) => void;
   onPieceDragToRoster?: (pieceId: string) => void;
-  onPieceDragStart?: () => void;
+  onPieceDragStart?: (pieceId: string, npc: CharacterPrivateSummary | undefined) => void;
   onPieceDragEnd?: () => void;
   onNpcPlaced?: (slot: SlotCoord) => void;
   onNpcPlacementCancel?: () => void;
@@ -585,7 +585,7 @@ function PiecesLayer({
   onPieceSelect?: (pieceId: string) => void;
   onPieceMove?: (pieceId: string, slot: SlotCoord) => void;
   onPieceDragToRoster?: (pieceId: string) => void;
-  onPieceDragStart?: () => void;
+  onPieceDragStart?: (pieceId: string, npc: CharacterPrivateSummary | undefined) => void;
   onPieceDragEnd?: () => void;
   onStageDeselect?: () => void;
 }) {
@@ -616,7 +616,9 @@ function PiecesLayer({
       if (!drag.isDragging && Math.hypot(dx, dy) > 4) {
         drag.isDragging = true;
         setDraggingPieceId(drag.pieceId);
-        onPieceDragStart?.();
+        const pieceData = map.pieces.find((p) => p.id === drag.pieceId);
+        const npc = pieceData ? npcMap?.get(pieceData.characterId) : undefined;
+        onPieceDragStart?.(drag.pieceId, npc);
       }
       if (!drag.isDragging) return;
       const vp = vpRef.current;
