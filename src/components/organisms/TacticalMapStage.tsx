@@ -214,6 +214,12 @@ function ViewportInner({
     });
   }, [clampToGrid, map.grid.cols, map.grid.cellSize, map.grid.rows]);
 
+  useEffect(() => {
+    if (width <= 0 || height <= 0) return;
+    app.renderer.resize(width, height);
+    vpRef.current?.resize(width, height);
+  }, [app, width, height]);
+
   // ─── Viewport pan via DOM events ─────────────────────────────────────────
   //
   // All listeners are on window so they register unconditionally regardless of
