@@ -35,6 +35,56 @@ function getAvatarBlobUrl(url: string): Promise<string | null> {
 
 const DRAG_LIFT_SCALE = 1.18;
 
+// Replicates CSS `inset box-shadow` from AvatarRelief (CharacterSheetHeader) as a
+// PixiJS-renderable texture. Using a canvas-drawn texture keeps everything inside the
+// WebGL display list — no DOM overlay div, no canvas/DOM z-layer conflict.
+const insetShadowCache = new Map<number, Texture>();
+function getAvatarInsetShadowTexture(radius: number): Texture {
+  const key = Math.round(radius * 10);
+  const cached = insetShadowCache.get(key);
+  if (cached) return cached;
+
+  const d = Math.ceil(radius * 2);
+  const canvas = document.createElement("canvas");
+  canvas.width = d;
+  canvas.height = d;
+  const ctx = canvas.getContext("2d")!;
+
+  // Replicate CSS `inset box-shadow` on a circle using radial gradients.
+  // Each layer: radial gradient centered at (cx, cy + offsetY*r).
+  // Shifting the gradient center DOWN (positive offset) makes the ring thicker at
+  // the top — exactly how CSS inset shadow with positive Y offset looks on a circle.
+  // Shifting UP (negative) thickens the ring at the bottom for the highlight layers.
+  // layers: [color, offsetY (fraction of r), blur (fraction of r)]
+  // CSS origin: inset 0 4cqi 5cqi → offsetY=0.08r blur=0.10r; cqi = 2r/100
+  const cx = radius, cy = radius, r = radius + 1;
+  const layers: [string, number, number][] = [
+    ["rgba(0,0,0,0.85)",        0.1, 0.1],
+    ["rgba(0,0,0,0.42)",        0.1, 0.14],
+    ["rgba(255,255,255,0.14)", -0.1, 0.1],
+    ["rgba(255,255,255,0.05)", -0.1, 0.2],
+  ];
+  for (const [color, offsetFrac, blurFrac] of layers) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.clip();
+    const shadowCy = cy + offsetFrac * r;
+    const innerR = Math.max(0, r - blurFrac * r);
+    const outerR = r + blurFrac * r;
+    const g = ctx.createRadialGradient(cx, shadowCy, innerR, cx, shadowCy, outerR);
+    g.addColorStop(0, "transparent");
+    g.addColorStop(1, color);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, d, d);
+    ctx.restore();
+  }
+
+  const t = new Texture({ source: new ImageSource({ resource: canvas }) });
+  insetShadowCache.set(key, t);
+  return t;
+}
+
 declare module "react" {
   namespace JSX {
     interface IntrinsicElements {
@@ -88,8 +138,6 @@ export default function TacticalMapStage({
   onNpcPlacementCancel,
   onStageDeselect,
 }: Props) {
-  const overlayRef = useRef<HTMLDivElement>(null);
-
   return (
     <div style={{ position: "relative", width, height, overflow: "hidden" }}>
       <Application width={width} height={height} background={0x101820}>
@@ -110,13 +158,8 @@ export default function TacticalMapStage({
           onNpcPlaced={onNpcPlaced}
           onNpcPlacementCancel={onNpcPlacementCancel}
           onStageDeselect={onStageDeselect}
-          overlayRef={overlayRef}
         />
       </Application>
-      <div
-        ref={overlayRef}
-        style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }}
-      />
     </div>
   );
 }
@@ -145,8 +188,7 @@ function ViewportInner({
   onNpcPlaced,
   onNpcPlacementCancel,
   onStageDeselect,
-  overlayRef,
-}: Props & { overlayRef: React.RefObject<HTMLDivElement | null> }) {
+}: Props) {
   const { app } = useApplication();
   const vpRef = useRef<Viewport | null>(null);
   const dragState = useRef<DragState>(null);
@@ -332,7 +374,6 @@ function ViewportInner({
       <PiecesLayer
         map={map}
         vpRef={vpRef}
-        overlayRef={overlayRef}
         piecesInteractive={piecesInteractive}
         selection={selection}
         npcMap={npcMap}
@@ -478,12 +519,11 @@ type PieceLocalDragState = {
 } | null;
 
 function PiecesLayer({
-  map, vpRef, overlayRef, piecesInteractive, selection, npcMap, pieceDragActiveRef,
+  map, vpRef, piecesInteractive, selection, npcMap, pieceDragActiveRef,
   onPieceSelect, onPieceMove, onPieceDragToRoster, onStageDeselect,
 }: {
   map: TacticalMap;
   vpRef: React.MutableRefObject<Viewport | null>;
-  overlayRef: React.RefObject<HTMLDivElement | null>;
   piecesInteractive?: boolean;
   selection?: Selection;
   npcMap?: Map<string, CharacterPrivateSummary>;
@@ -651,10 +691,7 @@ function PiecesLayer({
           npc={npcMap?.get(p.characterId)}
           isSelected={selection?.kind === "piece" && selection.id === p.id}
           isDragging={draggingPieceId === p.id}
-          isAnyDragging={!!draggingPieceId}
           dragWorldPos={draggingPieceId === p.id ? dragWorldPos : null}
-          overlayRef={overlayRef}
-          vpRef={vpRef}
           onPointerDown={(_piece, e) => {
             if (!piecesInteractive || localDrag.current) return;
             pieceDragActiveRef.current = true;
@@ -678,14 +715,11 @@ type PieceSpriteProps = {
   npc?: CharacterPrivateSummary;
   isSelected: boolean;
   isDragging: boolean;
-  isAnyDragging: boolean;
   dragWorldPos?: { x: number; y: number } | null;
-  overlayRef: React.RefObject<HTMLDivElement | null>;
-  vpRef: React.MutableRefObject<Viewport | null>;
   onPointerDown: (piece: Piece, e: FederatedPointerEvent) => void;
 };
 
-function PieceSprite({ piece, grid, npc, isSelected, isDragging, isAnyDragging, dragWorldPos, overlayRef, vpRef, onPointerDown }: PieceSpriteProps) {
+function PieceSprite({ piece, grid, npc, isSelected, isDragging, dragWorldPos, onPointerDown }: PieceSpriteProps) {
   const center = useMemo(() => slotToWorld(piece.coord.slot, grid), [piece.coord.slot, grid]);
   const tokenRadius = grid.cellSize * 0.45;
   const avatarRadius = tokenRadius * 0.7;
@@ -788,33 +822,13 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, isAnyDragging, 
     [avatarRadius, zOffsetPx],
   );
 
-  // DOM overlay: exact CSS inset box-shadow from AvatarRelief (CharacterSheetHeader).
-  // PixiJS canvas cannot apply CSS box-shadow; we overlay an HTML div on top of the
-  // canvas and update its position/size via a PixiJS ticker each frame.
-  const { app } = useApplication();
-  const overlayDivRef = useRef<HTMLDivElement | null>(null);
-  const posXRef = useRef(posX);
-  const posYRef = useRef(posY);
-  const isDraggingRef = useRef(isDragging);
-  const avatarRadiusRef = useRef(avatarRadius);
-  const zOffsetPxRef = useRef(zOffsetPx);
   const liftTRef = useRef(0);
-  const animScaleRef = useRef(1);
-  posXRef.current = posX;
-  posYRef.current = posY;
-  isDraggingRef.current = isDragging;
-  avatarRadiusRef.current = avatarRadius;
-  zOffsetPxRef.current = zOffsetPx;
-
   const [animLiftT, setAnimLiftT] = useState(0);
 
-  // Animates lift t (0=ground, 1=lifted) over 130ms with ease-out cubic when
-  // isDragging changes — eliminates the instant scale/y "teleport" on pickup/release.
   useEffect(() => {
     const target = isDragging ? 1 : 0;
     if (Math.abs(liftTRef.current - target) < 0.001) {
       liftTRef.current = target;
-      animScaleRef.current = 1 + (DRAG_LIFT_SCALE - 1) * target;
       setAnimLiftT(target);
       return;
     }
@@ -828,7 +842,6 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, isAnyDragging, 
       const eased = 1 - Math.pow(1 - progress, 3);
       const t = startT + (target - startT) * eased;
       liftTRef.current = t;
-      animScaleRef.current = 1 + (DRAG_LIFT_SCALE - 1) * t;
       setAnimLiftT(t);
       if (progress < 1) raf = requestAnimationFrame(animate);
     };
@@ -839,66 +852,7 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, isAnyDragging, 
   const animScale = 1 + (DRAG_LIFT_SCALE - 1) * animLiftT;
   const animLiftY = -8 * animLiftT;
 
-  useEffect(() => {
-    const container = overlayRef.current;
-    if (!container) return;
-    const div = document.createElement("div");
-    div.style.cssText =
-      "position:absolute;border-radius:50%;pointer-events:none;display:none";
-    container.appendChild(div);
-    overlayDivRef.current = div;
-    return () => { div.remove(); overlayDivRef.current = null; };
-  }, [overlayRef]);
-
-  useEffect(() => {
-    const div = overlayDivRef.current;
-    if (!div) return;
-    // Hide idle pieces' overlay divs while any drag is active — their DOM divs
-    // sit above the canvas and would otherwise render on top of the dragged piece.
-    const visible = !!avatarTexture && !(isAnyDragging && !isDragging);
-    div.style.display = visible ? "block" : "none";
-  }, [avatarTexture, isAnyDragging, isDragging]);
-
-  useEffect(() => {
-    if (!app) return;
-    let lastSz = 0;
-    const update = () => {
-      const div = overlayDivRef.current;
-      const vp = vpRef.current;
-      if (!div || !vp || div.style.display === "none") return;
-      div.style.zIndex = isDraggingRef.current ? "10" : "";
-      const scale = vp.scale.x;
-      const pieceScale = animScaleRef.current;
-      const r = avatarRadiusRef.current;
-      const sr = r * scale * pieceScale;
-      const sz = sr * 2;
-      const sp = vp.toScreen(
-        posXRef.current,
-        posYRef.current - 8 * liftTRef.current,
-      );
-      const zOff = zOffsetPxRef.current * scale * pieceScale;
-      div.style.left = `${sp.x - sr}px`;
-      div.style.top = `${sp.y - zOff - sr}px`;
-      if (sz !== lastSz) {
-        lastSz = sz;
-        div.style.width = `${sz}px`;
-        div.style.height = `${sz}px`;
-        const cqi = sz / 100;
-        div.style.boxShadow = [
-          `inset 0 ${4 * cqi}px ${5 * cqi}px rgba(0,0,0,0.62)`,
-          // `inset 0 ${0.55 * cqi}px ${0.7 * cqi}px rgba(0,0,0,0.62)`,
-          `inset 0 ${5 * cqi}px ${8 * cqi}px rgba(0,0,0,0.42)`,
-          // `inset 0 ${1.7 * cqi}px ${2.4 * cqi}px rgba(0,0,0,0.42)`,
-          `inset 0 ${-2 * cqi}px ${3 * cqi}px rgba(255,255,255,0.14)`,
-          // `inset 0 ${-0.55 * cqi}px ${0.75 * cqi}px rgba(255,255,255,0.14)`,
-          `inset 0 ${-4 * cqi}px ${8 * cqi}px rgba(255,255,255,0.05)`,
-          // `inset 0 ${-1.5 * cqi}px ${2.0 * cqi}px rgba(255,255,255,0.05)`,
-        ].join(",");
-      }
-    };
-    app.ticker.add(update);
-    return () => { app.ticker.remove(update); };
-  }, [app, vpRef, overlayRef]);
+  const insetShadowTexture = useMemo(() => getAvatarInsetShadowTexture(avatarRadius), [avatarRadius]);
 
   const drawSelection = useCallback(
     (g: PixiGraphics) => {
@@ -958,6 +912,13 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, isAnyDragging, 
               height={avatarRadius * 2}
             />
           </pixiContainer>
+          <pixiSprite
+            texture={insetShadowTexture}
+            x={-avatarRadius}
+            y={-zOffsetPx - avatarRadius}
+            width={avatarRadius * 2}
+            height={avatarRadius * 2}
+          />
         </>
       ) : (
         <pixiGraphics draw={drawFallback} />
