@@ -7,6 +7,7 @@ import GridConfigPanel from "../molecules/GridConfigPanel";
 import BgImagePanel from "../molecules/BgImagePanel";
 import NpcRosterPanel from "../molecules/NpcRosterPanel";
 import PiecePropertyPanel from "../molecules/PiecePropertyPanel";
+import InlineFeedback from "../ions/InlineFeedback";
 import { colors, fonts } from "../../styles/tokens";
 
 type Props = {
@@ -26,6 +27,8 @@ type Props = {
   saveLabel: string;
   nameError?: string | null;
   saveError?: string | null;
+  saveSuccessMsg?: string | null;
+  onSaveSuccessDismiss?: () => void;
   // Fase 4 — pieces
   campaignId: string;
   placedCharacterIds: Set<string>;
@@ -73,6 +76,8 @@ export default function MapEditorToolbar({
   saveLabel,
   nameError,
   saveError,
+  saveSuccessMsg,
+  onSaveSuccessDismiss,
   // Fase 4 — pieces
   campaignId,
   placedCharacterIds,
@@ -189,6 +194,14 @@ export default function MapEditorToolbar({
 
       <SaveArea>
         {saveError && <ErrorText>{saveError}</ErrorText>}
+        {saveSuccessMsg && (
+          <InlineFeedback
+            message={saveSuccessMsg}
+            variant="success"
+            autoDismissMs={3000}
+            onDismiss={onSaveSuccessDismiss}
+          />
+        )}
         <SaveButton
           type="button"
           disabled={isSaving}

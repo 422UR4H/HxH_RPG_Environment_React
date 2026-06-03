@@ -105,6 +105,7 @@ export default function TacticalMapEditor({
   const [isSaving, setIsSaving] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
 
   // Protect unsaved changes on tab close
   useEffect(() => {
@@ -314,6 +315,7 @@ export default function TacticalMapEditor({
         : mapToSave;
       await onSave(finalMap);
       markClean();
+      setSaveSuccess("Mapa salvo!");
       onSaveSuccess?.();
     } catch {
       setSaveError(
@@ -345,6 +347,8 @@ export default function TacticalMapEditor({
           saveLabel={saveLabel}
           nameError={nameError}
           saveError={saveError}
+          saveSuccessMsg={saveSuccess}
+          onSaveSuccessDismiss={() => setSaveSuccess(null)}
           campaignId={campaignId}
           placedCharacterIds={placedCharacterIds}
           placingNpcId={placingNpcId}
