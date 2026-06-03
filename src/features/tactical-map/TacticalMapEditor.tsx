@@ -59,9 +59,7 @@ export default function TacticalMapEditor({
   // UI-only state — not persisted in store
   const [placingNpcId, setPlacingNpcId] = useState<string | null>(null);
   const [placingNpcData, setPlacingNpcData] = useState<CharacterPrivateSummary | null>(null);
-  // TODO: wire to PiecesLayer drag state so isDropTarget highlights roster during drag.
-  // Requires surfacing dragging state from PiecesLayer up to TacticalMapEditor.
-  const isDraggingPieceToRoster = false;
+  const [isDraggingPieceToRoster, setIsDraggingPieceToRoster] = useState(false);
 
   const ghostRef = useRef<HTMLDivElement>(null);
 
@@ -366,6 +364,8 @@ export default function TacticalMapEditor({
             onPieceSelect={handlePieceSelect}
             onPieceMove={movePiece}
             onPieceDragToRoster={handlePieceDragToRoster}
+            onPieceDragStart={() => setIsDraggingPieceToRoster(true)}
+            onPieceDragEnd={() => setIsDraggingPieceToRoster(false)}
             onStageDeselect={handleStageDeselect}
           />
         )}

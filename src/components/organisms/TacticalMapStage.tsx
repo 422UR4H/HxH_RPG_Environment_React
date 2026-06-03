@@ -117,6 +117,8 @@ type Props = {
   onPieceSelect?: (pieceId: string) => void;
   onPieceMove?: (pieceId: string, slot: SlotCoord) => void;
   onPieceDragToRoster?: (pieceId: string) => void;
+  onPieceDragStart?: () => void;
+  onPieceDragEnd?: () => void;
   onNpcPlaced?: (slot: SlotCoord) => void;
   onNpcPlacementCancel?: () => void;
   onStageDeselect?: () => void;
@@ -134,6 +136,8 @@ export default function TacticalMapStage({
   onPieceSelect,
   onPieceMove,
   onPieceDragToRoster,
+  onPieceDragStart,
+  onPieceDragEnd,
   onNpcPlaced,
   onNpcPlacementCancel,
   onStageDeselect,
@@ -155,6 +159,8 @@ export default function TacticalMapStage({
           onPieceSelect={onPieceSelect}
           onPieceMove={onPieceMove}
           onPieceDragToRoster={onPieceDragToRoster}
+          onPieceDragStart={onPieceDragStart}
+          onPieceDragEnd={onPieceDragEnd}
           onNpcPlaced={onNpcPlaced}
           onNpcPlacementCancel={onNpcPlacementCancel}
           onStageDeselect={onStageDeselect}
@@ -185,6 +191,8 @@ function ViewportInner({
   onPieceSelect,
   onPieceMove,
   onPieceDragToRoster,
+  onPieceDragStart,
+  onPieceDragEnd,
   onNpcPlaced,
   onNpcPlacementCancel,
   onStageDeselect,
@@ -394,6 +402,8 @@ function ViewportInner({
         onPieceSelect={onPieceSelect}
         onPieceMove={onPieceMove}
         onPieceDragToRoster={onPieceDragToRoster}
+        onPieceDragStart={onPieceDragStart}
+        onPieceDragEnd={onPieceDragEnd}
         onStageDeselect={onStageDeselect}
       />
       <pixiContainer label="walls-layer" />
@@ -533,7 +543,7 @@ type PieceLocalDragState = {
 
 function PiecesLayer({
   map, vpRef, piecesInteractive, selection, npcMap, pieceDragActiveRef,
-  onPieceSelect, onPieceMove, onPieceDragToRoster, onStageDeselect,
+  onPieceSelect, onPieceMove, onPieceDragToRoster, onPieceDragStart, onPieceDragEnd, onStageDeselect,
 }: {
   map: TacticalMap;
   vpRef: React.MutableRefObject<Viewport | null>;
@@ -544,6 +554,8 @@ function PiecesLayer({
   onPieceSelect?: (pieceId: string) => void;
   onPieceMove?: (pieceId: string, slot: SlotCoord) => void;
   onPieceDragToRoster?: (pieceId: string) => void;
+  onPieceDragStart?: () => void;
+  onPieceDragEnd?: () => void;
   onStageDeselect?: () => void;
 }) {
   const { app } = useApplication();
@@ -573,6 +585,7 @@ function PiecesLayer({
       if (!drag.isDragging && Math.hypot(dx, dy) > 4) {
         drag.isDragging = true;
         setDraggingPieceId(drag.pieceId);
+        onPieceDragStart?.();
       }
       if (!drag.isDragging) return;
       const vp = vpRef.current;
@@ -588,6 +601,7 @@ function PiecesLayer({
       if (!drag) return;
       localDrag.current = null;
       setDraggingPieceId(null);
+      onPieceDragEnd?.();
       setDragWorldPos(null);
       setHoverSlot(null);
       if (!drag.isDragging) {
@@ -617,6 +631,7 @@ function PiecesLayer({
       if (!drag) return;
       localDrag.current = null;
       setDraggingPieceId(null);
+      onPieceDragEnd?.();
       setDragWorldPos(null);
       setHoverSlot(null);
       if (e.type === "pointercancel") return;
@@ -657,7 +672,7 @@ function PiecesLayer({
       window.removeEventListener("pointerup", handleWindowUp);
       window.removeEventListener("pointercancel", handleWindowUp);
     };
-  }, [app, vpRef, map.grid, map.pieces, piecesInteractive, onPieceSelect, onPieceMove, onPieceDragToRoster]);
+  }, [app, vpRef, map.grid, map.pieces, piecesInteractive, onPieceSelect, onPieceMove, onPieceDragToRoster, onPieceDragStart, onPieceDragEnd]);
 
   const drawHoverSlot = useCallback(
     (g: PixiGraphics) => {
