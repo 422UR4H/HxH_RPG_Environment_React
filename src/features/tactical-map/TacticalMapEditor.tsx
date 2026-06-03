@@ -74,6 +74,13 @@ export default function TacticalMapEditor({
     };
   }, []);
 
+  // Cleanup navConfirmPending on unmount to prevent orphaned pending resolver
+  useEffect(() => {
+    return () => {
+      if (navConfirmPending) navConfirmPending(false);
+    };
+  }, [navConfirmPending]);
+
   const [placingNpcId, setPlacingNpcId] = useState<string | null>(null);
   const [placingNpcData, setPlacingNpcData] = useState<CharacterPrivateSummary | null>(null);
   const [isDraggingPieceToRoster, setIsDraggingPieceToRoster] = useState(false);
@@ -127,7 +134,7 @@ export default function TacticalMapEditor({
   useEffect(() => {
     if (!isDirty) {
       registerGuard(null);
-      return () => registerGuard(null);
+      return;
     }
     const guardFn = () =>
       new Promise<boolean>((resolve) => {
