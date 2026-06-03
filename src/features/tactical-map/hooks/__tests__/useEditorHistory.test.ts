@@ -36,6 +36,7 @@ describe("useEditorHistory", () => {
       vi.advanceTimersByTime(400);
     });
     act(() => {
+      store.getState().markClean(); // Reset to clean before undo to isolate markDirty
       result.current.undo();
     });
     expect(store.getState().map.grid.cols).toBe(mapFixture.grid.cols);
@@ -66,6 +67,7 @@ describe("useEditorHistory", () => {
       result.current.undo();
     });
     act(() => {
+      store.getState().markClean(); // Reset to clean before redo to isolate markDirty
       result.current.redo();
     });
     expect(store.getState().map.grid.cols).toBe(10);
