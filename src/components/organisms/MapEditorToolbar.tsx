@@ -7,6 +7,7 @@ import GridConfigPanel from "../molecules/GridConfigPanel";
 import BgImagePanel from "../molecules/BgImagePanel";
 import NpcRosterPanel from "../molecules/NpcRosterPanel";
 import PiecePropertyPanel from "../molecules/PiecePropertyPanel";
+import InlineFeedback from "../ions/InlineFeedback";
 import { colors, fonts } from "../../styles/tokens";
 
 type Props = {
@@ -16,6 +17,8 @@ type Props = {
   onGridChange: (grid: GridShape) => void;
   bg: BgImage;
   onBgChange: (bg: BgImage | null) => void;
+  onApplyBg?: (bg: BgImage | null, grid: GridShape) => void;
+  onBgUploadingChange?: (uploading: boolean) => void;
   mapId: string;
   mapName: string;
   mapDescription: string;
@@ -26,6 +29,8 @@ type Props = {
   saveLabel: string;
   nameError?: string | null;
   saveError?: string | null;
+  saveSuccessMsg?: string | null;
+  onSaveSuccessDismiss?: () => void;
   // Fase 4 — pieces
   campaignId: string;
   placedCharacterIds: Set<string>;
@@ -36,6 +41,10 @@ type Props = {
   onPointerDownNpc: (npc: CharacterPrivateSummary, e: React.PointerEvent) => void;
   onZChange: (pieceId: string, z: number) => void;
   onRemovePiece: (pieceId: string) => void;
+  onUndo: () => void;
+  onRedo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
 };
 
 type TabDef = {
@@ -59,6 +68,8 @@ export default function MapEditorToolbar({
   onGridChange,
   bg,
   onBgChange,
+  onApplyBg,
+  onBgUploadingChange,
   mapId,
   mapName,
   mapDescription,
@@ -69,6 +80,8 @@ export default function MapEditorToolbar({
   saveLabel,
   nameError,
   saveError,
+  saveSuccessMsg,
+  onSaveSuccessDismiss,
   // Fase 4 — pieces
   campaignId,
   placedCharacterIds,
@@ -79,6 +92,10 @@ export default function MapEditorToolbar({
   onPointerDownNpc,
   onZChange,
   onRemovePiece,
+  onUndo,
+  onRedo,
+  canUndo,
+  canRedo,
 }: Props) {
   const handleNameChange = (e: ChangeEvent<HTMLInputElement>) => {
     onNameChange(e.target.value);
@@ -105,6 +122,27 @@ export default function MapEditorToolbar({
         ))}
       </TabRow>
 
+      <HistoryRow>
+        <HistoryButton
+          type="button"
+          disabled={!canUndo}
+          onClick={onUndo}
+          aria-label="Desfazer"
+          title="Desfazer (Ctrl+Z)"
+        >
+          ↺ Desfazer
+        </HistoryButton>
+        <HistoryButton
+          type="button"
+          disabled={!canRedo}
+          onClick={onRedo}
+          aria-label="Refazer"
+          title="Refazer (Shift+Ctrl+Z)"
+        >
+          ↻ Refazer
+        </HistoryButton>
+      </HistoryRow>
+
       <PanelArea>
         {activeTool === "grid" && (
           <GridConfigPanel grid={grid} onChange={onGridChange} />
@@ -116,6 +154,8 @@ export default function MapEditorToolbar({
             mapId={mapId}
             onBgChange={onBgChange}
             onGridChange={onGridChange}
+            onApplyBg={onApplyBg}
+            onUploadingChange={onBgUploadingChange}
           />
         )}
         {activeTool === "pieces" && (
@@ -160,6 +200,14 @@ export default function MapEditorToolbar({
 
       <SaveArea>
         {saveError && <ErrorText>{saveError}</ErrorText>}
+        {saveSuccessMsg && (
+          <InlineFeedback
+            message={saveSuccessMsg}
+            variant="success"
+            autoDismissMs={3000}
+            onDismiss={onSaveSuccessDismiss}
+          />
+        )}
         <SaveButton
           type="button"
           disabled={isSaving}
@@ -173,6 +221,7 @@ export default function MapEditorToolbar({
 }
 
 const Toolbar = styled.div`
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
   background: ${colors.surfaceSidebar};
@@ -192,8 +241,9 @@ const TabRow = styled.div`
 
 const TabButton = styled.button<{ $active: boolean }>`
   flex: 1;
-  min-width: 60px;
-  padding: 6px 8px;
+  min-width: 0;
+  padding: clamp(4px, 1.5cqi, 6px) clamp(2px, 1cqi, 8px);
+  height: max(40px, 8cqi);
   border-radius: 6px;
   border: 1px solid
     ${({ $active }) => ($active ? colors.brandAccent : colors.borderInput)};
@@ -202,7 +252,7 @@ const TabButton = styled.button<{ $active: boolean }>`
   color: ${({ disabled }) =>
     disabled ? colors.textPlaceholderStrong : colors.textPrimary};
   font-family: ${fonts.sans};
-  font-size: 12px;
+  font-size: clamp(10px, 2.8cqi, 12px);
   font-weight: 600;
   cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
   transition: background 0.15s;
@@ -228,8 +278,8 @@ const PiecesPanel = styled.div`
 const MetaSection = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px;
+  gap: clamp(6px, 2cqi, 8px);
+  padding: clamp(8px, 3cqi, 12px);
   border-top: 1px solid ${colors.borderInput};
 `;
 
@@ -241,13 +291,14 @@ const FieldGroup = styled.div`
 
 const NameInput = styled.input`
   font-family: ${fonts.sans};
-  font-size: 14px;
+  font-size: clamp(12px, 3.5cqi, 14px);
   color: ${colors.textPrimary};
   background: ${colors.surfaceInput};
   border: 1px solid ${colors.borderInput};
   border-radius: 6px;
-  padding: 8px 12px;
+  padding: clamp(6px, 2cqi, 8px) clamp(8px, 3cqi, 12px);
   outline: none;
+  width: 100%;
 
   &::placeholder {
     color: ${colors.textPlaceholder};
@@ -269,6 +320,10 @@ const DescriptionTextarea = styled.textarea`
   resize: vertical;
   outline: none;
 
+  @media (max-width: 749px) {
+    display: none;
+  }
+
   &::placeholder {
     color: ${colors.textPlaceholder};
   }
@@ -281,20 +336,20 @@ const DescriptionTextarea = styled.textarea`
 const SaveArea = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 12px;
+  gap: clamp(4px, 1.5cqi, 6px);
+  padding: clamp(8px, 3cqi, 12px);
   border-top: 1px solid ${colors.borderInput};
 `;
 
 const SaveButton = styled.button`
   width: 100%;
-  padding: 10px;
+  height: max(44px, 9cqi);
   border-radius: 6px;
   border: none;
   background: ${colors.brandAccent};
   color: ${colors.textPrimary};
   font-family: ${fonts.sans};
-  font-size: 14px;
+  font-size: clamp(12px, 3.5cqi, 14px);
   font-weight: 700;
   cursor: pointer;
   transition: filter 0.15s;
@@ -313,4 +368,34 @@ const ErrorText = styled.span`
   font-family: ${fonts.sans};
   font-size: 12px;
   color: ${colors.danger};
+`;
+
+const HistoryRow = styled.div`
+  display: flex;
+  gap: 4px;
+  padding: 4px 8px;
+  border-bottom: 1px solid ${colors.borderInput};
+`;
+
+const HistoryButton = styled.button`
+  flex: 1;
+  height: max(36px, 7cqi);
+  border-radius: 5px;
+  border: 1px solid ${colors.borderInput};
+  background: transparent;
+  color: ${colors.textPrimary};
+  font-family: ${fonts.sans};
+  font-size: clamp(10px, 2.8cqi, 12px);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  &:not(:disabled):hover {
+    background: ${colors.surfaceInput};
+  }
 `;

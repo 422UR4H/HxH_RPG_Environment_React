@@ -34,6 +34,10 @@ const baseProps = {
   onPointerDownNpc: vi.fn(),
   onZChange: vi.fn(),
   onRemovePiece: vi.fn(),
+  onUndo: vi.fn(),
+  onRedo: vi.fn(),
+  canUndo: false,
+  canRedo: false,
 };
 
 describe("MapEditorToolbar", () => {

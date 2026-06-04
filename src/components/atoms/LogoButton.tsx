@@ -1,12 +1,18 @@
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import Logo from "../ions/Logo";
+import { useNavGuard } from "../../contexts/NavGuardContext";
 
 export default function LogoButton() {
   const navigate = useNavigate();
+  const { confirmNavigation } = useNavGuard();
+
+  const handleClick = async () => {
+    if (await confirmNavigation()) navigate("/");
+  };
 
   return (
-    <StyledLogoButton onClick={() => navigate("/")}>
+    <StyledLogoButton onClick={handleClick}>
       <Logo />
     </StyledLogoButton>
   );

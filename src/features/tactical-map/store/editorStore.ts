@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { temporal } from "zundo";
 import { immer } from "zustand/middleware/immer";
+import { debounce } from "../../../utils/debounce";
 import type {
   BgImage,
   GridShape,
@@ -26,6 +27,7 @@ export type EditorState = {
   setName: (name: string) => void;
   setDescription: (desc: string) => void;
   setBg: (bg: BgImage | null) => void;
+  setBgWithGrid: (bg: BgImage | null, grid: GridShape) => void;
   placePiece: (piece: Piece) => void;
   movePiece: (pieceId: string, slot: SlotCoord) => void;
   setPieceZ: (pieceId: string, z: number) => void;
@@ -33,6 +35,7 @@ export type EditorState = {
   setActiveTool: (tool: ToolKind) => void;
   setSelection: (sel: Selection) => void;
   markClean: () => void;
+  markDirty: () => void;
 };
 
 export function createEditorStore(initialMap: TacticalMap) {
@@ -62,6 +65,16 @@ export function createEditorStore(initialMap: TacticalMap) {
         setBg: (bg) =>
           set((s) => {
             s.map.bg = bg;
+            s.isDirty = true;
+          }),
+        // Atomic bg+grid update: adding an image resizes the grid AND sets the
+        // image together. Doing it in one set keeps "add image" as a single,
+        // fully-reversible undo step (two separate sets would be merged by the
+        // history debounce into a broken intermediate snapshot).
+        setBgWithGrid: (bg, grid) =>
+          set((s) => {
+            s.map.bg = bg;
+            s.map.grid = grid;
             s.isDirty = true;
           }),
         placePiece: (piece) =>
@@ -102,12 +115,24 @@ export function createEditorStore(initialMap: TacticalMap) {
           set((s) => {
             s.isDirty = false;
           }),
+        markDirty: () =>
+          set((s) => {
+            s.isDirty = true;
+          }),
       })),
       {
-        partialize: (state) => ({
-          map: state.map,
-          activeTool: state.activeTool,
-        }),
+        // Rastrear apenas `map` — mudanças em activeTool/selection/isDirty
+        // não criam passos de undo (são estado de UI, não de conteúdo).
+        partialize: (state) => ({ map: state.map }),
+        // Sem equality: zundo registraria um snapshot em todo set, mesmo que
+        // `map` não tenha mudado (ex: setActiveTool). Com equality por referência
+        // de `map`, snapshots só são criados quando o conteúdo do mapa muda.
+        equality: (a, b) => a.map === b.map,
+        // Trailing debounce de 400ms: agrupa mudanças contínuas (sliders)
+        // num único snapshot. Efeito colateral: ações discretas (placePiece,
+        // movePiece) entram no histórico após ~400ms. Aceito pelo spec.
+        handleSet: (handleSet) => debounce(handleSet, 400),
+        limit: 100,
       },
     ),
   );

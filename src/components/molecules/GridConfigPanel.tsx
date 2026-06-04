@@ -120,15 +120,15 @@ export default function GridConfigPanel({ grid, onChange }: Props) {
 }
 
 const Panel = styled.div`
-  padding: 16px;
+  padding: clamp(10px, 4cqi, 16px);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: clamp(10px, 3cqi, 16px);
 `;
 
 const SectionTitle = styled.h3`
   font-family: ${fonts.sans};
-  font-size: 13px;
+  font-size: clamp(10px, 3cqi, 13px);
   font-weight: 700;
   letter-spacing: 1px;
   text-transform: uppercase;
@@ -156,13 +156,13 @@ const KindRow = styled.div`
 
 const KindButton = styled.button<{ $active: boolean }>`
   flex: 1;
-  padding: 8px;
+  height: max(40px, 8cqi);
   border-radius: 6px;
   border: 1px solid ${colors.borderInput};
   background: ${({ $active }) => ($active ? colors.brandAccent : "transparent")};
   color: ${colors.textPrimary};
   font-family: ${fonts.sans};
-  font-size: 13px;
+  font-size: clamp(11px, 3cqi, 13px);
   font-weight: 600;
   cursor: pointer;
 
@@ -173,13 +173,14 @@ const KindButton = styled.button<{ $active: boolean }>`
 
 const NumInput = styled.input`
   font-family: ${fonts.sans};
-  font-size: 15px;
+  font-size: clamp(12px, 3.5cqi, 15px);
   color: ${colors.textPrimary};
   background: ${colors.surfaceInput};
   border: 1px solid ${colors.borderInput};
   border-radius: 6px;
-  padding: 8px 12px;
+  padding: clamp(6px, 2cqi, 8px) clamp(8px, 3cqi, 12px);
   outline: none;
+  width: 100%;
 
   &:focus {
     border-color: ${colors.brandAccentBright};

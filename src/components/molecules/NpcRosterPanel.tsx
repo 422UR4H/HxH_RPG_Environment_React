@@ -90,12 +90,13 @@ const DropZone = styled.div<{ $isDropTarget: boolean }>`
 
 const SearchInput = styled.input`
   font-family: ${fonts.sans};
-  font-size: 12px;
+  font-size: clamp(11px, 2.8cqi, 12px);
   color: ${colors.textPrimary};
   background: ${colors.surfaceInput};
   border: 1px solid ${colors.borderInput};
   border-radius: 5px;
-  padding: 5px 8px;
+  padding: clamp(6px, 2cqi, 8px) clamp(8px, 2.5cqi, 8px);
+  height: max(40px, 8cqi);
   margin-bottom: 6px;
   outline: none;
   width: 100%;

@@ -2,12 +2,18 @@ import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 // import backArrow from "../../assets/icons/setavoltarsemponta.svg"
 import backArrow from "../../assets/icons/setavoltarcomponta.svg";
+import { useNavGuard } from "../../contexts/NavGuardContext";
 
 export default function BackButton() {
   const navigate = useNavigate();
+  const { confirmNavigation } = useNavGuard();
+
+  const handleClick = async () => {
+    if (await confirmNavigation()) navigate(-1);
+  };
 
   return (
-    <StyledBackButton onClick={() => navigate(-1)}>
+    <StyledBackButton onClick={handleClick}>
       <Arrow src={backArrow} alt="Back" />
     </StyledBackButton>
   );

@@ -14,13 +14,30 @@ type Props = {
   mapId: string;
   onBgChange: (bg: BgImage | null) => void;
   onGridChange: (grid: GridShape) => void;
+  // Atomic add: applies the resized grid and the new image in a single store
+  // update so undo/redo treats "add image" as one step. Falls back to separate
+  // onGridChange + onBgChange if not provided.
+  onApplyBg?: (bg: BgImage | null, grid: GridShape) => void;
+  onUploadingChange?: (uploading: boolean) => void;
 };
 
-export default function BgImagePanel({ bg, grid, mapId, onBgChange, onGridChange }: Props) {
+export default function BgImagePanel({ bg, grid, mapId, onBgChange, onGridChange, onApplyBg, onUploadingChange }: Props) {
   const { token } = useToken();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [urlInput, setUrlInput] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+
+  // Keeps local state and the parent (canvas overlay) in sync. The upload
+  // phase (compress + R2) happens before bg.url changes, so the canvas can't
+  // detect it on its own.
+  const setUploading = (v: boolean) => {
+    setIsUploading(v);
+    onUploadingChange?.(v);
+  };
+
+  // If the panel unmounts mid-upload (e.g. user switches toolbar tab), make
+  // sure the parent overlay doesn't get stuck showing forever.
+  useEffect(() => () => onUploadingChange?.(false), [onUploadingChange]);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const { uploadToR2, getPresignedUrl } = usePresignedUpload();
   const [naturalSize, setNaturalSize] = useState<{ w: number; h: number } | null>(null);
@@ -28,16 +45,20 @@ export default function BgImagePanel({ bg, grid, mapId, onBgChange, onGridChange
   const [aspectLocked, setAspectLocked] = useState(true);
   type NumField = "x" | "y" | "scaleX" | "scaleY" | "rotation";
   const [drafts, setDrafts] = useState<Partial<Record<NumField, string>>>({});
-  // Tracks the blob URL created during file upload so we can revoke it on unmount.
-  const blobUrlRef = useRef<string | null>(null);
-  useEffect(() => () => { if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current); }, []);
-
   const applyImage = (url: string, nw: number, nh: number, r2Url?: string) => {
     setNaturalSize({ w: nw, h: nh });
-    const fit = computeCoverFit(nw, nh, grid);
     const newGrid = deriveGridFromImage(nw, nh, grid);
-    onGridChange(newGrid);
-    onBgChange({ ...fit, url, r2Url });
+    // Fit against the DERIVED grid, not the old one. computeCoverFit scales the
+    // image to cover the grid it's given; using the old grid (often square and
+    // larger) makes a landscape image scale up and then overflow once the grid
+    // resizes to the image's aspect ratio.
+    const fit = computeCoverFit(nw, nh, newGrid);
+    const bgValue = { ...fit, url, r2Url };
+    if (onApplyBg) onApplyBg(bgValue, newGrid);
+    else {
+      onGridChange(newGrid);
+      onBgChange(bgValue);
+    }
     setScaleXPct(100);
   };
 
@@ -56,7 +77,7 @@ export default function BgImagePanel({ bg, grid, mapId, onBgChange, onGridChange
       return;
     }
     setUploadError(null);
-    setIsUploading(true);
+    setUploading(true);
     try {
       const compressed = await imageCompression(file, {
         maxWidthOrHeight: 4096,
@@ -68,23 +89,29 @@ export default function BgImagePanel({ bg, grid, mapId, onBgChange, onGridChange
       // The R2 public URL is stored in r2Url and only used when persisting
       // to the server. Without CORS configured on the R2 bucket, Assets.load()
       // would fail on the R2 URL because the browser blocks cross-origin fetch.
-      if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
+      // We intentionally do NOT revoke blob URLs during the session. Undo/redo
+      // history snapshots reference them; revoking one would leave the store
+      // thinking a bg exists while the canvas can't reload it (sidebar shows
+      // "remove", canvas empty). The browser frees them on full page unload —
+      // bounded to a handful per editing session.
       const blobUrl = URL.createObjectURL(compressed);
-      blobUrlRef.current = blobUrl;
       const img = new Image();
+      // Keep "uploading" true until the image is actually applied to the map —
+      // not just until the R2 PUT resolves. This closes the gap where the
+      // overlay would flicker off before bg.url changes.
       img.onload = () => {
         applyImage(blobUrl, img.naturalWidth, img.naturalHeight, publicUrl);
+        setUploading(false);
       };
       img.onerror = () => {
-        URL.revokeObjectURL(blobUrl);
-        blobUrlRef.current = null;
+        URL.revokeObjectURL(blobUrl); // failed to load, never applied → safe to free
         setUploadError("Imagem carregada mas não foi possível processar. Tente novamente.");
+        setUploading(false);
       };
       img.src = blobUrl;
     } catch {
       setUploadError("Não foi possível fazer upload. Tente novamente.");
-    } finally {
-      setIsUploading(false);
+      setUploading(false);
     }
   };
 

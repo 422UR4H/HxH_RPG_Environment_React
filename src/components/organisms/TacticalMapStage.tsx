@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { MutableRefObject } from "react";
+import styled, { keyframes } from "styled-components";
+import { colors, fonts } from "../../styles/tokens";
 import { Application, extend, useApplication } from "@pixi/react";
 import { Assets, BlurFilter, Container, Graphics, ImageSource, Sprite, Text, Texture } from "pixi.js";
 import type { EventSystem, FederatedPointerEvent } from "pixi.js";
@@ -32,8 +34,6 @@ function getAvatarBlobUrl(url: string): Promise<string | null> {
   }
   return p;
 }
-
-const DRAG_LIFT_SCALE = 1.18;
 
 // Replicates CSS `inset box-shadow` from AvatarRelief (CharacterSheetHeader) as a
 // PixiJS-renderable texture. Using a canvas-drawn texture keeps everything inside the
@@ -117,9 +117,20 @@ type Props = {
   onPieceSelect?: (pieceId: string) => void;
   onPieceMove?: (pieceId: string, slot: SlotCoord) => void;
   onPieceDragToRoster?: (pieceId: string) => void;
+  onPieceDragStart?: (pieceId: string, npc: CharacterPrivateSummary | undefined) => void;
+  onPieceDragEnd?: () => void;
   onNpcPlaced?: (slot: SlotCoord) => void;
   onNpcPlacementCancel?: () => void;
   onStageDeselect?: () => void;
+  // Current viewport zoom (world→screen scale). Lets the DOM drag ghost in
+  // TacticalMapEditor size itself to match the on-screen token size.
+  onViewportScaleChange?: (scale: number) => void;
+  onBgLoadingChange?: (loading: boolean) => void;
+  // True while a fresh image is being compressed + uploaded to R2 in the
+  // sidebar (BgImagePanel). This phase happens BEFORE bg.url changes, so the
+  // internal isBgLoading (texture load) can't cover it — the canvas overlay
+  // is driven by this flag too.
+  uploading?: boolean;
 };
 
 export default function TacticalMapStage({
@@ -134,12 +145,33 @@ export default function TacticalMapStage({
   onPieceSelect,
   onPieceMove,
   onPieceDragToRoster,
+  onPieceDragStart,
+  onPieceDragEnd,
   onNpcPlaced,
   onNpcPlacementCancel,
   onStageDeselect,
+  onViewportScaleChange,
+  onBgLoadingChange,
+  uploading = false,
 }: Props) {
+  const [isBgLoading, setIsBgLoading] = useState(() => !!map.bg?.url);
+  const bgUrl = map.bg?.url;
+
+  // useLayoutEffect fires synchronously before the browser paints the frame.
+  // When bg.url changes (upload, URL paste, or clear), we set loading state
+  // before paint so the overlay always appears — even for blob: URLs whose
+  // img.onload fires from cache before React would otherwise flush the update.
+  useLayoutEffect(() => {
+    setIsBgLoading(!!bgUrl);
+  }, [bgUrl]);
+
+  const handleBgLoadingChange = useCallback((loading: boolean) => {
+    setIsBgLoading(loading);
+    onBgLoadingChange?.(loading);
+  }, [onBgLoadingChange]);
+
   return (
-    <div style={{ position: "relative", width, height, overflow: "hidden" }}>
+    <div style={{ position: "relative", width, height, overflow: "hidden", isolation: "isolate" }}>
       <Application width={width} height={height} background={0x101820}>
         <ViewportInner
           map={map}
@@ -148,6 +180,7 @@ export default function TacticalMapStage({
           clampToGrid={clampToGrid}
           bgInteractive={bgInteractive}
           onBgPositionChange={onBgPositionChange}
+          onBgLoadingChange={handleBgLoadingChange}
           piecesInteractive={piecesInteractive}
           selection={selection}
           npcMap={npcMap}
@@ -155,11 +188,22 @@ export default function TacticalMapStage({
           onPieceSelect={onPieceSelect}
           onPieceMove={onPieceMove}
           onPieceDragToRoster={onPieceDragToRoster}
+          onPieceDragStart={onPieceDragStart}
+          onPieceDragEnd={onPieceDragEnd}
           onNpcPlaced={onNpcPlaced}
           onNpcPlacementCancel={onNpcPlacementCancel}
           onStageDeselect={onStageDeselect}
+          onViewportScaleChange={onViewportScaleChange}
         />
       </Application>
+      {(isBgLoading || uploading) && (
+        <BgLoadingOverlay>
+          <Spinner />
+          <LoadingLabel>
+            {uploading ? "Enviando imagem..." : "Carregando imagem..."}
+          </LoadingLabel>
+        </BgLoadingOverlay>
+      )}
     </div>
   );
 }
@@ -178,6 +222,7 @@ function ViewportInner({
   clampToGrid,
   bgInteractive,
   onBgPositionChange,
+  onBgLoadingChange,
   piecesInteractive,
   selection,
   npcMap,
@@ -185,9 +230,12 @@ function ViewportInner({
   onPieceSelect,
   onPieceMove,
   onPieceDragToRoster,
+  onPieceDragStart,
+  onPieceDragEnd,
   onNpcPlaced,
   onNpcPlacementCancel,
   onStageDeselect,
+  onViewportScaleChange,
 }: Props) {
   const { app } = useApplication();
   const vpRef = useRef<Viewport | null>(null);
@@ -202,6 +250,11 @@ function ViewportInner({
     vp.on("zoomed", () => setVpScale(vp.scale.x));
   }, []);
 
+  // Report zoom changes up so the DOM drag ghost can match on-screen token size.
+  useEffect(() => {
+    onViewportScaleChange?.(vpScale);
+  }, [vpScale, onViewportScaleChange]);
+
   useEffect(() => {
     const vp = vpRef.current;
     if (!vp || !clampToGrid) return;
@@ -215,7 +268,7 @@ function ViewportInner({
   }, [clampToGrid, map.grid.cols, map.grid.cellSize, map.grid.rows]);
 
   useEffect(() => {
-    if (width <= 0 || height <= 0) return;
+    if (!app.renderer || width <= 0 || height <= 0) return;
     app.renderer.resize(width, height);
     vpRef.current?.resize(width, height);
   }, [app, width, height]);
@@ -380,6 +433,7 @@ function ViewportInner({
         bgInteractive={bgInteractive}
         dragState={dragState}
         onBgPositionChange={onBgPositionChange}
+        onLoadingChange={onBgLoadingChange}
       />
       <GridLayer grid={map.grid} vpScale={vpScale} />
       <pixiContainer label="decorations-layer" />
@@ -394,6 +448,8 @@ function ViewportInner({
         onPieceSelect={onPieceSelect}
         onPieceMove={onPieceMove}
         onPieceDragToRoster={onPieceDragToRoster}
+        onPieceDragStart={onPieceDragStart}
+        onPieceDragEnd={onPieceDragEnd}
         onStageDeselect={onStageDeselect}
       />
       <pixiContainer label="walls-layer" />
@@ -407,35 +463,46 @@ function BgLayer({
   bgInteractive,
   dragState,
   onBgPositionChange,
+  onLoadingChange,
 }: {
   bg: TacticalMap["bg"];
   bgInteractive?: boolean;
   dragState?: MutableRefObject<DragState>;
   onBgPositionChange?: (x: number, y: number) => void;
+  onLoadingChange?: (loading: boolean) => void;
 }) {
   const [texture, setTexture] = useState<Texture | null>(null);
 
   useEffect(() => {
     if (!bg?.url) {
       setTexture(null);
+      onLoadingChange?.(false);
       return;
     }
+    onLoadingChange?.(true);
     let cancelled = false;
     if (bg.url.startsWith("blob:")) {
       const img = new Image();
       img.onload = () => {
         if (cancelled) return;
         setTexture(new Texture({ source: new ImageSource({ resource: img }) }));
+        onLoadingChange?.(false);
       };
-      img.onerror = () => { if (!cancelled) setTexture(null); };
+      img.onerror = () => {
+        if (!cancelled) { setTexture(null); onLoadingChange?.(false); }
+      };
       img.src = bg.url;
     } else {
       Assets.load(bg.url)
-        .then((t: Texture) => { if (!cancelled) setTexture(t); })
-        .catch(() => { if (!cancelled) setTexture(null); });
+        .then((t: Texture) => {
+          if (!cancelled) { setTexture(t); onLoadingChange?.(false); }
+        })
+        .catch(() => {
+          if (!cancelled) { setTexture(null); onLoadingChange?.(false); }
+        });
     }
     return () => { cancelled = true; };
-  }, [bg?.url]);
+  }, [bg?.url, onLoadingChange]);
 
   if (!bg || !texture) return null;
 
@@ -533,7 +600,7 @@ type PieceLocalDragState = {
 
 function PiecesLayer({
   map, vpRef, piecesInteractive, selection, npcMap, pieceDragActiveRef,
-  onPieceSelect, onPieceMove, onPieceDragToRoster, onStageDeselect,
+  onPieceSelect, onPieceMove, onPieceDragToRoster, onPieceDragStart, onPieceDragEnd, onStageDeselect,
 }: {
   map: TacticalMap;
   vpRef: React.MutableRefObject<Viewport | null>;
@@ -544,16 +611,14 @@ function PiecesLayer({
   onPieceSelect?: (pieceId: string) => void;
   onPieceMove?: (pieceId: string, slot: SlotCoord) => void;
   onPieceDragToRoster?: (pieceId: string) => void;
+  onPieceDragStart?: (pieceId: string, npc: CharacterPrivateSummary | undefined) => void;
+  onPieceDragEnd?: () => void;
   onStageDeselect?: () => void;
 }) {
   const { app } = useApplication();
   const localDrag = useRef<PieceLocalDragState>(null);
   const [draggingPieceId, setDraggingPieceId] = useState<string | null>(null);
   const [hoverSlot, setHoverSlot] = useState<SlotCoord | null>(null);
-  // World-space position of the piece being dragged — updated on every
-  // pointermove and passed down as props so the reconciler positions it
-  // correctly (imperative position.set() gets overwritten by reconciler).
-  const [dragWorldPos, setDragWorldPos] = useState<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     const stage = app?.stage;
@@ -573,12 +638,14 @@ function PiecesLayer({
       if (!drag.isDragging && Math.hypot(dx, dy) > 4) {
         drag.isDragging = true;
         setDraggingPieceId(drag.pieceId);
+        const pieceData = map.pieces.find((p) => p.id === drag.pieceId);
+        const npc = pieceData ? npcMap?.get(pieceData.characterId) : undefined;
+        onPieceDragStart?.(drag.pieceId, npc);
       }
       if (!drag.isDragging) return;
       const vp = vpRef.current;
       if (!vp) return;
       const world = vp.toWorld(stageX, stageY);
-      setDragWorldPos({ x: world.x, y: world.y });
       drag.currentSlot = worldToSlot(world, map.grid);
       setHoverSlot(drag.currentSlot);
     };
@@ -588,7 +655,7 @@ function PiecesLayer({
       if (!drag) return;
       localDrag.current = null;
       setDraggingPieceId(null);
-      setDragWorldPos(null);
+      onPieceDragEnd?.();
       setHoverSlot(null);
       if (!drag.isDragging) {
         onPieceSelect?.(drag.pieceId);
@@ -617,7 +684,7 @@ function PiecesLayer({
       if (!drag) return;
       localDrag.current = null;
       setDraggingPieceId(null);
-      setDragWorldPos(null);
+      onPieceDragEnd?.();
       setHoverSlot(null);
       if (e.type === "pointercancel") return;
       const rect = (app?.renderer ? app.canvas : null)?.getBoundingClientRect();
@@ -657,7 +724,7 @@ function PiecesLayer({
       window.removeEventListener("pointerup", handleWindowUp);
       window.removeEventListener("pointercancel", handleWindowUp);
     };
-  }, [app, vpRef, map.grid, map.pieces, piecesInteractive, onPieceSelect, onPieceMove, onPieceDragToRoster]);
+  }, [app, vpRef, map.grid, map.pieces, piecesInteractive, onPieceSelect, onPieceMove, onPieceDragToRoster, onPieceDragStart, onPieceDragEnd]);
 
   const drawHoverSlot = useCallback(
     (g: PixiGraphics) => {
@@ -680,14 +747,13 @@ function PiecesLayer({
     [hoverSlot, draggingPieceId, map.pieces, map.grid],
   );
 
-  // Dragging piece is rendered last so PixiJS draws it on top of all others.
-  const sortedPieces = useMemo(() => {
-    if (!draggingPieceId) return map.pieces;
-    return [
-      ...map.pieces.filter((p) => p.id !== draggingPieceId),
-      ...map.pieces.filter((p) => p.id === draggingPieceId),
-    ];
-  }, [map.pieces, draggingPieceId]);
+  // The dragged piece is hidden from the scene while dragging — a single DOM
+  // ghost (rendered by TacticalMapEditor) represents it across the whole screen.
+  // The canvas only shows the target-slot highlight (drawHoverSlot).
+  const visiblePieces = useMemo(
+    () => (draggingPieceId ? map.pieces.filter((p) => p.id !== draggingPieceId) : map.pieces),
+    [map.pieces, draggingPieceId],
+  );
 
   return (
     <pixiContainer
@@ -698,15 +764,13 @@ function PiecesLayer({
       }}
     >
       <pixiGraphics draw={drawHoverSlot} />
-      {sortedPieces.map((p) => (
+      {visiblePieces.map((p) => (
         <PieceSprite
           key={p.id}
           piece={p}
           grid={map.grid}
           npc={npcMap?.get(p.characterId)}
           isSelected={selection?.kind === "piece" && selection.id === p.id}
-          isDragging={draggingPieceId === p.id}
-          dragWorldPos={draggingPieceId === p.id ? dragWorldPos : null}
           onPointerDown={(_piece, e) => {
             if (!piecesInteractive || localDrag.current) return;
             pieceDragActiveRef.current = true;
@@ -729,22 +793,15 @@ type PieceSpriteProps = {
   grid: GridShape;
   npc?: CharacterPrivateSummary;
   isSelected: boolean;
-  isDragging: boolean;
-  dragWorldPos?: { x: number; y: number } | null;
   onPointerDown: (piece: Piece, e: FederatedPointerEvent) => void;
 };
 
-function PieceSprite({ piece, grid, npc, isSelected, isDragging, dragWorldPos, onPointerDown }: PieceSpriteProps) {
+function PieceSprite({ piece, grid, npc, isSelected, onPointerDown }: PieceSpriteProps) {
   const center = useMemo(() => slotToWorld(piece.coord.slot, grid), [piece.coord.slot, grid]);
   const tokenRadius = grid.cellSize * 0.45;
   const avatarRadius = tokenRadius * 0.7;
   const z = piece.coord.z;
   const zOffsetPx = z * 10;
-
-  // Piece position: use dragWorldPos during drag so React reconciler is always
-  // in control — imperative position.set() gets overwritten on each re-render.
-  const posX = dragWorldPos?.x ?? center.x;
-  const posY = dragWorldPos?.y ?? center.y;
 
   const [avatarTexture, setAvatarTexture] = useState<Texture | null>(null);
   useEffect(() => {
@@ -793,9 +850,9 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, dragWorldPos, o
     return () => { cancelled = true; };
   }, []);
 
-  const shadowRadius = isDragging ? tokenRadius + 6 : z > 0 ? tokenRadius + 0.1 + z * 0.1 : tokenRadius + 0.1;
-  const shadowAlpha = isDragging ? 0.65 : z > 0 ? 0.5 : 0.7;
-  const shadowBlurStrength = isDragging ? 4.5 : z > 0 ? 3 + z : 3;
+  const shadowRadius = z > 0 ? tokenRadius + 0.1 + z * 0.1 : tokenRadius + 0.1;
+  const shadowAlpha = z > 0 ? 0.5 : 0.7;
+  const shadowBlurStrength = z > 0 ? 3 + z : 3;
   const shadowFilter = useMemo(() => {
     const f = new BlurFilter({ strength: shadowBlurStrength, quality: 4 });
     // Fixed large padding prevents square-corner artifacts at any blur strength or zoom level.
@@ -837,36 +894,6 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, dragWorldPos, o
     [avatarRadius, zOffsetPx],
   );
 
-  const liftTRef = useRef(0);
-  const [animLiftT, setAnimLiftT] = useState(0);
-
-  useEffect(() => {
-    const target = isDragging ? 1 : 0;
-    if (Math.abs(liftTRef.current - target) < 0.001) {
-      liftTRef.current = target;
-      setAnimLiftT(target);
-      return;
-    }
-    const DURATION = 130;
-    const startT = liftTRef.current;
-    const startTime = performance.now();
-    let raf = 0;
-    const animate = (now: number) => {
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / DURATION, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      const t = startT + (target - startT) * eased;
-      liftTRef.current = t;
-      setAnimLiftT(t);
-      if (progress < 1) raf = requestAnimationFrame(animate);
-    };
-    raf = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(raf);
-  }, [isDragging]);
-
-  const animScale = 1 + (DRAG_LIFT_SCALE - 1) * animLiftT;
-  const animLiftY = -8 * animLiftT;
-
   const insetShadowTexture = useMemo(() => getAvatarInsetShadowTexture(avatarRadius), [avatarRadius]);
 
   const drawSelection = useCallback(
@@ -886,19 +913,13 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, dragWorldPos, o
   return (
     <pixiContainer
       label={`piece-${piece.id}`}
-      x={posX}
-      y={posY + animLiftY}
-      scale={animScale}
+      x={center.x}
+      y={center.y}
       eventMode="static"
       cursor="pointer"
       onPointerDown={(e: FederatedPointerEvent) => onPointerDown(piece, e)}
     >
-      <pixiGraphics
-        draw={drawShadow}
-        filters={[shadowFilter]}
-        y={8 * animLiftT / animScale}
-        scale={1 / animScale}
-      />
+      <pixiGraphics draw={drawShadow} filters={[shadowFilter]} />
 
       {frameTexture && (
         <pixiSprite
@@ -952,3 +973,36 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, dragWorldPos, o
     </pixiContainer>
   );
 }
+
+const spin = keyframes`
+  to { transform: rotate(360deg); }
+`;
+
+const BgLoadingOverlay = styled.div`
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: rgba(16, 24, 32, 0.85);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  pointer-events: none;
+`;
+
+const Spinner = styled.div`
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.15);
+  border-top-color: ${colors.brandAccent};
+  border-radius: 50%;
+  animation: ${spin} 0.8s linear infinite;
+`;
+
+const LoadingLabel = styled.p`
+  margin: 0;
+  color: ${colors.textPrimary};
+  font-family: ${fonts.sans};
+  font-size: 14px;
+`;
