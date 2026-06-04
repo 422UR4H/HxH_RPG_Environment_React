@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
+import type { SlotCoord } from "../types/tacticalMap";
 
 export type WsStatus =
   | "connecting"
@@ -25,6 +26,7 @@ interface UseLobbyWsParams {
   enabled?: boolean;
   onMatchStarted: () => void;
   onKicked?: () => void;
+  onPieceMoved?: (pieceId: string, slot: SlotCoord) => void;
 }
 
 interface UseLobbyWsResult {
@@ -33,6 +35,7 @@ interface UseLobbyWsResult {
   sendStartMatch: () => void;
   sendKick: (userUuid: string) => void;
   sendCancelLobby: () => void;
+  sendPieceMoved: (pieceId: string, slot: SlotCoord) => void;
 }
 
 const MAX_RECONNECTS = 5;
@@ -54,6 +57,7 @@ export function useLobbyWs({
   enabled = true,
   onMatchStarted,
   onKicked,
+  onPieceMoved,
 }: UseLobbyWsParams): UseLobbyWsResult {
   const [status, setStatus] = useState<WsStatus>("connecting");
   const [participants, setParticipants] = useState<LobbyParticipant[]>([]);
@@ -66,6 +70,8 @@ export function useLobbyWs({
   onMatchStartedRef.current = onMatchStarted;
   const onKickedRef = useRef(onKicked);
   onKickedRef.current = onKicked;
+  const onPieceMovedRef = useRef(onPieceMoved);
+  onPieceMovedRef.current = onPieceMoved;
   const userUuidRef = useRef(userUuid);
   userUuidRef.current = userUuid;
 
@@ -160,6 +166,23 @@ export function useLobbyWs({
           case "match_started":
             onMatchStartedRef.current();
             break;
+          case "lobby_piece_moved": {
+            const p = payload as {
+              piece_id: string;
+              slot: { kind: string; col?: number; row?: number; q?: number; r?: number };
+            };
+            if (!p.piece_id || !p.slot) break;
+            let slot: SlotCoord;
+            if (p.slot.kind === "square" && p.slot.col != null && p.slot.row != null) {
+              slot = { kind: "square", col: p.slot.col, row: p.slot.row };
+            } else if (p.slot.kind === "hex" && p.slot.q != null && p.slot.r != null) {
+              slot = { kind: "hex", q: p.slot.q, r: p.slot.r };
+            } else {
+              break;
+            }
+            onPieceMovedRef.current?.(p.piece_id, slot);
+            break;
+          }
           default:
             break;
         }
@@ -227,5 +250,16 @@ export function useLobbyWs({
     [sendMessage]
   );
 
-  return { status, participants, sendStartMatch, sendKick, sendCancelLobby };
+  const sendPieceMoved = useCallback(
+    (pieceId: string, slot: SlotCoord) => {
+      const slotPayload =
+        slot.kind === "square"
+          ? { kind: "square", col: slot.col, row: slot.row }
+          : { kind: "hex", q: slot.q, r: slot.r };
+      sendMessage("lobby_piece_moved", { piece_id: pieceId, slot: slotPayload });
+    },
+    [sendMessage],
+  );
+
+  return { status, participants, sendStartMatch, sendKick, sendCancelLobby, sendPieceMoved };
 }
