@@ -10,6 +10,9 @@ import { useRejectEnrollment } from "../hooks/useRejectEnrollment";
 import { useEnrollCharacterSheet } from "../hooks/useEnrollCharacterSheet";
 import { useDeleteMatch } from "../hooks/useDeleteMatch";
 import { useMaps } from "../hooks/useMaps";
+import { useMatchMap } from "../hooks/useMatchMap";
+import { useAttachMatchMap } from "../hooks/useAttachMatchMap";
+import { useDetachMatchMap } from "../hooks/useDetachMatchMap";
 import type { CharacterPrivateSummary } from "../types/characterSheet";
 import PageTabNav from "../components/organisms/PageTabNav";
 import MapCard from "../components/molecules/MapCard";
@@ -87,6 +90,10 @@ export default function MatchPage() {
     isSuccess: isEnrolled,
   } = useEnrollCharacterSheet(token, matchId);
   const { mutate: deleteMatch } = useDeleteMatch(token, matchId);
+
+  const { data: matchMap } = useMatchMap(token, matchId);
+  const { mutate: attachMap, isPending: isAttaching } = useAttachMatchMap(token, matchId);
+  const { mutate: detachMap, isPending: isDetaching } = useDetachMatchMap(token, matchId);
 
   const sheetId =
     locationState?.sheetId ??
@@ -358,15 +365,41 @@ export default function MatchPage() {
             ) : (maps ?? []).length === 0 ? (
               <MapsEmptyText>Nenhum mapa criado ainda.</MapsEmptyText>
             ) : (
-              (maps ?? []).map((map) => (
-                <MapCard
-                  key={map.id}
-                  map={map}
-                  onClick={() =>
-                    navigate(`/campaigns/${campaignId}/maps/${map.id}/edit`)
-                  }
-                />
-              ))
+              (maps ?? []).map((map) => {
+                const isAttached = matchMap?.mapUuid === map.id;
+                return (
+                  <MapCardWrapper key={map.id}>
+                    <MapCard
+                      map={map}
+                      onClick={() =>
+                        navigate(`/campaigns/${campaignId}/maps/${map.id}/edit`)
+                      }
+                    />
+                    {!matchStarted && (
+                      <MapAttachRow>
+                        {isAttached ? (
+                          <>
+                            <AttachedBadge>Anexado</AttachedBadge>
+                            <DetachButton
+                              onClick={() => detachMap()}
+                              disabled={isDetaching}
+                            >
+                              {isDetaching ? "Desanexando..." : "Desanexar"}
+                            </DetachButton>
+                          </>
+                        ) : (
+                          <AttachButton
+                            onClick={() => attachMap(map.id)}
+                            disabled={isAttaching}
+                          >
+                            {isAttaching ? "Anexando..." : "Anexar"}
+                          </AttachButton>
+                        )}
+                      </MapAttachRow>
+                    )}
+                  </MapCardWrapper>
+                );
+              })
             )}
           </MapsGrid>
         )}
@@ -625,4 +658,60 @@ const MapsPlaceholder = styled.p`
   color: ${colors.textMuted};
   padding: 40px 0;
   text-align: center;
+`;
+
+const MapCardWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const MapAttachRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+`;
+
+const AttachedBadge = styled.span`
+  font-family: ${fonts.sans};
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background-color: ${colors.statusOngoing};
+  color: ${colors.textPrimary};
+`;
+
+const BaseMapButton = styled.button`
+  font-family: ${fonts.sans};
+  font-size: 14px;
+  font-weight: 600;
+  padding: 6px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  &:not(:disabled):hover {
+    filter: brightness(1.1);
+  }
+  &:not(:disabled):active {
+    transform: scale(0.98);
+  }
+`;
+
+const AttachButton = styled(BaseMapButton)`
+  background-color: ${colors.brandAccent};
+  border: none;
+  color: ${colors.textPrimary};
+`;
+
+const DetachButton = styled(BaseMapButton)`
+  background-color: transparent;
+  border: 1px solid ${colors.borderDivider};
+  color: ${colors.textMuted};
 `;
