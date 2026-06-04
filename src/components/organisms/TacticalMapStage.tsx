@@ -111,6 +111,9 @@ type Props = {
   bgInteractive?: boolean;
   onBgPositionChange?: (x: number, y: number) => void;
   piecesInteractive?: boolean;
+  // undefined = all pieces draggable (editor mode).
+  // Set<string> = only listed piece IDs draggable (lobby placer mode).
+  draggablePieceIds?: Set<string>;
   selection?: Selection;
   npcMap?: Map<string, CharacterPrivateSummary>;
   placingNpcId?: string | null;
@@ -139,6 +142,7 @@ export default function TacticalMapStage({
   bgInteractive = false,
   onBgPositionChange,
   piecesInteractive,
+  draggablePieceIds,
   selection,
   npcMap,
   placingNpcId,
@@ -182,6 +186,7 @@ export default function TacticalMapStage({
           onBgPositionChange={onBgPositionChange}
           onBgLoadingChange={handleBgLoadingChange}
           piecesInteractive={piecesInteractive}
+          draggablePieceIds={draggablePieceIds}
           selection={selection}
           npcMap={npcMap}
           placingNpcId={placingNpcId}
@@ -224,6 +229,7 @@ function ViewportInner({
   onBgPositionChange,
   onBgLoadingChange,
   piecesInteractive,
+  draggablePieceIds,
   selection,
   npcMap,
   placingNpcId,
@@ -442,6 +448,7 @@ function ViewportInner({
         map={map}
         vpRef={vpRef}
         piecesInteractive={piecesInteractive}
+        draggablePieceIds={draggablePieceIds}
         selection={selection}
         npcMap={npcMap}
         pieceDragActiveRef={pieceDragActiveRef}
@@ -599,12 +606,13 @@ type PieceLocalDragState = {
 } | null;
 
 function PiecesLayer({
-  map, vpRef, piecesInteractive, selection, npcMap, pieceDragActiveRef,
+  map, vpRef, piecesInteractive, draggablePieceIds, selection, npcMap, pieceDragActiveRef,
   onPieceSelect, onPieceMove, onPieceDragToRoster, onPieceDragStart, onPieceDragEnd, onStageDeselect,
 }: {
   map: TacticalMap;
   vpRef: React.MutableRefObject<Viewport | null>;
   piecesInteractive?: boolean;
+  draggablePieceIds?: Set<string>;
   selection?: Selection;
   npcMap?: Map<string, CharacterPrivateSummary>;
   pieceDragActiveRef: React.MutableRefObject<boolean>;
@@ -773,6 +781,8 @@ function PiecesLayer({
           isSelected={selection?.kind === "piece" && selection.id === p.id}
           onPointerDown={(_piece, e) => {
             if (!piecesInteractive || localDrag.current) return;
+            // Guard: if draggablePieceIds is provided, only allow dragging listed pieces.
+            if (draggablePieceIds !== undefined && !draggablePieceIds.has(p.id)) return;
             pieceDragActiveRef.current = true;
             localDrag.current = {
               pieceId: p.id,
