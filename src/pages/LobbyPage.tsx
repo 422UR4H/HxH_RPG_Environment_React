@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Navigate, useParams, useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import useToken from "../hooks/useToken";
@@ -6,6 +6,10 @@ import useUser from "../hooks/useUser";
 import { useMatchDetails } from "../hooks/useMatchDetails";
 import { useMatchEnrollments } from "../hooks/useMatchEnrollments";
 import { useLobbyWs } from "../hooks/useLobbyWs";
+import { useMatchMap } from "../hooks/useMatchMap";
+import { useMap } from "../hooks/useMap";
+import { mapsService } from "../services/mapsService";
+import TacticalMapPlacer from "../features/tactical-map/TacticalMapPlacer";
 import {
   LoadingContainer,
   ErrorContainer,
@@ -18,6 +22,7 @@ import RuleSection from "../components/molecules/RuleSection";
 import LobbyConnectionSidebarItem from "../features/match/LobbyConnectionSidebarItem";
 import { colors, fonts } from "../styles/tokens";
 import type { WsStatus } from "../hooks/useLobbyWs";
+import type { Piece, SlotCoord } from "../types/tacticalMap";
 
 const ERROR_STATUSES: WsStatus[] = [
   "lobby_not_open",
@@ -53,7 +58,23 @@ export default function LobbyPage() {
   const lobbyEnabled =
     !!token && !!matchId && !isPending && !enrollmentsPending && hasAccess;
 
-  const { status, participants, sendStartMatch, sendKick, sendCancelLobby } =
+  const { data: matchMap } = useMatchMap(token, matchId);
+  const { data: fullMap } = useMap(token, matchMap?.mapUuid);
+
+  const [lobbyPieces, setLobbyPieces] = useState<Piece[]>([]);
+  const [mapSaveError, setMapSaveError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (fullMap) setLobbyPieces(fullMap.pieces);
+  }, [fullMap?.id]);
+
+  const handleWsPieceMoved = useCallback((pieceId: string, slot: SlotCoord) => {
+    setLobbyPieces((prev) =>
+      prev.map((p) => (p.id === pieceId ? { ...p, coord: { ...p.coord, slot } } : p)),
+    );
+  }, []);
+
+  const { status, participants, sendStartMatch, sendKick, sendCancelLobby, sendPieceMoved } =
     useLobbyWs({
       matchUuid: matchId ?? "",
       token: token ?? "",
@@ -63,7 +84,31 @@ export default function LobbyPage() {
       onMatchStarted: () =>
         navigate(`/campaigns/${campaignId}/matches/${matchId}/game`),
       onKicked: () => setIsKicked(true),
+      onPieceMoved: handleWsPieceMoved,
     });
+
+  const draggablePieceIds: Set<string> | undefined = useMemo(() => {
+    if (isMaster) return undefined;
+    const playerPiece = lobbyPieces.find((p) =>
+      enrollments?.some(
+        (e) => e.player?.uuid === user?.uuid && e.characterSheet?.uuid === p.characterId,
+      ),
+    );
+    return playerPiece ? new Set([playerPiece.id]) : new Set<string>();
+  }, [isMaster, lobbyPieces, enrollments, user?.uuid]);
+
+  const handleStartMatch = async () => {
+    setMapSaveError(null);
+    if (fullMap && lobbyPieces.length > 0) {
+      try {
+        await mapsService.updateMap(token!, fullMap.id, { pieces: lobbyPieces });
+      } catch {
+        setMapSaveError("Não foi possível salvar as posições. Tente novamente.");
+        return;
+      }
+    }
+    sendStartMatch();
+  };
 
   if (!token) return <Navigate to="/" replace />;
   if (isPending || enrollmentsPending)
@@ -174,7 +219,7 @@ export default function LobbyPage() {
         <ActionsList>
           {isMaster ? (
             <MasterActions>
-              <StartButton onClick={sendStartMatch}>
+              <StartButton onClick={handleStartMatch}>
                 Iniciar Partida
               </StartButton>
               <CancelButton onClick={() => setShowCancelConfirm(true)}>
@@ -187,6 +232,20 @@ export default function LobbyPage() {
             </WaitingMessage>
           )}
         </ActionsList>
+
+        {fullMap && (
+          <LobbyMapSection>
+            <TacticalMapPlacer
+              map={fullMap}
+              campaignId={campaignId!}
+              pieces={lobbyPieces}
+              onPiecesChange={setLobbyPieces}
+              sendPieceMoved={sendPieceMoved}
+              draggablePieceIds={draggablePieceIds}
+            />
+          </LobbyMapSection>
+        )}
+        {mapSaveError && <MapSaveError>{mapSaveError}</MapSaveError>}
       </DetailPageTemplate>
 
       {showCancelConfirm && (
@@ -305,4 +364,20 @@ const WaitingMessage = styled.p`
   color: ${colors.textMuted};
   font-style: italic;
   margin-top: 20px;
+`;
+
+const LobbyMapSection = styled.div`
+  width: 100%;
+  height: min(60vh, 500px);
+  margin-top: 16px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid ${colors.borderInput};
+`;
+
+const MapSaveError = styled.p`
+  font-family: ${fonts.sans};
+  font-size: 13px;
+  color: ${colors.danger};
+  margin-top: 8px;
 `;

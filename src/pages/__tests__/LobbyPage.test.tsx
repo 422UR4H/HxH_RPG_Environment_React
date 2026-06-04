@@ -6,6 +6,7 @@ import { server } from "../../test/server";
 import { renderWithProviders } from "../../test/render";
 import { matchFixture } from "../../test/fixtures/match";
 import { masterUserFixture, userFixture } from "../../test/fixtures/user";
+import { mapFixture, mapWithPieces, pieceFixture } from "../../test/fixtures/map";
 import LobbyPage from "../LobbyPage";
 
 const mockNavigate = vi.fn();
@@ -242,6 +243,110 @@ describe("LobbyPage", () => {
     // ConfirmDialog should appear
     await waitFor(() => {
       expect(screen.getByText(/Tem certeza/i)).toBeInTheDocument();
+    });
+  });
+
+  describe("LobbyPage — mapa", () => {
+    it("não renderiza mapa quando não há mapa anexado", async () => {
+      setupHandlers("master-1");
+      server.use(
+        http.get(`${baseUrl}/matches/:id/map`, () =>
+          new HttpResponse(null, { status: 204 }),
+        ),
+      );
+      renderPage({ user: masterUserFixture });
+      await waitForWsConnect();
+      simulateWsOpen();
+      sendFromServer("room_state", {
+        match_uuid: "match-1",
+        state: "lobby",
+        players: [],
+      });
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole("button", { name: /Iniciar Partida/i }),
+        ).toBeInTheDocument();
+      });
+      expect(
+        screen.queryByTestId("tactical-map-placer"),
+      ).not.toBeInTheDocument();
+    });
+
+    it("renderiza TacticalMapPlacer quando há mapa anexado", async () => {
+      setupHandlers("master-1");
+      server.use(
+        http.get(`${baseUrl}/matches/:id/map`, () =>
+          HttpResponse.json({
+            match_map: {
+              match_uuid: "match-1",
+              map_uuid: "map-1",
+              attached_at: "2026-01-01T00:00:00Z",
+            },
+          }),
+        ),
+        http.get(`${baseUrl}/maps/:id`, () =>
+          HttpResponse.json({ map: mapFixture }),
+        ),
+      );
+      renderPage({ user: masterUserFixture });
+      await waitForWsConnect();
+      simulateWsOpen();
+      sendFromServer("room_state", {
+        match_uuid: "match-1",
+        state: "lobby",
+        players: [],
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("tactical-map-placer")).toBeInTheDocument();
+      });
+    });
+
+    it("handleStartMatch salva peças antes de enviar start_match", async () => {
+      let updateMapCalled = false;
+      const pieceWithChar = { ...pieceFixture, characterId: "sheet-1" };
+      const mapWithChar = mapWithPieces([pieceWithChar]);
+
+      setupHandlers("master-1");
+      server.use(
+        http.get(`${baseUrl}/matches/:id/map`, () =>
+          HttpResponse.json({
+            match_map: {
+              match_uuid: "match-1",
+              map_uuid: "map-1",
+              attached_at: "2026-01-01T00:00:00Z",
+            },
+          }),
+        ),
+        http.get(`${baseUrl}/maps/:id`, () =>
+          HttpResponse.json({ map: mapWithChar }),
+        ),
+        http.put(`${baseUrl}/maps/:id`, () => {
+          updateMapCalled = true;
+          return new HttpResponse(null, { status: 204 });
+        }),
+      );
+      renderPage({ user: masterUserFixture });
+      await waitForWsConnect();
+      simulateWsOpen();
+      sendFromServer("room_state", {
+        match_uuid: "match-1",
+        state: "lobby",
+        players: [],
+      });
+
+      const startBtn = await screen.findByRole("button", {
+        name: /Iniciar Partida/i,
+      });
+      await userEvent.click(startBtn);
+
+      await waitFor(() => {
+        expect(updateMapCalled).toBe(true);
+      });
+      expect(wsInstance.send).toHaveBeenCalledWith(
+        expect.stringContaining("start_match"),
+      );
     });
   });
 });
