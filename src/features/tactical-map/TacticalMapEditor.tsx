@@ -91,6 +91,9 @@ export default function TacticalMapEditor({
   // True while BgImagePanel is compressing + uploading a fresh image to R2.
   // Drives the canvas overlay during the upload phase (before bg.url changes).
   const [isUploadingBg, setIsUploadingBg] = useState(false);
+  // Current canvas zoom — used to size the drag ghost to match the on-screen
+  // token (which scales with zoom in the Pixi viewport).
+  const [viewportScale, setViewportScale] = useState(1);
 
   const ghostRef = useRef<HTMLDivElement>(null);
   const canvasDragGhostRef = useRef<HTMLDivElement>(null);
@@ -375,6 +378,10 @@ export default function TacticalMapEditor({
     }
   };
 
+  // On-screen token diameter = world token size (cellSize * 0.9) × current zoom.
+  // Clamped so the ghost stays grabbable when zoomed far out.
+  const dragGhostSize = Math.max(44, map.grid.cellSize * 0.9 * viewportScale);
+
   return (
     <>
     <MapEditorTemplate
@@ -428,6 +435,7 @@ export default function TacticalMapEditor({
             height={height}
             bgInteractive={activeTool === "bg"}
             uploading={isUploadingBg}
+            onViewportScaleChange={setViewportScale}
             piecesInteractive={activeTool === "pieces"}
             selection={selection}
             npcMap={npcMap}
@@ -486,13 +494,13 @@ export default function TacticalMapEditor({
       />
     )}
     {placingNpcId && placingNpcData && createPortal(
-      <div ref={ghostRef} style={ghostStyle}>
+      <div ref={ghostRef} style={ghostStyle(dragGhostSize)}>
         <PieceDragGhost avatarUrl={placingNpcData.avatarUrl} />
       </div>,
       document.body,
     )}
     {draggingCanvasPieceNpc && createPortal(
-      <div ref={canvasDragGhostRef} style={ghostStyle}>
+      <div ref={canvasDragGhostRef} style={ghostStyle(dragGhostSize)}>
         <PieceDragGhost avatarUrl={draggingCanvasPieceNpc.avatarUrl} />
       </div>,
       document.body,
@@ -501,15 +509,21 @@ export default function TacticalMapEditor({
   );
 }
 
-const ghostStyle: CSSProperties = {
-  position: "fixed",
-  pointerEvents: "none",
-  zIndex: 9999,
-  transform: "translate(-50%, -50%) scale(1.18)",
-  width: 56,
-  height: 56,
-  filter: "drop-shadow(0 8px 20px rgba(0,0,0,0.65))",
-};
+// size = on-screen token diameter (px). The ghost is lifted to 1.2× so it
+// reads as "picked up" — slightly larger than the token resting on the board —
+// with a large, diffuse shadow offset below for depth (mirrors the old Pixi
+// lift). Shadow blur/offset scale with size so it stays proportional at any zoom.
+function ghostStyle(size: number): CSSProperties {
+  return {
+    position: "fixed",
+    pointerEvents: "none",
+    zIndex: 9999,
+    transform: "translate(-50%, -50%) scale(1.2)",
+    width: size,
+    height: size,
+    filter: `drop-shadow(0 ${Math.round(size * 0.22)}px ${Math.round(size * 0.36)}px rgba(0,0,0,0.55))`,
+  };
+}
 
 // Floating cursor-follower shown during any piece drag (roster→canvas and
 // canvas→roster). Mirrors the Pixi token layering: gungi frame as the base,

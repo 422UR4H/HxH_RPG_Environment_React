@@ -122,6 +122,9 @@ type Props = {
   onNpcPlaced?: (slot: SlotCoord) => void;
   onNpcPlacementCancel?: () => void;
   onStageDeselect?: () => void;
+  // Current viewport zoom (world→screen scale). Lets the DOM drag ghost in
+  // TacticalMapEditor size itself to match the on-screen token size.
+  onViewportScaleChange?: (scale: number) => void;
   onBgLoadingChange?: (loading: boolean) => void;
   // True while a fresh image is being compressed + uploaded to R2 in the
   // sidebar (BgImagePanel). This phase happens BEFORE bg.url changes, so the
@@ -147,6 +150,7 @@ export default function TacticalMapStage({
   onNpcPlaced,
   onNpcPlacementCancel,
   onStageDeselect,
+  onViewportScaleChange,
   onBgLoadingChange,
   uploading = false,
 }: Props) {
@@ -189,6 +193,7 @@ export default function TacticalMapStage({
           onNpcPlaced={onNpcPlaced}
           onNpcPlacementCancel={onNpcPlacementCancel}
           onStageDeselect={onStageDeselect}
+          onViewportScaleChange={onViewportScaleChange}
         />
       </Application>
       {(isBgLoading || uploading) && (
@@ -230,6 +235,7 @@ function ViewportInner({
   onNpcPlaced,
   onNpcPlacementCancel,
   onStageDeselect,
+  onViewportScaleChange,
 }: Props) {
   const { app } = useApplication();
   const vpRef = useRef<Viewport | null>(null);
@@ -243,6 +249,11 @@ function ViewportInner({
     vp.pinch().wheel().decelerate();
     vp.on("zoomed", () => setVpScale(vp.scale.x));
   }, []);
+
+  // Report zoom changes up so the DOM drag ghost can match on-screen token size.
+  useEffect(() => {
+    onViewportScaleChange?.(vpScale);
+  }, [vpScale, onViewportScaleChange]);
 
   useEffect(() => {
     const vp = vpRef.current;
