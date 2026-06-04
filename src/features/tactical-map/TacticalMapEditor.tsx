@@ -44,6 +44,7 @@ export default function TacticalMapEditor({
   const setDescription = store((s) => s.setDescription);
   const bg = store((s) => s.map.bg);
   const setBg = store((s) => s.setBg);
+  const setBgWithGrid = store((s) => s.setBgWithGrid);
   const setActiveTool = store((s) => s.setActiveTool);
   const markClean = store((s) => s.markClean);
   const pieces = store((s) => s.map.pieces);
@@ -391,6 +392,7 @@ export default function TacticalMapEditor({
           onGridChange={setGrid}
           bg={map.bg}
           onBgChange={setBg}
+          onApplyBg={setBgWithGrid}
           onBgUploadingChange={setIsUploadingBg}
           mapId={map.id}
           mapName={map.name}

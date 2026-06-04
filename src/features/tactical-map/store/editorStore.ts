@@ -27,6 +27,7 @@ export type EditorState = {
   setName: (name: string) => void;
   setDescription: (desc: string) => void;
   setBg: (bg: BgImage | null) => void;
+  setBgWithGrid: (bg: BgImage | null, grid: GridShape) => void;
   placePiece: (piece: Piece) => void;
   movePiece: (pieceId: string, slot: SlotCoord) => void;
   setPieceZ: (pieceId: string, z: number) => void;
@@ -64,6 +65,16 @@ export function createEditorStore(initialMap: TacticalMap) {
         setBg: (bg) =>
           set((s) => {
             s.map.bg = bg;
+            s.isDirty = true;
+          }),
+        // Atomic bg+grid update: adding an image resizes the grid AND sets the
+        // image together. Doing it in one set keeps "add image" as a single,
+        // fully-reversible undo step (two separate sets would be merged by the
+        // history debounce into a broken intermediate snapshot).
+        setBgWithGrid: (bg, grid) =>
+          set((s) => {
+            s.map.bg = bg;
+            s.map.grid = grid;
             s.isDirty = true;
           }),
         placePiece: (piece) =>

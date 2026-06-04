@@ -17,6 +17,7 @@ type Props = {
   onGridChange: (grid: GridShape) => void;
   bg: BgImage;
   onBgChange: (bg: BgImage | null) => void;
+  onApplyBg?: (bg: BgImage | null, grid: GridShape) => void;
   onBgUploadingChange?: (uploading: boolean) => void;
   mapId: string;
   mapName: string;
@@ -67,6 +68,7 @@ export default function MapEditorToolbar({
   onGridChange,
   bg,
   onBgChange,
+  onApplyBg,
   onBgUploadingChange,
   mapId,
   mapName,
@@ -152,6 +154,7 @@ export default function MapEditorToolbar({
             mapId={mapId}
             onBgChange={onBgChange}
             onGridChange={onGridChange}
+            onApplyBg={onApplyBg}
             onUploadingChange={onBgUploadingChange}
           />
         )}
