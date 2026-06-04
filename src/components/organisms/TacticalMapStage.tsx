@@ -35,8 +35,6 @@ function getAvatarBlobUrl(url: string): Promise<string | null> {
   return p;
 }
 
-const DRAG_LIFT_SCALE = 1.18;
-
 // Replicates CSS `inset box-shadow` from AvatarRelief (CharacterSheetHeader) as a
 // PixiJS-renderable texture. Using a canvas-drawn texture keeps everything inside the
 // WebGL display list — no DOM overlay div, no canvas/DOM z-layer conflict.
@@ -610,10 +608,6 @@ function PiecesLayer({
   const localDrag = useRef<PieceLocalDragState>(null);
   const [draggingPieceId, setDraggingPieceId] = useState<string | null>(null);
   const [hoverSlot, setHoverSlot] = useState<SlotCoord | null>(null);
-  // World-space position of the piece being dragged — updated on every
-  // pointermove and passed down as props so the reconciler positions it
-  // correctly (imperative position.set() gets overwritten by reconciler).
-  const [dragWorldPos, setDragWorldPos] = useState<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     const stage = app?.stage;
@@ -641,7 +635,6 @@ function PiecesLayer({
       const vp = vpRef.current;
       if (!vp) return;
       const world = vp.toWorld(stageX, stageY);
-      setDragWorldPos({ x: world.x, y: world.y });
       drag.currentSlot = worldToSlot(world, map.grid);
       setHoverSlot(drag.currentSlot);
     };
@@ -652,7 +645,6 @@ function PiecesLayer({
       localDrag.current = null;
       setDraggingPieceId(null);
       onPieceDragEnd?.();
-      setDragWorldPos(null);
       setHoverSlot(null);
       if (!drag.isDragging) {
         onPieceSelect?.(drag.pieceId);
@@ -682,7 +674,6 @@ function PiecesLayer({
       localDrag.current = null;
       setDraggingPieceId(null);
       onPieceDragEnd?.();
-      setDragWorldPos(null);
       setHoverSlot(null);
       if (e.type === "pointercancel") return;
       const rect = (app?.renderer ? app.canvas : null)?.getBoundingClientRect();
@@ -745,14 +736,13 @@ function PiecesLayer({
     [hoverSlot, draggingPieceId, map.pieces, map.grid],
   );
 
-  // Dragging piece is rendered last so PixiJS draws it on top of all others.
-  const sortedPieces = useMemo(() => {
-    if (!draggingPieceId) return map.pieces;
-    return [
-      ...map.pieces.filter((p) => p.id !== draggingPieceId),
-      ...map.pieces.filter((p) => p.id === draggingPieceId),
-    ];
-  }, [map.pieces, draggingPieceId]);
+  // The dragged piece is hidden from the scene while dragging — a single DOM
+  // ghost (rendered by TacticalMapEditor) represents it across the whole screen.
+  // The canvas only shows the target-slot highlight (drawHoverSlot).
+  const visiblePieces = useMemo(
+    () => (draggingPieceId ? map.pieces.filter((p) => p.id !== draggingPieceId) : map.pieces),
+    [map.pieces, draggingPieceId],
+  );
 
   return (
     <pixiContainer
@@ -763,15 +753,13 @@ function PiecesLayer({
       }}
     >
       <pixiGraphics draw={drawHoverSlot} />
-      {sortedPieces.map((p) => (
+      {visiblePieces.map((p) => (
         <PieceSprite
           key={p.id}
           piece={p}
           grid={map.grid}
           npc={npcMap?.get(p.characterId)}
           isSelected={selection?.kind === "piece" && selection.id === p.id}
-          isDragging={draggingPieceId === p.id}
-          dragWorldPos={draggingPieceId === p.id ? dragWorldPos : null}
           onPointerDown={(_piece, e) => {
             if (!piecesInteractive || localDrag.current) return;
             pieceDragActiveRef.current = true;
@@ -794,22 +782,15 @@ type PieceSpriteProps = {
   grid: GridShape;
   npc?: CharacterPrivateSummary;
   isSelected: boolean;
-  isDragging: boolean;
-  dragWorldPos?: { x: number; y: number } | null;
   onPointerDown: (piece: Piece, e: FederatedPointerEvent) => void;
 };
 
-function PieceSprite({ piece, grid, npc, isSelected, isDragging, dragWorldPos, onPointerDown }: PieceSpriteProps) {
+function PieceSprite({ piece, grid, npc, isSelected, onPointerDown }: PieceSpriteProps) {
   const center = useMemo(() => slotToWorld(piece.coord.slot, grid), [piece.coord.slot, grid]);
   const tokenRadius = grid.cellSize * 0.45;
   const avatarRadius = tokenRadius * 0.7;
   const z = piece.coord.z;
   const zOffsetPx = z * 10;
-
-  // Piece position: use dragWorldPos during drag so React reconciler is always
-  // in control — imperative position.set() gets overwritten on each re-render.
-  const posX = dragWorldPos?.x ?? center.x;
-  const posY = dragWorldPos?.y ?? center.y;
 
   const [avatarTexture, setAvatarTexture] = useState<Texture | null>(null);
   useEffect(() => {
@@ -858,9 +839,9 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, dragWorldPos, o
     return () => { cancelled = true; };
   }, []);
 
-  const shadowRadius = isDragging ? tokenRadius + 6 : z > 0 ? tokenRadius + 0.1 + z * 0.1 : tokenRadius + 0.1;
-  const shadowAlpha = isDragging ? 0.65 : z > 0 ? 0.5 : 0.7;
-  const shadowBlurStrength = isDragging ? 4.5 : z > 0 ? 3 + z : 3;
+  const shadowRadius = z > 0 ? tokenRadius + 0.1 + z * 0.1 : tokenRadius + 0.1;
+  const shadowAlpha = z > 0 ? 0.5 : 0.7;
+  const shadowBlurStrength = z > 0 ? 3 + z : 3;
   const shadowFilter = useMemo(() => {
     const f = new BlurFilter({ strength: shadowBlurStrength, quality: 4 });
     // Fixed large padding prevents square-corner artifacts at any blur strength or zoom level.
@@ -902,36 +883,6 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, dragWorldPos, o
     [avatarRadius, zOffsetPx],
   );
 
-  const liftTRef = useRef(0);
-  const [animLiftT, setAnimLiftT] = useState(0);
-
-  useEffect(() => {
-    const target = isDragging ? 1 : 0;
-    if (Math.abs(liftTRef.current - target) < 0.001) {
-      liftTRef.current = target;
-      setAnimLiftT(target);
-      return;
-    }
-    const DURATION = 130;
-    const startT = liftTRef.current;
-    const startTime = performance.now();
-    let raf = 0;
-    const animate = (now: number) => {
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / DURATION, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      const t = startT + (target - startT) * eased;
-      liftTRef.current = t;
-      setAnimLiftT(t);
-      if (progress < 1) raf = requestAnimationFrame(animate);
-    };
-    raf = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(raf);
-  }, [isDragging]);
-
-  const animScale = 1 + (DRAG_LIFT_SCALE - 1) * animLiftT;
-  const animLiftY = -8 * animLiftT;
-
   const insetShadowTexture = useMemo(() => getAvatarInsetShadowTexture(avatarRadius), [avatarRadius]);
 
   const drawSelection = useCallback(
@@ -951,19 +902,13 @@ function PieceSprite({ piece, grid, npc, isSelected, isDragging, dragWorldPos, o
   return (
     <pixiContainer
       label={`piece-${piece.id}`}
-      x={posX}
-      y={posY + animLiftY}
-      scale={animScale}
+      x={center.x}
+      y={center.y}
       eventMode="static"
       cursor="pointer"
       onPointerDown={(e: FederatedPointerEvent) => onPointerDown(piece, e)}
     >
-      <pixiGraphics
-        draw={drawShadow}
-        filters={[shadowFilter]}
-        y={8 * animLiftT / animScale}
-        scale={1 / animScale}
-      />
+      <pixiGraphics draw={drawShadow} filters={[shadowFilter]} />
 
       {frameTexture && (
         <pixiSprite

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import { useNavGuard } from "../../contexts/NavGuardContext";
 import { createPortal } from "react-dom";
 import avatarPlaceholderUrl from "../../assets/placeholder/avatar.png";
@@ -113,13 +114,6 @@ export default function TacticalMapEditor({
       if (!ghost) return;
       ghost.style.left = `${e.clientX}px`;
       ghost.style.top = `${e.clientY}px`;
-      if (canvasRef.current) {
-        const rect = canvasRef.current.getBoundingClientRect();
-        const isOutside =
-          e.clientX < rect.left || e.clientX > rect.right ||
-          e.clientY < rect.top  || e.clientY > rect.bottom;
-        ghost.style.opacity = isOutside ? "1" : "0";
-      }
     };
     window.addEventListener("pointermove", handleMove, { passive: true });
     return () => window.removeEventListener("pointermove", handleMove);
@@ -492,63 +486,56 @@ export default function TacticalMapEditor({
       />
     )}
     {placingNpcId && placingNpcData && createPortal(
-      <div
-        ref={ghostRef}
-        style={{
-          position: "fixed",
-          pointerEvents: "none",
-          zIndex: 9999,
-          transform: "translate(-50%, -50%) scale(1.18)",
-          width: 56,
-          height: 56,
-          filter: "drop-shadow(0 8px 20px rgba(0,0,0,0.65))",
-        }}
-      >
-        <div style={{ position: "relative", width: "100%", height: "100%" }}>
-          <img
-            src={placingNpcData.avatarUrl ?? avatarPlaceholderUrl}
-            style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }}
-            alt=""
-          />
-          <img
-            src={gungiFrameUrl}
-            style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none" }}
-            alt=""
-          />
-        </div>
+      <div ref={ghostRef} style={ghostStyle}>
+        <PieceDragGhost avatarUrl={placingNpcData.avatarUrl} />
       </div>,
       document.body,
     )}
     {draggingCanvasPieceNpc && createPortal(
-      <div
-        ref={canvasDragGhostRef}
-        style={{
-          position: "fixed",
-          pointerEvents: "none",
-          zIndex: 9999,
-          opacity: 0,
-          transform: "translate(-50%, -50%) scale(1.18)",
-          width: 56,
-          height: 56,
-          filter: "drop-shadow(0 8px 20px rgba(0,0,0,0.65))",
-          transition: "opacity 0.08s",
-        }}
-      >
-        <div style={{ position: "relative", width: "100%", height: "100%" }}>
-          <img
-            src={draggingCanvasPieceNpc.avatarUrl ?? avatarPlaceholderUrl}
-            style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }}
-            alt=""
-          />
-          <img
-            src={gungiFrameUrl}
-            style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none" }}
-            alt=""
-          />
-        </div>
+      <div ref={canvasDragGhostRef} style={ghostStyle}>
+        <PieceDragGhost avatarUrl={draggingCanvasPieceNpc.avatarUrl} />
       </div>,
       document.body,
     )}
     </>
+  );
+}
+
+const ghostStyle: CSSProperties = {
+  position: "fixed",
+  pointerEvents: "none",
+  zIndex: 9999,
+  transform: "translate(-50%, -50%) scale(1.18)",
+  width: 56,
+  height: 56,
+  filter: "drop-shadow(0 8px 20px rgba(0,0,0,0.65))",
+};
+
+// Floating cursor-follower shown during any piece drag (roster→canvas and
+// canvas→roster). Mirrors the Pixi token layering: gungi frame as the base,
+// avatar as a 70%-size circle centered on top (matching avatarRadius/tokenRadius
+// in PieceSprite). Single visual for the whole drag — no second icon.
+function PieceDragGhost({ avatarUrl }: { avatarUrl: string | null | undefined }) {
+  return (
+    <div style={{ position: "relative", width: "100%", height: "100%" }}>
+      <img
+        src={gungiFrameUrl}
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+        alt=""
+      />
+      <img
+        src={avatarUrl ?? avatarPlaceholderUrl}
+        style={{
+          position: "absolute",
+          top: "15%",
+          left: "15%",
+          width: "70%",
+          height: "70%",
+          objectFit: "cover",
+          borderRadius: "50%",
+        }}
+        alt=""
+      />
+    </div>
   );
 }
