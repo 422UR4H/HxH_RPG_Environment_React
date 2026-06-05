@@ -3,7 +3,7 @@ import type { MutableRefObject } from "react";
 import styled, { keyframes } from "styled-components";
 import { colors, fonts } from "../../styles/tokens";
 import { Application, extend, useApplication } from "@pixi/react";
-import { Assets, BlurFilter, Container, Graphics, ImageSource, Sprite, Text, Texture } from "pixi.js";
+import { Assets, BlurFilter, Container, Graphics, ImageSource, Rectangle, Sprite, Text, Texture } from "pixi.js";
 import type { EventSystem, FederatedPointerEvent } from "pixi.js";
 import type { Graphics as PixiGraphics } from "pixi.js";
 import gungiFrameUrl from "../../assets/icons/gungi.svg";
@@ -747,6 +747,13 @@ function PiecesLayer({
     };
   }, [app, vpRef, map.grid, map.pieces, piecesInteractive, onPieceSelect, onPieceMove, onPieceDragToRoster, onPieceDragStart, onPieceDragEnd]);
 
+  // Hit area covering the entire grid — gives the pieces-layer container real bounds
+  // so PixiJS delivers pointerdown even when no pieces are rendered yet.
+  const gridHitArea = useMemo(
+    () => new Rectangle(0, 0, map.grid.cols * map.grid.cellSize, map.grid.rows * map.grid.cellSize),
+    [map.grid.cols, map.grid.rows, map.grid.cellSize],
+  );
+
   const drawHoverSlot = useCallback(
     (g: PixiGraphics) => {
       g.clear();
@@ -780,6 +787,7 @@ function PiecesLayer({
     <pixiContainer
       label="pieces-layer"
       eventMode="static"
+      hitArea={gridHitArea}
       onPointerDown={(e: FederatedPointerEvent) => {
         if (e.target !== e.currentTarget) return;
         onStageDeselect?.();
@@ -791,6 +799,8 @@ function PiecesLayer({
             const world = vp.toWorld(e.global.x, e.global.y);
             const slot = worldToSlot(world, map.grid);
             if (isSlotInBounds(slot, map.grid)) {
+              // Block the window-level pan handler from starting a pan on this same click.
+              pieceDragActiveRef.current = true;
               onEmptySlotClick(slot, rect.left + e.global.x, rect.top + e.global.y);
             }
           }
