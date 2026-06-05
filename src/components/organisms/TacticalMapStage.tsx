@@ -128,6 +128,10 @@ type Props = {
   onNpcPlaced?: (slot: SlotCoord) => void;
   onNpcPlacementCancel?: () => void;
   onStageDeselect?: () => void;
+  // Fires when the player clicks on an empty (no piece) in-bounds grid slot.
+  // clientX/clientY are page-level coordinates for positioning a DOM overlay.
+  // Only fires when no piece drag is in progress.
+  onEmptySlotClick?: (slot: SlotCoord, clientX: number, clientY: number) => void;
   // Current viewport zoom (world→screen scale). Lets the DOM drag ghost in
   // TacticalMapEditor size itself to match the on-screen token size.
   onViewportScaleChange?: (scale: number) => void;
@@ -157,6 +161,7 @@ export default function TacticalMapStage({
   onNpcPlaced,
   onNpcPlacementCancel,
   onStageDeselect,
+  onEmptySlotClick,
   onViewportScaleChange,
   onBgLoadingChange,
   uploading = false,
@@ -201,6 +206,7 @@ export default function TacticalMapStage({
           onNpcPlaced={onNpcPlaced}
           onNpcPlacementCancel={onNpcPlacementCancel}
           onStageDeselect={onStageDeselect}
+          onEmptySlotClick={onEmptySlotClick}
           onViewportScaleChange={onViewportScaleChange}
         />
       </Application>
@@ -244,6 +250,7 @@ function ViewportInner({
   onNpcPlaced,
   onNpcPlacementCancel,
   onStageDeselect,
+  onEmptySlotClick,
   onViewportScaleChange,
 }: Props) {
   const { app } = useApplication();
@@ -461,6 +468,7 @@ function ViewportInner({
         onPieceDragStart={onPieceDragStart}
         onPieceDragEnd={onPieceDragEnd}
         onStageDeselect={onStageDeselect}
+        onEmptySlotClick={onEmptySlotClick}
       />
       <pixiContainer label="walls-layer" />
       <pixiContainer label="overlay-layer" />
@@ -611,6 +619,7 @@ type PieceLocalDragState = {
 function PiecesLayer({
   map, vpRef, piecesInteractive, draggablePieceIds, selection, npcMap, pieceDragActiveRef,
   onPieceSelect, onPieceMove, onPieceDragToRoster, onPieceDragStart, onPieceDragEnd, onStageDeselect,
+  onEmptySlotClick,
 }: {
   map: TacticalMap;
   vpRef: React.MutableRefObject<Viewport | null>;
@@ -625,6 +634,7 @@ function PiecesLayer({
   onPieceDragStart?: (pieceId: string, npc: CharacterPrivateSummary | undefined) => void;
   onPieceDragEnd?: () => void;
   onStageDeselect?: () => void;
+  onEmptySlotClick?: (slot: SlotCoord, clientX: number, clientY: number) => void;
 }) {
   const { app } = useApplication();
   const localDrag = useRef<PieceLocalDragState>(null);
@@ -771,7 +781,20 @@ function PiecesLayer({
       label="pieces-layer"
       eventMode="static"
       onPointerDown={(e: FederatedPointerEvent) => {
-        if (e.target === e.currentTarget) onStageDeselect?.();
+        if (e.target !== e.currentTarget) return;
+        onStageDeselect?.();
+        if (onEmptySlotClick && !localDrag.current) {
+          const vp = vpRef.current;
+          const canvas = app?.renderer ? app.canvas : null;
+          if (vp && canvas) {
+            const rect = canvas.getBoundingClientRect();
+            const world = vp.toWorld(e.global.x, e.global.y);
+            const slot = worldToSlot(world, map.grid);
+            if (isSlotInBounds(slot, map.grid)) {
+              onEmptySlotClick(slot, rect.left + e.global.x, rect.top + e.global.y);
+            }
+          }
+        }
       }}
     >
       <pixiGraphics draw={drawHoverSlot} />

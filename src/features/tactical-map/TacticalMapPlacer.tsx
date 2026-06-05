@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import styled from "styled-components";
+import { colors, fonts } from "../../styles/tokens";
 import avatarPlaceholderUrl from "../../assets/placeholder/avatar.png";
 import gungiFrameUrl from "../../assets/icons/gungi.svg";
 import TacticalMapStage from "../../components/organisms/TacticalMapStage";
@@ -21,6 +22,15 @@ type Props = {
   // undefined = all pieces draggable (master).
   // Set<string> = only listed piece IDs draggable (player with own piece).
   draggablePieceIds?: Set<string>;
+  // Character sheet UUIDs the current player is allowed to place.
+  // Undefined = master (no self-placement flow). Empty = player with no placeable characters.
+  // TODO(multi-piece): today each player has exactly one character sheet per match, so
+  // this array will contain at most one ID. When companions/pets are added, a player will
+  // have N IDs (their character + each companion). The placement overlay already renders
+  // one token per ID, so the UI will scale automatically — but piece-ownership validation
+  // on the server (Phase 7+) and the draggablePieceIds computation in LobbyPage will need
+  // to be updated to reflect the full set of pieces the player controls.
+  playerCharacterIds?: string[];
 };
 
 export default function TacticalMapPlacer({
@@ -30,6 +40,7 @@ export default function TacticalMapPlacer({
   onPiecesChange,
   sendPieceMoved,
   draggablePieceIds,
+  playerCharacterIds,
 }: Props) {
   const isMaster = draggablePieceIds === undefined;
 
@@ -40,6 +51,14 @@ export default function TacticalMapPlacer({
   const { width, height } = useResizeObserver(canvasRef);
 
   const [viewportScale, setViewportScale] = useState(1);
+
+  // --- Player self-placement state ---
+  // Set when a player clicks an empty slot and has characters available to place.
+  const [pendingSlot, setPendingSlot] = useState<{
+    slot: SlotCoord;
+    clientX: number;
+    clientY: number;
+  } | null>(null);
 
   // --- Ghost drag state (master only) ---
   // TODO: extract to useRosterDrag() when a 3rd consumer appears (YAGNI now).
@@ -89,6 +108,15 @@ export default function TacticalMapPlacer({
     (campaign?.characterSheets ?? []).forEach((cs) => m.set(cs.uuid, cs));
     return m;
   }, [campaign]);
+
+  // Characters the current player can still place (subset of playerCharacterIds not yet on board).
+  const unplacedPlayerChars = useMemo(() => {
+    if (!playerCharacterIds || playerCharacterIds.length === 0) return [];
+    return playerCharacterIds
+      .filter((id) => !placedCharacterIds.has(id))
+      .map((id) => npcMap.get(id))
+      .filter((cs): cs is CharacterPrivateSummary => cs != null);
+  }, [playerCharacterIds, placedCharacterIds, npcMap]);
 
   const dragGhostSize = Math.max(44, map.grid.cellSize * 0.9 * viewportScale);
 
@@ -156,12 +184,52 @@ export default function TacticalMapPlacer({
     [pieces, onPiecesChange],
   );
 
+  // --- Player self-placement handlers ---
+
+  const handleEmptySlotClick = useCallback(
+    (slot: SlotCoord, clientX: number, clientY: number) => {
+      if (unplacedPlayerChars.length === 0) return;
+      const occupied = pieces.some(
+        (p) => JSON.stringify(p.coord.slot) === JSON.stringify(slot),
+      );
+      if (occupied) return;
+      setPendingSlot({ slot, clientX, clientY });
+    },
+    [unplacedPlayerChars.length, pieces],
+  );
+
+  const handlePlayerPlace = useCallback(
+    (characterId: string) => {
+      if (!pendingSlot) return;
+      const newPiece: Piece = {
+        id: crypto.randomUUID(),
+        characterId,
+        coord: { slot: pendingSlot.slot, z: 0 },
+        visible: true,
+      };
+      onPiecesChange([...pieces, newPiece]);
+      sendPieceMoved(newPiece.id, pendingSlot.slot);
+      setPendingSlot(null);
+    },
+    [pendingSlot, pieces, onPiecesChange, sendPieceMoved],
+  );
+
+  // Dismiss placement overlay on Escape
+  useEffect(() => {
+    if (!pendingSlot) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPendingSlot(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [pendingSlot]);
+
   return (
     <PlacerRoot data-testid="tactical-map-placer">
       <CanvasArea ref={canvasRef}>
         {width > 0 && height > 0 && (
           <TacticalMapStage
-            map={map}
+            map={{ ...map, pieces }}
             width={width}
             height={height}
             piecesInteractive={true}
@@ -188,6 +256,7 @@ export default function TacticalMapPlacer({
                   }
                 : undefined
             }
+            onEmptySlotClick={!isMaster ? handleEmptySlotClick : undefined}
             onViewportScaleChange={setViewportScale}
           />
         )}
@@ -201,6 +270,7 @@ export default function TacticalMapPlacer({
             placingNpcId={placingNpcId}
             isDropTarget={isDraggingPieceToRoster}
             onPointerDownNpc={handleNpcPointerDown}
+            includePlayerChars={true}
           />
         </RosterSidebar>
       )}
@@ -220,6 +290,29 @@ export default function TacticalMapPlacer({
           <div ref={canvasDragGhostRef} style={ghostStyle(dragGhostSize)}>
             <PieceDragGhost avatarUrl={draggingCanvasPieceNpc.avatarUrl} />
           </div>,
+          document.body,
+        )}
+
+      {/* Player self-placement overlay: appears when a player clicks an empty slot
+          and has unplaced character(s). Shows one token per placeable character. */}
+      {!isMaster && pendingSlot && unplacedPlayerChars.length > 0 &&
+        createPortal(
+          <PlacementOverlay style={{ left: pendingSlot.clientX, top: pendingSlot.clientY }}>
+            <PlacementLabel>Adicionar aqui?</PlacementLabel>
+            <PlacementTokenRow>
+              {unplacedPlayerChars.map((cs) => (
+                <PlacementTokenBtn
+                  key={cs.uuid}
+                  $size={dragGhostSize}
+                  onClick={() => handlePlayerPlace(cs.uuid)}
+                  title={cs.nickName}
+                >
+                  <PieceDragGhost avatarUrl={cs.avatarUrl} />
+                </PlacementTokenBtn>
+              ))}
+            </PlacementTokenRow>
+            <PlacementCancel onClick={() => setPendingSlot(null)}>Cancelar</PlacementCancel>
+          </PlacementOverlay>,
           document.body,
         )}
     </PlacerRoot>
@@ -295,3 +388,70 @@ function PieceDragGhost({ avatarUrl }: { avatarUrl: string | null | undefined })
     </div>
   );
 }
+
+// --- Player self-placement overlay ---
+
+const PlacementOverlay = styled.div`
+  position: fixed;
+  transform: translate(-50%, calc(-100% - 14px));
+  z-index: 9998;
+  background: ${colors.grayBgModal};
+  border: 1px solid ${colors.borderInput};
+  border-radius: 10px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 6px 28px rgba(0, 0, 0, 0.6);
+  pointer-events: auto;
+`;
+
+const PlacementLabel = styled.span`
+  font-family: ${fonts.sans};
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: ${colors.textMuted};
+  text-transform: uppercase;
+  white-space: nowrap;
+`;
+
+const PlacementTokenRow = styled.div`
+  display: flex;
+  gap: 8px;
+  align-items: center;
+`;
+
+const PlacementTokenBtn = styled.button<{ $size: number }>`
+  width: ${({ $size }) => $size}px;
+  height: ${({ $size }) => $size}px;
+  background: none;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  padding: 0;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.15s;
+
+  &:hover {
+    border-color: ${colors.brandAccent};
+    transform: scale(1.1);
+  }
+  &:active {
+    transform: scale(0.95);
+  }
+`;
+
+const PlacementCancel = styled.button`
+  font-family: ${fonts.sans};
+  font-size: 11px;
+  color: ${colors.textPlaceholderStrong};
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+
+  &:hover {
+    color: ${colors.textMuted};
+  }
+`;

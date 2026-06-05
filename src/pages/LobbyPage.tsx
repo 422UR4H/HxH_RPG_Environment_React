@@ -87,15 +87,23 @@ export default function LobbyPage() {
       onPieceMoved: handleWsPieceMoved,
     });
 
+  // All character sheet UUIDs the current player is enrolled with (accepted enrollments).
+  const playerCharacterIds = useMemo(() => {
+    if (isMaster) return undefined;
+    return (enrollments ?? [])
+      .filter((e) => e.player?.uuid === user?.uuid && e.status === "accepted")
+      .map((e) => e.characterSheet?.uuid)
+      .filter((id): id is string => !!id);
+  }, [isMaster, enrollments, user?.uuid]);
+
+  // Piece IDs on the board that belong to the current player (draggable by them).
   const draggablePieceIds: Set<string> | undefined = useMemo(() => {
     if (isMaster) return undefined;
-    const playerPiece = lobbyPieces.find((p) =>
-      enrollments?.some(
-        (e) => e.player?.uuid === user?.uuid && e.characterSheet?.uuid === p.characterId,
-      ),
+    const playerCharIdSet = new Set(playerCharacterIds ?? []);
+    return new Set(
+      lobbyPieces.filter((p) => playerCharIdSet.has(p.characterId)).map((p) => p.id),
     );
-    return playerPiece ? new Set([playerPiece.id]) : new Set<string>();
-  }, [isMaster, lobbyPieces, enrollments, user?.uuid]);
+  }, [isMaster, lobbyPieces, playerCharacterIds]);
 
   const handleStartMatch = async () => {
     setMapSaveError(null);
@@ -242,6 +250,7 @@ export default function LobbyPage() {
               onPiecesChange={setLobbyPieces}
               sendPieceMoved={sendPieceMoved}
               draggablePieceIds={draggablePieceIds}
+              playerCharacterIds={playerCharacterIds}
             />
           </LobbyMapSection>
         )}
@@ -370,6 +379,7 @@ const LobbyMapSection = styled.div`
   width: 100%;
   height: min(60vh, 500px);
   margin-top: 16px;
+  margin-bottom: 32px;
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid ${colors.borderInput};
