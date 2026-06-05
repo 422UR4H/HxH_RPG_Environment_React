@@ -17,8 +17,6 @@ import { slotToWorld, worldToSlot, isSlotInBounds } from "../../features/tactica
 extend({ Container, Graphics, Sprite, Text, Viewport });
 
 // Module-level CORS-safe avatar cache: R2 URL → Promise<same-origin blob URL>.
-// Fetching with mode:"cors" always sends Origin and gets Access-Control-Allow-Origin
-// regardless of what the browser HTTP cache holds from non-CORS <img> loads.
 // Blob URLs are same-origin so they're safe for WebGL textures.
 // Kept alive for the page lifetime (~20 NPCs × ~100 KB ≈ negligible).
 const avatarBlobUrlCache = new Map<string, Promise<string | null>>();
@@ -26,7 +24,12 @@ const avatarBlobUrlCache = new Map<string, Promise<string | null>>();
 function getAvatarBlobUrl(url: string): Promise<string | null> {
   let p = avatarBlobUrlCache.get(url);
   if (!p) {
-    p = fetch(url, { mode: "cors" })
+    // CharacterSheetHeader renders avatars via CSS background-image (no Origin header),
+    // so Cloudflare CDN may cache the response without CORS headers. Appending ?pixi
+    // creates a separate CDN cache entry whose first request always comes from this
+    // CORS fetch — guaranteeing the cached response includes Access-Control-Allow-Origin.
+    const corsUrl = url.includes("?") ? `${url}&pixi=1` : `${url}?pixi=1`;
+    p = fetch(corsUrl, { mode: "cors" })
       .then((res) => (res.ok ? res.blob() : null))
       .then((blob) => (blob ? URL.createObjectURL(blob) : null))
       .catch(() => null);
