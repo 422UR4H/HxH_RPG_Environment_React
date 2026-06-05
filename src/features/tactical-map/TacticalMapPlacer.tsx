@@ -18,7 +18,7 @@ type Props = {
   campaignId: string;
   pieces: Piece[];
   onPiecesChange: (pieces: Piece[]) => void;
-  sendPieceMoved: (pieceId: string, slot: SlotCoord) => void;
+  sendPieceMoved: (pieceId: string, slot: SlotCoord, characterId?: string, visible?: boolean) => void;
   // undefined = all pieces draggable (master).
   // Set<string> = only listed piece IDs draggable (player with own piece).
   draggablePieceIds?: Set<string>;
@@ -157,7 +157,7 @@ export default function TacticalMapPlacer({
       };
       const next = [...pieces, newPiece];
       onPiecesChange(next);
-      sendPieceMoved(newPiece.id, slot);
+      sendPieceMoved(newPiece.id, slot, newPiece.characterId, newPiece.visible);
       setPlacingNpcId(null);
       setPlacingNpcData(null);
     },
@@ -208,7 +208,7 @@ export default function TacticalMapPlacer({
         visible: true,
       };
       onPiecesChange([...pieces, newPiece]);
-      sendPieceMoved(newPiece.id, pendingSlot.slot);
+      sendPieceMoved(newPiece.id, pendingSlot.slot, newPiece.characterId, newPiece.visible);
       setPendingSlot(null);
     },
     [pendingSlot, pieces, onPiecesChange, sendPieceMoved],

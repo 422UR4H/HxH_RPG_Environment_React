@@ -68,11 +68,26 @@ export default function LobbyPage() {
     if (fullMap) setLobbyPieces(fullMap.pieces);
   }, [fullMap?.id]);
 
-  const handleWsPieceMoved = useCallback((pieceId: string, slot: SlotCoord) => {
-    setLobbyPieces((prev) =>
-      prev.map((p) => (p.id === pieceId ? { ...p, coord: { ...p.coord, slot } } : p)),
-    );
-  }, []);
+  const handleWsPieceMoved = useCallback(
+    (pieceId: string, slot: SlotCoord, characterId?: string, visible?: boolean) => {
+      setLobbyPieces((prev) => {
+        const exists = prev.some((p) => p.id === pieceId);
+        if (exists) {
+          return prev.map((p) =>
+            p.id === pieceId ? { ...p, coord: { ...p.coord, slot } } : p,
+          );
+        }
+        if (characterId) {
+          return [
+            ...prev,
+            { id: pieceId, characterId, coord: { slot, z: 0 }, visible: visible ?? true },
+          ];
+        }
+        return prev;
+      });
+    },
+    [],
+  );
 
   const { status, participants, sendStartMatch, sendKick, sendCancelLobby, sendPieceMoved } =
     useLobbyWs({

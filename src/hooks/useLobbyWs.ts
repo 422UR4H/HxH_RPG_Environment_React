@@ -26,7 +26,7 @@ interface UseLobbyWsParams {
   enabled?: boolean;
   onMatchStarted: () => void;
   onKicked?: () => void;
-  onPieceMoved?: (pieceId: string, slot: SlotCoord) => void;
+  onPieceMoved?: (pieceId: string, slot: SlotCoord, characterId?: string, visible?: boolean) => void;
 }
 
 interface UseLobbyWsResult {
@@ -35,7 +35,7 @@ interface UseLobbyWsResult {
   sendStartMatch: () => void;
   sendKick: (userUuid: string) => void;
   sendCancelLobby: () => void;
-  sendPieceMoved: (pieceId: string, slot: SlotCoord) => void;
+  sendPieceMoved: (pieceId: string, slot: SlotCoord, characterId?: string, visible?: boolean) => void;
 }
 
 const MAX_RECONNECTS = 5;
@@ -170,6 +170,8 @@ export function useLobbyWs({
             const p = payload as {
               piece_id: string;
               slot: { kind: string; col?: number; row?: number; q?: number; r?: number };
+              character_id?: string;
+              visible?: boolean;
             };
             if (!p.piece_id || !p.slot) break;
             let slot: SlotCoord;
@@ -180,7 +182,7 @@ export function useLobbyWs({
             } else {
               break;
             }
-            onPieceMovedRef.current?.(p.piece_id, slot);
+            onPieceMovedRef.current?.(p.piece_id, slot, p.character_id, p.visible);
             break;
           }
           default:
@@ -251,12 +253,17 @@ export function useLobbyWs({
   );
 
   const sendPieceMoved = useCallback(
-    (pieceId: string, slot: SlotCoord) => {
+    (pieceId: string, slot: SlotCoord, characterId?: string, visible?: boolean) => {
       const slotPayload =
         slot.kind === "square"
           ? { kind: "square", col: slot.col, row: slot.row }
           : { kind: "hex", q: slot.q, r: slot.r };
-      sendMessage("lobby_piece_moved", { piece_id: pieceId, slot: slotPayload });
+      sendMessage("lobby_piece_moved", {
+        piece_id: pieceId,
+        slot: slotPayload,
+        ...(characterId != null && { character_id: characterId }),
+        ...(visible != null && { visible }),
+      });
     },
     [sendMessage],
   );
