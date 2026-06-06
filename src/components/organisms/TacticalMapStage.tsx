@@ -266,6 +266,16 @@ function ViewportInner({
     vp.on("zoomed", () => setVpScale(vp.scale.x));
   }, []);
 
+  // Prevent the page from scrolling when the user scrolls over the map canvas.
+  // Must be non-passive so preventDefault() is honoured (browsers default wheel to passive).
+  useEffect(() => {
+    const canvas = app?.renderer ? app.canvas : null;
+    if (!canvas) return;
+    const handler = (e: WheelEvent) => { e.preventDefault(); };
+    canvas.addEventListener("wheel", handler, { passive: false });
+    return () => canvas.removeEventListener("wheel", handler);
+  }, [app]);
+
   // Report zoom changes up so the DOM drag ghost can match on-screen token size.
   useEffect(() => {
     onViewportScaleChange?.(vpScale);

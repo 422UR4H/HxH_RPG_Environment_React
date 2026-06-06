@@ -240,22 +240,14 @@ export default function TacticalMapPlacer({
             onNpcPlacementCancel={isMaster ? handleNpcPlacementCancel : undefined}
             onPieceMove={handlePieceMove}
             onPieceDragToRoster={isMaster ? handlePieceDragToRoster : undefined}
-            onPieceDragStart={
-              isMaster
-                ? (_pieceId, npc) => {
-                    setIsDraggingPieceToRoster(true);
-                    setDraggingCanvasPieceNpc(npc ?? null);
-                  }
-                : undefined
-            }
-            onPieceDragEnd={
-              isMaster
-                ? () => {
-                    setIsDraggingPieceToRoster(false);
-                    setDraggingCanvasPieceNpc(null);
-                  }
-                : undefined
-            }
+            onPieceDragStart={(_pieceId, npc) => {
+              if (isMaster) setIsDraggingPieceToRoster(true);
+              setDraggingCanvasPieceNpc(npc ?? null);
+            }}
+            onPieceDragEnd={() => {
+              if (isMaster) setIsDraggingPieceToRoster(false);
+              setDraggingCanvasPieceNpc(null);
+            }}
             onEmptySlotClick={!isMaster ? handleEmptySlotClick : undefined}
             onViewportScaleChange={setViewportScale}
           />
@@ -284,8 +276,8 @@ export default function TacticalMapPlacer({
           document.body,
         )}
 
-      {/* Ghost drag from canvas → roster (master only) */}
-      {isMaster && draggingCanvasPieceNpc &&
+      {/* Ghost drag from canvas (master and player own pieces) */}
+      {draggingCanvasPieceNpc &&
         createPortal(
           <div ref={canvasDragGhostRef} style={ghostStyle(dragGhostSize)}>
             <PieceDragGhost avatarUrl={draggingCanvasPieceNpc.avatarUrl} />
