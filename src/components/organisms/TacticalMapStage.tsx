@@ -641,6 +641,16 @@ function PiecesLayer({
   const [draggingPieceId, setDraggingPieceId] = useState<string | null>(null);
   const [hoverSlot, setHoverSlot] = useState<SlotCoord | null>(null);
 
+  // Tracks a pending empty-slot click for click-vs-drag discrimination.
+  // Set on pointerdown; resolved on pointerup only if movement < threshold.
+  const emptySlotPendingRef = useRef<{
+    slot: SlotCoord;
+    clientX: number;
+    clientY: number;
+    startClientX: number;
+    startClientY: number;
+  } | null>(null);
+
   useEffect(() => {
     const stage = app?.stage;
     if (!stage || !piecesInteractive) return;
@@ -747,6 +757,30 @@ function PiecesLayer({
     };
   }, [app, vpRef, map.grid, map.pieces, piecesInteractive, onPieceSelect, onPieceMove, onPieceDragToRoster, onPieceDragStart, onPieceDragEnd]);
 
+  // Resolve empty-slot click on pointerup: fires onEmptySlotClick only if the
+  // pointer moved less than CLICK_THRESHOLD pixels since pointerdown (i.e. it was
+  // a tap/click, not a map pan). This lets the viewport pan normally on drag while
+  // still triggering the placement overlay on a clean click.
+  useEffect(() => {
+    if (!onEmptySlotClick) return;
+    const CLICK_THRESHOLD = 6;
+    const handleUp = (e: PointerEvent) => {
+      const pending = emptySlotPendingRef.current;
+      emptySlotPendingRef.current = null;
+      if (!pending) return;
+      const dx = e.clientX - pending.startClientX;
+      const dy = e.clientY - pending.startClientY;
+      if (Math.hypot(dx, dy) <= CLICK_THRESHOLD) {
+        onEmptySlotClick(pending.slot, pending.clientX, pending.clientY);
+      }
+    };
+    window.addEventListener("pointerup", handleUp);
+    window.addEventListener("pointercancel", () => { emptySlotPendingRef.current = null; });
+    return () => {
+      window.removeEventListener("pointerup", handleUp);
+    };
+  }, [onEmptySlotClick]);
+
   // Hit area covering the entire grid — gives the pieces-layer container real bounds
   // so PixiJS delivers pointerdown even when no pieces are rendered yet.
   const gridHitArea = useMemo(
@@ -796,12 +830,14 @@ function PiecesLayer({
           const canvas = app?.renderer ? app.canvas : null;
           if (vp && canvas) {
             const rect = canvas.getBoundingClientRect();
+            const clientX = rect.left + e.global.x;
+            const clientY = rect.top + e.global.y;
             const world = vp.toWorld(e.global.x, e.global.y);
             const slot = worldToSlot(world, map.grid);
             if (isSlotInBounds(slot, map.grid)) {
-              // Block the window-level pan handler from starting a pan on this same click.
-              pieceDragActiveRef.current = true;
-              onEmptySlotClick(slot, rect.left + e.global.x, rect.top + e.global.y);
+              // Store pending click — resolved on pointerup if movement < threshold.
+              // Pan runs normally; onEmptySlotClick only fires if user didn't drag.
+              emptySlotPendingRef.current = { slot, clientX, clientY, startClientX: clientX, startClientY: clientY };
             }
           }
         }
