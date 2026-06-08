@@ -19,6 +19,7 @@ type Props = {
   pieces: Piece[];
   onPiecesChange: (pieces: Piece[]) => void;
   sendPieceMoved: (pieceId: string, slot: SlotCoord, characterId?: string, visible?: boolean) => void;
+  sendPieceRemoved?: (pieceId: string) => void;
   // undefined = all pieces draggable (master).
   // Set<string> = only listed piece IDs draggable (player with own piece).
   draggablePieceIds?: Set<string>;
@@ -39,6 +40,7 @@ export default function TacticalMapPlacer({
   pieces,
   onPiecesChange,
   sendPieceMoved,
+  sendPieceRemoved,
   draggablePieceIds,
   playerCharacterIds,
 }: Props) {
@@ -177,11 +179,11 @@ export default function TacticalMapPlacer({
 
   const handlePieceDragToRoster = useCallback(
     (pieceId: string) => {
-      // Removal is not WS-synced in Phase 6. TODO: add lobby_piece_removed WS event (Phase 7+)
       const next = pieces.filter((p) => p.id !== pieceId);
       onPiecesChange(next);
+      sendPieceRemoved?.(pieceId);
     },
-    [pieces, onPiecesChange],
+    [pieces, onPiecesChange, sendPieceRemoved],
   );
 
   // --- Player self-placement handlers ---

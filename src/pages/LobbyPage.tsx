@@ -21,7 +21,7 @@ import RulesSidebar from "../components/organisms/RulesSidebar";
 import RuleSection from "../components/molecules/RuleSection";
 import LobbyConnectionSidebarItem from "../features/match/LobbyConnectionSidebarItem";
 import { colors, fonts } from "../styles/tokens";
-import type { WsStatus } from "../hooks/useLobbyWs";
+import type { WsStatus, LobbyPieceFullState } from "../hooks/useLobbyWs";
 import type { Piece, SlotCoord } from "../types/tacticalMap";
 
 const ERROR_STATUSES: WsStatus[] = [
@@ -89,7 +89,29 @@ export default function LobbyPage() {
     [],
   );
 
-  const { status, participants, sendStartMatch, sendKick, sendCancelLobby, sendPieceMoved } =
+  const handleWsPieceRemoved = useCallback((pieceId: string) => {
+    setLobbyPieces((prev) => prev.filter((p) => p.id !== pieceId));
+  }, []);
+
+  const handleWsFullState = useCallback(
+    (pieces: LobbyPieceFullState[]) => {
+      // Only players replace their state from the server — the master's state is
+      // authoritative and gets synced TO the server (not the other way around).
+      if (!isMaster) {
+        setLobbyPieces(
+          pieces.map((p) => ({
+            id: p.pieceId,
+            characterId: p.characterId,
+            coord: { slot: p.slot, z: 0 },
+            visible: p.visible ?? true,
+          }))
+        );
+      }
+    },
+    [isMaster],
+  );
+
+  const { status, participants, sendStartMatch, sendKick, sendCancelLobby, sendPieceMoved, sendPieceRemoved, sendLobbySync } =
     useLobbyWs({
       matchUuid: matchId ?? "",
       token: token ?? "",
@@ -100,6 +122,8 @@ export default function LobbyPage() {
         navigate(`/campaigns/${campaignId}/matches/${matchId}/game`),
       onKicked: () => setIsKicked(true),
       onPieceMoved: handleWsPieceMoved,
+      onPieceRemoved: handleWsPieceRemoved,
+      onFullState: handleWsFullState,
     });
 
   // All character sheet UUIDs the current player is enrolled with (accepted enrollments).
@@ -119,6 +143,21 @@ export default function LobbyPage() {
       lobbyPieces.filter((p) => playerCharIdSet.has(p.characterId)).map((p) => p.id),
     );
   }, [isMaster, lobbyPieces, playerCharacterIds]);
+
+  // Master seeds the backend's in-memory board once per WS connection so
+  // late-joining players receive the correct current state via lobby_full_state.
+  // Resets on reconnect (status leaves "connected") so a master page-refresh
+  // re-syncs against whatever pieces are loaded from the DB at that point.
+  const masterSyncedRef = useRef(false);
+  useEffect(() => {
+    if (status !== "connected") {
+      masterSyncedRef.current = false;
+      return;
+    }
+    if (!isMaster || !fullMap || masterSyncedRef.current) return;
+    masterSyncedRef.current = true;
+    sendLobbySync(lobbyPieces);
+  }, [status, isMaster, fullMap, lobbyPieces, sendLobbySync]);
 
   const handleStartMatch = async () => {
     setMapSaveError(null);
@@ -264,6 +303,7 @@ export default function LobbyPage() {
               pieces={lobbyPieces}
               onPiecesChange={setLobbyPieces}
               sendPieceMoved={sendPieceMoved}
+              sendPieceRemoved={sendPieceRemoved}
               draggablePieceIds={draggablePieceIds}
               playerCharacterIds={playerCharacterIds}
             />

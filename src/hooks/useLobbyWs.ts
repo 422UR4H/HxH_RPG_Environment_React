@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import type { SlotCoord } from "../types/tacticalMap";
+import type { SlotCoord, Piece } from "../types/tacticalMap";
 
 export type WsStatus =
   | "connecting"
@@ -18,6 +18,14 @@ export type LobbyParticipant = {
   isOnline: boolean;
 };
 
+// Shape of each piece entry inside lobby_full_state (server→client).
+export type LobbyPieceFullState = {
+  pieceId: string;
+  characterId: string;
+  slot: SlotCoord;
+  visible?: boolean;
+};
+
 interface UseLobbyWsParams {
   matchUuid: string;
   token: string;
@@ -27,6 +35,9 @@ interface UseLobbyWsParams {
   onMatchStarted: () => void;
   onKicked?: () => void;
   onPieceMoved?: (pieceId: string, slot: SlotCoord, characterId?: string, visible?: boolean) => void;
+  onPieceRemoved?: (pieceId: string) => void;
+  // Fires when the server sends the full current board to a newly joined client.
+  onFullState?: (pieces: LobbyPieceFullState[]) => void;
 }
 
 interface UseLobbyWsResult {
@@ -36,6 +47,10 @@ interface UseLobbyWsResult {
   sendKick: (userUuid: string) => void;
   sendCancelLobby: () => void;
   sendPieceMoved: (pieceId: string, slot: SlotCoord, characterId?: string, visible?: boolean) => void;
+  sendPieceRemoved: (pieceId: string) => void;
+  // Master calls this on WS connect to seed the backend's in-memory board with
+  // the current DB state, so late-joining players receive the correct board.
+  sendLobbySync: (pieces: Piece[]) => void;
 }
 
 const MAX_RECONNECTS = 5;
@@ -58,6 +73,8 @@ export function useLobbyWs({
   onMatchStarted,
   onKicked,
   onPieceMoved,
+  onPieceRemoved,
+  onFullState,
 }: UseLobbyWsParams): UseLobbyWsResult {
   const [status, setStatus] = useState<WsStatus>("connecting");
   const [participants, setParticipants] = useState<LobbyParticipant[]>([]);
@@ -72,6 +89,10 @@ export function useLobbyWs({
   onKickedRef.current = onKicked;
   const onPieceMovedRef = useRef(onPieceMoved);
   onPieceMovedRef.current = onPieceMoved;
+  const onPieceRemovedRef = useRef(onPieceRemoved);
+  onPieceRemovedRef.current = onPieceRemoved;
+  const onFullStateRef = useRef(onFullState);
+  onFullStateRef.current = onFullState;
   const userUuidRef = useRef(userUuid);
   userUuidRef.current = userUuid;
 
@@ -185,6 +206,34 @@ export function useLobbyWs({
             onPieceMovedRef.current?.(p.piece_id, slot, p.character_id, p.visible);
             break;
           }
+          case "lobby_piece_removed": {
+            const p = payload as { piece_id?: string };
+            if (p.piece_id) onPieceRemovedRef.current?.(p.piece_id);
+            break;
+          }
+          case "lobby_full_state": {
+            const rawPieces = (payload.pieces as Array<{
+              piece_id: string;
+              slot: { kind: string; col?: number; row?: number; q?: number; r?: number };
+              character_id?: string;
+              visible?: boolean;
+            }> | undefined) ?? [];
+            const pieces: LobbyPieceFullState[] = [];
+            for (const p of rawPieces) {
+              if (!p.piece_id || !p.slot || !p.character_id) continue;
+              let slot: SlotCoord;
+              if (p.slot.kind === "square" && p.slot.col != null && p.slot.row != null) {
+                slot = { kind: "square", col: p.slot.col, row: p.slot.row };
+              } else if (p.slot.kind === "hex" && p.slot.q != null && p.slot.r != null) {
+                slot = { kind: "hex", q: p.slot.q, r: p.slot.r };
+              } else {
+                continue;
+              }
+              pieces.push({ pieceId: p.piece_id, characterId: p.character_id, slot, visible: p.visible });
+            }
+            onFullStateRef.current?.(pieces);
+            break;
+          }
           default:
             break;
         }
@@ -268,5 +317,30 @@ export function useLobbyWs({
     [sendMessage],
   );
 
-  return { status, participants, sendStartMatch, sendKick, sendCancelLobby, sendPieceMoved };
+  const sendPieceRemoved = useCallback(
+    (pieceId: string) => sendMessage("lobby_piece_removed", { piece_id: pieceId }),
+    [sendMessage],
+  );
+
+  const sendLobbySync = useCallback(
+    (pieces: Piece[]) => {
+      sendMessage("lobby_state_sync", {
+        pieces: pieces.map((p) => {
+          const slotPayload =
+            p.coord.slot.kind === "square"
+              ? { kind: "square", col: p.coord.slot.col, row: p.coord.slot.row }
+              : { kind: "hex", q: p.coord.slot.q, r: p.coord.slot.r };
+          return {
+            piece_id: p.id,
+            slot: slotPayload,
+            character_id: p.characterId,
+            visible: p.visible,
+          };
+        }),
+      });
+    },
+    [sendMessage],
+  );
+
+  return { status, participants, sendStartMatch, sendKick, sendCancelLobby, sendPieceMoved, sendPieceRemoved, sendLobbySync };
 }
