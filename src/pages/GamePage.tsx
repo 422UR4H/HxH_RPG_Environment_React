@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 import { Navigate, useParams } from "react-router-dom";
 import styled from "styled-components";
 import useToken from "../hooks/useToken";
@@ -6,40 +6,49 @@ import { useMatchMap } from "../hooks/useMatchMap";
 import { useMap } from "../hooks/useMap";
 import { useMatchDetails } from "../hooks/useMatchDetails";
 import { useMatchParticipants } from "../hooks/useMatchParticipants";
+import { useCampaignDetails } from "../hooks/useCampaignDetails";
 import { useResizeObserver } from "../hooks/useResizeObserver";
 import TacticalMapViewer from "../features/tactical-map/TacticalMapViewer";
 import GamePageTemplate from "../components/templates/GamePageTemplate";
-import { LoadingContainer } from "../components/atoms/PageStates";
 import { colors, fonts } from "../styles/tokens";
+import type { CharacterPrivateSummary } from "../types/characterSheet";
 
 export default function GamePage() {
   const { token } = useToken();
-  const { matchId } = useParams<{ campaignId: string; matchId: string }>();
+  const { campaignId, matchId } = useParams<{ campaignId: string; matchId: string }>();
 
   if (!token) return <Navigate to="/" replace />;
 
-  return <GamePageInner token={token} matchId={matchId} />;
+  return <GamePageInner token={token} campaignId={campaignId} matchId={matchId} />;
 }
 
 // ─── Inner (token is guaranteed) ────────────────────────────────────────────
 
-function GamePageInner({ token, matchId }: { token: string; matchId?: string }) {
+function GamePageInner({
+  token,
+  campaignId,
+  matchId,
+}: {
+  token: string;
+  campaignId?: string;
+  matchId?: string;
+}) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const { width, height } = useResizeObserver(canvasRef);
 
   const { data: matchMap, isPending: matchMapPending } = useMatchMap(token, matchId);
-  const { data: map, isPending: mapPending } = useMap(
-    token,
-    matchMap?.mapUuid,
-  );
+  const { data: map, isPending: mapPending } = useMap(token, matchMap?.mapUuid);
   const { data: match } = useMatchDetails(token, matchId);
   const { data: participants = [] } = useMatchParticipants(token, matchId, true);
+  const { data: campaign } = useCampaignDetails(token, campaignId);
+
+  const npcMap = useMemo(() => {
+    const m = new Map<string, CharacterPrivateSummary>();
+    (campaign?.characterSheets ?? []).forEach((cs) => m.set(cs.uuid, cs));
+    return m;
+  }, [campaign]);
 
   const isLoading = matchMapPending || (!!matchMap && mapPending);
-
-  if (isLoading) {
-    return <LoadingContainer>Carregando mapa...</LoadingContainer>;
-  }
 
   const sidebar = (
     <ParticipantList>
@@ -65,12 +74,23 @@ function GamePageInner({ token, matchId }: { token: string; matchId?: string }) 
 
   return (
     <GamePageTemplate sidebar={sidebar}>
+      {/* CanvasWrapper is always mounted so useResizeObserver starts observing
+          immediately. Conditional rendering here would cause the ref to attach
+          late, after the observer effect has already run, so the observer would
+          never start and width/height would stay at 0. */}
       <CanvasWrapper ref={canvasRef}>
-        {map ? (
-          <TacticalMapViewer map={map} width={width} height={height} />
-        ) : (
+        {isLoading ? (
+          <MapLoadingMessage>Carregando mapa...</MapLoadingMessage>
+        ) : map && width > 0 && height > 0 ? (
+          <TacticalMapViewer
+            map={map}
+            width={width}
+            height={height}
+            npcMap={npcMap}
+          />
+        ) : !map ? (
           <NoMapMessage>Nenhum mapa anexado a esta partida.</NoMapMessage>
-        )}
+        ) : null}
       </CanvasWrapper>
     </GamePageTemplate>
   );
@@ -84,6 +104,14 @@ const CanvasWrapper = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
+`;
+
+const MapLoadingMessage = styled.p`
+  color: ${colors.textMuted};
+  font-family: ${fonts.sans};
+  font-size: 16px;
+  text-align: center;
+  padding: 24px;
 `;
 
 const NoMapMessage = styled.p`
