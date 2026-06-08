@@ -12,6 +12,9 @@ type Props = {
   placingNpcId: string | null;
   isDropTarget: boolean;
   onPointerDownNpc: (npc: CharacterPrivateSummary, e: React.PointerEvent) => void;
+  // When true, shows ALL character sheets (NPCs + player characters).
+  // Default false keeps the original editor behaviour (NPCs only).
+  includePlayerChars?: boolean;
 };
 
 export default function NpcRosterPanel({
@@ -20,6 +23,7 @@ export default function NpcRosterPanel({
   placingNpcId,
   isDropTarget,
   onPointerDownNpc,
+  includePlayerChars = false,
 }: Props) {
   const { token } = useToken();
   const { data: campaign } = useCampaignDetails(token, campaignId);
@@ -27,8 +31,11 @@ export default function NpcRosterPanel({
 
   // TODO(generic-npc-types): filter assumes NPC = characterSheet without playerUuid.
   // Future: support generic/template NPCs not backed by a character sheet.
-  const npcs = (campaign?.characterSheets ?? []).filter((cs) => !cs.playerUuid);
-  const available = npcs.filter(
+  const allChars = (campaign?.characterSheets ?? []).filter(
+    (cs) => includePlayerChars || !cs.playerUuid,
+  );
+  const showSearch = allChars.length > 15;
+  const available = allChars.filter(
     (npc) =>
       !placedCharacterIds.has(npc.uuid) &&
       npc.uuid !== placingNpcId &&
@@ -41,11 +48,13 @@ export default function NpcRosterPanel({
       data-drop-target={isDropTarget ? "true" : "false"}
       $isDropTarget={isDropTarget}
     >
-      <SearchInput
-        placeholder="Buscar NPC..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-      />
+      {showSearch && (
+        <SearchInput
+          placeholder="Buscar..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      )}
       <List>
         {available.map((npc) => (
           <CardWrapper
@@ -63,9 +72,9 @@ export default function NpcRosterPanel({
         ))}
         {available.length === 0 && (
           <EmptyHint>
-            {npcs.length === 0
-              ? "Nenhum NPC na campanha."
-              : "Todos os NPCs estão no campo."}
+            {allChars.length === 0
+              ? "Nenhum personagem na campanha."
+              : "Todos os personagens estão no campo."}
           </EmptyHint>
         )}
       </List>
@@ -90,13 +99,12 @@ const DropZone = styled.div<{ $isDropTarget: boolean }>`
 
 const SearchInput = styled.input`
   font-family: ${fonts.sans};
-  font-size: clamp(11px, 2.8cqi, 12px);
+  font-size: 12px;
   color: ${colors.textPrimary};
   background: ${colors.surfaceInput};
   border: 1px solid ${colors.borderInput};
   border-radius: 5px;
-  padding: clamp(6px, 2cqi, 8px) clamp(8px, 2.5cqi, 8px);
-  height: max(40px, 8cqi);
+  padding: 5px 8px;
   margin-bottom: 6px;
   outline: none;
   width: 100%;

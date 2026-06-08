@@ -7,6 +7,7 @@ import { server } from "../../test/server";
 import { renderWithProviders } from "../../test/render";
 import { matchFixture, matchAsMaster, matchOngoing, matchEnded } from "../../test/fixtures/match";
 import { masterUserFixture, userFixture } from "../../test/fixtures/user";
+import { mapFixture } from "../../test/fixtures/map";
 import MatchPage from "../MatchPage";
 
 const mockNavigate = vi.fn();
@@ -287,6 +288,55 @@ describe("MatchPage", () => {
       expect(
         screen.getByRole("heading", { name: "Nen & Habilidades" }),
       ).toBeInTheDocument();
+    });
+  });
+
+  describe("MatchPage — mapa", () => {
+    const masterMatch = matchAsMaster(masterUserFixture.user.uuid);
+
+    it("exibe botão Anexar quando nenhum mapa está anexado", async () => {
+      server.use(
+        http.get(`${baseUrl}/matches/:id`, () =>
+          HttpResponse.json({ match: masterMatch }),
+        ),
+        http.get(`${baseUrl}/matches/:id/map`, () =>
+          new HttpResponse(null, { status: 204 }),
+        ),
+        http.get(`${baseUrl}/campaigns/:cid/maps`, () =>
+          HttpResponse.json({ maps: [mapFixture] }),
+        ),
+      );
+      renderPage({ user: masterUserFixture });
+      const u = userEvent.setup();
+      // Navigate to Mapas tab
+      await u.click(await screen.findByRole("button", { name: /Mapas/i }));
+      expect(await screen.findByRole("button", { name: /anexar/i })).toBeInTheDocument();
+    });
+
+    it("exibe badge Anexado e botão Desanexar quando mapa está anexado", async () => {
+      server.use(
+        http.get(`${baseUrl}/matches/:id`, () =>
+          HttpResponse.json({ match: masterMatch }),
+        ),
+        http.get(`${baseUrl}/matches/:id/map`, () =>
+          HttpResponse.json({
+            match_map: {
+              match_uuid: "match-1",
+              map_uuid: mapFixture.id,
+              attached_at: "2026-06-04T00:00:00Z",
+            },
+          }),
+        ),
+        http.get(`${baseUrl}/campaigns/:cid/maps`, () =>
+          HttpResponse.json({ maps: [mapFixture] }),
+        ),
+      );
+      renderPage({ user: masterUserFixture });
+      const u = userEvent.setup();
+      // Navigate to Mapas tab
+      await u.click(await screen.findByRole("button", { name: /Mapas/i }));
+      expect(await screen.findByText(/Anexado/i)).toBeInTheDocument();
+      expect(await screen.findByRole("button", { name: /desanexar/i })).toBeInTheDocument();
     });
   });
 });

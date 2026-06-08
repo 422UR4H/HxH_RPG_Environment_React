@@ -3,7 +3,7 @@ import type { MutableRefObject } from "react";
 import styled, { keyframes } from "styled-components";
 import { colors, fonts } from "../../styles/tokens";
 import { Application, extend, useApplication } from "@pixi/react";
-import { Assets, BlurFilter, Container, Graphics, ImageSource, Sprite, Text, Texture } from "pixi.js";
+import { Assets, BlurFilter, Container, Graphics, ImageSource, Rectangle, Sprite, Text, Texture } from "pixi.js";
 import type { EventSystem, FederatedPointerEvent } from "pixi.js";
 import type { Graphics as PixiGraphics } from "pixi.js";
 import gungiFrameUrl from "../../assets/icons/gungi.svg";
@@ -17,8 +17,6 @@ import { slotToWorld, worldToSlot, isSlotInBounds } from "../../features/tactica
 extend({ Container, Graphics, Sprite, Text, Viewport });
 
 // Module-level CORS-safe avatar cache: R2 URL → Promise<same-origin blob URL>.
-// Fetching with mode:"cors" always sends Origin and gets Access-Control-Allow-Origin
-// regardless of what the browser HTTP cache holds from non-CORS <img> loads.
 // Blob URLs are same-origin so they're safe for WebGL textures.
 // Kept alive for the page lifetime (~20 NPCs × ~100 KB ≈ negligible).
 const avatarBlobUrlCache = new Map<string, Promise<string | null>>();
@@ -26,7 +24,12 @@ const avatarBlobUrlCache = new Map<string, Promise<string | null>>();
 function getAvatarBlobUrl(url: string): Promise<string | null> {
   let p = avatarBlobUrlCache.get(url);
   if (!p) {
-    p = fetch(url, { mode: "cors" })
+    // CharacterSheetHeader renders avatars via CSS background-image (no Origin header),
+    // so Cloudflare CDN may cache the response without CORS headers. Appending ?pixi
+    // creates a separate CDN cache entry whose first request always comes from this
+    // CORS fetch — guaranteeing the cached response includes Access-Control-Allow-Origin.
+    const corsUrl = url.includes("?") ? `${url}&pixi=1` : `${url}?pixi=1`;
+    p = fetch(corsUrl, { mode: "cors" })
       .then((res) => (res.ok ? res.blob() : null))
       .then((blob) => (blob ? URL.createObjectURL(blob) : null))
       .catch(() => null);
@@ -111,6 +114,9 @@ type Props = {
   bgInteractive?: boolean;
   onBgPositionChange?: (x: number, y: number) => void;
   piecesInteractive?: boolean;
+  // undefined = all pieces draggable (editor mode).
+  // Set<string> = only listed piece IDs draggable (lobby placer mode).
+  draggablePieceIds?: Set<string>;
   selection?: Selection;
   npcMap?: Map<string, CharacterPrivateSummary>;
   placingNpcId?: string | null;
@@ -122,6 +128,10 @@ type Props = {
   onNpcPlaced?: (slot: SlotCoord) => void;
   onNpcPlacementCancel?: () => void;
   onStageDeselect?: () => void;
+  // Fires when the player clicks on an empty (no piece) in-bounds grid slot.
+  // clientX/clientY are page-level coordinates for positioning a DOM overlay.
+  // Only fires when no piece drag is in progress.
+  onEmptySlotClick?: (slot: SlotCoord, clientX: number, clientY: number) => void;
   // Current viewport zoom (world→screen scale). Lets the DOM drag ghost in
   // TacticalMapEditor size itself to match the on-screen token size.
   onViewportScaleChange?: (scale: number) => void;
@@ -139,6 +149,7 @@ export default function TacticalMapStage({
   bgInteractive = false,
   onBgPositionChange,
   piecesInteractive,
+  draggablePieceIds,
   selection,
   npcMap,
   placingNpcId,
@@ -150,12 +161,25 @@ export default function TacticalMapStage({
   onNpcPlaced,
   onNpcPlacementCancel,
   onStageDeselect,
+  onEmptySlotClick,
   onViewportScaleChange,
   onBgLoadingChange,
   uploading = false,
 }: Props) {
   const [isBgLoading, setIsBgLoading] = useState(() => !!map.bg?.url);
   const bgUrl = map.bg?.url;
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Prevent the page from scrolling when the user scrolls over the map.
+  // Capture phase + passive:false works cross-browser (Chrome passive-by-default
+  // wheel handling requires capture to guarantee preventDefault fires first).
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const handler = (e: WheelEvent) => { e.preventDefault(); };
+    el.addEventListener("wheel", handler, { passive: false, capture: true });
+    return () => el.removeEventListener("wheel", handler, { capture: true });
+  }, []);
 
   // useLayoutEffect fires synchronously before the browser paints the frame.
   // When bg.url changes (upload, URL paste, or clear), we set loading state
@@ -171,7 +195,7 @@ export default function TacticalMapStage({
   }, [onBgLoadingChange]);
 
   return (
-    <div style={{ position: "relative", width, height, overflow: "hidden", isolation: "isolate" }}>
+    <div ref={containerRef} style={{ position: "relative", width, height, overflow: "hidden", isolation: "isolate" }}>
       <Application width={width} height={height} background={0x101820}>
         <ViewportInner
           map={map}
@@ -182,6 +206,7 @@ export default function TacticalMapStage({
           onBgPositionChange={onBgPositionChange}
           onBgLoadingChange={handleBgLoadingChange}
           piecesInteractive={piecesInteractive}
+          draggablePieceIds={draggablePieceIds}
           selection={selection}
           npcMap={npcMap}
           placingNpcId={placingNpcId}
@@ -193,6 +218,7 @@ export default function TacticalMapStage({
           onNpcPlaced={onNpcPlaced}
           onNpcPlacementCancel={onNpcPlacementCancel}
           onStageDeselect={onStageDeselect}
+          onEmptySlotClick={onEmptySlotClick}
           onViewportScaleChange={onViewportScaleChange}
         />
       </Application>
@@ -224,6 +250,7 @@ function ViewportInner({
   onBgPositionChange,
   onBgLoadingChange,
   piecesInteractive,
+  draggablePieceIds,
   selection,
   npcMap,
   placingNpcId,
@@ -235,6 +262,7 @@ function ViewportInner({
   onNpcPlaced,
   onNpcPlacementCancel,
   onStageDeselect,
+  onEmptySlotClick,
   onViewportScaleChange,
 }: Props) {
   const { app } = useApplication();
@@ -442,6 +470,7 @@ function ViewportInner({
         map={map}
         vpRef={vpRef}
         piecesInteractive={piecesInteractive}
+        draggablePieceIds={draggablePieceIds}
         selection={selection}
         npcMap={npcMap}
         pieceDragActiveRef={pieceDragActiveRef}
@@ -451,6 +480,7 @@ function ViewportInner({
         onPieceDragStart={onPieceDragStart}
         onPieceDragEnd={onPieceDragEnd}
         onStageDeselect={onStageDeselect}
+        onEmptySlotClick={onEmptySlotClick}
       />
       <pixiContainer label="walls-layer" />
       <pixiContainer label="overlay-layer" />
@@ -599,12 +629,14 @@ type PieceLocalDragState = {
 } | null;
 
 function PiecesLayer({
-  map, vpRef, piecesInteractive, selection, npcMap, pieceDragActiveRef,
+  map, vpRef, piecesInteractive, draggablePieceIds, selection, npcMap, pieceDragActiveRef,
   onPieceSelect, onPieceMove, onPieceDragToRoster, onPieceDragStart, onPieceDragEnd, onStageDeselect,
+  onEmptySlotClick,
 }: {
   map: TacticalMap;
   vpRef: React.MutableRefObject<Viewport | null>;
   piecesInteractive?: boolean;
+  draggablePieceIds?: Set<string>;
   selection?: Selection;
   npcMap?: Map<string, CharacterPrivateSummary>;
   pieceDragActiveRef: React.MutableRefObject<boolean>;
@@ -614,11 +646,22 @@ function PiecesLayer({
   onPieceDragStart?: (pieceId: string, npc: CharacterPrivateSummary | undefined) => void;
   onPieceDragEnd?: () => void;
   onStageDeselect?: () => void;
+  onEmptySlotClick?: (slot: SlotCoord, clientX: number, clientY: number) => void;
 }) {
   const { app } = useApplication();
   const localDrag = useRef<PieceLocalDragState>(null);
   const [draggingPieceId, setDraggingPieceId] = useState<string | null>(null);
   const [hoverSlot, setHoverSlot] = useState<SlotCoord | null>(null);
+
+  // Tracks a pending empty-slot click for click-vs-drag discrimination.
+  // Set on pointerdown; resolved on pointerup only if movement < threshold.
+  const emptySlotPendingRef = useRef<{
+    slot: SlotCoord;
+    clientX: number;
+    clientY: number;
+    startClientX: number;
+    startClientY: number;
+  } | null>(null);
 
   useEffect(() => {
     const stage = app?.stage;
@@ -726,6 +769,37 @@ function PiecesLayer({
     };
   }, [app, vpRef, map.grid, map.pieces, piecesInteractive, onPieceSelect, onPieceMove, onPieceDragToRoster, onPieceDragStart, onPieceDragEnd]);
 
+  // Resolve empty-slot click on pointerup: fires onEmptySlotClick only if the
+  // pointer moved less than CLICK_THRESHOLD pixels since pointerdown (i.e. it was
+  // a tap/click, not a map pan). This lets the viewport pan normally on drag while
+  // still triggering the placement overlay on a clean click.
+  useEffect(() => {
+    if (!onEmptySlotClick) return;
+    const CLICK_THRESHOLD = 6;
+    const handleUp = (e: PointerEvent) => {
+      const pending = emptySlotPendingRef.current;
+      emptySlotPendingRef.current = null;
+      if (!pending) return;
+      const dx = e.clientX - pending.startClientX;
+      const dy = e.clientY - pending.startClientY;
+      if (Math.hypot(dx, dy) <= CLICK_THRESHOLD) {
+        onEmptySlotClick(pending.slot, pending.clientX, pending.clientY);
+      }
+    };
+    window.addEventListener("pointerup", handleUp);
+    window.addEventListener("pointercancel", () => { emptySlotPendingRef.current = null; });
+    return () => {
+      window.removeEventListener("pointerup", handleUp);
+    };
+  }, [onEmptySlotClick]);
+
+  // Hit area covering the entire grid — gives the pieces-layer container real bounds
+  // so PixiJS delivers pointerdown even when no pieces are rendered yet.
+  const gridHitArea = useMemo(
+    () => new Rectangle(0, 0, map.grid.cols * map.grid.cellSize, map.grid.rows * map.grid.cellSize),
+    [map.grid.cols, map.grid.rows, map.grid.cellSize],
+  );
+
   const drawHoverSlot = useCallback(
     (g: PixiGraphics) => {
       g.clear();
@@ -759,8 +833,26 @@ function PiecesLayer({
     <pixiContainer
       label="pieces-layer"
       eventMode="static"
+      hitArea={gridHitArea}
       onPointerDown={(e: FederatedPointerEvent) => {
-        if (e.target === e.currentTarget) onStageDeselect?.();
+        if (e.target !== e.currentTarget) return;
+        onStageDeselect?.();
+        if (onEmptySlotClick && !localDrag.current) {
+          const vp = vpRef.current;
+          const canvas = app?.renderer ? app.canvas : null;
+          if (vp && canvas) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = rect.left + e.global.x;
+            const clientY = rect.top + e.global.y;
+            const world = vp.toWorld(e.global.x, e.global.y);
+            const slot = worldToSlot(world, map.grid);
+            if (isSlotInBounds(slot, map.grid)) {
+              // Store pending click — resolved on pointerup if movement < threshold.
+              // Pan runs normally; onEmptySlotClick only fires if user didn't drag.
+              emptySlotPendingRef.current = { slot, clientX, clientY, startClientX: clientX, startClientY: clientY };
+            }
+          }
+        }
       }}
     >
       <pixiGraphics draw={drawHoverSlot} />
@@ -773,6 +865,8 @@ function PiecesLayer({
           isSelected={selection?.kind === "piece" && selection.id === p.id}
           onPointerDown={(_piece, e) => {
             if (!piecesInteractive || localDrag.current) return;
+            // Guard: if draggablePieceIds is provided, only allow dragging listed pieces.
+            if (draggablePieceIds !== undefined && !draggablePieceIds.has(p.id)) return;
             pieceDragActiveRef.current = true;
             localDrag.current = {
               pieceId: p.id,

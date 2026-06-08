@@ -76,6 +76,13 @@ export type MapItem = {
   coord: SlotCoord;
 };
 
+// ─── Match ↔ Map attachment ────────────────────────────────────────────────
+export type MatchMapResponse = {
+  matchUuid: string;
+  mapUuid: string;
+  attachedAt: string;
+};
+
 // ─── Raiz ──────────────────────────────────────────────────────────────────
 export type TacticalMap = {
   id: string;
