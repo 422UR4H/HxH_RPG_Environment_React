@@ -163,7 +163,7 @@ export default function LobbyPage() {
     setMapSaveError(null);
     if (fullMap && lobbyPieces.length > 0) {
       try {
-        await mapsService.updateMap(token!, fullMap.id, { pieces: lobbyPieces });
+        await mapsService.updateMap(token!, fullMap.id, { name: fullMap.name, pieces: lobbyPieces });
       } catch {
         setMapSaveError("Não foi possível salvar as posições. Tente novamente.");
         return;
