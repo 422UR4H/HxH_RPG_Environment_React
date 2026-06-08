@@ -168,6 +168,18 @@ export default function TacticalMapStage({
 }: Props) {
   const [isBgLoading, setIsBgLoading] = useState(() => !!map.bg?.url);
   const bgUrl = map.bg?.url;
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Prevent the page from scrolling when the user scrolls over the map.
+  // Capture phase + passive:false works cross-browser (Chrome passive-by-default
+  // wheel handling requires capture to guarantee preventDefault fires first).
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const handler = (e: WheelEvent) => { e.preventDefault(); };
+    el.addEventListener("wheel", handler, { passive: false, capture: true });
+    return () => el.removeEventListener("wheel", handler, { capture: true });
+  }, []);
 
   // useLayoutEffect fires synchronously before the browser paints the frame.
   // When bg.url changes (upload, URL paste, or clear), we set loading state
@@ -183,7 +195,7 @@ export default function TacticalMapStage({
   }, [onBgLoadingChange]);
 
   return (
-    <div style={{ position: "relative", width, height, overflow: "hidden", isolation: "isolate" }}>
+    <div ref={containerRef} style={{ position: "relative", width, height, overflow: "hidden", isolation: "isolate" }}>
       <Application width={width} height={height} background={0x101820}>
         <ViewportInner
           map={map}
@@ -265,16 +277,6 @@ function ViewportInner({
     vp.pinch().wheel().decelerate();
     vp.on("zoomed", () => setVpScale(vp.scale.x));
   }, []);
-
-  // Prevent the page from scrolling when the user scrolls over the map canvas.
-  // Must be non-passive so preventDefault() is honoured (browsers default wheel to passive).
-  useEffect(() => {
-    const canvas = app?.renderer ? app.canvas : null;
-    if (!canvas) return;
-    const handler = (e: WheelEvent) => { e.preventDefault(); };
-    canvas.addEventListener("wheel", handler, { passive: false });
-    return () => canvas.removeEventListener("wheel", handler);
-  }, [app]);
 
   // Report zoom changes up so the DOM drag ghost can match on-screen token size.
   useEffect(() => {
