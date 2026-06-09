@@ -88,17 +88,19 @@ describe("coords — skew + rotation", () => {
     expect(slotToWorld({ kind: "square", col: 1, row: 1 }, g)).toEqual({ x: 60, y: 60 });
   });
 
-  it("skewRatio < 1 squashes the y coordinate", () => {
+  it("skewRatio < 1 squashes y relative to grid center (pivot)", () => {
+    // Grid 10x10 cellSize=40 → pivot=(200,200).
+    // Slot (1,1) baseline=(60,60). dy=(60-200)*0.5=-70 → world.y=-70+200=130.
     const g: GridShape = { ...squareGrid(40), skewRatio: 0.5 };
-    // baseline y = 60 → skewed y = 30
-    expect(slotToWorld({ kind: "square", col: 1, row: 1 }, g)).toEqual({ x: 60, y: 30 });
+    expect(slotToWorld({ kind: "square", col: 1, row: 1 }, g)).toEqual({ x: 60, y: 130 });
   });
 
-  it("rotation rotates around the world origin", () => {
+  it("rotation rotates around the grid center (pivot), not the origin", () => {
+    // Grid 10x10 cellSize=40 → pivot=(200,200).
+    // Slot (0,0) baseline=(20,20). dx=-180, dy=-180. rot90°→(180,-180). world=(380,20).
     const g: GridShape = { ...squareGrid(40), rotation: 90 };
-    // baseline (20, 20) → rotated 90° → (-20, 20)
     const p = slotToWorld({ kind: "square", col: 0, row: 0 }, g);
-    expect(p.x).toBeCloseTo(-20, 6);
+    expect(p.x).toBeCloseTo(380, 6);
     expect(p.y).toBeCloseTo(20, 6);
   });
 

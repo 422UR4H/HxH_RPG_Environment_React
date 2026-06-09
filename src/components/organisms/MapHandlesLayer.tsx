@@ -4,6 +4,7 @@ import type { FederatedPointerEvent, Graphics as PixiGraphics } from "pixi.js";
 import type { Viewport } from "pixi-viewport";
 import type { BgImage, GridShape } from "../../types/tacticalMap";
 import type { ToolKind } from "../../features/tactical-map/store/editorStore";
+import { inverseTransform } from "../../features/tactical-map/utils/coords";
 
 const HANDLE_SIZE = 8;     // screen px
 const ROTATE_RADIUS = 10;  // screen px
@@ -336,6 +337,7 @@ function GridHandles({
   const gw = grid.cols * grid.cellSize;
   const gh = grid.rows * grid.cellSize;
   const gcx = gw / 2;
+  const gcy = gh / 2;
 
   const startDrag = useCallback((handleId: string, shift: boolean, ex: number, ey: number) => {
     const vp = vpRef.current;
@@ -401,7 +403,13 @@ function GridHandles({
   ];
 
   return (
-    <pixiContainer label="grid-handles">
+    <pixiContainer
+      label="grid-handles"
+      pivot={{ x: gcx, y: gcy }}
+      position={{ x: gcx, y: gcy }}
+      rotation={(grid.rotation * Math.PI) / 180}
+      scale={{ x: 1, y: grid.skewRatio }}
+    >
       <pixiGraphics draw={drawBorder} eventMode="none" />
 
       {corners.map(({ id, hx, hy, cursor }) => (
@@ -519,38 +527,35 @@ function computeNewGridFromDrag(
   const gh = rows * cellSize;
 
   if (handle === "rotate") {
-    const cx = gw / 2, cy = gh / 2;
+    // Angle from grid center (world space) to cursor.
+    const cx = gw / 2;
+    const cy = gh / 2;
     const angle = Math.atan2(worldY - cy, worldX - cx) * (180 / Math.PI) + 90;
     return { ...startGrid, rotation: angle };
   }
 
+  // Convert world position → grid-local space so cellSize/skewRatio math works
+  // regardless of current rotation or skew.
+  const local = inverseTransform({ x: worldX, y: worldY }, startGrid);
+  const lx = local.x;
+  const ly = local.y;
+
   if (shiftKey && (handle === "TC" || handle === "BC")) {
     const baseH = rows * cellSize;
     const newH = handle === "TC"
-      ? Math.max(baseH * 0.3, gh - worldY)
-      : Math.max(baseH * 0.3, worldY);
+      ? Math.max(baseH * 0.3, gh - ly)
+      : Math.max(baseH * 0.3, ly);
     const newSkewRatio = Math.max(0.3, Math.min(1.0, newH / baseH));
     return { ...startGrid, skewRatio: newSkewRatio };
   }
 
   let newCellSize: number;
   switch (handle) {
-    case "TR":
-    case "BR":
-      newCellSize = Math.max(MIN_CELL, worldX / cols);
-      break;
-    case "TL":
-    case "BL":
-      newCellSize = Math.max(MIN_CELL, (gw - worldX) / cols);
-      break;
-    case "TC":
-      newCellSize = Math.max(MIN_CELL, (gh - worldY) / rows);
-      break;
-    case "BC":
-      newCellSize = Math.max(MIN_CELL, worldY / rows);
-      break;
-    default:
-      return null;
+    case "TR": case "BR": newCellSize = Math.max(MIN_CELL, lx / cols); break;
+    case "TL": case "BL": newCellSize = Math.max(MIN_CELL, (gw - lx) / cols); break;
+    case "TC": newCellSize = Math.max(MIN_CELL, (gh - ly) / rows); break;
+    case "BC": newCellSize = Math.max(MIN_CELL, ly / rows); break;
+    default: return null;
   }
   return { ...startGrid, cellSize: newCellSize };
 }

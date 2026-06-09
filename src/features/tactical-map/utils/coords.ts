@@ -5,29 +5,43 @@ type XY = { x: number; y: number };
 
 const DEG_TO_RAD = Math.PI / 180;
 
+// Matches the Pixi transform applied by GridLayer:
+//   pivot = position = (cols*cellSize/2, rows*cellSize/2)
+//   scale = { x:1, y:skewRatio }
+//   rotation = degrees
+// Scale is applied relative to the pivot, then rotation around the same pivot.
 export function applyTransform(p: XY, grid: GridShape): XY {
-  const skewed: XY = { x: p.x, y: p.y * grid.skewRatio };
-  if (grid.rotation === 0) return skewed;
-  const t = grid.rotation * DEG_TO_RAD;
-  const cos = Math.cos(t);
-  const sin = Math.sin(t);
-  return {
-    x: skewed.x * cos - skewed.y * sin,
-    y: skewed.x * sin + skewed.y * cos,
-  };
-}
-
-function inverseTransform(p: XY, grid: GridShape): XY {
+  const pivotX = (grid.cols * grid.cellSize) / 2;
+  const pivotY = (grid.rows * grid.cellSize) / 2;
+  const dx = p.x - pivotX;
+  const dy = (p.y - pivotY) * grid.skewRatio;
   if (grid.rotation === 0) {
-    return { x: p.x, y: p.y / grid.skewRatio };
+    return { x: dx + pivotX, y: dy + pivotY };
   }
   const t = grid.rotation * DEG_TO_RAD;
   const cos = Math.cos(t);
   const sin = Math.sin(t);
   return {
-    x: p.x * cos + p.y * sin,
-    y: (-p.x * sin + p.y * cos) / grid.skewRatio,
+    x: dx * cos - dy * sin + pivotX,
+    y: dx * sin + dy * cos + pivotY,
   };
+}
+
+// Inverse of applyTransform: world → local grid space.
+export function inverseTransform(p: XY, grid: GridShape): XY {
+  const pivotX = (grid.cols * grid.cellSize) / 2;
+  const pivotY = (grid.rows * grid.cellSize) / 2;
+  const dx = p.x - pivotX;
+  const dy = p.y - pivotY;
+  if (grid.rotation === 0) {
+    return { x: dx + pivotX, y: dy / grid.skewRatio + pivotY };
+  }
+  const t = grid.rotation * DEG_TO_RAD;
+  const cos = Math.cos(t);
+  const sin = Math.sin(t);
+  const rx = dx * cos + dy * sin;
+  const ry = -dx * sin + dy * cos;
+  return { x: rx + pivotX, y: ry / grid.skewRatio + pivotY };
 }
 
 function slotToBaseline(slot: SlotCoord, grid: GridShape): XY {
