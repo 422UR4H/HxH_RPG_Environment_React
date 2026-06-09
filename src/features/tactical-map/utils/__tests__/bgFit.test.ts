@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeCoverFit, deriveGridFromImage } from "../bgFit";
+import { computeCoverFit, deriveGridFromImage, fitGridToImage } from "../bgFit";
 import type { GridShape } from "../../../../types/tacticalMap";
 
 const grid = (cols: number, rows: number, cellSize: number): GridShape => ({
@@ -63,5 +63,58 @@ describe("deriveGridFromImage", () => {
     // naturalWidth=800, cols=20 → cellSize=40; naturalHeight=650 → rows=floor(650/40)=16.
     const result = deriveGridFromImage(800, 650, grid(20, 10, 50));
     expect(result.rows).toBe(16);
+  });
+});
+
+const hexGrid = (cols: number, rows: number, cellSize: number): GridShape => ({
+  kind: "hex",
+  cols,
+  rows,
+  cellSize,
+  skewRatio: 1,
+  rotation: 0,
+  color: "#4a90a4",
+  opacity: 0.6,
+  lineStyle: "solid" as const,
+});
+
+describe("fitGridToImage", () => {
+  it("square: computes cols/rows from naturalSize and cellSize (rounds nearest)", () => {
+    // 1200÷60=20, 800÷60≈13.33→13
+    const result = fitGridToImage(1200, 800, grid(10, 10, 60));
+    expect(result.cols).toBe(20);
+    expect(result.rows).toBe(13);
+    expect(result.cellSize).toBe(60); // unchanged
+  });
+
+  it("square: clamps cols/rows to max 200", () => {
+    const result = fitGridToImage(10000, 10000, grid(10, 10, 1));
+    expect(result.cols).toBe(200);
+    expect(result.rows).toBe(200);
+  });
+
+  it("square: clamps cols/rows to min 1", () => {
+    const result = fitGridToImage(10, 10, grid(5, 5, 500));
+    expect(result.cols).toBe(1);
+    expect(result.rows).toBe(1);
+  });
+
+  it("square: preserves all other grid fields", () => {
+    const g = grid(10, 10, 60);
+    const result = fitGridToImage(1200, 800, g);
+    expect(result.kind).toBe("square");
+    expect(result.color).toBe(g.color);
+    expect(result.opacity).toBe(g.opacity);
+    expect(result.skewRatio).toBe(g.skewRatio);
+    expect(result.rotation).toBe(g.rotation);
+  });
+
+  it("hex: computes cols/rows from hex geometry", () => {
+    // hexW = 40*sqrt(3)≈69.28, hexH = 40*1.5=60
+    const result = fitGridToImage(1000, 900, hexGrid(5, 5, 40));
+    const hexW = 40 * Math.sqrt(3);
+    const hexH = 40 * 1.5;
+    expect(result.cols).toBe(Math.min(200, Math.max(1, Math.round(1000 / hexW))));
+    expect(result.rows).toBe(Math.min(200, Math.max(1, Math.round(900 / hexH))));
   });
 });
