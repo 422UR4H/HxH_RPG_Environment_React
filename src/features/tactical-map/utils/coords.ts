@@ -5,7 +5,7 @@ type XY = { x: number; y: number };
 
 const DEG_TO_RAD = Math.PI / 180;
 
-function applyTransform(p: XY, grid: GridShape): XY {
+export function applyTransform(p: XY, grid: GridShape): XY {
   const skewed: XY = { x: p.x, y: p.y * grid.skewRatio };
   if (grid.rotation === 0) return skewed;
   const t = grid.rotation * DEG_TO_RAD;
@@ -59,6 +59,29 @@ export function slotToWorld(slot: SlotCoord, grid: GridShape): XY {
 
 export function worldToSlot(world: XY, grid: GridShape): SlotCoord {
   return baselineToSlot(inverseTransform(world, grid), grid);
+}
+
+// Returns world-space corners of the slot cell, matching the visual shape of GridLayer.
+// Square: 4 corners (TL, TR, BR, BL). Hex: 6 vertices in the same winding as GridLayer.
+export function slotCorners(slot: SlotCoord, grid: GridShape): XY[] {
+  if (slot.kind === "square") {
+    const { cellSize } = grid;
+    const local: XY[] = [
+      { x: slot.col * cellSize,       y: slot.row * cellSize       },
+      { x: (slot.col + 1) * cellSize, y: slot.row * cellSize       },
+      { x: (slot.col + 1) * cellSize, y: (slot.row + 1) * cellSize },
+      { x: slot.col * cellSize,       y: (slot.row + 1) * cellSize },
+    ];
+    return local.map((p) => applyTransform(p, grid));
+  }
+  const center = hexToPixel({ q: slot.q, r: slot.r }, grid.cellSize);
+  return [0, 1, 2, 3, 4, 5].map((i) => {
+    const angle = ((60 * i - 30) * Math.PI) / 180;
+    return applyTransform(
+      { x: center.x + grid.cellSize * Math.cos(angle), y: center.y + grid.cellSize * Math.sin(angle) },
+      grid,
+    );
+  });
 }
 
 // Returns true if slot is within the visible grid bounds.

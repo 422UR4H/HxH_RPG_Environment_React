@@ -117,6 +117,26 @@ export default function GridConfigPanel({ grid, onChange }: Props) {
       </Field>
 
       <Field>
+        <FieldLabel>Predefinições</FieldLabel>
+        <KindRow>
+          <KindButton
+            type="button"
+            $active={grid.rotation === 45 && grid.skewRatio === 0.5}
+            onClick={() => update({ rotation: 45, skewRatio: 0.5 })}
+          >
+            Isométrico
+          </KindButton>
+          <KindButton
+            type="button"
+            $active={grid.rotation === 0 && grid.skewRatio === 1.0}
+            onClick={() => update({ rotation: 0, skewRatio: 1.0 })}
+          >
+            Top-down
+          </KindButton>
+        </KindRow>
+      </Field>
+
+      <Field>
         <FieldLabel htmlFor="grid-rotation">
           Rotação ({grid.rotation}°)
         </FieldLabel>

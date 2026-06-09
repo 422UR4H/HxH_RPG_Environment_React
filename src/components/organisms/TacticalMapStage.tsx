@@ -13,7 +13,7 @@ import type { TacticalMap, GridShape, Piece, SlotCoord, BgImage } from "../../ty
 import type { CharacterPrivateSummary } from "../../types/characterSheet";
 import type { Selection, ToolKind } from "../../features/tactical-map/store/editorStore";
 import MapHandlesLayer from "./MapHandlesLayer";
-import { slotToWorld, worldToSlot, isSlotInBounds } from "../../features/tactical-map/utils/coords";
+import { slotToWorld, worldToSlot, isSlotInBounds, slotCorners } from "../../features/tactical-map/utils/coords";
 
 extend({ Container, Graphics, Sprite, Text, Viewport });
 
@@ -457,16 +457,13 @@ function ViewportInner({
       g.clear();
       if (!placementHoverSlot || !placingNpcId) return;
       const inBounds = isSlotInBounds(placementHoverSlot, map.grid);
-      const center = slotToWorld(placementHoverSlot, map.grid);
-      const r = map.grid.cellSize / 2 - 2;
       const color = inBounds ? 0x30ff80 : 0xff3030;
       g.setFillStyle({ color, alpha: 0.3 });
       g.setStrokeStyle({ color, width: 2, alpha: 0.9 });
-      if (map.grid.kind === "square") {
-        g.rect(center.x - r, center.y - r, r * 2, r * 2);
-      } else {
-        g.circle(center.x, center.y, r);
-      }
+      const corners = slotCorners(placementHoverSlot, map.grid);
+      g.moveTo(corners[0].x, corners[0].y);
+      for (let i = 1; i < corners.length; i++) g.lineTo(corners[i].x, corners[i].y);
+      g.closePath();
       g.fill();
       g.stroke();
     },
@@ -846,14 +843,12 @@ function PiecesLayer({
       const occupied = !outOfBounds && map.pieces.some(
         (p) => p.id !== draggingPieceId && JSON.stringify(p.coord.slot) === JSON.stringify(hoverSlot),
       );
-      const center = slotToWorld(hoverSlot, map.grid);
-      const r = map.grid.cellSize / 2 - 4;
-      g.setFillStyle({ color: occupied || outOfBounds ? 0xff3030 : 0x30ff80, alpha: 0.25 });
-      if (map.grid.kind === "square") {
-        g.rect(center.x - r, center.y - r, r * 2, r * 2);
-      } else {
-        g.circle(center.x, center.y, r);
-      }
+      const color = occupied || outOfBounds ? 0xff3030 : 0x30ff80;
+      g.setFillStyle({ color, alpha: 0.25 });
+      const corners = slotCorners(hoverSlot, map.grid);
+      g.moveTo(corners[0].x, corners[0].y);
+      for (let i = 1; i < corners.length; i++) g.lineTo(corners[i].x, corners[i].y);
+      g.closePath();
       g.fill();
     },
     [hoverSlot, draggingPieceId, map.pieces, map.grid],
