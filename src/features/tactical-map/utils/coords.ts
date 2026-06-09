@@ -132,6 +132,16 @@ export function gridLocalBounds(grid: GridShape): {
   };
 }
 
+// Radius of the largest circle that fits inside one grid cell, in LOCAL
+// (pre-transform) space. A square cell inscribes a circle of cellSize/2; a
+// pointy-top hex cell inscribes one of cellSize·√3/2 (its flat-to-flat
+// half-width — note cellSize is the hex CIRCUMradius, center-to-vertex, so the
+// cell is far larger than cellSize). Tokens scale off this so a piece fills the
+// same fraction of its slot regardless of grid kind.
+export function slotInradius(grid: GridShape): number {
+  return grid.kind === "square" ? grid.cellSize / 2 : (grid.cellSize * Math.sqrt(3)) / 2;
+}
+
 // Local-space anchor point for an edit handle, derived from the grid bounds.
 // Shared by the handle rendering and the drag math so they always agree.
 export function gridHandleLocal(handle: string, grid: GridShape): XY {

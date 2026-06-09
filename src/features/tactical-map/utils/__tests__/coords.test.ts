@@ -7,6 +7,7 @@ import {
   applyTransform,
   inverseTransform,
   gridFromHandleDrag,
+  slotInradius,
 } from "../coords";
 import type { GridShape } from "../../../../types/tacticalMap";
 import { hexToPixel } from "../hex";
@@ -210,5 +211,20 @@ describe("coords — skew + rotation", () => {
     const slot = { kind: "hex" as const, q: 2, r: -1 };
     const world = slotToWorld(slot, g);
     expect(worldToSlot(world, g)).toEqual(slot);
+  });
+});
+
+describe("slotInradius — token sizing keeps the same fill across grid kinds", () => {
+  it("square inradius is half the cellSize (token keeps its 0.45·cellSize)", () => {
+    expect(slotInradius(squareGrid(40))).toBe(20);
+    // token = inradius * 0.9 = 18 = 0.45·cellSize, exactly today's value.
+    expect(slotInradius(squareGrid(40)) * 0.9).toBeCloseTo(40 * 0.45);
+  });
+
+  it("hex inradius is cellSize·√3/2 (the flat-to-flat half-width)", () => {
+    const cs = 40;
+    expect(slotInradius(hexGrid(cs))).toBeCloseTo((cs * Math.sqrt(3)) / 2);
+    // a hex token is ~1.73× a square token at the same cellSize.
+    expect((slotInradius(hexGrid(cs)) * 0.9) / (cs * 0.45)).toBeCloseTo(Math.sqrt(3));
   });
 });

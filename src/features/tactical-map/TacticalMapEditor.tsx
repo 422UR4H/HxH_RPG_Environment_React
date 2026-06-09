@@ -373,12 +373,15 @@ export default function TacticalMapEditor({
 
     setIsSaving(true);
     try {
+      // Strip editor-only grid fields the backend rejects as unexpected properties.
+      const { originX: _ox, originY: _oy, ...gridForApi } = mapToSave.grid;
+      const mapForApi = { ...mapToSave, grid: gridForApi };
       // bg.url may be a blob: URL (same-origin display workaround when R2 has
       // no CORS headers). Replace with the R2 URL for persistence. r2Url is
       // absent on the URL-input path, in which case url is already the final URL.
-      const finalMap = mapToSave.bg?.r2Url
-        ? { ...mapToSave, bg: { ...mapToSave.bg, url: mapToSave.bg.r2Url, r2Url: undefined } }
-        : mapToSave;
+      const finalMap = mapForApi.bg?.r2Url
+        ? { ...mapForApi, bg: { ...mapForApi.bg, url: mapForApi.bg.r2Url, r2Url: undefined } }
+        : mapForApi;
       await onSave(finalMap);
       markClean();
       setSaveSuccess("Mapa salvo!");

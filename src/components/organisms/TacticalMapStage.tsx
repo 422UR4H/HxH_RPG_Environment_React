@@ -13,7 +13,7 @@ import type { TacticalMap, GridShape, Piece, SlotCoord, BgImage } from "../../ty
 import type { CharacterPrivateSummary } from "../../types/characterSheet";
 import type { Selection, ToolKind } from "../../features/tactical-map/store/editorStore";
 import MapHandlesLayer from "./MapHandlesLayer";
-import { slotToWorld, worldToSlot, isSlotInBounds, slotCorners, applyTransform } from "../../features/tactical-map/utils/coords";
+import { slotToWorld, worldToSlot, isSlotInBounds, slotCorners, applyTransform, slotInradius } from "../../features/tactical-map/utils/coords";
 
 extend({ Container, Graphics, Sprite, Text, Viewport });
 
@@ -942,7 +942,10 @@ type PieceSpriteProps = {
 
 function PieceSprite({ piece, grid, npc, isSelected, piecesInteractive, onPointerDown }: PieceSpriteProps) {
   const center = useMemo(() => slotToWorld(piece.coord.slot, grid), [piece.coord.slot, grid]);
-  const tokenRadius = grid.cellSize * 0.45;
+  // 90% of the slot's inscribed-circle radius. Square keeps the original
+  // 0.45·cellSize; hex tokens grow to fill their (much larger) cell by the same
+  // proportion. See slotInradius.
+  const tokenRadius = slotInradius(grid) * 0.9;
   const avatarRadius = tokenRadius * 0.7;
   const z = piece.coord.z;
   const zOffsetPx = z * 10;
