@@ -18,6 +18,14 @@ type BgHandleDragState = {
   shiftKey: boolean;
 } | null;
 
+type GridHandleDragState = {
+  handle: string;
+  startWorldX: number;
+  startWorldY: number;
+  startGrid: GridShape;
+  shiftKey: boolean;
+} | null;
+
 
 type Props = {
   activeTool: ToolKind;
@@ -292,18 +300,257 @@ function computeNewBgFromDrag(
   }
 }
 
-// ─── GridHandles — stub (implemented in Task 10) ─────────────────────────────
+// ─── GridHandles ──────────────────────────────────────────────────────────────
 
 function GridHandles({
-  grid: _grid,
-  vpScale: _vpScale,
-  onGridChange: _onGridChange,
-  vpRef: _vpRef,
+  grid,
+  vpScale,
+  onGridChange,
+  vpRef,
 }: {
   grid: GridShape;
   vpScale: number;
   onGridChange: (grid: GridShape) => void;
   vpRef: React.MutableRefObject<Viewport | null>;
 }) {
-  return null;
+  const { app } = useApplication();
+  const dragState = useRef<GridHandleDragState>(null);
+  const onGridChangeRef = useRef(onGridChange);
+  useEffect(() => { onGridChangeRef.current = onGridChange; }, [onGridChange]);
+
+  const [shiftPressed, setShiftPressed] = useState(false);
+  useEffect(() => {
+    const onDown = (e: KeyboardEvent) => { if (e.key === "Shift") setShiftPressed(true); };
+    const onUp = (e: KeyboardEvent) => { if (e.key === "Shift") setShiftPressed(false); };
+    window.addEventListener("keydown", onDown);
+    window.addEventListener("keyup", onUp);
+    return () => {
+      window.removeEventListener("keydown", onDown);
+      window.removeEventListener("keyup", onUp);
+    };
+  }, []);
+
+  const hs = HANDLE_SIZE / vpScale;
+  const rr = ROTATE_RADIUS / vpScale;
+  const ro = ROTATE_OFFSET / vpScale;
+  const gw = grid.cols * grid.cellSize;
+  const gh = grid.rows * grid.cellSize;
+  const gcx = gw / 2;
+
+  const startDrag = useCallback((handleId: string, shift: boolean, ex: number, ey: number) => {
+    const vp = vpRef.current;
+    if (!vp) return;
+    const world = vp.toWorld(ex, ey);
+    dragState.current = {
+      handle: handleId,
+      startWorldX: world.x,
+      startWorldY: world.y,
+      startGrid: { ...grid },
+      shiftKey: shift,
+    };
+    const canvas = app?.renderer ? app.canvas : null;
+    const onMove = (e: PointerEvent) => {
+      const dr = dragState.current;
+      const vp2 = vpRef.current;
+      if (!dr || !vp2 || !canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      const wld = vp2.toWorld(e.clientX - rect.left, e.clientY - rect.top);
+      const newGrid = computeNewGridFromDrag(dr.handle, dr.startGrid, wld.x, wld.y, dr.shiftKey);
+      if (newGrid) onGridChangeRef.current(newGrid);
+    };
+    const onUp = () => {
+      dragState.current = null;
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+  }, [app, grid, vpRef]);
+
+  const drawBorder = useCallback((g: PixiGraphics) => {
+    g.clear();
+    const color = shiftPressed ? 0xffaa00 : 0xffffff;
+    g.setStrokeStyle({ width: 1 / vpScale, color, alpha: 0.7 });
+    g.rect(0, 0, gw, gh);
+    g.stroke();
+  }, [gw, gh, vpScale, shiftPressed]);
+
+  const drawRotate = useCallback((g: PixiGraphics) => {
+    g.clear();
+    g.setStrokeStyle({ width: 1 / vpScale, color: 0xffd700, alpha: 0.8 });
+    g.moveTo(gcx, 0);
+    g.lineTo(gcx, -ro);
+    g.stroke();
+    g.setFillStyle({ color: 0xffd700, alpha: 1 });
+    g.circle(gcx, -ro, rr);
+    g.fill();
+  }, [gcx, ro, rr, vpScale]);
+
+  const corners: Array<{ id: string; hx: number; hy: number; cursor: string }> = [
+    { id: "TL", hx: 0,  hy: 0,  cursor: "nw-resize" },
+    { id: "TR", hx: gw, hy: 0,  cursor: "ne-resize" },
+    { id: "BL", hx: 0,  hy: gh, cursor: "sw-resize" },
+    { id: "BR", hx: gw, hy: gh, cursor: "se-resize" },
+  ];
+
+  const edgeHandles: Array<{ id: string; hx: number; hy: number }> = [
+    { id: "TC", hx: gcx, hy: 0 },
+    { id: "BC", hx: gcx, hy: gh },
+  ];
+
+  return (
+    <pixiContainer label="grid-handles">
+      <pixiGraphics draw={drawBorder} eventMode="none" />
+
+      {corners.map(({ id, hx, hy, cursor }) => (
+        <GridCornerHandle
+          key={id}
+          id={id}
+          hx={hx}
+          hy={hy}
+          hs={hs}
+          cursor={cursor}
+          shiftPressed={shiftPressed}
+          onStartDrag={startDrag}
+        />
+      ))}
+
+      {edgeHandles.map(({ id, hx, hy }) => (
+        <GridEdgeHandle
+          key={id}
+          id={id}
+          hx={hx}
+          hy={hy}
+          hs={hs}
+          shiftPressed={shiftPressed}
+          onStartDrag={startDrag}
+        />
+      ))}
+
+      <pixiGraphics
+        draw={drawRotate}
+        eventMode="static"
+        cursor="crosshair"
+        onPointerDown={(e: FederatedPointerEvent) => {
+          e.stopPropagation();
+          startDrag("rotate", false, e.global.x, e.global.y);
+        }}
+      />
+    </pixiContainer>
+  );
+}
+
+function GridCornerHandle({
+  id, hx, hy, hs, cursor, shiftPressed, onStartDrag,
+}: {
+  id: string; hx: number; hy: number; hs: number;
+  cursor: string; shiftPressed: boolean;
+  onStartDrag: (id: string, shift: boolean, ex: number, ey: number) => void;
+}) {
+  const draw = useCallback((g: PixiGraphics) => {
+    g.clear();
+    g.rect(hx - hs / 2, hy - hs / 2, hs, hs);
+    g.setFillStyle({ color: 0xffffff });
+    g.fill();
+    g.setStrokeStyle({ color: 0x333333, width: hs * 0.15 });
+    g.stroke();
+  }, [hx, hy, hs]);
+
+  return (
+    <pixiGraphics
+      draw={draw}
+      eventMode="static"
+      cursor={cursor}
+      onPointerDown={(e: FederatedPointerEvent) => {
+        e.stopPropagation();
+        onStartDrag(id, shiftPressed, e.global.x, e.global.y);
+      }}
+    />
+  );
+}
+
+function GridEdgeHandle({
+  id, hx, hy, hs, shiftPressed, onStartDrag,
+}: {
+  id: string; hx: number; hy: number; hs: number;
+  shiftPressed: boolean;
+  onStartDrag: (id: string, shift: boolean, ex: number, ey: number) => void;
+}) {
+  const actualHs = shiftPressed ? hs * 1.25 : hs;
+  const fillColor = shiftPressed ? 0xffaa00 : 0xffffff;
+  const cursor = shiftPressed ? "row-resize" : "ns-resize";
+
+  const draw = useCallback((g: PixiGraphics) => {
+    g.clear();
+    g.circle(hx, hy, actualHs / 2);
+    g.setFillStyle({ color: fillColor });
+    g.fill();
+    g.setStrokeStyle({ color: 0x333333, width: actualHs * 0.12 });
+    g.stroke();
+  }, [hx, hy, actualHs, fillColor]);
+
+  return (
+    <pixiGraphics
+      draw={draw}
+      eventMode="static"
+      cursor={cursor}
+      onPointerDown={(e: FederatedPointerEvent) => {
+        e.stopPropagation();
+        onStartDrag(id, shiftPressed, e.global.x, e.global.y);
+      }}
+    />
+  );
+}
+
+// ─── GridHandles math ─────────────────────────────────────────────────────────
+
+function computeNewGridFromDrag(
+  handle: string,
+  startGrid: GridShape,
+  worldX: number,
+  worldY: number,
+  shiftKey: boolean,
+): GridShape | null {
+  const MIN_CELL = 8;
+  const { cols, rows, cellSize } = startGrid;
+  const gw = cols * cellSize;
+  const gh = rows * cellSize;
+
+  if (handle === "rotate") {
+    const cx = gw / 2, cy = gh / 2;
+    const angle = Math.atan2(worldY - cy, worldX - cx) * (180 / Math.PI) + 90;
+    return { ...startGrid, rotation: angle };
+  }
+
+  if (shiftKey && (handle === "TC" || handle === "BC")) {
+    const baseH = rows * cellSize;
+    const newH = handle === "TC"
+      ? Math.max(baseH * 0.3, gh - worldY)
+      : Math.max(baseH * 0.3, worldY);
+    const newSkewRatio = Math.max(0.3, Math.min(1.0, newH / baseH));
+    return { ...startGrid, skewRatio: newSkewRatio };
+  }
+
+  let newCellSize: number;
+  switch (handle) {
+    case "TR":
+    case "BR":
+      newCellSize = Math.max(MIN_CELL, worldX / cols);
+      break;
+    case "TL":
+    case "BL":
+      newCellSize = Math.max(MIN_CELL, (gw - worldX) / cols);
+      break;
+    case "TC":
+      newCellSize = Math.max(MIN_CELL, (gh - worldY) / rows);
+      break;
+    case "BC":
+      newCellSize = Math.max(MIN_CELL, worldY / rows);
+      break;
+    default:
+      return null;
+  }
+  return { ...startGrid, cellSize: newCellSize };
 }
