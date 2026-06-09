@@ -5,43 +5,53 @@ type XY = { x: number; y: number };
 
 const DEG_TO_RAD = Math.PI / 180;
 
-// Matches the Pixi transform applied by GridLayer:
-//   pivot = position = (cols*cellSize/2, rows*cellSize/2)
-//   scale = { x:1, y:skewRatio }
-//   rotation = degrees
-// Scale is applied relative to the pivot, then rotation around the same pivot.
+// Maps a point from local grid space to world space.
+//
+// The transform is built around the grid CENTER (pivot = cols*cellSize/2,
+// rows*cellSize/2) and applies, in order:
+//   1. rotation (degrees)
+//   2. vertical squash by skewRatio — in SCREEN space, AFTER rotation
+//
+// Applying the squash after rotation is what produces a true isometric look:
+// rotating a square grid 45° then compressing vertically turns the cells into
+// the classic iso diamonds (the squash acts diagonally relative to the grid's
+// own axes). Squashing before rotation would only ever compress the local
+// vertical axis, which is the bug we're fixing.
 export function applyTransform(p: XY, grid: GridShape): XY {
   const pivotX = (grid.cols * grid.cellSize) / 2;
   const pivotY = (grid.rows * grid.cellSize) / 2;
   const dx = p.x - pivotX;
-  const dy = (p.y - pivotY) * grid.skewRatio;
+  const dy = p.y - pivotY;
+  let rx = dx;
+  let ry = dy;
+  if (grid.rotation !== 0) {
+    const t = grid.rotation * DEG_TO_RAD;
+    const cos = Math.cos(t);
+    const sin = Math.sin(t);
+    rx = dx * cos - dy * sin;
+    ry = dx * sin + dy * cos;
+  }
+  ry *= grid.skewRatio; // screen-space vertical squash, after rotation
+  return { x: rx + pivotX, y: ry + pivotY };
+}
+
+// Inverse of applyTransform: world → local grid space.
+// Undo in reverse order: un-squash (divide y by skewRatio), then un-rotate.
+export function inverseTransform(p: XY, grid: GridShape): XY {
+  const pivotX = (grid.cols * grid.cellSize) / 2;
+  const pivotY = (grid.rows * grid.cellSize) / 2;
+  const rx = p.x - pivotX;
+  const ry = (p.y - pivotY) / grid.skewRatio;
   if (grid.rotation === 0) {
-    return { x: dx + pivotX, y: dy + pivotY };
+    return { x: rx + pivotX, y: ry + pivotY };
   }
   const t = grid.rotation * DEG_TO_RAD;
   const cos = Math.cos(t);
   const sin = Math.sin(t);
   return {
-    x: dx * cos - dy * sin + pivotX,
-    y: dx * sin + dy * cos + pivotY,
+    x: rx * cos + ry * sin + pivotX,
+    y: -rx * sin + ry * cos + pivotY,
   };
-}
-
-// Inverse of applyTransform: world → local grid space.
-export function inverseTransform(p: XY, grid: GridShape): XY {
-  const pivotX = (grid.cols * grid.cellSize) / 2;
-  const pivotY = (grid.rows * grid.cellSize) / 2;
-  const dx = p.x - pivotX;
-  const dy = p.y - pivotY;
-  if (grid.rotation === 0) {
-    return { x: dx + pivotX, y: dy / grid.skewRatio + pivotY };
-  }
-  const t = grid.rotation * DEG_TO_RAD;
-  const cos = Math.cos(t);
-  const sin = Math.sin(t);
-  const rx = dx * cos + dy * sin;
-  const ry = -dx * sin + dy * cos;
-  return { x: rx + pivotX, y: ry / grid.skewRatio + pivotY };
 }
 
 function slotToBaseline(slot: SlotCoord, grid: GridShape): XY {

@@ -104,6 +104,17 @@ describe("coords — skew + rotation", () => {
     expect(p.y).toBeCloseTo(20, 6);
   });
 
+  it("skew is applied in SCREEN space, after rotation (isometric, not vertical-only)", () => {
+    // Grid 10x10 cellSize=40 → pivot=(200,200). Slot (0,0) baseline=(20,20).
+    // dx=-180, dy=-180. rotate 90° → (rx,ry)=(180,-180). THEN squash y*0.5 → -90.
+    // world = (180+200, -90+200) = (380, 110).
+    // (Local-space skew — the old buggy order — would give (290, 20) instead.)
+    const g: GridShape = { ...squareGrid(40), rotation: 90, skewRatio: 0.5 };
+    const p = slotToWorld({ kind: "square", col: 0, row: 0 }, g);
+    expect(p.x).toBeCloseTo(380, 6);
+    expect(p.y).toBeCloseTo(110, 6);
+  });
+
   it("worldToSlot reverses skew + rotation for square", () => {
     const g: GridShape = { ...squareGrid(40), skewRatio: 0.5, rotation: 30 };
     const slot = { kind: "square" as const, col: 2, row: 3 };

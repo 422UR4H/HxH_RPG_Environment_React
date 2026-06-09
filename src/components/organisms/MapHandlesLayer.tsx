@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useApplication } from "@pixi/react";
 import type { FederatedPointerEvent, Graphics as PixiGraphics } from "pixi.js";
 import type { Viewport } from "pixi-viewport";
 import type { BgImage, GridShape } from "../../types/tacticalMap";
 import type { ToolKind } from "../../features/tactical-map/store/editorStore";
-import { inverseTransform } from "../../features/tactical-map/utils/coords";
+import { applyTransform, inverseTransform } from "../../features/tactical-map/utils/coords";
+
+type XY = { x: number; y: number };
 
 const HANDLE_SIZE = 8;     // screen px
 const ROTATE_RADIUS = 10;  // screen px
@@ -103,7 +105,6 @@ function BgHandles({
   const rr = ROTATE_RADIUS / vpScale;
   const ro = ROTATE_OFFSET / vpScale;
   const { x, y, width: w, height: h } = bg;
-  const cx = x + w / 2;
 
   const startDrag = useCallback((handleId: string, shift: boolean, ex: number, ey: number) => {
     const vp = vpRef.current;
@@ -138,46 +139,79 @@ function BgHandles({
     window.addEventListener("pointercancel", onUp);
   }, [app, bg, vpRef]);
 
+  // World-space anchor positions for each handle, following bg.rotation. The
+  // container is NOT transformed, so the markers (squares, circle) stay crisp;
+  // only their positions rotate with the image. The border is a polygon through
+  // the four rotated corners.
+  const pts = useMemo(() => {
+    const rot = ((bg.rotation || 0) * Math.PI) / 180;
+    const cos = Math.cos(rot);
+    const sin = Math.sin(rot);
+    const bcx = x + w / 2;
+    const bcy = y + h / 2;
+    const toWorld = (px: number, py: number): XY => {
+      const ddx = px - bcx;
+      const ddy = py - bcy;
+      return { x: bcx + ddx * cos - ddy * sin, y: bcy + ddx * sin + ddy * cos };
+    };
+    return {
+      TL: toWorld(x, y),
+      TC: toWorld(bcx, y),
+      TR: toWorld(x + w, y),
+      ML: toWorld(x, bcy),
+      MR: toWorld(x + w, bcy),
+      BL: toWorld(x, y + h),
+      BC: toWorld(bcx, y + h),
+      BR: toWorld(x + w, y + h),
+      topCenter: toWorld(bcx, y),
+      rot: toWorld(bcx, y - ro),
+    };
+  }, [bg.rotation, x, y, w, h, ro]);
+
   const drawBorder = useCallback((g: PixiGraphics) => {
     g.clear();
     g.setStrokeStyle({ width: 1 / vpScale, color: 0xffffff, alpha: 0.7 });
-    g.rect(x, y, w, h);
+    g.moveTo(pts.TL.x, pts.TL.y);
+    g.lineTo(pts.TR.x, pts.TR.y);
+    g.lineTo(pts.BR.x, pts.BR.y);
+    g.lineTo(pts.BL.x, pts.BL.y);
+    g.closePath();
     g.stroke();
-  }, [x, y, w, h, vpScale]);
+  }, [pts, vpScale]);
 
   const drawRotate = useCallback((g: PixiGraphics) => {
     g.clear();
     g.setStrokeStyle({ width: 1 / vpScale, color: 0xffd700, alpha: 0.8 });
-    g.moveTo(cx, y);
-    g.lineTo(cx, y - ro);
+    g.moveTo(pts.topCenter.x, pts.topCenter.y);
+    g.lineTo(pts.rot.x, pts.rot.y);
     g.stroke();
     g.setFillStyle({ color: 0xffd700, alpha: 1 });
-    g.circle(cx, y - ro, rr);
+    g.circle(pts.rot.x, pts.rot.y, rr);
     g.fill();
     g.setStrokeStyle({ width: 1 / vpScale, color: 0x333333 });
     g.stroke();
-  }, [cx, y, ro, rr, vpScale]);
+  }, [pts, rr, vpScale]);
 
-  const resizeHandles: Array<{ id: string; hx: number; hy: number; cursor: string }> = [
-    { id: "TL", hx: x,     hy: y,     cursor: "nw-resize" },
-    { id: "TC", hx: cx,    hy: y,     cursor: "n-resize" },
-    { id: "TR", hx: x + w, hy: y,     cursor: "ne-resize" },
-    { id: "ML", hx: x,     hy: y + h / 2, cursor: "w-resize" },
-    { id: "MR", hx: x + w, hy: y + h / 2, cursor: "e-resize" },
-    { id: "BL", hx: x,     hy: y + h, cursor: "sw-resize" },
-    { id: "BC", hx: cx,    hy: y + h, cursor: "s-resize" },
-    { id: "BR", hx: x + w, hy: y + h, cursor: "se-resize" },
+  const resizeHandles: Array<{ id: string; p: XY; cursor: string }> = [
+    { id: "TL", p: pts.TL, cursor: "nw-resize" },
+    { id: "TC", p: pts.TC, cursor: "n-resize" },
+    { id: "TR", p: pts.TR, cursor: "ne-resize" },
+    { id: "ML", p: pts.ML, cursor: "w-resize" },
+    { id: "MR", p: pts.MR, cursor: "e-resize" },
+    { id: "BL", p: pts.BL, cursor: "sw-resize" },
+    { id: "BC", p: pts.BC, cursor: "s-resize" },
+    { id: "BR", p: pts.BR, cursor: "se-resize" },
   ];
 
   return (
     <pixiContainer label="bg-handles">
       <pixiGraphics draw={drawBorder} eventMode="none" />
-      {resizeHandles.map(({ id, hx, hy, cursor }) => (
+      {resizeHandles.map(({ id, p, cursor }) => (
         <BgResizeHandle
           key={id}
           id={id}
-          hx={hx}
-          hy={hy}
+          hx={p.x}
+          hy={p.y}
           hs={hs}
           cursor={cursor}
           shiftPressed={shiftPressed}
@@ -243,58 +277,70 @@ function computeNewBgFromDrag(
   const MIN = 16;
   const { x, y, width: w, height: h } = startBg;
   const cx = x + w / 2;
+  const bcy = y + h / 2;
+
+  // Rotation uses the raw world angle from the image center to the cursor.
+  if (handle === "rotate") {
+    const angle = Math.atan2(worldY - bcy, worldX - cx) * (180 / Math.PI) + 90;
+    return { ...startBg, rotation: angle };
+  }
+
+  // For resize, convert the world cursor into the image's own (un-rotated)
+  // axes so the math below works regardless of bg.rotation. At rotation 0
+  // this is a no-op (lx=worldX, ly=worldY).
+  const rot = ((startBg.rotation || 0) * Math.PI) / 180;
+  const cos = Math.cos(rot);
+  const sin = Math.sin(rot);
+  const ddx = worldX - cx;
+  const ddy = worldY - bcy;
+  const lx = cx + ddx * cos + ddy * sin;
+  const ly = bcy - ddx * sin + ddy * cos;
 
   switch (handle) {
     case "TL": {
       const ax = x + w, ay = y + h;
-      const newW = Math.max(MIN, ax - worldX);
-      const newH = freeResize ? Math.max(MIN, ay - worldY) : newW / aspectRatio;
+      const newW = Math.max(MIN, ax - lx);
+      const newH = freeResize ? Math.max(MIN, ay - ly) : newW / aspectRatio;
       return { ...startBg, x: ax - newW, y: ay - newH, width: newW, height: newH };
     }
     case "TC": {
       const ay = y + h;
-      const newH = Math.max(MIN, ay - worldY);
+      const newH = Math.max(MIN, ay - ly);
       const newW = freeResize ? w : newH * aspectRatio;
       return { ...startBg, x: cx - newW / 2, y: ay - newH, width: newW, height: newH };
     }
     case "TR": {
       const ay = y + h;
-      const newW = Math.max(MIN, worldX - x);
-      const newH = freeResize ? Math.max(MIN, ay - worldY) : newW / aspectRatio;
+      const newW = Math.max(MIN, lx - x);
+      const newH = freeResize ? Math.max(MIN, ay - ly) : newW / aspectRatio;
       return { ...startBg, x, y: ay - newH, width: newW, height: newH };
     }
     case "ML": {
       const ax = x + w;
-      const newW = Math.max(MIN, ax - worldX);
+      const newW = Math.max(MIN, ax - lx);
       const newH = freeResize ? h : newW / aspectRatio;
       return { ...startBg, x: ax - newW, y: y + (h - newH) / 2, width: newW, height: newH };
     }
     case "MR": {
-      const newW = Math.max(MIN, worldX - x);
+      const newW = Math.max(MIN, lx - x);
       const newH = freeResize ? h : newW / aspectRatio;
       return { ...startBg, x, y: y + (h - newH) / 2, width: newW, height: newH };
     }
     case "BL": {
       const ax = x + w;
-      const newW = Math.max(MIN, ax - worldX);
-      const newH = freeResize ? Math.max(MIN, worldY - y) : newW / aspectRatio;
+      const newW = Math.max(MIN, ax - lx);
+      const newH = freeResize ? Math.max(MIN, ly - y) : newW / aspectRatio;
       return { ...startBg, x: ax - newW, y, width: newW, height: newH };
     }
     case "BC": {
-      const newH = Math.max(MIN, worldY - y);
+      const newH = Math.max(MIN, ly - y);
       const newW = freeResize ? w : newH * aspectRatio;
       return { ...startBg, x: cx - newW / 2, y, width: newW, height: newH };
     }
     case "BR": {
-      const newW = Math.max(MIN, worldX - x);
-      const newH = freeResize ? Math.max(MIN, worldY - y) : newW / aspectRatio;
+      const newW = Math.max(MIN, lx - x);
+      const newH = freeResize ? Math.max(MIN, ly - y) : newW / aspectRatio;
       return { ...startBg, x, y, width: newW, height: newH };
-    }
-    case "rotate": {
-      const bgCx = x + w / 2;
-      const bgCy = y + h / 2;
-      const angle = Math.atan2(worldY - bgCy, worldX - bgCx) * (180 / Math.PI) + 90;
-      return { ...startBg, rotation: angle };
     }
     default:
       return null;
@@ -336,8 +382,6 @@ function GridHandles({
   const ro = ROTATE_OFFSET / vpScale;
   const gw = grid.cols * grid.cellSize;
   const gh = grid.rows * grid.cellSize;
-  const gcx = gw / 2;
-  const gcy = gh / 2;
 
   const startDrag = useCallback((handleId: string, shift: boolean, ex: number, ey: number) => {
     const vp = vpRef.current;
@@ -371,53 +415,71 @@ function GridHandles({
     window.addEventListener("pointercancel", onUp);
   }, [app, grid, vpRef]);
 
+  // World-space anchor positions for every handle, following the grid's
+  // rotation + skew. The container itself is NOT transformed, so the handle
+  // MARKERS (squares, circle) stay crisp and screen-aligned — only their
+  // positions move with the grid. The border is a polygon through the four
+  // transformed corners, so it wraps the rotated/skewed grid exactly.
+  const pts = useMemo(() => {
+    const TL = applyTransform({ x: 0, y: 0 }, grid);
+    const TR = applyTransform({ x: gw, y: 0 }, grid);
+    const BR = applyTransform({ x: gw, y: gh }, grid);
+    const BL = applyTransform({ x: 0, y: gh }, grid);
+    const TC = applyTransform({ x: gw / 2, y: 0 }, grid);
+    const BC = applyTransform({ x: gw / 2, y: gh }, grid);
+    const center = applyTransform({ x: gw / 2, y: gh / 2 }, grid);
+    const dx = TC.x - center.x;
+    const dy = TC.y - center.y;
+    const len = Math.hypot(dx, dy) || 1;
+    const rot: XY = { x: TC.x + (dx / len) * ro, y: TC.y + (dy / len) * ro };
+    return { TL, TR, BR, BL, TC, BC, rot };
+  }, [grid, gw, gh, ro]);
+
   const drawBorder = useCallback((g: PixiGraphics) => {
     g.clear();
     const color = shiftPressed ? 0xffaa00 : 0xffffff;
     g.setStrokeStyle({ width: 1 / vpScale, color, alpha: 0.7 });
-    g.rect(0, 0, gw, gh);
+    g.moveTo(pts.TL.x, pts.TL.y);
+    g.lineTo(pts.TR.x, pts.TR.y);
+    g.lineTo(pts.BR.x, pts.BR.y);
+    g.lineTo(pts.BL.x, pts.BL.y);
+    g.closePath();
     g.stroke();
-  }, [gw, gh, vpScale, shiftPressed]);
+  }, [pts, vpScale, shiftPressed]);
 
   const drawRotate = useCallback((g: PixiGraphics) => {
     g.clear();
     g.setStrokeStyle({ width: 1 / vpScale, color: 0xffd700, alpha: 0.8 });
-    g.moveTo(gcx, 0);
-    g.lineTo(gcx, -ro);
+    g.moveTo(pts.TC.x, pts.TC.y);
+    g.lineTo(pts.rot.x, pts.rot.y);
     g.stroke();
     g.setFillStyle({ color: 0xffd700, alpha: 1 });
-    g.circle(gcx, -ro, rr);
+    g.circle(pts.rot.x, pts.rot.y, rr);
     g.fill();
-  }, [gcx, ro, rr, vpScale]);
+  }, [pts, rr, vpScale]);
 
-  const corners: Array<{ id: string; hx: number; hy: number; cursor: string }> = [
-    { id: "TL", hx: 0,  hy: 0,  cursor: "nw-resize" },
-    { id: "TR", hx: gw, hy: 0,  cursor: "ne-resize" },
-    { id: "BL", hx: 0,  hy: gh, cursor: "sw-resize" },
-    { id: "BR", hx: gw, hy: gh, cursor: "se-resize" },
+  const corners: Array<{ id: string; p: XY; cursor: string }> = [
+    { id: "TL", p: pts.TL, cursor: "nw-resize" },
+    { id: "TR", p: pts.TR, cursor: "ne-resize" },
+    { id: "BL", p: pts.BL, cursor: "sw-resize" },
+    { id: "BR", p: pts.BR, cursor: "se-resize" },
   ];
 
-  const edgeHandles: Array<{ id: string; hx: number; hy: number }> = [
-    { id: "TC", hx: gcx, hy: 0 },
-    { id: "BC", hx: gcx, hy: gh },
+  const edgeHandles: Array<{ id: string; p: XY }> = [
+    { id: "TC", p: pts.TC },
+    { id: "BC", p: pts.BC },
   ];
 
   return (
-    <pixiContainer
-      label="grid-handles"
-      pivot={{ x: gcx, y: gcy }}
-      position={{ x: gcx, y: gcy }}
-      rotation={(grid.rotation * Math.PI) / 180}
-      scale={{ x: 1, y: grid.skewRatio }}
-    >
+    <pixiContainer label="grid-handles">
       <pixiGraphics draw={drawBorder} eventMode="none" />
 
-      {corners.map(({ id, hx, hy, cursor }) => (
+      {corners.map(({ id, p, cursor }) => (
         <GridCornerHandle
           key={id}
           id={id}
-          hx={hx}
-          hy={hy}
+          hx={p.x}
+          hy={p.y}
           hs={hs}
           cursor={cursor}
           shiftPressed={shiftPressed}
@@ -425,12 +487,12 @@ function GridHandles({
         />
       ))}
 
-      {edgeHandles.map(({ id, hx, hy }) => (
+      {edgeHandles.map(({ id, p }) => (
         <GridEdgeHandle
           key={id}
           id={id}
-          hx={hx}
-          hy={hy}
+          hx={p.x}
+          hy={p.y}
           hs={hs}
           shiftPressed={shiftPressed}
           onStartDrag={startDrag}

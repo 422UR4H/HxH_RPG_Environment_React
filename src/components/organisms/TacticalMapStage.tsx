@@ -13,7 +13,7 @@ import type { TacticalMap, GridShape, Piece, SlotCoord, BgImage } from "../../ty
 import type { CharacterPrivateSummary } from "../../types/characterSheet";
 import type { Selection, ToolKind } from "../../features/tactical-map/store/editorStore";
 import MapHandlesLayer from "./MapHandlesLayer";
-import { slotToWorld, worldToSlot, isSlotInBounds, slotCorners } from "../../features/tactical-map/utils/coords";
+import { slotToWorld, worldToSlot, isSlotInBounds, slotCorners, applyTransform } from "../../features/tactical-map/utils/coords";
 
 extend({ Container, Graphics, Sprite, Text, Viewport });
 
@@ -601,10 +601,12 @@ function BgLayer({
   );
 }
 
+// Grid lines are drawn directly in WORLD space: every endpoint is pushed through
+// applyTransform (rotation + screen-space skew). This avoids a skewed Pixi
+// container, which would scale the stroke width non-uniformly and make lines
+// vanish at certain skew/zoom combinations. An affine transform keeps straight
+// lines straight, so transforming just the two endpoints of each line is exact.
 function GridLayer({ grid, vpScale }: { grid: GridShape; vpScale: number }) {
-  const gridCenterX = (grid.cols * grid.cellSize) / 2;
-  const gridCenterY = (grid.rows * grid.cellSize) / 2;
-
   const draw = useCallback(
     (g: PixiGraphics) => {
       g.clear();
@@ -612,11 +614,17 @@ function GridLayer({ grid, vpScale }: { grid: GridShape; vpScale: number }) {
       g.setStrokeStyle({ width: 1 / vpScale, color: colorHex, alpha: grid.opacity });
       if (grid.kind === "square") {
         const { cols, rows, cellSize } = grid;
+        const gw = cols * cellSize;
+        const gh = rows * cellSize;
         for (let c = 0; c <= cols; c++) {
-          g.moveTo(c * cellSize, 0).lineTo(c * cellSize, rows * cellSize);
+          const a = applyTransform({ x: c * cellSize, y: 0 }, grid);
+          const b = applyTransform({ x: c * cellSize, y: gh }, grid);
+          g.moveTo(a.x, a.y).lineTo(b.x, b.y);
         }
         for (let r = 0; r <= rows; r++) {
-          g.moveTo(0, r * cellSize).lineTo(cols * cellSize, r * cellSize);
+          const a = applyTransform({ x: 0, y: r * cellSize }, grid);
+          const b = applyTransform({ x: gw, y: r * cellSize }, grid);
+          g.moveTo(a.x, a.y).lineTo(b.x, b.y);
         }
       } else {
         const size = grid.cellSize;
@@ -628,10 +636,12 @@ function GridLayer({ grid, vpScale }: { grid: GridShape; vpScale: number }) {
             const cy = r * hexH;
             for (let i = 0; i < 6; i++) {
               const angle = ((60 * i - 30) * Math.PI) / 180;
-              const x = cx + size * Math.cos(angle);
-              const y = cy + size * Math.sin(angle);
-              if (i === 0) g.moveTo(x, y);
-              else g.lineTo(x, y);
+              const p = applyTransform(
+                { x: cx + size * Math.cos(angle), y: cy + size * Math.sin(angle) },
+                grid,
+              );
+              if (i === 0) g.moveTo(p.x, p.y);
+              else g.lineTo(p.x, p.y);
             }
             g.closePath();
           }
@@ -642,16 +652,7 @@ function GridLayer({ grid, vpScale }: { grid: GridShape; vpScale: number }) {
     [grid, vpScale],
   );
 
-  return (
-    <pixiContainer
-      pivot={{ x: gridCenterX, y: gridCenterY }}
-      position={{ x: gridCenterX, y: gridCenterY }}
-      rotation={(grid.rotation * Math.PI) / 180}
-      scale={{ x: 1, y: grid.skewRatio }}
-    >
-      <pixiGraphics draw={draw} />
-    </pixiContainer>
-  );
+  return <pixiGraphics draw={draw} />;
 }
 
 // No containerRef: piece position is driven by React state (dragWorldPos) to
