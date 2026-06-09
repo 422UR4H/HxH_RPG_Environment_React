@@ -248,7 +248,7 @@ export default function TacticalMapEditor({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [undo, redo, store]);
 
-  const handleNpcPointerDown = (npc: CharacterPrivateSummary, _e: React.PointerEvent) => {
+  const handleNpcPointerDown = (npc: CharacterPrivateSummary) => {
     setPlacingNpcId(npc.uuid);
     setPlacingNpcData(npc);
   };
