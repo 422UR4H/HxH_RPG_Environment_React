@@ -51,4 +51,22 @@ describe("GridConfigPanel", () => {
     const squareBtn = screen.getByRole("button", { name: /quadrada/i });
     expect(squareBtn).toHaveAttribute("data-active", "true");
   });
+
+  it("'Encaixar Grade' fica desabilitado sem imagem de fundo", () => {
+    render(<GridConfigPanel grid={defaultGrid} onChange={() => {}} onRefit={vi.fn()} canRefit={false} />);
+    expect(screen.getByRole("button", { name: /encaixar grade/i })).toBeDisabled();
+  });
+
+  it("'Encaixar Grade' chama onRefit quando há imagem", async () => {
+    const onRefit = vi.fn();
+    render(<GridConfigPanel grid={defaultGrid} onChange={() => {}} onRefit={onRefit} canRefit />);
+    await userEvent.click(screen.getByRole("button", { name: /encaixar grade/i }));
+    expect(onRefit).toHaveBeenCalledOnce();
+  });
+
+  it("não expõe Rotação nem Perspectiva ao usuário (ocultos por ora)", () => {
+    render(<GridConfigPanel grid={defaultGrid} onChange={() => {}} />);
+    expect(screen.queryByLabelText(/rotação/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/perspectiva/i)).not.toBeInTheDocument();
+  });
 });

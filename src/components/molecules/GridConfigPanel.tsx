@@ -7,11 +7,15 @@ import { colors, fonts } from "../../styles/tokens";
 type Props = {
   grid: GridShape;
   onChange: (grid: GridShape) => void;
+  // "Encaixar Grade" — fits the grid to the background image. Owned by the
+  // toolbar (shared with the Fundo tab). Disabled when there is no image.
+  onRefit?: () => void;
+  canRefit?: boolean;
 };
 
 type NumField = "cols" | "rows" | "cellSize" | "rotation" | "skewRatio";
 
-export default function GridConfigPanel({ grid, onChange }: Props) {
+export default function GridConfigPanel({ grid, onChange, onRefit, canRefit }: Props) {
   const [drafts, setDrafts] = useState<Partial<Record<NumField, string>>>({});
 
   const update = (patch: Partial<GridShape>) =>
@@ -26,6 +30,12 @@ export default function GridConfigPanel({ grid, onChange }: Props) {
       if (!isNaN(v) && v >= min && v <= max) update({ [key]: v });
     };
 
+  const inputValue = (key: NumField): string | number =>
+    drafts[key] !== undefined ? (drafts[key] as string) : grid[key];
+
+  /* OCULTO POR ORA — Predefinições / Rotação / Perspectiva (ver JSX abaixo).
+     Estes helpers só eram usados por esses campos. Reativar junto com eles.
+
   // Like handleInt but keeps decimals — needed for precise isometric tuning
   // (rotation angle and perspective ratio differ per map).
   const handleFloat =
@@ -37,10 +47,8 @@ export default function GridConfigPanel({ grid, onChange }: Props) {
       if (!isNaN(v) && v >= min && v <= max) update({ [key]: v });
     };
 
-  const inputValue = (key: NumField): string | number =>
-    drafts[key] !== undefined ? (drafts[key] as string) : grid[key];
-
   const fmtDeg = (v: number) => (Number.isInteger(v) ? `${v}` : v.toFixed(1));
+  */
 
   return (
     <Panel>
@@ -129,6 +137,12 @@ export default function GridConfigPanel({ grid, onChange }: Props) {
         />
       </Field>
 
+      {/* OCULTO POR ORA — Predefinições, Rotação e Perspectiva não estão
+          disponíveis para o usuário ainda. O código permanece funcionando: se
+          rotation/skewRatio vierem do backend, o GridLayer os aplica no render.
+          Reexpor (e reativar handleFloat/fmtDeg + SkewRow/SkewInput/SkewLabels)
+          quando liberar essas features.
+
       <Field>
         <FieldLabel>Predefinições</FieldLabel>
         <KindRow>
@@ -202,6 +216,16 @@ export default function GridConfigPanel({ grid, onChange }: Props) {
           <span>Top-down</span>
         </SkewLabels>
       </Field>
+      */}
+
+      <RefitButton
+        type="button"
+        onClick={() => onRefit?.()}
+        disabled={!canRefit}
+        title={canRefit ? "Ajusta a grade à imagem de fundo" : "Adicione uma imagem de fundo primeiro"}
+      >
+        Encaixar Grade
+      </RefitButton>
     </Panel>
   );
 }
@@ -280,6 +304,29 @@ const OpacityRange = styled.input`
   cursor: pointer;
 `;
 
+const RefitButton = styled.button`
+  width: 100%;
+  padding: 8px;
+  background: transparent;
+  color: ${colors.textDisabled};
+  border: 1px solid ${colors.borderInput};
+  border-radius: 6px;
+  font-family: ${fonts.sans};
+  font-size: 12px;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    border-color: ${colors.brandAccent};
+    color: ${colors.brandAccent};
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+`;
+
+/* OCULTO POR ORA — usados apenas pelo campo Perspectiva (ver JSX comentado).
 const SkewRow = styled.div`
   display: flex;
   align-items: center;
@@ -310,3 +357,4 @@ const SkewLabels = styled.div`
   font-size: 11px;
   color: ${colors.textDisabled};
 `;
+*/

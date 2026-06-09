@@ -3,7 +3,7 @@ import styled from "styled-components";
 import imageCompression from "browser-image-compression";
 import { colors, fonts } from "../../styles/tokens";
 import { IMAGE_PICKER_TIP } from "../../constants/uiStrings";
-import { computeCoverFit, fitGridToImage } from "../../features/tactical-map/utils/bgFit";
+import { fitGridAndCover } from "../../features/tactical-map/utils/bgFit";
 import useToken from "../../hooks/useToken";
 import { usePresignedUpload } from "../../hooks/usePresignedUpload";
 import type { BgImage, GridShape } from "../../types/tacticalMap";
@@ -19,9 +19,15 @@ type Props = {
   // onGridChange + onBgChange if not provided.
   onApplyBg?: (bg: BgImage | null, grid: GridShape) => void;
   onUploadingChange?: (uploading: boolean) => void;
+  // Fits the grid to the current image (shared "Encaixar Grade" action, owned by
+  // the toolbar so the Grade tab can trigger the same thing).
+  onRefit?: () => void;
+  // Reports the image's natural pixel size up so the shared refit stays
+  // resolution-correct and idempotent.
+  onNaturalSizeChange?: (size: { w: number; h: number }) => void;
 };
 
-export default function BgImagePanel({ bg, grid, mapId, onBgChange, onGridChange, onApplyBg, onUploadingChange }: Props) {
+export default function BgImagePanel({ bg, grid, mapId, onBgChange, onGridChange, onApplyBg, onUploadingChange, onRefit, onNaturalSizeChange }: Props) {
   const { token } = useToken();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [urlInput, setUrlInput] = useState("");
@@ -47,17 +53,8 @@ export default function BgImagePanel({ bg, grid, mapId, onBgChange, onGridChange
   const [drafts, setDrafts] = useState<Partial<Record<NumField, string>>>({});
   const applyImage = (url: string, nw: number, nh: number, r2Url?: string) => {
     setNaturalSize({ w: nw, h: nh });
-    const newGrid = fitGridToImage(nw, nh, grid);
-    const fit = computeCoverFit(nw, nh, newGrid);
-    // computeCoverFit positions the bg over a grid at origin (0,0); shift it by
-    // the grid's edit-time origin so it covers the grid at its real position.
-    const bgValue = {
-      ...fit,
-      x: fit.x + (newGrid.originX ?? 0),
-      y: fit.y + (newGrid.originY ?? 0),
-      url,
-      r2Url,
-    };
+    onNaturalSizeChange?.({ w: nw, h: nh });
+    const { grid: newGrid, bg: bgValue } = fitGridAndCover(nw, nh, grid, url, r2Url);
     if (onApplyBg) onApplyBg(bgValue, newGrid);
     else {
       onGridChange(newGrid);
@@ -172,25 +169,10 @@ export default function BgImagePanel({ bg, grid, mapId, onBgChange, onGridChange
   }
 
   // ── With-image state ──────────────────────────────────────────────────
+  // The actual fit is owned by the toolbar (shared with the Grade tab's
+  // "Encaixar Grade"); here we just trigger it and reset local draft state.
   const handleRefit = () => {
-    if (!bg) return;
-    const nw = naturalSize?.w ?? bg.width;
-    const nh = naturalSize?.h ?? bg.height;
-    const newGrid = fitGridToImage(nw, nh, grid);
-    const fit = computeCoverFit(nw, nh, newGrid);
-    const fitted = {
-      ...fit,
-      x: fit.x + (newGrid.originX ?? 0),
-      y: fit.y + (newGrid.originY ?? 0),
-      url: bg.url,
-      r2Url: bg.r2Url,
-    };
-    if (onApplyBg) {
-      onApplyBg(fitted, newGrid);
-    } else {
-      onGridChange(newGrid);
-      onBgChange(fitted);
-    }
+    onRefit?.();
     setScaleXPct(100);
     setDrafts({});
   };
@@ -342,7 +324,7 @@ export default function BgImagePanel({ bg, grid, mapId, onBgChange, onGridChange
         />
       </FieldGroup>
 
-      <RefitButton type="button" onClick={handleRefit}>Encaixar no grid</RefitButton>
+      <RefitButton type="button" onClick={handleRefit}>Encaixar Grade</RefitButton>
     </Panel>
   );
 }

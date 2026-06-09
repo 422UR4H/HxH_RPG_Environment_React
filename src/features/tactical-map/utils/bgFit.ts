@@ -32,6 +32,30 @@ export function computeCoverFit(
   };
 }
 
+// Convenience shared by "add image" and "Encaixar Grade": fits the grid to the
+// image (fitGridToImage) and positions the bg to cover it (computeCoverFit),
+// carrying the grid's edit-time origin into the bg position. Returns both.
+export function fitGridAndCover(
+  naturalWidth: number,
+  naturalHeight: number,
+  grid: GridShape,
+  url: string,
+  r2Url?: string,
+): { grid: GridShape; bg: NonNullable<BgImage> } {
+  const newGrid = fitGridToImage(naturalWidth, naturalHeight, grid);
+  const fit = computeCoverFit(naturalWidth, naturalHeight, newGrid);
+  return {
+    grid: newGrid,
+    bg: {
+      ...fit,
+      x: fit.x + (newGrid.originX ?? 0),
+      y: fit.y + (newGrid.originY ?? 0),
+      url,
+      r2Url,
+    },
+  };
+}
+
 export function deriveGridFromImage(
   naturalWidth: number,
   naturalHeight: number,
