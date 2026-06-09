@@ -4,7 +4,12 @@ import type { FederatedPointerEvent, Graphics as PixiGraphics } from "pixi.js";
 import type { Viewport } from "pixi-viewport";
 import type { BgImage, GridShape } from "../../types/tacticalMap";
 import type { ToolKind } from "../../features/tactical-map/store/editorStore";
-import { applyTransform, inverseTransform } from "../../features/tactical-map/utils/coords";
+import {
+  applyTransform,
+  inverseTransform,
+  gridHandleLocal,
+  gridLocalBounds,
+} from "../../features/tactical-map/utils/coords";
 
 type XY = { x: number; y: number };
 
@@ -380,8 +385,6 @@ function GridHandles({
   const hs = HANDLE_SIZE / vpScale;
   const rr = ROTATE_RADIUS / vpScale;
   const ro = ROTATE_OFFSET / vpScale;
-  const gw = grid.cols * grid.cellSize;
-  const gh = grid.rows * grid.cellSize;
 
   const startDrag = useCallback((handleId: string, shift: boolean, ex: number, ey: number) => {
     const vp = vpRef.current;
@@ -421,19 +424,23 @@ function GridHandles({
   // positions move with the grid. The border is a polygon through the four
   // transformed corners, so it wraps the rotated/skewed grid exactly.
   const pts = useMemo(() => {
-    const TL = applyTransform({ x: 0, y: 0 }, grid);
-    const TR = applyTransform({ x: gw, y: 0 }, grid);
-    const BR = applyTransform({ x: gw, y: gh }, grid);
-    const BL = applyTransform({ x: 0, y: gh }, grid);
-    const TC = applyTransform({ x: gw / 2, y: 0 }, grid);
-    const BC = applyTransform({ x: gw / 2, y: gh }, grid);
-    const center = applyTransform({ x: gw / 2, y: gh / 2 }, grid);
+    // Anchors come from the grid's real local bounds (square or hex), then
+    // through the same transform as the grid — so the border and handles wrap
+    // the actual cells, hex included.
+    const at = (h: string) => applyTransform(gridHandleLocal(h, grid), grid);
+    const TL = at("TL");
+    const TR = at("TR");
+    const BR = at("BR");
+    const BL = at("BL");
+    const TC = at("TC");
+    const BC = at("BC");
+    const center = at("center");
     const dx = TC.x - center.x;
     const dy = TC.y - center.y;
     const len = Math.hypot(dx, dy) || 1;
     const rot: XY = { x: TC.x + (dx / len) * ro, y: TC.y + (dy / len) * ro };
     return { TL, TR, BR, BL, TC, BC, rot };
-  }, [grid, gw, gh, ro]);
+  }, [grid, ro]);
 
   const drawBorder = useCallback((g: PixiGraphics) => {
     g.clear();
@@ -584,40 +591,38 @@ function computeNewGridFromDrag(
   shiftKey: boolean,
 ): GridShape | null {
   const MIN_CELL = 8;
-  const { cols, rows, cellSize } = startGrid;
-  const gw = cols * cellSize;
-  const gh = rows * cellSize;
+  const MAX_CELL = 256;
+
+  // The grid's transform pivot (cols*cellSize/2, rows*cellSize/2) maps to itself
+  // in world space, so it is both the rotation center and the resize center.
+  const cx = (startGrid.cols * startGrid.cellSize) / 2;
+  const cy = (startGrid.rows * startGrid.cellSize) / 2;
 
   if (handle === "rotate") {
-    // Angle from grid center (world space) to cursor.
-    const cx = gw / 2;
-    const cy = gh / 2;
     const angle = Math.atan2(worldY - cy, worldX - cx) * (180 / Math.PI) + 90;
     return { ...startGrid, rotation: angle };
   }
 
-  // Convert world position → grid-local space so cellSize/skewRatio math works
-  // regardless of current rotation or skew.
-  const local = inverseTransform({ x: worldX, y: worldY }, startGrid);
-  const lx = local.x;
-  const ly = local.y;
-
+  // Shift on a vertical edge handle tunes the perspective (skewRatio).
   if (shiftKey && (handle === "TC" || handle === "BC")) {
-    const baseH = rows * cellSize;
-    const newH = handle === "TC"
-      ? Math.max(baseH * 0.3, gh - ly)
-      : Math.max(baseH * 0.3, ly);
-    const newSkewRatio = Math.max(0.3, Math.min(1.0, newH / baseH));
-    return { ...startGrid, skewRatio: newSkewRatio };
+    const b = gridLocalBounds(startGrid);
+    const gh = b.maxY - b.minY;
+    const local = inverseTransform({ x: worldX, y: worldY }, startGrid);
+    const newH = handle === "TC" ? b.maxY - local.y : local.y - b.minY;
+    const ratio = Math.max(0.3, Math.min(1.0, newH / gh));
+    return { ...startGrid, skewRatio: ratio };
   }
 
-  let newCellSize: number;
-  switch (handle) {
-    case "TR": case "BR": newCellSize = Math.max(MIN_CELL, lx / cols); break;
-    case "TL": case "BL": newCellSize = Math.max(MIN_CELL, (gw - lx) / cols); break;
-    case "TC": newCellSize = Math.max(MIN_CELL, (gh - ly) / rows); break;
-    case "BC": newCellSize = Math.max(MIN_CELL, ly / rows); break;
-    default: return null;
-  }
+  // Resize: scale cellSize by the cursor's projection onto the handle's own
+  // direction from the grid center. Because the local bounds scale linearly
+  // with cellSize, the handle tracks the cursor exactly — and this is agnostic
+  // to grid kind (square/hex), rotation and skew.
+  const startHandle = applyTransform(gridHandleLocal(handle, startGrid), startGrid);
+  const dirX = startHandle.x - cx;
+  const dirY = startHandle.y - cy;
+  const len = Math.hypot(dirX, dirY);
+  if (len < 1e-6) return null;
+  const proj = ((worldX - cx) * dirX + (worldY - cy) * dirY) / len;
+  const newCellSize = Math.max(MIN_CELL, Math.min(MAX_CELL, (startGrid.cellSize * proj) / len));
   return { ...startGrid, cellSize: newCellSize };
 }

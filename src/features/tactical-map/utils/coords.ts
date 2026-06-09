@@ -108,6 +108,47 @@ export function slotCorners(slot: SlotCoord, grid: GridShape): XY[] {
   });
 }
 
+// Axis-aligned bounds of the grid cells in LOCAL space (before transform).
+// Square cells tile from the origin; hex cells are centered on their grid
+// points, so a pointy-top hex grid extends half a hex-width left of x=0 and one
+// cellSize (the top vertex) above y=0. Every term scales linearly with
+// cellSize, which the resize math relies on.
+export function gridLocalBounds(grid: GridShape): {
+  minX: number; minY: number; maxX: number; maxY: number;
+} {
+  if (grid.kind === "square") {
+    return { minX: 0, minY: 0, maxX: grid.cols * grid.cellSize, maxY: grid.rows * grid.cellSize };
+  }
+  const hexW = grid.cellSize * Math.sqrt(3);
+  const hexH = grid.cellSize * 1.5;
+  // Odd rows are shifted right by hexW/2, so the rightmost center gains that
+  // offset whenever the grid has at least one odd row.
+  const maxCx = (grid.cols - 1) * hexW + (grid.rows >= 2 ? hexW / 2 : 0);
+  return {
+    minX: -hexW / 2,
+    maxX: maxCx + hexW / 2,
+    minY: -grid.cellSize,
+    maxY: (grid.rows - 1) * hexH + grid.cellSize,
+  };
+}
+
+// Local-space anchor point for an edit handle, derived from the grid bounds.
+// Shared by the handle rendering and the drag math so they always agree.
+export function gridHandleLocal(handle: string, grid: GridShape): XY {
+  const b = gridLocalBounds(grid);
+  const midX = (b.minX + b.maxX) / 2;
+  const midY = (b.minY + b.maxY) / 2;
+  switch (handle) {
+    case "TL": return { x: b.minX, y: b.minY };
+    case "TR": return { x: b.maxX, y: b.minY };
+    case "BL": return { x: b.minX, y: b.maxY };
+    case "BR": return { x: b.maxX, y: b.maxY };
+    case "TC": return { x: midX, y: b.minY };
+    case "BC": return { x: midX, y: b.maxY };
+    default:   return { x: midX, y: midY };
+  }
+}
+
 // Returns true if slot is within the visible grid bounds.
 // Hex uses odd-r offset → col = q + floor(r/2); valid when 0 ≤ col < cols.
 export function isSlotInBounds(slot: SlotCoord, grid: GridShape): boolean {

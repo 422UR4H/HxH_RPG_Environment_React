@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { slotToWorld, worldToSlot } from "../coords";
+import { slotToWorld, worldToSlot, gridLocalBounds, gridHandleLocal } from "../coords";
 import type { GridShape } from "../../../../types/tacticalMap";
 import { hexToPixel } from "../hex";
 
@@ -78,6 +78,33 @@ describe("coords — hex (no skew, no rotation)", () => {
         expect(worldToSlot(world, g)).toEqual({ kind: "hex", q, r });
       }
     }
+  });
+});
+
+describe("gridLocalBounds + gridHandleLocal", () => {
+  it("square: bounds tile from the origin", () => {
+    const g = squareGrid(40); // 10×10
+    expect(gridLocalBounds(g)).toEqual({ minX: 0, minY: 0, maxX: 400, maxY: 400 });
+    expect(gridHandleLocal("BR", g)).toEqual({ x: 400, y: 400 });
+    expect(gridHandleLocal("TC", g)).toEqual({ x: 200, y: 0 });
+    expect(gridHandleLocal("center", g)).toEqual({ x: 200, y: 200 });
+  });
+
+  it("hex: bounds use hex pitch, not square geometry", () => {
+    // cols=3, rows=3, cellSize=10. hexW=10√3≈17.3205, hexH=15.
+    // maxCx = 2*hexW + hexW/2 (odd row exists) = 43.3013; minX=-hexW/2=-8.6603.
+    // maxX = 43.3013 + hexW/2 = 51.9615. minY=-10; maxY=2*15+10=40.
+    const g: GridShape = { ...hexGrid(10), cols: 3, rows: 3 };
+    const b = gridLocalBounds(g);
+    expect(b.minX).toBeCloseTo(-8.6603, 3);
+    expect(b.maxX).toBeCloseTo(51.9615, 3);
+    expect(b.minY).toBeCloseTo(-10, 6);
+    expect(b.maxY).toBeCloseTo(40, 6);
+    // every bound scales linearly with cellSize (the resize math depends on it)
+    const g2: GridShape = { ...g, cellSize: 20 };
+    const b2 = gridLocalBounds(g2);
+    expect(b2.maxX).toBeCloseTo(b.maxX * 2, 6);
+    expect(b2.maxY).toBeCloseTo(b.maxY * 2, 6);
   });
 });
 

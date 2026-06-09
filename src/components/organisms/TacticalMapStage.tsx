@@ -287,7 +287,10 @@ function ViewportInner({
   const vpCallback = useCallback((vp: Viewport | null) => {
     vpRef.current = vp;
     if (!vp) return;
-    vp.pinch().wheel().decelerate();
+    // No decelerate(): panning is driven by our own window pointer handlers, and
+    // the momentum plugin would keep the map gliding after release — a UX the
+    // user explicitly does not want. The map moves only while held.
+    vp.pinch().wheel();
     vp.on("zoomed", () => setVpScale(vp.scale.x));
   }, []);
 
