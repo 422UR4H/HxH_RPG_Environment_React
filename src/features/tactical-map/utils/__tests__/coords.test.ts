@@ -1,5 +1,14 @@
 import { describe, it, expect } from "vitest";
-import { slotToWorld, worldToSlot } from "../coords";
+import {
+  slotToWorld,
+  worldToSlot,
+  gridLocalBounds,
+  gridHandleLocal,
+  applyTransform,
+  inverseTransform,
+  gridFromHandleDrag,
+  slotInradius,
+} from "../coords";
 import type { GridShape } from "../../../../types/tacticalMap";
 import { hexToPixel } from "../hex";
 
@@ -81,6 +90,81 @@ describe("coords — hex (no skew, no rotation)", () => {
   });
 });
 
+describe("gridLocalBounds + gridHandleLocal", () => {
+  it("square: bounds tile from the origin", () => {
+    const g = squareGrid(40); // 10×10
+    expect(gridLocalBounds(g)).toEqual({ minX: 0, minY: 0, maxX: 400, maxY: 400 });
+    expect(gridHandleLocal("BR", g)).toEqual({ x: 400, y: 400 });
+    expect(gridHandleLocal("TC", g)).toEqual({ x: 200, y: 0 });
+    expect(gridHandleLocal("center", g)).toEqual({ x: 200, y: 200 });
+  });
+
+  it("hex: bounds use hex pitch, not square geometry", () => {
+    // cols=3, rows=3, cellSize=10. hexW=10√3≈17.3205, hexH=15.
+    // maxCx = 2*hexW + hexW/2 (odd row exists) = 43.3013; minX=-hexW/2=-8.6603.
+    // maxX = 43.3013 + hexW/2 = 51.9615. minY=-10; maxY=2*15+10=40.
+    const g: GridShape = { ...hexGrid(10), cols: 3, rows: 3 };
+    const b = gridLocalBounds(g);
+    expect(b.minX).toBeCloseTo(-8.6603, 3);
+    expect(b.maxX).toBeCloseTo(51.9615, 3);
+    expect(b.minY).toBeCloseTo(-10, 6);
+    expect(b.maxY).toBeCloseTo(40, 6);
+    // every bound scales linearly with cellSize (the resize math depends on it)
+    const g2: GridShape = { ...g, cellSize: 20 };
+    const b2 = gridLocalBounds(g2);
+    expect(b2.maxX).toBeCloseTo(b.maxX * 2, 6);
+    expect(b2.maxY).toBeCloseTo(b.maxY * 2, 6);
+  });
+});
+
+describe("grid origin (offset)", () => {
+  it("applyTransform shifts the whole grid by origin; inverse undoes it", () => {
+    const g: GridShape = { ...squareGrid(40), originX: 100, originY: -50 };
+    // local (0,0): without origin maps to world (0,0); with origin → (100,-50).
+    expect(applyTransform({ x: 0, y: 0 }, g)).toEqual({ x: 100, y: -50 });
+    const round = inverseTransform(applyTransform({ x: 120, y: 80 }, g), g);
+    expect(round.x).toBeCloseTo(120, 6);
+    expect(round.y).toBeCloseTo(80, 6);
+  });
+});
+
+describe("gridFromHandleDrag — resize anchors the opposite corner", () => {
+  const g = squareGrid(40); // 10×10, cellSize 40 → BR at (400,400), TL at (0,0)
+
+  it("dragging BR keeps TL fixed (origin stays 0), grows toward BR", () => {
+    // Drag BR out to (600,600): scale = 1.5 → cellSize 60.
+    const out = gridFromHandleDrag("BR", g, 600, 600, false)!;
+    expect(out.cellSize).toBeCloseTo(60, 6);
+    expect(out.originX ?? 0).toBeCloseTo(0, 6);
+    expect(out.originY ?? 0).toBeCloseTo(0, 6);
+    // TL still at world (0,0); BR now at (600,600).
+    expect(applyTransform(gridHandleLocal("TL", out), out)).toEqual({ x: 0, y: 0 });
+    const br = applyTransform(gridHandleLocal("BR", out), out);
+    expect(br.x).toBeCloseTo(600, 6);
+    expect(br.y).toBeCloseTo(600, 6);
+  });
+
+  it("dragging TL keeps BR fixed and grows toward the cursor (up-left)", () => {
+    // Drag TL out to (-200,-200): anchor BR=(400,400). diagonal D0=(-400,-400);
+    // cursor-anchor=(-600,-600); scale = (−600·−400 ×2)/(400²×2)=1.5 → cellSize 60.
+    const out = gridFromHandleDrag("TL", g, -200, -200, false)!;
+    expect(out.cellSize).toBeCloseTo(60, 6);
+    // BR must stay pinned at (400,400).
+    const br = applyTransform(gridHandleLocal("BR", out), out);
+    expect(br.x).toBeCloseTo(400, 6);
+    expect(br.y).toBeCloseTo(400, 6);
+    // TL moved up-left of origin: 400 - 600 = -200.
+    const tl = applyTransform(gridHandleLocal("TL", out), out);
+    expect(tl.x).toBeCloseTo(-200, 6);
+    expect(tl.y).toBeCloseTo(-200, 6);
+  });
+
+  it("rotate handle sets rotation from the grid center", () => {
+    const out = gridFromHandleDrag("rotate", g, 200, 0, false)!;
+    expect(typeof out.rotation).toBe("number");
+  });
+});
+
 describe("coords — skew + rotation", () => {
   it("default skew=1, rotation=0 leaves results unchanged", () => {
     // já coberto nos testes anteriores; aqui só re-afirmamos um caso
@@ -88,18 +172,31 @@ describe("coords — skew + rotation", () => {
     expect(slotToWorld({ kind: "square", col: 1, row: 1 }, g)).toEqual({ x: 60, y: 60 });
   });
 
-  it("skewRatio < 1 squashes the y coordinate", () => {
+  it("skewRatio < 1 squashes y relative to grid center (pivot)", () => {
+    // Grid 10x10 cellSize=40 → pivot=(200,200).
+    // Slot (1,1) baseline=(60,60). dy=(60-200)*0.5=-70 → world.y=-70+200=130.
     const g: GridShape = { ...squareGrid(40), skewRatio: 0.5 };
-    // baseline y = 60 → skewed y = 30
-    expect(slotToWorld({ kind: "square", col: 1, row: 1 }, g)).toEqual({ x: 60, y: 30 });
+    expect(slotToWorld({ kind: "square", col: 1, row: 1 }, g)).toEqual({ x: 60, y: 130 });
   });
 
-  it("rotation rotates around the world origin", () => {
+  it("rotation rotates around the grid center (pivot), not the origin", () => {
+    // Grid 10x10 cellSize=40 → pivot=(200,200).
+    // Slot (0,0) baseline=(20,20). dx=-180, dy=-180. rot90°→(180,-180). world=(380,20).
     const g: GridShape = { ...squareGrid(40), rotation: 90 };
-    // baseline (20, 20) → rotated 90° → (-20, 20)
     const p = slotToWorld({ kind: "square", col: 0, row: 0 }, g);
-    expect(p.x).toBeCloseTo(-20, 6);
+    expect(p.x).toBeCloseTo(380, 6);
     expect(p.y).toBeCloseTo(20, 6);
+  });
+
+  it("skew is applied in SCREEN space, after rotation (isometric, not vertical-only)", () => {
+    // Grid 10x10 cellSize=40 → pivot=(200,200). Slot (0,0) baseline=(20,20).
+    // dx=-180, dy=-180. rotate 90° → (rx,ry)=(180,-180). THEN squash y*0.5 → -90.
+    // world = (180+200, -90+200) = (380, 110).
+    // (Local-space skew — the old buggy order — would give (290, 20) instead.)
+    const g: GridShape = { ...squareGrid(40), rotation: 90, skewRatio: 0.5 };
+    const p = slotToWorld({ kind: "square", col: 0, row: 0 }, g);
+    expect(p.x).toBeCloseTo(380, 6);
+    expect(p.y).toBeCloseTo(110, 6);
   });
 
   it("worldToSlot reverses skew + rotation for square", () => {
@@ -114,5 +211,20 @@ describe("coords — skew + rotation", () => {
     const slot = { kind: "hex" as const, q: 2, r: -1 };
     const world = slotToWorld(slot, g);
     expect(worldToSlot(world, g)).toEqual(slot);
+  });
+});
+
+describe("slotInradius — token sizing keeps the same fill across grid kinds", () => {
+  it("square inradius is half the cellSize (token keeps its 0.45·cellSize)", () => {
+    expect(slotInradius(squareGrid(40))).toBe(20);
+    // token = inradius * 0.9 = 18 = 0.45·cellSize, exactly today's value.
+    expect(slotInradius(squareGrid(40)) * 0.9).toBeCloseTo(40 * 0.45);
+  });
+
+  it("hex inradius is cellSize·√3/2 (the flat-to-flat half-width)", () => {
+    const cs = 40;
+    expect(slotInradius(hexGrid(cs))).toBeCloseTo((cs * Math.sqrt(3)) / 2);
+    // a hex token is ~1.73× a square token at the same cellSize.
+    expect((slotInradius(hexGrid(cs)) * 0.9) / (cs * 0.45)).toBeCloseTo(Math.sqrt(3));
   });
 });

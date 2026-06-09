@@ -1,8 +1,9 @@
-import type { ChangeEvent } from "react";
+import { useState, type ChangeEvent } from "react";
 import styled from "styled-components";
 import type { ToolKind } from "../../features/tactical-map/store/editorStore";
 import type { BgImage, GridShape, Piece } from "../../types/tacticalMap";
 import type { CharacterPrivateSummary } from "../../types/characterSheet";
+import { fitGridAndCover } from "../../features/tactical-map/utils/bgFit";
 import GridConfigPanel from "../molecules/GridConfigPanel";
 import BgImagePanel from "../molecules/BgImagePanel";
 import NpcRosterPanel from "../molecules/NpcRosterPanel";
@@ -54,8 +55,8 @@ type TabDef = {
 };
 
 const TABS: TabDef[] = [
-  { tool: "grid", label: "Grade", enabled: true },
   { tool: "bg", label: "Fundo", enabled: true },
+  { tool: "grid", label: "Grade", enabled: true },
   { tool: "pieces", label: "Peças", enabled: true },
   { tool: "walls", label: "Paredes", enabled: false },
   { tool: "decorations", label: "Decorações", enabled: false },
@@ -105,6 +106,23 @@ export default function MapEditorToolbar({
     onDescriptionChange(e.target.value);
   };
 
+  // "Encaixar Grade" — shared by the Fundo and Grade tabs. Lives here because
+  // the toolbar owns both panels. Uses the image's natural size (reported by
+  // BgImagePanel on add) so the fit is resolution-correct and idempotent;
+  // falls back to the bg's current size for reloaded maps.
+  const [bgNaturalSize, setBgNaturalSize] = useState<{ w: number; h: number } | null>(null);
+  const handleRefitGrid = () => {
+    if (!bg) return;
+    const nw = bgNaturalSize?.w ?? bg.width;
+    const nh = bgNaturalSize?.h ?? bg.height;
+    const { grid: newGrid, bg: fitted } = fitGridAndCover(nw, nh, grid, bg.url, bg.r2Url);
+    if (onApplyBg) onApplyBg(fitted, newGrid);
+    else {
+      onGridChange(newGrid);
+      onBgChange(fitted);
+    }
+  };
+
   return (
     <Toolbar>
       <TabRow>
@@ -145,7 +163,12 @@ export default function MapEditorToolbar({
 
       <PanelArea>
         {activeTool === "grid" && (
-          <GridConfigPanel grid={grid} onChange={onGridChange} />
+          <GridConfigPanel
+            grid={grid}
+            onChange={onGridChange}
+            onRefit={handleRefitGrid}
+            canRefit={!!bg}
+          />
         )}
         {activeTool === "bg" && (
           <BgImagePanel
@@ -156,6 +179,8 @@ export default function MapEditorToolbar({
             onGridChange={onGridChange}
             onApplyBg={onApplyBg}
             onUploadingChange={onBgUploadingChange}
+            onRefit={handleRefitGrid}
+            onNaturalSizeChange={setBgNaturalSize}
           />
         )}
         {activeTool === "pieces" && (

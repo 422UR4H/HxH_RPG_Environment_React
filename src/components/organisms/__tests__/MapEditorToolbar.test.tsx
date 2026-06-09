@@ -43,7 +43,8 @@ const baseProps = {
 describe("MapEditorToolbar", () => {
   it("exibe todas as abas de ferramentas", () => {
     render(<MapEditorToolbar {...baseProps} />);
-    expect(screen.getByRole("button", { name: /grade/i })).toBeInTheDocument();
+    // exact "Grade" to avoid matching the "Encaixar Grade" action button
+    expect(screen.getByRole("button", { name: "Grade" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /fundo/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /peças/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /paredes/i })).toBeInTheDocument();
@@ -58,7 +59,7 @@ describe("MapEditorToolbar", () => {
 
   it("aba grid está habilitada e mostra GridConfigPanel", () => {
     render(<MapEditorToolbar {...baseProps} />);
-    expect(screen.getByRole("button", { name: /grade/i })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: "Grade" })).not.toBeDisabled();
     expect(screen.getByLabelText(/colunas/i)).toBeInTheDocument();
   });
 

@@ -9,10 +9,11 @@ import type { Graphics as PixiGraphics } from "pixi.js";
 import gungiFrameUrl from "../../assets/icons/gungi.svg";
 import avatarPlaceholderUrl from "../../assets/placeholder/avatar.png";
 import { Viewport } from "pixi-viewport";
-import type { TacticalMap, GridShape, Piece, SlotCoord } from "../../types/tacticalMap";
+import type { TacticalMap, GridShape, Piece, SlotCoord, BgImage } from "../../types/tacticalMap";
 import type { CharacterPrivateSummary } from "../../types/characterSheet";
-import type { Selection } from "../../features/tactical-map/store/editorStore";
-import { slotToWorld, worldToSlot, isSlotInBounds } from "../../features/tactical-map/utils/coords";
+import type { Selection, ToolKind } from "../../features/tactical-map/store/editorStore";
+import MapHandlesLayer from "./MapHandlesLayer";
+import { slotToWorld, worldToSlot, isSlotInBounds, slotCorners, applyTransform, slotInradius } from "../../features/tactical-map/utils/coords";
 
 extend({ Container, Graphics, Sprite, Text, Viewport });
 
@@ -141,6 +142,12 @@ type Props = {
   // internal isBgLoading (texture load) can't cover it — the canvas overlay
   // is driven by this flag too.
   uploading?: boolean;
+  activeTool?: ToolKind;
+  onBgChange?: (bg: NonNullable<BgImage>) => void;
+  onGridChange?: (grid: GridShape) => void;
+  // Bracket a canvas drag (bg move + handle drags) as one undo step.
+  onDragGestureStart?: () => void;
+  onDragGestureEnd?: () => void;
 };
 
 export default function TacticalMapStage({
@@ -165,6 +172,11 @@ export default function TacticalMapStage({
   onViewportScaleChange,
   onBgLoadingChange,
   uploading = false,
+  activeTool,
+  onBgChange,
+  onGridChange,
+  onDragGestureStart,
+  onDragGestureEnd,
 }: Props) {
   const [isBgLoading, setIsBgLoading] = useState(() => !!map.bg?.url);
   const bgUrl = map.bg?.url;
@@ -220,6 +232,11 @@ export default function TacticalMapStage({
           onStageDeselect={onStageDeselect}
           onEmptySlotClick={onEmptySlotClick}
           onViewportScaleChange={onViewportScaleChange}
+          activeTool={activeTool}
+          onBgChange={onBgChange}
+          onGridChange={onGridChange}
+          onDragGestureStart={onDragGestureStart}
+          onDragGestureEnd={onDragGestureEnd}
         />
       </Application>
       {(isBgLoading || uploading) && (
@@ -234,7 +251,7 @@ export default function TacticalMapStage({
   );
 }
 
-type DragState = {
+type BgDragState = {
   startWorldX: number;
   startWorldY: number;
   startBgX: number;
@@ -264,17 +281,25 @@ function ViewportInner({
   onStageDeselect,
   onEmptySlotClick,
   onViewportScaleChange,
+  activeTool,
+  onBgChange,
+  onGridChange,
+  onDragGestureStart,
+  onDragGestureEnd,
 }: Props) {
   const { app } = useApplication();
   const vpRef = useRef<Viewport | null>(null);
-  const dragState = useRef<DragState>(null);
+  const bgDragState = useRef<BgDragState>(null);
   const [vpScale, setVpScale] = useState(1);
   const [placementHoverSlot, setPlacementHoverSlot] = useState<SlotCoord | null>(null);
 
   const vpCallback = useCallback((vp: Viewport | null) => {
     vpRef.current = vp;
     if (!vp) return;
-    vp.pinch().wheel().decelerate();
+    // No decelerate(): panning is driven by our own window pointer handlers, and
+    // the momentum plugin would keep the map gliding after release — a UX the
+    // user explicitly does not want. The map moves only while held.
+    vp.pinch().wheel();
     vp.on("zoomed", () => setVpScale(vp.scale.x));
   }, []);
 
@@ -318,10 +343,8 @@ function ViewportInner({
 
   useEffect(() => {
     const onWindowDown = (e: PointerEvent) => {
-      // Resolve canvas dynamically — avoids storing a possibly-stale reference
-      // captured at effect-registration time.
       const canvas = app?.renderer ? app.canvas : null;
-      if (!canvas || placingNpcId || bgInteractive || e.button !== 0) return;
+      if (!canvas || placingNpcId || e.button !== 0) return;
       const rect = canvas.getBoundingClientRect();
       if (
         e.clientX < rect.left || e.clientX > rect.right ||
@@ -336,6 +359,10 @@ function ViewportInner({
           pieceDragActiveRef.current = false;
           return;
         }
+        // bgDragState is set synchronously by BgLayer's Pixi onPointerDown (which
+        // fires before this window handler in the same tick), so if the bg sprite
+        // was clicked it's already non-null here and we skip pan.
+        if (bgInteractive && bgDragState.current) return;
         isPanningRef.current = true;
         panStartClientRef.current = { x: snapX, y: snapY };
         panStartVpRef.current = { x: vp.x, y: vp.y };
@@ -343,6 +370,18 @@ function ViewportInner({
     };
 
     const onWindowMove = (e: PointerEvent) => {
+      if (bgDragState.current) {
+        const canvas = app?.renderer ? app.canvas : null;
+        const vp = vpRef.current;
+        if (!canvas || !vp) return;
+        const rect = canvas.getBoundingClientRect();
+        const world = vp.toWorld(e.clientX - rect.left, e.clientY - rect.top);
+        onBgPositionChange?.(
+          bgDragState.current.startBgX + (world.x - bgDragState.current.startWorldX),
+          bgDragState.current.startBgY + (world.y - bgDragState.current.startWorldY),
+        );
+        return;
+      }
       if (!isPanningRef.current) return;
       const vp = vpRef.current;
       if (!vp) return;
@@ -350,7 +389,12 @@ function ViewportInner({
       vp.y = panStartVpRef.current.y + (e.clientY - panStartClientRef.current.y);
     };
 
-    const onWindowUp = () => { isPanningRef.current = false; };
+    const onWindowUp = () => {
+      isPanningRef.current = false;
+      const wasBgDrag = !!bgDragState.current;
+      bgDragState.current = null;
+      if (wasBgDrag) onDragGestureEnd?.();
+    };
 
     window.addEventListener("pointerdown", onWindowDown);
     window.addEventListener("pointermove", onWindowMove);
@@ -364,7 +408,7 @@ function ViewportInner({
       window.removeEventListener("pointercancel", onWindowUp);
       isPanningRef.current = false;
     };
-  }, [app, placingNpcId, bgInteractive]);
+  }, [app, placingNpcId, bgInteractive, onBgPositionChange, onDragGestureEnd]);
 
   // ─── NPC placement ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -427,16 +471,13 @@ function ViewportInner({
       g.clear();
       if (!placementHoverSlot || !placingNpcId) return;
       const inBounds = isSlotInBounds(placementHoverSlot, map.grid);
-      const center = slotToWorld(placementHoverSlot, map.grid);
-      const r = map.grid.cellSize / 2 - 2;
       const color = inBounds ? 0x30ff80 : 0xff3030;
       g.setFillStyle({ color, alpha: 0.3 });
       g.setStrokeStyle({ color, width: 2, alpha: 0.9 });
-      if (map.grid.kind === "square") {
-        g.rect(center.x - r, center.y - r, r * 2, r * 2);
-      } else {
-        g.circle(center.x, center.y, r);
-      }
+      const corners = slotCorners(placementHoverSlot, map.grid);
+      g.moveTo(corners[0].x, corners[0].y);
+      for (let i = 1; i < corners.length; i++) g.lineTo(corners[i].x, corners[i].y);
+      g.closePath();
       g.fill();
       g.stroke();
     },
@@ -459,8 +500,11 @@ function ViewportInner({
       <BgLayer
         bg={map.bg}
         bgInteractive={bgInteractive}
-        dragState={dragState}
-        onBgPositionChange={onBgPositionChange}
+        vpRef={vpRef}
+        onBgPointerDown={(startWorldX, startWorldY, startBgX, startBgY) => {
+          bgDragState.current = { startWorldX, startWorldY, startBgX, startBgY };
+          onDragGestureStart?.();
+        }}
         onLoadingChange={onBgLoadingChange}
       />
       <GridLayer grid={map.grid} vpScale={vpScale} />
@@ -483,7 +527,21 @@ function ViewportInner({
         onEmptySlotClick={onEmptySlotClick}
       />
       <pixiContainer label="walls-layer" />
-      <pixiContainer label="overlay-layer" />
+      <pixiContainer label="overlay-layer">
+        {activeTool && onBgChange && onGridChange && (
+          <MapHandlesLayer
+            activeTool={activeTool}
+            bg={map.bg}
+            grid={map.grid}
+            vpScale={vpScale}
+            onBgChange={onBgChange}
+            onGridChange={onGridChange}
+            vpRef={vpRef}
+            onGestureStart={onDragGestureStart}
+            onGestureEnd={onDragGestureEnd}
+          />
+        )}
+      </pixiContainer>
     </pixiViewport>
   );
 }
@@ -491,14 +549,14 @@ function ViewportInner({
 function BgLayer({
   bg,
   bgInteractive,
-  dragState,
-  onBgPositionChange,
+  vpRef,
+  onBgPointerDown,
   onLoadingChange,
 }: {
   bg: TacticalMap["bg"];
   bgInteractive?: boolean;
-  dragState?: MutableRefObject<DragState>;
-  onBgPositionChange?: (x: number, y: number) => void;
+  vpRef?: MutableRefObject<Viewport | null>;
+  onBgPointerDown?: (startWorldX: number, startWorldY: number, startBgX: number, startBgY: number) => void;
   onLoadingChange?: (loading: boolean) => void;
 }) {
   const [texture, setTexture] = useState<Texture | null>(null);
@@ -537,33 +595,18 @@ function BgLayer({
   if (!bg || !texture) return null;
 
   const handlePointerDown = (e: FederatedPointerEvent) => {
-    if (!bgInteractive || !dragState || !bg) return;
+    if (!bgInteractive || !vpRef?.current) return;
     e.stopPropagation();
-    dragState.current = {
-      startWorldX: e.global.x,
-      startWorldY: e.global.y,
-      startBgX: bg.x,
-      startBgY: bg.y,
-    };
-  };
-
-  const handlePointerMove = (e: FederatedPointerEvent) => {
-    if (!bgInteractive || !dragState?.current || !onBgPositionChange) return;
-    onBgPositionChange(
-      dragState.current.startBgX + (e.global.x - dragState.current.startWorldX),
-      dragState.current.startBgY + (e.global.y - dragState.current.startWorldY),
-    );
-  };
-
-  const handlePointerUp = () => {
-    if (dragState) dragState.current = null;
+    const world = vpRef.current.toWorld(e.global.x, e.global.y);
+    onBgPointerDown?.(world.x, world.y, bg.x, bg.y);
   };
 
   return (
     <pixiSprite
       texture={texture}
-      x={bg.x}
-      y={bg.y}
+      anchor={0.5}
+      x={bg.x + bg.width / 2}
+      y={bg.y + bg.height / 2}
       width={bg.width}
       height={bg.height}
       rotation={(bg.rotation * Math.PI) / 180}
@@ -571,13 +614,15 @@ function BgLayer({
       eventMode={bgInteractive ? "static" : "none"}
       cursor={bgInteractive ? "grab" : "default"}
       onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerUpOutside={handlePointerUp}
     />
   );
 }
 
+// Grid lines are drawn directly in WORLD space: every endpoint is pushed through
+// applyTransform (rotation + screen-space skew). This avoids a skewed Pixi
+// container, which would scale the stroke width non-uniformly and make lines
+// vanish at certain skew/zoom combinations. An affine transform keeps straight
+// lines straight, so transforming just the two endpoints of each line is exact.
 function GridLayer({ grid, vpScale }: { grid: GridShape; vpScale: number }) {
   const draw = useCallback(
     (g: PixiGraphics) => {
@@ -586,11 +631,17 @@ function GridLayer({ grid, vpScale }: { grid: GridShape; vpScale: number }) {
       g.setStrokeStyle({ width: 1 / vpScale, color: colorHex, alpha: grid.opacity });
       if (grid.kind === "square") {
         const { cols, rows, cellSize } = grid;
+        const gw = cols * cellSize;
+        const gh = rows * cellSize;
         for (let c = 0; c <= cols; c++) {
-          g.moveTo(c * cellSize, 0).lineTo(c * cellSize, rows * cellSize);
+          const a = applyTransform({ x: c * cellSize, y: 0 }, grid);
+          const b = applyTransform({ x: c * cellSize, y: gh }, grid);
+          g.moveTo(a.x, a.y).lineTo(b.x, b.y);
         }
         for (let r = 0; r <= rows; r++) {
-          g.moveTo(0, r * cellSize).lineTo(cols * cellSize, r * cellSize);
+          const a = applyTransform({ x: 0, y: r * cellSize }, grid);
+          const b = applyTransform({ x: gw, y: r * cellSize }, grid);
+          g.moveTo(a.x, a.y).lineTo(b.x, b.y);
         }
       } else {
         const size = grid.cellSize;
@@ -602,10 +653,12 @@ function GridLayer({ grid, vpScale }: { grid: GridShape; vpScale: number }) {
             const cy = r * hexH;
             for (let i = 0; i < 6; i++) {
               const angle = ((60 * i - 30) * Math.PI) / 180;
-              const x = cx + size * Math.cos(angle);
-              const y = cy + size * Math.sin(angle);
-              if (i === 0) g.moveTo(x, y);
-              else g.lineTo(x, y);
+              const p = applyTransform(
+                { x: cx + size * Math.cos(angle), y: cy + size * Math.sin(angle) },
+                grid,
+              );
+              if (i === 0) g.moveTo(p.x, p.y);
+              else g.lineTo(p.x, p.y);
             }
             g.closePath();
           }
@@ -808,14 +861,12 @@ function PiecesLayer({
       const occupied = !outOfBounds && map.pieces.some(
         (p) => p.id !== draggingPieceId && JSON.stringify(p.coord.slot) === JSON.stringify(hoverSlot),
       );
-      const center = slotToWorld(hoverSlot, map.grid);
-      const r = map.grid.cellSize / 2 - 4;
-      g.setFillStyle({ color: occupied || outOfBounds ? 0xff3030 : 0x30ff80, alpha: 0.25 });
-      if (map.grid.kind === "square") {
-        g.rect(center.x - r, center.y - r, r * 2, r * 2);
-      } else {
-        g.circle(center.x, center.y, r);
-      }
+      const color = occupied || outOfBounds ? 0xff3030 : 0x30ff80;
+      g.setFillStyle({ color, alpha: 0.25 });
+      const corners = slotCorners(hoverSlot, map.grid);
+      g.moveTo(corners[0].x, corners[0].y);
+      for (let i = 1; i < corners.length; i++) g.lineTo(corners[i].x, corners[i].y);
+      g.closePath();
       g.fill();
     },
     [hoverSlot, draggingPieceId, map.pieces, map.grid],
@@ -832,8 +883,8 @@ function PiecesLayer({
   return (
     <pixiContainer
       label="pieces-layer"
-      eventMode="static"
-      hitArea={gridHitArea}
+      eventMode={piecesInteractive ? "static" : "none"}
+      hitArea={piecesInteractive ? gridHitArea : undefined}
       onPointerDown={(e: FederatedPointerEvent) => {
         if (e.target !== e.currentTarget) return;
         onStageDeselect?.();
@@ -847,8 +898,6 @@ function PiecesLayer({
             const world = vp.toWorld(e.global.x, e.global.y);
             const slot = worldToSlot(world, map.grid);
             if (isSlotInBounds(slot, map.grid)) {
-              // Store pending click — resolved on pointerup if movement < threshold.
-              // Pan runs normally; onEmptySlotClick only fires if user didn't drag.
               emptySlotPendingRef.current = { slot, clientX, clientY, startClientX: clientX, startClientY: clientY };
             }
           }
@@ -863,9 +912,9 @@ function PiecesLayer({
           grid={map.grid}
           npc={npcMap?.get(p.characterId)}
           isSelected={selection?.kind === "piece" && selection.id === p.id}
+          piecesInteractive={piecesInteractive}
           onPointerDown={(_piece, e) => {
             if (!piecesInteractive || localDrag.current) return;
-            // Guard: if draggablePieceIds is provided, only allow dragging listed pieces.
             if (draggablePieceIds !== undefined && !draggablePieceIds.has(p.id)) return;
             pieceDragActiveRef.current = true;
             localDrag.current = {
@@ -887,12 +936,16 @@ type PieceSpriteProps = {
   grid: GridShape;
   npc?: CharacterPrivateSummary;
   isSelected: boolean;
+  piecesInteractive?: boolean;
   onPointerDown: (piece: Piece, e: FederatedPointerEvent) => void;
 };
 
-function PieceSprite({ piece, grid, npc, isSelected, onPointerDown }: PieceSpriteProps) {
+function PieceSprite({ piece, grid, npc, isSelected, piecesInteractive, onPointerDown }: PieceSpriteProps) {
   const center = useMemo(() => slotToWorld(piece.coord.slot, grid), [piece.coord.slot, grid]);
-  const tokenRadius = grid.cellSize * 0.45;
+  // 90% of the slot's inscribed-circle radius. Square keeps the original
+  // 0.45·cellSize; hex tokens grow to fill their (much larger) cell by the same
+  // proportion. See slotInradius.
+  const tokenRadius = slotInradius(grid) * 0.9;
   const avatarRadius = tokenRadius * 0.7;
   const z = piece.coord.z;
   const zOffsetPx = z * 10;
@@ -1009,8 +1062,8 @@ function PieceSprite({ piece, grid, npc, isSelected, onPointerDown }: PieceSprit
       label={`piece-${piece.id}`}
       x={center.x}
       y={center.y}
-      eventMode="static"
-      cursor="pointer"
+      eventMode={piecesInteractive ? "static" : "none"}
+      cursor={piecesInteractive ? "pointer" : "default"}
       onPointerDown={(e: FederatedPointerEvent) => onPointerDown(piece, e)}
     >
       <pixiGraphics draw={drawShadow} filters={[shadowFilter]} />

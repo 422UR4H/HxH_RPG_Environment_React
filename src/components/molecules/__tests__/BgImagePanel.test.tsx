@@ -59,7 +59,7 @@ describe("BgImagePanel — with image", () => {
     expect(screen.getByLabelText(/opacidade/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /trocar imagem/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /remover/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /encaixar no grid/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /encaixar grade/i })).toBeInTheDocument();
   });
 
   it("calls onBgChange when Pos X input changes", async () => {
@@ -82,14 +82,14 @@ describe("BgImagePanel — with image", () => {
     expect(onBgChange).toHaveBeenCalledWith(null);
   });
 
-  it("calls onBgChange when Encaixar no grid is clicked", async () => {
+  it("calls onRefit when Encaixar Grade is clicked", async () => {
+    // The actual fit lives in the toolbar (shared with the Grade tab); the panel
+    // button just triggers onRefit.
     const user = userEvent.setup();
-    const onBgChange = vi.fn();
-    renderWithProviders(<BgImagePanel {...baseProps} bg={bgFixture} onBgChange={onBgChange} />);
-    await user.click(screen.getByRole("button", { name: /encaixar no grid/i }));
-    expect(onBgChange).toHaveBeenCalledWith(
-      expect.objectContaining({ url: bgFixture.url }),
-    );
+    const onRefit = vi.fn();
+    renderWithProviders(<BgImagePanel {...baseProps} bg={bgFixture} onRefit={onRefit} />);
+    await user.click(screen.getByRole("button", { name: /encaixar grade/i }));
+    expect(onRefit).toHaveBeenCalledOnce();
   });
 
   it("lock aspect ratio — changing scale X also changes scale Y proportionally", async () => {

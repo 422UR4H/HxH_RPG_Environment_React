@@ -29,6 +29,11 @@ export type GridShape = {
   color: string;       // token de cor
   opacity: number;     // 0–1
   lineStyle: LineStyle;
+  // Deslocamento do grid em coords de mundo. Editor-only: permite redimensionar
+  // ancorando o canto oposto. Ausente = 0. NÃO é persistido — handleSave o dobra
+  // na posição do bg antes de salvar (backend mantém o grid em (0,0)).
+  originX?: number;
+  originY?: number;
 };
 
 // ─── Imagem de fundo ───────────────────────────────────────────────────────
