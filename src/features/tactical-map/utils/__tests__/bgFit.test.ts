@@ -110,11 +110,10 @@ describe("fitGridToImage", () => {
   });
 
   it("hex: computes cols/rows from hex geometry", () => {
-    // hexW = 40*sqrt(3)≈69.28, hexH = 40*1.5=60
+    // hexW = 40*sqrt(3)≈69.28 → 1000/69.28≈14.43 → 14; hexH = 40*1.5=60 → 900/60=15
     const result = fitGridToImage(1000, 900, hexGrid(5, 5, 40));
-    const hexW = 40 * Math.sqrt(3);
-    const hexH = 40 * 1.5;
-    expect(result.cols).toBe(Math.min(200, Math.max(1, Math.round(1000 / hexW))));
-    expect(result.rows).toBe(Math.min(200, Math.max(1, Math.round(900 / hexH))));
+    expect(result.cols).toBe(14);
+    expect(result.rows).toBe(15);
+    expect(result.cellSize).toBe(40);
   });
 });
