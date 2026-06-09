@@ -455,6 +455,9 @@ export default function TacticalMapEditor({
               setDraggingCanvasPieceNpc(null);
             }}
             onStageDeselect={handleStageDeselect}
+            activeTool={activeTool}
+            onBgChange={(newBg) => setBg(newBg)}
+            onGridChange={setGrid}
           />
         )}
       </div>

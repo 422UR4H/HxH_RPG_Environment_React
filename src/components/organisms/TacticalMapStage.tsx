@@ -9,9 +9,10 @@ import type { Graphics as PixiGraphics } from "pixi.js";
 import gungiFrameUrl from "../../assets/icons/gungi.svg";
 import avatarPlaceholderUrl from "../../assets/placeholder/avatar.png";
 import { Viewport } from "pixi-viewport";
-import type { TacticalMap, GridShape, Piece, SlotCoord } from "../../types/tacticalMap";
+import type { TacticalMap, GridShape, Piece, SlotCoord, BgImage } from "../../types/tacticalMap";
 import type { CharacterPrivateSummary } from "../../types/characterSheet";
-import type { Selection } from "../../features/tactical-map/store/editorStore";
+import type { Selection, ToolKind } from "../../features/tactical-map/store/editorStore";
+import MapHandlesLayer from "./MapHandlesLayer";
 import { slotToWorld, worldToSlot, isSlotInBounds } from "../../features/tactical-map/utils/coords";
 
 extend({ Container, Graphics, Sprite, Text, Viewport });
@@ -141,6 +142,9 @@ type Props = {
   // internal isBgLoading (texture load) can't cover it — the canvas overlay
   // is driven by this flag too.
   uploading?: boolean;
+  activeTool?: ToolKind;
+  onBgChange?: (bg: NonNullable<BgImage>) => void;
+  onGridChange?: (grid: GridShape) => void;
 };
 
 export default function TacticalMapStage({
@@ -165,6 +169,9 @@ export default function TacticalMapStage({
   onViewportScaleChange,
   onBgLoadingChange,
   uploading = false,
+  activeTool,
+  onBgChange,
+  onGridChange,
 }: Props) {
   const [isBgLoading, setIsBgLoading] = useState(() => !!map.bg?.url);
   const bgUrl = map.bg?.url;
@@ -220,6 +227,9 @@ export default function TacticalMapStage({
           onStageDeselect={onStageDeselect}
           onEmptySlotClick={onEmptySlotClick}
           onViewportScaleChange={onViewportScaleChange}
+          activeTool={activeTool}
+          onBgChange={onBgChange}
+          onGridChange={onGridChange}
         />
       </Application>
       {(isBgLoading || uploading) && (
@@ -264,6 +274,9 @@ function ViewportInner({
   onStageDeselect,
   onEmptySlotClick,
   onViewportScaleChange,
+  activeTool,
+  onBgChange,
+  onGridChange,
 }: Props) {
   const { app } = useApplication();
   const vpRef = useRef<Viewport | null>(null);
@@ -502,7 +515,19 @@ function ViewportInner({
         onEmptySlotClick={onEmptySlotClick}
       />
       <pixiContainer label="walls-layer" />
-      <pixiContainer label="overlay-layer" />
+      <pixiContainer label="overlay-layer">
+        {activeTool && onBgChange && onGridChange && (
+          <MapHandlesLayer
+            activeTool={activeTool}
+            bg={map.bg}
+            grid={map.grid}
+            vpScale={vpScale}
+            onBgChange={onBgChange}
+            onGridChange={onGridChange}
+            vpRef={vpRef}
+          />
+        )}
+      </pixiContainer>
     </pixiViewport>
   );
 }
