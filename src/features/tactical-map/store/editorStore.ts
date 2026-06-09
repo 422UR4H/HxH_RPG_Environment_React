@@ -12,6 +12,10 @@ import type {
 
 export type ToolKind = "grid" | "bg" | "pieces" | "walls" | "decorations";
 
+// Max number of undo steps retained by the temporal (zundo) history. Shared
+// with useEditorHistory's gesture commit so the two never drift.
+export const HISTORY_LIMIT = 100;
+
 export type Selection =
   | { kind: "piece"; id: string }
   | { kind: "decoration"; id: string }
@@ -132,7 +136,7 @@ export function createEditorStore(initialMap: TacticalMap) {
         // num único snapshot. Efeito colateral: ações discretas (placePiece,
         // movePiece) entram no histórico após ~400ms. Aceito pelo spec.
         handleSet: (handleSet) => debounce(handleSet, 400),
-        limit: 100,
+        limit: HISTORY_LIMIT,
       },
     ),
   );

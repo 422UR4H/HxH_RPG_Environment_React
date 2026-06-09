@@ -56,7 +56,7 @@ export default function TacticalMapEditor({
   const removePiece = store((s) => s.removePiece);
   const setSelection = store((s) => s.setSelection);
 
-  const { undo, redo, canUndo, canRedo } = useEditorHistory(store);
+  const { undo, redo, canUndo, canRedo, beginGesture, endGesture } = useEditorHistory(store);
 
   const { registerGuard } = useNavGuard();
   const [navConfirmPending, setNavConfirmPending] = useState<
@@ -472,6 +472,8 @@ export default function TacticalMapEditor({
             activeTool={activeTool}
             onBgChange={(newBg) => setBg(newBg)}
             onGridChange={setGrid}
+            onDragGestureStart={beginGesture}
+            onDragGestureEnd={endGesture}
           />
         )}
       </div>

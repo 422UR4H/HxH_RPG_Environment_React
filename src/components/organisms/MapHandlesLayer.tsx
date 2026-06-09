@@ -42,6 +42,9 @@ type Props = {
   onBgChange: (bg: NonNullable<BgImage>) => void;
   onGridChange: (grid: GridShape) => void;
   vpRef: React.MutableRefObject<Viewport | null>;
+  // Bracket a handle drag as one undo step (history pauses between these).
+  onGestureStart?: () => void;
+  onGestureEnd?: () => void;
 };
 
 export default function MapHandlesLayer({
@@ -52,6 +55,8 @@ export default function MapHandlesLayer({
   onBgChange,
   onGridChange,
   vpRef,
+  onGestureStart,
+  onGestureEnd,
 }: Props) {
   return (
     <>
@@ -61,6 +66,8 @@ export default function MapHandlesLayer({
           vpScale={vpScale}
           onBgChange={onBgChange}
           vpRef={vpRef}
+          onGestureStart={onGestureStart}
+          onGestureEnd={onGestureEnd}
         />
       )}
       {activeTool === "grid" && (
@@ -69,6 +76,8 @@ export default function MapHandlesLayer({
           vpScale={vpScale}
           onGridChange={onGridChange}
           vpRef={vpRef}
+          onGestureStart={onGestureStart}
+          onGestureEnd={onGestureEnd}
         />
       )}
     </>
@@ -82,11 +91,15 @@ function BgHandles({
   vpScale,
   onBgChange,
   vpRef,
+  onGestureStart,
+  onGestureEnd,
 }: {
   bg: NonNullable<BgImage>;
   vpScale: number;
   onBgChange: (bg: NonNullable<BgImage>) => void;
   vpRef: React.MutableRefObject<Viewport | null>;
+  onGestureStart?: () => void;
+  onGestureEnd?: () => void;
 }) {
   const { app } = useApplication();
   const dragState = useRef<BgHandleDragState>(null);
@@ -113,6 +126,7 @@ function BgHandles({
   const startDrag = useCallback((handleId: string, shift: boolean, ex: number, ey: number) => {
     const vp = vpRef.current;
     if (!vp) return;
+    onGestureStart?.();
     const world = vp.toWorld(ex, ey);
     dragState.current = {
       handle: handleId,
@@ -137,11 +151,12 @@ function BgHandles({
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", onUp);
+      onGestureEnd?.();
     };
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
     window.addEventListener("pointercancel", onUp);
-  }, [app, bg, vpRef]);
+  }, [app, bg, vpRef, onGestureStart, onGestureEnd]);
 
   // World-space anchor positions for each handle, following bg.rotation. The
   // container is NOT transformed, so the markers (squares, circle) stay crisp;
@@ -358,11 +373,15 @@ function GridHandles({
   vpScale,
   onGridChange,
   vpRef,
+  onGestureStart,
+  onGestureEnd,
 }: {
   grid: GridShape;
   vpScale: number;
   onGridChange: (grid: GridShape) => void;
   vpRef: React.MutableRefObject<Viewport | null>;
+  onGestureStart?: () => void;
+  onGestureEnd?: () => void;
 }) {
   const { app } = useApplication();
   const dragState = useRef<GridHandleDragState>(null);
@@ -382,12 +401,14 @@ function GridHandles({
   }, []);
 
   const hs = HANDLE_SIZE / vpScale;
-  const rr = ROTATE_RADIUS / vpScale;
-  const ro = ROTATE_OFFSET / vpScale;
+  // OCULTO POR ORA — esfera de rotação do grid desabilitada no canvas.
+  // const rr = ROTATE_RADIUS / vpScale;
+  // const ro = ROTATE_OFFSET / vpScale;
 
   const startDrag = useCallback((handleId: string, shift: boolean, ex: number, ey: number) => {
     const vp = vpRef.current;
     if (!vp) return;
+    onGestureStart?.();
     const world = vp.toWorld(ex, ey);
     dragState.current = {
       handle: handleId,
@@ -411,11 +432,12 @@ function GridHandles({
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", onUp);
+      onGestureEnd?.();
     };
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
     window.addEventListener("pointercancel", onUp);
-  }, [app, grid, vpRef]);
+  }, [app, grid, vpRef, onGestureStart, onGestureEnd]);
 
   // World-space anchor positions for every handle, following the grid's
   // rotation + skew. The container itself is NOT transformed, so the handle
@@ -435,13 +457,14 @@ function GridHandles({
     const BC = at("BC");
     const ML = at("ML");
     const MR = at("MR");
-    const center = at("center");
-    const dx = TC.x - center.x;
-    const dy = TC.y - center.y;
-    const len = Math.hypot(dx, dy) || 1;
-    const rot: XY = { x: TC.x + (dx / len) * ro, y: TC.y + (dy / len) * ro };
-    return { TL, TR, BR, BL, TC, BC, ML, MR, rot };
-  }, [grid, ro]);
+    // OCULTO POR ORA — posição da esfera de rotação do grid.
+    // const center = at("center");
+    // const dx = TC.x - center.x;
+    // const dy = TC.y - center.y;
+    // const len = Math.hypot(dx, dy) || 1;
+    // const rot: XY = { x: TC.x + (dx / len) * ro, y: TC.y + (dy / len) * ro };
+    return { TL, TR, BR, BL, TC, BC, ML, MR };
+  }, [grid]);
 
   const drawBorder = useCallback((g: PixiGraphics) => {
     g.clear();
@@ -455,6 +478,8 @@ function GridHandles({
     g.stroke();
   }, [pts, vpScale, shiftPressed]);
 
+  /* OCULTO POR ORA — esfera/linha de rotação do grid (ver JSX abaixo).
+     Reativar junto com rr/ro e pts.rot quando liberar a rotação do grid.
   const drawRotate = useCallback((g: PixiGraphics) => {
     g.clear();
     g.setStrokeStyle({ width: 1 / vpScale, color: 0xffd700, alpha: 0.8 });
@@ -465,6 +490,7 @@ function GridHandles({
     g.circle(pts.rot.x, pts.rot.y, rr);
     g.fill();
   }, [pts, rr, vpScale]);
+  */
 
   const corners: Array<{ id: string; p: XY; cursor: string }> = [
     { id: "TL", p: pts.TL, cursor: "nw-resize" },
@@ -512,6 +538,9 @@ function GridHandles({
         />
       ))}
 
+      {/* OCULTO POR ORA — esfera de rotação do grid não disponível ao usuário.
+          A lógica de rotação (gridFromHandleDrag "rotate") permanece e segue
+          funcionando se grid.rotation vier do backend (GridLayer aplica).
       <pixiGraphics
         draw={drawRotate}
         eventMode="static"
@@ -521,6 +550,7 @@ function GridHandles({
           startDrag("rotate", false, e.global.x, e.global.y);
         }}
       />
+      */}
     </pixiContainer>
   );
 }

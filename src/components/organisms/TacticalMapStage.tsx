@@ -145,6 +145,9 @@ type Props = {
   activeTool?: ToolKind;
   onBgChange?: (bg: NonNullable<BgImage>) => void;
   onGridChange?: (grid: GridShape) => void;
+  // Bracket a canvas drag (bg move + handle drags) as one undo step.
+  onDragGestureStart?: () => void;
+  onDragGestureEnd?: () => void;
 };
 
 export default function TacticalMapStage({
@@ -172,6 +175,8 @@ export default function TacticalMapStage({
   activeTool,
   onBgChange,
   onGridChange,
+  onDragGestureStart,
+  onDragGestureEnd,
 }: Props) {
   const [isBgLoading, setIsBgLoading] = useState(() => !!map.bg?.url);
   const bgUrl = map.bg?.url;
@@ -230,6 +235,8 @@ export default function TacticalMapStage({
           activeTool={activeTool}
           onBgChange={onBgChange}
           onGridChange={onGridChange}
+          onDragGestureStart={onDragGestureStart}
+          onDragGestureEnd={onDragGestureEnd}
         />
       </Application>
       {(isBgLoading || uploading) && (
@@ -277,6 +284,8 @@ function ViewportInner({
   activeTool,
   onBgChange,
   onGridChange,
+  onDragGestureStart,
+  onDragGestureEnd,
 }: Props) {
   const { app } = useApplication();
   const vpRef = useRef<Viewport | null>(null);
@@ -382,7 +391,9 @@ function ViewportInner({
 
     const onWindowUp = () => {
       isPanningRef.current = false;
+      const wasBgDrag = !!bgDragState.current;
       bgDragState.current = null;
+      if (wasBgDrag) onDragGestureEnd?.();
     };
 
     window.addEventListener("pointerdown", onWindowDown);
@@ -397,7 +408,7 @@ function ViewportInner({
       window.removeEventListener("pointercancel", onWindowUp);
       isPanningRef.current = false;
     };
-  }, [app, placingNpcId, bgInteractive, onBgPositionChange]);
+  }, [app, placingNpcId, bgInteractive, onBgPositionChange, onDragGestureEnd]);
 
   // ─── NPC placement ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -492,6 +503,7 @@ function ViewportInner({
         vpRef={vpRef}
         onBgPointerDown={(startWorldX, startWorldY, startBgX, startBgY) => {
           bgDragState.current = { startWorldX, startWorldY, startBgX, startBgY };
+          onDragGestureStart?.();
         }}
         onLoadingChange={onBgLoadingChange}
       />
@@ -525,6 +537,8 @@ function ViewportInner({
             onBgChange={onBgChange}
             onGridChange={onGridChange}
             vpRef={vpRef}
+            onGestureStart={onDragGestureStart}
+            onGestureEnd={onDragGestureEnd}
           />
         )}
       </pixiContainer>
