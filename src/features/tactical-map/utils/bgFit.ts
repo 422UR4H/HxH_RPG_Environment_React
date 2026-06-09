@@ -1,24 +1,30 @@
 import type { BgImage, GridShape } from "../../../types/tacticalMap";
+import { gridLocalBounds } from "./coords";
+
+const MIN_CELL = 8;
+const MAX_CELL = 256;
 
 export function computeCoverFit(
   naturalWidth: number,
   naturalHeight: number,
   grid: GridShape,
 ): NonNullable<BgImage> {
-  const gridW = grid.cols * grid.cellSize;
-  const gridH = grid.rows * grid.cellSize;
+  // Use the grid's REAL local bounds (square tiles from origin; hex spans wider
+  // by √3 and taller by the half-hex margins). For square this is identical to
+  // cols*cellSize × rows*cellSize, so square behavior is unchanged; for hex it
+  // makes the image actually cover the whole grid.
+  const b = gridLocalBounds(grid);
+  const gridW = b.maxX - b.minX;
+  const gridH = b.maxY - b.minY;
 
-  const scaleX = gridW / naturalWidth;
-  const scaleY = gridH / naturalHeight;
-  const scale = Math.max(scaleX, scaleY);
-
+  const scale = Math.max(gridW / naturalWidth, gridH / naturalHeight);
   const w = naturalWidth * scale;
   const h = naturalHeight * scale;
 
   return {
     url: "",
-    x: (gridW - w) / 2,
-    y: (gridH - h) / 2,
+    x: b.minX + (gridW - w) / 2,
+    y: b.minY + (gridH - h) / 2,
     width: w,
     height: h,
     rotation: 0,
@@ -36,24 +42,48 @@ export function deriveGridFromImage(
   return { ...grid, cellSize, rows };
 }
 
-// Fits the grid to the image by adjusting ONLY cellSize (the slot pixel size),
-// keeping the user-defined cols/rows untouched. cellSize is chosen so the grid
-// rectangle covers the image: the larger per-axis pitch wins, so the grid is at
-// least as large as the image in both dimensions (one axis matches exactly).
-// Clamped to the editor's cellSize bounds [8, 256].
-export function fitCellSizeToImage(
+// Fits the grid to the image. Primarily adjusts cellSize (the slot pixel size),
+// keeping the user-defined cols/rows. cellSize is capped at MAX_CELL so the
+// image never has to be shrunk to match a giant cell; when the cap is reached
+// and the grid still doesn't cover the image, cols/rows are GROWN (never the
+// cell beyond the cap) so the grid covers the rest of the image at full
+// resolution.
+//
+// Works for square and hex via gridLocalBounds (the real extent); rotation and
+// skew (isometric) are preserved and don't affect the fit, since the bg is fit
+// to the grid's untransformed bounds (as it always has been).
+export function fitGridToImage(
   naturalWidth: number,
   naturalHeight: number,
   grid: GridShape,
 ): GridShape {
-  const clamp = (v: number) => Math.max(8, Math.min(256, Math.round(v)));
-  if (grid.kind === "square") {
-    const cellSize = clamp(Math.max(naturalWidth / grid.cols, naturalHeight / grid.rows));
-    return { ...grid, cellSize };
+  // Unit extents (the grid's bounds at cellSize = 1) for the current cols/rows.
+  // Every bound scales linearly with cellSize, so cellSize × unit = real extent.
+  const unit = gridLocalBounds({ ...grid, cellSize: 1 });
+  const unitW = unit.maxX - unit.minX;
+  const unitH = unit.maxY - unit.minY;
+  const ideal = Math.max(naturalWidth / unitW, naturalHeight / unitH);
+
+  // cellSize alone covers the image with the current cols/rows.
+  if (ideal <= MAX_CELL) {
+    return { ...grid, cellSize: Math.max(MIN_CELL, Math.round(ideal)) };
   }
-  // hex (point-top): horizontal pitch = cellSize*sqrt(3), vertical pitch = cellSize*1.5
-  const cellSize = clamp(
-    Math.max(naturalWidth / (grid.cols * Math.sqrt(3)), naturalHeight / (grid.rows * 1.5)),
-  );
-  return { ...grid, cellSize };
+
+  // Capped: keep cellSize at the max and grow cols/rows to cover the image.
+  // Rows first (they drive height and, for hex, the odd-row width offset), then
+  // cols using the settled row count.
+  const cellSize = MAX_CELL;
+  let rows = Math.max(1, grid.rows);
+  while (rows < 200) {
+    const b = gridLocalBounds({ ...grid, cellSize, rows });
+    if (b.maxY - b.minY >= naturalHeight) break;
+    rows++;
+  }
+  let cols = Math.max(1, grid.cols);
+  while (cols < 200) {
+    const b = gridLocalBounds({ ...grid, cellSize, cols, rows });
+    if (b.maxX - b.minX >= naturalWidth) break;
+    cols++;
+  }
+  return { ...grid, cellSize, cols, rows };
 }
