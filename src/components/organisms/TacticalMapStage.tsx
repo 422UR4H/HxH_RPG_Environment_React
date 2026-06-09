@@ -832,8 +832,8 @@ function PiecesLayer({
   return (
     <pixiContainer
       label="pieces-layer"
-      eventMode="static"
-      hitArea={gridHitArea}
+      eventMode={piecesInteractive ? "static" : "none"}
+      hitArea={piecesInteractive ? gridHitArea : undefined}
       onPointerDown={(e: FederatedPointerEvent) => {
         if (e.target !== e.currentTarget) return;
         onStageDeselect?.();
@@ -847,8 +847,6 @@ function PiecesLayer({
             const world = vp.toWorld(e.global.x, e.global.y);
             const slot = worldToSlot(world, map.grid);
             if (isSlotInBounds(slot, map.grid)) {
-              // Store pending click — resolved on pointerup if movement < threshold.
-              // Pan runs normally; onEmptySlotClick only fires if user didn't drag.
               emptySlotPendingRef.current = { slot, clientX, clientY, startClientX: clientX, startClientY: clientY };
             }
           }
@@ -863,9 +861,9 @@ function PiecesLayer({
           grid={map.grid}
           npc={npcMap?.get(p.characterId)}
           isSelected={selection?.kind === "piece" && selection.id === p.id}
+          piecesInteractive={piecesInteractive}
           onPointerDown={(_piece, e) => {
             if (!piecesInteractive || localDrag.current) return;
-            // Guard: if draggablePieceIds is provided, only allow dragging listed pieces.
             if (draggablePieceIds !== undefined && !draggablePieceIds.has(p.id)) return;
             pieceDragActiveRef.current = true;
             localDrag.current = {
@@ -887,10 +885,11 @@ type PieceSpriteProps = {
   grid: GridShape;
   npc?: CharacterPrivateSummary;
   isSelected: boolean;
+  piecesInteractive?: boolean;
   onPointerDown: (piece: Piece, e: FederatedPointerEvent) => void;
 };
 
-function PieceSprite({ piece, grid, npc, isSelected, onPointerDown }: PieceSpriteProps) {
+function PieceSprite({ piece, grid, npc, isSelected, piecesInteractive, onPointerDown }: PieceSpriteProps) {
   const center = useMemo(() => slotToWorld(piece.coord.slot, grid), [piece.coord.slot, grid]);
   const tokenRadius = grid.cellSize * 0.45;
   const avatarRadius = tokenRadius * 0.7;
@@ -1009,8 +1008,8 @@ function PieceSprite({ piece, grid, npc, isSelected, onPointerDown }: PieceSprit
       label={`piece-${piece.id}`}
       x={center.x}
       y={center.y}
-      eventMode="static"
-      cursor="pointer"
+      eventMode={piecesInteractive ? "static" : "none"}
+      cursor={piecesInteractive ? "pointer" : "default"}
       onPointerDown={(e: FederatedPointerEvent) => onPointerDown(piece, e)}
     >
       <pixiGraphics draw={drawShadow} filters={[shadowFilter]} />
