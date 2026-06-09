@@ -54,8 +54,8 @@ type TabDef = {
 };
 
 const TABS: TabDef[] = [
-  { tool: "grid", label: "Grade", enabled: true },
   { tool: "bg", label: "Fundo", enabled: true },
+  { tool: "grid", label: "Grade", enabled: true },
   { tool: "pieces", label: "Peças", enabled: true },
   { tool: "walls", label: "Paredes", enabled: false },
   { tool: "decorations", label: "Decorações", enabled: false },
