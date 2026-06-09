@@ -1,5 +1,13 @@
 import { describe, it, expect } from "vitest";
-import { slotToWorld, worldToSlot, gridLocalBounds, gridHandleLocal } from "../coords";
+import {
+  slotToWorld,
+  worldToSlot,
+  gridLocalBounds,
+  gridHandleLocal,
+  applyTransform,
+  inverseTransform,
+  gridFromHandleDrag,
+} from "../coords";
 import type { GridShape } from "../../../../types/tacticalMap";
 import { hexToPixel } from "../hex";
 
@@ -105,6 +113,54 @@ describe("gridLocalBounds + gridHandleLocal", () => {
     const b2 = gridLocalBounds(g2);
     expect(b2.maxX).toBeCloseTo(b.maxX * 2, 6);
     expect(b2.maxY).toBeCloseTo(b.maxY * 2, 6);
+  });
+});
+
+describe("grid origin (offset)", () => {
+  it("applyTransform shifts the whole grid by origin; inverse undoes it", () => {
+    const g: GridShape = { ...squareGrid(40), originX: 100, originY: -50 };
+    // local (0,0): without origin maps to world (0,0); with origin → (100,-50).
+    expect(applyTransform({ x: 0, y: 0 }, g)).toEqual({ x: 100, y: -50 });
+    const round = inverseTransform(applyTransform({ x: 120, y: 80 }, g), g);
+    expect(round.x).toBeCloseTo(120, 6);
+    expect(round.y).toBeCloseTo(80, 6);
+  });
+});
+
+describe("gridFromHandleDrag — resize anchors the opposite corner", () => {
+  const g = squareGrid(40); // 10×10, cellSize 40 → BR at (400,400), TL at (0,0)
+
+  it("dragging BR keeps TL fixed (origin stays 0), grows toward BR", () => {
+    // Drag BR out to (600,600): scale = 1.5 → cellSize 60.
+    const out = gridFromHandleDrag("BR", g, 600, 600, false)!;
+    expect(out.cellSize).toBeCloseTo(60, 6);
+    expect(out.originX ?? 0).toBeCloseTo(0, 6);
+    expect(out.originY ?? 0).toBeCloseTo(0, 6);
+    // TL still at world (0,0); BR now at (600,600).
+    expect(applyTransform(gridHandleLocal("TL", out), out)).toEqual({ x: 0, y: 0 });
+    const br = applyTransform(gridHandleLocal("BR", out), out);
+    expect(br.x).toBeCloseTo(600, 6);
+    expect(br.y).toBeCloseTo(600, 6);
+  });
+
+  it("dragging TL keeps BR fixed and grows toward the cursor (up-left)", () => {
+    // Drag TL out to (-200,-200): anchor BR=(400,400). diagonal D0=(-400,-400);
+    // cursor-anchor=(-600,-600); scale = (−600·−400 ×2)/(400²×2)=1.5 → cellSize 60.
+    const out = gridFromHandleDrag("TL", g, -200, -200, false)!;
+    expect(out.cellSize).toBeCloseTo(60, 6);
+    // BR must stay pinned at (400,400).
+    const br = applyTransform(gridHandleLocal("BR", out), out);
+    expect(br.x).toBeCloseTo(400, 6);
+    expect(br.y).toBeCloseTo(400, 6);
+    // TL moved up-left of origin: 400 - 600 = -200.
+    const tl = applyTransform(gridHandleLocal("TL", out), out);
+    expect(tl.x).toBeCloseTo(-200, 6);
+    expect(tl.y).toBeCloseTo(-200, 6);
+  });
+
+  it("rotate handle sets rotation from the grid center", () => {
+    const out = gridFromHandleDrag("rotate", g, 200, 0, false)!;
+    expect(typeof out.rotation).toBe("number");
   });
 });
 

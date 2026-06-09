@@ -32,16 +32,16 @@ export function applyTransform(p: XY, grid: GridShape): XY {
     ry = dx * sin + dy * cos;
   }
   ry *= grid.skewRatio; // screen-space vertical squash, after rotation
-  return { x: rx + pivotX, y: ry + pivotY };
+  return { x: rx + pivotX + (grid.originX ?? 0), y: ry + pivotY + (grid.originY ?? 0) };
 }
 
 // Inverse of applyTransform: world → local grid space.
-// Undo in reverse order: un-squash (divide y by skewRatio), then un-rotate.
+// Undo in reverse order: remove origin, un-squash (÷ skewRatio), then un-rotate.
 export function inverseTransform(p: XY, grid: GridShape): XY {
   const pivotX = (grid.cols * grid.cellSize) / 2;
   const pivotY = (grid.rows * grid.cellSize) / 2;
-  const rx = p.x - pivotX;
-  const ry = (p.y - pivotY) / grid.skewRatio;
+  const rx = p.x - (grid.originX ?? 0) - pivotX;
+  const ry = (p.y - (grid.originY ?? 0) - pivotY) / grid.skewRatio;
   if (grid.rotation === 0) {
     return { x: rx + pivotX, y: ry + pivotY };
   }
@@ -145,8 +145,72 @@ export function gridHandleLocal(handle: string, grid: GridShape): XY {
     case "BR": return { x: b.maxX, y: b.maxY };
     case "TC": return { x: midX, y: b.minY };
     case "BC": return { x: midX, y: b.maxY };
+    case "ML": return { x: b.minX, y: midY };
+    case "MR": return { x: b.maxX, y: midY };
     default:   return { x: midX, y: midY };
   }
+}
+
+const OPPOSITE_HANDLE: Record<string, string> = {
+  TL: "BR", TR: "BL", BL: "TR", BR: "TL",
+  TC: "BC", BC: "TC", ML: "MR", MR: "ML",
+};
+
+// Computes the new grid from dragging an edit handle to a world point.
+// Pure geometry, shared by MapHandlesLayer. Handles:
+//  - "rotate": angle from grid center (incl. origin) to cursor.
+//  - shift + TC/BC: perspective (skewRatio).
+//  - any resize handle: scales cellSize while pinning the OPPOSITE anchor in
+//    world space (so the grid grows toward the dragged handle, not always to the
+//    bottom-right). The pin is achieved by solving originX/originY. cellSize is
+//    set from the cursor's projection onto the anchor→handle diagonal, which is
+//    rotation/skew/grid-kind agnostic.
+export function gridFromHandleDrag(
+  handle: string,
+  startGrid: GridShape,
+  worldX: number,
+  worldY: number,
+  shiftKey: boolean,
+): GridShape | null {
+  const MIN_CELL = 8;
+  const MAX_CELL = 256;
+  const cx = (startGrid.cols * startGrid.cellSize) / 2 + (startGrid.originX ?? 0);
+  const cy = (startGrid.rows * startGrid.cellSize) / 2 + (startGrid.originY ?? 0);
+
+  if (handle === "rotate") {
+    const angle = Math.atan2(worldY - cy, worldX - cx) * (180 / Math.PI) + 90;
+    return { ...startGrid, rotation: angle };
+  }
+
+  if (shiftKey && (handle === "TC" || handle === "BC")) {
+    const b = gridLocalBounds(startGrid);
+    const gh = b.maxY - b.minY;
+    const local = inverseTransform({ x: worldX, y: worldY }, startGrid);
+    const newH = handle === "TC" ? b.maxY - local.y : local.y - b.minY;
+    const ratio = Math.max(0.3, Math.min(1.0, newH / gh));
+    return { ...startGrid, skewRatio: ratio };
+  }
+
+  const anchorId = OPPOSITE_HANDLE[handle];
+  if (!anchorId) return null;
+  const anchorWorld = applyTransform(gridHandleLocal(anchorId, startGrid), startGrid);
+  const handleStart = applyTransform(gridHandleLocal(handle, startGrid), startGrid);
+  const dx0 = handleStart.x - anchorWorld.x;
+  const dy0 = handleStart.y - anchorWorld.y;
+  const len0sq = dx0 * dx0 + dy0 * dy0;
+  if (len0sq < 1e-9) return null;
+  const scale = ((worldX - anchorWorld.x) * dx0 + (worldY - anchorWorld.y) * dy0) / len0sq;
+  const newCellSize = Math.max(MIN_CELL, Math.min(MAX_CELL, startGrid.cellSize * scale));
+
+  // Solve the origin so the opposite anchor stays exactly where it started.
+  const at0: GridShape = { ...startGrid, cellSize: newCellSize, originX: 0, originY: 0 };
+  const anchorAt0 = applyTransform(gridHandleLocal(anchorId, at0), at0);
+  return {
+    ...startGrid,
+    cellSize: newCellSize,
+    originX: anchorWorld.x - anchorAt0.x,
+    originY: anchorWorld.y - anchorAt0.y,
+  };
 }
 
 // Returns true if slot is within the visible grid bounds.

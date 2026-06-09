@@ -49,7 +49,15 @@ export default function BgImagePanel({ bg, grid, mapId, onBgChange, onGridChange
     setNaturalSize({ w: nw, h: nh });
     const newGrid = fitCellSizeToImage(nw, nh, grid);
     const fit = computeCoverFit(nw, nh, newGrid);
-    const bgValue = { ...fit, url, r2Url };
+    // computeCoverFit positions the bg over a grid at origin (0,0); shift it by
+    // the grid's edit-time origin so it covers the grid at its real position.
+    const bgValue = {
+      ...fit,
+      x: fit.x + (newGrid.originX ?? 0),
+      y: fit.y + (newGrid.originY ?? 0),
+      url,
+      r2Url,
+    };
     if (onApplyBg) onApplyBg(bgValue, newGrid);
     else {
       onGridChange(newGrid);
@@ -170,11 +178,18 @@ export default function BgImagePanel({ bg, grid, mapId, onBgChange, onGridChange
     const nh = naturalSize?.h ?? bg.height;
     const newGrid = fitCellSizeToImage(nw, nh, grid);
     const fit = computeCoverFit(nw, nh, newGrid);
+    const fitted = {
+      ...fit,
+      x: fit.x + (newGrid.originX ?? 0),
+      y: fit.y + (newGrid.originY ?? 0),
+      url: bg.url,
+      r2Url: bg.r2Url,
+    };
     if (onApplyBg) {
-      onApplyBg({ ...fit, url: bg.url, r2Url: bg.r2Url }, newGrid);
+      onApplyBg(fitted, newGrid);
     } else {
       onGridChange(newGrid);
-      onBgChange({ ...fit, url: bg.url, r2Url: bg.r2Url });
+      onBgChange(fitted);
     }
     setScaleXPct(100);
     setDrafts({});

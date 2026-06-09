@@ -315,24 +315,38 @@ export default function TacticalMapEditor({
     setNameError(null);
     setSaveError(null);
 
+    // Fold the grid's edit-time origin into the bg position so the persisted
+    // grid stays anchored at (0,0) — the backend contract has no origin field.
+    // Grid, bg and pieces keep their relative alignment (all shift by -origin;
+    // pieces are stored as slots, so they follow the grid automatically).
+    const ox = map.grid.originX ?? 0;
+    const oy = map.grid.originY ?? 0;
+    const normalized: TacticalMap = (ox || oy)
+      ? {
+          ...map,
+          grid: { ...map.grid, originX: 0, originY: 0 },
+          bg: map.bg ? { ...map.bg, x: map.bg.x - ox, y: map.bg.y - oy } : map.bg,
+        }
+      : map;
+
     // Truncation check
-    let mapToSave = map;
-    if (map.bg) {
-      const gridW = map.grid.cols * map.grid.cellSize;
-      const gridH = map.grid.rows * map.grid.cellSize;
-      const bgRight = map.bg.x + map.bg.width;
-      const bgBottom = map.bg.y + map.bg.height;
+    let mapToSave = normalized;
+    if (normalized.bg) {
+      const gridW = normalized.grid.cols * normalized.grid.cellSize;
+      const gridH = normalized.grid.rows * normalized.grid.cellSize;
+      const bgRight = normalized.bg.x + normalized.bg.width;
+      const bgBottom = normalized.bg.y + normalized.bg.height;
       const uncoveredCols = bgRight < gridW
-        ? Math.floor((gridW - bgRight) / map.grid.cellSize)
+        ? Math.floor((gridW - bgRight) / normalized.grid.cellSize)
         : 0;
       const uncoveredRows = bgBottom < gridH
-        ? Math.floor((gridH - bgBottom) / map.grid.cellSize)
+        ? Math.floor((gridH - bgBottom) / normalized.grid.cellSize)
         : 0;
-      const uncoveredLeftCols = map.bg.x > 0
-        ? Math.floor(map.bg.x / map.grid.cellSize)
+      const uncoveredLeftCols = normalized.bg.x > 0
+        ? Math.floor(normalized.bg.x / normalized.grid.cellSize)
         : 0;
-      const uncoveredTopRows = map.bg.y > 0
-        ? Math.floor(map.bg.y / map.grid.cellSize)
+      const uncoveredTopRows = normalized.bg.y > 0
+        ? Math.floor(normalized.bg.y / normalized.grid.cellSize)
         : 0;
 
       const totalUncoveredCols = uncoveredLeftCols + uncoveredCols;
@@ -347,11 +361,11 @@ export default function TacticalMapEditor({
         if (!ok) return;
 
         mapToSave = {
-          ...map,
+          ...normalized,
           grid: {
-            ...map.grid,
-            cols: map.grid.cols - uncoveredCols,   // only trim right side
-            rows: map.grid.rows - uncoveredRows,   // only trim bottom side
+            ...normalized.grid,
+            cols: normalized.grid.cols - uncoveredCols,   // only trim right side
+            rows: normalized.grid.rows - uncoveredRows,   // only trim bottom side
           },
         };
       }
