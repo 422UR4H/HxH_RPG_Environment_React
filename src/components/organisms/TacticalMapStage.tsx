@@ -234,7 +234,7 @@ export default function TacticalMapStage({
   );
 }
 
-type DragState = {
+type BgDragState = {
   startWorldX: number;
   startWorldY: number;
   startBgX: number;
@@ -267,7 +267,7 @@ function ViewportInner({
 }: Props) {
   const { app } = useApplication();
   const vpRef = useRef<Viewport | null>(null);
-  const dragState = useRef<DragState>(null);
+  const bgDragState = useRef<BgDragState>(null);
   const [vpScale, setVpScale] = useState(1);
   const [placementHoverSlot, setPlacementHoverSlot] = useState<SlotCoord | null>(null);
 
@@ -318,10 +318,8 @@ function ViewportInner({
 
   useEffect(() => {
     const onWindowDown = (e: PointerEvent) => {
-      // Resolve canvas dynamically — avoids storing a possibly-stale reference
-      // captured at effect-registration time.
       const canvas = app?.renderer ? app.canvas : null;
-      if (!canvas || placingNpcId || bgInteractive || e.button !== 0) return;
+      if (!canvas || placingNpcId || e.button !== 0) return;
       const rect = canvas.getBoundingClientRect();
       if (
         e.clientX < rect.left || e.clientX > rect.right ||
@@ -336,6 +334,10 @@ function ViewportInner({
           pieceDragActiveRef.current = false;
           return;
         }
+        // bgDragState is set synchronously by BgLayer's Pixi onPointerDown (which
+        // fires before this window handler in the same tick), so if the bg sprite
+        // was clicked it's already non-null here and we skip pan.
+        if (bgInteractive && bgDragState.current) return;
         isPanningRef.current = true;
         panStartClientRef.current = { x: snapX, y: snapY };
         panStartVpRef.current = { x: vp.x, y: vp.y };
@@ -343,6 +345,18 @@ function ViewportInner({
     };
 
     const onWindowMove = (e: PointerEvent) => {
+      if (bgDragState.current) {
+        const canvas = app?.renderer ? app.canvas : null;
+        const vp = vpRef.current;
+        if (!canvas || !vp) return;
+        const rect = canvas.getBoundingClientRect();
+        const world = vp.toWorld(e.clientX - rect.left, e.clientY - rect.top);
+        onBgPositionChange?.(
+          bgDragState.current.startBgX + (world.x - bgDragState.current.startWorldX),
+          bgDragState.current.startBgY + (world.y - bgDragState.current.startWorldY),
+        );
+        return;
+      }
       if (!isPanningRef.current) return;
       const vp = vpRef.current;
       if (!vp) return;
@@ -350,7 +364,10 @@ function ViewportInner({
       vp.y = panStartVpRef.current.y + (e.clientY - panStartClientRef.current.y);
     };
 
-    const onWindowUp = () => { isPanningRef.current = false; };
+    const onWindowUp = () => {
+      isPanningRef.current = false;
+      bgDragState.current = null;
+    };
 
     window.addEventListener("pointerdown", onWindowDown);
     window.addEventListener("pointermove", onWindowMove);
@@ -364,7 +381,7 @@ function ViewportInner({
       window.removeEventListener("pointercancel", onWindowUp);
       isPanningRef.current = false;
     };
-  }, [app, placingNpcId, bgInteractive]);
+  }, [app, placingNpcId, bgInteractive, onBgPositionChange]);
 
   // ─── NPC placement ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -459,8 +476,10 @@ function ViewportInner({
       <BgLayer
         bg={map.bg}
         bgInteractive={bgInteractive}
-        dragState={dragState}
-        onBgPositionChange={onBgPositionChange}
+        vpRef={vpRef}
+        onBgPointerDown={(startWorldX, startWorldY, startBgX, startBgY) => {
+          bgDragState.current = { startWorldX, startWorldY, startBgX, startBgY };
+        }}
         onLoadingChange={onBgLoadingChange}
       />
       <GridLayer grid={map.grid} vpScale={vpScale} />
@@ -491,14 +510,14 @@ function ViewportInner({
 function BgLayer({
   bg,
   bgInteractive,
-  dragState,
-  onBgPositionChange,
+  vpRef,
+  onBgPointerDown,
   onLoadingChange,
 }: {
   bg: TacticalMap["bg"];
   bgInteractive?: boolean;
-  dragState?: MutableRefObject<DragState>;
-  onBgPositionChange?: (x: number, y: number) => void;
+  vpRef?: MutableRefObject<Viewport | null>;
+  onBgPointerDown?: (startWorldX: number, startWorldY: number, startBgX: number, startBgY: number) => void;
   onLoadingChange?: (loading: boolean) => void;
 }) {
   const [texture, setTexture] = useState<Texture | null>(null);
@@ -537,33 +556,18 @@ function BgLayer({
   if (!bg || !texture) return null;
 
   const handlePointerDown = (e: FederatedPointerEvent) => {
-    if (!bgInteractive || !dragState || !bg) return;
+    if (!bgInteractive || !vpRef?.current) return;
     e.stopPropagation();
-    dragState.current = {
-      startWorldX: e.global.x,
-      startWorldY: e.global.y,
-      startBgX: bg.x,
-      startBgY: bg.y,
-    };
-  };
-
-  const handlePointerMove = (e: FederatedPointerEvent) => {
-    if (!bgInteractive || !dragState?.current || !onBgPositionChange) return;
-    onBgPositionChange(
-      dragState.current.startBgX + (e.global.x - dragState.current.startWorldX),
-      dragState.current.startBgY + (e.global.y - dragState.current.startWorldY),
-    );
-  };
-
-  const handlePointerUp = () => {
-    if (dragState) dragState.current = null;
+    const world = vpRef.current.toWorld(e.global.x, e.global.y);
+    onBgPointerDown?.(world.x, world.y, bg.x, bg.y);
   };
 
   return (
     <pixiSprite
       texture={texture}
-      x={bg.x}
-      y={bg.y}
+      anchor={0.5}
+      x={bg.x + bg.width / 2}
+      y={bg.y + bg.height / 2}
       width={bg.width}
       height={bg.height}
       rotation={(bg.rotation * Math.PI) / 180}
@@ -571,9 +575,6 @@ function BgLayer({
       eventMode={bgInteractive ? "static" : "none"}
       cursor={bgInteractive ? "grab" : "default"}
       onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerUpOutside={handlePointerUp}
     />
   );
 }
