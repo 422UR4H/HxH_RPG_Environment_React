@@ -580,6 +580,9 @@ function BgLayer({
 }
 
 function GridLayer({ grid, vpScale }: { grid: GridShape; vpScale: number }) {
+  const gridCenterX = (grid.cols * grid.cellSize) / 2;
+  const gridCenterY = (grid.rows * grid.cellSize) / 2;
+
   const draw = useCallback(
     (g: PixiGraphics) => {
       g.clear();
@@ -617,7 +620,16 @@ function GridLayer({ grid, vpScale }: { grid: GridShape; vpScale: number }) {
     [grid, vpScale],
   );
 
-  return <pixiGraphics draw={draw} />;
+  return (
+    <pixiContainer
+      pivot={{ x: gridCenterX, y: gridCenterY }}
+      position={{ x: gridCenterX, y: gridCenterY }}
+      rotation={(grid.rotation * Math.PI) / 180}
+      scale={{ x: 1, y: grid.skewRatio }}
+    >
+      <pixiGraphics draw={draw} />
+    </pixiContainer>
+  );
 }
 
 // No containerRef: piece position is driven by React state (dragWorldPos) to
