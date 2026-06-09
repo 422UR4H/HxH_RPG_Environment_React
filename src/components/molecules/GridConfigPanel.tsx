@@ -9,7 +9,7 @@ type Props = {
   onChange: (grid: GridShape) => void;
 };
 
-type IntField = "cols" | "rows" | "cellSize";
+type IntField = "cols" | "rows" | "cellSize" | "rotation";
 
 export default function GridConfigPanel({ grid, onChange }: Props) {
   const [drafts, setDrafts] = useState<Partial<Record<IntField, string>>>({});
@@ -115,6 +115,46 @@ export default function GridConfigPanel({ grid, onChange }: Props) {
           onChange={(e) => update({ opacity: parseFloat(e.target.value) })}
         />
       </Field>
+
+      <Field>
+        <FieldLabel htmlFor="grid-rotation">
+          Rotação ({grid.rotation}°)
+        </FieldLabel>
+        <NumInput
+          id="grid-rotation"
+          type="number"
+          min={-180}
+          max={180}
+          step={1}
+          value={inputValue("rotation")}
+          onChange={handleInt("rotation", -180, 180)}
+        />
+      </Field>
+
+      <Field>
+        <FieldLabel htmlFor="grid-skew">
+          Perspectiva (
+          {grid.skewRatio === 1
+            ? "Top-down"
+            : grid.skewRatio <= 0.5
+              ? "Isométrico"
+              : "Semi-isométrico"}
+          )
+        </FieldLabel>
+        <OpacityRange
+          id="grid-skew"
+          type="range"
+          min={0.3}
+          max={1.0}
+          step={0.05}
+          value={grid.skewRatio}
+          onChange={(e) => update({ skewRatio: parseFloat(e.target.value) })}
+        />
+        <SkewLabels>
+          <span>Isométrico</span>
+          <span>Top-down</span>
+        </SkewLabels>
+      </Field>
     </Panel>
   );
 }
@@ -191,4 +231,12 @@ const OpacityRange = styled.input`
   width: 100%;
   accent-color: ${colors.brandAccent};
   cursor: pointer;
+`;
+
+const SkewLabels = styled.div`
+  display: flex;
+  justify-content: space-between;
+  font-family: ${fonts.sans};
+  font-size: 11px;
+  color: ${colors.textDisabled};
 `;
