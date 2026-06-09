@@ -3,7 +3,7 @@ import styled from "styled-components";
 import imageCompression from "browser-image-compression";
 import { colors, fonts } from "../../styles/tokens";
 import { IMAGE_PICKER_TIP } from "../../constants/uiStrings";
-import { computeCoverFit, deriveGridFromImage } from "../../features/tactical-map/utils/bgFit";
+import { computeCoverFit, fitGridToImage } from "../../features/tactical-map/utils/bgFit";
 import useToken from "../../hooks/useToken";
 import { usePresignedUpload } from "../../hooks/usePresignedUpload";
 import type { BgImage, GridShape } from "../../types/tacticalMap";
@@ -47,11 +47,7 @@ export default function BgImagePanel({ bg, grid, mapId, onBgChange, onGridChange
   const [drafts, setDrafts] = useState<Partial<Record<NumField, string>>>({});
   const applyImage = (url: string, nw: number, nh: number, r2Url?: string) => {
     setNaturalSize({ w: nw, h: nh });
-    const newGrid = deriveGridFromImage(nw, nh, grid);
-    // Fit against the DERIVED grid, not the old one. computeCoverFit scales the
-    // image to cover the grid it's given; using the old grid (often square and
-    // larger) makes a landscape image scale up and then overflow once the grid
-    // resizes to the image's aspect ratio.
+    const newGrid = fitGridToImage(nw, nh, grid);
     const fit = computeCoverFit(nw, nh, newGrid);
     const bgValue = { ...fit, url, r2Url };
     if (onApplyBg) onApplyBg(bgValue, newGrid);
@@ -172,8 +168,14 @@ export default function BgImagePanel({ bg, grid, mapId, onBgChange, onGridChange
     if (!bg) return;
     const nw = naturalSize?.w ?? bg.width;
     const nh = naturalSize?.h ?? bg.height;
-    const fit = computeCoverFit(nw, nh, grid);
-    onBgChange({ ...fit, url: bg.url, r2Url: bg.r2Url });
+    const newGrid = fitGridToImage(nw, nh, grid);
+    const fit = computeCoverFit(nw, nh, newGrid);
+    if (onApplyBg) {
+      onApplyBg({ ...fit, url: bg.url, r2Url: bg.r2Url }, newGrid);
+    } else {
+      onGridChange(newGrid);
+      onBgChange({ ...fit, url: bg.url, r2Url: bg.r2Url });
+    }
     setScaleXPct(100);
     setDrafts({});
   };
