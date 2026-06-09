@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeCoverFit, deriveGridFromImage, fitGridToImage } from "../bgFit";
+import { computeCoverFit, deriveGridFromImage, fitCellSizeToImage } from "../bgFit";
 import type { GridShape } from "../../../../types/tacticalMap";
 
 const grid = (cols: number, rows: number, cellSize: number): GridShape => ({
@@ -78,42 +78,47 @@ const hexGrid = (cols: number, rows: number, cellSize: number): GridShape => ({
   lineStyle: "solid" as const,
 });
 
-describe("fitGridToImage", () => {
-  it("square: computes cols/rows from naturalSize and cellSize (rounds nearest)", () => {
-    // 1200÷60=20, 800÷60≈13.33→13
-    const result = fitGridToImage(1200, 800, grid(10, 10, 60));
-    expect(result.cols).toBe(20);
-    expect(result.rows).toBe(13);
-    expect(result.cellSize).toBe(60); // unchanged
+describe("fitCellSizeToImage", () => {
+  it("square: adjusts only cellSize, keeping cols/rows (covers image → max pitch)", () => {
+    // cols=10, rows=10. max(1200/10, 800/10) = max(120, 80) = 120.
+    const result = fitCellSizeToImage(1200, 800, grid(10, 10, 60));
+    expect(result.cellSize).toBe(120);
+    expect(result.cols).toBe(10); // unchanged
+    expect(result.rows).toBe(10); // unchanged
   });
 
-  it("square: clamps cols/rows to max 200", () => {
-    const result = fitGridToImage(10000, 10000, grid(10, 10, 1));
-    expect(result.cols).toBe(200);
-    expect(result.rows).toBe(200);
+  it("square: clamps cellSize to max 256", () => {
+    // max(10000/10, 10000/10) = 1000 → clamped to 256.
+    const result = fitCellSizeToImage(10000, 10000, grid(10, 10, 40));
+    expect(result.cellSize).toBe(256);
+    expect(result.cols).toBe(10);
+    expect(result.rows).toBe(10);
   });
 
-  it("square: clamps cols/rows to min 1", () => {
-    const result = fitGridToImage(10, 10, grid(5, 5, 500));
-    expect(result.cols).toBe(1);
-    expect(result.rows).toBe(1);
+  it("square: clamps cellSize to min 8", () => {
+    // max(10/5, 10/5) = 2 → clamped to 8.
+    const result = fitCellSizeToImage(10, 10, grid(5, 5, 50));
+    expect(result.cellSize).toBe(8);
   });
 
   it("square: preserves all other grid fields", () => {
     const g = grid(10, 10, 60);
-    const result = fitGridToImage(1200, 800, g);
+    const result = fitCellSizeToImage(1200, 800, g);
     expect(result.kind).toBe("square");
+    expect(result.cols).toBe(g.cols);
+    expect(result.rows).toBe(g.rows);
     expect(result.color).toBe(g.color);
     expect(result.opacity).toBe(g.opacity);
     expect(result.skewRatio).toBe(g.skewRatio);
     expect(result.rotation).toBe(g.rotation);
   });
 
-  it("hex: computes cols/rows from hex geometry", () => {
-    // hexW = 40*sqrt(3)≈69.28 → 1000/69.28≈14.43 → 14; hexH = 40*1.5=60 → 900/60=15
-    const result = fitGridToImage(1000, 900, hexGrid(5, 5, 40));
-    expect(result.cols).toBe(14);
-    expect(result.rows).toBe(15);
-    expect(result.cellSize).toBe(40);
+  it("hex: adjusts only cellSize from hex geometry, keeping cols/rows", () => {
+    // cols=5, rows=5. horizontal: 1000/(5*sqrt(3))≈115.47; vertical: 900/(5*1.5)=120.
+    // max → 120.
+    const result = fitCellSizeToImage(1000, 900, hexGrid(5, 5, 40));
+    expect(result.cellSize).toBe(120);
+    expect(result.cols).toBe(5);
+    expect(result.rows).toBe(5);
   });
 });

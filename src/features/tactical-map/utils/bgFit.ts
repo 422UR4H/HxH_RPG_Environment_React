@@ -36,20 +36,24 @@ export function deriveGridFromImage(
   return { ...grid, cellSize, rows };
 }
 
-export function fitGridToImage(
+// Fits the grid to the image by adjusting ONLY cellSize (the slot pixel size),
+// keeping the user-defined cols/rows untouched. cellSize is chosen so the grid
+// rectangle covers the image: the larger per-axis pitch wins, so the grid is at
+// least as large as the image in both dimensions (one axis matches exactly).
+// Clamped to the editor's cellSize bounds [8, 256].
+export function fitCellSizeToImage(
   naturalWidth: number,
   naturalHeight: number,
   grid: GridShape,
 ): GridShape {
+  const clamp = (v: number) => Math.max(8, Math.min(256, Math.round(v)));
   if (grid.kind === "square") {
-    const cols = Math.max(1, Math.min(200, Math.round(naturalWidth / grid.cellSize)));
-    const rows = Math.max(1, Math.min(200, Math.round(naturalHeight / grid.cellSize)));
-    return { ...grid, cols, rows };
+    const cellSize = clamp(Math.max(naturalWidth / grid.cols, naturalHeight / grid.rows));
+    return { ...grid, cellSize };
   }
-  // hex (point-top): hexW = cellSize * sqrt(3), hexH = cellSize * 1.5
-  const hexW = grid.cellSize * Math.sqrt(3);
-  const hexH = grid.cellSize * 1.5;
-  const cols = Math.max(1, Math.min(200, Math.round(naturalWidth / hexW)));
-  const rows = Math.max(1, Math.min(200, Math.round(naturalHeight / hexH)));
-  return { ...grid, cols, rows };
+  // hex (point-top): horizontal pitch = cellSize*sqrt(3), vertical pitch = cellSize*1.5
+  const cellSize = clamp(
+    Math.max(naturalWidth / (grid.cols * Math.sqrt(3)), naturalHeight / (grid.rows * 1.5)),
+  );
+  return { ...grid, cellSize };
 }

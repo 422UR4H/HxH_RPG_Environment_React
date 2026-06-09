@@ -9,16 +9,16 @@ type Props = {
   onChange: (grid: GridShape) => void;
 };
 
-type IntField = "cols" | "rows" | "cellSize" | "rotation";
+type NumField = "cols" | "rows" | "cellSize" | "rotation" | "skewRatio";
 
 export default function GridConfigPanel({ grid, onChange }: Props) {
-  const [drafts, setDrafts] = useState<Partial<Record<IntField, string>>>({});
+  const [drafts, setDrafts] = useState<Partial<Record<NumField, string>>>({});
 
   const update = (patch: Partial<GridShape>) =>
     onChange({ ...grid, ...patch });
 
   const handleInt =
-    (key: IntField, min: number, max: number) =>
+    (key: NumField, min: number, max: number) =>
     (e: ChangeEvent<HTMLInputElement>) => {
       const raw = e.target.value;
       setDrafts((prev) => ({ ...prev, [key]: raw }));
@@ -26,8 +26,21 @@ export default function GridConfigPanel({ grid, onChange }: Props) {
       if (!isNaN(v) && v >= min && v <= max) update({ [key]: v });
     };
 
-  const inputValue = (key: IntField): string | number =>
-    drafts[key] !== undefined ? drafts[key] : grid[key];
+  // Like handleInt but keeps decimals — needed for precise isometric tuning
+  // (rotation angle and perspective ratio differ per map).
+  const handleFloat =
+    (key: NumField, min: number, max: number) =>
+    (e: ChangeEvent<HTMLInputElement>) => {
+      const raw = e.target.value;
+      setDrafts((prev) => ({ ...prev, [key]: raw }));
+      const v = parseFloat(raw);
+      if (!isNaN(v) && v >= min && v <= max) update({ [key]: v });
+    };
+
+  const inputValue = (key: NumField): string | number =>
+    drafts[key] !== undefined ? (drafts[key] as string) : grid[key];
+
+  const fmtDeg = (v: number) => (Number.isInteger(v) ? `${v}` : v.toFixed(1));
 
   return (
     <Panel>
@@ -138,16 +151,16 @@ export default function GridConfigPanel({ grid, onChange }: Props) {
 
       <Field>
         <FieldLabel htmlFor="grid-rotation">
-          Rotação ({grid.rotation}°)
+          Rotação ({fmtDeg(grid.rotation)}°)
         </FieldLabel>
         <NumInput
           id="grid-rotation"
           type="number"
           min={-180}
           max={180}
-          step={1}
+          step={0.1}
           value={inputValue("rotation")}
-          onChange={handleInt("rotation", -180, 180)}
+          onChange={handleFloat("rotation", -180, 180)}
         />
       </Field>
 
@@ -161,15 +174,29 @@ export default function GridConfigPanel({ grid, onChange }: Props) {
               : "Semi-isométrico"}
           )
         </FieldLabel>
-        <OpacityRange
-          id="grid-skew"
-          type="range"
-          min={0.3}
-          max={1.0}
-          step={0.05}
-          value={grid.skewRatio}
-          onChange={(e) => update({ skewRatio: parseFloat(e.target.value) })}
-        />
+        <SkewRow>
+          <OpacityRange
+            id="grid-skew"
+            type="range"
+            min={0.3}
+            max={1.0}
+            step={0.01}
+            value={grid.skewRatio}
+            onChange={(e) => {
+              setDrafts((prev) => ({ ...prev, skewRatio: undefined }));
+              update({ skewRatio: parseFloat(e.target.value) });
+            }}
+          />
+          <SkewInput
+            type="number"
+            aria-label="Valor da perspectiva"
+            min={0.3}
+            max={1.0}
+            step={0.01}
+            value={inputValue("skewRatio")}
+            onChange={handleFloat("skewRatio", 0.3, 1.0)}
+          />
+        </SkewRow>
         <SkewLabels>
           <span>Isométrico</span>
           <span>Top-down</span>
@@ -251,6 +278,29 @@ const OpacityRange = styled.input`
   width: 100%;
   accent-color: ${colors.brandAccent};
   cursor: pointer;
+`;
+
+const SkewRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const SkewInput = styled.input`
+  width: 64px;
+  flex-shrink: 0;
+  font-family: ${fonts.sans};
+  font-size: clamp(12px, 3.5cqi, 15px);
+  color: ${colors.textPrimary};
+  background: ${colors.surfaceInput};
+  border: 1px solid ${colors.borderInput};
+  border-radius: 6px;
+  padding: clamp(6px, 2cqi, 8px) clamp(6px, 2cqi, 8px);
+  outline: none;
+
+  &:focus {
+    border-color: ${colors.brandAccentBright};
+  }
 `;
 
 const SkewLabels = styled.div`
