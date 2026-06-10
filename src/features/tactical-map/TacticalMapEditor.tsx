@@ -11,7 +11,7 @@ import ConfirmDialog from "../../components/molecules/ConfirmDialog";
 import { useResizeObserver } from "../../hooks/useResizeObserver";
 import { createEditorStore } from "./store/editorStore";
 import type { EditorStore } from "./store/editorStore";
-import type { TacticalMap, SlotCoord } from "../../types/tacticalMap";
+import type { TacticalMap, SlotCoord, WallType, WallMaterial, WallSegment } from "../../types/tacticalMap";
 import useToken from "../../hooks/useToken";
 import { useCampaignDetails } from "../../hooks/useCampaignDetails";
 import type { CharacterPrivateSummary } from "../../types/characterSheet";
@@ -55,6 +55,10 @@ export default function TacticalMapEditor({
   const setPieceZ = store((s) => s.setPieceZ);
   const removePiece = store((s) => s.removePiece);
   const setSelection = store((s) => s.setSelection);
+  const walls = store((s) => s.map.walls);
+  const addWallSegments = store((s) => s.addWallSegments);
+  const updateWallSegment = store((s) => s.updateWallSegment);
+  const removeWallSegment = store((s) => s.removeWallSegment);
 
   const { undo, redo, canUndo, canRedo, beginGesture, endGesture } = useEditorHistory(store);
 
@@ -94,6 +98,10 @@ export default function TacticalMapEditor({
   // Current canvas zoom — used to size the drag ghost to match the on-screen
   // token (which scales with zoom in the Pixi viewport).
   const [viewportScale, setViewportScale] = useState(1);
+
+  // Wall tool local state — not persisted in the undo history
+  const [activeWallType, setActiveWallType] = useState<WallType>("wall");
+  const [activeMaterial, setActiveMaterial] = useState<WallMaterial>("stone");
 
   const ghostRef = useRef<HTMLDivElement>(null);
   const canvasDragGhostRef = useRef<HTMLDivElement>(null);
@@ -441,6 +449,17 @@ export default function TacticalMapEditor({
           onRedo={redo}
           canUndo={canUndo}
           canRedo={canRedo}
+          activeWallType={activeWallType}
+          activeMaterial={activeMaterial}
+          onWallTypeChange={setActiveWallType}
+          onMaterialChange={setActiveMaterial}
+          selectedWall={
+            selection?.kind === "wall"
+              ? (walls.find((w) => w.id === selection.id) ?? null)
+              : null
+          }
+          onWallUpdate={updateWallSegment}
+          onRemoveWall={(id) => { removeWallSegment(id); setSelection(null); }}
         />
       }
     >
@@ -477,6 +496,19 @@ export default function TacticalMapEditor({
             onGridChange={setGrid}
             onDragGestureStart={beginGesture}
             onDragGestureEnd={endGesture}
+            walls={walls}
+            wallsInteractive={activeTool === "walls"}
+            selectedWallId={selection?.kind === "wall" ? selection.id : null}
+            activeWallType={activeWallType}
+            activeMaterial={activeMaterial}
+            onWallSelect={(id) => setSelection(id ? { kind: "wall", id } : null)}
+            onDrawComplete={(segments) => {
+              addWallSegments(segments);
+              endGesture();
+            }}
+            onWallEndpointDrag={(wallId, point, localPos) =>
+              updateWallSegment(wallId, { [point]: localPos } as Partial<WallSegment>)
+            }
           />
         )}
       </div>
