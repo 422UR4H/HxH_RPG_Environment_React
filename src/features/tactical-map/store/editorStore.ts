@@ -117,8 +117,7 @@ export function createEditorStore(initialMap: TacticalMap) {
         updateWallSegment: (id, patch) =>
           set((s) => {
             const w = s.map.walls.find((x) => x.id === id);
-            if (w) Object.assign(w, patch);
-            s.isDirty = true;
+            if (w) { Object.assign(w, patch); s.isDirty = true; }
           }),
         removeWallSegment: (id) =>
           set((s) => { s.map.walls = s.map.walls.filter((x) => x.id !== id); s.isDirty = true; }),
