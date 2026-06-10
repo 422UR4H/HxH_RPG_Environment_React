@@ -13,6 +13,8 @@ import type { TacticalMap, GridShape, Piece, SlotCoord, BgImage } from "../../ty
 import type { CharacterPrivateSummary } from "../../types/characterSheet";
 import type { Selection, ToolKind } from "../../features/tactical-map/store/editorStore";
 import MapHandlesLayer from "./MapHandlesLayer";
+import WallsLayer from "./WallsLayer";
+import type { WallSegment, WallType, WallMaterial } from "../../types/tacticalMap";
 import { slotToWorld, worldToSlot, isSlotInBounds, slotCorners, applyTransform, slotInradius } from "../../features/tactical-map/utils/coords";
 
 extend({ Container, Graphics, Sprite, Text, Viewport });
@@ -148,6 +150,14 @@ type Props = {
   // Bracket a canvas drag (bg move + handle drags) as one undo step.
   onDragGestureStart?: () => void;
   onDragGestureEnd?: () => void;
+  walls?: WallSegment[];
+  wallsInteractive?: boolean;
+  selectedWallId?: string | null;
+  activeWallType?: WallType;
+  activeMaterial?: WallMaterial;
+  onWallSelect?: (id: string | null) => void;
+  onDrawComplete?: (segments: WallSegment[]) => void;
+  onWallEndpointDrag?: (wallId: string, point: "p1" | "p2", localPos: [number, number]) => void;
 };
 
 export default function TacticalMapStage({
@@ -177,6 +187,14 @@ export default function TacticalMapStage({
   onGridChange,
   onDragGestureStart,
   onDragGestureEnd,
+  walls = [],
+  wallsInteractive = false,
+  selectedWallId = null,
+  activeWallType = "wall" as WallType,
+  activeMaterial = "stone" as WallMaterial,
+  onWallSelect,
+  onDrawComplete,
+  onWallEndpointDrag,
 }: Props) {
   const [isBgLoading, setIsBgLoading] = useState(() => !!map.bg?.url);
   const bgUrl = map.bg?.url;
@@ -237,6 +255,14 @@ export default function TacticalMapStage({
           onGridChange={onGridChange}
           onDragGestureStart={onDragGestureStart}
           onDragGestureEnd={onDragGestureEnd}
+          walls={walls}
+          wallsInteractive={wallsInteractive}
+          selectedWallId={selectedWallId}
+          activeWallType={activeWallType}
+          activeMaterial={activeMaterial}
+          onWallSelect={onWallSelect}
+          onDrawComplete={onDrawComplete}
+          onWallEndpointDrag={onWallEndpointDrag}
         />
       </Application>
       {(isBgLoading || uploading) && (
@@ -286,8 +312,17 @@ function ViewportInner({
   onGridChange,
   onDragGestureStart,
   onDragGestureEnd,
+  walls,
+  wallsInteractive,
+  selectedWallId,
+  activeWallType,
+  activeMaterial,
+  onWallSelect,
+  onDrawComplete,
+  onWallEndpointDrag,
 }: Props) {
   const { app } = useApplication();
+  const canvasEl = app?.renderer ? (app.canvas as HTMLCanvasElement) : null;
   const vpRef = useRef<Viewport | null>(null);
   const bgDragState = useRef<BgDragState>(null);
   const [vpScale, setVpScale] = useState(1);
@@ -363,6 +398,7 @@ function ViewportInner({
         // fires before this window handler in the same tick), so if the bg sprite
         // was clicked it's already non-null here and we skip pan.
         if (bgInteractive && bgDragState.current) return;
+        if (activeTool === "walls") return;
         isPanningRef.current = true;
         panStartClientRef.current = { x: snapX, y: snapY };
         panStartVpRef.current = { x: vp.x, y: vp.y };
@@ -526,7 +562,22 @@ function ViewportInner({
         onStageDeselect={onStageDeselect}
         onEmptySlotClick={onEmptySlotClick}
       />
-      <pixiContainer label="walls-layer" />
+      <WallsLayer
+        walls={walls ?? []}
+        grid={map.grid}
+        vpRef={vpRef}
+        vpScale={vpScale}
+        canvasEl={canvasEl}
+        wallsInteractive={wallsInteractive ?? false}
+        selectedWallId={selectedWallId ?? null}
+        activeWallType={activeWallType ?? "wall"}
+        activeMaterial={activeMaterial ?? "stone"}
+        onWallSelect={onWallSelect ?? (() => {})}
+        onDrawComplete={onDrawComplete ?? (() => {})}
+        onEndpointDrag={onWallEndpointDrag ?? (() => {})}
+        onGestureStart={onDragGestureStart ?? (() => {})}
+        onGestureEnd={onDragGestureEnd ?? (() => {})}
+      />
       <pixiContainer label="overlay-layer">
         {activeTool && onBgChange && onGridChange && (
           <MapHandlesLayer
