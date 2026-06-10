@@ -444,7 +444,7 @@ function ViewportInner({
       window.removeEventListener("pointercancel", onWindowUp);
       isPanningRef.current = false;
     };
-  }, [app, placingNpcId, bgInteractive, onBgPositionChange, onDragGestureEnd]);
+  }, [app, placingNpcId, bgInteractive, onBgPositionChange, onDragGestureEnd, activeTool]);
 
   // ─── NPC placement ────────────────────────────────────────────────────────
   useEffect(() => {
