@@ -120,15 +120,18 @@ export default function WallsLayer({
         onWallSelect(null);
       }
 
+      // Check for double-click (same snap point twice) — finish the polyline
+      const currentPts = drawRef.current.polylinePoints;
+      if (currentPts.length > 0) {
+        const last = currentPts[currentPts.length - 1];
+        if (Math.abs(last[0] - pt[0]) < 1 && Math.abs(last[1] - pt[1]) < 1) {
+          finishPolyline();
+          return;
+        }
+      }
+
       setDraw((s) => {
         const pts = [...s.polylinePoints, pt];
-        // Double-click (same point twice) = finish
-        if (s.polylinePoints.length > 0) {
-          const last = s.polylinePoints[s.polylinePoints.length - 1];
-          if (Math.abs(last[0] - pt[0]) < 1 && Math.abs(last[1] - pt[1]) < 1) {
-            return s;
-          }
-        }
         if (pts.length === 1) onGestureStart();
         return { ...s, polylinePoints: pts };
       });
