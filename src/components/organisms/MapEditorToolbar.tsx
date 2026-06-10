@@ -1,13 +1,15 @@
 import { useState, type ChangeEvent } from "react";
 import styled from "styled-components";
 import type { ToolKind } from "../../features/tactical-map/store/editorStore";
-import type { BgImage, GridShape, Piece } from "../../types/tacticalMap";
+import type { BgImage, GridShape, Piece, WallSegment, WallType, WallMaterial } from "../../types/tacticalMap";
 import type { CharacterPrivateSummary } from "../../types/characterSheet";
 import { fitGridAndCover } from "../../features/tactical-map/utils/bgFit";
 import GridConfigPanel from "../molecules/GridConfigPanel";
 import BgImagePanel from "../molecules/BgImagePanel";
 import NpcRosterPanel from "../molecules/NpcRosterPanel";
 import PiecePropertyPanel from "../molecules/PiecePropertyPanel";
+import WallTypeChips from "../molecules/WallTypeChips";
+import WallConfigPanel from "../molecules/WallConfigPanel";
 import InlineFeedback from "../ions/InlineFeedback";
 import { colors, fonts } from "../../styles/tokens";
 
@@ -46,6 +48,14 @@ type Props = {
   onRedo: () => void;
   canUndo: boolean;
   canRedo: boolean;
+  // Fase 10 — walls
+  activeWallType: WallType;
+  activeMaterial: WallMaterial;
+  onWallTypeChange: (t: WallType) => void;
+  onMaterialChange: (m: WallMaterial) => void;
+  selectedWall: WallSegment | null;
+  onWallUpdate: (id: string, patch: Partial<WallSegment>) => void;
+  onRemoveWall: (id: string) => void;
 };
 
 type TabDef = {
@@ -58,7 +68,7 @@ const TABS: TabDef[] = [
   { tool: "bg", label: "Fundo", enabled: true },
   { tool: "grid", label: "Grade", enabled: true },
   { tool: "pieces", label: "Peças", enabled: true },
-  { tool: "walls", label: "Paredes", enabled: false },
+  { tool: "walls", label: "Paredes", enabled: true },
   { tool: "decorations", label: "Decorações", enabled: false },
 ];
 
@@ -97,6 +107,14 @@ export default function MapEditorToolbar({
   onRedo,
   canUndo,
   canRedo,
+  // Fase 10 — walls
+  activeWallType,
+  activeMaterial,
+  onWallTypeChange,
+  onMaterialChange,
+  selectedWall,
+  onWallUpdate,
+  onRemoveWall,
 }: Props) {
   const handleNameChange = (e: ChangeEvent<HTMLInputElement>) => {
     onNameChange(e.target.value);
@@ -201,6 +219,23 @@ export default function MapEditorToolbar({
               onPointerDownNpc={onPointerDownNpc}
             />
           </PiecesPanel>
+        )}
+        {activeTool === "walls" && (
+          <>
+            <WallTypeChips
+              activeType={activeWallType}
+              activeMaterial={activeMaterial}
+              onTypeChange={onWallTypeChange}
+              onMaterialChange={onMaterialChange}
+            />
+            {selectedWall && (
+              <WallConfigPanel
+                wall={selectedWall}
+                onUpdate={(patch) => onWallUpdate(selectedWall.id, patch)}
+                onRemove={() => onRemoveWall(selectedWall.id)}
+              />
+            )}
+          </>
         )}
       </PanelArea>
 
