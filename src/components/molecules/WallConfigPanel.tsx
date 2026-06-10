@@ -43,7 +43,7 @@ export default function WallConfigPanel({ wall, onUpdate, onRemove }: Props) {
 }
 
 const Container = styled.div`
-  display: flex; flex-direction: column; gap: 10px; padding: 12px 0;
+  display: flex; flex-direction: column; gap: 10px; padding: 12px;
   font-family: ${fonts.sans};
 `;
 const Header = styled.div`display: flex; justify-content: space-between; align-items: center;`;

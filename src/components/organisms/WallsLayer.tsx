@@ -65,12 +65,13 @@ export default function WallsLayer({
     const pts = drawRef.current.polylinePoints;
     if (pts.length >= 2) {
       const mat = activeMaterialRef.current;
+      const wallType = activeWallTypeRef.current;
       const attrs: Omit<WallSegment, "id" | "p1" | "p2"> = {
-        wallType: activeWallTypeRef.current,
+        wallType,
         material: mat,
         move: true,
         sense: "full",
-        direction: activeWallTypeRef.current === "terrain" ? "left" : "both",
+        direction: wallType === "terrain" ? "left" : "both",
         open: false,
         locked: false,
         hp: HP_DEFAULTS[mat],
@@ -78,9 +79,17 @@ export default function WallsLayer({
         resistance: RESISTANCE_DEFAULTS[mat],
         destroyed: false,
       };
+      // Openings (door/window/secret_door) must not be split at midpoints —
+      // explodePolyline would turn a 1-cell door into two half-cell segments.
+      const isOpening = wallType === "door" || wallType === "window" || wallType === "secret_door";
       const all: WallSegment[] = [];
-      for (let i = 0; i < pts.length - 1; i++)
-        all.push(...explodePolyline(pts[i], pts[i + 1], attrs, gridRef.current));
+      for (let i = 0; i < pts.length - 1; i++) {
+        if (isOpening) {
+          all.push({ ...attrs, id: crypto.randomUUID(), p1: pts[i], p2: pts[i + 1] });
+        } else {
+          all.push(...explodePolyline(pts[i], pts[i + 1], attrs, gridRef.current));
+        }
+      }
       if (all.length > 0) { onDrawComplete(all); onGestureEnd(); }
     }
     setDraw({ polylinePoints: [], previewPoint: null });
@@ -92,7 +101,12 @@ export default function WallsLayer({
     const rect = canvasEl.getBoundingClientRect();
     const world = vp.toWorld(e.clientX - rect.left, e.clientY - rect.top);
     const local = inverseTransform({ x: world.x, y: world.y }, gridRef.current);
-    return snapWallPoint([local.x, local.y], gridRef.current, SNAP_THRESHOLD_SCREEN / vpScale);
+    const raw: [number, number] = [local.x, local.y];
+    const threshold = SNAP_THRESHOLD_SCREEN / vpScale;
+    const snapped = snapWallPoint(raw, gridRef.current, threshold);
+    // Only return a point within snap threshold — enforces grid-bound drawing
+    const dist = Math.hypot(snapped[0] - raw[0], snapped[1] - raw[1]);
+    return dist < threshold ? snapped : null;
   }, [vpRef, canvasEl, vpScale]);
 
   useEffect(() => {
@@ -109,18 +123,34 @@ export default function WallsLayer({
       if (e.clientX < rect.left || e.clientX > rect.right ||
           e.clientY < rect.top  || e.clientY > rect.bottom) return;
 
-      const pt = toLocal(e);
-      if (!pt) return;
+      // Compute raw + snapped positions to separate "draw" (near snap) from "select" (mid-wall)
+      const vp = vpRef.current;
+      if (!vp) return;
+      const world = vp.toWorld(e.clientX - rect.left, e.clientY - rect.top);
+      const rawLocal = inverseTransform({ x: world.x, y: world.y }, gridRef.current);
+      const rawPt: [number, number] = [rawLocal.x, rawLocal.y];
+      const threshold = SNAP_THRESHOLD_SCREEN / vpScale;
+      const snappedPt = snapWallPoint(rawPt, gridRef.current, threshold);
+      const distToSnap = Math.hypot(snappedPt[0] - rawPt[0], snappedPt[1] - rawPt[1]);
+      const isNearSnap = distToSnap < threshold;
 
-      // If not drawing, check for wall selection first
+      // When NOT drawing: near snap point → start drawing; far from snap → try selection
       if (drawRef.current.polylinePoints.length === 0) {
-        const HIT = 8 / vpScale;
-        const hit = findNearestWall(pt, wallsRef.current, HIT);
-        if (hit) { onWallSelect(hit.id); return; }
+        if (!isNearSnap) {
+          const HIT = 8 / vpScale;
+          const hit = findNearestWall(rawPt, wallsRef.current, HIT);
+          if (hit) { onWallSelect(hit.id); return; }
+          onWallSelect(null);
+          return;
+        }
+        // Near snap point: deselect and fall through to start drawing
         onWallSelect(null);
       }
 
-      // Check for double-click (same snap point twice) — finish the polyline
+      if (!isNearSnap) return;
+      const pt = snappedPt;
+
+      // Double-click (same snap point twice) → finish polyline
       const currentPts = drawRef.current.polylinePoints;
       if (currentPts.length > 0) {
         const last = currentPts[currentPts.length - 1];
@@ -128,6 +158,32 @@ export default function WallsLayer({
           finishPolyline();
           return;
         }
+      }
+
+      // Auto-finish openings (door/window/secret_door) after exactly 2 points —
+      // avoids requiring Escape or double-click for single-segment openings.
+      const wallType = activeWallTypeRef.current;
+      if ((wallType === "door" || wallType === "window" || wallType === "secret_door")
+          && currentPts.length === 1) {
+        const mat = activeMaterialRef.current;
+        onDrawComplete([{
+          id: crypto.randomUUID(),
+          p1: currentPts[0], p2: pt,
+          wallType,
+          material: mat,
+          move: true,
+          sense: "full",
+          direction: "both",
+          open: false,
+          locked: false,
+          hp: HP_DEFAULTS[mat],
+          maxHp: HP_DEFAULTS[mat],
+          resistance: RESISTANCE_DEFAULTS[mat],
+          destroyed: false,
+        }]);
+        onGestureEnd();
+        setDraw({ polylinePoints: [], previewPoint: null });
+        return;
       }
 
       setDraw((s) => {

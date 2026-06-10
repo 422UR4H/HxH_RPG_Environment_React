@@ -52,7 +52,7 @@ export default function WallTypeChips({ activeType, activeMaterial, onTypeChange
 }
 
 const Container = styled.div`
-  display: flex; flex-direction: column; gap: 12px; padding: 12px 0;
+  display: flex; flex-direction: column; gap: 12px; padding: 12px;
 `;
 const Section = styled.div`
   display: flex; flex-direction: column; gap: 6px;
