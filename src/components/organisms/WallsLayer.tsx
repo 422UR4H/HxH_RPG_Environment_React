@@ -219,10 +219,18 @@ export default function WallsLayer({
       if (w.material !== material || w.id === selectedWallId) continue;
       const a1 = applyTransform({ x: w.p1[0], y: w.p1[1] }, grid);
       const a2 = applyTransform({ x: w.p2[0], y: w.p2[1] }, grid);
-      g.setStrokeStyle({ color, width, alpha: w.destroyed ? 0.4 : 1.0 });
-      g.moveTo(a1.x, a1.y); g.lineTo(a2.x, a2.y); g.stroke();
+      const alpha = w.destroyed ? 0.4 : 1.0;
+      if (w.wallType === "secret_door") {
+        drawDashedLine(g, a1, a2, color, width, alpha);
+      } else {
+        g.setStrokeStyle({ color, width, alpha });
+        g.moveTo(a1.x, a1.y); g.lineTo(a2.x, a2.y); g.stroke();
+      }
+      if (w.wallType === "door" || w.wallType === "window") {
+        drawWallTypeSymbol(g, w.wallType, a1, a2, color, vpScale);
+      }
     }
-  }, [walls, grid, selectedWallId]);
+  }, [walls, grid, selectedWallId, vpScale]);
 
   const drawSelected = useCallback((g: PixiGraphics) => {
     g.clear();
@@ -295,6 +303,68 @@ export default function WallsLayer({
       <pixiGraphics draw={drawPreview} />
     </>
   );
+}
+
+// ─── Wall-type visual helpers ─────────────────────────────────────────────
+
+function drawDashedLine(
+  g: import("pixi.js").Graphics,
+  a1: { x: number; y: number },
+  a2: { x: number; y: number },
+  color: number,
+  width: number,
+  alpha: number,
+) {
+  const dx = a2.x - a1.x, dy = a2.y - a1.y;
+  const totalLen = Math.hypot(dx, dy);
+  if (totalLen < 0.1) return;
+  const ux = dx / totalLen, uy = dy / totalLen;
+  const dashLen = 8, gapLen = 4;
+  let t = 0, drawing = true;
+  while (t < totalLen) {
+    const end = Math.min(t + (drawing ? dashLen : gapLen), totalLen);
+    if (drawing) {
+      g.setStrokeStyle({ color, width, alpha });
+      g.moveTo(a1.x + t * ux, a1.y + t * uy);
+      g.lineTo(a1.x + end * ux, a1.y + end * uy);
+      g.stroke();
+    }
+    t = end;
+    drawing = !drawing;
+  }
+}
+
+function drawWallTypeSymbol(
+  g: import("pixi.js").Graphics,
+  wallType: "door" | "window",
+  a1: { x: number; y: number },
+  a2: { x: number; y: number },
+  color: number,
+  vpScale: number,
+) {
+  const dx = a2.x - a1.x, dy = a2.y - a1.y;
+  const len = Math.hypot(dx, dy);
+  if (len < 0.1) return;
+  const nx = -dy / len, ny = dx / len; // unit normal perpendicular to wall
+
+  if (wallType === "door") {
+    // Quarter-circle arc at a1 (hinge) showing the door swing toward a2
+    const radius = Math.min(len * 0.85, 20 / vpScale);
+    const angle = Math.atan2(dy, dx);
+    g.setStrokeStyle({ color, width: Math.max(1, 1.5 / vpScale), alpha: 0.9 });
+    g.arc(a1.x, a1.y, radius, angle, angle + Math.PI / 2);
+    g.stroke();
+  } else {
+    // Window: two perpendicular tick marks at 1/3 and 2/3
+    const tickLen = 5 / vpScale;
+    for (const t of [1 / 3, 2 / 3]) {
+      const px = a1.x + t * dx, py = a1.y + t * dy;
+      g.setStrokeStyle({ color, width: Math.max(1, 1.5 / vpScale), alpha: 0.85 });
+      g.moveTo(px - nx * tickLen, py - ny * tickLen);
+      g.lineTo(px + nx * tickLen, py + ny * tickLen);
+      g.stroke();
+    }
+  }
 }
 
 function ptSegDist(px: number, py: number, ax: number, ay: number, bx: number, by: number): number {

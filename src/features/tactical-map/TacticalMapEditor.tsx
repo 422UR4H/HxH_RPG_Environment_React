@@ -56,7 +56,7 @@ export default function TacticalMapEditor({
   const removePiece = store((s) => s.removePiece);
   const setSelection = store((s) => s.setSelection);
   const walls = store((s) => s.map.walls);
-  const addWallSegments = store((s) => s.addWallSegments);
+  const mergeWalls = store((s) => s.mergeWalls);
   const updateWallSegment = store((s) => s.updateWallSegment);
   const removeWallSegment = store((s) => s.removeWallSegment);
 
@@ -503,7 +503,7 @@ export default function TacticalMapEditor({
             activeMaterial={activeMaterial}
             onWallSelect={(id) => setSelection(id ? { kind: "wall", id } : null)}
             onDrawComplete={(segments) => {
-              addWallSegments(segments);
+              mergeWalls(segments);
               endGesture();
             }}
             onWallEndpointDrag={(wallId, point, localPos) =>

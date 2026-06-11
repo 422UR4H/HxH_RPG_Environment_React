@@ -10,6 +10,7 @@ import type {
   TacticalMap,
   WallSegment,
 } from "../../../types/tacticalMap";
+import { resolveOverlaps } from "../utils/walls";
 
 export type ToolKind = "grid" | "bg" | "pieces" | "walls" | "decorations";
 
@@ -39,6 +40,7 @@ export type EditorState = {
   setPieceZ: (pieceId: string, z: number) => void;
   removePiece: (pieceId: string) => void;
   addWallSegments: (segments: WallSegment[]) => void;
+  mergeWalls: (segments: WallSegment[]) => void;
   updateWallSegment: (id: string, patch: Partial<WallSegment>) => void;
   removeWallSegment: (id: string) => void;
   setActiveTool: (tool: ToolKind) => void;
@@ -114,6 +116,13 @@ export function createEditorStore(initialMap: TacticalMap) {
           }),
         addWallSegments: (segments) =>
           set((s) => { s.map.walls.push(...segments); s.isDirty = true; }),
+        mergeWalls: (segments) =>
+          set((s) => {
+            const { toAdd, toRemove } = resolveOverlaps(segments, s.map.walls);
+            s.map.walls = s.map.walls.filter((w) => !toRemove.has(w.id));
+            s.map.walls.push(...toAdd);
+            s.isDirty = true;
+          }),
         updateWallSegment: (id, patch) =>
           set((s) => {
             const w = s.map.walls.find((x) => x.id === id);
