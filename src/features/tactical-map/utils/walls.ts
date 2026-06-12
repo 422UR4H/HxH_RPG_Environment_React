@@ -212,3 +212,60 @@ export function resolveOverlaps(
 
   return { toAdd, toRemove };
 }
+
+// ─── Movement blocking ────────────────────────────────────────────────────────
+
+/**
+ * Returns true if the straight path from→to (world coords) is blocked by any wall
+ * with move=true and open=false. Respects WallDirection: "left" blocks only movement
+ * coming from the left side of the wall vector p1→p2; "right" from the right; "both" always.
+ */
+export function isMovementBlocked(
+  from: [number, number],
+  to: [number, number],
+  walls: WallSegment[],
+): boolean {
+  for (const w of walls) {
+    if (!w.move || w.open) continue;
+    if (!_segmentsIntersect(from, to, w.p1, w.p2)) continue;
+    if (w.direction === "both") return true;
+    // Cross product of wall vector (p2-p1) with (from-p1).
+    // Positive → from is to the LEFT of the wall direction.
+    const wx = w.p2[0] - w.p1[0];
+    const wy = w.p2[1] - w.p1[1];
+    const fx = from[0] - w.p1[0];
+    const fy = from[1] - w.p1[1];
+    const cross = wx * fy - wy * fx;
+    if (w.direction === "left" && cross > 0) return true;
+    if (w.direction === "right" && cross < 0) return true;
+  }
+  return false;
+}
+
+function _segmentsIntersect(
+  a: [number, number], b: [number, number],
+  c: [number, number], d: [number, number],
+): boolean {
+  const d1 = _cross(c, d, a);
+  const d2 = _cross(c, d, b);
+  const d3 = _cross(a, b, c);
+  const d4 = _cross(a, b, d);
+  if (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) &&
+      ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0))) return true;
+  const EPS = 1e-9;
+  if (Math.abs(d1) < EPS && _onSeg(c, d, a)) return true;
+  if (Math.abs(d2) < EPS && _onSeg(c, d, b)) return true;
+  if (Math.abs(d3) < EPS && _onSeg(a, b, c)) return true;
+  if (Math.abs(d4) < EPS && _onSeg(a, b, d)) return true;
+  return false;
+}
+
+function _cross(a: [number, number], b: [number, number], p: [number, number]): number {
+  return (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]);
+}
+
+function _onSeg(a: [number, number], b: [number, number], p: [number, number]): boolean {
+  const EPS = 1e-9;
+  return p[0] >= Math.min(a[0], b[0]) - EPS && p[0] <= Math.max(a[0], b[0]) + EPS &&
+         p[1] >= Math.min(a[1], b[1]) - EPS && p[1] <= Math.max(a[1], b[1]) + EPS;
+}

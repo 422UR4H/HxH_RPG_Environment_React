@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { collectGridSnapPoints, snapWallPoint, explodePolyline } from "../walls";
-import type { GridShape } from "../../../../types/tacticalMap";
+import { collectGridSnapPoints, snapWallPoint, explodePolyline, isMovementBlocked } from "../walls";
+import type { GridShape, WallSegment } from "../../../../types/tacticalMap";
 
 const sq = (cellSize = 64): GridShape => ({
   kind: "square", cols: 4, rows: 4, cellSize,
@@ -77,5 +77,56 @@ describe("explodePolyline", () => {
     expect(segs[0].wallType).toBe("wall");
     expect(segs[0].material).toBe("stone");
     expect(segs[0].hp).toBe(100);
+  });
+});
+
+function seg(p1: [number, number], p2: [number, number], overrides: Partial<WallSegment> = {}): WallSegment {
+  return {
+    id: "w", p1, p2,
+    wallType: "wall", material: "stone",
+    move: true, open: false, locked: false,
+    sense: "full", direction: "both",
+    hp: 100, maxHp: 100, resistance: 5, destroyed: false,
+    ...overrides,
+  };
+}
+
+describe("isMovementBlocked", () => {
+  it("returns false with no walls", () => {
+    expect(isMovementBlocked([0, 0], [100, 0], [])).toBe(false);
+  });
+
+  it("returns true when path crosses a blocking wall", () => {
+    // vertical wall at x=50; path goes horizontally through it
+    const w = seg([50, 0], [50, 100]);
+    expect(isMovementBlocked([0, 50], [100, 50], [w])).toBe(true);
+  });
+
+  it("returns false for parallel wall", () => {
+    const w = seg([0, 20], [100, 20]);
+    expect(isMovementBlocked([0, 50], [100, 50], [w])).toBe(false);
+  });
+
+  it("returns false for open door", () => {
+    const w = seg([50, 0], [50, 100], { wallType: "door", open: true });
+    expect(isMovementBlocked([0, 50], [100, 50], [w])).toBe(false);
+  });
+
+  it("returns false for wall with move=false", () => {
+    const w = seg([50, 0], [50, 100], { move: false });
+    expect(isMovementBlocked([0, 50], [100, 50], [w])).toBe(false);
+  });
+
+  it("direction=left does not block from the right side", () => {
+    // wall vector p1→p2: (50,0)→(50,100) points downward.
+    // from=(100,50) is to the RIGHT → NOT blocked by direction=left wall.
+    const w = seg([50, 0], [50, 100], { direction: "left" });
+    expect(isMovementBlocked([100, 50], [0, 50], [w])).toBe(false);
+  });
+
+  it("direction=left blocks from the left side", () => {
+    // from=(0,50) is to the LEFT → blocked
+    const w = seg([50, 0], [50, 100], { direction: "left" });
+    expect(isMovementBlocked([0, 50], [100, 50], [w])).toBe(true);
   });
 });
