@@ -92,7 +92,11 @@ export default function WallsLayer({
       }
       if (all.length > 0) { onDrawComplete(all); onGestureEnd(); }
     }
-    setDraw({ polylinePoints: [], previewPoint: null });
+    // Sync ref immediately so rapid follow-up clicks see the cleared state
+    // before the component re-renders (prevents stale auto-finish re-trigger).
+    const empty: DrawState = { polylinePoints: [], previewPoint: null };
+    drawRef.current = empty;
+    setDraw(empty);
   }, [onDrawComplete, onGestureEnd]);
 
   const toLocal = useCallback((e: PointerEvent): [number, number] | null => {
@@ -186,7 +190,11 @@ export default function WallsLayer({
           destroyed: false,
         }]);
         onGestureEnd();
-        setDraw({ polylinePoints: [], previewPoint: null });
+        // Sync ref immediately so a rapid next click sees the cleared state
+        // before re-render (prevents stale auto-finish from firing again).
+        const empty: DrawState = { polylinePoints: [], previewPoint: null };
+        drawRef.current = empty;
+        setDraw(empty);
         return;
       }
 
