@@ -35,6 +35,8 @@ type Props = {
   onEndpointDrag: (wallId: string, point: "p1" | "p2", localPos: [number, number]) => void;
   onGestureStart: () => void;
   onGestureEnd: () => void;
+  drawingEnabled: boolean;
+  onExitDrawMode: () => void;
 };
 
 type DrawState = {
@@ -47,11 +49,20 @@ export default function WallsLayer({
   wallsInteractive, selectedWallId,
   activeWallType, activeMaterial,
   onWallSelect, onDrawComplete, onGestureStart, onGestureEnd,
+  drawingEnabled, onExitDrawMode,
 }: Props) {
   const [draw, setDraw] = useState<DrawState>({ polylinePoints: [], previewPoint: null });
 
   const drawRef = useRef(draw);
   drawRef.current = draw;
+
+  useEffect(() => {
+    if (!drawingEnabled) {
+      const empty: DrawState = { polylinePoints: [], previewPoint: null };
+      drawRef.current = empty;
+      setDraw(empty);
+    }
+  }, [drawingEnabled]);
   const wallsRef = useRef(walls);
   wallsRef.current = walls;
   const gridRef = useRef(grid);
@@ -60,6 +71,10 @@ export default function WallsLayer({
   activeMaterialRef.current = activeMaterial;
   const activeWallTypeRef = useRef(activeWallType);
   activeWallTypeRef.current = activeWallType;
+  const drawingEnabledRef = useRef(drawingEnabled);
+  drawingEnabledRef.current = drawingEnabled;
+  const onExitDrawModeRef = useRef(onExitDrawMode);
+  onExitDrawModeRef.current = onExitDrawMode;
 
   const finishPolyline = useCallback(() => {
     const pts = drawRef.current.polylinePoints;
@@ -115,6 +130,7 @@ export default function WallsLayer({
     if (!wallsInteractive) return;
 
     const onMove = (e: PointerEvent) => {
+      if (!drawingEnabledRef.current) return;
       const pt = toLocal(e, e.shiftKey);
       if (pt) setDraw((s) => ({ ...s, previewPoint: pt }));
     };
@@ -132,17 +148,26 @@ export default function WallsLayer({
       }
       if (e.button !== 0) return;
 
-      // Shift = free mode (exact cursor position, no snap); no shift = snap to grid
+      // Browse mode: only wall selection; events pass through so viewport pans.
       const vp = vpRef.current;
       if (!vp) return;
       const world = vp.toWorld(e.clientX - rect.left, e.clientY - rect.top);
       const rawLocal = inverseTransform({ x: world.x, y: world.y }, gridRef.current);
       const rawPt: [number, number] = [rawLocal.x, rawLocal.y];
+
+      if (!drawingEnabledRef.current) {
+        const HIT = 8 / vpScale;
+        const hit = findNearestWall(rawPt, wallsRef.current, HIT);
+        onWallSelect(hit ? hit.id : null);
+        return;
+      }
+
+      // Draw mode: Shift = free position; no Shift = snap to grid
       const pt: [number, number] | null = e.shiftKey
         ? rawPt
         : snapWallPoint(rawPt, gridRef.current, SNAP_THRESHOLD_SCREEN / vpScale);
 
-      // When NOT drawing: free mode or near snap point → start drawing; otherwise → select/pan
+      // When NOT yet drawing: need a valid snap/free point to start; otherwise select or pan
       if (drawRef.current.polylinePoints.length === 0) {
         if (!pt) {
           const HIT = 8 / vpScale;
@@ -203,7 +228,14 @@ export default function WallsLayer({
       });
     };
 
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") finishPolyline(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (drawRef.current.polylinePoints.length > 0) {
+        finishPolyline();
+      } else if (drawingEnabledRef.current) {
+        onExitDrawModeRef.current();
+      }
+    };
     const onContextMenu = (e: MouseEvent) => { e.preventDefault(); };
 
     window.addEventListener("pointermove", onMove, { passive: true });
@@ -271,7 +303,7 @@ export default function WallsLayer({
 
   const drawPreview = useCallback((g: PixiGraphics) => {
     g.clear();
-    if (!wallsInteractive) return;
+    if (!wallsInteractive || !drawingEnabled) return;
     const { polylinePoints, previewPoint } = draw;
     const color = MATERIAL_COLOR[activeMaterial];
     const width = MATERIAL_WIDTH[activeMaterial];
@@ -306,7 +338,7 @@ export default function WallsLayer({
       g.setFillStyle({ color: 0xffffff, alpha: 0.7 });
       g.circle(a.x, a.y, 3 / vpScale); g.fill();
     }
-  }, [draw, wallsInteractive, grid, activeMaterial, vpScale]);
+  }, [draw, wallsInteractive, drawingEnabled, grid, activeMaterial, vpScale]);
 
   return (
     <>

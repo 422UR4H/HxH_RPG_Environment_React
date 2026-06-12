@@ -579,6 +579,8 @@ function ViewportInner({
         onEndpointDrag={onWallEndpointDrag ?? (() => {})}
         onGestureStart={() => { wallGestureActiveRef.current = true; (onDragGestureStart ?? (() => {}))(); }}
         onGestureEnd={() => { wallGestureActiveRef.current = false; (onDragGestureEnd ?? (() => {}))(); }}
+        drawingEnabled={true}
+        onExitDrawMode={() => {}}
       />
       <pixiContainer label="overlay-layer">
         {activeTool && onBgChange && onGridChange && (
