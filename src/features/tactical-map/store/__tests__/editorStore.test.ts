@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createEditorStore } from "../editorStore";
 import { mapFixture } from "../../../../test/fixtures/map";
+import type { WallSegment } from "../../../../types/tacticalMap";
 
 describe("editorStore", () => {
   it("setName atualiza map.name e marca isDirty", () => {
@@ -111,5 +112,47 @@ describe("editorStore — histórico zundo", () => {
     expect(store.getState().isDirty).toBe(false);
     store.getState().markDirty();
     expect(store.getState().isDirty).toBe(true);
+  });
+});
+
+// ─── Wall action tests ──────────────────────────────────────────────────────
+
+const mockWall = (): WallSegment => ({
+  id: "w1", p1: [0, 0], p2: [64, 0],
+  wallType: "wall", material: "stone",
+  move: true, sense: "full", direction: "both",
+  open: false, locked: false, hp: 100, maxHp: 100, resistance: 5, destroyed: false,
+});
+
+describe("editorStore — wall actions", () => {
+  it("addWallSegments appends and marks dirty", () => {
+    const store = createEditorStore(mapFixture);
+    store.getState().addWallSegments([mockWall()]);
+    expect(store.getState().map.walls).toHaveLength(1);
+    expect(store.getState().map.walls[0].id).toBe("w1");
+    expect(store.getState().isDirty).toBe(true);
+  });
+
+  it("updateWallSegment patches by id", () => {
+    const store = createEditorStore(mapFixture);
+    store.getState().addWallSegments([mockWall()]);
+    store.getState().updateWallSegment("w1", { locked: true, hp: 50 });
+    const w = store.getState().map.walls[0];
+    expect(w.locked).toBe(true);
+    expect(w.hp).toBe(50);
+  });
+
+  it("removeWallSegment removes by id", () => {
+    const store = createEditorStore(mapFixture);
+    store.getState().addWallSegments([mockWall()]);
+    store.getState().removeWallSegment("w1");
+    expect(store.getState().map.walls).toHaveLength(0);
+    expect(store.getState().isDirty).toBe(true);
+  });
+
+  it("setSelection supports kind=wall", () => {
+    const store = createEditorStore(mapFixture);
+    store.getState().setSelection({ kind: "wall", id: "w1" });
+    expect(store.getState().selection).toEqual({ kind: "wall", id: "w1" });
   });
 });

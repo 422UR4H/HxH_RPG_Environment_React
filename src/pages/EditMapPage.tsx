@@ -34,6 +34,7 @@ export default function EditMapPage() {
       grid: updatedMap.grid,
       bg: updatedMap.bg,
       pieces: updatedMap.pieces,
+      walls: updatedMap.walls,
     });
   };
 

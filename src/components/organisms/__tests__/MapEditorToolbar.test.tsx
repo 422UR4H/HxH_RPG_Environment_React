@@ -38,6 +38,16 @@ const baseProps = {
   onRedo: vi.fn(),
   canUndo: false,
   canRedo: false,
+  // Fase 10 — walls
+  activeWallType: "wall" as const,
+  activeMaterial: "stone" as const,
+  wallsDrawMode: "browse" as const,
+  onEnterWallsDrawMode: vi.fn(),
+  onExitWallsDrawMode: vi.fn(),
+  onMaterialChange: vi.fn(),
+  selectedWall: null,
+  onWallUpdate: vi.fn(),
+  onRemoveWall: vi.fn(),
 };
 
 describe("MapEditorToolbar", () => {
@@ -51,9 +61,9 @@ describe("MapEditorToolbar", () => {
     expect(screen.getByRole("button", { name: /decorações/i })).toBeInTheDocument();
   });
 
-  it("abas walls e decorações estão desabilitadas", () => {
+  it("aba decorações está desabilitada e walls está habilitada", () => {
     render(<MapEditorToolbar {...baseProps} />);
-    expect(screen.getByRole("button", { name: /paredes/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /paredes/i })).not.toBeDisabled();
     expect(screen.getByRole("button", { name: /decorações/i })).toBeDisabled();
   });
 

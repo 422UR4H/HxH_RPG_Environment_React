@@ -11,7 +11,7 @@ import ConfirmDialog from "../../components/molecules/ConfirmDialog";
 import { useResizeObserver } from "../../hooks/useResizeObserver";
 import { createEditorStore } from "./store/editorStore";
 import type { EditorStore } from "./store/editorStore";
-import type { TacticalMap, SlotCoord } from "../../types/tacticalMap";
+import type { TacticalMap, SlotCoord, WallType, WallMaterial, WallSegment } from "../../types/tacticalMap";
 import useToken from "../../hooks/useToken";
 import { useCampaignDetails } from "../../hooks/useCampaignDetails";
 import type { CharacterPrivateSummary } from "../../types/characterSheet";
@@ -55,6 +55,10 @@ export default function TacticalMapEditor({
   const setPieceZ = store((s) => s.setPieceZ);
   const removePiece = store((s) => s.removePiece);
   const setSelection = store((s) => s.setSelection);
+  const walls = store((s) => s.map.walls);
+  const mergeWalls = store((s) => s.mergeWalls);
+  const updateWallSegment = store((s) => s.updateWallSegment);
+  const removeWallSegment = store((s) => s.removeWallSegment);
 
   const { undo, redo, canUndo, canRedo, beginGesture, endGesture } = useEditorHistory(store);
 
@@ -94,6 +98,24 @@ export default function TacticalMapEditor({
   // Current canvas zoom — used to size the drag ghost to match the on-screen
   // token (which scales with zoom in the Pixi viewport).
   const [viewportScale, setViewportScale] = useState(1);
+
+  // Wall tool local state — not persisted in the undo history
+  const [activeWallType, setActiveWallType] = useState<WallType>("wall");
+  const [activeMaterial, setActiveMaterial] = useState<WallMaterial>("stone");
+  const [wallsDrawMode, setWallsDrawMode] = useState<"browse" | "draw">("browse");
+
+  const enterWallsDrawMode = useCallback((type: WallType) => {
+    setActiveWallType(type);
+    setWallsDrawMode("draw");
+  }, []);
+
+  const exitWallsDrawMode = useCallback(() => {
+    setWallsDrawMode("browse");
+  }, []);
+
+  useEffect(() => {
+    if (activeTool !== "walls") setWallsDrawMode("browse");
+  }, [activeTool]);
 
   const ghostRef = useRef<HTMLDivElement>(null);
   const canvasDragGhostRef = useRef<HTMLDivElement>(null);
@@ -202,6 +224,16 @@ export default function TacticalMapEditor({
         e.preventDefault();
         redo();
         return;
+      }
+
+      // Delete key removes selected wall
+      if (e.key === "Delete") {
+        const sel = store.getState().selection;
+        if (sel?.kind === "wall") {
+          store.getState().removeWallSegment(sel.id);
+          store.getState().setSelection(null);
+          return;
+        }
       }
 
       // Teclas de peça — lê o estado atual via getState() para evitar re-registrar
@@ -386,9 +418,13 @@ export default function TacticalMapEditor({
       markClean();
       setSaveSuccess("Mapa salvo!");
       onSaveSuccess?.();
-    } catch {
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })
+        ?.response?.data?.detail ?? "";
       setSaveError(
-        "Não foi possível salvar. Suas alterações estão protegidas localmente.",
+        detail === "wall segment out of grid bounds"
+          ? "Uma ou mais paredes estão fora dos limites do mapa. Ajuste ou remova-as antes de salvar."
+          : "Não foi possível salvar. Suas alterações estão protegidas localmente.",
       );
     } finally {
       setIsSaving(false);
@@ -441,6 +477,19 @@ export default function TacticalMapEditor({
           onRedo={redo}
           canUndo={canUndo}
           canRedo={canRedo}
+          activeWallType={activeWallType}
+          activeMaterial={activeMaterial}
+          wallsDrawMode={wallsDrawMode}
+          onEnterWallsDrawMode={enterWallsDrawMode}
+          onExitWallsDrawMode={exitWallsDrawMode}
+          onMaterialChange={setActiveMaterial}
+          selectedWall={
+            selection?.kind === "wall"
+              ? (walls.find((w) => w.id === selection.id) ?? null)
+              : null
+          }
+          onWallUpdate={updateWallSegment}
+          onRemoveWall={(id) => { removeWallSegment(id); setSelection(null); }}
         />
       }
     >
@@ -477,6 +526,21 @@ export default function TacticalMapEditor({
             onGridChange={setGrid}
             onDragGestureStart={beginGesture}
             onDragGestureEnd={endGesture}
+            walls={walls}
+            wallsInteractive={activeTool === "walls"}
+            drawingEnabled={activeTool === "walls" && wallsDrawMode === "draw"}
+            onExitWallsDrawMode={exitWallsDrawMode}
+            selectedWallId={selection?.kind === "wall" ? selection.id : null}
+            activeWallType={activeWallType}
+            activeMaterial={activeMaterial}
+            onWallSelect={(id) => setSelection(id ? { kind: "wall", id } : null)}
+            onDrawComplete={(segments) => {
+              mergeWalls(segments);
+              endGesture();
+            }}
+            onWallEndpointDrag={(wallId, point, localPos) =>
+              updateWallSegment(wallId, { [point]: localPos } as Partial<WallSegment>)
+            }
           />
         )}
       </div>

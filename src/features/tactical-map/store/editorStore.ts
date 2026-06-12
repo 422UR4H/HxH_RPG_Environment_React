@@ -8,7 +8,9 @@ import type {
   Piece,
   SlotCoord,
   TacticalMap,
+  WallSegment,
 } from "../../../types/tacticalMap";
+import { resolveOverlaps } from "../utils/walls";
 
 export type ToolKind = "grid" | "bg" | "pieces" | "walls" | "decorations";
 
@@ -19,6 +21,7 @@ export const HISTORY_LIMIT = 100;
 export type Selection =
   | { kind: "piece"; id: string }
   | { kind: "decoration"; id: string }
+  | { kind: "wall"; id: string }
   | null;
 
 export type EditorState = {
@@ -36,6 +39,10 @@ export type EditorState = {
   movePiece: (pieceId: string, slot: SlotCoord) => void;
   setPieceZ: (pieceId: string, z: number) => void;
   removePiece: (pieceId: string) => void;
+  addWallSegments: (segments: WallSegment[]) => void;
+  mergeWalls: (segments: WallSegment[]) => void;
+  updateWallSegment: (id: string, patch: Partial<WallSegment>) => void;
+  removeWallSegment: (id: string) => void;
   setActiveTool: (tool: ToolKind) => void;
   setSelection: (sel: Selection) => void;
   markClean: () => void;
@@ -107,6 +114,22 @@ export function createEditorStore(initialMap: TacticalMap) {
             s.map.pieces = s.map.pieces.filter((x) => x.id !== pieceId);
             s.isDirty = true;
           }),
+        addWallSegments: (segments) =>
+          set((s) => { s.map.walls.push(...segments); s.isDirty = true; }),
+        mergeWalls: (segments) =>
+          set((s) => {
+            const { toAdd, toRemove } = resolveOverlaps(segments, s.map.walls);
+            s.map.walls = s.map.walls.filter((w) => !toRemove.has(w.id));
+            s.map.walls.push(...toAdd);
+            s.isDirty = true;
+          }),
+        updateWallSegment: (id, patch) =>
+          set((s) => {
+            const w = s.map.walls.find((x) => x.id === id);
+            if (w) { Object.assign(w, patch); s.isDirty = true; }
+          }),
+        removeWallSegment: (id) =>
+          set((s) => { s.map.walls = s.map.walls.filter((x) => x.id !== id); s.isDirty = true; }),
         setActiveTool: (tool) =>
           set((s) => {
             s.activeTool = tool;

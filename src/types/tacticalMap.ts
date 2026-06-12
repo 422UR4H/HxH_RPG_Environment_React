@@ -56,13 +56,54 @@ export type Piece = {
   visible: boolean;    // Fase 7. Default true. Evolui pra visibleTo: 'all' | UserId[]
 };
 
-// ─── Capacidades futuras (placeholders declarados desde já) ────────────────
-export type Wall = {
+// ─── Paredes ────────────────────────────────────────────────────────────────
+export type WallType =
+  | "wall"
+  | "door"
+  | "window"
+  | "secret_door"
+  | "terrain";
+
+export type WallMaterial =
+  | "stone"
+  | "wood"
+  | "iron"
+  | "magical";
+
+export type DoorSubtype =
+  | "basic"
+  | "double"
+  | "portcullis"
+  | "drawbridge";
+
+export type WindowSubtype =
+  | "basic"
+  | "barred"
+  | "shuttered";
+
+export type SenseKind = "full" | "sight" | "none";
+export type WallDirection = "both" | "left" | "right";
+
+export type WallSegment = {
   id: string;
-  points: Array<[number, number]>; // pares (x,y) em coords do mundo
-  thickness: number;
+  p1: [number, number];  // local (pre-transform) grid coords
+  p2: [number, number];
+  wallType: WallType;
+  material: WallMaterial;
+  doorSubtype?: DoorSubtype;
+  windowSubtype?: WindowSubtype;
+  move: boolean;
+  sense: SenseKind;
+  direction: WallDirection;
+  open: boolean;
+  locked: boolean;
+  hp: number;
+  maxHp: number;
+  resistance: number;
+  destroyed: boolean;
 };
 
+// ─── Capacidades futuras (placeholders declarados desde já) ────────────────
 export type Decoration = {
   id: string;
   url: string;
@@ -97,7 +138,7 @@ export type TacticalMap = {
   grid: GridShape;
   bg: BgImage;
   pieces: Piece[];
-  walls: Wall[];         // [] por enquanto
+  walls: WallSegment[];
   decorations: Decoration[]; // []
   items: MapItem[];      // []
   createdAt: string;     // ISO
