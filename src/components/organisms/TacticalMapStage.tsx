@@ -325,6 +325,7 @@ function ViewportInner({
   const canvasEl = app?.renderer ? (app.canvas as HTMLCanvasElement) : null;
   const vpRef = useRef<Viewport | null>(null);
   const bgDragState = useRef<BgDragState>(null);
+  const wallGestureActiveRef = useRef(false);
   const [vpScale, setVpScale] = useState(1);
   const [placementHoverSlot, setPlacementHoverSlot] = useState<SlotCoord | null>(null);
 
@@ -398,7 +399,8 @@ function ViewportInner({
         // fires before this window handler in the same tick), so if the bg sprite
         // was clicked it's already non-null here and we skip pan.
         if (bgInteractive && bgDragState.current) return;
-        if (activeTool === "walls") return;
+        // Suppress pan only while a wall is being drawn; clicks outside snap area still pan.
+        if (wallGestureActiveRef.current) return;
         isPanningRef.current = true;
         panStartClientRef.current = { x: snapX, y: snapY };
         panStartVpRef.current = { x: vp.x, y: vp.y };
@@ -575,8 +577,8 @@ function ViewportInner({
         onWallSelect={onWallSelect ?? (() => {})}
         onDrawComplete={onDrawComplete ?? (() => {})}
         onEndpointDrag={onWallEndpointDrag ?? (() => {})}
-        onGestureStart={onDragGestureStart ?? (() => {})}
-        onGestureEnd={onDragGestureEnd ?? (() => {})}
+        onGestureStart={() => { wallGestureActiveRef.current = true; (onDragGestureStart ?? (() => {}))(); }}
+        onGestureEnd={() => { wallGestureActiveRef.current = false; (onDragGestureEnd ?? (() => {}))(); }}
       />
       <pixiContainer label="overlay-layer">
         {activeTool && onBgChange && onGridChange && (

@@ -33,15 +33,16 @@ export function collectGridSnapPoints(grid: GridShape): [number, number][] {
   return pts;
 }
 
-// localPos in local (pre-transform) grid space. Returns best snap or localPos.
+// localPos in local (pre-transform) grid space.
+// Returns the nearest grid snap point within thresholdLocal, or null if none is close enough.
 export function snapWallPoint(
   localPos: [number, number],
   grid: GridShape,
   thresholdLocal = 15,
-): [number, number] {
+): [number, number] | null {
   const candidates = collectGridSnapPoints(grid);
   let bestSq = thresholdLocal * thresholdLocal;
-  let best: [number, number] = localPos;
+  let best: [number, number] | null = null;
   for (const c of candidates) {
     const dx = c[0] - localPos[0], dy = c[1] - localPos[1];
     const dSq = dx * dx + dy * dy;

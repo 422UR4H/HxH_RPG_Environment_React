@@ -103,10 +103,8 @@ export default function WallsLayer({
     const local = inverseTransform({ x: world.x, y: world.y }, gridRef.current);
     const raw: [number, number] = [local.x, local.y];
     const threshold = SNAP_THRESHOLD_SCREEN / vpScale;
-    const snapped = snapWallPoint(raw, gridRef.current, threshold);
-    // Only return a point within snap threshold — enforces grid-bound drawing
-    const dist = Math.hypot(snapped[0] - raw[0], snapped[1] - raw[1]);
-    return dist < threshold ? snapped : null;
+    // snapWallPoint returns null when no grid point is within threshold (outside grid)
+    return snapWallPoint(raw, gridRef.current, threshold);
   }, [vpRef, canvasEl, vpScale]);
 
   useEffect(() => {
@@ -118,36 +116,42 @@ export default function WallsLayer({
     };
 
     const onDown = (e: PointerEvent) => {
-      if (e.button !== 0 || !canvasEl) return;
+      if (!canvasEl) return;
       const rect = canvasEl.getBoundingClientRect();
       if (e.clientX < rect.left || e.clientX > rect.right ||
           e.clientY < rect.top  || e.clientY > rect.bottom) return;
 
-      // Compute raw + snapped positions to separate "draw" (near snap) from "select" (mid-wall)
+      // Right-click cancels current drawing (same as Escape)
+      if (e.button === 2) {
+        if (drawRef.current.polylinePoints.length > 0) finishPolyline();
+        return;
+      }
+      if (e.button !== 0) return;
+
+      // Compute raw + snapped positions to separate "draw" (near snap) from "select/pan" (outside snap)
       const vp = vpRef.current;
       if (!vp) return;
       const world = vp.toWorld(e.clientX - rect.left, e.clientY - rect.top);
       const rawLocal = inverseTransform({ x: world.x, y: world.y }, gridRef.current);
       const rawPt: [number, number] = [rawLocal.x, rawLocal.y];
       const threshold = SNAP_THRESHOLD_SCREEN / vpScale;
+      // null when outside grid snap area — lets the viewport handle pan instead
       const snappedPt = snapWallPoint(rawPt, gridRef.current, threshold);
-      const distToSnap = Math.hypot(snappedPt[0] - rawPt[0], snappedPt[1] - rawPt[1]);
-      const isNearSnap = distToSnap < threshold;
 
-      // When NOT drawing: near snap point → start drawing; far from snap → try selection
+      // When NOT drawing: near snap point → start drawing; outside snap → try selection then pan
       if (drawRef.current.polylinePoints.length === 0) {
-        if (!isNearSnap) {
+        if (!snappedPt) {
           const HIT = 8 / vpScale;
           const hit = findNearestWall(rawPt, wallsRef.current, HIT);
           if (hit) { onWallSelect(hit.id); return; }
           onWallSelect(null);
-          return;
+          return; // event not consumed: viewport pan takes over
         }
         // Near snap point: deselect and fall through to start drawing
         onWallSelect(null);
       }
 
-      if (!isNearSnap) return;
+      if (!snappedPt) return;
       const pt = snappedPt;
 
       // Double-click (same snap point twice) → finish polyline
@@ -194,14 +198,17 @@ export default function WallsLayer({
     };
 
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") finishPolyline(); };
+    const onContextMenu = (e: MouseEvent) => { e.preventDefault(); };
 
     window.addEventListener("pointermove", onMove, { passive: true });
     window.addEventListener("pointerdown", onDown);
     window.addEventListener("keydown", onKey);
+    window.addEventListener("contextmenu", onContextMenu);
     return () => {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerdown", onDown);
       window.removeEventListener("keydown", onKey);
+      window.removeEventListener("contextmenu", onContextMenu);
     };
   }, [wallsInteractive, toLocal, vpScale, canvasEl, onWallSelect, onGestureStart, finishPolyline]);
 
@@ -222,6 +229,8 @@ export default function WallsLayer({
       const alpha = w.destroyed ? 0.4 : 1.0;
       if (w.wallType === "secret_door") {
         drawDashedLine(g, a1, a2, color, width, alpha);
+      } else if (w.wallType === "terrain") {
+        drawDottedLine(g, a1, a2, color, width, alpha);
       } else {
         g.setStrokeStyle({ color, width, alpha });
         g.moveTo(a1.x, a1.y); g.lineTo(a2.x, a2.y); g.stroke();
@@ -323,6 +332,33 @@ function drawDashedLine(
   let t = 0, drawing = true;
   while (t < totalLen) {
     const end = Math.min(t + (drawing ? dashLen : gapLen), totalLen);
+    if (drawing) {
+      g.setStrokeStyle({ color, width, alpha });
+      g.moveTo(a1.x + t * ux, a1.y + t * uy);
+      g.lineTo(a1.x + end * ux, a1.y + end * uy);
+      g.stroke();
+    }
+    t = end;
+    drawing = !drawing;
+  }
+}
+
+function drawDottedLine(
+  g: import("pixi.js").Graphics,
+  a1: { x: number; y: number },
+  a2: { x: number; y: number },
+  color: number,
+  width: number,
+  alpha: number,
+) {
+  const dx = a2.x - a1.x, dy = a2.y - a1.y;
+  const totalLen = Math.hypot(dx, dy);
+  if (totalLen < 0.1) return;
+  const ux = dx / totalLen, uy = dy / totalLen;
+  const dotLen = 2, gapLen = 4;
+  let t = 0, drawing = true;
+  while (t < totalLen) {
+    const end = Math.min(t + (drawing ? dotLen : gapLen), totalLen);
     if (drawing) {
       g.setStrokeStyle({ color, width, alpha });
       g.moveTo(a1.x + t * ux, a1.y + t * uy);

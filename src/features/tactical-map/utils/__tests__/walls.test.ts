@@ -34,9 +34,9 @@ describe("snapWallPoint", () => {
   it("snaps to nearest vertex within threshold", () => {
     expect(snapWallPoint([66, 2], sq(), 15)).toEqual([64, 0]);
   });
-  it("returns input when no candidate within threshold", () => {
-    // (32,32) is the center of cell (0,0); nearest snap is 32px away
-    expect(snapWallPoint([32, 32], sq(), 10)).toEqual([32, 32]);
+  it("returns null when no candidate within threshold", () => {
+    // (32,32) is the center of cell (0,0); nearest snap is 32px away — outside threshold of 10
+    expect(snapWallPoint([32, 32], sq(), 10)).toBeNull();
   });
   it("snaps to edge midpoint", () => {
     // (33,1) is near the horizontal midpoint (32,0)
