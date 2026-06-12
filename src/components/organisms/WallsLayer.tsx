@@ -248,7 +248,7 @@ export default function WallsLayer({
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("contextmenu", onContextMenu);
     };
-  }, [wallsInteractive, toLocal, vpScale, canvasEl, onWallSelect, onGestureStart, finishPolyline]);
+  }, [wallsInteractive, toLocal, vpScale, canvasEl, onWallSelect, onGestureStart, onGestureEnd, onDrawComplete, finishPolyline]);
 
   useEffect(() => {
     if (!wallsInteractive) finishPolyline();
