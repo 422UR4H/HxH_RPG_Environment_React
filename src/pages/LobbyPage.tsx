@@ -156,7 +156,7 @@ export default function LobbyPage() {
     }
     if (!isMaster || !fullMap || masterSyncedRef.current) return;
     masterSyncedRef.current = true;
-    sendLobbySync(lobbyPieces);
+    sendLobbySync(lobbyPieces, fullMap.walls, fullMap.grid);
   }, [status, isMaster, fullMap, lobbyPieces, sendLobbySync]);
 
   const handleStartMatch = async () => {

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import type { SlotCoord, Piece } from "../types/tacticalMap";
+import type { SlotCoord, Piece, WallSegment, GridShape } from "../types/tacticalMap";
+import { objToSnakeCase } from "../utils/caseConverter";
 
 export type WsStatus =
   | "connecting"
@@ -50,7 +51,7 @@ interface UseLobbyWsResult {
   sendPieceRemoved: (pieceId: string) => void;
   // Master calls this on WS connect to seed the backend's in-memory board with
   // the current DB state, so late-joining players receive the correct board.
-  sendLobbySync: (pieces: Piece[]) => void;
+  sendLobbySync: (pieces: Piece[], walls?: WallSegment[], grid?: GridShape) => void;
 }
 
 const MAX_RECONNECTS = 5;
@@ -323,7 +324,7 @@ export function useLobbyWs({
   );
 
   const sendLobbySync = useCallback(
-    (pieces: Piece[]) => {
+    (pieces: Piece[], walls: WallSegment[] = [], grid?: GridShape) => {
       sendMessage("lobby_state_sync", {
         pieces: pieces.map((p) => {
           const slotPayload =
@@ -337,6 +338,8 @@ export function useLobbyWs({
             visible: p.visible,
           };
         }),
+        walls: walls.map((w) => objToSnakeCase(w)),
+        ...(grid ? { grid: { cell_size: grid.cellSize } } : {}),
       });
     },
     [sendMessage],
