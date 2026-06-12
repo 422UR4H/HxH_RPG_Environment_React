@@ -99,15 +99,15 @@ export default function WallsLayer({
     setDraw(empty);
   }, [onDrawComplete, onGestureEnd]);
 
-  const toLocal = useCallback((e: PointerEvent): [number, number] | null => {
+  const toLocal = useCallback((e: PointerEvent, freeMode = false): [number, number] | null => {
     const vp = vpRef.current;
     if (!vp || !canvasEl) return null;
     const rect = canvasEl.getBoundingClientRect();
     const world = vp.toWorld(e.clientX - rect.left, e.clientY - rect.top);
     const local = inverseTransform({ x: world.x, y: world.y }, gridRef.current);
     const raw: [number, number] = [local.x, local.y];
+    if (freeMode) return raw;
     const threshold = SNAP_THRESHOLD_SCREEN / vpScale;
-    // snapWallPoint returns null when no grid point is within threshold (outside grid)
     return snapWallPoint(raw, gridRef.current, threshold);
   }, [vpRef, canvasEl, vpScale]);
 
@@ -115,7 +115,7 @@ export default function WallsLayer({
     if (!wallsInteractive) return;
 
     const onMove = (e: PointerEvent) => {
-      const pt = toLocal(e);
+      const pt = toLocal(e, e.shiftKey);
       if (pt) setDraw((s) => ({ ...s, previewPoint: pt }));
     };
 
@@ -132,31 +132,29 @@ export default function WallsLayer({
       }
       if (e.button !== 0) return;
 
-      // Compute raw + snapped positions to separate "draw" (near snap) from "select/pan" (outside snap)
+      // Shift = free mode (exact cursor position, no snap); no shift = snap to grid
       const vp = vpRef.current;
       if (!vp) return;
       const world = vp.toWorld(e.clientX - rect.left, e.clientY - rect.top);
       const rawLocal = inverseTransform({ x: world.x, y: world.y }, gridRef.current);
       const rawPt: [number, number] = [rawLocal.x, rawLocal.y];
-      const threshold = SNAP_THRESHOLD_SCREEN / vpScale;
-      // null when outside grid snap area — lets the viewport handle pan instead
-      const snappedPt = snapWallPoint(rawPt, gridRef.current, threshold);
+      const pt: [number, number] | null = e.shiftKey
+        ? rawPt
+        : snapWallPoint(rawPt, gridRef.current, SNAP_THRESHOLD_SCREEN / vpScale);
 
-      // When NOT drawing: near snap point → start drawing; outside snap → try selection then pan
+      // When NOT drawing: free mode or near snap point → start drawing; otherwise → select/pan
       if (drawRef.current.polylinePoints.length === 0) {
-        if (!snappedPt) {
+        if (!pt) {
           const HIT = 8 / vpScale;
           const hit = findNearestWall(rawPt, wallsRef.current, HIT);
           if (hit) { onWallSelect(hit.id); return; }
           onWallSelect(null);
-          return; // event not consumed: viewport pan takes over
+          return;
         }
-        // Near snap point: deselect and fall through to start drawing
         onWallSelect(null);
       }
 
-      if (!snappedPt) return;
-      const pt = snappedPt;
+      if (!pt) return;
 
       // Double-click (same snap point twice) → finish polyline
       const currentPts = drawRef.current.polylinePoints;
