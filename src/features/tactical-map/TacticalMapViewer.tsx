@@ -7,8 +7,9 @@ type Props = {
   width: number;
   height: number;
   npcMap?: Map<string, CharacterPrivateSummary>;
+  onDoorClick?: (wallId: string) => void;
 };
 
-export default function TacticalMapViewer({ map, width, height, npcMap }: Props) {
-  return <TacticalMapStage map={map} width={width} height={height} npcMap={npcMap} />;
+export default function TacticalMapViewer({ map, width, height, npcMap, onDoorClick }: Props) {
+  return <TacticalMapStage map={map} width={width} height={height} npcMap={npcMap} onDoorClick={onDoorClick} />;
 }
