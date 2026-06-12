@@ -51,7 +51,9 @@ type Props = {
   // Fase 10 — walls
   activeWallType: WallType;
   activeMaterial: WallMaterial;
-  onWallTypeChange: (t: WallType) => void;
+  wallsDrawMode: "browse" | "draw";
+  onEnterWallsDrawMode: (t: WallType) => void;
+  onExitWallsDrawMode: () => void;
   onMaterialChange: (m: WallMaterial) => void;
   selectedWall: WallSegment | null;
   onWallUpdate: (id: string, patch: Partial<WallSegment>) => void;
@@ -110,7 +112,9 @@ export default function MapEditorToolbar({
   // Fase 10 — walls
   activeWallType,
   activeMaterial,
-  onWallTypeChange,
+  wallsDrawMode,
+  onEnterWallsDrawMode,
+  onExitWallsDrawMode,
   onMaterialChange,
   selectedWall,
   onWallUpdate,
@@ -223,12 +227,16 @@ export default function MapEditorToolbar({
         {activeTool === "walls" && (
           <>
             <WallTypeChips
-              activeType={activeWallType}
+              activeType={wallsDrawMode === "draw" ? activeWallType : null}
               activeMaterial={activeMaterial}
-              onTypeChange={onWallTypeChange}
+              drawMode={wallsDrawMode === "draw"}
+              onTypeChange={(t) => {
+                if (t === null) onExitWallsDrawMode();
+                else onEnterWallsDrawMode(t);
+              }}
               onMaterialChange={onMaterialChange}
             />
-            {selectedWall && (
+            {wallsDrawMode === "browse" && selectedWall && (
               <WallConfigPanel
                 wall={selectedWall}
                 onUpdate={(patch) => onWallUpdate(selectedWall.id, patch)}

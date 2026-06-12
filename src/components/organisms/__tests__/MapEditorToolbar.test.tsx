@@ -41,7 +41,9 @@ const baseProps = {
   // Fase 10 — walls
   activeWallType: "wall" as const,
   activeMaterial: "stone" as const,
-  onWallTypeChange: vi.fn(),
+  wallsDrawMode: "browse" as const,
+  onEnterWallsDrawMode: vi.fn(),
+  onExitWallsDrawMode: vi.fn(),
   onMaterialChange: vi.fn(),
   selectedWall: null,
   onWallUpdate: vi.fn(),
