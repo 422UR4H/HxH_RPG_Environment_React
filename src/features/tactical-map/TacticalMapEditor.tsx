@@ -102,6 +102,20 @@ export default function TacticalMapEditor({
   // Wall tool local state — not persisted in the undo history
   const [activeWallType, setActiveWallType] = useState<WallType>("wall");
   const [activeMaterial, setActiveMaterial] = useState<WallMaterial>("stone");
+  const [wallsDrawMode, setWallsDrawMode] = useState<"browse" | "draw">("browse");
+
+  const enterWallsDrawMode = useCallback((type: WallType) => {
+    setActiveWallType(type);
+    setWallsDrawMode("draw");
+  }, []);
+
+  const exitWallsDrawMode = useCallback(() => {
+    setWallsDrawMode("browse");
+  }, []);
+
+  useEffect(() => {
+    if (activeTool !== "walls") setWallsDrawMode("browse");
+  }, [activeTool]);
 
   const ghostRef = useRef<HTMLDivElement>(null);
   const canvasDragGhostRef = useRef<HTMLDivElement>(null);
@@ -210,6 +224,16 @@ export default function TacticalMapEditor({
         e.preventDefault();
         redo();
         return;
+      }
+
+      // Delete key removes selected wall
+      if (e.key === "Delete") {
+        const sel = store.getState().selection;
+        if (sel?.kind === "wall") {
+          store.getState().removeWallSegment(sel.id);
+          store.getState().setSelection(null);
+          return;
+        }
       }
 
       // Teclas de peça — lê o estado atual via getState() para evitar re-registrar
@@ -455,7 +479,9 @@ export default function TacticalMapEditor({
           canRedo={canRedo}
           activeWallType={activeWallType}
           activeMaterial={activeMaterial}
-          onWallTypeChange={setActiveWallType}
+          wallsDrawMode={wallsDrawMode}
+          onEnterWallsDrawMode={enterWallsDrawMode}
+          onExitWallsDrawMode={exitWallsDrawMode}
           onMaterialChange={setActiveMaterial}
           selectedWall={
             selection?.kind === "wall"
@@ -502,6 +528,8 @@ export default function TacticalMapEditor({
             onDragGestureEnd={endGesture}
             walls={walls}
             wallsInteractive={activeTool === "walls"}
+            drawingEnabled={activeTool === "walls" && wallsDrawMode === "draw"}
+            onExitWallsDrawMode={exitWallsDrawMode}
             selectedWallId={selection?.kind === "wall" ? selection.id : null}
             activeWallType={activeWallType}
             activeMaterial={activeMaterial}
