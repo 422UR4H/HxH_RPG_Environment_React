@@ -37,6 +37,7 @@ type Props = {
   onGestureEnd: () => void;
   drawingEnabled: boolean;
   onExitDrawMode: () => void;
+  onDoorClick?: (wallId: string) => void;
 };
 
 type DrawState = {
@@ -49,7 +50,7 @@ export default function WallsLayer({
   wallsInteractive, selectedWallId,
   activeWallType, activeMaterial,
   onWallSelect, onDrawComplete, onGestureStart, onGestureEnd,
-  drawingEnabled, onExitDrawMode,
+  drawingEnabled, onExitDrawMode, onDoorClick,
 }: Props) {
   const [draw, setDraw] = useState<DrawState>({ polylinePoints: [], previewPoint: null });
 
@@ -75,6 +76,12 @@ export default function WallsLayer({
   drawingEnabledRef.current = drawingEnabled;
   const onExitDrawModeRef = useRef(onExitDrawMode);
   onExitDrawModeRef.current = onExitDrawMode;
+  const wallsInteractiveRef = useRef(wallsInteractive);
+  wallsInteractiveRef.current = wallsInteractive;
+  const vpScaleRef = useRef(vpScale);
+  vpScaleRef.current = vpScale;
+  const onDoorClickRef = useRef(onDoorClick);
+  onDoorClickRef.current = onDoorClick;
 
   const finishPolyline = useCallback(() => {
     const pts = drawRef.current.polylinePoints;
@@ -254,6 +261,31 @@ export default function WallsLayer({
     if (!wallsInteractive) finishPolyline();
   }, [wallsInteractive, finishPolyline]);
 
+  // ─── Viewer-mode door click (fires when not in wall-editing mode) ─────────
+  useEffect(() => {
+    if (!canvasEl) return;
+    const HIT = 8;
+    const handleViewerClick = (e: PointerEvent) => {
+      if (wallsInteractiveRef.current) return; // editor handles its own selection
+      if (!onDoorClickRef.current) return;
+      const vp = vpRef.current;
+      if (!vp) return;
+      const rect = (e.target as HTMLElement).getBoundingClientRect();
+      const screenX = e.clientX - rect.left;
+      const screenY = e.clientY - rect.top;
+      const worldPt = vp.toWorld(screenX, screenY);
+      const rawPt = inverseTransform({ x: worldPt.x, y: worldPt.y }, gridRef.current);
+      const hit = findNearestWall([rawPt.x, rawPt.y], wallsRef.current, HIT / vpScaleRef.current);
+      if (hit && (hit.wallType === "door" || hit.wallType === "window")) {
+        onDoorClickRef.current(hit.id);
+      }
+    };
+    canvasEl.addEventListener("pointerup", handleViewerClick);
+    return () => {
+      canvasEl.removeEventListener("pointerup", handleViewerClick);
+    };
+  }, [canvasEl, vpRef]);
+
   // ─── Rendering ───────────────────────────────────────────────────────────
 
   const drawMaterial = useCallback((material: WallMaterial) => (g: PixiGraphics) => {
@@ -269,12 +301,17 @@ export default function WallsLayer({
         drawDashedLine(g, a1, a2, color, width, alpha);
       } else if (w.wallType === "terrain") {
         drawDottedLine(g, a1, a2, color, width, alpha);
+      } else if (w.wallType === "door" && w.open) {
+        drawOpenDoor(g, a1, a2, color, width, alpha);
       } else {
         g.setStrokeStyle({ color, width, alpha });
         g.moveTo(a1.x, a1.y); g.lineTo(a2.x, a2.y); g.stroke();
       }
       if (w.wallType === "door" || w.wallType === "window") {
         drawWallTypeSymbol(g, w.wallType, a1, a2, color, vpScale);
+      }
+      if (w.locked) {
+        drawLockedMarker(g, a1, a2, vpScale);
       }
     }
   }, [walls, grid, selectedWallId, vpScale]);
@@ -439,6 +476,39 @@ function drawWallTypeSymbol(
       g.stroke();
     }
   }
+}
+
+function drawOpenDoor(
+  g: import("pixi.js").Graphics,
+  a1: { x: number; y: number },
+  a2: { x: number; y: number },
+  color: number,
+  width: number,
+  alpha: number,
+) {
+  // Draw first 35% and last 35% of the segment; 30% gap in the centre.
+  const gapStart = 0.35, gapEnd = 0.65;
+  g.setStrokeStyle({ color, width, alpha });
+  g.moveTo(a1.x, a1.y);
+  g.lineTo(a1.x + gapStart * (a2.x - a1.x), a1.y + gapStart * (a2.y - a1.y));
+  g.stroke();
+  g.moveTo(a1.x + gapEnd * (a2.x - a1.x), a1.y + gapEnd * (a2.y - a1.y));
+  g.lineTo(a2.x, a2.y);
+  g.stroke();
+}
+
+function drawLockedMarker(
+  g: import("pixi.js").Graphics,
+  a1: { x: number; y: number },
+  a2: { x: number; y: number },
+  vpScale: number,
+) {
+  const mx = (a1.x + a2.x) / 2;
+  const my = (a1.y + a2.y) / 2;
+  const r = Math.max(2, 4 / vpScale);
+  g.setFillStyle({ color: 0xffd700, alpha: 0.9 });
+  g.circle(mx, my, r);
+  g.fill();
 }
 
 function ptSegDist(px: number, py: number, ax: number, ay: number, bx: number, by: number): number {

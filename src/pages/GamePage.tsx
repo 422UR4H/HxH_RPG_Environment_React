@@ -1,4 +1,4 @@
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useState, useCallback, useEffect } from "react";
 import { Navigate, useParams } from "react-router-dom";
 import styled from "styled-components";
 import useToken from "../hooks/useToken";
@@ -8,10 +8,13 @@ import { useMatchDetails } from "../hooks/useMatchDetails";
 import { useMatchParticipants } from "../hooks/useMatchParticipants";
 import { useCampaignDetails } from "../hooks/useCampaignDetails";
 import { useResizeObserver } from "../hooks/useResizeObserver";
+import { useMatchWs } from "../hooks/useMatchWs";
+import useUser from "../hooks/useUser";
 import TacticalMapViewer from "../features/tactical-map/TacticalMapViewer";
 import GamePageTemplate from "../components/templates/GamePageTemplate";
 import { colors, fonts } from "../styles/tokens";
 import type { CharacterPrivateSummary } from "../types/characterSheet";
+import type { WallSegment } from "../types/tacticalMap";
 
 export default function GamePage() {
   const { token } = useToken();
@@ -41,6 +44,48 @@ function GamePageInner({
   const { data: match } = useMatchDetails(token, matchId);
   const { data: participants = [] } = useMatchParticipants(token, matchId, true);
   const { data: campaign } = useCampaignDetails(token, campaignId);
+
+  const { user } = useUser();
+
+  // Live wall state: starts from REST-fetched map, updated on WS events.
+  const [liveWalls, setLiveWalls] = useState<WallSegment[]>([]);
+
+  // Sync liveWalls when the REST map loads.
+  useEffect(() => {
+    if (map) setLiveWalls(map.walls ?? []);
+  }, [map]);
+
+  // Determine if current user is the master.
+  const isMaster = match != null && user != null && match.masterUuid === user.uuid;
+
+  const handleWallStateChanged = useCallback((wallId: string, open: boolean, locked: boolean) => {
+    setLiveWalls((prev) =>
+      prev.map((w) => (w.id === wallId ? { ...w, open, locked } : w)),
+    );
+  }, []);
+
+  const { sendMasterAction, sendAction } = useMatchWs({
+    matchUuid: matchId,
+    token,
+    isMaster,
+    onWallStateChanged: handleWallStateChanged,
+    walls: liveWalls,
+    cellSize: map?.grid?.cellSize,
+  });
+
+  const handleDoorClick = useCallback(
+    (wallId: string) => {
+      const wall = liveWalls.find((w) => w.id === wallId);
+      if (!wall) return;
+      if (isMaster) {
+        sendMasterAction({ target_ids: [wallId], interact: { kind: "toggle" } });
+      } else {
+        const intent = wall.open ? "close" : "open";
+        sendAction({ target_id: [wallId], interact: { kind: intent } });
+      }
+    },
+    [liveWalls, isMaster, sendMasterAction, sendAction],
+  );
 
   const npcMap = useMemo(() => {
     const m = new Map<string, CharacterPrivateSummary>();
@@ -83,10 +128,11 @@ function GamePageInner({
           <MapLoadingMessage>Carregando mapa...</MapLoadingMessage>
         ) : map && width > 0 && height > 0 ? (
           <TacticalMapViewer
-            map={map}
+            map={{ ...map, walls: liveWalls }}
             width={width}
             height={height}
             npcMap={npcMap}
+            onDoorClick={handleDoorClick}
           />
         ) : !map ? (
           <NoMapMessage>Nenhum mapa anexado a esta partida.</NoMapMessage>
