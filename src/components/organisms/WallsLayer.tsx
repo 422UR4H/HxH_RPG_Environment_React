@@ -296,15 +296,21 @@ export default function WallsLayer({
       if (w.material !== material || w.id === selectedWallId) continue;
       const a1 = applyTransform({ x: w.p1[0], y: w.p1[1] }, grid);
       const a2 = applyTransform({ x: w.p2[0], y: w.p2[1] }, grid);
-      const alpha = w.destroyed ? 0.4 : 1.0;
-      if (w.wallType === "secret_door") {
-        drawDashedLine(g, a1, a2, color, width, alpha);
+      const isDamaged = w.maxHp > 0 && w.hp > 0 && w.hp < w.maxHp;
+      const isDestroyed = w.destroyed;
+
+      if (isDestroyed) {
+        drawDestroyedWall(g, a1, a2, color, width, vpScale);
+      } else if (w.wallType === "secret_door") {
+        drawDashedLine(g, a1, a2, color, width, 1.0);
       } else if (w.wallType === "terrain") {
-        drawDottedLine(g, a1, a2, color, width, alpha);
+        drawDottedLine(g, a1, a2, color, width, isDamaged ? 0.8 : 1.0);
       } else if (w.wallType === "door" && w.open) {
-        drawOpenDoor(g, a1, a2, color, width, alpha);
+        drawOpenDoor(g, a1, a2, color, width, isDamaged ? 0.8 : 1.0);
+      } else if (isDamaged) {
+        drawDashedLine(g, a1, a2, color, width, 0.8);
       } else {
-        g.setStrokeStyle({ color, width, alpha });
+        g.setStrokeStyle({ color, width, alpha: 1.0 });
         g.moveTo(a1.x, a1.y); g.lineTo(a2.x, a2.y); g.stroke();
       }
       if (w.wallType === "door" || w.wallType === "window") {
@@ -509,6 +515,41 @@ function drawLockedMarker(
   g.setFillStyle({ color: 0xffd700, alpha: 0.9 });
   g.circle(mx, my, r);
   g.fill();
+}
+
+function drawDestroyedWall(
+    g: import("pixi.js").Graphics,
+    a1: { x: number; y: number },
+    a2: { x: number; y: number },
+    color: number,
+    width: number,
+    vpScale: number,
+) {
+    const dx = a2.x - a1.x, dy = a2.y - a1.y;
+    const totalLen = Math.hypot(dx, dy);
+    if (totalLen < 0.1) return;
+    const ux = dx / totalLen, uy = dy / totalLen;
+    // Fine dotted line — very small dots with large gaps
+    const dotLen = 1, gapLen = 7;
+    let t = 0, drawing = true;
+    while (t < totalLen) {
+        const end = Math.min(t + (drawing ? dotLen : gapLen), totalLen);
+        if (drawing) {
+            g.setStrokeStyle({ color, width, alpha: 0.4 });
+            g.moveTo(a1.x + t * ux, a1.y + t * uy);
+            g.lineTo(a1.x + end * ux, a1.y + end * uy);
+            g.stroke();
+        }
+        t = end;
+        drawing = !drawing;
+    }
+    // × marks at endpoints
+    const xSize = Math.max(3, 6 / vpScale);
+    for (const pt of [a1, a2]) {
+        g.setStrokeStyle({ color, width: Math.max(1, 1.5 / vpScale), alpha: 0.4 });
+        g.moveTo(pt.x - xSize, pt.y - xSize); g.lineTo(pt.x + xSize, pt.y + xSize); g.stroke();
+        g.moveTo(pt.x + xSize, pt.y - xSize); g.lineTo(pt.x - xSize, pt.y + xSize); g.stroke();
+    }
 }
 
 function ptSegDist(px: number, py: number, ax: number, ay: number, bx: number, by: number): number {
