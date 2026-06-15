@@ -236,6 +236,7 @@ export default function TacticalMapPlacer({
             height={height}
             piecesInteractive={true}
             draggablePieceIds={draggablePieceIds}
+            walls={map.walls}
             npcMap={npcMap}
             placingNpcId={isMaster ? placingNpcId : null}
             onNpcPlaced={isMaster ? handleNpcPlaced : undefined}

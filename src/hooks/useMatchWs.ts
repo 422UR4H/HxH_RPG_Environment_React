@@ -4,6 +4,9 @@ import { objToSnakeCase } from "../utils/caseConverter";
 
 export type MatchWsStatus = "connecting" | "connected" | "disconnected";
 
+const MAX_RECONNECTS = 5;
+const BASE_DELAY_MS = 1000;
+
 type WallStateChangedPayload = {
   wall_id: string;
   open: boolean;
@@ -67,36 +70,66 @@ export function useMatchWs({
 
   useEffect(() => {
     if (!matchUuid) return;
-    const wsUrl = `${import.meta.env.VITE_WS_URL}/ws?match_uuid=${matchUuid}&token=${token}`;
-    const ws = new WebSocket(wsUrl);
-    wsRef.current = ws;
-    setStatus("connecting");
 
-    ws.onopen = () => {
-      setStatus("connected");
-      sendWallSync();
-    };
+    let active = true;
+    let attempts = 0;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
-    ws.onmessage = (event: MessageEvent) => {
-      try {
-        const msg = JSON.parse(event.data as string) as { type: string; payload: unknown };
-        if (msg.type === "wall_state_changed") {
-          const p = msg.payload as WallStateChangedPayload;
-          onWallStateChangedRef.current?.(p.wall_id, p.open, p.locked);
-        } else if (msg.type === "wall_hp_changed") {
-          const p = msg.payload as { wall_id: string; hp: number; max_hp: number; destroyed: boolean };
-          onWallHpChangedRef.current?.(p.wall_id, p.hp, p.max_hp, p.destroyed);
+    const connect = () => {
+      if (!active) return;
+      const wsUrl = `${import.meta.env.VITE_WS_URL}/ws?match_uuid=${matchUuid}&token=${token}`;
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
+      setStatus("connecting");
+
+      ws.onopen = () => {
+        if (!active) { ws.close(); return; }
+        attempts = 0;
+        setStatus("connected");
+        sendWallSync();
+      };
+
+      ws.onmessage = (event: MessageEvent) => {
+        try {
+          const msg = JSON.parse(event.data as string) as { type: string; payload: unknown };
+          if (msg.type === "wall_state_changed") {
+            const p = msg.payload as WallStateChangedPayload;
+            onWallStateChangedRef.current?.(p.wall_id, p.open, p.locked);
+          } else if (msg.type === "wall_hp_changed") {
+            const p = msg.payload as { wall_id: string; hp: number; max_hp: number; destroyed: boolean };
+            onWallHpChangedRef.current?.(p.wall_id, p.hp, p.max_hp, p.destroyed);
+          }
+        } catch {
+          // ignore malformed messages
         }
-      } catch {
-        // ignore malformed messages
-      }
+      };
+
+      ws.onclose = (ev) => {
+        if (!active) return;
+        wsRef.current = null;
+        // 4001 = lobby_not_open: master hasn't created the room yet — retry
+        // Normal close (1000/1001) or max retries: give up
+        if (ev.code === 1000 || ev.code === 1001 || attempts >= MAX_RECONNECTS) {
+          setStatus("disconnected");
+          return;
+        }
+        attempts++;
+        const delay = BASE_DELAY_MS * 2 ** (attempts - 1);
+        setStatus("connecting");
+        retryTimer = setTimeout(connect, delay);
+      };
+
+      ws.onerror = () => {
+        // onclose fires after onerror, so reconnect logic lives there
+      };
     };
 
-    ws.onclose = () => setStatus("disconnected");
-    ws.onerror = () => setStatus("disconnected");
+    connect();
 
     return () => {
-      ws.close();
+      active = false;
+      if (retryTimer) clearTimeout(retryTimer);
+      wsRef.current?.close();
       wsRef.current = null;
     };
   }, [matchUuid, token, sendWallSync]);
@@ -119,6 +152,7 @@ export function useMatchWs({
     (payload: {
       target_ids: string[];
       interact?: { kind: string };
+      attack?: { hit: { skill_name: string }; damage: { skill_name: string } };
     }) => {
       sendRaw("enqueue_master_action", payload);
     },

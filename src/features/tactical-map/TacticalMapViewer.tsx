@@ -11,5 +11,5 @@ type Props = {
 };
 
 export default function TacticalMapViewer({ map, width, height, npcMap, onWallClick }: Props) {
-  return <TacticalMapStage map={map} width={width} height={height} npcMap={npcMap} onWallClick={onWallClick} />;
+  return <TacticalMapStage map={map} width={width} height={height} npcMap={npcMap} walls={map.walls} onWallClick={onWallClick} />;
 }

@@ -83,15 +83,9 @@ function GamePageInner({
 
   const handleWallClick = useCallback(
     (wall: WallSegment) => {
-        if (isMaster) {
-            if (wall.wallType === "door" || wall.wallType === "window") {
-                sendMasterAction({ target_ids: [wall.id], interact: { kind: "toggle" } });
-            }
-        } else {
-            setWallPicker(wall);
-        }
+      setWallPicker(wall);
     },
-    [isMaster, sendMasterAction],
+    [],
   );
 
   const npcMap = useMemo(() => {
@@ -146,40 +140,76 @@ function GamePageInner({
       {wallPicker && (
         <WallActionOverlay onClick={() => setWallPicker(null)}>
           <WallActionMenu onClick={(e) => e.stopPropagation()}>
+            {isMaster && <MasterActionBadge>Ação do Mestre</MasterActionBadge>}
             <WallActionTitle>
-              {wallPicker.wallType === "door" ? "Porta" : wallPicker.wallType === "window" ? "Janela" : "Parede"}
+              {wallPicker.wallType === "door" ? "Porta"
+                : wallPicker.wallType === "window" ? "Janela"
+                : "Parede"}
             </WallActionTitle>
-            {(wallPicker.wallType === "door" || wallPicker.wallType === "window") && !wallPicker.locked && (
-              <WallActionButton onClick={() => {
-                const intent = wallPicker.open ? "close" : "open";
-                sendAction({ target_id: [wallPicker.id], interact: { kind: intent } });
-                setWallPicker(null);
-              }}>
-                {wallPicker.open ? "Fechar" : "Abrir"}
-              </WallActionButton>
+
+            {/* Open/Close — master ignores locked; player is blocked when locked */}
+            {(wallPicker.wallType === "door" || wallPicker.wallType === "window") && (
+              isMaster ? (
+                <WallActionButton onClick={() => {
+                  sendMasterAction({
+                    target_ids: [wallPicker.id],
+                    interact: { kind: wallPicker.open ? "close" : "open" },
+                  });
+                  setWallPicker(null);
+                }}>
+                  {wallPicker.open ? "Fechar" : "Abrir"}
+                </WallActionButton>
+              ) : !wallPicker.locked ? (
+                <WallActionButton onClick={() => {
+                  sendAction({
+                    target_id: [wallPicker.id],
+                    interact: { kind: wallPicker.open ? "close" : "open" },
+                  });
+                  setWallPicker(null);
+                }}>
+                  {wallPicker.open ? "Fechar" : "Abrir"}
+                </WallActionButton>
+              ) : wallPicker.wallType === "door" ? (
+                <WallActionButton onClick={() => {
+                  sendAction({ target_id: [wallPicker.id], interact: { kind: "lockpick" } });
+                  setWallPicker(null);
+                }}>
+                  Arrombar fechadura
+                </WallActionButton>
+              ) : null
             )}
-            {wallPicker.wallType === "door" && wallPicker.locked && (
-              <WallActionButton onClick={() => {
-                sendAction({ target_id: [wallPicker.id], interact: { kind: "lockpick" } });
-                setWallPicker(null);
-              }}>
-                Arrombar fechadura
-              </WallActionButton>
-            )}
+
+            {/* Attack — available to both when wall is destructible */}
             {wallPicker.maxHp > 0 && !wallPicker.destroyed && (
-              <WallActionButton onClick={() => {
-                sendAction({
-                  target_id: [wallPicker.id],
-                  attack: {
-                    hit: { skill_name: "combat_strength" },
-                    damage: { skill_name: "combat_strength" },
-                  },
-                });
-                setWallPicker(null);
-              }}>
-                Atacar
-              </WallActionButton>
+              isMaster ? (
+                <WallActionButton onClick={() => {
+                  sendMasterAction({
+                    target_ids: [wallPicker.id],
+                    attack: {
+                      hit: { skill_name: "combat_strength" },
+                      damage: { skill_name: "combat_strength" },
+                    },
+                  });
+                  setWallPicker(null);
+                }}>
+                  Atacar
+                </WallActionButton>
+              ) : (
+                <WallActionButton onClick={() => {
+                  sendAction({
+                    target_id: [wallPicker.id],
+                    attack: {
+                      hit: { skill_name: "combat_strength" },
+                      damage: { skill_name: "combat_strength" },
+                    },
+                  });
+                  setWallPicker(null);
+                }}>
+                  Atacar
+                </WallActionButton>
+              )
             )}
+
             <WallActionCancel onClick={() => setWallPicker(null)}>Cancelar</WallActionCancel>
           </WallActionMenu>
         </WallActionOverlay>
@@ -292,6 +322,20 @@ const WallActionMenu = styled.div`
     display: flex;
     flex-direction: column;
     gap: 8px;
+`;
+
+const MasterActionBadge = styled.span`
+    font-family: ${fonts.sans};
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: ${colors.brandAccent};
+    background: rgba(255, 152, 0, 0.12);
+    border: 1px solid ${colors.brandAccent};
+    border-radius: 3px;
+    padding: 2px 6px;
+    align-self: flex-start;
 `;
 
 const WallActionTitle = styled.h3`
