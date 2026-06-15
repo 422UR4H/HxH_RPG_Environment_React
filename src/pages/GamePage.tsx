@@ -49,6 +49,7 @@ function GamePageInner({
 
   // Live wall state: starts from REST-fetched map, updated on WS events.
   const [liveWalls, setLiveWalls] = useState<WallSegment[]>([]);
+  const [wallPicker, setWallPicker] = useState<WallSegment | null>(null);
 
   // Sync liveWalls when the REST map loads.
   useEffect(() => {
@@ -64,27 +65,33 @@ function GamePageInner({
     );
   }, []);
 
+  const handleWallHpChanged = useCallback((wallId: string, hp: number, maxHp: number, destroyed: boolean) => {
+    setLiveWalls((prev) =>
+        prev.map((w) => (w.id === wallId ? { ...w, hp, maxHp, destroyed } : w)),
+    );
+  }, []);
+
   const { sendMasterAction, sendAction } = useMatchWs({
     matchUuid: matchId,
     token,
     isMaster,
     onWallStateChanged: handleWallStateChanged,
+    onWallHpChanged: handleWallHpChanged,
     walls: liveWalls,
     cellSize: map?.grid?.cellSize,
   });
 
-  const handleDoorClick = useCallback(
-    (wallId: string) => {
-      const wall = liveWalls.find((w) => w.id === wallId);
-      if (!wall) return;
-      if (isMaster) {
-        sendMasterAction({ target_ids: [wallId], interact: { kind: "toggle" } });
-      } else {
-        const intent = wall.open ? "close" : "open";
-        sendAction({ target_id: [wallId], interact: { kind: intent } });
-      }
+  const handleWallClick = useCallback(
+    (wall: WallSegment) => {
+        if (isMaster) {
+            if (wall.wallType === "door" || wall.wallType === "window") {
+                sendMasterAction({ target_ids: [wall.id], interact: { kind: "toggle" } });
+            }
+        } else {
+            setWallPicker(wall);
+        }
     },
-    [liveWalls, isMaster, sendMasterAction, sendAction],
+    [isMaster, sendMasterAction],
   );
 
   const npcMap = useMemo(() => {
@@ -118,27 +125,66 @@ function GamePageInner({
   );
 
   return (
-    <GamePageTemplate sidebar={sidebar}>
-      {/* CanvasWrapper is always mounted so useResizeObserver starts observing
-          immediately. Conditional rendering here would cause the ref to attach
-          late, after the observer effect has already run, so the observer would
-          never start and width/height would stay at 0. */}
-      <CanvasWrapper ref={canvasRef}>
-        {isLoading ? (
-          <MapLoadingMessage>Carregando mapa...</MapLoadingMessage>
-        ) : map && width > 0 && height > 0 ? (
-          <TacticalMapViewer
-            map={{ ...map, walls: liveWalls }}
-            width={width}
-            height={height}
-            npcMap={npcMap}
-            onDoorClick={handleDoorClick}
-          />
-        ) : !map ? (
-          <NoMapMessage>Nenhum mapa anexado a esta partida.</NoMapMessage>
-        ) : null}
-      </CanvasWrapper>
-    </GamePageTemplate>
+    <>
+      <GamePageTemplate sidebar={sidebar}>
+        <CanvasWrapper ref={canvasRef}>
+          {isLoading ? (
+            <MapLoadingMessage>Carregando mapa...</MapLoadingMessage>
+          ) : map && width > 0 && height > 0 ? (
+            <TacticalMapViewer
+              map={{ ...map, walls: liveWalls }}
+              width={width}
+              height={height}
+              npcMap={npcMap}
+              onWallClick={handleWallClick}
+            />
+          ) : !map ? (
+            <NoMapMessage>Nenhum mapa anexado a esta partida.</NoMapMessage>
+          ) : null}
+        </CanvasWrapper>
+      </GamePageTemplate>
+      {wallPicker && (
+        <WallActionOverlay onClick={() => setWallPicker(null)}>
+          <WallActionMenu onClick={(e) => e.stopPropagation()}>
+            <WallActionTitle>
+              {wallPicker.wallType === "door" ? "Porta" : wallPicker.wallType === "window" ? "Janela" : "Parede"}
+            </WallActionTitle>
+            {(wallPicker.wallType === "door" || wallPicker.wallType === "window") && !wallPicker.locked && (
+              <WallActionButton onClick={() => {
+                const intent = wallPicker.open ? "close" : "open";
+                sendAction({ target_id: [wallPicker.id], interact: { kind: intent } });
+                setWallPicker(null);
+              }}>
+                {wallPicker.open ? "Fechar" : "Abrir"}
+              </WallActionButton>
+            )}
+            {wallPicker.wallType === "door" && wallPicker.locked && (
+              <WallActionButton onClick={() => {
+                sendAction({ target_id: [wallPicker.id], interact: { kind: "lockpick" } });
+                setWallPicker(null);
+              }}>
+                Arrombar fechadura
+              </WallActionButton>
+            )}
+            {wallPicker.maxHp > 0 && !wallPicker.destroyed && (
+              <WallActionButton onClick={() => {
+                sendAction({
+                  target_id: [wallPicker.id],
+                  attack: {
+                    hit: { skill_name: "combat_strength" },
+                    damage: { skill_name: "combat_strength" },
+                  },
+                });
+                setWallPicker(null);
+              }}>
+                Atacar
+              </WallActionButton>
+            )}
+            <WallActionCancel onClick={() => setWallPicker(null)}>Cancelar</WallActionCancel>
+          </WallActionMenu>
+        </WallActionOverlay>
+      )}
+    </>
   );
 }
 
@@ -225,4 +271,60 @@ const MasterBadge = styled.span`
   border-radius: 3px;
   flex-shrink: 0;
   text-transform: uppercase;
+`;
+
+const WallActionOverlay = styled.div`
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+`;
+
+const WallActionMenu = styled.div`
+    background: ${colors.surfaceSidebar};
+    border: 1px solid ${colors.grayMid};
+    border-radius: 8px;
+    padding: 16px;
+    min-width: 200px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+`;
+
+const WallActionTitle = styled.h3`
+    font-family: ${fonts.display};
+    font-size: 14px;
+    color: ${colors.textMuted};
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 0 0 4px;
+`;
+
+const WallActionButton = styled.button`
+    background: ${colors.brandPrimary};
+    color: ${colors.textPrimary};
+    font-family: ${fonts.sans};
+    font-size: 14px;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 12px;
+    cursor: pointer;
+    text-align: left;
+    &:hover { opacity: 0.85; }
+`;
+
+const WallActionCancel = styled.button`
+    background: transparent;
+    color: ${colors.textMuted};
+    font-family: ${fonts.sans};
+    font-size: 13px;
+    border: 1px solid ${colors.grayMid};
+    border-radius: 4px;
+    padding: 6px 12px;
+    cursor: pointer;
+    margin-top: 4px;
+    &:hover { background: ${colors.grayMid}; }
 `;

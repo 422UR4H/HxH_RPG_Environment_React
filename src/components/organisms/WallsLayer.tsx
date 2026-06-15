@@ -37,7 +37,7 @@ type Props = {
   onGestureEnd: () => void;
   drawingEnabled: boolean;
   onExitDrawMode: () => void;
-  onDoorClick?: (wallId: string) => void;
+  onWallClick?: (wall: WallSegment) => void;
 };
 
 type DrawState = {
@@ -50,7 +50,7 @@ export default function WallsLayer({
   wallsInteractive, selectedWallId,
   activeWallType, activeMaterial,
   onWallSelect, onDrawComplete, onGestureStart, onGestureEnd,
-  drawingEnabled, onExitDrawMode, onDoorClick,
+  drawingEnabled, onExitDrawMode, onWallClick,
 }: Props) {
   const [draw, setDraw] = useState<DrawState>({ polylinePoints: [], previewPoint: null });
 
@@ -80,8 +80,8 @@ export default function WallsLayer({
   wallsInteractiveRef.current = wallsInteractive;
   const vpScaleRef = useRef(vpScale);
   vpScaleRef.current = vpScale;
-  const onDoorClickRef = useRef(onDoorClick);
-  onDoorClickRef.current = onDoorClick;
+  const onWallClickRef = useRef(onWallClick);
+  onWallClickRef.current = onWallClick;
 
   const finishPolyline = useCallback(() => {
     const pts = drawRef.current.polylinePoints;
@@ -267,7 +267,7 @@ export default function WallsLayer({
     const HIT = 8;
     const handleViewerClick = (e: PointerEvent) => {
       if (wallsInteractiveRef.current) return; // editor handles its own selection
-      if (!onDoorClickRef.current) return;
+      if (!onWallClickRef.current) return;
       const vp = vpRef.current;
       if (!vp) return;
       const rect = (e.target as HTMLElement).getBoundingClientRect();
@@ -276,8 +276,8 @@ export default function WallsLayer({
       const worldPt = vp.toWorld(screenX, screenY);
       const rawPt = inverseTransform({ x: worldPt.x, y: worldPt.y }, gridRef.current);
       const hit = findNearestWall([rawPt.x, rawPt.y], wallsRef.current, HIT / vpScaleRef.current);
-      if (hit && (hit.wallType === "door" || hit.wallType === "window")) {
-        onDoorClickRef.current(hit.id);
+      if (hit) {
+        onWallClickRef.current?.(hit);
       }
     };
     canvasEl.addEventListener("pointerup", handleViewerClick);
