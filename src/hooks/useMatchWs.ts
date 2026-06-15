@@ -16,6 +16,8 @@ type UseMatchWsOptions = {
   isMaster: boolean;
   /** Called when the server broadcasts a wall open/locked change. */
   onWallStateChanged?: (wallId: string, open: boolean, locked: boolean) => void;
+  /** Called when the server broadcasts a wall HP / destroyed change (attack result). */
+  onWallHpChanged?: (wallId: string, hp: number, maxHp: number, destroyed: boolean) => void;
   /** Full walls list to seed the room on connect (master only). */
   walls?: WallSegment[];
   /** Grid cell size for movement blocking on the server side. */
@@ -27,6 +29,7 @@ export function useMatchWs({
   token,
   isMaster,
   onWallStateChanged,
+  onWallHpChanged,
   walls,
   cellSize,
 }: UseMatchWsOptions) {
@@ -34,6 +37,8 @@ export function useMatchWs({
   const wsRef = useRef<WebSocket | null>(null);
   const onWallStateChangedRef = useRef(onWallStateChanged);
   onWallStateChangedRef.current = onWallStateChanged;
+  const onWallHpChangedRef = useRef(onWallHpChanged);
+  onWallHpChangedRef.current = onWallHpChanged;
   const wallsRef = useRef(walls);
   wallsRef.current = walls;
   const cellSizeRef = useRef(cellSize);
@@ -53,7 +58,7 @@ export function useMatchWs({
     if (!isMasterRef.current) return;
     const ws = wallsRef.current ?? [];
     const cs = cellSizeRef.current ?? 64;
-    sendRaw("lobby_state_sync", {
+    sendRaw("map_state_sync", {
       pieces: [], // pieces are managed by useLobbyWs; here we sync only walls
       walls: ws.map((w) => objToSnakeCase(w)),
       grid: { cell_size: cs },
@@ -78,8 +83,10 @@ export function useMatchWs({
         if (msg.type === "wall_state_changed") {
           const p = msg.payload as WallStateChangedPayload;
           onWallStateChangedRef.current?.(p.wall_id, p.open, p.locked);
+        } else if (msg.type === "wall_hp_changed") {
+          const p = msg.payload as { wall_id: string; hp: number; max_hp: number; destroyed: boolean };
+          onWallHpChangedRef.current?.(p.wall_id, p.hp, p.max_hp, p.destroyed);
         }
-        // TODO: handle additional game-phase message types as they are added.
       } catch {
         // ignore malformed messages
       }
@@ -100,6 +107,7 @@ export function useMatchWs({
       target_id?: string[];
       interact?: { kind: string };
       move?: { from: [number, number, number]; position: [number, number, number]; category: string };
+      attack?: { hit: { skill_name: string }; damage: { skill_name: string } };
     }) => {
       sendRaw("enqueue_action", payload);
     },
