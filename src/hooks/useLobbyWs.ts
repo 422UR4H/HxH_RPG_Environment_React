@@ -19,7 +19,7 @@ export type LobbyParticipant = {
   isOnline: boolean;
 };
 
-// Shape of each piece entry inside lobby_full_state (server→client).
+// Shape of each piece entry inside map_full_state (server→client).
 export type LobbyPieceFullState = {
   pieceId: string;
   characterId: string;
@@ -188,7 +188,7 @@ export function useLobbyWs({
           case "match_started":
             onMatchStartedRef.current();
             break;
-          case "lobby_piece_moved": {
+          case "piece_moved": {
             const p = payload as {
               piece_id: string;
               slot: { kind: string; col?: number; row?: number; q?: number; r?: number };
@@ -207,12 +207,12 @@ export function useLobbyWs({
             onPieceMovedRef.current?.(p.piece_id, slot, p.character_id, p.visible);
             break;
           }
-          case "lobby_piece_removed": {
+          case "piece_removed": {
             const p = payload as { piece_id?: string };
             if (p.piece_id) onPieceRemovedRef.current?.(p.piece_id);
             break;
           }
-          case "lobby_full_state": {
+          case "map_full_state": {
             const rawPieces = (payload.pieces as Array<{
               piece_id: string;
               slot: { kind: string; col?: number; row?: number; q?: number; r?: number };
@@ -308,7 +308,7 @@ export function useLobbyWs({
         slot.kind === "square"
           ? { kind: "square", col: slot.col, row: slot.row }
           : { kind: "hex", q: slot.q, r: slot.r };
-      sendMessage("lobby_piece_moved", {
+      sendMessage("piece_moved", {
         piece_id: pieceId,
         slot: slotPayload,
         ...(characterId != null && { character_id: characterId }),
@@ -319,13 +319,13 @@ export function useLobbyWs({
   );
 
   const sendPieceRemoved = useCallback(
-    (pieceId: string) => sendMessage("lobby_piece_removed", { piece_id: pieceId }),
+    (pieceId: string) => sendMessage("piece_removed", { piece_id: pieceId }),
     [sendMessage],
   );
 
   const sendLobbySync = useCallback(
     (pieces: Piece[], walls: WallSegment[] = [], grid?: GridShape) => {
-      sendMessage("lobby_state_sync", {
+      sendMessage("map_state_sync", {
         pieces: pieces.map((p) => {
           const slotPayload =
             p.coord.slot.kind === "square"
