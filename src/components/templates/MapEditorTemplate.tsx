@@ -47,7 +47,7 @@ const PageBody = styled.main`
 `;
 
 const Sidebar = styled.div`
-  width: 320px;
+  width: 360px;
   flex-shrink: 0;
   background-color: ${colors.surfaceSidebar};
   overflow-y: auto;

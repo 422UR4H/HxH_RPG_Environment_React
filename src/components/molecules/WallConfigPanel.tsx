@@ -30,12 +30,24 @@ export default function WallConfigPanel({ wall, onUpdate, onRemove }: Props) {
   const [editedType, setEditedType] = useState<WallType>(wall.wallType);
   const [editedMaterial, setEditedMaterial] = useState<WallMaterial>(wall.material);
   const [editedLocked, setEditedLocked] = useState<boolean>(wall.locked);
+  const [applied, setApplied] = useState(false);
 
   useEffect(() => {
     setEditedType(wall.wallType);
     setEditedMaterial(wall.material);
     setEditedLocked(wall.locked);
+    setApplied(false);
   }, [wall.id, wall.wallType, wall.material, wall.locked]);
+
+  const handleApply = () => {
+    onUpdate({
+      wallType: editedType,
+      material: editedMaterial,
+      locked: LOCKABLE.includes(editedType) ? editedLocked : false,
+    });
+    setApplied(true);
+    setTimeout(() => setApplied(false), 1500);
+  };
 
   return (
     <Container>
@@ -90,17 +102,8 @@ export default function WallConfigPanel({ wall, onUpdate, onRemove }: Props) {
       )}
 
       <Actions>
-        <ApplyButton
-          type="button"
-          onClick={() =>
-            onUpdate({
-              wallType: editedType,
-              material: editedMaterial,
-              locked: LOCKABLE.includes(editedType) ? editedLocked : false,
-            })
-          }
-        >
-          Aplicar
+        <ApplyButton type="button" $applied={applied} onClick={handleApply}>
+          {applied ? "Aplicado ✓" : "Aplicar"}
         </ApplyButton>
         <DeleteButton type="button" onClick={onRemove}>
           Deletar
@@ -117,21 +120,24 @@ const Container = styled.div`
 const Badge = styled.div`
   display: flex; align-items: center; gap: 6px;
   padding: 6px 10px; border-radius: 6px;
-  background: #0f172a; border: 1px solid #6366f1;
+  background: ${colors.surfaceInput}; border: 1px solid ${colors.brandAccent};
 `;
 const BadgeDot = styled.div`
-  width: 6px; height: 6px; border-radius: 50%; background: #818cf8; flex-shrink: 0;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: ${colors.brandAccent}; flex-shrink: 0;
 `;
 const BadgeLabel = styled.span`
+  font-family: ${fonts.sans};
   font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
-  color: #818cf8;
+  color: ${colors.brandAccentBright};
 `;
 const Section = styled.div`
   display: flex; flex-direction: column; gap: 6px;
 `;
 const SectionLabel = styled.span`
+  font-family: ${fonts.sans};
   font-size: 11px; font-weight: 600;
-  color: rgba(255, 255, 255, 0.5);
+  color: ${colors.textPlaceholderStrong};
   text-transform: uppercase; letter-spacing: 0.05em;
 `;
 const ChipRow = styled.div`
@@ -140,18 +146,19 @@ const ChipRow = styled.div`
 const Chip = styled.button<{ $active: boolean }>`
   font-family: ${fonts.sans};
   font-size: 12px; padding: 4px 10px; border-radius: 999px;
-  border: 1px solid ${({ $active }) => $active ? "#6366f1" : "#334155"};
-  background: ${({ $active }) => $active ? "#6366f1" : "transparent"};
-  color: ${({ $active }) => $active ? "#fff" : "#94a3b8"};
+  border: 1px solid ${({ $active }) => $active ? colors.brandAccent : colors.borderInput};
+  background: ${({ $active }) => $active ? colors.brandAccent : "transparent"};
+  color: ${({ $active }) => $active ? colors.textPrimary : colors.textPlaceholderStrong};
   cursor: pointer;
-  &:hover { border-color: #6366f1; color: #fff; }
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  &:hover { border-color: ${colors.brandAccent}; color: ${colors.textPrimary}; }
 `;
 const LockToggle = styled.button<{ $locked: boolean }>`
   font-family: ${fonts.sans};
   font-size: 12px; padding: 5px 14px; border-radius: 999px;
-  border: 1px solid ${({ $locked }) => $locked ? colors.danger : "#334155"};
-  background: ${({ $locked }) => $locked ? "rgba(239,68,68,0.15)" : "transparent"};
-  color: ${({ $locked }) => $locked ? colors.danger : "#94a3b8"};
+  border: 1px solid ${({ $locked }) => $locked ? colors.dangerDark : colors.borderInput};
+  background: ${({ $locked }) => $locked ? colors.errorBgSoft : "transparent"};
+  color: ${({ $locked }) => $locked ? colors.danger : colors.textPlaceholderStrong};
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s, color 0.15s;
   &:hover { border-color: ${colors.danger}; color: ${colors.danger}; }
@@ -159,17 +166,21 @@ const LockToggle = styled.button<{ $locked: boolean }>`
 const Actions = styled.div`
   display: flex; gap: 8px;
 `;
-const ApplyButton = styled.button`
+const ApplyButton = styled.button<{ $applied: boolean }>`
   font-family: ${fonts.sans};
   flex: 1; padding: 7px; border-radius: 6px;
-  border: none; background: #6366f1; color: #fff;
+  border: none;
+  background: ${({ $applied }) => $applied ? colors.brandAccentBright : colors.brandAccent};
+  color: ${colors.textPrimary};
   font-size: 12px; font-weight: 600; cursor: pointer;
-  &:hover { background: #4f46e5; }
+  transition: background 0.2s;
+  &:hover { background: ${colors.brandAccentBright}; }
 `;
 const DeleteButton = styled.button`
   font-family: ${fonts.sans};
   padding: 7px 12px; border-radius: 6px;
-  border: 1px solid #991b1b; background: transparent; color: #ef4444;
+  border: 1px solid ${colors.dangerDark}; background: transparent; color: ${colors.danger};
   font-size: 12px; cursor: pointer;
-  &:hover { background: #7f1d1d; color: #fff; }
+  transition: background 0.15s, color 0.15s;
+  &:hover { background: ${colors.dangerDark}; color: ${colors.textPrimary}; }
 `;
