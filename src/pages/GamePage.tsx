@@ -144,6 +144,8 @@ function GamePageInner({
             <WallActionTitle>
               {wallPicker.wallType === "door" ? "Porta"
                 : wallPicker.wallType === "window" ? "Janela"
+                : wallPicker.wallType === "terrain" ? "Terreno"
+                : wallPicker.wallType === "secret_door" ? "P. Secreta"
                 : "Parede"}
             </WallActionTitle>
 
@@ -179,8 +181,8 @@ function GamePageInner({
               ) : null
             )}
 
-            {/* Attack — available to both when wall is destructible */}
-            {wallPicker.maxHp > 0 && !wallPicker.destroyed && (
+            {/* Attack — available when destructible; terrain is scenery, not attackable */}
+            {wallPicker.wallType !== "terrain" && wallPicker.maxHp > 0 && !wallPicker.destroyed && (
               isMaster ? (
                 <WallActionButton onClick={() => {
                   sendMasterAction({
