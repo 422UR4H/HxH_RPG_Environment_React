@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import styled from "styled-components";
-import { fonts } from "../../styles/tokens";
+import { colors, fonts } from "../../styles/tokens";
 import type { WallMaterial, WallSegment, WallType } from "../../types/tacticalMap";
 
 type Props = {
@@ -24,14 +24,18 @@ const MATERIALS: { value: WallMaterial; label: string }[] = [
   { value: "magical", label: "Mágica" },
 ];
 
+const LOCKABLE: WallType[] = ["door", "window", "secret_door"];
+
 export default function WallConfigPanel({ wall, onUpdate, onRemove }: Props) {
   const [editedType, setEditedType] = useState<WallType>(wall.wallType);
   const [editedMaterial, setEditedMaterial] = useState<WallMaterial>(wall.material);
+  const [editedLocked, setEditedLocked] = useState<boolean>(wall.locked);
 
   useEffect(() => {
     setEditedType(wall.wallType);
     setEditedMaterial(wall.material);
-  }, [wall.id, wall.wallType, wall.material]);
+    setEditedLocked(wall.locked);
+  }, [wall.id, wall.wallType, wall.material, wall.locked]);
 
   return (
     <Container>
@@ -72,10 +76,29 @@ export default function WallConfigPanel({ wall, onUpdate, onRemove }: Props) {
         </ChipRow>
       </Section>
 
+      {LOCKABLE.includes(editedType) && (
+        <Section>
+          <SectionLabel>Estado inicial</SectionLabel>
+          <LockToggle
+            type="button"
+            $locked={editedLocked}
+            onClick={() => setEditedLocked((v) => !v)}
+          >
+            {editedLocked ? "Trancado" : "Destrancado"}
+          </LockToggle>
+        </Section>
+      )}
+
       <Actions>
         <ApplyButton
           type="button"
-          onClick={() => onUpdate({ wallType: editedType, material: editedMaterial })}
+          onClick={() =>
+            onUpdate({
+              wallType: editedType,
+              material: editedMaterial,
+              locked: LOCKABLE.includes(editedType) ? editedLocked : false,
+            })
+          }
         >
           Aplicar
         </ApplyButton>
@@ -122,6 +145,16 @@ const Chip = styled.button<{ $active: boolean }>`
   color: ${({ $active }) => $active ? "#fff" : "#94a3b8"};
   cursor: pointer;
   &:hover { border-color: #6366f1; color: #fff; }
+`;
+const LockToggle = styled.button<{ $locked: boolean }>`
+  font-family: ${fonts.sans};
+  font-size: 12px; padding: 5px 14px; border-radius: 999px;
+  border: 1px solid ${({ $locked }) => $locked ? colors.danger : "#334155"};
+  background: ${({ $locked }) => $locked ? "rgba(239,68,68,0.15)" : "transparent"};
+  color: ${({ $locked }) => $locked ? colors.danger : "#94a3b8"};
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  &:hover { border-color: ${colors.danger}; color: ${colors.danger}; }
 `;
 const Actions = styled.div`
   display: flex; gap: 8px;
