@@ -160,7 +160,7 @@ type Props = {
   onWallEndpointDrag?: (wallId: string, point: "p1" | "p2", localPos: [number, number]) => void;
   drawingEnabled?: boolean;
   onExitWallsDrawMode?: () => void;
-  onDoorClick?: (wallId: string) => void;
+  onWallClick?: (wall: WallSegment) => void;
 };
 
 export default function TacticalMapStage({
@@ -200,7 +200,7 @@ export default function TacticalMapStage({
   onWallEndpointDrag,
   drawingEnabled,
   onExitWallsDrawMode,
-  onDoorClick,
+  onWallClick,
 }: Props) {
   const [isBgLoading, setIsBgLoading] = useState(() => !!map.bg?.url);
   const bgUrl = map.bg?.url;
@@ -271,7 +271,7 @@ export default function TacticalMapStage({
           onWallEndpointDrag={onWallEndpointDrag}
           drawingEnabled={drawingEnabled}
           onExitWallsDrawMode={onExitWallsDrawMode}
-          onDoorClick={onDoorClick}
+          onWallClick={onWallClick}
         />
       </Application>
       {(isBgLoading || uploading) && (
@@ -331,7 +331,7 @@ function ViewportInner({
   onWallEndpointDrag,
   drawingEnabled,
   onExitWallsDrawMode,
-  onDoorClick,
+  onWallClick,
 }: Props) {
   const { app } = useApplication();
   const canvasEl = app?.renderer ? (app.canvas as HTMLCanvasElement) : null;
@@ -593,7 +593,7 @@ function ViewportInner({
         onGestureEnd={() => { wallGestureActiveRef.current = false; (onDragGestureEnd ?? (() => {}))(); }}
         drawingEnabled={drawingEnabled ?? false}
         onExitDrawMode={onExitWallsDrawMode ?? (() => {})}
-        onDoorClick={onDoorClick}
+        onWallClick={onWallClick}
       />
       <pixiContainer label="overlay-layer">
         {activeTool && onBgChange && onGridChange && (

@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import { fonts } from "../../styles/tokens";
+import { colors, fonts } from "../../styles/tokens";
 import type { WallMaterial, WallType } from "../../types/tacticalMap";
 
 type Props = {
@@ -37,7 +37,7 @@ export default function WallTypeChips({
     <Container>
       <ModeBadge $active={drawMode}>
         <ModeDot $active={drawMode} />
-        <ModeLabel>
+        <ModeLabel $active={drawMode}>
           {drawMode && activeType
             ? `Desenhando · ${TYPE_LABELS[activeType]}`
             : "Selecionar"}
@@ -93,22 +93,23 @@ const Container = styled.div`
 const ModeBadge = styled.div<{ $active: boolean }>`
   display: flex; align-items: center; gap: 8px;
   padding: 7px 10px; border-radius: 6px;
-  background: #0f172a;
-  border: 1px solid ${({ $active }) => $active ? "#f59e0b" : "#334155"};
+  background: ${({ $active }) => $active ? colors.brandAccent : colors.surfaceInput};
+  border: 1px solid ${({ $active }) => $active ? colors.brandAccent : colors.borderInput};
+  transition: background 0.2s, border-color 0.2s;
 `;
 const ModeDot = styled.div<{ $active: boolean }>`
   width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
-  background: ${({ $active }) => $active ? "#f59e0b" : "#94a3b8"};
-  ${({ $active }) => $active && "box-shadow: 0 0 6px #f59e0b;"}
+  background: ${({ $active }) => $active ? colors.textPrimary : colors.textPlaceholderStrong};
 `;
-const ModeLabel = styled.span`
+const ModeLabel = styled.span<{ $active: boolean }>`
   font-family: ${fonts.sans};
   font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
-  color: inherit; flex: 1;
+  color: ${({ $active }) => $active ? colors.textPrimary : colors.textPlaceholderStrong};
+  flex: 1;
 `;
 const EscHint = styled.span`
   font-family: ${fonts.sans};
-  font-size: 10px; color: #475569;
+  font-size: 10px; color: rgba(255, 255, 255, 0.6);
 `;
 const Section = styled.div`
   display: flex; flex-direction: column; gap: 6px;
@@ -116,7 +117,7 @@ const Section = styled.div`
 const SectionLabel = styled.span`
   font-family: ${fonts.sans};
   font-size: 11px; font-weight: 600;
-  color: rgba(255, 255, 255, 0.5);
+  color: ${colors.textPlaceholderStrong};
   text-transform: uppercase; letter-spacing: 0.05em;
 `;
 const ChipRow = styled.div`
@@ -125,14 +126,14 @@ const ChipRow = styled.div`
 const Chip = styled.button<{ $active: boolean }>`
   font-family: ${fonts.sans};
   font-size: 12px; padding: 4px 10px; border-radius: 999px;
-  border: 1px solid ${({ $active }) => $active ? "#6366f1" : "#334155"};
-  background: ${({ $active }) => $active ? "#6366f1" : "transparent"};
-  color: ${({ $active }) => $active ? "#fff" : "#94a3b8"};
+  border: 1px solid ${({ $active }) => $active ? colors.brandAccent : colors.borderInput};
+  background: ${({ $active }) => $active ? colors.brandAccent : "transparent"};
+  color: ${({ $active }) => $active ? colors.textPrimary : colors.textPlaceholderStrong};
   cursor: pointer;
-  ${({ $active }) => $active && "outline: 2px solid #818cf8; outline-offset: 2px;"}
-  &:hover { border-color: #6366f1; color: #fff; }
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  &:hover { border-color: ${colors.brandAccent}; color: ${colors.textPrimary}; }
 `;
 const Hint = styled.span`
   font-family: ${fonts.sans};
-  font-size: 11px; color: #475569; margin-top: 2px;
+  font-size: 11px; color: ${colors.textPlaceholderStrong}; margin-top: 2px;
 `;
