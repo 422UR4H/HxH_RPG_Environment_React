@@ -167,7 +167,8 @@ export function useLobbyWs({
             ]);
             break;
           }
-          case "player_left": {
+          case "player_left":
+          case "master_left": {
             const p = payload as { uuid: string };
             setParticipants((prev) => prev.filter((x) => x.uuid !== p.uuid));
             break;

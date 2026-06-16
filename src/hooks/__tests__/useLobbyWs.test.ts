@@ -120,6 +120,17 @@ describe("useLobbyWs", () => {
     expect(result.current.participants).toHaveLength(0);
   });
 
+  it("removes master on master_left", () => {
+    const { result } = renderHook(() => useLobbyWs(defaultParams));
+    simulateOpen();
+    sendFromServer("room_state", {
+      match_uuid: "match-1", state: "lobby",
+      players: [{ uuid: "master-1", nickname: "Bisky", is_master: true, is_online: true }],
+    });
+    sendFromServer("master_left", { uuid: "master-1", nickname: "Bisky" });
+    expect(result.current.participants).toHaveLength(0);
+  });
+
   it("sets status to lobby_not_open on lobby_not_open message", () => {
     const { result } = renderHook(() => useLobbyWs(defaultParams));
     simulateOpen();
