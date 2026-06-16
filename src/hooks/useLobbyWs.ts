@@ -159,7 +159,8 @@ export function useLobbyWs({
             );
             break;
           }
-          case "player_joined": {
+          case "player_joined":
+          case "master_joined": {
             const p = payload as { uuid: string; nickname: string; is_master: boolean; is_online: boolean };
             setParticipants((prev) => [
               ...prev,

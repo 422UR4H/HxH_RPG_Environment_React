@@ -109,6 +109,16 @@ describe("useLobbyWs", () => {
     expect(result.current.participants[0].uuid).toBe("p2");
   });
 
+  it("adds master on master_joined", () => {
+    const { result } = renderHook(() => useLobbyWs(defaultParams));
+    simulateOpen();
+    sendFromServer("room_state", { match_uuid: "match-1", state: "lobby", players: [] });
+    sendFromServer("master_joined", { uuid: "master-1", nickname: "Bisky", is_master: true, is_online: true });
+    expect(result.current.participants).toHaveLength(1);
+    expect(result.current.participants[0].uuid).toBe("master-1");
+    expect(result.current.participants[0].isMaster).toBe(true);
+  });
+
   it("removes participant on player_left", () => {
     const { result } = renderHook(() => useLobbyWs(defaultParams));
     simulateOpen();
