@@ -14,7 +14,7 @@ import TacticalMapViewer from "../features/tactical-map/TacticalMapViewer";
 import GamePageTemplate from "../components/templates/GamePageTemplate";
 import { colors, fonts } from "../styles/tokens";
 import type { CharacterPrivateSummary } from "../types/characterSheet";
-import type { WallSegment } from "../types/tacticalMap";
+import type { FogState, Piece, WallSegment } from "../types/tacticalMap";
 
 export default function GamePage() {
   const { token } = useToken();
@@ -50,10 +50,16 @@ function GamePageInner({
   // Live wall state: starts from REST-fetched map, updated on WS events.
   const [liveWalls, setLiveWalls] = useState<WallSegment[]>([]);
   const [wallPicker, setWallPicker] = useState<WallSegment | null>(null);
+  const [livePieces, setLivePieces] = useState<Piece[] | null>(null);
+  const [fog, setFog] = useState<FogState>({ fogMode: "explored", visiblePolygons: [], exploredCells: new Set() });
 
   // Sync liveWalls when the REST map loads.
   useEffect(() => {
-    if (map) setLiveWalls(map.walls ?? []);
+    if (map) {
+      setLiveWalls(map.walls ?? []);
+      setLivePieces(map.pieces ?? null);
+      setFog((f) => ({ ...f, fogMode: map.fogMode ?? "explored" }));
+    }
   }, [map]);
 
   // Determine if current user is the master.
@@ -71,14 +77,47 @@ function GamePageInner({
     );
   }, []);
 
+  const handleMapFullState = useCallback((s: {
+    pieces: unknown[]; walls: WallSegment[];
+    visiblePolygons: Array<Array<[number, number]>>;
+    exploredCells: Array<[number, number]>; fogMode: "live" | "explored";
+  }) => {
+    setLiveWalls(s.walls);
+    setLivePieces(s.pieces as Piece[]);
+    setFog({
+      fogMode: s.fogMode,
+      visiblePolygons: s.visiblePolygons,
+      exploredCells: new Set(s.exploredCells.map(([a, b]) => `${a},${b}`)),
+    });
+  }, []);
+
+  const handleVisibilityUpdated = useCallback((
+    polys: Array<Array<[number, number]>>,
+    delta: Array<[number, number]>,
+  ) => {
+    setFog((f) => {
+      const next = new Set(f.exploredCells);
+      for (const [a, b] of delta) next.add(`${a},${b}`);
+      return { ...f, visiblePolygons: polys, exploredCells: next };
+    });
+  }, []);
+
+  const handleWallRevealed = useCallback((wall: WallSegment) => {
+    setLiveWalls((prev) => prev.map((w) => (w.id === wall.id ? wall : w)));
+  }, []);
+
   const { sendMasterAction, sendAction } = useMatchWs({
     matchUuid: matchId,
     token,
     isMaster,
     onWallStateChanged: handleWallStateChanged,
     onWallHpChanged: handleWallHpChanged,
+    onMapFullState: handleMapFullState,
+    onVisibilityUpdated: handleVisibilityUpdated,
+    onWallRevealed: handleWallRevealed,
     walls: liveWalls,
     cellSize: map?.grid?.cellSize,
+    grid: map?.grid,
   });
 
   const handleWallClick = useCallback(
@@ -126,7 +165,9 @@ function GamePageInner({
             <MapLoadingMessage>Carregando mapa...</MapLoadingMessage>
           ) : map && width > 0 && height > 0 ? (
             <TacticalMapViewer
-              map={{ ...map, walls: liveWalls }}
+              map={{ ...map, walls: liveWalls, pieces: livePieces ?? map.pieces }}
+              fog={fog}
+              isMaster={isMaster}
               width={width}
               height={height}
               npcMap={npcMap}
