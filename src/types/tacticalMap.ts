@@ -101,6 +101,7 @@ export type WallSegment = {
   maxHp: number;
   resistance: number;
   destroyed: boolean;
+  revealed?: boolean; // secret_door revealed to all by the master (10-D)
 };
 
 // ─── Capacidades futuras (placeholders declarados desde já) ────────────────
@@ -141,6 +142,22 @@ export type TacticalMap = {
   walls: WallSegment[];
   decorations: Decoration[]; // []
   items: MapItem[];      // []
+  fogMode?: FogMode;     // default "explored"; absent on legacy maps
   createdAt: string;     // ISO
   updatedAt: string;     // ISO
+};
+
+// ─── Fog of War (10-D) ──────────────────────────────────────────────────────
+export type FogMode = "live" | "explored";
+
+// A single visibility polygon's vertices, in LOCAL (pre-transform) coords —
+// same space as WallSegment.p1/p2. FogLayer applies applyTransform per vertex.
+export type VisibilityPolygon = Array<[number, number]>;
+
+// Viewer-side fog state (not persisted in the editor; arrives via WS/REST).
+export type FogState = {
+  fogMode: FogMode;
+  visiblePolygons: VisibilityPolygon[];
+  // Accumulated explored cells as "a,b" keys (square: col,row; hex: q,r).
+  exploredCells: Set<string>;
 };

@@ -9,11 +9,12 @@ import type { Graphics as PixiGraphics } from "pixi.js";
 import gungiFrameUrl from "../../assets/icons/gungi.svg";
 import avatarPlaceholderUrl from "../../assets/placeholder/avatar.png";
 import { Viewport } from "pixi-viewport";
-import type { TacticalMap, GridShape, Piece, SlotCoord, BgImage } from "../../types/tacticalMap";
+import type { TacticalMap, GridShape, Piece, SlotCoord, BgImage, FogState } from "../../types/tacticalMap";
 import type { CharacterPrivateSummary } from "../../types/characterSheet";
 import type { Selection, ToolKind } from "../../features/tactical-map/store/editorStore";
 import MapHandlesLayer from "./MapHandlesLayer";
 import WallsLayer from "./WallsLayer";
+import FogLayer from "./FogLayer";
 import type { WallSegment, WallType, WallMaterial } from "../../types/tacticalMap";
 import { slotToWorld, worldToSlot, isSlotInBounds, slotCorners, applyTransform, slotInradius } from "../../features/tactical-map/utils/coords";
 
@@ -161,6 +162,10 @@ type Props = {
   drawingEnabled?: boolean;
   onExitWallsDrawMode?: () => void;
   onWallClick?: (wall: WallSegment) => void;
+  fog?: FogState;
+  fogDisabled?: boolean; // true for master / editor
+  worldWidth?: number;
+  worldHeight?: number;
 };
 
 export default function TacticalMapStage({
@@ -201,6 +206,10 @@ export default function TacticalMapStage({
   drawingEnabled,
   onExitWallsDrawMode,
   onWallClick,
+  fog,
+  fogDisabled = true,
+  worldWidth,
+  worldHeight,
 }: Props) {
   const [isBgLoading, setIsBgLoading] = useState(() => !!map.bg?.url);
   const bgUrl = map.bg?.url;
@@ -272,6 +281,10 @@ export default function TacticalMapStage({
           drawingEnabled={drawingEnabled}
           onExitWallsDrawMode={onExitWallsDrawMode}
           onWallClick={onWallClick}
+          fog={fog}
+          fogDisabled={fogDisabled}
+          worldWidth={worldWidth}
+          worldHeight={worldHeight}
         />
       </Application>
       {(isBgLoading || uploading) && (
@@ -332,6 +345,10 @@ function ViewportInner({
   drawingEnabled,
   onExitWallsDrawMode,
   onWallClick,
+  fog,
+  fogDisabled = true,
+  worldWidth,
+  worldHeight,
 }: Props) {
   const { app } = useApplication();
   const canvasEl = app?.renderer ? (app.canvas as HTMLCanvasElement) : null;
@@ -595,6 +612,15 @@ function ViewportInner({
         onExitDrawMode={onExitWallsDrawMode ?? (() => {})}
         onWallClick={onWallClick}
       />
+      {fog && !fogDisabled && (
+        <FogLayer
+          fog={fog}
+          grid={map.grid}
+          worldWidth={worldWidth ?? map.grid.cols * map.grid.cellSize}
+          worldHeight={worldHeight ?? map.grid.rows * map.grid.cellSize}
+          disabled={fogDisabled}
+        />
+      )}
       <pixiContainer label="overlay-layer">
         {activeTool && onBgChange && onGridChange && (
           <MapHandlesLayer
