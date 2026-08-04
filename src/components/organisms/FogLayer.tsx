@@ -1,18 +1,8 @@
-import { useCallback, useMemo } from "react";
-import type { Graphics as PixiGraphics } from "pixi.js";
+import { useCallback, useLayoutEffect, useMemo, useRef } from "react";
+import type { Container as PixiContainer, Graphics as PixiGraphics } from "pixi.js";
 import type { GridShape, FogState } from "../../types/tacticalMap";
-import { applyTransform, slotToWorld } from "../../features/tactical-map/utils/coords";
-import { cellCornersLocal, fogTiers } from "../../features/tactical-map/utils/fog";
-
-// ─── Constants ──────────────────────────────────────────────────────────────
-
-const FOG_COLOR = 0x05070a;
-const UNEXPLORED_ALPHA = 0.92;
-const EXPLORED_ALPHA = 0.5;
-// Padding around the board so panning never exposes an un-fogged edge.
-const FOG_PADDING = 2000;
-
-// ─── Props ──────────────────────────────────────────────────────────────────
+import { fogTiers } from "../../features/tactical-map/utils/fog";
+import { drawFogTiers, drawLosMask } from "../../features/tactical-map/utils/fogDraw";
 
 type Props = {
   fog: FogState;
@@ -21,8 +11,6 @@ type Props = {
   worldHeight: number;
   disabled: boolean;
 };
-
-// ─── Component ──────────────────────────────────────────────────────────────
 
 export default function FogLayer({ fog, grid, worldWidth, worldHeight, disabled }: Props) {
   if (disabled) return null;
@@ -37,78 +25,58 @@ export default function FogLayer({ fog, grid, worldWidth, worldHeight, disabled 
   );
 }
 
-// Inner component avoids calling hooks conditionally (hooks must not be called
-// after an early return that depends on a prop).
+// Inner component avoids calling hooks conditionally (hooks must not be called after
+// an early return that depends on a prop).
 type InnerProps = Omit<Props, "disabled">;
 
 function FogLayerInner({ fog, grid, worldWidth, worldHeight }: InnerProps) {
+  const containerRef = useRef<PixiContainer>(null);
+  const maskRef = useRef<PixiGraphics>(null);
+
   // Cells are classified once per fog/grid change, not per frame.
   const tiers = useMemo(
-    () =>
-      fogTiers(
-        grid,
-        fog.visiblePolygons,
-        fog.exploredCells,
-        fog.fogMode,
-        (a, b) =>
-          slotToWorld(
-            grid.kind === "hex"
-              ? { kind: "hex", q: a, r: b }
-              : { kind: "square", col: a, row: b },
-            grid,
-          ),
-      ),
-    [grid, fog.visiblePolygons, fog.exploredCells, fog.fogMode],
+    () => fogTiers(grid, fog.exploredCells, fog.fogMode),
+    [grid, fog.exploredCells, fog.fogMode],
   );
 
-  // One pass, disjoint regions: the ring outside the board plus every non-visible
-  // cell. Nothing overlaps, so each area ends up at exactly its intended alpha and
-  // no blend mode is involved. Visible cells are simply never painted.
-  const draw = useCallback(
-    (g: PixiGraphics) => {
-      g.clear();
-
-      // Ring around the board, drawn as four rectangles so it never overlaps a cell.
-      const P = FOG_PADDING;
-      const ring: Array<[number, number, number, number]> = [
-        [-P, -P, worldWidth + P, 0],
-        [-P, worldHeight, worldWidth + P, worldHeight + P],
-        [-P, 0, 0, worldHeight],
-        [worldWidth, 0, worldWidth + P, worldHeight],
-      ];
-      for (const [x0, y0, x1, y1] of ring) {
-        g.moveTo(x0, y0);
-        g.lineTo(x1, y0);
-        g.lineTo(x1, y1);
-        g.lineTo(x0, y1);
-        g.closePath();
-      }
-      g.fill({ color: FOG_COLOR, alpha: UNEXPLORED_ALPHA });
-
-      const paintCells = (cells: Array<[number, number]>, alpha: number) => {
-        if (cells.length === 0) return;
-        for (const [a, b] of cells) {
-          const corners = cellCornersLocal(a, b, grid);
-          const first = applyTransform({ x: corners[0][0], y: corners[0][1] }, grid);
-          g.moveTo(first.x, first.y);
-          for (let i = 1; i < corners.length; i++) {
-            const pt = applyTransform({ x: corners[i][0], y: corners[i][1] }, grid);
-            g.lineTo(pt.x, pt.y);
-          }
-          g.closePath();
-        }
-        g.fill({ color: FOG_COLOR, alpha });
-      };
-
-      paintCells(tiers.hidden, UNEXPLORED_ALPHA);
-      paintCells(tiers.explored, EXPLORED_ALPHA);
-    },
+  const drawTiers = useCallback(
+    (g: PixiGraphics) => drawFogTiers(g, tiers, grid, worldWidth, worldHeight),
     [tiers, grid, worldWidth, worldHeight],
   );
 
+  const drawMask = useCallback(
+    (g: PixiGraphics) => drawLosMask(g, fog.visiblePolygons),
+    [fog.visiblePolygons],
+  );
+
+  // The lit area is carved out of the fog by an INVERSE stencil mask built from the
+  // backend's visibility polygons. That is what gives the edge its true polygonal
+  // shape — rays from the wall corners — instead of following the grid.
+  //
+  // No dependency array on purpose: the guard makes re-runs free, and it keeps the
+  // mask correct if @pixi/react ever swaps either instance.
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    const mask = maskRef.current;
+    if (!container || !mask || container.mask === mask) return;
+
+    if (typeof container.setMask !== "function") {
+      // Failing loudly matters here: without the mask the fog silently covers the
+      // whole board with no console error, which is precisely the failure mode that
+      // hid the phase 10-D bugs for weeks.
+      throw new Error("FogLayer: Container.setMask is unavailable — cannot apply the inverse LOS mask");
+    }
+    container.setMask({ mask, inverse: true });
+  });
+
   return (
-    <pixiContainer label="fog-layer">
-      <pixiGraphics draw={draw} />
+    <pixiContainer label="fog-layer" ref={containerRef}>
+      <pixiGraphics draw={drawTiers} />
+      {/* Do NOT set visible={false} here. Pixi's StencilMaskPipe already keeps the
+          mask out of the rendered content (it flips includeInBuild off after
+          collecting the geometry). Hiding it makes the mask empty, and an empty
+          inverse mask fogs the entire board. */}
+      <pixiGraphics draw={drawMask} label="fog-los-mask" ref={maskRef} />
     </pixiContainer>
   );
 }
