@@ -162,6 +162,39 @@ Resumo das otimizações chave (já documentadas no spec, mas vale recapitular):
 - **Pixi não responde a CSS**. Tudo é em pixels do mundo, controlado por props. Não tente estilizar com styled-components.
 - **`<canvas>` ocupa espaço fixo**. O tamanho da Application é controlado por props; redimensionar requer recalcular.
 
+## Fog de guerra: composição sem blending
+
+O fog do jogador tem três níveis (desconhecido, lembrado, visível) e **não** usa
+blend mode. Duas tentativas erradas, para não repetir:
+
+- `blendMode="erase"` na camada de fog perfura o framebuffer principal até a cor de
+  limpeza do canvas. A área "iluminada" sai preta sólida em vez de revelar o mapa.
+- `isRenderGroup` **não** resolve: ele não cria render target isolado.
+
+O que funciona:
+
+1. **Regiões disjuntas** para os níveis de fog. Cada célula é pintada no máximo uma
+   vez, com o alpha do seu nível (`drawFogTiers` em
+   `features/tactical-map/utils/fogDraw.ts`). Sem sobreposição, sem blending.
+2. **Máscara invertida** para a área visível:
+   `container.setMask({ mask: losGraphics, inverse: true })`. O conteúdo renderiza
+   onde a máscara não está, então o fog some exatamente dentro do polígono de
+   visibilidade que o backend envia.
+
+Três armadilhas do Pixi v8 nesse caminho:
+
+- A máscara é filha do container mascarado e **não pode** receber `visible={false}` —
+  o `StencilMaskPipe` deixaria de coletar a geometria, a máscara ficaria vazia, e uma
+  máscara invertida vazia escurece o tabuleiro inteiro, sem erro no console.
+- `inverse` só se liga por `setMask({ mask, inverse: true })`. `_maskOptions` é objeto
+  compartilhado no protótipo do mixin; mutá-lo direto vaza para outros containers.
+- Polígonos sobrepostos são seguros: o stencil escreve com `compare: equal` +
+  `increment-clamp`, então sobreposição vira união, não XOR.
+
+`Graphics.cut()` foi avaliado e descartado: earcut não define comportamento para furos
+sobrepostos (jogador com duas peças), e `cut()` anexa o segundo furo em diante também
+à instrução de fill anterior.
+
 ## Onde aprender mais
 
 - Site oficial: [pixijs.com](https://pixijs.com)
