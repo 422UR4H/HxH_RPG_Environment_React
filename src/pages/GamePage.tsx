@@ -9,6 +9,7 @@ import { useMatchParticipants } from "../hooks/useMatchParticipants";
 import { useCampaignDetails } from "../hooks/useCampaignDetails";
 import { useResizeObserver } from "../hooks/useResizeObserver";
 import { useMatchWs } from "../hooks/useMatchWs";
+import type { MatchBoardSync } from "../hooks/useMatchWs";
 import useUser from "../hooks/useUser";
 import TacticalMapViewer from "../features/tactical-map/TacticalMapViewer";
 import GamePageTemplate from "../components/templates/GamePageTemplate";
@@ -78,18 +79,23 @@ function GamePageInner({
   }, []);
 
   const handleMapFullState = useCallback((s: {
-    pieces: unknown[]; walls: WallSegment[];
+    pieces: Piece[]; walls: WallSegment[];
     visiblePolygons: Array<Array<[number, number]>>;
     exploredCells: Array<[number, number]>; fogMode: "live" | "explored";
   }) => {
     setLiveWalls(s.walls);
-    setLivePieces(s.pieces as Piece[]);
+    // The WS piece payload carries no elevation, so restore z from the REST map;
+    // otherwise every piece would flatten to the ground on each server push.
+    const zById = new Map((map?.pieces ?? []).map((p) => [p.id, p.coord.z]));
+    setLivePieces(
+      s.pieces.map((p) => ({ ...p, coord: { ...p.coord, z: zById.get(p.id) ?? 0 } })),
+    );
     setFog({
       fogMode: s.fogMode,
       visiblePolygons: s.visiblePolygons,
       exploredCells: new Set(s.exploredCells.map(([a, b]) => `${a},${b}`)),
     });
-  }, []);
+  }, [map]);
 
   const handleVisibilityUpdated = useCallback((
     polys: Array<Array<[number, number]>>,
@@ -106,6 +112,13 @@ function GamePageInner({
     setLiveWalls((prev) => prev.map((w) => (w.id === wall.id ? wall : w)));
   }, []);
 
+  // Board the master seeds the game server with. Derived from the REST map only —
+  // using live WS state here would feed the server's own pushes back into a sync loop.
+  const board = useMemo<MatchBoardSync | null>(
+    () => (map ? { pieces: map.pieces ?? [], walls: map.walls ?? [], grid: map.grid } : null),
+    [map],
+  );
+
   const { sendMasterAction, sendAction } = useMatchWs({
     matchUuid: matchId,
     token,
@@ -115,9 +128,7 @@ function GamePageInner({
     onMapFullState: handleMapFullState,
     onVisibilityUpdated: handleVisibilityUpdated,
     onWallRevealed: handleWallRevealed,
-    walls: liveWalls,
-    cellSize: map?.grid?.cellSize,
-    grid: map?.grid,
+    board,
   });
 
   const handleWallClick = useCallback(

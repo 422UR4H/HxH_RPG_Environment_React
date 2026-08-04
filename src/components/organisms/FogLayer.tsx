@@ -1,18 +1,14 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import type { Graphics as PixiGraphics } from "pixi.js";
 import type { GridShape, FogState } from "../../types/tacticalMap";
-import { applyTransform } from "../../features/tactical-map/utils/coords";
-import { cellCornersLocal } from "../../features/tactical-map/utils/fog";
+import { applyTransform, slotToWorld } from "../../features/tactical-map/utils/coords";
+import { cellCornersLocal, fogTiers } from "../../features/tactical-map/utils/fog";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
 const FOG_COLOR = 0x05070a;
 const UNEXPLORED_ALPHA = 0.92;
 const EXPLORED_ALPHA = 0.5;
-// Erase strength to lift darkness from UNEXPLORED_ALPHA down to EXPLORED_ALPHA.
-// We draw white at this alpha in erase blend mode so the remaining visible alpha
-// is UNEXPLORED_ALPHA - (UNEXPLORED_ALPHA - EXPLORED_ALPHA) = EXPLORED_ALPHA.
-const EXPLORED_ERASE_ALPHA = (UNEXPLORED_ALPHA - EXPLORED_ALPHA) / UNEXPLORED_ALPHA;
 // Padding around the board so panning never exposes an un-fogged edge.
 const FOG_PADDING = 2000;
 
@@ -46,70 +42,73 @@ export default function FogLayer({ fog, grid, worldWidth, worldHeight, disabled 
 type InnerProps = Omit<Props, "disabled">;
 
 function FogLayerInner({ fog, grid, worldWidth, worldHeight }: InnerProps) {
-  // ── Tier 1: base darkness ──────────────────────────────────────────────────
-  const drawBase = useCallback(
-    (g: PixiGraphics) => {
-      g.clear();
-      g.setFillStyle({ color: FOG_COLOR, alpha: UNEXPLORED_ALPHA });
-      g.moveTo(-FOG_PADDING, -FOG_PADDING);
-      g.lineTo(worldWidth + FOG_PADDING, -FOG_PADDING);
-      g.lineTo(worldWidth + FOG_PADDING, worldHeight + FOG_PADDING);
-      g.lineTo(-FOG_PADDING, worldHeight + FOG_PADDING);
-      g.closePath();
-      g.fill();
-    },
-    [worldWidth, worldHeight],
+  // Cells are classified once per fog/grid change, not per frame.
+  const tiers = useMemo(
+    () =>
+      fogTiers(
+        grid,
+        fog.visiblePolygons,
+        fog.exploredCells,
+        fog.fogMode,
+        (a, b) =>
+          slotToWorld(
+            grid.kind === "hex"
+              ? { kind: "hex", q: a, r: b }
+              : { kind: "square", col: a, row: b },
+            grid,
+          ),
+      ),
+    [grid, fog.visiblePolygons, fog.exploredCells, fog.fogMode],
   );
 
-  // ── Tier 2: explored cells (erase to mid-gray) ────────────────────────────
-  const drawExplored = useCallback(
+  // One pass, disjoint regions: the ring outside the board plus every non-visible
+  // cell. Nothing overlaps, so each area ends up at exactly its intended alpha and
+  // no blend mode is involved. Visible cells are simply never painted.
+  const draw = useCallback(
     (g: PixiGraphics) => {
       g.clear();
-      if (fog.fogMode !== "explored") return;
-      g.setFillStyle({ color: 0xffffff, alpha: EXPLORED_ERASE_ALPHA });
-      for (const key of fog.exploredCells) {
-        const [aStr, bStr] = key.split(",");
-        const a = Number(aStr);
-        const b = Number(bStr);
-        const corners = cellCornersLocal(a, b, grid);
-        const first = applyTransform({ x: corners[0][0], y: corners[0][1] }, grid);
-        g.moveTo(first.x, first.y);
-        for (let i = 1; i < corners.length; i++) {
-          const pt = applyTransform({ x: corners[i][0], y: corners[i][1] }, grid);
-          g.lineTo(pt.x, pt.y);
-        }
-        g.closePath();
-        g.fill();
-      }
-    },
-    [fog.fogMode, fog.exploredCells, grid],
-  );
 
-  // ── Tier 3: current vision (full erase → clear) ───────────────────────────
-  const drawVisible = useCallback(
-    (g: PixiGraphics) => {
-      g.clear();
-      g.setFillStyle({ color: 0xffffff, alpha: 1 });
-      for (const poly of fog.visiblePolygons) {
-        if (poly.length < 3) continue;
-        const first = applyTransform({ x: poly[0][0], y: poly[0][1] }, grid);
-        g.moveTo(first.x, first.y);
-        for (let i = 1; i < poly.length; i++) {
-          const pt = applyTransform({ x: poly[i][0], y: poly[i][1] }, grid);
-          g.lineTo(pt.x, pt.y);
-        }
+      // Ring around the board, drawn as four rectangles so it never overlaps a cell.
+      const P = FOG_PADDING;
+      const ring: Array<[number, number, number, number]> = [
+        [-P, -P, worldWidth + P, 0],
+        [-P, worldHeight, worldWidth + P, worldHeight + P],
+        [-P, 0, 0, worldHeight],
+        [worldWidth, 0, worldWidth + P, worldHeight],
+      ];
+      for (const [x0, y0, x1, y1] of ring) {
+        g.moveTo(x0, y0);
+        g.lineTo(x1, y0);
+        g.lineTo(x1, y1);
+        g.lineTo(x0, y1);
         g.closePath();
-        g.fill();
       }
+      g.fill({ color: FOG_COLOR, alpha: UNEXPLORED_ALPHA });
+
+      const paintCells = (cells: Array<[number, number]>, alpha: number) => {
+        if (cells.length === 0) return;
+        for (const [a, b] of cells) {
+          const corners = cellCornersLocal(a, b, grid);
+          const first = applyTransform({ x: corners[0][0], y: corners[0][1] }, grid);
+          g.moveTo(first.x, first.y);
+          for (let i = 1; i < corners.length; i++) {
+            const pt = applyTransform({ x: corners[i][0], y: corners[i][1] }, grid);
+            g.lineTo(pt.x, pt.y);
+          }
+          g.closePath();
+        }
+        g.fill({ color: FOG_COLOR, alpha });
+      };
+
+      paintCells(tiers.hidden, UNEXPLORED_ALPHA);
+      paintCells(tiers.explored, EXPLORED_ALPHA);
     },
-    [fog.visiblePolygons, grid],
+    [tiers, grid, worldWidth, worldHeight],
   );
 
   return (
-    <pixiContainer label="fog-layer" isRenderGroup>
-      <pixiGraphics draw={drawBase} />
-      <pixiGraphics draw={drawExplored} blendMode="erase" />
-      <pixiGraphics draw={drawVisible} blendMode="erase" />
+    <pixiContainer label="fog-layer">
+      <pixiGraphics draw={draw} />
     </pixiContainer>
   );
 }
