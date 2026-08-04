@@ -17,55 +17,32 @@ export function mergeExplored(base: Set<string>, delta: Array<[number, number]>)
   return next;
 }
 
-/** Ray-casting point-in-polygon. `poly` is a closed ring of [x, y] world points. */
-export function pointInPolygon(x: number, y: number, poly: Array<[number, number]>): boolean {
-  let inside = false;
-  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-    const [xi, yi] = poly[i];
-    const [xj, yj] = poly[j];
-    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) {
-      inside = !inside;
-    }
-  }
-  return inside;
-}
-
 export type FogTier = "hidden" | "explored" | "visible";
 
 /**
  * Fog tier for every cell of the grid.
  *
- * The tiers are computed as DISJOINT sets on purpose. Rendering them as separate
- * translucent layers stacked on top of each other would darken the overlaps, and the
- * obvious fix — an "erase" blend mode — only works when the layer owns an isolated
- * render target. Erasing straight onto the main framebuffer punches through to the
- * canvas clear colour, so the lit area comes out pure black instead of revealing the
- * map. Disjoint regions need no blending at all: each cell is painted exactly once.
+ * This classifier does NOT know about line of sight. The currently visible area is
+ * removed by an inverse stencil mask built from the backend's visibility polygons
+ * (see FogLayer and fogDraw.ts), which is what gives the fog its smooth polygonal
+ * edge instead of a grid-aligned one.
  *
- * A cell counts as visible when its CENTRE falls inside any visibility polygon, which
- * is the same rule the backend uses to mark cells explored.
+ * The two tiers are DISJOINT on purpose. Stacking translucent layers would darken
+ * their overlap, and the obvious fix — an "erase" blend mode — only works when the
+ * layer owns an isolated render target. Erasing onto the main framebuffer punches
+ * through to the canvas clear colour, so the lit area comes out pure black. Disjoint
+ * regions need no blending at all: each cell is painted exactly once.
  */
 export function fogTiers(
   grid: GridShape,
-  visiblePolygons: Array<Array<[number, number]>>,
   exploredCells: ReadonlySet<string>,
   fogMode: "live" | "explored",
-  cellCenter: (a: number, b: number) => { x: number; y: number },
 ): { hidden: Array<[number, number]>; explored: Array<[number, number]> } {
   const hidden: Array<[number, number]> = [];
   const explored: Array<[number, number]> = [];
 
   for (let b = 0; b < grid.rows; b++) {
     for (let a = 0; a < grid.cols; a++) {
-      const c = cellCenter(a, b);
-      let visible = false;
-      for (const poly of visiblePolygons) {
-        if (poly.length >= 3 && pointInPolygon(c.x, c.y, poly)) {
-          visible = true;
-          break;
-        }
-      }
-      if (visible) continue; // painted by nothing: fully clear
       if (fogMode === "explored" && exploredCells.has(cellKey(a, b))) {
         explored.push([a, b]);
       } else {
