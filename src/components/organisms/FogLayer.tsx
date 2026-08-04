@@ -107,10 +107,8 @@ function FogLayerInner({ fog, grid, worldWidth, worldHeight }: InnerProps) {
   );
 
   return (
-    // eventMode="none" keeps the fog out of hit testing: it now renders above the
-    // pieces, and a purely decorative overlay must never swallow their pointer events.
-    <pixiContainer label="fog-layer" eventMode="none">
-      <pixiGraphics draw={draw} eventMode="none" />
+    <pixiContainer label="fog-layer">
+      <pixiGraphics draw={draw} />
     </pixiContainer>
   );
 }

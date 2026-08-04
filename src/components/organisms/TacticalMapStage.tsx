@@ -593,20 +593,6 @@ function ViewportInner({
         onStageDeselect={onStageDeselect}
         onEmptySlotClick={onEmptySlotClick}
       />
-      {/* Fog sits UNDER the walls. Above them it would cover the half of each wall's
-          thickness that falls on the unlit side of the cell boundary the wall runs
-          along, so a wall bounding the player's view rendered as half a wall. Every
-          wall that reaches the client is one the player is allowed to see, so drawing
-          them on top leaks nothing. */}
-      {fog && !fogDisabled && (
-        <FogLayer
-          fog={fog}
-          grid={map.grid}
-          worldWidth={worldWidth ?? map.grid.cols * map.grid.cellSize}
-          worldHeight={worldHeight ?? map.grid.rows * map.grid.cellSize}
-          disabled={fogDisabled}
-        />
-      )}
       <WallsLayer
         walls={walls ?? []}
         grid={map.grid}
@@ -626,6 +612,15 @@ function ViewportInner({
         onExitDrawMode={onExitWallsDrawMode ?? (() => {})}
         onWallClick={onWallClick}
       />
+      {fog && !fogDisabled && (
+        <FogLayer
+          fog={fog}
+          grid={map.grid}
+          worldWidth={worldWidth ?? map.grid.cols * map.grid.cellSize}
+          worldHeight={worldHeight ?? map.grid.rows * map.grid.cellSize}
+          disabled={fogDisabled}
+        />
+      )}
       <pixiContainer label="overlay-layer">
         {activeTool && onBgChange && onGridChange && (
           <MapHandlesLayer
