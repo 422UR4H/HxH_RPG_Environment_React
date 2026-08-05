@@ -48,7 +48,6 @@ describe("useMatchWs fog events", () => {
       pieces: [],
       walls: [{ id: "w1", wall_type: "wall", max_hp: 100 }],
       visible_polygons: [[{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 10, y: 10 }]],
-      explored_cells: [[0, 0], [1, 0]],
       fog_mode: "explored",
     });
     expect(onMapFullState).toHaveBeenCalledTimes(1);
@@ -56,7 +55,6 @@ describe("useMatchWs fog events", () => {
     expect(arg.fogMode).toBe("explored");
     expect(arg.walls[0].wallType).toBe("wall");
     expect(arg.visiblePolygons[0]).toEqual([[0, 0], [10, 0], [10, 10]]);
-    expect(arg.exploredCells).toEqual([[0, 0], [1, 0]]);
   });
 
   it("parses visibility_updated", () => {
@@ -68,9 +66,8 @@ describe("useMatchWs fog events", () => {
     ws.onopen?.();
     ws.emit("visibility_updated", {
       visible_polygons: [[{ x: 1, y: 1 }, { x: 2, y: 1 }, { x: 2, y: 2 }]],
-      explored_delta: [[5, 5]],
     });
-    expect(onVisibilityUpdated).toHaveBeenCalledWith([[[1, 1], [2, 1], [2, 2]]], [[5, 5]]);
+    expect(onVisibilityUpdated).toHaveBeenCalledWith([[[1, 1], [2, 1], [2, 2]]]);
   });
 
   // The server's piece shape is flat (piece_id/slot); the renderer reads piece.coord.slot
@@ -94,7 +91,7 @@ describe("useMatchWs fog events", () => {
             visible: true,
           },
         ],
-        walls: [], visible_polygons: [], explored_cells: [], fog_mode: "explored",
+        walls: [], visible_polygons: [], fog_mode: "explored",
       });
     });
 
@@ -120,7 +117,7 @@ describe("useMatchWs fog events", () => {
     act(() => {
       ws.emit("map_full_state", {
         pieces: [{ piece_id: "p", slot: { kind: "hex", q: 2, r: -3 }, character_id: "c" }],
-        walls: [], visible_polygons: [], explored_cells: [], fog_mode: "live",
+        walls: [], visible_polygons: [], fog_mode: "live",
       });
     });
     expect(onMapFullState.mock.calls[0][0].pieces[0].coord.slot).toEqual({
@@ -231,7 +228,7 @@ describe("useMatchWs board sync", () => {
 
     act(() => {
       ws.emit("map_full_state", {
-        pieces: [], walls: [], visible_polygons: [], explored_cells: [], fog_mode: "explored",
+        pieces: [], walls: [], visible_polygons: [], fog_mode: "explored",
       });
     });
     rerender({ board });

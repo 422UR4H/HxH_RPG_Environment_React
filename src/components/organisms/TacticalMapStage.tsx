@@ -593,6 +593,14 @@ function ViewportInner({
         onStageDeselect={onStageDeselect}
         onEmptySlotClick={onEmptySlotClick}
       />
+      {fog && !fogDisabled && (
+        <FogLayer
+          fog={fog}
+          worldWidth={worldWidth ?? map.grid.cols * map.grid.cellSize}
+          worldHeight={worldHeight ?? map.grid.rows * map.grid.cellSize}
+          disabled={fogDisabled}
+        />
+      )}
       <WallsLayer
         walls={walls ?? []}
         grid={map.grid}
@@ -611,16 +619,8 @@ function ViewportInner({
         drawingEnabled={drawingEnabled ?? false}
         onExitDrawMode={onExitWallsDrawMode ?? (() => {})}
         onWallClick={onWallClick}
+        losPolygons={fog && !fogDisabled ? fog.visiblePolygons : undefined}
       />
-      {fog && !fogDisabled && (
-        <FogLayer
-          fog={fog}
-          grid={map.grid}
-          worldWidth={worldWidth ?? map.grid.cols * map.grid.cellSize}
-          worldHeight={worldHeight ?? map.grid.rows * map.grid.cellSize}
-          disabled={fogDisabled}
-        />
-      )}
       <pixiContainer label="overlay-layer">
         {activeTool && onBgChange && onGridChange && (
           <MapHandlesLayer
