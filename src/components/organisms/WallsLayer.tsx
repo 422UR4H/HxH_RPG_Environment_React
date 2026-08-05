@@ -25,6 +25,13 @@ const SNAP_THRESHOLD_SCREEN = 15;
 // alpha) left them all but invisible; this is the legibility level chosen on screen.
 const MEMORY_WALL_ALPHA = 0.5;
 
+// A wall that blocks vision lies exactly ON the edge of the visibility polygon, so a
+// mask cut at that edge splits the wall's stroke lengthwise — the viewer's half crisp,
+// the other half dimmed as if remembered. Growing the walls' mask by half the thickest
+// stroke pulls the whole wall onto the lit side. Walls sit on grid lines a full cell
+// apart, so a few world units cannot reach a genuinely remembered neighbour.
+const LOS_WALL_DILATION = Math.max(...Object.values(MATERIAL_WIDTH)) / 2;
+
 type Props = {
   walls: WallSegment[];
   grid: GridShape;
@@ -410,7 +417,7 @@ export default function WallsLayer({
   if (!losPolygons) return graphics;
 
   return (
-    <LosSplit polygons={losPolygons} dimAlpha={MEMORY_WALL_ALPHA}>
+    <LosSplit polygons={losPolygons} dimAlpha={MEMORY_WALL_ALPHA} dilate={LOS_WALL_DILATION}>
       {graphics}
     </LosSplit>
   );

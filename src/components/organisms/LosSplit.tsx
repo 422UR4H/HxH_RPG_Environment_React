@@ -9,6 +9,13 @@ type Props = {
   polygons: VisibilityPolygon[];
   /** Alpha for the remembered (out of sight) copy. */
   dimAlpha: number;
+  /**
+   * Grow the split boundary outward by this many world units. Content that sits exactly
+   * ON the line of sight edge — a wall that blocks vision does — would otherwise be cut
+   * down the middle, lit on the viewer's side and dimmed on the other. Both passes use
+   * the same grown boundary, so they stay exact complements and nothing is drawn twice.
+   */
+  dilate?: number;
   children: ReactNode;
 };
 
@@ -24,15 +31,15 @@ type Props = {
  * it twice: for WallsLayer that means every door click firing twice, with nothing in
  * the console to hint at it. Pass the drawing part, never the interactive component.
  */
-export default function LosSplit({ polygons, dimAlpha, children }: Props) {
+export default function LosSplit({ polygons, dimAlpha, dilate = 0, children }: Props) {
   const litRef = useRef<PixiContainer>(null);
   const litMaskRef = useRef<PixiGraphics>(null);
   const dimRef = useRef<PixiContainer>(null);
   const dimMaskRef = useRef<PixiGraphics>(null);
 
   const drawMask = useCallback(
-    (g: PixiGraphics) => drawLosMask(g, polygons),
-    [polygons],
+    (g: PixiGraphics) => drawLosMask(g, polygons, dilate),
+    [polygons, dilate],
   );
 
   // No dependency array on purpose: applyLosMask no-ops when nothing changed, and this

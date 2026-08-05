@@ -18,6 +18,7 @@ export type FogDrawTarget = {
   lineTo(x: number, y: number): unknown;
   closePath(): unknown;
   fill(style: { color: number; alpha?: number }): unknown;
+  stroke(style: { color: number; alpha?: number; width: number }): unknown;
 };
 
 /**
@@ -51,9 +52,22 @@ export function drawFog(g: FogDrawTarget, worldWidth: number, worldHeight: numbe
  * Overlapping polygons (a player with two pieces standing close together) are safe.
  * Pixi's stencil mask writes with `compare: equal` + `increment-clamp`, so a second
  * polygon over the same pixel does not increment again — overlaps union rather than
- * cancel out.
+ * cancel out. That is also why the optional dilating stroke below can overlap the
+ * fill without cancelling it.
+ *
+ * `dilate` grows the covered region outward by that many world units. A wall that
+ * blocks vision lies exactly ON the polygon edge, so an exact mask cuts the wall's
+ * stroke down its length — the viewer-side half lit, the far half dimmed. Growing the
+ * mask by half the wall thickness puts the whole wall on the lit side.
+ *
+ * Only the walls' mask is dilated. The fog's mask must stay exact: growing it would
+ * clear a sliver of floor just beyond a blocking wall and leak what stands behind it.
  */
-export function drawLosMask(g: FogDrawTarget, polygons: VisibilityPolygon[]): void {
+export function drawLosMask(
+  g: FogDrawTarget,
+  polygons: VisibilityPolygon[],
+  dilate = 0,
+): void {
   g.clear();
 
   let drewAny = false;
@@ -66,8 +80,18 @@ export function drawLosMask(g: FogDrawTarget, polygons: VisibilityPolygon[]): vo
     g.closePath();
     drewAny = true;
   }
+  if (!drewAny) return;
+
   // The colour is irrelevant — a stencil mask only cares about coverage — but the fill
   // must happen, otherwise there is no geometry and the mask degenerates: an inverse
   // mask then covers everything, a normal mask hides everything.
-  if (drewAny) g.fill({ color: 0xffffff, alpha: 1 });
+  g.fill({ color: 0xffffff, alpha: 1 });
+
+  // StencilMaskPipe collects the mask container's renderables with the colour mask off,
+  // so a stroke writes to the stencil exactly like a fill does. A centred stroke of
+  // width 2*dilate extends `dilate` past the edge (the inner half lands on already
+  // covered pixels, which the increment-clamp leaves alone).
+  if (dilate > 0) {
+    g.stroke({ color: 0xffffff, alpha: 1, width: dilate * 2 });
+  }
 }

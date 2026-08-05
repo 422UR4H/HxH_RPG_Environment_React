@@ -33,7 +33,8 @@ type Call =
   | { op: "clear" }
   | { op: "moveTo" | "lineTo"; x: number; y: number }
   | { op: "closePath" }
-  | { op: "fill"; style: { color: number; alpha?: number } };
+  | { op: "fill"; style: { color: number; alpha?: number } }
+  | { op: "stroke"; style: { color: number; alpha?: number; width: number } };
 
 function recorder() {
   const calls: Call[] = [];
@@ -45,6 +46,7 @@ function recorder() {
     // The whole style object is kept, not just its fields: asserting on its exact
     // keys is what catches someone reintroducing a blend mode.
     fill: (s) => calls.push({ op: "fill", style: s }),
+    stroke: (s) => calls.push({ op: "stroke", style: s }),
   };
   return { g, calls };
 }
@@ -54,6 +56,9 @@ const points = (calls: Call[]) =>
 
 const fillsOf = (calls: Call[]) =>
   calls.filter((c): c is Extract<Call, { op: "fill" }> => c.op === "fill");
+
+const strokesOf = (calls: Call[]) =>
+  calls.filter((c): c is Extract<Call, { op: "stroke" }> => c.op === "stroke");
 
 describe("drawLosMask", () => {
   it("draws one subpath per polygon and fills exactly once, fully opaque", () => {
@@ -120,6 +125,36 @@ describe("drawLosMask", () => {
     drawLosMask(g, [[[0, 0], [10, 10]]]);
     expect(calls.filter((c) => c.op === "fill").length).toBe(0);
     expect(calls.filter((c) => c.op === "closePath").length).toBe(0);
+  });
+
+  it("does not grow the mask unless a dilation is asked for", () => {
+    // The fog's own mask must stay exact. Growing it would clear a sliver of floor
+    // beyond a blocking wall and leak what stands behind it.
+    const { g, calls } = recorder();
+    drawLosMask(g, polys);
+    expect(strokesOf(calls).length).toBe(0);
+  });
+
+  it("grows the mask by stroking it, so a wall on the boundary lands inside", () => {
+    // A vision-blocking wall lies exactly ON the polygon edge, so an exact mask cuts
+    // its stroke down the middle. A centred stroke of width 2*d grows the covered
+    // region by d on the outside, which is what pulls the whole wall into the lit pass.
+    const { g, calls } = recorder();
+    drawLosMask(g, polys, 3);
+
+    const strokes = strokesOf(calls);
+    expect(strokes.length).toBe(1);
+    expect(strokes[0].style.width).toBe(6);
+    // Opaque, like the fill: the stencil only records coverage, but a translucent
+    // style would still have to be tessellated, and it reads as if it meant something.
+    expect(strokes[0].style.alpha).toBe(1);
+  });
+
+  it("never strokes a mask it did not fill", () => {
+    const { g, calls } = recorder();
+    drawLosMask(g, [], 3);
+    expect(strokesOf(calls).length).toBe(0);
+    expect(fillsOf(calls).length).toBe(0);
   });
 });
 

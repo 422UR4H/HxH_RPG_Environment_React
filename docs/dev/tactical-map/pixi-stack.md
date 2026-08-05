@@ -179,6 +179,16 @@ O que funciona é stencil, em dois usos do mesmo polígono de visibilidade:
    em alpha cheio (o que o personagem vê agora) e máscara invertida em alpha 0.5 (o que
    ele lembra). Per-pixel, então uma parede metade em visão sai corretamente dividida.
 
+A máscara das paredes é **dilatada**; a do fog **não**. Uma parede que bloqueia a visão
+fica exatamente *sobre* a aresta do polígono, então um recorte exato a corta ao meio no
+sentido do comprimento: a metade do lado do observador nítida, a outra esmaecida como se
+fosse memória. `drawLosMask(g, polys, dilate)` engorda a região coberta traçando o mesmo
+caminho com `width = 2*dilate` — o `StencilMaskPipe` coleta os renderables da máscara com
+o color mask desligado, então um stroke escreve no stencil igual a um fill. Os dois passes
+usam a mesma máscara dilatada, então continuam complementares exatos e nada é desenhado
+duas vezes. Dilatar a máscara do fog seria um vazamento: limparia uma fatia de chão logo
+atrás da parede.
+
 Não existe classificação por célula em lugar nenhum. A memória do personagem é de
 **estrutura estática**, resolvida no backend por id de parede — o cliente desenha o que
 recebeu e deixa o stencil decidir o brilho.
