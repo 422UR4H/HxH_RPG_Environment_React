@@ -18,7 +18,7 @@ type Props = {
   campaignId: string;
   pieces: Piece[];
   onPiecesChange: (pieces: Piece[]) => void;
-  sendPieceMoved: (pieceId: string, slot: SlotCoord, characterId?: string, visible?: boolean) => void;
+  sendPieceMoved: (pieceId: string, slot: SlotCoord, characterId?: string, visible?: boolean, z?: number) => void;
   sendPieceRemoved?: (pieceId: string) => void;
   // undefined = all pieces draggable (master).
   // Set<string> = only listed piece IDs draggable (player with own piece).
@@ -159,7 +159,7 @@ export default function TacticalMapPlacer({
       };
       const next = [...pieces, newPiece];
       onPiecesChange(next);
-      sendPieceMoved(newPiece.id, slot, newPiece.characterId, newPiece.visible);
+      sendPieceMoved(newPiece.id, slot, newPiece.characterId, newPiece.visible, newPiece.coord.z);
       setPlacingNpcId(null);
       setPlacingNpcData(null);
     },
@@ -172,7 +172,8 @@ export default function TacticalMapPlacer({
         p.id === pieceId ? { ...p, coord: { ...p.coord, slot } } : p,
       );
       onPiecesChange(next);
-      sendPieceMoved(pieceId, slot);
+      const movedPiece = pieces.find((p) => p.id === pieceId);
+      sendPieceMoved(pieceId, slot, undefined, undefined, movedPiece?.coord.z);
     },
     [pieces, onPiecesChange, sendPieceMoved],
   );
@@ -210,7 +211,7 @@ export default function TacticalMapPlacer({
         visible: true,
       };
       onPiecesChange([...pieces, newPiece]);
-      sendPieceMoved(newPiece.id, pendingSlot.slot, newPiece.characterId, newPiece.visible);
+      sendPieceMoved(newPiece.id, pendingSlot.slot, newPiece.characterId, newPiece.visible, newPiece.coord.z);
       setPendingSlot(null);
     },
     [pendingSlot, pieces, onPiecesChange, sendPieceMoved],

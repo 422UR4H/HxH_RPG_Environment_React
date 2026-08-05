@@ -124,6 +124,32 @@ describe("useMatchWs fog events", () => {
       kind: "hex", q: 2, r: -3,
     });
   });
+
+  it("carries piece elevation in from the wire", () => {
+    const onMapFullState = vi.fn();
+    renderHook(() =>
+      useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onMapFullState }),
+    );
+    const ws = FakeWS.instances[0];
+    act(() => { ws.onopen?.(); });
+    act(() => {
+      ws.emit("map_full_state", {
+        pieces: [
+          { piece_id: "high", slot: { kind: "square", col: 1, row: 1 }, character_id: "c", z: 3 },
+          { piece_id: "ground", slot: { kind: "square", col: 2, row: 2 }, character_id: "c" },
+        ],
+        walls: [], visible_polygons: [], fog_mode: "explored",
+      });
+    });
+
+    const pieces = onMapFullState.mock.calls[0][0].pieces;
+    // The server used to send no elevation at all and the page patched it back in from
+    // the REST map. That map no longer carries pieces for a player, so a dropped z here
+    // means every piece silently sits on the ground.
+    expect(pieces[0].coord.z).toBe(3);
+    // Omitted by the server when it is 0 — absence means ground, not "unknown".
+    expect(pieces[1].coord.z).toBe(0);
+  });
 });
 
 // ─── Board sync (master seeds the game server) ──────────────────────────────
@@ -176,6 +202,7 @@ describe("useMatchWs board sync", () => {
         slot: { kind: "square", col: 3, row: 4 },
         character_id: "sheet-1",
         visible: true,
+        z: 0,
       },
     ]);
     expect(last.grid).toMatchObject({ cell_size: 64, cols: 20, rows: 20 });
@@ -234,5 +261,23 @@ describe("useMatchWs board sync", () => {
     rerender({ board });
 
     expect(syncPayloads(ws)).toHaveLength(before);
+  });
+
+  it("sends piece elevation so the server can hand it back", () => {
+    const elevated: MatchBoardSync = {
+      ...board,
+      pieces: [{ ...piece, coord: { ...piece.coord, z: 2 } }],
+    };
+    const { rerender } = renderHook(
+      (props: { board: MatchBoardSync | null }) =>
+        useMatchWs({ matchUuid: "m1", token: "t", isMaster: true, board: props.board }),
+      { initialProps: { board: elevated } },
+    );
+    const ws = FakeWS.instances[0];
+    act(() => { ws.onopen?.(); });
+    rerender({ board: elevated });
+
+    const syncs = syncPayloads(ws);
+    expect(syncs[syncs.length - 1].pieces[0].z).toBe(2);
   });
 });
