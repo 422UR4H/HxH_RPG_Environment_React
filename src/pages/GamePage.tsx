@@ -52,7 +52,7 @@ function GamePageInner({
   const [liveWalls, setLiveWalls] = useState<WallSegment[]>([]);
   const [wallPicker, setWallPicker] = useState<WallSegment | null>(null);
   const [livePieces, setLivePieces] = useState<Piece[] | null>(null);
-  const [fog, setFog] = useState<FogState>({ fogMode: "explored", visiblePolygons: [], exploredCells: new Set() });
+  const [fog, setFog] = useState<FogState>({ fogMode: "explored", visiblePolygons: [] });
 
   // Sync liveWalls when the REST map loads.
   useEffect(() => {
@@ -81,7 +81,7 @@ function GamePageInner({
   const handleMapFullState = useCallback((s: {
     pieces: Piece[]; walls: WallSegment[];
     visiblePolygons: Array<Array<[number, number]>>;
-    exploredCells: Array<[number, number]>; fogMode: "live" | "explored";
+    fogMode: "live" | "explored";
   }) => {
     setLiveWalls(s.walls);
     // The WS piece payload carries no elevation, so restore z from the REST map;
@@ -90,23 +90,15 @@ function GamePageInner({
     setLivePieces(
       s.pieces.map((p) => ({ ...p, coord: { ...p.coord, z: zById.get(p.id) ?? 0 } })),
     );
-    setFog({
-      fogMode: s.fogMode,
-      visiblePolygons: s.visiblePolygons,
-      exploredCells: new Set(s.exploredCells.map(([a, b]) => `${a},${b}`)),
-    });
+    setFog({ fogMode: s.fogMode, visiblePolygons: s.visiblePolygons });
   }, [map]);
 
-  const handleVisibilityUpdated = useCallback((
-    polys: Array<Array<[number, number]>>,
-    delta: Array<[number, number]>,
-  ) => {
-    setFog((f) => {
-      const next = new Set(f.exploredCells);
-      for (const [a, b] of delta) next.add(`${a},${b}`);
-      return { ...f, visiblePolygons: polys, exploredCells: next };
-    });
-  }, []);
+  const handleVisibilityUpdated = useCallback(
+    (polys: Array<Array<[number, number]>>) => {
+      setFog((f) => ({ ...f, visiblePolygons: polys }));
+    },
+    [],
+  );
 
   const handleWallRevealed = useCallback((wall: WallSegment) => {
     setLiveWalls((prev) => prev.map((w) => (w.id === wall.id ? wall : w)));

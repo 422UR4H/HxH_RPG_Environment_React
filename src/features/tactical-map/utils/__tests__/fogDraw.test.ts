@@ -1,13 +1,11 @@
 import { describe, it, expect } from "vitest";
 import {
-  drawFogTiers,
+  drawFog,
   drawLosMask,
-  EXPLORED_ALPHA,
+  FOG_ALPHA,
   FOG_PADDING,
-  UNEXPLORED_ALPHA,
   type FogDrawTarget,
 } from "../fogDraw";
-import { fogTiers, cellKey } from "../fog";
 import type { GridShape, VisibilityPolygon } from "../../../../types/tacticalMap";
 import realPayload from "./fixtures/realFogPayload.json";
 
@@ -125,47 +123,41 @@ describe("drawLosMask", () => {
   });
 });
 
-describe("drawFogTiers", () => {
-  const explored = new Set(payload.explored_cells.map(([a, b]) => cellKey(a, b)));
+describe("drawFog", () => {
   const w = grid.cols * grid.cellSize;
   const h = grid.rows * grid.cellSize;
 
-  it("uses only the two fog alphas and never any blend mode", () => {
+  it("paints one single region at one single alpha", () => {
     const { g, calls } = recorder();
-    drawFogTiers(g, fogTiers(grid, explored, "explored"), grid, w, h);
+    drawFog(g, w, h);
 
     const fills = fillsOf(calls);
-    expect(fills.length).toBe(3); // ring, hidden cells, explored cells
-    const alphas = new Set(fills.map((f) => f.style.alpha));
-    expect(alphas).toEqual(new Set([UNEXPLORED_ALPHA, EXPLORED_ALPHA]));
+    expect(fills.length).toBe(1);
+    expect(fills[0].style.alpha).toBe(FOG_ALPHA);
     // Exactly these keys: a blendMode slipping into the fill is the phase 10-D bug.
-    for (const f of fills) {
-      expect(Object.keys(f.style).sort()).toEqual(["alpha", "color"]);
-    }
+    expect(Object.keys(fills[0].style).sort()).toEqual(["alpha", "color"]);
+    // One rectangle: there is no per-cell painting any more.
+    expect(calls.filter((c) => c.op === "closePath").length).toBe(1);
   });
 
   it("pads the fog well beyond the board so panning never exposes a bare edge", () => {
     const { g, calls } = recorder();
-    drawFogTiers(g, fogTiers(grid, explored, "explored"), grid, w, h);
+    drawFog(g, w, h);
 
-    // reduce, not Math.min(...pts): the board emits thousands of points and spreading
-    // them as arguments risks blowing the call stack.
     const pts = points(calls);
     const minX = pts.reduce((m, p) => Math.min(m, p.x), Infinity);
     const maxX = pts.reduce((m, p) => Math.max(m, p.x), -Infinity);
+    const minY = pts.reduce((m, p) => Math.min(m, p.y), Infinity);
+    const maxY = pts.reduce((m, p) => Math.max(m, p.y), -Infinity);
     expect(minX).toBeLessThanOrEqual(-FOG_PADDING);
     expect(maxX).toBeGreaterThanOrEqual(w + FOG_PADDING);
-  });
-
-  it("emits a single fill for the ring when the board has no cells to paint", () => {
-    const { g, calls } = recorder();
-    drawFogTiers(g, { hidden: [], explored: [] }, grid, w, h);
-    expect(calls.filter((c) => c.op === "fill").length).toBe(1);
+    expect(minY).toBeLessThanOrEqual(-FOG_PADDING);
+    expect(maxY).toBeGreaterThanOrEqual(h + FOG_PADDING);
   });
 
   it("clears before drawing so repeated frames do not accumulate geometry", () => {
     const { g, calls } = recorder();
-    drawFogTiers(g, fogTiers(grid, explored, "explored"), grid, w, h);
+    drawFog(g, w, h);
     expect(calls[0].op).toBe("clear");
   });
 });

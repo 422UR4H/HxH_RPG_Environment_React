@@ -1,10 +1,7 @@
-import type { GridShape, VisibilityPolygon } from "../../../types/tacticalMap";
-import { applyTransform } from "./coords";
-import { cellCornersLocal } from "./fog";
+import type { VisibilityPolygon } from "../../../types/tacticalMap";
 
 export const FOG_COLOR = 0x05070a;
-export const UNEXPLORED_ALPHA = 0.92;
-export const EXPLORED_ALPHA = 0.5;
+export const FOG_ALPHA = 0.92;
 /** Padding around the board so panning never exposes an un-fogged edge. */
 export const FOG_PADDING = 2000;
 
@@ -23,64 +20,30 @@ export type FogDrawTarget = {
   fill(style: { color: number; alpha?: number }): unknown;
 };
 
-function paintCells(
-  g: FogDrawTarget,
-  cells: Array<[number, number]>,
-  grid: GridShape,
-  alpha: number,
-): void {
-  if (cells.length === 0) return;
-  for (const [a, b] of cells) {
-    const corners = cellCornersLocal(a, b, grid);
-    const first = applyTransform({ x: corners[0][0], y: corners[0][1] }, grid);
-    g.moveTo(first.x, first.y);
-    for (let i = 1; i < corners.length; i++) {
-      const pt = applyTransform({ x: corners[i][0], y: corners[i][1] }, grid);
-      g.lineTo(pt.x, pt.y);
-    }
-    g.closePath();
-  }
-  g.fill({ color: FOG_COLOR, alpha });
-}
-
 /**
- * Paints the fog itself: a ring well outside the board plus one quad per fogged cell.
+ * Paints the fog: one rectangle covering the board plus generous padding, at a single
+ * alpha.
  *
- * Every region is disjoint, so no blending is involved and each area lands at exactly
- * its intended alpha. The currently visible area is NOT handled here — it is removed
- * by the inverse mask drawn by drawLosMask.
+ * There is no "remembered area" tier any more. The map terrain is not kept in the
+ * character's memory — only static structure is, and that is enforced server-side by
+ * which walls the player receives. The lit area is carved out of this rectangle by an
+ * inverse stencil mask (see LosSplit / FogLayer), which is why no cell classification
+ * happens here and the fog edge is smooth rather than grid-aligned.
  */
-export function drawFogTiers(
-  g: FogDrawTarget,
-  tiers: { hidden: Array<[number, number]>; explored: Array<[number, number]> },
-  grid: GridShape,
-  worldWidth: number,
-  worldHeight: number,
-): void {
+export function drawFog(g: FogDrawTarget, worldWidth: number, worldHeight: number): void {
   g.clear();
 
   const P = FOG_PADDING;
-  const ring: Array<[number, number, number, number]> = [
-    [-P, -P, worldWidth + P, 0],
-    [-P, worldHeight, worldWidth + P, worldHeight + P],
-    [-P, 0, 0, worldHeight],
-    [worldWidth, 0, worldWidth + P, worldHeight],
-  ];
-  for (const [x0, y0, x1, y1] of ring) {
-    g.moveTo(x0, y0);
-    g.lineTo(x1, y0);
-    g.lineTo(x1, y1);
-    g.lineTo(x0, y1);
-    g.closePath();
-  }
-  g.fill({ color: FOG_COLOR, alpha: UNEXPLORED_ALPHA });
-
-  paintCells(g, tiers.hidden, grid, UNEXPLORED_ALPHA);
-  paintCells(g, tiers.explored, grid, EXPLORED_ALPHA);
+  g.moveTo(-P, -P);
+  g.lineTo(worldWidth + P, -P);
+  g.lineTo(worldWidth + P, worldHeight + P);
+  g.lineTo(-P, worldHeight + P);
+  g.closePath();
+  g.fill({ color: FOG_COLOR, alpha: FOG_ALPHA });
 }
 
 /**
- * Draws the player's line of sight, to be used as an INVERSE mask over the fog.
+ * Draws the player's line of sight, used as a stencil mask over other layers.
  *
  * The points are written verbatim: the backend already produces them in world space,
  * so running them through applyTransform would displace the lit area.
@@ -104,6 +67,7 @@ export function drawLosMask(g: FogDrawTarget, polygons: VisibilityPolygon[]): vo
     drewAny = true;
   }
   // The colour is irrelevant — a stencil mask only cares about coverage — but the fill
-  // must happen, otherwise there is no geometry and the inverse mask fogs everything.
+  // must happen, otherwise there is no geometry and the mask degenerates: an inverse
+  // mask then covers everything, a normal mask hides everything.
   if (drewAny) g.fill({ color: 0xffffff, alpha: 1 });
 }

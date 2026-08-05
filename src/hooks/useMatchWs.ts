@@ -84,13 +84,11 @@ type UseMatchWsOptions = {
     pieces: Piece[];
     walls: WallSegment[];
     visiblePolygons: Array<Array<[number, number]>>;
-    exploredCells: Array<[number, number]>;
     fogMode: "live" | "explored";
   }) => void;
   /** Called when visibility polygons change after a move. */
   onVisibilityUpdated?: (
     visiblePolygons: Array<Array<[number, number]>>,
-    exploredDelta: Array<[number, number]>,
   ) => void;
   /** Called when a secret door is revealed by the master. */
   onWallRevealed?: (wall: WallSegment) => void;
@@ -188,7 +186,6 @@ export function useMatchWs({
               pieces?: WirePiece[];
               walls?: unknown[];
               visible_polygons?: Array<Array<{ x: number; y: number }>>;
-              explored_cells?: Array<[number, number]>;
               fog_mode?: string;
             };
             onMapFullStateRef.current?.({
@@ -197,18 +194,13 @@ export function useMatchWs({
                 (w) => objToCamelCase(w as Record<string, unknown>) as unknown as WallSegment,
               ),
               visiblePolygons: parsePolys(p.visible_polygons ?? []),
-              exploredCells: p.explored_cells ?? [],
               fogMode: p.fog_mode === "explored" ? "explored" : "live",
             });
           } else if (msg.type === "visibility_updated") {
             const p = msg.payload as {
               visible_polygons?: Array<Array<{ x: number; y: number }>>;
-              explored_delta?: Array<[number, number]>;
             };
-            onVisibilityUpdatedRef.current?.(
-              parsePolys(p.visible_polygons ?? []),
-              p.explored_delta ?? [],
-            );
+            onVisibilityUpdatedRef.current?.(parsePolys(p.visible_polygons ?? []));
           } else if (msg.type === "wall_revealed") {
             const p = msg.payload as { wall: Record<string, unknown> };
             onWallRevealedRef.current?.(
