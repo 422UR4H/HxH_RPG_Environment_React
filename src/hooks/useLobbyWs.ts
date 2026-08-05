@@ -35,7 +35,7 @@ interface UseLobbyWsParams {
   enabled?: boolean;
   onMatchStarted: () => void;
   onKicked?: () => void;
-  onPieceMoved?: (pieceId: string, slot: SlotCoord, characterId?: string, visible?: boolean) => void;
+  onPieceMoved?: (pieceId: string, slot: SlotCoord, characterId?: string, visible?: boolean, z?: number) => void;
   onPieceRemoved?: (pieceId: string) => void;
   // Fires when the server sends the full current board to a newly joined client.
   onFullState?: (pieces: LobbyPieceFullState[]) => void;
@@ -47,7 +47,7 @@ interface UseLobbyWsResult {
   sendStartMatch: () => void;
   sendKick: (userUuid: string) => void;
   sendCancelLobby: () => void;
-  sendPieceMoved: (pieceId: string, slot: SlotCoord, characterId?: string, visible?: boolean) => void;
+  sendPieceMoved: (pieceId: string, slot: SlotCoord, characterId?: string, visible?: boolean, z?: number) => void;
   sendPieceRemoved: (pieceId: string) => void;
   // Master calls this on WS connect to seed the backend's in-memory board with
   // the current DB state, so late-joining players receive the correct board.
@@ -196,6 +196,7 @@ export function useLobbyWs({
               slot: { kind: string; col?: number; row?: number; q?: number; r?: number };
               character_id?: string;
               visible?: boolean;
+              z?: number;
             };
             if (!p.piece_id || !p.slot) break;
             let slot: SlotCoord;
@@ -206,7 +207,7 @@ export function useLobbyWs({
             } else {
               break;
             }
-            onPieceMovedRef.current?.(p.piece_id, slot, p.character_id, p.visible);
+            onPieceMovedRef.current?.(p.piece_id, slot, p.character_id, p.visible, p.z ?? 0);
             break;
           }
           case "piece_removed": {
@@ -305,7 +306,7 @@ export function useLobbyWs({
   );
 
   const sendPieceMoved = useCallback(
-    (pieceId: string, slot: SlotCoord, characterId?: string, visible?: boolean) => {
+    (pieceId: string, slot: SlotCoord, characterId?: string, visible?: boolean, z?: number) => {
       const slotPayload =
         slot.kind === "square"
           ? { kind: "square", col: slot.col, row: slot.row }
@@ -315,6 +316,7 @@ export function useLobbyWs({
         slot: slotPayload,
         ...(characterId != null && { character_id: characterId }),
         ...(visible != null && { visible }),
+        ...(z != null && { z }),
       });
     },
     [sendMessage],
