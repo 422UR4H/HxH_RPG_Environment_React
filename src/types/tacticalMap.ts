@@ -158,6 +158,4 @@ export type VisibilityPolygon = Array<[number, number]>;
 export type FogState = {
   fogMode: FogMode;
   visiblePolygons: VisibilityPolygon[];
-  // Accumulated explored cells as "a,b" keys (square: col,row; hex: q,r).
-  exploredCells: Set<string>;
 };

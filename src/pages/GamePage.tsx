@@ -16,6 +16,7 @@ import GamePageTemplate from "../components/templates/GamePageTemplate";
 import { colors, fonts } from "../styles/tokens";
 import type { CharacterPrivateSummary } from "../types/characterSheet";
 import type { FogState, Piece, WallSegment } from "../types/tacticalMap";
+import { visibleBoardPieces } from "../features/tactical-map/utils/boardSource";
 
 export default function GamePage() {
   const { token } = useToken();
@@ -52,19 +53,30 @@ function GamePageInner({
   const [liveWalls, setLiveWalls] = useState<WallSegment[]>([]);
   const [wallPicker, setWallPicker] = useState<WallSegment | null>(null);
   const [livePieces, setLivePieces] = useState<Piece[] | null>(null);
-  const [fog, setFog] = useState<FogState>({ fogMode: "explored", visiblePolygons: [], exploredCells: new Set() });
-
-  // Sync liveWalls when the REST map loads.
-  useEffect(() => {
-    if (map) {
-      setLiveWalls(map.walls ?? []);
-      setLivePieces(map.pieces ?? null);
-      setFog((f) => ({ ...f, fogMode: map.fogMode ?? "explored" }));
-    }
-  }, [map]);
+  const [fog, setFog] = useState<FogState>({ fogMode: "explored", visiblePolygons: [] });
 
   // Determine if current user is the master.
   const isMaster = match != null && user != null && match.masterUuid === user.uuid;
+
+  // Seed the board from the REST map — for the master only.
+  //
+  // GET /maps/:id masks secret doors and drops visible=false pieces, but it does NOT
+  // apply line of sight: applyRoleFilter defers that to the WS layer, the only place
+  // that has per-player polygons. So the REST payload carries every wall and every
+  // visible piece on the map. Seeding a player's board from it shows them exactly what
+  // their character cannot see — and React Query refetches on window focus, so it comes
+  // back every time they tab away and return.
+  //
+  // For a player the WS map_full_state is therefore the only source of walls and pieces.
+  // Until it arrives the board is empty, which is a visible, debuggable state; the
+  // alternative is a silent position leak. The master is entitled to the whole board.
+  useEffect(() => {
+    if (!map) return;
+    setFog((f) => ({ ...f, fogMode: map.fogMode ?? "explored" }));
+    if (!isMaster) return;
+    setLiveWalls(map.walls ?? []);
+    setLivePieces(map.pieces ?? null);
+  }, [map, isMaster]);
 
   const handleWallStateChanged = useCallback((wallId: string, open: boolean, locked: boolean) => {
     setLiveWalls((prev) =>
@@ -81,7 +93,7 @@ function GamePageInner({
   const handleMapFullState = useCallback((s: {
     pieces: Piece[]; walls: WallSegment[];
     visiblePolygons: Array<Array<[number, number]>>;
-    exploredCells: Array<[number, number]>; fogMode: "live" | "explored";
+    fogMode: "live" | "explored";
   }) => {
     setLiveWalls(s.walls);
     // The WS piece payload carries no elevation, so restore z from the REST map;
@@ -90,23 +102,15 @@ function GamePageInner({
     setLivePieces(
       s.pieces.map((p) => ({ ...p, coord: { ...p.coord, z: zById.get(p.id) ?? 0 } })),
     );
-    setFog({
-      fogMode: s.fogMode,
-      visiblePolygons: s.visiblePolygons,
-      exploredCells: new Set(s.exploredCells.map(([a, b]) => `${a},${b}`)),
-    });
+    setFog({ fogMode: s.fogMode, visiblePolygons: s.visiblePolygons });
   }, [map]);
 
-  const handleVisibilityUpdated = useCallback((
-    polys: Array<Array<[number, number]>>,
-    delta: Array<[number, number]>,
-  ) => {
-    setFog((f) => {
-      const next = new Set(f.exploredCells);
-      for (const [a, b] of delta) next.add(`${a},${b}`);
-      return { ...f, visiblePolygons: polys, exploredCells: next };
-    });
-  }, []);
+  const handleVisibilityUpdated = useCallback(
+    (polys: Array<Array<[number, number]>>) => {
+      setFog((f) => ({ ...f, visiblePolygons: polys }));
+    },
+    [],
+  );
 
   const handleWallRevealed = useCallback((wall: WallSegment) => {
     setLiveWalls((prev) => prev.map((w) => (w.id === wall.id ? wall : w)));
@@ -146,6 +150,8 @@ function GamePageInner({
 
   const isLoading = matchMapPending || (!!matchMap && mapPending);
 
+  const boardPieces = visibleBoardPieces(livePieces, map?.pieces, isMaster);
+
   const sidebar = (
     <ParticipantList>
       <SidebarTitle>Participantes</SidebarTitle>
@@ -176,7 +182,7 @@ function GamePageInner({
             <MapLoadingMessage>Carregando mapa...</MapLoadingMessage>
           ) : map && width > 0 && height > 0 ? (
             <TacticalMapViewer
-              map={{ ...map, walls: liveWalls, pieces: livePieces ?? map.pieces }}
+              map={{ ...map, walls: liveWalls, pieces: boardPieces }}
               fog={fog}
               isMaster={isMaster}
               width={width}

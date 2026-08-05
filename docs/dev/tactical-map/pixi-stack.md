@@ -162,6 +162,55 @@ Resumo das otimizações chave (já documentadas no spec, mas vale recapitular):
 - **Pixi não responde a CSS**. Tudo é em pixels do mundo, controlado por props. Não tente estilizar com styled-components.
 - **`<canvas>` ocupa espaço fixo**. O tamanho da Application é controlado por props; redimensionar requer recalcular.
 
+## Fog de guerra: composição sem blending
+
+O fog do jogador tem **um nível só** e **não** usa blend mode. Duas tentativas erradas,
+para não repetir:
+
+- `blendMode="erase"` na camada de fog perfura o framebuffer principal até a cor de
+  limpeza do canvas. A área "iluminada" sai preta sólida em vez de revelar o mapa.
+- `isRenderGroup` **não** resolve: ele não cria render target isolado.
+
+O que funciona é stencil, em dois usos do mesmo polígono de visibilidade:
+
+1. **Fog** — um retângulo único (tabuleiro + padding) com máscara **invertida**:
+   `container.setMask({ mask, inverse: true })`. Some exatamente dentro da LOS.
+2. **Paredes** — desenhadas *acima* do fog, em dois passes (`LosSplit`): máscara normal
+   em alpha cheio (o que o personagem vê agora) e máscara invertida em alpha 0.5 (o que
+   ele lembra). Per-pixel, então uma parede metade em visão sai corretamente dividida.
+
+A máscara das paredes é **dilatada**; a do fog **não**. Uma parede que bloqueia a visão
+fica exatamente *sobre* a aresta do polígono, então um recorte exato a corta ao meio no
+sentido do comprimento: a metade do lado do observador nítida, a outra esmaecida como se
+fosse memória. `drawLosMask(g, polys, dilate)` engorda a região coberta traçando o mesmo
+caminho com `width = 2*dilate` — o `StencilMaskPipe` coleta os renderables da máscara com
+o color mask desligado, então um stroke escreve no stencil igual a um fill. Os dois passes
+usam a mesma máscara dilatada, então continuam complementares exatos e nada é desenhado
+duas vezes. Dilatar a máscara do fog seria um vazamento: limparia uma fatia de chão logo
+atrás da parede.
+
+Não existe classificação por célula em lugar nenhum. A memória do personagem é de
+**estrutura estática**, resolvida no backend por id de parede — o cliente desenha o que
+recebeu e deixa o stencil decidir o brilho.
+
+Quatro armadilhas do Pixi v8 nesse caminho:
+
+- Os filhos de `LosSplit` são montados **duas vezes**, então precisam ser puramente
+  apresentacionais. Um componente que registra listener de DOM em efeito registraria
+  duas vezes — em `WallsLayer` isso significa cada clique de porta disparando em dobro,
+  sem nada no console.
+- Cada container mascarado precisa da **sua própria** `Graphics`: um mesmo display
+  object não pode ser máscara de dois containers.
+- A máscara **não pode** receber `visible={false}` — o `StencilMaskPipe` deixaria de
+  coletar a geometria. Máscara invertida vazia escurece tudo; máscara normal vazia
+  esconde tudo. Nenhum dos dois emite erro.
+- `inverse` só se liga por `setMask({ mask, inverse: true })`. `_maskOptions` é objeto
+  compartilhado no protótipo do mixin; mutá-lo direto vaza para outros containers.
+
+`Graphics.cut()` foi avaliado e descartado: earcut não define comportamento para furos
+sobrepostos (jogador com duas peças), e `cut()` anexa o segundo furo em diante também à
+instrução de fill anterior.
+
 ## Onde aprender mais
 
 - Site oficial: [pixijs.com](https://pixijs.com)

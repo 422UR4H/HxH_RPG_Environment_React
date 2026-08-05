@@ -2,9 +2,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { MutableRefObject } from "react";
 import type { Graphics as PixiGraphics } from "pixi.js";
 import type { Viewport } from "pixi-viewport";
-import type { GridShape, WallMaterial, WallSegment, WallType } from "../../types/tacticalMap";
+import type { GridShape, VisibilityPolygon, WallMaterial, WallSegment, WallType } from "../../types/tacticalMap";
 import { applyTransform, inverseTransform } from "../../features/tactical-map/utils/coords";
 import { snapWallPoint, explodePolyline } from "../../features/tactical-map/utils/walls";
+import LosSplit from "./LosSplit";
 
 const MATERIAL_COLOR: Record<WallMaterial, number> = {
   stone: 0x94a3b8, wood: 0xa16207, iron: 0x64748b, magical: 0xa855f7,
@@ -19,6 +20,17 @@ const RESISTANCE_DEFAULTS: Record<WallMaterial, number> = {
   stone: 5, wood: 2, iron: 15, magical: 0,
 };
 const SNAP_THRESHOLD_SCREEN = 15;
+
+// Walls the character has seen but is not currently looking at. 0.92 (the fog's own
+// alpha) left them all but invisible; this is the legibility level chosen on screen.
+const MEMORY_WALL_ALPHA = 0.5;
+
+// A wall that blocks vision lies exactly ON the edge of the visibility polygon, so a
+// mask cut at that edge splits the wall's stroke lengthwise — the viewer's half crisp,
+// the other half dimmed as if remembered. Growing the walls' mask by half the thickest
+// stroke pulls the whole wall onto the lit side. Walls sit on grid lines a full cell
+// apart, so a few world units cannot reach a genuinely remembered neighbour.
+const LOS_WALL_DILATION = Math.max(...Object.values(MATERIAL_WIDTH)) / 2;
 
 type Props = {
   walls: WallSegment[];
@@ -38,6 +50,12 @@ type Props = {
   drawingEnabled: boolean;
   onExitDrawMode: () => void;
   onWallClick?: (wall: WallSegment) => void;
+  /**
+   * Player line of sight. When present, the walls are drawn in two passes — crisp
+   * inside it, dimmed outside it. Absent for the master and for wall-editing mode,
+   * where every wall renders once at full brightness.
+   */
+  losPolygons?: VisibilityPolygon[];
 };
 
 type DrawState = {
@@ -50,7 +68,7 @@ export default function WallsLayer({
   wallsInteractive, selectedWallId,
   activeWallType, activeMaterial,
   onWallSelect, onDrawComplete, onGestureStart, onGestureEnd,
-  drawingEnabled, onExitDrawMode, onWallClick,
+  drawingEnabled, onExitDrawMode, onWallClick, losPolygons,
 }: Props) {
   const [draw, setDraw] = useState<DrawState>({ polylinePoints: [], previewPoint: null });
 
@@ -383,7 +401,9 @@ export default function WallsLayer({
     }
   }, [draw, wallsInteractive, drawingEnabled, grid, activeMaterial, vpScale]);
 
-  return (
+  // Pure drawing, no hooks and no effects — this is what LosSplit is allowed to mount
+  // twice. Everything interactive stays in this component, which mounts once.
+  const graphics = (
     <>
       <pixiGraphics draw={drawMaterial("stone")} />
       <pixiGraphics draw={drawMaterial("wood")} />
@@ -392,6 +412,14 @@ export default function WallsLayer({
       <pixiGraphics draw={drawSelected} />
       <pixiGraphics draw={drawPreview} />
     </>
+  );
+
+  if (!losPolygons) return graphics;
+
+  return (
+    <LosSplit polygons={losPolygons} dimAlpha={MEMORY_WALL_ALPHA} dilate={LOS_WALL_DILATION}>
+      {graphics}
+    </LosSplit>
   );
 }
 
