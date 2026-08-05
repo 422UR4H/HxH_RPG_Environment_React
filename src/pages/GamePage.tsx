@@ -96,14 +96,9 @@ function GamePageInner({
     fogMode: "live" | "explored";
   }) => {
     setLiveWalls(s.walls);
-    // The WS piece payload carries no elevation, so restore z from the REST map;
-    // otherwise every piece would flatten to the ground on each server push.
-    const zById = new Map((map?.pieces ?? []).map((p) => [p.id, p.coord.z]));
-    setLivePieces(
-      s.pieces.map((p) => ({ ...p, coord: { ...p.coord, z: zById.get(p.id) ?? 0 } })),
-    );
+    setLivePieces(s.pieces);
     setFog({ fogMode: s.fogMode, visiblePolygons: s.visiblePolygons });
-  }, [map]);
+  }, []);
 
   const handleVisibilityUpdated = useCallback(
     (polys: Array<Array<[number, number]>>) => {
