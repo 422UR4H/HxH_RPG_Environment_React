@@ -164,36 +164,42 @@ Resumo das otimizações chave (já documentadas no spec, mas vale recapitular):
 
 ## Fog de guerra: composição sem blending
 
-O fog do jogador tem três níveis (desconhecido, lembrado, visível) e **não** usa
-blend mode. Duas tentativas erradas, para não repetir:
+O fog do jogador tem **um nível só** e **não** usa blend mode. Duas tentativas erradas,
+para não repetir:
 
 - `blendMode="erase"` na camada de fog perfura o framebuffer principal até a cor de
   limpeza do canvas. A área "iluminada" sai preta sólida em vez de revelar o mapa.
 - `isRenderGroup` **não** resolve: ele não cria render target isolado.
 
-O que funciona:
+O que funciona é stencil, em dois usos do mesmo polígono de visibilidade:
 
-1. **Regiões disjuntas** para os níveis de fog. Cada célula é pintada no máximo uma
-   vez, com o alpha do seu nível (`drawFogTiers` em
-   `features/tactical-map/utils/fogDraw.ts`). Sem sobreposição, sem blending.
-2. **Máscara invertida** para a área visível:
-   `container.setMask({ mask: losGraphics, inverse: true })`. O conteúdo renderiza
-   onde a máscara não está, então o fog some exatamente dentro do polígono de
-   visibilidade que o backend envia.
+1. **Fog** — um retângulo único (tabuleiro + padding) com máscara **invertida**:
+   `container.setMask({ mask, inverse: true })`. Some exatamente dentro da LOS.
+2. **Paredes** — desenhadas *acima* do fog, em dois passes (`LosSplit`): máscara normal
+   em alpha cheio (o que o personagem vê agora) e máscara invertida em alpha 0.5 (o que
+   ele lembra). Per-pixel, então uma parede metade em visão sai corretamente dividida.
 
-Três armadilhas do Pixi v8 nesse caminho:
+Não existe classificação por célula em lugar nenhum. A memória do personagem é de
+**estrutura estática**, resolvida no backend por id de parede — o cliente desenha o que
+recebeu e deixa o stencil decidir o brilho.
 
-- A máscara é filha do container mascarado e **não pode** receber `visible={false}` —
-  o `StencilMaskPipe` deixaria de coletar a geometria, a máscara ficaria vazia, e uma
-  máscara invertida vazia escurece o tabuleiro inteiro, sem erro no console.
+Quatro armadilhas do Pixi v8 nesse caminho:
+
+- Os filhos de `LosSplit` são montados **duas vezes**, então precisam ser puramente
+  apresentacionais. Um componente que registra listener de DOM em efeito registraria
+  duas vezes — em `WallsLayer` isso significa cada clique de porta disparando em dobro,
+  sem nada no console.
+- Cada container mascarado precisa da **sua própria** `Graphics`: um mesmo display
+  object não pode ser máscara de dois containers.
+- A máscara **não pode** receber `visible={false}` — o `StencilMaskPipe` deixaria de
+  coletar a geometria. Máscara invertida vazia escurece tudo; máscara normal vazia
+  esconde tudo. Nenhum dos dois emite erro.
 - `inverse` só se liga por `setMask({ mask, inverse: true })`. `_maskOptions` é objeto
   compartilhado no protótipo do mixin; mutá-lo direto vaza para outros containers.
-- Polígonos sobrepostos são seguros: o stencil escreve com `compare: equal` +
-  `increment-clamp`, então sobreposição vira união, não XOR.
 
 `Graphics.cut()` foi avaliado e descartado: earcut não define comportamento para furos
-sobrepostos (jogador com duas peças), e `cut()` anexa o segundo furo em diante também
-à instrução de fill anterior.
+sobrepostos (jogador com duas peças), e `cut()` anexa o segundo furo em diante também à
+instrução de fill anterior.
 
 ## Onde aprender mais
 
