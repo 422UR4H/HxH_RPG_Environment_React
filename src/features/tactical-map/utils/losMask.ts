@@ -1,8 +1,12 @@
 /**
  * Minimal structural view of what applyLosMask needs from a Pixi Container. Keeping it
  * structural is what lets the tests drive it without a renderer.
+ *
+ * Pixi's own `Mask` type is `number | Container | null` (a numeric stencil channel is
+ * a valid mask target), so this must include `number` to stay assignable from a real
+ * `Container.mask` field.
  */
-export type MaskSource = object;
+export type MaskSource = object | number;
 
 export type MaskableContainer = {
   mask: MaskSource | null;
