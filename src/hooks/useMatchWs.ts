@@ -28,15 +28,17 @@ function toPiecePayload(p: Piece) {
         : { kind: "hex", q: slot.q, r: slot.r },
     character_id: p.characterId,
     visible: p.visible,
+    z: p.coord.z,
   };
 }
 
-/** A piece exactly as the game server serializes it (flat, snake_case, no elevation). */
+/** A piece exactly as the game server serializes it (flat, snake_case). */
 type WirePiece = {
   piece_id: string;
   slot: SlotCoord;
   character_id?: string;
   visible?: boolean;
+  z?: number;
 };
 
 /**
@@ -45,13 +47,13 @@ type WirePiece = {
  * payload to the renderer makes it read `piece.coord.slot` off `undefined` and crash
  * the whole Pixi tree.
  *
- * `z` is not on the wire; callers that know the map restore it (see GamePage).
+ * `z` is omitted by the server when it is 0, so absence means "on the ground".
  */
 function fromPiecePayload(w: WirePiece): Piece {
   return {
     id: w.piece_id,
     characterId: w.character_id ?? "",
-    coord: { slot: w.slot, z: 0 },
+    coord: { slot: w.slot, z: w.z ?? 0 },
     visible: w.visible ?? true,
   };
 }
