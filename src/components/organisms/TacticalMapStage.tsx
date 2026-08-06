@@ -933,10 +933,12 @@ function PiecesLayer({
         onEmptySlotClick(pending.slot, pending.clientX, pending.clientY);
       }
     };
+    const handleCancel = () => { emptySlotPendingRef.current = null; };
     window.addEventListener("pointerup", handleUp);
-    window.addEventListener("pointercancel", () => { emptySlotPendingRef.current = null; });
+    window.addEventListener("pointercancel", handleCancel);
     return () => {
       window.removeEventListener("pointerup", handleUp);
+      window.removeEventListener("pointercancel", handleCancel);
     };
   }, [onEmptySlotClick]);
 
