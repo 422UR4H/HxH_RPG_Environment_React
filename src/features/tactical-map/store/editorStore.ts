@@ -39,7 +39,6 @@ export type EditorState = {
   movePiece: (pieceId: string, slot: SlotCoord) => void;
   setPieceZ: (pieceId: string, z: number) => void;
   removePiece: (pieceId: string) => void;
-  addWallSegments: (segments: WallSegment[]) => void;
   mergeWalls: (segments: WallSegment[]) => void;
   updateWallSegment: (id: string, patch: Partial<WallSegment>) => void;
   removeWallSegment: (id: string) => void;
@@ -114,8 +113,6 @@ export function createEditorStore(initialMap: TacticalMap) {
             s.map.pieces = s.map.pieces.filter((x) => x.id !== pieceId);
             s.isDirty = true;
           }),
-        addWallSegments: (segments) =>
-          set((s) => { s.map.walls.push(...segments); s.isDirty = true; }),
         mergeWalls: (segments) =>
           set((s) => {
             const { toAdd, toRemove } = resolveOverlaps(segments, s.map.walls);
