@@ -8,6 +8,7 @@ import NpcRosterPanel from "../../components/molecules/NpcRosterPanel";
 import { useResizeObserver } from "../../hooks/useResizeObserver";
 import { useCampaignDetails } from "../../hooks/useCampaignDetails";
 import useToken from "../../hooks/useToken";
+import { useRosterDrag } from "./hooks/useRosterDrag";
 import type { TacticalMap, Piece, SlotCoord } from "../../types/tacticalMap";
 import type { CharacterPrivateSummary } from "../../types/characterSheet";
 import { isSameSlot } from "./utils/coords";
@@ -61,41 +62,10 @@ export default function TacticalMapPlacer({
     clientY: number;
   } | null>(null);
 
-  // --- Ghost drag state (master only) ---
-  // TODO: extract to useRosterDrag() when a 3rd consumer appears (YAGNI now).
-  const [placingNpcId, setPlacingNpcId] = useState<string | null>(null);
-  const [placingNpcData, setPlacingNpcData] = useState<CharacterPrivateSummary | null>(null);
-  const [isDraggingPieceToRoster, setIsDraggingPieceToRoster] = useState(false);
-  const [draggingCanvasPieceNpc, setDraggingCanvasPieceNpc] = useState<CharacterPrivateSummary | null>(null);
-
-  const ghostRef = useRef<HTMLDivElement>(null);
-  const canvasDragGhostRef = useRef<HTMLDivElement>(null);
-
-  // Track roster-ghost pointer position
-  useEffect(() => {
-    if (!placingNpcId) return;
-    const handleMove = (e: PointerEvent) => {
-      if (ghostRef.current) {
-        ghostRef.current.style.left = `${e.clientX}px`;
-        ghostRef.current.style.top = `${e.clientY}px`;
-      }
-    };
-    window.addEventListener("pointermove", handleMove, { passive: true });
-    return () => window.removeEventListener("pointermove", handleMove);
-  }, [placingNpcId]);
-
-  // Track canvas-piece-drag ghost pointer position
-  useEffect(() => {
-    if (!draggingCanvasPieceNpc) return;
-    const handleMove = (e: PointerEvent) => {
-      const ghost = canvasDragGhostRef.current;
-      if (!ghost) return;
-      ghost.style.left = `${e.clientX}px`;
-      ghost.style.top = `${e.clientY}px`;
-    };
-    window.addEventListener("pointermove", handleMove, { passive: true });
-    return () => window.removeEventListener("pointermove", handleMove);
-  }, [draggingCanvasPieceNpc]);
+  // --- Ghost drag state ---
+  // enableRosterDrop: isMaster — only the master sees the roster sidebar, so
+  // only master drags should flag it as a drop target.
+  const roster = useRosterDrag({ enableRosterDrop: isMaster });
 
   // Set of character IDs already placed on the map
   const placedCharacterIds = useMemo(
@@ -119,50 +89,40 @@ export default function TacticalMapPlacer({
       .filter((cs): cs is CharacterPrivateSummary => cs != null);
   }, [playerCharacterIds, placedCharacterIds, npcMap]);
 
+  // On-screen token diameter = world token size (cellSize * 0.9) × current zoom.
+  // Clamped so the ghost stays grabbable when zoomed far out. Same formula as
+  // TacticalMapEditor — kept local rather than extracted since it depends on
+  // caller-local values (map.grid.cellSize, viewportScale); a one-line
+  // function shared by two callers would trade duplication for indirection.
   const dragGhostSize = Math.max(44, map.grid.cellSize * 0.9 * viewportScale);
 
   // --- Handlers ---
 
-  const handleNpcPointerDown = useCallback(
-    (npc: CharacterPrivateSummary, _e: React.PointerEvent) => {
-      setPlacingNpcId(npc.uuid);
-      setPlacingNpcData(npc);
-    },
-    [],
-  );
-
-  const handleNpcPlacementCancel = useCallback(() => {
-    setPlacingNpcId(null);
-    setPlacingNpcData(null);
-  }, []);
-
   const handleNpcPlaced = useCallback(
     (slot: SlotCoord) => {
-      if (!placingNpcData) {
-        setPlacingNpcId(null);
+      if (!roster.placingNpcData) {
+        roster.cancelPlacing();
         return;
       }
       const occupied = pieces.some(
         (p) => isSameSlot(p.coord.slot, slot),
       );
       if (occupied) {
-        setPlacingNpcId(null);
-        setPlacingNpcData(null);
+        roster.cancelPlacing();
         return;
       }
       const newPiece: Piece = {
         id: crypto.randomUUID(),
-        characterId: placingNpcData.uuid,
+        characterId: roster.placingNpcData.uuid,
         coord: { slot, z: 0 },
         visible: true,
       };
       const next = [...pieces, newPiece];
       onPiecesChange(next);
       sendPieceMoved(newPiece.id, slot, newPiece.characterId, newPiece.visible, newPiece.coord.z);
-      setPlacingNpcId(null);
-      setPlacingNpcData(null);
+      roster.cancelPlacing();
     },
-    [placingNpcData, pieces, onPiecesChange, sendPieceMoved],
+    [roster, pieces, onPiecesChange, sendPieceMoved],
   );
 
   const handlePieceMove = useCallback(
@@ -238,19 +198,13 @@ export default function TacticalMapPlacer({
             draggablePieceIds={draggablePieceIds}
             walls={map.walls}
             npcMap={npcMap}
-            placingNpcId={isMaster ? placingNpcId : null}
+            placingNpcId={isMaster ? roster.placingNpcId : null}
             onNpcPlaced={isMaster ? handleNpcPlaced : undefined}
-            onNpcPlacementCancel={isMaster ? handleNpcPlacementCancel : undefined}
+            onNpcPlacementCancel={isMaster ? roster.cancelPlacing : undefined}
             onPieceMove={handlePieceMove}
             onPieceDragToRoster={isMaster ? handlePieceDragToRoster : undefined}
-            onPieceDragStart={(_pieceId, npc) => {
-              if (isMaster) setIsDraggingPieceToRoster(true);
-              setDraggingCanvasPieceNpc(npc ?? null);
-            }}
-            onPieceDragEnd={() => {
-              if (isMaster) setIsDraggingPieceToRoster(false);
-              setDraggingCanvasPieceNpc(null);
-            }}
+            onPieceDragStart={(_pieceId, npc) => roster.startCanvasDrag(npc)}
+            onPieceDragEnd={roster.endCanvasDrag}
             onEmptySlotClick={!isMaster ? handleEmptySlotClick : undefined}
             onViewportScaleChange={setViewportScale}
           />
@@ -262,29 +216,29 @@ export default function TacticalMapPlacer({
           <NpcRosterPanel
             campaignId={campaignId}
             placedCharacterIds={placedCharacterIds}
-            placingNpcId={placingNpcId}
-            isDropTarget={isDraggingPieceToRoster}
-            onPointerDownNpc={handleNpcPointerDown}
+            placingNpcId={roster.placingNpcId}
+            isDropTarget={roster.isDraggingPieceToRoster}
+            onPointerDownNpc={roster.startPlacing}
             includePlayerChars={true}
           />
         </RosterSidebar>
       )}
 
       {/* Ghost drag from roster → canvas (master only) */}
-      {isMaster && placingNpcId && placingNpcData && (
+      {isMaster && roster.placingNpcId && roster.placingNpcData && (
         <PieceDragGhostPortal
-          ghostRef={ghostRef}
+          ghostRef={roster.ghostRef}
           size={dragGhostSize}
-          avatarUrl={placingNpcData.avatarUrl}
+          avatarUrl={roster.placingNpcData.avatarUrl}
         />
       )}
 
       {/* Ghost drag from canvas (master and player own pieces) */}
-      {draggingCanvasPieceNpc && (
+      {roster.draggingCanvasPieceNpc && (
         <PieceDragGhostPortal
-          ghostRef={canvasDragGhostRef}
+          ghostRef={roster.canvasDragGhostRef}
           size={dragGhostSize}
-          avatarUrl={draggingCanvasPieceNpc.avatarUrl}
+          avatarUrl={roster.draggingCanvasPieceNpc.avatarUrl}
         />
       )}
 
