@@ -120,6 +120,7 @@ do `TacticalMapStage` (Fase 4) uma operação de baixo risco em vez de um salto 
 | C5 | `MapEditorToolbar` tem **45 props** — repasse puro do editor para 6 painéis. |
 | C6 | Indentação de 4 espaços em `drawDestroyedWall` (resto do arquivo usa 2). |
 | C7 | **`eslint.config.js` só ignora `dist`.** Existem três worktrees git órfãs de fases anteriores no disco (`.claude/worktrees/feat+tactical-map-fase-10`, `.worktrees/feat-walls-10c`, `.worktrees/feature/tactical-map-fase-10b`), mais `.claude/worktrees/responsive-sidebars`, `.claude/worktrees/tactical-map-fase-1-persistence` e `.local/`. O ESLint linta todas — o codebase inteiro, 3–4 vezes. Daí "120 erros"; o número real em `src/` é 23. Isso torna `npm run lint` inútil como sinal e mascara regressão de verdade. |
+| C9 | **A pilha Pixi está na pasta errada.** `src/components/CLAUDE.md` define: `components/` = usado por 2+ features; `features/<feature>/` = uma única feature. Levantamento de 2026-08-07: `TacticalMapStage` é importado só pelos 3 arquivos de `features/tactical-map/`; `MapHandlesLayer`, `WallsLayer` e `FogLayer` só por `TacticalMapStage`; `LosSplit` só por `WallsLayer`; `MapEditorToolbar` só por `TacticalMapEditor`. **Seis dos nove `organisms/` pertencem a uma única feature.** Os outros três (`CharactersSidebar`, `RulesSidebar`, `PageTabNav`) são de fato compartilhados entre páginas e ficam. Tratado na Fase 4. |
 | C8 | 23 erros reais de lint em `src/`: 16 `no-explicit-any` (concentrados em `utils/caseConverter.ts`, `hooks/useForm.ts` e páginas de formulário — fora da superfície do mapa), 3 `no-unused-vars`, 2 `no-unused-expressions`, 1 `no-namespace`, 1 `no-empty-object-type`. **Na superfície do mapa são só 3**, todos do padrão `_` de descarte intencional que a config não reconhece: `TacticalMapEditor.tsx:409` (`_ox`, `_oy`) e `TacticalMapPlacer.tsx:128` (`_e`). Mais `TacticalMapStage.tsx:95` (`no-namespace`, na declaração de tipo do `pixiViewport` — legítimo, precisa de disable pontual). |
 
 ### 2.4 Decisões explícitas de NÃO mexer
@@ -241,14 +242,19 @@ Se um refactor tornar o comentário mentira, o refactor está errado.
 Ordem escolhida por risco crescente, com a rede de segurança sendo construída antes
 do trabalho perigoso.
 
-| Fase | Repo | Conteúdo | Risco |
-|---|---|---|---|
-| **1** | React | Higiene: bug A2, mortos C1/C4, doc C3, lint utilizável C7/C8 | baixo |
-| **1-B** | Go | Documentar `fog_mode` como pendência (§3). Sem mudança de comportamento | nenhum |
-| **2** | React | Extrair lógica pura + **cobrir com teste**: B3, B4, B5, B6, e `computeNewBgFromDrag`/`findNearestWall` | baixo, alto retorno |
-| **3** | React | Deduplicar UI: `useRosterDrag` + `PieceDragGhost` compartilhados (B1, B2) | médio |
-| **4** | React | Quebrar `TacticalMapStage` em arquivos; deduplicar `MapHandlesLayer` (B7) | alto — protegido pela Fase 2 |
-| **5** | React | `MapEditorToolbar`: 45 props → assinatura do store (C5) | médio |
+| Fase | Repo | Conteúdo | Risco | Status |
+|---|---|---|---|---|
+| **1** | React | Higiene: bug A2, mortos C1/C4, doc C3, lint utilizável C7/C8 | baixo | **merged** (PR #54) |
+| **1-B** | Go | Documentar `fog_mode` como pendência (§3). Sem mudança de comportamento | nenhum | pendente |
+| **2** | React | Extrair lógica pura + **cobrir com teste**: B3, B4, B5, B6, C6 | baixo, alto retorno | **merged** (PR #55) |
+| **3** | React | Deduplicar UI: `useRosterDrag` + `PieceDragGhost` compartilhados (B1, B2) | médio | em curso |
+| **4** | React | **Relocar** a pilha Pixi para `features/tactical-map/` (C9); quebrar `TacticalMapStage`; deduplicar `MapHandlesLayer` (B7) | alto — protegido pela Fase 2 | planejada |
+| **5** | React | `MapEditorToolbar`: 45 props → assinatura do store (C5) | médio | planejada |
+
+**Baseline após a Fase 2** (2026-08-07): `tsc -b` limpo, **369 testes** passando
+(era 334), 19 erros de lint em `src/` — **zero** na superfície do mapa.
+`TacticalMapStage` 1253 · `TacticalMapEditor` 641 · `MapHandlesLayer` 543 ·
+`MapEditorToolbar` 469 · `TacticalMapPlacer` 454 · `WallsLayer` 485.
 
 **Fases 1 e 1-B são independentes** e podem ir em paralelo (repos diferentes).
 **Fase 2 é pré-requisito obrigatório da Fase 4.**
