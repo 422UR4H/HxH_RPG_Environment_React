@@ -8,6 +8,8 @@ import {
   inverseTransform,
   gridFromHandleDrag,
   slotInradius,
+  isSameSlot,
+  offsetToAxial,
 } from "../coords";
 import type { GridShape } from "../../../../types/tacticalMap";
 import { hexToPixel } from "../hex";
@@ -226,5 +228,54 @@ describe("slotInradius — token sizing keeps the same fill across grid kinds", 
     expect(slotInradius(hexGrid(cs))).toBeCloseTo((cs * Math.sqrt(3)) / 2);
     // a hex token is ~1.73× a square token at the same cellSize.
     expect((slotInradius(hexGrid(cs)) * 0.9) / (cs * 0.45)).toBeCloseTo(Math.sqrt(3));
+  });
+});
+
+describe("offsetToAxial — round-trips through isSlotInBounds's inverse formula", () => {
+  it("col = q + floor(r/2) recovers the original col, for even/odd/negative rows and negative cols", () => {
+    const rows = [-4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 10, 11];
+    const cols = [-5, -1, 0, 1, 4, 7];
+    for (const row of rows) {
+      for (const col of cols) {
+        const { q, r } = offsetToAxial(col, row);
+        expect(r).toBe(row);
+        const roundTripCol = q + Math.floor(r / 2);
+        expect(roundTripCol).toBe(col);
+      }
+    }
+  });
+
+  it("reproduces GridLayer's previous inline offset formula", () => {
+    const size = 40, hexW = size * Math.sqrt(3), hexH = size * 1.5;
+    for (const r of [0, 1, 2, 3]) {
+      for (const c of [0, 1, 5]) {
+        const p = hexToPixel(offsetToAxial(c, r), size);
+        expect(p.x).toBeCloseTo(c * hexW + (r % 2 === 1 ? hexW / 2 : 0));
+        expect(p.y).toBeCloseTo(r * hexH);
+      }
+    }
+  });
+});
+
+describe("isSameSlot", () => {
+  it("compara slots quadrados por valor", () => {
+    expect(isSameSlot({ kind: "square", col: 2, row: 3 }, { kind: "square", col: 2, row: 3 })).toBe(true);
+    expect(isSameSlot({ kind: "square", col: 2, row: 3 }, { kind: "square", col: 3, row: 2 })).toBe(false);
+  });
+
+  it("independe da ordem das chaves — o que JSON.stringify não garantia", () => {
+    const a = { kind: "square", col: 1, row: 4 } as const;
+    const b = { row: 4, col: 1, kind: "square" } as const;
+    expect(JSON.stringify(a)).not.toBe(JSON.stringify(b)); // a armadilha antiga
+    expect(isSameSlot(a, b)).toBe(true);
+  });
+
+  it("compara slots hex por valor", () => {
+    expect(isSameSlot({ kind: "hex", q: 1, r: -2 }, { kind: "hex", q: 1, r: -2 })).toBe(true);
+    expect(isSameSlot({ kind: "hex", q: 1, r: -2 }, { kind: "hex", q: -2, r: 1 })).toBe(false);
+  });
+
+  it("slots de tipos diferentes nunca são iguais", () => {
+    expect(isSameSlot({ kind: "square", col: 0, row: 0 }, { kind: "hex", q: 0, r: 0 })).toBe(false);
   });
 });

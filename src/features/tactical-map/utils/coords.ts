@@ -223,6 +223,13 @@ export function gridFromHandleDrag(
   };
 }
 
+// Conversão offset (odd-r) → axial. A grade hex é armazenada e percorrida em
+// coordenadas de offset (col, row), mas toda a matemática de hex.ts é axial (q, r).
+// Esta é a única ponte entre os dois; isSlotInBounds faz o caminho inverso.
+export function offsetToAxial(col: number, row: number): { q: number; r: number } {
+  return { q: col - Math.floor(row / 2), r: row };
+}
+
 // Returns true if slot is within the visible grid bounds.
 // Hex uses odd-r offset → col = q + floor(r/2); valid when 0 ≤ col < cols.
 export function isSlotInBounds(slot: SlotCoord, grid: GridShape): boolean {
@@ -232,4 +239,14 @@ export function isSlotInBounds(slot: SlotCoord, grid: GridShape): boolean {
   if (slot.r < 0 || slot.r >= grid.rows) return false;
   const col = slot.q + Math.floor(slot.r / 2);
   return col >= 0 && col < grid.cols;
+}
+
+// Igualdade estrutural de slot. Substitui a comparação por JSON.stringify que existia
+// espalhada pelo código: aquela dependia da ordem de inserção das chaves, então dois
+// slots iguais escritos em ordens diferentes comparavam como distintos.
+export function isSameSlot(a: SlotCoord, b: SlotCoord): boolean {
+  if (a.kind !== b.kind) return false;
+  return a.kind === "square"
+    ? a.col === (b as typeof a).col && a.row === (b as typeof a).row
+    : a.q === (b as typeof a).q && a.r === (b as typeof a).r;
 }

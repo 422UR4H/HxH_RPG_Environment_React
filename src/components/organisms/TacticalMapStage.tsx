@@ -16,7 +16,8 @@ import MapHandlesLayer from "./MapHandlesLayer";
 import WallsLayer from "./WallsLayer";
 import FogLayer from "./FogLayer";
 import type { WallSegment, WallType, WallMaterial } from "../../types/tacticalMap";
-import { slotToWorld, worldToSlot, isSlotInBounds, slotCorners, applyTransform, slotInradius } from "../../features/tactical-map/utils/coords";
+import { slotToWorld, worldToSlot, isSlotInBounds, slotCorners, applyTransform, slotInradius, isSameSlot, offsetToAxial } from "../../features/tactical-map/utils/coords";
+import { hexToPixel } from "../../features/tactical-map/utils/hex";
 
 extend({ Container, Graphics, Sprite, Text, Viewport });
 
@@ -742,16 +743,14 @@ function GridLayer({ grid, vpScale }: { grid: GridShape; vpScale: number }) {
         }
       } else {
         const size = grid.cellSize;
-        const hexW = size * Math.sqrt(3);
-        const hexH = size * 1.5;
         for (let r = 0; r < grid.rows; r++) {
           for (let c = 0; c < grid.cols; c++) {
-            const cx = c * hexW + (r % 2 === 1 ? hexW / 2 : 0);
-            const cy = r * hexH;
+            const { q, r: ar } = offsetToAxial(c, r);
+            const center = hexToPixel({ q, r: ar }, size);
             for (let i = 0; i < 6; i++) {
               const angle = ((60 * i - 30) * Math.PI) / 180;
               const p = applyTransform(
-                { x: cx + size * Math.cos(angle), y: cy + size * Math.sin(angle) },
+                { x: center.x + size * Math.cos(angle), y: center.y + size * Math.sin(angle) },
                 grid,
               );
               if (i === 0) g.moveTo(p.x, p.y);
@@ -864,7 +863,7 @@ function PiecesLayer({
       const slot = drag.currentSlot;
       if (!slot || !isSlotInBounds(slot, map.grid)) return;
       const occupied = map.pieces.some(
-        (p) => p.id !== drag.pieceId && JSON.stringify(p.coord.slot) === JSON.stringify(slot),
+        (p) => p.id !== drag.pieceId && isSameSlot(p.coord.slot, slot),
       );
       if (!occupied) onPieceMove?.(drag.pieceId, slot);
     };
@@ -898,7 +897,7 @@ function PiecesLayer({
         const slot = worldToSlot(world, map.grid);
         if (!isSlotInBounds(slot, map.grid)) return;
         const occupied = map.pieces.some(
-          (p) => p.id !== drag.pieceId && JSON.stringify(p.coord.slot) === JSON.stringify(slot),
+          (p) => p.id !== drag.pieceId && isSameSlot(p.coord.slot, slot),
         );
         if (!occupied) onPieceMove?.(drag.pieceId, slot);
       }
@@ -958,7 +957,7 @@ function PiecesLayer({
       if (!hoverSlot || !draggingPieceId) return;
       const outOfBounds = !isSlotInBounds(hoverSlot, map.grid);
       const occupied = !outOfBounds && map.pieces.some(
-        (p) => p.id !== draggingPieceId && JSON.stringify(p.coord.slot) === JSON.stringify(hoverSlot),
+        (p) => p.id !== draggingPieceId && isSameSlot(p.coord.slot, hoverSlot),
       );
       const color = occupied || outOfBounds ? 0xff3030 : 0x30ff80;
       g.setFillStyle({ color, alpha: 0.25 });

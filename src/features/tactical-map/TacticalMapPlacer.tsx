@@ -12,6 +12,7 @@ import { useCampaignDetails } from "../../hooks/useCampaignDetails";
 import useToken from "../../hooks/useToken";
 import type { TacticalMap, Piece, SlotCoord } from "../../types/tacticalMap";
 import type { CharacterPrivateSummary } from "../../types/characterSheet";
+import { isSameSlot } from "./utils/coords";
 
 type Props = {
   map: TacticalMap;
@@ -144,7 +145,7 @@ export default function TacticalMapPlacer({
         return;
       }
       const occupied = pieces.some(
-        (p) => JSON.stringify(p.coord.slot) === JSON.stringify(slot),
+        (p) => isSameSlot(p.coord.slot, slot),
       );
       if (occupied) {
         setPlacingNpcId(null);
@@ -193,7 +194,7 @@ export default function TacticalMapPlacer({
     (slot: SlotCoord, clientX: number, clientY: number) => {
       if (unplacedPlayerChars.length === 0) return;
       const occupied = pieces.some(
-        (p) => JSON.stringify(p.coord.slot) === JSON.stringify(slot),
+        (p) => isSameSlot(p.coord.slot, slot),
       );
       if (occupied) return;
       setPendingSlot({ slot, clientX, clientY });
