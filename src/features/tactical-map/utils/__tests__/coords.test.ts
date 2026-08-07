@@ -9,6 +9,7 @@ import {
   gridFromHandleDrag,
   slotInradius,
   isSameSlot,
+  offsetToAxial,
 } from "../coords";
 import type { GridShape } from "../../../../types/tacticalMap";
 import { hexToPixel } from "../hex";
@@ -227,6 +228,21 @@ describe("slotInradius — token sizing keeps the same fill across grid kinds", 
     expect(slotInradius(hexGrid(cs))).toBeCloseTo((cs * Math.sqrt(3)) / 2);
     // a hex token is ~1.73× a square token at the same cellSize.
     expect((slotInradius(hexGrid(cs)) * 0.9) / (cs * 0.45)).toBeCloseTo(Math.sqrt(3));
+  });
+});
+
+describe("offsetToAxial — round-trips through isSlotInBounds's inverse formula", () => {
+  it("col = q + floor(r/2) recovers the original col, for even/odd/negative rows and negative cols", () => {
+    const rows = [-4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 10, 11];
+    const cols = [-5, -1, 0, 1, 4, 7];
+    for (const row of rows) {
+      for (const col of cols) {
+        const { q, r } = offsetToAxial(col, row);
+        expect(r).toBe(row);
+        const roundTripCol = q + Math.floor(r / 2);
+        expect(roundTripCol).toBe(col);
+      }
+    }
   });
 });
 

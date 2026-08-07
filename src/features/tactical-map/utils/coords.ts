@@ -223,6 +223,13 @@ export function gridFromHandleDrag(
   };
 }
 
+// Conversão offset (odd-r) → axial. A grade hex é armazenada e percorrida em
+// coordenadas de offset (col, row), mas toda a matemática de hex.ts é axial (q, r).
+// Esta é a única ponte entre os dois; isSlotInBounds faz o caminho inverso.
+export function offsetToAxial(col: number, row: number): { q: number; r: number } {
+  return { q: col - Math.floor(row / 2), r: row };
+}
+
 // Returns true if slot is within the visible grid bounds.
 // Hex uses odd-r offset → col = q + floor(r/2); valid when 0 ≤ col < cols.
 export function isSlotInBounds(slot: SlotCoord, grid: GridShape): boolean {
