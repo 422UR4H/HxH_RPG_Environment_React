@@ -3,10 +3,10 @@ import type { MutableRefObject } from "react";
 import type { Graphics as PixiGraphics } from "pixi.js";
 import type { Viewport } from "pixi-viewport";
 import type { GridShape, VisibilityPolygon, WallMaterial, WallSegment, WallType } from "../../types/tacticalMap";
-import { applyTransform, inverseTransform } from "../../features/tactical-map/utils/coords";
-import { snapWallPoint, explodePolyline, newWallAttrs, isOpening } from "../../features/tactical-map/utils/walls";
-import { findNearestWall } from "../../features/tactical-map/utils/wallHit";
-import { drawStippledSegment } from "../../features/tactical-map/utils/stipple";
+import { applyTransform, inverseTransform } from "./utils/coords";
+import { snapWallPoint, explodePolyline, newWallAttrs, isOpening } from "./utils/walls";
+import { findNearestWall } from "./utils/wallHit";
+import { drawStippledSegment } from "./utils/stipple";
 import LosSplit from "./LosSplit";
 
 const MATERIAL_COLOR: Record<WallMaterial, number> = {

@@ -3,13 +3,13 @@ import { useApplication } from "@pixi/react";
 import type { FederatedPointerEvent, Graphics as PixiGraphics } from "pixi.js";
 import type { Viewport } from "pixi-viewport";
 import type { BgImage, GridShape } from "../../types/tacticalMap";
-import type { ToolKind } from "../../features/tactical-map/store/editorStore";
+import type { ToolKind } from "./store/editorStore";
 import {
   applyTransform,
   gridHandleLocal,
   gridFromHandleDrag,
-} from "../../features/tactical-map/utils/coords";
-import { computeNewBgFromDrag } from "../../features/tactical-map/utils/bgHandles";
+} from "./utils/coords";
+import { computeNewBgFromDrag } from "./utils/bgHandles";
 
 type XY = { x: number; y: number };
 

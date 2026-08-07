@@ -29,7 +29,10 @@ Já carrega noção do projeto. Ex.: `CampaignCard` (sabe o que é uma campanha)
 Pequenas unidades funcionais. Ex.: `ConfirmDialog`, `ExpandableText`, `FormField` (Label + campo + ajuda), `FormCheckbox`, `FormRow`, `RuleSection`, `EmptyState`, `CharacterSidebarItem`, `AdaptiveActionButton`, `CharacterSheetHeader`.
 
 ### `organisms/` — pedaços grandes de UI auto-suficientes
-Sub-seções de página inteiras. Ex.: `CharactersSidebar` (shell + lista de personagens, genérico no tipo do item), `RulesSidebar` (shell + slot de seções de regra).
+Sub-seções de página inteiras. Ex.: `CharactersSidebar` (shell + lista de personagens, genérico no tipo do item), `RulesSidebar` (shell + slot de seções de regra), `PageTabNav`.
+
+> A pilha Pixi do mapa tático vive em `src/features/tactical-map/` — é usada por uma
+> única feature (regra da tabela acima).
 
 ### `templates/` — layouts de página
 Estrutura macro: header + colunas + slots. Sem dados, sem lógica de negócio — as páginas em `src/pages/` injetam conteúdo via slots.

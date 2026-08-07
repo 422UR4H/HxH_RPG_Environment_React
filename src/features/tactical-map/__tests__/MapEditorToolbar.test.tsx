@@ -2,8 +2,8 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import MapEditorToolbar from "../MapEditorToolbar";
-import type { ToolKind } from "../../../features/tactical-map/store/editorStore";
-import { DEFAULT_GRID } from "../../../features/tactical-map/defaultMap";
+import type { ToolKind } from "../store/editorStore";
+import { DEFAULT_GRID } from "../defaultMap";
 import { renderWithProviders } from "../../../test/render";
 import type { BgImage } from "../../../types/tacticalMap";
 

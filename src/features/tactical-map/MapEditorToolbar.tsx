@@ -1,16 +1,16 @@
 import { useState, type ChangeEvent } from "react";
 import styled from "styled-components";
-import type { ToolKind } from "../../features/tactical-map/store/editorStore";
+import type { ToolKind } from "./store/editorStore";
 import type { BgImage, GridShape, Piece, WallSegment, WallType, WallMaterial } from "../../types/tacticalMap";
 import type { CharacterPrivateSummary } from "../../types/characterSheet";
-import { fitGridAndCover } from "../../features/tactical-map/utils/bgFit";
-import GridConfigPanel from "../molecules/GridConfigPanel";
-import BgImagePanel from "../molecules/BgImagePanel";
-import NpcRosterPanel from "../molecules/NpcRosterPanel";
-import PiecePropertyPanel from "../molecules/PiecePropertyPanel";
-import WallTypeChips from "../molecules/WallTypeChips";
-import WallConfigPanel from "../molecules/WallConfigPanel";
-import InlineFeedback from "../ions/InlineFeedback";
+import { fitGridAndCover } from "./utils/bgFit";
+import GridConfigPanel from "../../components/molecules/GridConfigPanel";
+import BgImagePanel from "../../components/molecules/BgImagePanel";
+import NpcRosterPanel from "../../components/molecules/NpcRosterPanel";
+import PiecePropertyPanel from "../../components/molecules/PiecePropertyPanel";
+import WallTypeChips from "../../components/molecules/WallTypeChips";
+import WallConfigPanel from "../../components/molecules/WallConfigPanel";
+import InlineFeedback from "../../components/ions/InlineFeedback";
 import { colors, fonts } from "../../styles/tokens";
 
 type Props = {

@@ -11,13 +11,13 @@ import avatarPlaceholderUrl from "../../assets/placeholder/avatar.png";
 import { Viewport } from "pixi-viewport";
 import type { TacticalMap, GridShape, Piece, SlotCoord, BgImage, FogState } from "../../types/tacticalMap";
 import type { CharacterPrivateSummary } from "../../types/characterSheet";
-import type { Selection, ToolKind } from "../../features/tactical-map/store/editorStore";
+import type { Selection, ToolKind } from "./store/editorStore";
 import MapHandlesLayer from "./MapHandlesLayer";
 import WallsLayer from "./WallsLayer";
 import FogLayer from "./FogLayer";
 import type { WallSegment, WallType, WallMaterial } from "../../types/tacticalMap";
-import { slotToWorld, worldToSlot, isSlotInBounds, slotCorners, applyTransform, slotInradius, isSameSlot, offsetToAxial } from "../../features/tactical-map/utils/coords";
-import { hexToPixel } from "../../features/tactical-map/utils/hex";
+import { slotToWorld, worldToSlot, isSlotInBounds, slotCorners, applyTransform, slotInradius, isSameSlot, offsetToAxial } from "./utils/coords";
+import { hexToPixel } from "./utils/hex";
 
 extend({ Container, Graphics, Sprite, Text, Viewport });
 

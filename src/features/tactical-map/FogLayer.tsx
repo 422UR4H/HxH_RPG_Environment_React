@@ -1,8 +1,8 @@
 import { useCallback, useLayoutEffect, useRef } from "react";
 import type { Container as PixiContainer, Graphics as PixiGraphics } from "pixi.js";
 import type { FogState } from "../../types/tacticalMap";
-import { drawFog, drawLosMask } from "../../features/tactical-map/utils/fogDraw";
-import { applyLosMask, type MaskableContainer, type MaskSource } from "../../features/tactical-map/utils/losMask";
+import { drawFog, drawLosMask } from "./utils/fogDraw";
+import { applyLosMask, type MaskableContainer, type MaskSource } from "./utils/losMask";
 
 type Props = {
   fog: FogState;
