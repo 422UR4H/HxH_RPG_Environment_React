@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { collectGridSnapPoints, snapWallPoint, explodePolyline, isMovementBlocked } from "../walls";
-import type { GridShape, WallSegment } from "../../../../types/tacticalMap";
+import { collectGridSnapPoints, snapWallPoint, explodePolyline, isMovementBlocked, newWallAttrs, isOpening } from "../walls";
+import type { GridShape, WallMaterial, WallSegment } from "../../../../types/tacticalMap";
 
 const sq = (cellSize = 64): GridShape => ({
   kind: "square", cols: 4, rows: 4, cellSize,
@@ -128,5 +128,52 @@ describe("isMovementBlocked", () => {
     // from=(0,50) is to the LEFT → blocked
     const w = seg([50, 0], [50, 100], { direction: "left" });
     expect(isMovementBlocked([0, 50], [100, 50], [w])).toBe(true);
+  });
+});
+
+describe("newWallAttrs", () => {
+  it("wall/stone: full defaults", () => {
+    const a = newWallAttrs("wall", "stone");
+    expect(a.hp).toBe(100);
+    expect(a.maxHp).toBe(100);
+    expect(a.resistance).toBe(5);
+    expect(a.direction).toBe("both");
+    expect(a.destroyed).toBe(false);
+    expect(a.open).toBe(false);
+  });
+
+  it("terrain/wood: direction is left", () => {
+    const a = newWallAttrs("terrain", "wood");
+    expect(a.direction).toBe("left");
+    expect(a.hp).toBe(40);
+    expect(a.resistance).toBe(2);
+  });
+
+  it("door/iron: direction both, iron defaults", () => {
+    const a = newWallAttrs("door", "iron");
+    expect(a.direction).toBe("both");
+    expect(a.hp).toBe(500);
+    expect(a.resistance).toBe(15);
+  });
+
+  it("hp always equals maxHp, for every material", () => {
+    const materials: WallMaterial[] = ["stone", "wood", "iron", "magical"];
+    for (const m of materials) {
+      const a = newWallAttrs("wall", m);
+      expect(a.hp).toBe(a.maxHp);
+    }
+  });
+});
+
+describe("isOpening", () => {
+  it("is true for door, window, secret_door", () => {
+    expect(isOpening("door")).toBe(true);
+    expect(isOpening("window")).toBe(true);
+    expect(isOpening("secret_door")).toBe(true);
+  });
+
+  it("is false for wall and terrain", () => {
+    expect(isOpening("wall")).toBe(false);
+    expect(isOpening("terrain")).toBe(false);
   });
 });

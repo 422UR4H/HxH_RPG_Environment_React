@@ -4,7 +4,7 @@ import type { Graphics as PixiGraphics } from "pixi.js";
 import type { Viewport } from "pixi-viewport";
 import type { GridShape, VisibilityPolygon, WallMaterial, WallSegment, WallType } from "../../types/tacticalMap";
 import { applyTransform, inverseTransform } from "../../features/tactical-map/utils/coords";
-import { snapWallPoint, explodePolyline } from "../../features/tactical-map/utils/walls";
+import { snapWallPoint, explodePolyline, newWallAttrs, isOpening } from "../../features/tactical-map/utils/walls";
 import { findNearestWall } from "../../features/tactical-map/utils/wallHit";
 import LosSplit from "./LosSplit";
 
@@ -13,12 +13,6 @@ const MATERIAL_COLOR: Record<WallMaterial, number> = {
 };
 const MATERIAL_WIDTH: Record<WallMaterial, number> = {
   stone: 4, wood: 3, iron: 5, magical: 3,
-};
-const HP_DEFAULTS: Record<WallMaterial, number> = {
-  stone: 100, wood: 40, iron: 500, magical: 80,
-};
-const RESISTANCE_DEFAULTS: Record<WallMaterial, number> = {
-  stone: 5, wood: 2, iron: 15, magical: 0,
 };
 const SNAP_THRESHOLD_SCREEN = 15;
 
@@ -107,25 +101,12 @@ export default function WallsLayer({
     if (pts.length >= 2) {
       const mat = activeMaterialRef.current;
       const wallType = activeWallTypeRef.current;
-      const attrs: Omit<WallSegment, "id" | "p1" | "p2"> = {
-        wallType,
-        material: mat,
-        move: true,
-        sense: "full",
-        direction: wallType === "terrain" ? "left" : "both",
-        open: false,
-        locked: false,
-        hp: HP_DEFAULTS[mat],
-        maxHp: HP_DEFAULTS[mat],
-        resistance: RESISTANCE_DEFAULTS[mat],
-        destroyed: false,
-      };
+      const attrs = newWallAttrs(wallType, mat);
       // Openings (door/window/secret_door) must not be split at midpoints —
       // explodePolyline would turn a 1-cell door into two half-cell segments.
-      const isOpening = wallType === "door" || wallType === "window" || wallType === "secret_door";
       const all: WallSegment[] = [];
       for (let i = 0; i < pts.length - 1; i++) {
-        if (isOpening) {
+        if (isOpening(wallType)) {
           all.push({ ...attrs, id: crypto.randomUUID(), p1: pts[i], p2: pts[i + 1] });
         } else {
           all.push(...explodePolyline(pts[i], pts[i + 1], attrs, gridRef.current));
@@ -220,23 +201,13 @@ export default function WallsLayer({
       // Auto-finish openings (door/window/secret_door) after exactly 2 points —
       // avoids requiring Escape or double-click for single-segment openings.
       const wallType = activeWallTypeRef.current;
-      if ((wallType === "door" || wallType === "window" || wallType === "secret_door")
-          && currentPts.length === 1) {
+      if (isOpening(wallType) && currentPts.length === 1) {
         const mat = activeMaterialRef.current;
         onDrawComplete([{
+          ...newWallAttrs(wallType, mat),
           id: crypto.randomUUID(),
-          p1: currentPts[0], p2: pt,
-          wallType,
-          material: mat,
-          move: true,
-          sense: "full",
-          direction: "both",
-          open: false,
-          locked: false,
-          hp: HP_DEFAULTS[mat],
-          maxHp: HP_DEFAULTS[mat],
-          resistance: RESISTANCE_DEFAULTS[mat],
-          destroyed: false,
+          p1: currentPts[0],
+          p2: pt,
         }]);
         onGestureEnd();
         // Sync ref immediately so a rapid next click sees the cleared state

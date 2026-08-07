@@ -1,5 +1,40 @@
-import type { GridShape, WallSegment } from "../../../types/tacticalMap";
+import type { GridShape, WallMaterial, WallSegment, WallType } from "../../../types/tacticalMap";
 import { hexToPixel } from "./hex";
+
+const HP_DEFAULTS: Record<WallMaterial, number> = {
+  stone: 100, wood: 40, iron: 500, magical: 80,
+};
+const RESISTANCE_DEFAULTS: Record<WallMaterial, number> = {
+  stone: 5, wood: 2, iron: 15, magical: 0,
+};
+
+// Atributos default de um segmento novo, por tipo e material. Fonte única: antes isto
+// era montado à mão em dois lugares de WallsLayer (desenho de polilinha e auto-finish
+// de vão), e um default alterado num deles não chegava ao outro.
+export function newWallAttrs(
+  wallType: WallType,
+  material: WallMaterial,
+): Omit<WallSegment, "id" | "p1" | "p2"> {
+  return {
+    wallType,
+    material,
+    move: true,
+    sense: "full",
+    direction: wallType === "terrain" ? "left" : "both",
+    open: false,
+    locked: false,
+    hp: HP_DEFAULTS[material],
+    maxHp: HP_DEFAULTS[material],
+    resistance: RESISTANCE_DEFAULTS[material],
+    destroyed: false,
+  };
+}
+
+// Vãos não podem ser divididos em pontos médios: explodePolyline transformaria uma
+// porta de uma célula em dois meios-vãos.
+export function isOpening(wallType: WallType): boolean {
+  return wallType === "door" || wallType === "window" || wallType === "secret_door";
+}
 
 export function collectGridSnapPoints(grid: GridShape): [number, number][] {
   const pts: [number, number][] = [];
