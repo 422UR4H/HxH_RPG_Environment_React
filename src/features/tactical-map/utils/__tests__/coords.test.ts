@@ -8,6 +8,7 @@ import {
   inverseTransform,
   gridFromHandleDrag,
   slotInradius,
+  isSameSlot,
 } from "../coords";
 import type { GridShape } from "../../../../types/tacticalMap";
 import { hexToPixel } from "../hex";
@@ -226,5 +227,28 @@ describe("slotInradius — token sizing keeps the same fill across grid kinds", 
     expect(slotInradius(hexGrid(cs))).toBeCloseTo((cs * Math.sqrt(3)) / 2);
     // a hex token is ~1.73× a square token at the same cellSize.
     expect((slotInradius(hexGrid(cs)) * 0.9) / (cs * 0.45)).toBeCloseTo(Math.sqrt(3));
+  });
+});
+
+describe("isSameSlot", () => {
+  it("compara slots quadrados por valor", () => {
+    expect(isSameSlot({ kind: "square", col: 2, row: 3 }, { kind: "square", col: 2, row: 3 })).toBe(true);
+    expect(isSameSlot({ kind: "square", col: 2, row: 3 }, { kind: "square", col: 3, row: 2 })).toBe(false);
+  });
+
+  it("independe da ordem das chaves — o que JSON.stringify não garantia", () => {
+    const a = { kind: "square", col: 1, row: 4 } as const;
+    const b = { row: 4, col: 1, kind: "square" } as const;
+    expect(JSON.stringify(a)).not.toBe(JSON.stringify(b)); // a armadilha antiga
+    expect(isSameSlot(a, b)).toBe(true);
+  });
+
+  it("compara slots hex por valor", () => {
+    expect(isSameSlot({ kind: "hex", q: 1, r: -2 }, { kind: "hex", q: 1, r: -2 })).toBe(true);
+    expect(isSameSlot({ kind: "hex", q: 1, r: -2 }, { kind: "hex", q: -2, r: 1 })).toBe(false);
+  });
+
+  it("slots de tipos diferentes nunca são iguais", () => {
+    expect(isSameSlot({ kind: "square", col: 0, row: 0 }, { kind: "hex", q: 0, r: 0 })).toBe(false);
   });
 });

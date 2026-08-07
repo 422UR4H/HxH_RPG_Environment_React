@@ -16,7 +16,7 @@ import useToken from "../../hooks/useToken";
 import { useCampaignDetails } from "../../hooks/useCampaignDetails";
 import type { CharacterPrivateSummary } from "../../types/characterSheet";
 import { useEditorHistory } from "./hooks/useEditorHistory";
-import { isSlotInBounds } from "./utils/coords";
+import { isSlotInBounds, isSameSlot } from "./utils/coords";
 
 type Props = {
   campaignId: string;
@@ -298,7 +298,7 @@ export default function TacticalMapEditor({
       return;
     }
     const occupied = pieces.some(
-      (p) => JSON.stringify(p.coord.slot) === JSON.stringify(slot),
+      (p) => isSameSlot(p.coord.slot, slot),
     );
     if (occupied) {
       // Slot taken — cancel silently so the user can try another slot

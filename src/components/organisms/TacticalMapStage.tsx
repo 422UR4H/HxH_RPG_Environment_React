@@ -16,7 +16,7 @@ import MapHandlesLayer from "./MapHandlesLayer";
 import WallsLayer from "./WallsLayer";
 import FogLayer from "./FogLayer";
 import type { WallSegment, WallType, WallMaterial } from "../../types/tacticalMap";
-import { slotToWorld, worldToSlot, isSlotInBounds, slotCorners, applyTransform, slotInradius } from "../../features/tactical-map/utils/coords";
+import { slotToWorld, worldToSlot, isSlotInBounds, slotCorners, applyTransform, slotInradius, isSameSlot } from "../../features/tactical-map/utils/coords";
 
 extend({ Container, Graphics, Sprite, Text, Viewport });
 
@@ -864,7 +864,7 @@ function PiecesLayer({
       const slot = drag.currentSlot;
       if (!slot || !isSlotInBounds(slot, map.grid)) return;
       const occupied = map.pieces.some(
-        (p) => p.id !== drag.pieceId && JSON.stringify(p.coord.slot) === JSON.stringify(slot),
+        (p) => p.id !== drag.pieceId && isSameSlot(p.coord.slot, slot),
       );
       if (!occupied) onPieceMove?.(drag.pieceId, slot);
     };
@@ -898,7 +898,7 @@ function PiecesLayer({
         const slot = worldToSlot(world, map.grid);
         if (!isSlotInBounds(slot, map.grid)) return;
         const occupied = map.pieces.some(
-          (p) => p.id !== drag.pieceId && JSON.stringify(p.coord.slot) === JSON.stringify(slot),
+          (p) => p.id !== drag.pieceId && isSameSlot(p.coord.slot, slot),
         );
         if (!occupied) onPieceMove?.(drag.pieceId, slot);
       }
@@ -958,7 +958,7 @@ function PiecesLayer({
       if (!hoverSlot || !draggingPieceId) return;
       const outOfBounds = !isSlotInBounds(hoverSlot, map.grid);
       const occupied = !outOfBounds && map.pieces.some(
-        (p) => p.id !== draggingPieceId && JSON.stringify(p.coord.slot) === JSON.stringify(hoverSlot),
+        (p) => p.id !== draggingPieceId && isSameSlot(p.coord.slot, hoverSlot),
       );
       const color = occupied || outOfBounds ? 0xff3030 : 0x30ff80;
       g.setFillStyle({ color, alpha: 0.25 });

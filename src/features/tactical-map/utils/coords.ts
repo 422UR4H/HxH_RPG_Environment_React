@@ -233,3 +233,13 @@ export function isSlotInBounds(slot: SlotCoord, grid: GridShape): boolean {
   const col = slot.q + Math.floor(slot.r / 2);
   return col >= 0 && col < grid.cols;
 }
+
+// Igualdade estrutural de slot. Substitui a comparação por JSON.stringify que existia
+// espalhada pelo código: aquela dependia da ordem de inserção das chaves, então dois
+// slots iguais escritos em ordens diferentes comparavam como distintos.
+export function isSameSlot(a: SlotCoord, b: SlotCoord): boolean {
+  if (a.kind !== b.kind) return false;
+  return a.kind === "square"
+    ? a.col === (b as typeof a).col && a.row === (b as typeof a).row
+    : a.q === (b as typeof a).q && a.r === (b as typeof a).r;
+}
