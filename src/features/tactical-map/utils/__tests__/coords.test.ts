@@ -244,6 +244,17 @@ describe("offsetToAxial — round-trips through isSlotInBounds's inverse formula
       }
     }
   });
+
+  it("reproduces GridLayer's previous inline offset formula", () => {
+    const size = 40, hexW = size * Math.sqrt(3), hexH = size * 1.5;
+    for (const r of [0, 1, 2, 3]) {
+      for (const c of [0, 1, 5]) {
+        const p = hexToPixel(offsetToAxial(c, r), size);
+        expect(p.x).toBeCloseTo(c * hexW + (r % 2 === 1 ? hexW / 2 : 0));
+        expect(p.y).toBeCloseTo(r * hexH);
+      }
+    }
+  });
 });
 
 describe("isSameSlot", () => {

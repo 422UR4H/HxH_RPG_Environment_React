@@ -42,6 +42,22 @@ describe("drawStippledSegment", () => {
     expect(pairs.length).toBe(2);
     expect(pairs[0].moveTo).toEqual({ op: "moveTo", x: 0, y: 0 });
     expect(pairs[0].lineTo).toEqual({ op: "lineTo", x: 8, y: 0 });
+    expect(pairs[1].moveTo).toEqual({ op: "moveTo", x: 12, y: 0 });
+    expect(pairs[1].lineTo).toEqual({ op: "lineTo", x: 20, y: 0 });
+  });
+
+  it("alternates dash and gap for the destroyed-wall style (extreme dash:gap ratio)", () => {
+    const { g, calls } = recorder();
+    drawStippledSegment(g, { x: 0, y: 0 }, { x: 16, y: 0 }, {
+      color: 0xffffff, width: 2, alpha: 1, dashLen: 1, gapLen: 7,
+    });
+
+    const pairs = dashPairs(calls);
+    expect(pairs.length).toBe(2);
+    expect(pairs[0].moveTo).toEqual({ op: "moveTo", x: 0, y: 0 });
+    expect(pairs[0].lineTo).toEqual({ op: "lineTo", x: 1, y: 0 });
+    expect(pairs[1].moveTo).toEqual({ op: "moveTo", x: 8, y: 0 });
+    expect(pairs[1].lineTo).toEqual({ op: "lineTo", x: 9, y: 0 });
   });
 
   it("draws a single dash ending at the segment end when the segment is shorter than one dash", () => {
