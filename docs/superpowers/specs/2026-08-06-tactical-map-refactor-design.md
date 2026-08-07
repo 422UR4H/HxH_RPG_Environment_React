@@ -247,7 +247,7 @@ do trabalho perigoso.
 | **1** | React | Higiene: bug A2, mortos C1/C4, doc C3, lint utilizável C7/C8 | baixo | **merged** (PR #54) |
 | **1-B** | Go | Documentar `fog_mode` como pendência (§3). Sem mudança de comportamento | nenhum | pendente |
 | **2** | React | Extrair lógica pura + **cobrir com teste**: B3, B4, B5, B6, C6 | baixo, alto retorno | **merged** (PR #55) |
-| **3** | React | Deduplicar UI: `useRosterDrag` + `PieceDragGhost` compartilhados (B1, B2) | médio | em curso |
+| **3** | React | Deduplicar UI: `useRosterDrag` + `PieceDragGhost` compartilhados (B1, B2) | médio | **merged** (PR #56) |
 | **4** | React | **Relocar** a pilha Pixi para `features/tactical-map/` (C9); quebrar `TacticalMapStage`; deduplicar `MapHandlesLayer` (B7) | alto — protegido pela Fase 2 | planejada |
 | **5** | React | `MapEditorToolbar`: 45 props → assinatura do store (C5) | médio | planejada |
 
