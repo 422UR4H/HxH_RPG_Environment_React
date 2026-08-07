@@ -21,7 +21,7 @@ describe("computeNewBgFromDrag", () => {
     // formula: atan2(dy,dx)*180/pi + 90 = atan2(-100,0)*180/pi + 90 = -90+90 = 0.
     const result = computeNewBgFromDrag("rotate", bg, 200, 50, aspectRatio, false);
     expect(result).not.toBeNull();
-    expect(result!.rotation).toBe(0);
+    expect(result!.rotation).toBeCloseTo(0, 10);
     expect(result!.x).toBe(bg.x);
     expect(result!.y).toBe(bg.y);
     expect(result!.width).toBe(bg.width);
