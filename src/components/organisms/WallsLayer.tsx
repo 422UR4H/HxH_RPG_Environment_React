@@ -6,6 +6,7 @@ import type { GridShape, VisibilityPolygon, WallMaterial, WallSegment, WallType 
 import { applyTransform, inverseTransform } from "../../features/tactical-map/utils/coords";
 import { snapWallPoint, explodePolyline, newWallAttrs, isOpening } from "../../features/tactical-map/utils/walls";
 import { findNearestWall } from "../../features/tactical-map/utils/wallHit";
+import { drawStippledSegment } from "../../features/tactical-map/utils/stipple";
 import LosSplit from "./LosSplit";
 
 const MATERIAL_COLOR: Record<WallMaterial, number> = {
@@ -292,13 +293,13 @@ export default function WallsLayer({
       if (isDestroyed) {
         drawDestroyedWall(g, a1, a2, color, width, vpScale);
       } else if (w.wallType === "secret_door") {
-        drawDashedLine(g, a1, a2, color, width, 1.0);
+        drawStippledSegment(g, a1, a2, { color, width, alpha: 1.0, dashLen: 8, gapLen: 4 });
       } else if (w.wallType === "terrain") {
-        drawDottedLine(g, a1, a2, color, width, isDamaged ? 0.8 : 1.0);
+        drawStippledSegment(g, a1, a2, { color, width, alpha: isDamaged ? 0.8 : 1.0, dashLen: 2, gapLen: 4 });
       } else if (w.wallType === "door" && w.open) {
         drawOpenDoor(g, a1, a2, color, width, isDamaged ? 0.8 : 1.0);
       } else if (isDamaged) {
-        drawDashedLine(g, a1, a2, color, width, 0.8);
+        drawStippledSegment(g, a1, a2, { color, width, alpha: 0.8, dashLen: 8, gapLen: 4 });
       } else {
         g.setStrokeStyle({ color, width, alpha: 1.0 });
         g.moveTo(a1.x, a1.y); g.lineTo(a2.x, a2.y); g.stroke();
@@ -397,60 +398,6 @@ export default function WallsLayer({
 
 // ─── Wall-type visual helpers ─────────────────────────────────────────────
 
-function drawDashedLine(
-  g: import("pixi.js").Graphics,
-  a1: { x: number; y: number },
-  a2: { x: number; y: number },
-  color: number,
-  width: number,
-  alpha: number,
-) {
-  const dx = a2.x - a1.x, dy = a2.y - a1.y;
-  const totalLen = Math.hypot(dx, dy);
-  if (totalLen < 0.1) return;
-  const ux = dx / totalLen, uy = dy / totalLen;
-  const dashLen = 8, gapLen = 4;
-  let t = 0, drawing = true;
-  while (t < totalLen) {
-    const end = Math.min(t + (drawing ? dashLen : gapLen), totalLen);
-    if (drawing) {
-      g.setStrokeStyle({ color, width, alpha });
-      g.moveTo(a1.x + t * ux, a1.y + t * uy);
-      g.lineTo(a1.x + end * ux, a1.y + end * uy);
-      g.stroke();
-    }
-    t = end;
-    drawing = !drawing;
-  }
-}
-
-function drawDottedLine(
-  g: import("pixi.js").Graphics,
-  a1: { x: number; y: number },
-  a2: { x: number; y: number },
-  color: number,
-  width: number,
-  alpha: number,
-) {
-  const dx = a2.x - a1.x, dy = a2.y - a1.y;
-  const totalLen = Math.hypot(dx, dy);
-  if (totalLen < 0.1) return;
-  const ux = dx / totalLen, uy = dy / totalLen;
-  const dotLen = 2, gapLen = 4;
-  let t = 0, drawing = true;
-  while (t < totalLen) {
-    const end = Math.min(t + (drawing ? dotLen : gapLen), totalLen);
-    if (drawing) {
-      g.setStrokeStyle({ color, width, alpha });
-      g.moveTo(a1.x + t * ux, a1.y + t * uy);
-      g.lineTo(a1.x + end * ux, a1.y + end * uy);
-      g.stroke();
-    }
-    t = end;
-    drawing = !drawing;
-  }
-}
-
 function drawWallTypeSymbol(
   g: import("pixi.js").Graphics,
   wallType: "door" | "window",
@@ -518,36 +465,21 @@ function drawLockedMarker(
 }
 
 function drawDestroyedWall(
-    g: import("pixi.js").Graphics,
-    a1: { x: number; y: number },
-    a2: { x: number; y: number },
-    color: number,
-    width: number,
-    vpScale: number,
+  g: import("pixi.js").Graphics,
+  a1: { x: number; y: number },
+  a2: { x: number; y: number },
+  color: number,
+  width: number,
+  vpScale: number,
 ) {
-    const dx = a2.x - a1.x, dy = a2.y - a1.y;
-    const totalLen = Math.hypot(dx, dy);
-    if (totalLen < 0.1) return;
-    const ux = dx / totalLen, uy = dy / totalLen;
-    // Fine dotted line — very small dots with large gaps
-    const dotLen = 1, gapLen = 7;
-    let t = 0, drawing = true;
-    while (t < totalLen) {
-        const end = Math.min(t + (drawing ? dotLen : gapLen), totalLen);
-        if (drawing) {
-            g.setStrokeStyle({ color, width, alpha: 0.4 });
-            g.moveTo(a1.x + t * ux, a1.y + t * uy);
-            g.lineTo(a1.x + end * ux, a1.y + end * uy);
-            g.stroke();
-        }
-        t = end;
-        drawing = !drawing;
-    }
-    // × marks at endpoints
-    const xSize = Math.max(3, 6 / vpScale);
-    for (const pt of [a1, a2]) {
-        g.setStrokeStyle({ color, width: Math.max(1, 1.5 / vpScale), alpha: 0.4 });
-        g.moveTo(pt.x - xSize, pt.y - xSize); g.lineTo(pt.x + xSize, pt.y + xSize); g.stroke();
-        g.moveTo(pt.x + xSize, pt.y - xSize); g.lineTo(pt.x - xSize, pt.y + xSize); g.stroke();
-    }
+  if (Math.hypot(a2.x - a1.x, a2.y - a1.y) < 0.1) return;
+  // Fine dotted line — very small dots with large gaps
+  drawStippledSegment(g, a1, a2, { color, width, alpha: 0.4, dashLen: 1, gapLen: 7 });
+  // × marks at endpoints
+  const xSize = Math.max(3, 6 / vpScale);
+  for (const pt of [a1, a2]) {
+    g.setStrokeStyle({ color, width: Math.max(1, 1.5 / vpScale), alpha: 0.4 });
+    g.moveTo(pt.x - xSize, pt.y - xSize); g.lineTo(pt.x + xSize, pt.y + xSize); g.stroke();
+    g.moveTo(pt.x + xSize, pt.y - xSize); g.lineTo(pt.x - xSize, pt.y + xSize); g.stroke();
+  }
 }
