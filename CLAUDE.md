@@ -11,9 +11,17 @@ Frontend for an HxH (Hunter x Hunter) RPG system — character sheets, campaigns
 - `npm run dev` — Vite dev server (HMR)
 - `npm run build` — `tsc -b && vite build` (TS errors fail the build)
 - `npm run lint` — `eslint .`
+- `npm run test` — `vitest run` (suíte completa)
+- `npm run test:watch` — vitest em watch
+- `npm run test:coverage` — vitest com cobertura
 - `npm run preview` — serve production build locally
 
-No test runner configured. Vercel SPA rewrite in `vercel.json`.
+Vercel SPA rewrite in `vercel.json`.
+
+> **Cobertura:** `src/test/setup.ts` mocka `@pixi/react` (tudo vira `<div>`) e
+> `ResizeObserver` com dimensão zero, então `TacticalMapStage` e toda a camada Pixi
+> (`MapHandlesLayer`, `WallsLayer`, `PieceSprite`) **não são cobertos por teste**.
+> Mudança nessa camada exige verificação visual no browser.
 
 ## TypeScript
 

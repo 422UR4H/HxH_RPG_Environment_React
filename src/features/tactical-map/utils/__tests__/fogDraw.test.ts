@@ -11,7 +11,6 @@ import realPayload from "./fixtures/realFogPayload.json";
 
 type Payload = {
   visible_polygons: Array<Array<{ x: number; y: number }>>;
-  explored_cells: Array<[number, number]>;
   grid: { cols: number; rows: number; cell_size: number; skew_ratio: number };
 };
 const payload = realPayload as unknown as Payload;

@@ -93,6 +93,9 @@ function getAvatarInsetShadowTexture(radius: number): Texture {
 }
 
 declare module "react" {
+  // Augmentação de JSX.IntrinsicElements para o elemento customizado <pixiViewport>;
+  // não há forma de declarar isso sem namespace.
+  // eslint-disable-next-line @typescript-eslint/no-namespace -- ver comentário acima
   namespace JSX {
     interface IntrinsicElements {
       pixiViewport: {
@@ -933,10 +936,12 @@ function PiecesLayer({
         onEmptySlotClick(pending.slot, pending.clientX, pending.clientY);
       }
     };
+    const handleCancel = () => { emptySlotPendingRef.current = null; };
     window.addEventListener("pointerup", handleUp);
-    window.addEventListener("pointercancel", () => { emptySlotPendingRef.current = null; });
+    window.addEventListener("pointercancel", handleCancel);
     return () => {
       window.removeEventListener("pointerup", handleUp);
+      window.removeEventListener("pointercancel", handleCancel);
     };
   }, [onEmptySlotClick]);
 

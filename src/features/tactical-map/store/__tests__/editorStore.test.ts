@@ -125,9 +125,9 @@ const mockWall = (): WallSegment => ({
 });
 
 describe("editorStore — wall actions", () => {
-  it("addWallSegments appends and marks dirty", () => {
+  it("mergeWalls appends and marks dirty", () => {
     const store = createEditorStore(mapFixture);
-    store.getState().addWallSegments([mockWall()]);
+    store.getState().mergeWalls([mockWall()]);
     expect(store.getState().map.walls).toHaveLength(1);
     expect(store.getState().map.walls[0].id).toBe("w1");
     expect(store.getState().isDirty).toBe(true);
@@ -135,7 +135,7 @@ describe("editorStore — wall actions", () => {
 
   it("updateWallSegment patches by id", () => {
     const store = createEditorStore(mapFixture);
-    store.getState().addWallSegments([mockWall()]);
+    store.getState().mergeWalls([mockWall()]);
     store.getState().updateWallSegment("w1", { locked: true, hp: 50 });
     const w = store.getState().map.walls[0];
     expect(w.locked).toBe(true);
@@ -144,7 +144,7 @@ describe("editorStore — wall actions", () => {
 
   it("removeWallSegment removes by id", () => {
     const store = createEditorStore(mapFixture);
-    store.getState().addWallSegments([mockWall()]);
+    store.getState().mergeWalls([mockWall()]);
     store.getState().removeWallSegment("w1");
     expect(store.getState().map.walls).toHaveLength(0);
     expect(store.getState().isDirty).toBe(true);

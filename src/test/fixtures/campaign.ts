@@ -83,6 +83,16 @@ export const playerSheetFixture: CharacterPrivateSummary = {
   nickName: "Gon Freecss",
 };
 
+// NpcRosterPanel só renderiza o campo de busca acima de 15 personagens, então
+// testá-lo exige uma lista longa. Nomes seguem "NPC Alfa 01", "NPC Alfa 02"...
+export const npcListFixture = (count: number, prefix = "NPC Alfa"): CharacterPrivateSummary[] =>
+  Array.from({ length: count }, (_, i) => ({
+    ...baseSheet,
+    uuid: `npc-bulk-${i + 1}`,
+    playerUuid: undefined,
+    nickName: `${prefix} ${String(i + 1).padStart(2, "0")}`,
+  }));
+
 export const campaignWithNpcs = (
   npcs: CharacterPrivateSummary[],
   players: CharacterPrivateSummary[] = [],

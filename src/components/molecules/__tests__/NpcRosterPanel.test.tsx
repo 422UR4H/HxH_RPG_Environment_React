@@ -9,6 +9,7 @@ import {
   npc2Fixture,
   playerSheetFixture,
   campaignWithNpcs,
+  npcListFixture,
 } from "../../../test/fixtures/campaign";
 import { server } from "../../../test/server";
 
@@ -54,13 +55,28 @@ describe("NpcRosterPanel — lista", () => {
     expect(screen.queryByText("Soldado Zoldyck")).not.toBeInTheDocument();
   });
 
-  it("campo de busca filtra por nickName (case-insensitive)", async () => {
-    const user = userEvent.setup();
+  it("não exibe campo de busca com poucos personagens", async () => {
     renderWithProviders(<NpcRosterPanel {...baseProps} />);
     await waitFor(() => screen.getByText("Soldado Zoldyck"));
-    await user.type(screen.getByPlaceholderText(/buscar/i), "kiriko");
-    expect(screen.getByText("Guarda Kiriko")).toBeInTheDocument();
-    expect(screen.queryByText("Soldado Zoldyck")).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText(/buscar/i)).not.toBeInTheDocument();
+  });
+
+  it("campo de busca filtra por nickName (case-insensitive)", async () => {
+    const user = userEvent.setup();
+    // Acima de 15 personagens o painel passa a renderizar o campo de busca.
+    const many = npcListFixture(16);
+    server.use(
+      http.get("http://localhost:5000/campaigns/:id", () =>
+        HttpResponse.json({ campaign: campaignWithNpcs(many) }),
+      ),
+    );
+    renderWithProviders(<NpcRosterPanel {...baseProps} />);
+    await waitFor(() => screen.getByText("NPC Alfa 01"));
+
+    await user.type(screen.getByPlaceholderText(/buscar/i), "alfa 07");
+
+    expect(screen.getByText("NPC Alfa 07")).toBeInTheDocument();
+    expect(screen.queryByText("NPC Alfa 01")).not.toBeInTheDocument();
   });
 
   it("dispara onPointerDownNpc ao pressionar card do NPC", async () => {
