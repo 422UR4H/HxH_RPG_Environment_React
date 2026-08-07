@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { CSSProperties } from "react";
 import { useNavGuard } from "../../contexts/NavGuardContext";
-import { createPortal } from "react-dom";
-import avatarPlaceholderUrl from "../../assets/placeholder/avatar.png";
-import gungiFrameUrl from "../../assets/icons/gungi.svg";
+import { PieceDragGhostPortal } from "./PieceDragGhost";
 import MapEditorTemplate from "../../components/templates/MapEditorTemplate";
 import MapEditorToolbar from "../../components/organisms/MapEditorToolbar";
 import TacticalMapStage from "../../components/organisms/TacticalMapStage";
@@ -16,6 +13,7 @@ import useToken from "../../hooks/useToken";
 import { useCampaignDetails } from "../../hooks/useCampaignDetails";
 import type { CharacterPrivateSummary } from "../../types/characterSheet";
 import { useEditorHistory } from "./hooks/useEditorHistory";
+import { useRosterDrag } from "./hooks/useRosterDrag";
 import { isSlotInBounds, isSameSlot } from "./utils/coords";
 
 type Props = {
@@ -88,10 +86,7 @@ export default function TacticalMapEditor({
     };
   }, [navConfirmPending]);
 
-  const [placingNpcId, setPlacingNpcId] = useState<string | null>(null);
-  const [placingNpcData, setPlacingNpcData] = useState<CharacterPrivateSummary | null>(null);
-  const [isDraggingPieceToRoster, setIsDraggingPieceToRoster] = useState(false);
-  const [draggingCanvasPieceNpc, setDraggingCanvasPieceNpc] = useState<CharacterPrivateSummary | null>(null);
+  const roster = useRosterDrag({ enableRosterDrop: true });
   // True while BgImagePanel is compressing + uploading a fresh image to R2.
   // Drives the canvas overlay during the upload phase (before bg.url changes).
   const [isUploadingBg, setIsUploadingBg] = useState(false);
@@ -116,33 +111,6 @@ export default function TacticalMapEditor({
   useEffect(() => {
     if (activeTool !== "walls") setWallsDrawMode("browse");
   }, [activeTool]);
-
-  const ghostRef = useRef<HTMLDivElement>(null);
-  const canvasDragGhostRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!placingNpcId) return;
-    const handleMove = (e: PointerEvent) => {
-      if (ghostRef.current) {
-        ghostRef.current.style.left = `${e.clientX}px`;
-        ghostRef.current.style.top = `${e.clientY}px`;
-      }
-    };
-    window.addEventListener("pointermove", handleMove, { passive: true });
-    return () => window.removeEventListener("pointermove", handleMove);
-  }, [placingNpcId]);
-
-  useEffect(() => {
-    if (!draggingCanvasPieceNpc) return;
-    const handleMove = (e: PointerEvent) => {
-      const ghost = canvasDragGhostRef.current;
-      if (!ghost) return;
-      ghost.style.left = `${e.clientX}px`;
-      ghost.style.top = `${e.clientY}px`;
-    };
-    window.addEventListener("pointermove", handleMove, { passive: true });
-    return () => window.removeEventListener("pointermove", handleMove);
-  }, [draggingCanvasPieceNpc]);
 
   // Set of character IDs already on the map
   const placedCharacterIds = useMemo(
@@ -280,21 +248,9 @@ export default function TacticalMapEditor({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [undo, redo, store]);
 
-  const handleNpcPointerDown = (npc: CharacterPrivateSummary) => {
-    setPlacingNpcId(npc.uuid);
-    setPlacingNpcData(npc);
-  };
-
-  // Always reset placing state — called by TacticalMapStage on any failed
-  // placement (outside canvas, pointercancel, occupied slot).
-  const handleNpcPlacementCancel = useCallback(() => {
-    setPlacingNpcId(null);
-    setPlacingNpcData(null);
-  }, []);
-
   const handleNpcPlaced = (slot: SlotCoord) => {
-    if (!placingNpcData) {
-      setPlacingNpcId(null);
+    if (!roster.placingNpcData) {
+      roster.cancelPlacing();
       return;
     }
     const occupied = pieces.some(
@@ -302,18 +258,16 @@ export default function TacticalMapEditor({
     );
     if (occupied) {
       // Slot taken — cancel silently so the user can try another slot
-      setPlacingNpcId(null);
-      setPlacingNpcData(null);
+      roster.cancelPlacing();
       return;
     }
     placePiece({
       id: crypto.randomUUID(),
-      characterId: placingNpcData.uuid,
+      characterId: roster.placingNpcData.uuid,
       coord: { slot, z: 0 },
       visible: true,
     });
-    setPlacingNpcId(null);
-    setPlacingNpcData(null);
+    roster.cancelPlacing();
   };
 
   // Stable callback: prevents PiecesLayer's useEffect from re-running on every
@@ -432,7 +386,10 @@ export default function TacticalMapEditor({
   };
 
   // On-screen token diameter = world token size (cellSize * 0.9) × current zoom.
-  // Clamped so the ghost stays grabbable when zoomed far out.
+  // Clamped so the ghost stays grabbable when zoomed far out. Same formula as
+  // TacticalMapPlacer — kept local rather than extracted since it depends on
+  // caller-local values (map.grid.cellSize, viewportScale); a one-line
+  // function shared by two callers would trade duplication for indirection.
   const dragGhostSize = Math.max(44, map.grid.cellSize * 0.9 * viewportScale);
 
   return (
@@ -462,15 +419,15 @@ export default function TacticalMapEditor({
           onSaveSuccessDismiss={handleSaveSuccessDismiss}
           campaignId={campaignId}
           placedCharacterIds={placedCharacterIds}
-          placingNpcId={placingNpcId}
-          isDraggingPieceToRoster={isDraggingPieceToRoster}
+          placingNpcId={roster.placingNpcId}
+          isDraggingPieceToRoster={roster.isDraggingPieceToRoster}
           selectedPiece={
             selection?.kind === "piece"
               ? (pieces.find((p) => p.id === selection.id) ?? null)
               : null
           }
           npcMap={npcMap}
-          onPointerDownNpc={handleNpcPointerDown}
+          onPointerDownNpc={roster.startPlacing}
           onZChange={setPieceZ}
           onRemovePiece={(id: string) => { removePiece(id); setSelection(null); }}
           onUndo={undo}
@@ -505,21 +462,15 @@ export default function TacticalMapEditor({
             piecesInteractive={activeTool === "pieces"}
             selection={selection}
             npcMap={npcMap}
-            placingNpcId={placingNpcId}
+            placingNpcId={roster.placingNpcId}
             onNpcPlaced={handleNpcPlaced}
-            onNpcPlacementCancel={handleNpcPlacementCancel}
+            onNpcPlacementCancel={roster.cancelPlacing}
             onBgPositionChange={(x, y) => setBg(bg ? { ...bg, x, y } : null)}
             onPieceSelect={handlePieceSelect}
             onPieceMove={movePiece}
             onPieceDragToRoster={handlePieceDragToRoster}
-            onPieceDragStart={(_pieceId, npc) => {
-              setIsDraggingPieceToRoster(true);
-              setDraggingCanvasPieceNpc(npc ?? null);
-            }}
-            onPieceDragEnd={() => {
-              setIsDraggingPieceToRoster(false);
-              setDraggingCanvasPieceNpc(null);
-            }}
+            onPieceDragStart={(_pieceId, npc) => roster.startCanvasDrag(npc)}
+            onPieceDragEnd={roster.endCanvasDrag}
             onStageDeselect={handleStageDeselect}
             activeTool={activeTool}
             onBgChange={(newBg) => setBg(newBg)}
@@ -579,63 +530,20 @@ export default function TacticalMapEditor({
         }}
       />
     )}
-    {placingNpcId && placingNpcData && createPortal(
-      <div ref={ghostRef} style={ghostStyle(dragGhostSize)}>
-        <PieceDragGhost avatarUrl={placingNpcData.avatarUrl} />
-      </div>,
-      document.body,
+    {roster.placingNpcId && roster.placingNpcData && (
+      <PieceDragGhostPortal
+        ghostRef={roster.ghostRef}
+        size={dragGhostSize}
+        avatarUrl={roster.placingNpcData.avatarUrl}
+      />
     )}
-    {draggingCanvasPieceNpc && createPortal(
-      <div ref={canvasDragGhostRef} style={ghostStyle(dragGhostSize)}>
-        <PieceDragGhost avatarUrl={draggingCanvasPieceNpc.avatarUrl} />
-      </div>,
-      document.body,
+    {roster.draggingCanvasPieceNpc && (
+      <PieceDragGhostPortal
+        ghostRef={roster.canvasDragGhostRef}
+        size={dragGhostSize}
+        avatarUrl={roster.draggingCanvasPieceNpc.avatarUrl}
+      />
     )}
     </>
-  );
-}
-
-// size = on-screen token diameter (px). The ghost is lifted to 1.2× so it
-// reads as "picked up" — slightly larger than the token resting on the board —
-// with a large, diffuse shadow offset below for depth (mirrors the old Pixi
-// lift). Shadow blur/offset scale with size so it stays proportional at any zoom.
-function ghostStyle(size: number): CSSProperties {
-  return {
-    position: "fixed",
-    pointerEvents: "none",
-    zIndex: 9999,
-    transform: "translate(-50%, -50%) scale(1.2)",
-    width: size,
-    height: size,
-    filter: `drop-shadow(0 ${Math.round(size * 0.22)}px ${Math.round(size * 0.36)}px rgba(0,0,0,0.55))`,
-  };
-}
-
-// Floating cursor-follower shown during any piece drag (roster→canvas and
-// canvas→roster). Mirrors the Pixi token layering: gungi frame as the base,
-// avatar as a 70%-size circle centered on top (matching avatarRadius/tokenRadius
-// in PieceSprite). Single visual for the whole drag — no second icon.
-function PieceDragGhost({ avatarUrl }: { avatarUrl: string | null | undefined }) {
-  return (
-    <div style={{ position: "relative", width: "100%", height: "100%" }}>
-      <img
-        src={gungiFrameUrl}
-        style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
-        alt=""
-      />
-      <img
-        src={avatarUrl ?? avatarPlaceholderUrl}
-        style={{
-          position: "absolute",
-          top: "15%",
-          left: "15%",
-          width: "70%",
-          height: "70%",
-          objectFit: "cover",
-          borderRadius: "50%",
-        }}
-        alt=""
-      />
-    </div>
   );
 }
