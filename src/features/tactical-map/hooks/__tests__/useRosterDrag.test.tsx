@@ -59,12 +59,24 @@ describe("useRosterDrag", () => {
     expect(result.current.isDraggingPieceToRoster).toBe(false);
   });
 
-  it("removes the pointermove listener on unmount (regression guard for the Fase 1 A2 leak)", () => {
+  it("removes the exact pointermove listener it added on unmount (regression guard for the Fase 1 A2 leak)", () => {
+    const addSpy = vi.spyOn(window, "addEventListener");
     const removeSpy = vi.spyOn(window, "removeEventListener");
     const { result, unmount } = renderHook(() => useRosterDrag({ enableRosterDrop: true }));
     act(() => result.current.startPlacing(npc));
+
+    // Capture the exact handler reference passed to addEventListener — an
+    // `expect.any(Function)` match on removeEventListener alone would still
+    // pass for the Fase 1 A2 bug (an anonymous handler recreated on cleanup
+    // that never actually unregisters the original listener).
+    const addedCall = addSpy.mock.calls.find(([type]) => type === "pointermove");
+    expect(addedCall).toBeDefined();
+    const addedHandler = addedCall?.[1];
+
     unmount();
-    expect(removeSpy).toHaveBeenCalledWith("pointermove", expect.any(Function));
+
+    expect(removeSpy).toHaveBeenCalledWith("pointermove", addedHandler);
+    addSpy.mockRestore();
     removeSpy.mockRestore();
   });
 });

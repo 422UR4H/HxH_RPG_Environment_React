@@ -122,7 +122,15 @@ export default function TacticalMapPlacer({
       sendPieceMoved(newPiece.id, slot, newPiece.characterId, newPiece.visible, newPiece.coord.z);
       roster.cancelPlacing();
     },
-    [roster, pieces, onPiecesChange, sendPieceMoved],
+    // Narrow deps to the specific fields actually read, not the whole
+    // `roster` object — useRosterDrag returns a fresh object literal every
+    // render, so depending on `roster` itself would give handleNpcPlaced a
+    // new identity on every unrelated re-render (e.g. viewport pan/zoom),
+    // which would tear down and re-register TacticalMapStage's placement
+    // pointer listeners mid-gesture. roster.cancelPlacing is itself stable
+    // (useCallback with an empty dep array inside the hook).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [roster.placingNpcData, roster.cancelPlacing, pieces, onPiecesChange, sendPieceMoved],
   );
 
   const handlePieceMove = useCallback(
