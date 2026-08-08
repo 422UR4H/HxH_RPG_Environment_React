@@ -32,6 +32,9 @@ const computeBgFromDrag = (
   shift: boolean,
 ) => computeNewBgFromDrag(handle, start.bg, worldX, worldY, start.aspectRatio, shift);
 
+// Over the ~400-line guideline (docs/superpowers/specs/2026-08-06-tactical-map-refactor-design.md
+// §6): out of scope for Fase 5 — Fase 4 already deduplicated the two handle types here,
+// and further splitting this file is not part of this phase's plan.
 
 type Props = {
   activeTool: ToolKind;

@@ -16,6 +16,9 @@ import InlineFeedback from "../../components/ions/InlineFeedback";
 import { colors, fonts } from "../../styles/tokens";
 import type { ToolKind } from "./store/editorStore";
 
+// Over the ~400-line guideline (docs/superpowers/specs/2026-08-06-tactical-map-refactor-design.md
+// §6): roughly the last 180 lines are styled-components definitions, not logic.
+
 type Props = {
   // Não sourceável do store — dependem de estado de drag/upload local do editor.
   campaignId: string;
