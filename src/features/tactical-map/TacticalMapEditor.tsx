@@ -8,6 +8,7 @@ import ConfirmDialog from "../../components/molecules/ConfirmDialog";
 import { useResizeObserver } from "../../hooks/useResizeObserver";
 import { createEditorStore } from "./store/editorStore";
 import type { EditorStore } from "./store/editorStore";
+import { EditorStoreProvider } from "./store/EditorStoreContext";
 import type { TacticalMap, SlotCoord, WallType, WallMaterial, WallSegment } from "../../types/tacticalMap";
 import useToken from "../../hooks/useToken";
 import { useCampaignDetails } from "../../hooks/useCampaignDetails";
@@ -393,7 +394,7 @@ export default function TacticalMapEditor({
   const dragGhostSize = Math.max(44, map.grid.cellSize * 0.9 * viewportScale);
 
   return (
-    <>
+    <EditorStoreProvider store={store}>
     <MapEditorTemplate
       sidebar={
         <MapEditorToolbar
@@ -544,6 +545,6 @@ export default function TacticalMapEditor({
         avatarUrl={roster.draggingCanvasPieceNpc.avatarUrl}
       />
     )}
-    </>
+    </EditorStoreProvider>
   );
 }
