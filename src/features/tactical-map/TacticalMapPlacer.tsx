@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import styled from "styled-components";
 import { colors, fonts } from "../../styles/tokens";
 import PieceDragGhost, { PieceDragGhostPortal } from "./PieceDragGhost";
-import TacticalMapStage from "../../components/organisms/TacticalMapStage";
+import TacticalMapStage from "./TacticalMapStage";
 import NpcRosterPanel from "../../components/molecules/NpcRosterPanel";
 import { useResizeObserver } from "../../hooks/useResizeObserver";
 import { useCampaignDetails } from "../../hooks/useCampaignDetails";

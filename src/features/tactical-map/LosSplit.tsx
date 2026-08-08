@@ -1,8 +1,8 @@
 import { useCallback, useLayoutEffect, useRef, type ReactNode } from "react";
 import type { Container as PixiContainer, Graphics as PixiGraphics } from "pixi.js";
 import type { VisibilityPolygon } from "../../types/tacticalMap";
-import { drawLosMask } from "../../features/tactical-map/utils/fogDraw";
-import { applyLosMask, type MaskableContainer, type MaskSource } from "../../features/tactical-map/utils/losMask";
+import { drawLosMask } from "./utils/fogDraw";
+import { applyLosMask, type MaskableContainer, type MaskSource } from "./utils/losMask";
 
 type Props = {
   /** Visibility polygons in world space, straight from the backend. */

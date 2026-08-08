@@ -1,4 +1,4 @@
-import TacticalMapStage from "../../components/organisms/TacticalMapStage";
+import TacticalMapStage from "./TacticalMapStage";
 import type { TacticalMap, WallSegment, FogState } from "../../types/tacticalMap";
 import type { CharacterPrivateSummary } from "../../types/characterSheet";
 
