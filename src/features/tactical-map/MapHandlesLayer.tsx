@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useApplication } from "@pixi/react";
+import { useCallback, useMemo } from "react";
 import type { FederatedPointerEvent, Graphics as PixiGraphics } from "pixi.js";
 import type { Viewport } from "pixi-viewport";
 import type { BgImage, GridShape } from "../../types/tacticalMap";
@@ -10,6 +9,9 @@ import {
   gridFromHandleDrag,
 } from "./utils/coords";
 import { computeNewBgFromDrag } from "./utils/bgHandles";
+import { useShiftPressed } from "./hooks/useShiftPressed";
+import { useHandleDrag } from "./hooks/useHandleDrag";
+import HandleMarker from "./stage/HandleMarker";
 
 type XY = { x: number; y: number };
 
@@ -17,22 +19,18 @@ const HANDLE_SIZE = 8;     // screen px
 const ROTATE_RADIUS = 10;  // screen px
 const ROTATE_OFFSET = 24;  // screen px above handle edge
 
-type BgHandleDragState = {
-  handle: string;
-  startWorldX: number;
-  startWorldY: number;
-  startBg: NonNullable<BgImage>;
-  aspectRatio: number;
-  shiftKey: boolean;
-} | null;
+// The bg drag needs the aspect ratio as it was at pointerdown, so it rides
+// inside the drag's start snapshot instead of being an extra parameter on
+// useHandleDrag — the grid has no equivalent and the hook stays agnostic.
+type BgDragStart = { bg: NonNullable<BgImage>; aspectRatio: number };
 
-type GridHandleDragState = {
-  handle: string;
-  startWorldX: number;
-  startWorldY: number;
-  startGrid: GridShape;
-  shiftKey: boolean;
-} | null;
+const computeBgFromDrag = (
+  handle: string,
+  start: BgDragStart,
+  worldX: number,
+  worldY: number,
+  shift: boolean,
+) => computeNewBgFromDrag(handle, start.bg, worldX, worldY, start.aspectRatio, shift);
 
 
 type Props = {
@@ -102,62 +100,25 @@ function BgHandles({
   onGestureStart?: () => void;
   onGestureEnd?: () => void;
 }) {
-  const { app } = useApplication();
-  const dragState = useRef<BgHandleDragState>(null);
-  const onBgChangeRef = useRef(onBgChange);
-  useEffect(() => { onBgChangeRef.current = onBgChange; }, [onBgChange]);
+  const shiftPressed = useShiftPressed();
 
-  const [shiftPressed, setShiftPressed] = useState(false);
-  useEffect(() => {
-    const onDown = (e: KeyboardEvent) => { if (e.key === "Shift") setShiftPressed(true); };
-    const onUp = (e: KeyboardEvent) => { if (e.key === "Shift") setShiftPressed(false); };
-    window.addEventListener("keydown", onDown);
-    window.addEventListener("keyup", onUp);
-    return () => {
-      window.removeEventListener("keydown", onDown);
-      window.removeEventListener("keyup", onUp);
-    };
-  }, []);
+  const getStart = useCallback(
+    (): BgDragStart => ({ bg: { ...bg }, aspectRatio: bg.width / bg.height }),
+    [bg],
+  );
+  const startDrag = useHandleDrag<BgDragStart, NonNullable<BgImage>>({
+    vpRef,
+    getStart,
+    compute: computeBgFromDrag,
+    onResult: onBgChange,
+    onGestureStart,
+    onGestureEnd,
+  });
 
   const hs = HANDLE_SIZE / vpScale;
   const rr = ROTATE_RADIUS / vpScale;
   const ro = ROTATE_OFFSET / vpScale;
   const { x, y, width: w, height: h } = bg;
-
-  const startDrag = useCallback((handleId: string, shift: boolean, ex: number, ey: number) => {
-    const vp = vpRef.current;
-    if (!vp) return;
-    onGestureStart?.();
-    const world = vp.toWorld(ex, ey);
-    dragState.current = {
-      handle: handleId,
-      startWorldX: world.x,
-      startWorldY: world.y,
-      startBg: { ...bg },
-      aspectRatio: bg.width / bg.height,
-      shiftKey: shift,
-    };
-    const canvas = app?.renderer ? app.canvas : null;
-    const onMove = (e: PointerEvent) => {
-      const dr = dragState.current;
-      const vp2 = vpRef.current;
-      if (!dr || !vp2 || !canvas) return;
-      const rect = canvas.getBoundingClientRect();
-      const wld = vp2.toWorld(e.clientX - rect.left, e.clientY - rect.top);
-      const newBg = computeNewBgFromDrag(dr.handle, dr.startBg, wld.x, wld.y, dr.aspectRatio, dr.shiftKey);
-      if (newBg) onBgChangeRef.current(newBg);
-    };
-    const onUp = () => {
-      dragState.current = null;
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-      window.removeEventListener("pointercancel", onUp);
-      onGestureEnd?.();
-    };
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-    window.addEventListener("pointercancel", onUp);
-  }, [app, bg, vpRef, onGestureStart, onGestureEnd]);
 
   // World-space anchor positions for each handle, following bg.rotation. The
   // container is NOT transformed, so the markers (squares, circle) stay crisp;
@@ -227,7 +188,7 @@ function BgHandles({
     <pixiContainer label="bg-handles">
       <pixiGraphics draw={drawBorder} eventMode="none" />
       {resizeHandles.map(({ id, p, cursor }) => (
-        <BgResizeHandle
+        <HandleMarker
           key={id}
           id={id}
           hx={p.x}
@@ -251,39 +212,6 @@ function BgHandles({
   );
 }
 
-function BgResizeHandle({
-  id, hx, hy, hs, cursor, shiftPressed, onStartDrag,
-}: {
-  id: string;
-  hx: number;
-  hy: number;
-  hs: number;
-  cursor: string;
-  shiftPressed: boolean;
-  onStartDrag: (handleId: string, shift: boolean, ex: number, ey: number) => void;
-}) {
-  const draw = useCallback((g: PixiGraphics) => {
-    g.clear();
-    g.rect(hx - hs / 2, hy - hs / 2, hs, hs);
-    g.setFillStyle({ color: 0xffffff });
-    g.fill();
-    g.setStrokeStyle({ color: 0x333333, width: hs * 0.15 });
-    g.stroke();
-  }, [hx, hy, hs]);
-
-  return (
-    <pixiGraphics
-      draw={draw}
-      eventMode="static"
-      cursor={cursor}
-      onPointerDown={(e: FederatedPointerEvent) => {
-        e.stopPropagation();
-        onStartDrag(id, shiftPressed, e.global.x, e.global.y);
-      }}
-    />
-  );
-}
-
 // ─── GridHandles ──────────────────────────────────────────────────────────────
 
 function GridHandles({
@@ -301,61 +229,22 @@ function GridHandles({
   onGestureStart?: () => void;
   onGestureEnd?: () => void;
 }) {
-  const { app } = useApplication();
-  const dragState = useRef<GridHandleDragState>(null);
-  const onGridChangeRef = useRef(onGridChange);
-  useEffect(() => { onGridChangeRef.current = onGridChange; }, [onGridChange]);
+  const shiftPressed = useShiftPressed();
 
-  const [shiftPressed, setShiftPressed] = useState(false);
-  useEffect(() => {
-    const onDown = (e: KeyboardEvent) => { if (e.key === "Shift") setShiftPressed(true); };
-    const onUp = (e: KeyboardEvent) => { if (e.key === "Shift") setShiftPressed(false); };
-    window.addEventListener("keydown", onDown);
-    window.addEventListener("keyup", onUp);
-    return () => {
-      window.removeEventListener("keydown", onDown);
-      window.removeEventListener("keyup", onUp);
-    };
-  }, []);
+  const getStart = useCallback((): GridShape => ({ ...grid }), [grid]);
+  const startDrag = useHandleDrag<GridShape, GridShape>({
+    vpRef,
+    getStart,
+    compute: gridFromHandleDrag,
+    onResult: onGridChange,
+    onGestureStart,
+    onGestureEnd,
+  });
 
   const hs = HANDLE_SIZE / vpScale;
   // OCULTO POR ORA — esfera de rotação do grid desabilitada no canvas.
   // const rr = ROTATE_RADIUS / vpScale;
   // const ro = ROTATE_OFFSET / vpScale;
-
-  const startDrag = useCallback((handleId: string, shift: boolean, ex: number, ey: number) => {
-    const vp = vpRef.current;
-    if (!vp) return;
-    onGestureStart?.();
-    const world = vp.toWorld(ex, ey);
-    dragState.current = {
-      handle: handleId,
-      startWorldX: world.x,
-      startWorldY: world.y,
-      startGrid: { ...grid },
-      shiftKey: shift,
-    };
-    const canvas = app?.renderer ? app.canvas : null;
-    const onMove = (e: PointerEvent) => {
-      const dr = dragState.current;
-      const vp2 = vpRef.current;
-      if (!dr || !vp2 || !canvas) return;
-      const rect = canvas.getBoundingClientRect();
-      const wld = vp2.toWorld(e.clientX - rect.left, e.clientY - rect.top);
-      const newGrid = gridFromHandleDrag(dr.handle, dr.startGrid, wld.x, wld.y, dr.shiftKey);
-      if (newGrid) onGridChangeRef.current(newGrid);
-    };
-    const onUp = () => {
-      dragState.current = null;
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-      window.removeEventListener("pointercancel", onUp);
-      onGestureEnd?.();
-    };
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-    window.addEventListener("pointercancel", onUp);
-  }, [app, grid, vpRef, onGestureStart, onGestureEnd]);
 
   // World-space anchor positions for every handle, following the grid's
   // rotation + skew. The container itself is NOT transformed, so the handle
@@ -431,7 +320,7 @@ function GridHandles({
       <pixiGraphics draw={drawBorder} eventMode="none" />
 
       {corners.map(({ id, p, cursor }) => (
-        <GridCornerHandle
+        <HandleMarker
           key={id}
           id={id}
           hx={p.x}
@@ -473,35 +362,6 @@ function GridHandles({
   );
 }
 
-function GridCornerHandle({
-  id, hx, hy, hs, cursor, shiftPressed, onStartDrag,
-}: {
-  id: string; hx: number; hy: number; hs: number;
-  cursor: string; shiftPressed: boolean;
-  onStartDrag: (id: string, shift: boolean, ex: number, ey: number) => void;
-}) {
-  const draw = useCallback((g: PixiGraphics) => {
-    g.clear();
-    g.rect(hx - hs / 2, hy - hs / 2, hs, hs);
-    g.setFillStyle({ color: 0xffffff });
-    g.fill();
-    g.setStrokeStyle({ color: 0x333333, width: hs * 0.15 });
-    g.stroke();
-  }, [hx, hy, hs]);
-
-  return (
-    <pixiGraphics
-      draw={draw}
-      eventMode="static"
-      cursor={cursor}
-      onPointerDown={(e: FederatedPointerEvent) => {
-        e.stopPropagation();
-        onStartDrag(id, shiftPressed, e.global.x, e.global.y);
-      }}
-    />
-  );
-}
-
 function GridEdgeHandle({
   id, hx, hy, hs, vertical, shiftPressed, onStartDrag,
 }: {
@@ -540,4 +400,3 @@ function GridEdgeHandle({
     />
   );
 }
-
