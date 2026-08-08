@@ -122,6 +122,9 @@ export function createEditorStore(initialMap: TacticalMap) {
         removePiece: (pieceId) =>
           set((s) => {
             s.map.pieces = s.map.pieces.filter((x) => x.id !== pieceId);
+            // A seleção não pode sobreviver ao alvo: um painel de propriedades
+            // apontando para uma peça removida renderiza com dados fantasma.
+            if (s.selection?.kind === "piece" && s.selection.id === pieceId) s.selection = null;
             s.isDirty = true;
           }),
         mergeWalls: (segments) =>
@@ -137,7 +140,12 @@ export function createEditorStore(initialMap: TacticalMap) {
             if (w) { Object.assign(w, patch); s.isDirty = true; }
           }),
         removeWallSegment: (id) =>
-          set((s) => { s.map.walls = s.map.walls.filter((x) => x.id !== id); s.isDirty = true; }),
+          set((s) => {
+            s.map.walls = s.map.walls.filter((x) => x.id !== id);
+            // Mesma regra de removePiece: seleção não sobrevive ao alvo removido.
+            if (s.selection?.kind === "wall" && s.selection.id === id) s.selection = null;
+            s.isDirty = true;
+          }),
         setActiveTool: (tool) =>
           set((s) => {
             s.activeTool = tool;

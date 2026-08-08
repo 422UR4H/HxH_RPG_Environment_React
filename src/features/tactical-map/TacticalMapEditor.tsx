@@ -40,32 +40,24 @@ export default function TacticalMapEditor({
   const isDirty = store((s) => s.isDirty);
   const activeTool = store((s) => s.activeTool);
   const setGrid = store((s) => s.setGrid);
-  const setName = store((s) => s.setName);
-  const setDescription = store((s) => s.setDescription);
   const bg = store((s) => s.map.bg);
   const setBg = store((s) => s.setBg);
-  const setBgWithGrid = store((s) => s.setBgWithGrid);
-  const setActiveTool = store((s) => s.setActiveTool);
   const markClean = store((s) => s.markClean);
   const pieces = store((s) => s.map.pieces);
   const selection = store((s) => s.selection);
   const placePiece = store((s) => s.placePiece);
   const movePiece = store((s) => s.movePiece);
-  const setPieceZ = store((s) => s.setPieceZ);
   const removePiece = store((s) => s.removePiece);
   const setSelection = store((s) => s.setSelection);
   const walls = store((s) => s.map.walls);
   const mergeWalls = store((s) => s.mergeWalls);
   const updateWallSegment = store((s) => s.updateWallSegment);
-  const removeWallSegment = store((s) => s.removeWallSegment);
   const activeWallType = store((s) => s.activeWallType);
   const activeMaterial = store((s) => s.activeMaterial);
   const wallsDrawMode = store((s) => s.wallsDrawMode);
-  const setActiveMaterial = store((s) => s.setActiveMaterial);
-  const enterWallsDrawMode = store((s) => s.enterWallsDrawMode);
   const exitWallsDrawMode = store((s) => s.exitWallsDrawMode);
 
-  const { undo, redo, canUndo, canRedo, beginGesture, endGesture } = useEditorHistory(store);
+  const { undo, redo, beginGesture, endGesture } = useEditorHistory(store);
 
   const { registerGuard } = useNavGuard();
   const [navConfirmPending, setNavConfirmPending] = useState<
@@ -100,12 +92,6 @@ export default function TacticalMapEditor({
   // Current canvas zoom — used to size the drag ghost to match the on-screen
   // token (which scales with zoom in the Pixi viewport).
   const [viewportScale, setViewportScale] = useState(1);
-
-  // Set of character IDs already on the map
-  const placedCharacterIds = useMemo(
-    () => new Set(pieces.map((p) => p.characterId)),
-    [pieces],
-  );
 
   // Map uuid → CharacterPrivateSummary for PieceSprite lookup
   const npcMap = useMemo(() => {
@@ -187,8 +173,8 @@ export default function TacticalMapEditor({
       if (e.key === "Delete") {
         const sel = store.getState().selection;
         if (sel?.kind === "wall") {
+          // removeWallSegment já limpa a seleção internamente.
           store.getState().removeWallSegment(sel.id);
-          store.getState().setSelection(null);
           return;
         }
       }
@@ -268,10 +254,8 @@ export default function TacticalMapEditor({
   );
 
   const handlePieceDragToRoster = (pieceId: string) => {
+    // removePiece já limpa a seleção internamente se pieceId for o selecionado.
     removePiece(pieceId);
-    if (selection?.kind === "piece" && selection.id === pieceId) {
-      setSelection(null);
-    }
   };
 
   const handleStageDeselect = () => setSelection(null);
@@ -386,19 +370,7 @@ export default function TacticalMapEditor({
     <MapEditorTemplate
       sidebar={
         <MapEditorToolbar
-          activeTool={activeTool}
-          onToolChange={setActiveTool}
-          grid={map.grid}
-          onGridChange={setGrid}
-          bg={map.bg}
-          onBgChange={setBg}
-          onApplyBg={setBgWithGrid}
           onBgUploadingChange={setIsUploadingBg}
-          mapId={map.id}
-          mapName={map.name}
-          mapDescription={map.description ?? ""}
-          onNameChange={setName}
-          onDescriptionChange={setDescription}
           onSave={handleSave}
           isSaving={isSaving}
           saveLabel={saveLabel}
@@ -407,35 +379,9 @@ export default function TacticalMapEditor({
           saveSuccessMsg={saveSuccess}
           onSaveSuccessDismiss={handleSaveSuccessDismiss}
           campaignId={campaignId}
-          placedCharacterIds={placedCharacterIds}
           placingNpcId={roster.placingNpcId}
           isDraggingPieceToRoster={roster.isDraggingPieceToRoster}
-          selectedPiece={
-            selection?.kind === "piece"
-              ? (pieces.find((p) => p.id === selection.id) ?? null)
-              : null
-          }
-          npcMap={npcMap}
           onPointerDownNpc={roster.startPlacing}
-          onZChange={setPieceZ}
-          onRemovePiece={(id: string) => { removePiece(id); setSelection(null); }}
-          onUndo={undo}
-          onRedo={redo}
-          canUndo={canUndo}
-          canRedo={canRedo}
-          activeWallType={activeWallType}
-          activeMaterial={activeMaterial}
-          wallsDrawMode={wallsDrawMode}
-          onEnterWallsDrawMode={enterWallsDrawMode}
-          onExitWallsDrawMode={exitWallsDrawMode}
-          onMaterialChange={setActiveMaterial}
-          selectedWall={
-            selection?.kind === "wall"
-              ? (walls.find((w) => w.id === selection.id) ?? null)
-              : null
-          }
-          onWallUpdate={updateWallSegment}
-          onRemoveWall={(id) => { removeWallSegment(id); setSelection(null); }}
         />
       }
     >

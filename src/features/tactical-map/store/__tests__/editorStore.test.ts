@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createEditorStore } from "../editorStore";
-import { mapFixture } from "../../../../test/fixtures/map";
-import type { WallSegment } from "../../../../types/tacticalMap";
+import { mapFixture, pieceFixture } from "../../../../test/fixtures/map";
+import type { Piece, WallSegment } from "../../../../types/tacticalMap";
 
 describe("editorStore", () => {
   it("setName atualiza map.name e marca isDirty", () => {
@@ -115,6 +115,27 @@ describe("editorStore — histórico zundo", () => {
   });
 });
 
+// ─── Piece action tests ─────────────────────────────────────────────────────
+
+describe("editorStore — piece actions", () => {
+  it("removePiece limpa a seleção quando a peça removida é a selecionada", () => {
+    const store = createEditorStore({ ...mapFixture, pieces: [pieceFixture] });
+    store.getState().setSelection({ kind: "piece", id: pieceFixture.id });
+    store.getState().removePiece(pieceFixture.id);
+    expect(store.getState().map.pieces).toHaveLength(0);
+    expect(store.getState().selection).toBeNull();
+  });
+
+  it("removePiece não mexe na seleção quando remove outra peça", () => {
+    const other: Piece = { ...pieceFixture, id: "piece-2" };
+    const store = createEditorStore({ ...mapFixture, pieces: [pieceFixture, other] });
+    store.getState().setSelection({ kind: "piece", id: pieceFixture.id });
+    store.getState().removePiece(other.id);
+    expect(store.getState().map.pieces).toHaveLength(1);
+    expect(store.getState().selection).toEqual({ kind: "piece", id: pieceFixture.id });
+  });
+});
+
 // ─── Wall action tests ──────────────────────────────────────────────────────
 
 const mockWall = (): WallSegment => ({
@@ -153,6 +174,23 @@ describe("editorStore — wall actions", () => {
   it("setSelection supports kind=wall", () => {
     const store = createEditorStore(mapFixture);
     store.getState().setSelection({ kind: "wall", id: "w1" });
+    expect(store.getState().selection).toEqual({ kind: "wall", id: "w1" });
+  });
+
+  it("removeWallSegment limpa a seleção quando a parede removida é a selecionada", () => {
+    const store = createEditorStore(mapFixture);
+    store.getState().mergeWalls([mockWall()]);
+    store.getState().setSelection({ kind: "wall", id: "w1" });
+    store.getState().removeWallSegment("w1");
+    expect(store.getState().selection).toBeNull();
+  });
+
+  it("removeWallSegment não mexe na seleção quando remove outra parede", () => {
+    const store = createEditorStore(mapFixture);
+    const other: WallSegment = { ...mockWall(), id: "w2" };
+    store.getState().mergeWalls([mockWall(), other]);
+    store.getState().setSelection({ kind: "wall", id: "w1" });
+    store.getState().removeWallSegment("w2");
     expect(store.getState().selection).toEqual({ kind: "wall", id: "w1" });
   });
 });
