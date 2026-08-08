@@ -131,17 +131,20 @@ Resumo rápido:
 ```
 System_X_System_React/
 ├─ src/
-│  ├─ features/tactical-map/    ← lógica/orquestração do mapa
+│  ├─ features/tactical-map/    ← núcleo Pixi + lógica/orquestração do mapa
 │  │  ├─ TacticalMapEditor.tsx
 │  │  ├─ TacticalMapViewer.tsx
+│  │  ├─ TacticalMapStage.tsx    ← núcleo Pixi
+│  │  ├─ MapHandlesLayer.tsx
+│  │  ├─ WallsLayer.tsx
+│  │  ├─ FogLayer.tsx
+│  │  ├─ LosSplit.tsx
+│  │  ├─ MapEditorToolbar.tsx
+│  │  ├─ stage/                  ← camadas do Stage (Bg, Grid, Pieces, Viewport…)
 │  │  ├─ hooks/                  ← orquestração do mapa + WS
 │  │  ├─ store/                  ← Zustand
-│  │  └─ utils/                  ← coords, hex, patches
+│  │  └─ utils/                  ← coords, hex, patches, avatarTexture
 │  ├─ components/
-│  │  ├─ organisms/
-│  │  │  ├─ TacticalMapStage.tsx ← núcleo Pixi
-│  │  │  ├─ MapEditorToolbar.tsx
-│  │  │  └─ CharacterRoster.tsx
 │  │  └─ molecules/
 │  │     ├─ GridConfigPanel.tsx
 │  │     └─ BgImageAdjuster.tsx
