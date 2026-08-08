@@ -86,9 +86,8 @@ export default function MapEditorToolbar({
   const enterWallsDrawMode = useEditorStore((s) => s.enterWallsDrawMode);
   const exitWallsDrawMode = useEditorStore((s) => s.exitWallsDrawMode);
 
-  // Ainda não dividido (Task 4) — o toolbar assina só undo/redo/canUndo/canRedo;
-  // beginGesture/endGesture continuam exclusivos do TacticalMapEditor (canvas).
-  // A duplicação de gestureBase entre as duas chamadas do hook é esperada até a Task 4.
+  // beginGesture/endGesture (useGestureHistory) são exclusivos do TacticalMapEditor
+  // (canvas); o toolbar só precisa de undo/redo/canUndo/canRedo.
   const { undo, redo, canUndo, canRedo } = useEditorHistory(useEditorStoreRef());
 
   const { token } = useToken();

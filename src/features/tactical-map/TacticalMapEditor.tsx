@@ -13,7 +13,7 @@ import type { TacticalMap, SlotCoord, WallSegment } from "../../types/tacticalMa
 import useToken from "../../hooks/useToken";
 import { useCampaignDetails } from "../../hooks/useCampaignDetails";
 import type { CharacterPrivateSummary } from "../../types/characterSheet";
-import { useEditorHistory } from "./hooks/useEditorHistory";
+import { useEditorHistory, useGestureHistory } from "./hooks/useEditorHistory";
 import { useRosterDrag } from "./hooks/useRosterDrag";
 import { isSlotInBounds, isSameSlot } from "./utils/coords";
 
@@ -57,7 +57,8 @@ export default function TacticalMapEditor({
   const wallsDrawMode = store((s) => s.wallsDrawMode);
   const exitWallsDrawMode = store((s) => s.exitWallsDrawMode);
 
-  const { undo, redo, beginGesture, endGesture } = useEditorHistory(store);
+  const { undo, redo } = useEditorHistory(store);
+  const { beginGesture, endGesture } = useGestureHistory(store);
 
   const { registerGuard } = useNavGuard();
   const [navConfirmPending, setNavConfirmPending] = useState<

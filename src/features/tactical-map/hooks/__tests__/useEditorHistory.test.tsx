@@ -1,15 +1,18 @@
 import { describe, it, expect } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { useEditorHistory } from "../useEditorHistory";
+import { useEditorHistory, useGestureHistory } from "../useEditorHistory";
 import { createEditorStore } from "../../store/editorStore";
 import { mapFixture } from "../../../../test/fixtures/map";
 
 const bg = { url: "blob:x", x: 0, y: 0, width: 800, height: 600, rotation: 0, opacity: 1 };
 
-describe("useEditorHistory — gesture-scoped history", () => {
+describe("useEditorHistory + useGestureHistory — gesture-scoped history", () => {
   it("one continuous drag = exactly one undo step (and redo reapplies)", () => {
     const store = createEditorStore({ ...mapFixture, bg });
-    const { result } = renderHook(() => useEditorHistory(store));
+    const { result } = renderHook(() => ({
+      ...useEditorHistory(store),
+      ...useGestureHistory(store),
+    }));
     expect(store.temporal.getState().pastStates).toHaveLength(0);
 
     act(() => result.current.beginGesture());
@@ -33,7 +36,10 @@ describe("useEditorHistory — gesture-scoped history", () => {
 
   it("a gesture with no net change adds no undo step and resumes tracking", () => {
     const store = createEditorStore({ ...mapFixture, bg });
-    const { result } = renderHook(() => useEditorHistory(store));
+    const { result } = renderHook(() => ({
+      ...useEditorHistory(store),
+      ...useGestureHistory(store),
+    }));
 
     act(() => result.current.beginGesture());
     act(() => result.current.endGesture());
