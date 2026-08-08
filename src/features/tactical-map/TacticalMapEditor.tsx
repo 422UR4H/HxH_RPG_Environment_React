@@ -9,7 +9,7 @@ import { useResizeObserver } from "../../hooks/useResizeObserver";
 import { createEditorStore } from "./store/editorStore";
 import type { EditorStore } from "./store/editorStore";
 import { EditorStoreProvider } from "./store/EditorStoreContext";
-import type { TacticalMap, SlotCoord, WallType, WallMaterial, WallSegment } from "../../types/tacticalMap";
+import type { TacticalMap, SlotCoord, WallSegment } from "../../types/tacticalMap";
 import useToken from "../../hooks/useToken";
 import { useCampaignDetails } from "../../hooks/useCampaignDetails";
 import type { CharacterPrivateSummary } from "../../types/characterSheet";
@@ -58,6 +58,12 @@ export default function TacticalMapEditor({
   const mergeWalls = store((s) => s.mergeWalls);
   const updateWallSegment = store((s) => s.updateWallSegment);
   const removeWallSegment = store((s) => s.removeWallSegment);
+  const activeWallType = store((s) => s.activeWallType);
+  const activeMaterial = store((s) => s.activeMaterial);
+  const wallsDrawMode = store((s) => s.wallsDrawMode);
+  const setActiveMaterial = store((s) => s.setActiveMaterial);
+  const enterWallsDrawMode = store((s) => s.enterWallsDrawMode);
+  const exitWallsDrawMode = store((s) => s.exitWallsDrawMode);
 
   const { undo, redo, canUndo, canRedo, beginGesture, endGesture } = useEditorHistory(store);
 
@@ -94,24 +100,6 @@ export default function TacticalMapEditor({
   // Current canvas zoom — used to size the drag ghost to match the on-screen
   // token (which scales with zoom in the Pixi viewport).
   const [viewportScale, setViewportScale] = useState(1);
-
-  // Wall tool local state — not persisted in the undo history
-  const [activeWallType, setActiveWallType] = useState<WallType>("wall");
-  const [activeMaterial, setActiveMaterial] = useState<WallMaterial>("stone");
-  const [wallsDrawMode, setWallsDrawMode] = useState<"browse" | "draw">("browse");
-
-  const enterWallsDrawMode = useCallback((type: WallType) => {
-    setActiveWallType(type);
-    setWallsDrawMode("draw");
-  }, []);
-
-  const exitWallsDrawMode = useCallback(() => {
-    setWallsDrawMode("browse");
-  }, []);
-
-  useEffect(() => {
-    if (activeTool !== "walls") setWallsDrawMode("browse");
-  }, [activeTool]);
 
   // Set of character IDs already on the map
   const placedCharacterIds = useMemo(

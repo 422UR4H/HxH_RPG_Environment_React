@@ -156,3 +156,48 @@ describe("editorStore — wall actions", () => {
     expect(store.getState().selection).toEqual({ kind: "wall", id: "w1" });
   });
 });
+
+// ─── Wall tool UI state (activeWallType/activeMaterial/wallsDrawMode) ──────
+
+describe("editorStore — wall tool UI state", () => {
+  it("enterWallsDrawMode seta activeWallType e entra em draw", () => {
+    const store = createEditorStore(mapFixture);
+    store.getState().enterWallsDrawMode("door");
+    expect(store.getState().activeWallType).toBe("door");
+    expect(store.getState().wallsDrawMode).toBe("draw");
+  });
+
+  it("exitWallsDrawMode volta para browse sem mexer em activeWallType", () => {
+    const store = createEditorStore(mapFixture);
+    store.getState().enterWallsDrawMode("door");
+    store.getState().exitWallsDrawMode();
+    expect(store.getState().wallsDrawMode).toBe("browse");
+    expect(store.getState().activeWallType).toBe("door");
+  });
+
+  it("setActiveTool para fora de 'walls' força wallsDrawMode de volta a browse", () => {
+    const store = createEditorStore(mapFixture);
+    store.getState().enterWallsDrawMode("wall");
+    expect(store.getState().wallsDrawMode).toBe("draw");
+    store.getState().setActiveTool("grid");
+    expect(store.getState().wallsDrawMode).toBe("browse");
+  });
+
+  it("setActiveTool('walls') não força draw mode", () => {
+    const store = createEditorStore(mapFixture);
+    expect(store.getState().wallsDrawMode).toBe("browse");
+    store.getState().setActiveTool("walls");
+    expect(store.getState().wallsDrawMode).toBe("browse");
+  });
+
+  it("mudanças em wall tool UI state não criam passo de undo (protege o partialize)", () => {
+    vi.useFakeTimers();
+    const store = createEditorStore(mapFixture);
+    store.getState().enterWallsDrawMode("door");
+    store.getState().setActiveMaterial("wood");
+    store.getState().exitWallsDrawMode();
+    vi.advanceTimersByTime(400);
+    expect(store.temporal.getState().pastStates).toHaveLength(0);
+    vi.useRealTimers();
+  });
+});
