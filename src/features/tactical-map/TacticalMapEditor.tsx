@@ -371,18 +371,22 @@ export default function TacticalMapEditor({
     <MapEditorTemplate
       sidebar={
         <MapEditorToolbar
-          onBgUploadingChange={setIsUploadingBg}
-          onSave={handleSave}
-          isSaving={isSaving}
-          saveLabel={saveLabel}
-          nameError={nameError}
-          saveError={saveError}
-          saveSuccessMsg={saveSuccess}
-          onSaveSuccessDismiss={handleSaveSuccessDismiss}
           campaignId={campaignId}
-          placingNpcId={roster.placingNpcId}
-          isDraggingPieceToRoster={roster.isDraggingPieceToRoster}
-          onPointerDownNpc={roster.startPlacing}
+          onBgUploadingChange={setIsUploadingBg}
+          save={{
+            onSave: handleSave,
+            isSaving,
+            label: saveLabel,
+            nameError,
+            error: saveError,
+            successMsg: saveSuccess,
+            onSuccessDismiss: handleSaveSuccessDismiss,
+          }}
+          roster={{
+            placingNpcId: roster.placingNpcId,
+            isDropTarget: roster.isDraggingPieceToRoster,
+            onPointerDownNpc: roster.startPlacing,
+          }}
         />
       }
     >

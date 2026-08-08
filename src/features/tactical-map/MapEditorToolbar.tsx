@@ -17,19 +17,29 @@ import { colors, fonts } from "../../styles/tokens";
 import type { ToolKind } from "./store/editorStore";
 
 type Props = {
-  onBgUploadingChange?: (uploading: boolean) => void;
-  onSave: () => void;
-  isSaving: boolean;
-  saveLabel: string;
-  nameError?: string | null;
-  saveError?: string | null;
-  saveSuccessMsg?: string | null;
-  onSaveSuccessDismiss?: () => void;
   // Não sourceável do store — dependem de estado de drag/upload local do editor.
   campaignId: string;
-  placingNpcId: string | null;
-  isDraggingPieceToRoster: boolean;
-  onPointerDownNpc: (npc: CharacterPrivateSummary, e: React.PointerEvent) => void;
+  onBgUploadingChange?: (uploading: boolean) => void;
+
+  // Fluxo de salvamento: vive no TacticalMapEditor porque depende do onSave que a
+  // página injeta (criar vs editar mapa).
+  save: {
+    onSave: () => void;
+    isSaving: boolean;
+    label: string;
+    nameError?: string | null;
+    error?: string | null;
+    successMsg?: string | null;
+    onSuccessDismiss?: () => void;
+  };
+
+  // Arraste do roster: o TacticalMapEditor é dono do useRosterDrag (Fase 3) porque
+  // ele também renderiza os ghosts e alimenta o TacticalMapStage.
+  roster: {
+    placingNpcId: string | null;
+    isDropTarget: boolean;
+    onPointerDownNpc: (npc: CharacterPrivateSummary, e: React.PointerEvent) => void;
+  };
 };
 
 type TabDef = {
@@ -47,19 +57,22 @@ const TABS: TabDef[] = [
 ];
 
 export default function MapEditorToolbar({
-  onBgUploadingChange,
-  onSave,
-  isSaving,
-  saveLabel,
-  nameError,
-  saveError,
-  saveSuccessMsg,
-  onSaveSuccessDismiss,
   campaignId,
-  placingNpcId,
-  isDraggingPieceToRoster,
-  onPointerDownNpc,
+  onBgUploadingChange,
+  save,
+  roster,
 }: Props) {
+  const {
+    onSave,
+    isSaving,
+    label: saveLabel,
+    nameError,
+    error: saveError,
+    successMsg: saveSuccessMsg,
+    onSuccessDismiss: onSaveSuccessDismiss,
+  } = save;
+  const { placingNpcId, isDropTarget: isDraggingPieceToRoster, onPointerDownNpc } = roster;
+
   const activeTool = useEditorStore((s) => s.activeTool);
   const setActiveTool = useEditorStore((s) => s.setActiveTool);
   const grid = useEditorStore((s) => s.map.grid);

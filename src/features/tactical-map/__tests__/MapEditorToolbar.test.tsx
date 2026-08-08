@@ -9,15 +9,19 @@ import { renderWithProviders } from "../../../test/render";
 import type { TacticalMap } from "../../../types/tacticalMap";
 
 const baseProps = {
-  onSave: vi.fn(),
-  isSaving: false,
-  saveLabel: "Criar Mapa",
-  nameError: null as string | null,
-  saveError: null as string | null,
   campaignId: "campaign-test-1",
-  placingNpcId: null,
-  isDraggingPieceToRoster: false,
-  onPointerDownNpc: vi.fn(),
+  save: {
+    onSave: vi.fn(),
+    isSaving: false,
+    label: "Criar Mapa",
+    nameError: null as string | null,
+    error: null as string | null,
+  },
+  roster: {
+    placingNpcId: null as string | null,
+    isDropTarget: false,
+    onPointerDownNpc: vi.fn(),
+  },
 };
 
 function makeStore(mapOverrides: Partial<TacticalMap> = {}) {
@@ -31,12 +35,21 @@ function makeStore(mapOverrides: Partial<TacticalMap> = {}) {
 }
 
 function renderToolbar(
-  props: Partial<typeof baseProps> = {},
+  overrides: {
+    campaignId?: string;
+    save?: Partial<typeof baseProps.save>;
+    roster?: Partial<typeof baseProps.roster>;
+  } = {},
   store = makeStore(),
 ) {
+  const props = {
+    campaignId: overrides.campaignId ?? baseProps.campaignId,
+    save: { ...baseProps.save, ...overrides.save },
+    roster: { ...baseProps.roster, ...overrides.roster },
+  };
   return renderWithProviders(
     <EditorStoreProvider store={store}>
-      <MapEditorToolbar {...baseProps} {...props} />
+      <MapEditorToolbar {...props} />
     </EditorStoreProvider>,
   );
 }
@@ -81,20 +94,20 @@ describe("MapEditorToolbar", () => {
 
   it("botão salvar chama onSave ao clicar", async () => {
     const onSave = vi.fn();
-    renderToolbar({ onSave });
+    renderToolbar({ save: { onSave } });
     await userEvent.click(screen.getByRole("button", { name: /criar mapa/i }));
     expect(onSave).toHaveBeenCalledOnce();
   });
 
   it("nameError é exibido abaixo do campo nome", () => {
-    renderToolbar({ nameError: "O nome do mapa é obrigatório." });
+    renderToolbar({ save: { nameError: "O nome do mapa é obrigatório." } });
     expect(
       screen.getByText(/O nome do mapa é obrigatório/i),
     ).toBeInTheDocument();
   });
 
   it("botão salvar fica desabilitado enquanto isSaving", () => {
-    renderToolbar({ isSaving: true });
+    renderToolbar({ save: { isSaving: true } });
     expect(screen.getByRole("button", { name: /salvando/i })).toBeDisabled();
   });
 
