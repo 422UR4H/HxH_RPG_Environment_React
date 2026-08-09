@@ -108,8 +108,7 @@ function CreateCharacterSheetPage() {
 
       queryClient.invalidateQueries({ queryKey: ["characterSheets", token] });
       navigate(`/charactersheet/${uuid}`, { replace: true });
-    } catch (err) {
-      console.error("Falha ao criar ficha:", err);
+    } catch (_) {
       if (createdUuid && (resolvedAvatarUrl !== undefined || resolvedCoverUrl !== undefined)) {
         characterSheetsService.patchCharacterSheetProfile(
           token,

@@ -114,8 +114,7 @@ function CreateNpcPage() {
 
       queryClient.invalidateQueries({ queryKey: ["campaignDetails", token, campaignId] });
       navigate(`/campaigns/${campaignId}`, { replace: true });
-    } catch (err) {
-      console.error("Falha ao criar NPC:", err);
+    } catch (_) {
       if (createdUuid && (resolvedAvatarUrl !== undefined || resolvedCoverUrl !== undefined)) {
         characterSheetsService.patchCharacterSheetProfile(
           token,
