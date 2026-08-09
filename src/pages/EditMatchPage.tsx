@@ -16,6 +16,7 @@ import FormTextArea from "../components/ions/FormTextArea";
 import RulesSidebar from "../components/organisms/RulesSidebar";
 import RuleSection from "../components/molecules/RuleSection";
 import { LoadingContainer, ErrorContainer } from "../components/atoms/PageStates";
+import { getApiErrorDetail } from "../utils/apiError";
 
 interface MatchFormData {
   title: string;
@@ -34,7 +35,7 @@ function getErrorMessage(err: unknown): string {
   if (isApiError(err, 403)) return "Apenas o mestre pode editar esta partida.";
   if (isApiError(err, 404)) return "Partida não encontrada.";
   if (isApiError(err, 422)) {
-    const detail = (err as any).response?.data?.detail as string | undefined;
+    const detail = getApiErrorDetail(err);
     if (detail?.toLowerCase().includes("already started"))
       return "A partida já foi iniciada e não pode ser editada.";
     if (detail?.toLowerCase().includes("already finished"))

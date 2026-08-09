@@ -13,6 +13,7 @@ import FormInput from "../components/ions/FormInput";
 import FormTextArea from "../components/ions/FormTextArea";
 import RulesSidebar from "../components/organisms/RulesSidebar";
 import RuleSection from "../components/molecules/RuleSection";
+import { getApiErrorDetail } from "../utils/apiError";
 
 interface MatchFormData {
   title: string;
@@ -66,12 +67,10 @@ export default function CreateMatchPage() {
     };
     createMatch(matchData, {
       onSuccess: () => navigate(-1),
-      onError: (err: any) => {
-        console.error("[CreateMatch]", err.response?.data);
-        const detail: string = err.response?.data?.detail ?? "";
+      onError: (err: unknown) => {
+        const detail = getApiErrorDetail(err) ?? "";
         setError(
           getMatchValidationMessage(detail) ||
-            err.response?.data?.message ||
             "Não foi possível criar a partida. Verifique os dados e tente novamente."
         );
       },

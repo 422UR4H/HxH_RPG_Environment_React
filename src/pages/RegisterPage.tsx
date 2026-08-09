@@ -8,6 +8,7 @@ import type { SignUpBody } from "../types/user";
 import { useSignUp } from "../hooks/useSignUp";
 import useToken from "../hooks/useToken";
 import BaseInput from "../components/ions/BaseInput";
+import { getApiErrorDetail } from "../utils/apiError";
 
 function isAnyFieldEmpty({ nick, email, password, confirmPass }: SignUpBody) {
   return email === "" || password === "" || nick === "" || confirmPass === "";
@@ -35,8 +36,8 @@ export default function RegisterPage() {
         logout();
         navigate("/");
       },
-      onError: (err: any) => {
-        alert(err.response?.data?.message || "Erro ao criar conta");
+      onError: (err: unknown) => {
+        alert(getApiErrorDetail(err) ?? "Erro ao criar conta");
       },
     });
   }

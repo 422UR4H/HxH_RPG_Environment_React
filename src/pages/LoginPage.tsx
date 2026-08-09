@@ -8,6 +8,7 @@ import { Link, useNavigate } from "react-router-dom";
 import useUser from "../hooks/useUser";
 import { useSignIn } from "../hooks/useSignIn";
 import BaseInput from "../components/ions/BaseInput";
+import { getApiErrorDetail } from "../utils/apiError";
 
 interface LoginForm {
   email: string;
@@ -37,8 +38,8 @@ export default function LoginPage() {
         putUser(data);
         navigate("/home");
       },
-      onError: (err: any) => {
-        alert(err.response?.data?.message || "Erro ao fazer login");
+      onError: (err: unknown) => {
+        alert(getApiErrorDetail(err) ?? "Erro ao fazer login");
       },
     });
   }
