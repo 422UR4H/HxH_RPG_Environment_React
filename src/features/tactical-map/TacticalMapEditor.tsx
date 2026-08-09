@@ -8,13 +8,19 @@ import ConfirmDialog from "../../components/molecules/ConfirmDialog";
 import { useResizeObserver } from "../../hooks/useResizeObserver";
 import { createEditorStore } from "./store/editorStore";
 import type { EditorStore } from "./store/editorStore";
-import type { TacticalMap, SlotCoord, WallType, WallMaterial, WallSegment } from "../../types/tacticalMap";
+import { EditorStoreProvider } from "./store/EditorStoreContext";
+import type { TacticalMap, SlotCoord, WallSegment } from "../../types/tacticalMap";
 import useToken from "../../hooks/useToken";
 import { useCampaignDetails } from "../../hooks/useCampaignDetails";
 import type { CharacterPrivateSummary } from "../../types/characterSheet";
-import { useEditorHistory } from "./hooks/useEditorHistory";
+import { useEditorHistory, useGestureHistory } from "./hooks/useEditorHistory";
 import { useRosterDrag } from "./hooks/useRosterDrag";
 import { isSlotInBounds, isSameSlot } from "./utils/coords";
+
+// Over the ~400-line guideline (docs/superpowers/specs/2026-08-06-tactical-map-refactor-design.md
+// §6): this component orchestrates the whole editor — keyboard shortcuts, the
+// save/normalization flow, nav guards and drag ghosts — as one cohesive piece of
+// top-level state wiring. The Fase 5 store-context refactor was not scoped to split it further.
 
 type Props = {
   campaignId: string;
@@ -39,26 +45,25 @@ export default function TacticalMapEditor({
   const isDirty = store((s) => s.isDirty);
   const activeTool = store((s) => s.activeTool);
   const setGrid = store((s) => s.setGrid);
-  const setName = store((s) => s.setName);
-  const setDescription = store((s) => s.setDescription);
   const bg = store((s) => s.map.bg);
   const setBg = store((s) => s.setBg);
-  const setBgWithGrid = store((s) => s.setBgWithGrid);
-  const setActiveTool = store((s) => s.setActiveTool);
   const markClean = store((s) => s.markClean);
   const pieces = store((s) => s.map.pieces);
   const selection = store((s) => s.selection);
   const placePiece = store((s) => s.placePiece);
   const movePiece = store((s) => s.movePiece);
-  const setPieceZ = store((s) => s.setPieceZ);
   const removePiece = store((s) => s.removePiece);
   const setSelection = store((s) => s.setSelection);
   const walls = store((s) => s.map.walls);
   const mergeWalls = store((s) => s.mergeWalls);
   const updateWallSegment = store((s) => s.updateWallSegment);
-  const removeWallSegment = store((s) => s.removeWallSegment);
+  const activeWallType = store((s) => s.activeWallType);
+  const activeMaterial = store((s) => s.activeMaterial);
+  const wallsDrawMode = store((s) => s.wallsDrawMode);
+  const exitWallsDrawMode = store((s) => s.exitWallsDrawMode);
 
-  const { undo, redo, canUndo, canRedo, beginGesture, endGesture } = useEditorHistory(store);
+  const { undo, redo } = useEditorHistory(store);
+  const { beginGesture, endGesture } = useGestureHistory(store);
 
   const { registerGuard } = useNavGuard();
   const [navConfirmPending, setNavConfirmPending] = useState<
@@ -93,30 +98,6 @@ export default function TacticalMapEditor({
   // Current canvas zoom — used to size the drag ghost to match the on-screen
   // token (which scales with zoom in the Pixi viewport).
   const [viewportScale, setViewportScale] = useState(1);
-
-  // Wall tool local state — not persisted in the undo history
-  const [activeWallType, setActiveWallType] = useState<WallType>("wall");
-  const [activeMaterial, setActiveMaterial] = useState<WallMaterial>("stone");
-  const [wallsDrawMode, setWallsDrawMode] = useState<"browse" | "draw">("browse");
-
-  const enterWallsDrawMode = useCallback((type: WallType) => {
-    setActiveWallType(type);
-    setWallsDrawMode("draw");
-  }, []);
-
-  const exitWallsDrawMode = useCallback(() => {
-    setWallsDrawMode("browse");
-  }, []);
-
-  useEffect(() => {
-    if (activeTool !== "walls") setWallsDrawMode("browse");
-  }, [activeTool]);
-
-  // Set of character IDs already on the map
-  const placedCharacterIds = useMemo(
-    () => new Set(pieces.map((p) => p.characterId)),
-    [pieces],
-  );
 
   // Map uuid → CharacterPrivateSummary for PieceSprite lookup
   const npcMap = useMemo(() => {
@@ -198,8 +179,8 @@ export default function TacticalMapEditor({
       if (e.key === "Delete") {
         const sel = store.getState().selection;
         if (sel?.kind === "wall") {
+          // removeWallSegment já limpa a seleção internamente.
           store.getState().removeWallSegment(sel.id);
-          store.getState().setSelection(null);
           return;
         }
       }
@@ -279,10 +260,8 @@ export default function TacticalMapEditor({
   );
 
   const handlePieceDragToRoster = (pieceId: string) => {
+    // removePiece já limpa a seleção internamente se pieceId for o selecionado.
     removePiece(pieceId);
-    if (selection?.kind === "piece" && selection.id === pieceId) {
-      setSelection(null);
-    }
   };
 
   const handleStageDeselect = () => setSelection(null);
@@ -392,158 +371,136 @@ export default function TacticalMapEditor({
   // function shared by two callers would trade duplication for indirection.
   const dragGhostSize = Math.max(44, map.grid.cellSize * 0.9 * viewportScale);
 
+  // Memoized so a future React.memo(MapEditorToolbar) isn't silently defeated
+  // by a fresh object literal on every render.
+  const saveProps = useMemo(
+    () => ({
+      onSave: handleSave,
+      isSaving,
+      label: saveLabel,
+      nameError,
+      error: saveError,
+      successMsg: saveSuccess,
+      onSuccessDismiss: handleSaveSuccessDismiss,
+    }),
+    [handleSave, isSaving, saveLabel, nameError, saveError, saveSuccess, handleSaveSuccessDismiss],
+  );
+
+  const rosterProps = useMemo(
+    () => ({
+      placingNpcId: roster.placingNpcId,
+      isDropTarget: roster.isDraggingPieceToRoster,
+      onPointerDownNpc: roster.startPlacing,
+    }),
+    [roster.placingNpcId, roster.isDraggingPieceToRoster, roster.startPlacing],
+  );
+
   return (
-    <>
-    <MapEditorTemplate
-      sidebar={
-        <MapEditorToolbar
-          activeTool={activeTool}
-          onToolChange={setActiveTool}
-          grid={map.grid}
-          onGridChange={setGrid}
-          bg={map.bg}
-          onBgChange={setBg}
-          onApplyBg={setBgWithGrid}
-          onBgUploadingChange={setIsUploadingBg}
-          mapId={map.id}
-          mapName={map.name}
-          mapDescription={map.description ?? ""}
-          onNameChange={setName}
-          onDescriptionChange={setDescription}
-          onSave={handleSave}
-          isSaving={isSaving}
-          saveLabel={saveLabel}
-          nameError={nameError}
-          saveError={saveError}
-          saveSuccessMsg={saveSuccess}
-          onSaveSuccessDismiss={handleSaveSuccessDismiss}
-          campaignId={campaignId}
-          placedCharacterIds={placedCharacterIds}
-          placingNpcId={roster.placingNpcId}
-          isDraggingPieceToRoster={roster.isDraggingPieceToRoster}
-          selectedPiece={
-            selection?.kind === "piece"
-              ? (pieces.find((p) => p.id === selection.id) ?? null)
-              : null
-          }
-          npcMap={npcMap}
-          onPointerDownNpc={roster.startPlacing}
-          onZChange={setPieceZ}
-          onRemovePiece={(id: string) => { removePiece(id); setSelection(null); }}
-          onUndo={undo}
-          onRedo={redo}
-          canUndo={canUndo}
-          canRedo={canRedo}
-          activeWallType={activeWallType}
-          activeMaterial={activeMaterial}
-          wallsDrawMode={wallsDrawMode}
-          onEnterWallsDrawMode={enterWallsDrawMode}
-          onExitWallsDrawMode={exitWallsDrawMode}
-          onMaterialChange={setActiveMaterial}
-          selectedWall={
-            selection?.kind === "wall"
-              ? (walls.find((w) => w.id === selection.id) ?? null)
-              : null
-          }
-          onWallUpdate={updateWallSegment}
-          onRemoveWall={(id) => { removeWallSegment(id); setSelection(null); }}
-        />
-      }
-    >
-      <div ref={canvasRef} style={{ width: "100%", height: "100%" }}>
-        {width > 0 && height > 0 && (
-          <TacticalMapStage
-            map={map}
-            width={width}
-            height={height}
-            bgInteractive={activeTool === "bg"}
-            uploading={isUploadingBg}
-            onViewportScaleChange={setViewportScale}
-            piecesInteractive={activeTool === "pieces"}
-            selection={selection}
-            npcMap={npcMap}
-            placingNpcId={roster.placingNpcId}
-            onNpcPlaced={handleNpcPlaced}
-            onNpcPlacementCancel={roster.cancelPlacing}
-            onBgPositionChange={(x, y) => setBg(bg ? { ...bg, x, y } : null)}
-            onPieceSelect={handlePieceSelect}
-            onPieceMove={movePiece}
-            onPieceDragToRoster={handlePieceDragToRoster}
-            onPieceDragStart={(_pieceId, npc) => roster.startCanvasDrag(npc)}
-            onPieceDragEnd={roster.endCanvasDrag}
-            onStageDeselect={handleStageDeselect}
-            activeTool={activeTool}
-            onBgChange={(newBg) => setBg(newBg)}
-            onGridChange={setGrid}
-            onDragGestureStart={beginGesture}
-            onDragGestureEnd={endGesture}
-            walls={walls}
-            wallsInteractive={activeTool === "walls"}
-            drawingEnabled={activeTool === "walls" && wallsDrawMode === "draw"}
-            onExitWallsDrawMode={exitWallsDrawMode}
-            selectedWallId={selection?.kind === "wall" ? selection.id : null}
-            activeWallType={activeWallType}
-            activeMaterial={activeMaterial}
-            onWallSelect={(id) => setSelection(id ? { kind: "wall", id } : null)}
-            onDrawComplete={(segments) => {
-              mergeWalls(segments);
-              endGesture();
-            }}
-            onWallEndpointDrag={(wallId, point, localPos) =>
-              updateWallSegment(wallId, { [point]: localPos } as Partial<WallSegment>)
-            }
+    <EditorStoreProvider store={store}>
+      <MapEditorTemplate
+        sidebar={
+          <MapEditorToolbar
+            campaignId={campaignId}
+            onBgUploadingChange={setIsUploadingBg}
+            save={saveProps}
+            roster={rosterProps}
           />
-        )}
-      </div>
-    </MapEditorTemplate>
-    {truncConfirmMsg && (
-      <ConfirmDialog
-        message={truncConfirmMsg}
-        confirmLabel="Remover e salvar"
-        cancelLabel="Cancelar"
-        confirmVariant="danger"
-        onConfirm={() => {
-          truncConfirmResolveRef.current?.(true);
-          truncConfirmResolveRef.current = null;
-          setTruncConfirmMsg(null);
-        }}
-        onCancel={() => {
-          truncConfirmResolveRef.current?.(false);
-          truncConfirmResolveRef.current = null;
-          setTruncConfirmMsg(null);
-        }}
-      />
-    )}
-    {navConfirmPending && (
-      <ConfirmDialog
-        message="Você tem alterações não salvas. Deseja sair mesmo assim?"
-        confirmLabel="Sair sem salvar"
-        cancelLabel="Continuar editando"
-        confirmVariant="danger"
-        onConfirm={() => {
-          navConfirmPending(true);
-          setNavConfirmPending(null);
-        }}
-        onCancel={() => {
-          navConfirmPending(false);
-          setNavConfirmPending(null);
-        }}
-      />
-    )}
-    {roster.placingNpcId && roster.placingNpcData && (
-      <PieceDragGhostPortal
-        ghostRef={roster.ghostRef}
-        size={dragGhostSize}
-        avatarUrl={roster.placingNpcData.avatarUrl}
-      />
-    )}
-    {roster.draggingCanvasPieceNpc && (
-      <PieceDragGhostPortal
-        ghostRef={roster.canvasDragGhostRef}
-        size={dragGhostSize}
-        avatarUrl={roster.draggingCanvasPieceNpc.avatarUrl}
-      />
-    )}
-    </>
+        }
+      >
+        <div ref={canvasRef} style={{ width: "100%", height: "100%" }}>
+          {width > 0 && height > 0 && (
+            <TacticalMapStage
+              map={map}
+              width={width}
+              height={height}
+              bgInteractive={activeTool === "bg"}
+              uploading={isUploadingBg}
+              onViewportScaleChange={setViewportScale}
+              piecesInteractive={activeTool === "pieces"}
+              selection={selection}
+              npcMap={npcMap}
+              placingNpcId={roster.placingNpcId}
+              onNpcPlaced={handleNpcPlaced}
+              onNpcPlacementCancel={roster.cancelPlacing}
+              onBgPositionChange={(x, y) => setBg(bg ? { ...bg, x, y } : null)}
+              onPieceSelect={handlePieceSelect}
+              onPieceMove={movePiece}
+              onPieceDragToRoster={handlePieceDragToRoster}
+              onPieceDragStart={(_pieceId, npc) => roster.startCanvasDrag(npc)}
+              onPieceDragEnd={roster.endCanvasDrag}
+              onStageDeselect={handleStageDeselect}
+              activeTool={activeTool}
+              onBgChange={(newBg) => setBg(newBg)}
+              onGridChange={setGrid}
+              onDragGestureStart={beginGesture}
+              onDragGestureEnd={endGesture}
+              walls={walls}
+              wallsInteractive={activeTool === "walls"}
+              drawingEnabled={activeTool === "walls" && wallsDrawMode === "draw"}
+              onExitWallsDrawMode={exitWallsDrawMode}
+              selectedWallId={selection?.kind === "wall" ? selection.id : null}
+              activeWallType={activeWallType}
+              activeMaterial={activeMaterial}
+              onWallSelect={(id) => setSelection(id ? { kind: "wall", id } : null)}
+              onDrawComplete={(segments) => {
+                mergeWalls(segments);
+                endGesture();
+              }}
+              onWallEndpointDrag={(wallId, point, localPos) =>
+                updateWallSegment(wallId, { [point]: localPos } as Partial<WallSegment>)
+              }
+            />
+          )}
+        </div>
+      </MapEditorTemplate>
+      {truncConfirmMsg && (
+        <ConfirmDialog
+          message={truncConfirmMsg}
+          confirmLabel="Remover e salvar"
+          cancelLabel="Cancelar"
+          confirmVariant="danger"
+          onConfirm={() => {
+            truncConfirmResolveRef.current?.(true);
+            truncConfirmResolveRef.current = null;
+            setTruncConfirmMsg(null);
+          }}
+          onCancel={() => {
+            truncConfirmResolveRef.current?.(false);
+            truncConfirmResolveRef.current = null;
+            setTruncConfirmMsg(null);
+          }}
+        />
+      )}
+      {navConfirmPending && (
+        <ConfirmDialog
+          message="Você tem alterações não salvas. Deseja sair mesmo assim?"
+          confirmLabel="Sair sem salvar"
+          cancelLabel="Continuar editando"
+          confirmVariant="danger"
+          onConfirm={() => {
+            navConfirmPending(true);
+            setNavConfirmPending(null);
+          }}
+          onCancel={() => {
+            navConfirmPending(false);
+            setNavConfirmPending(null);
+          }}
+        />
+      )}
+      {roster.placingNpcId && roster.placingNpcData && (
+        <PieceDragGhostPortal
+          ghostRef={roster.ghostRef}
+          size={dragGhostSize}
+          avatarUrl={roster.placingNpcData.avatarUrl}
+        />
+      )}
+      {roster.draggingCanvasPieceNpc && (
+        <PieceDragGhostPortal
+          ghostRef={roster.canvasDragGhostRef}
+          size={dragGhostSize}
+          avatarUrl={roster.draggingCanvasPieceNpc.avatarUrl}
+        />
+      )}
+    </EditorStoreProvider>
   );
 }

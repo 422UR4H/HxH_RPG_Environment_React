@@ -20,6 +20,12 @@ export function useEditorHistory(store: EditorStore) {
     markDirty();
   };
 
+  return { undo, redo, canUndo, canRedo };
+}
+
+// Gesto de canvas: pausa o histórico durante o arraste e commita UM passo no
+// release. Só quem hospeda o canvas (TacticalMapEditor) chama isto.
+export function useGestureHistory(store: EditorStore) {
   // ─── Gesture-scoped history ────────────────────────────────────────────────
   // A continuous canvas drag (move the bg image, resize/rotate handles) writes
   // to the store on every pointermove. Left to the 400ms debounce, one slow
@@ -48,5 +54,5 @@ export function useEditorHistory(store: EditorStore) {
     }));
   };
 
-  return { undo, redo, canUndo, canRedo, beginGesture, endGesture };
+  return { beginGesture, endGesture };
 }

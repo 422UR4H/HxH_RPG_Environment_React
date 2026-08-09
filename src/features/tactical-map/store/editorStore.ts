@@ -8,7 +8,9 @@ import type {
   Piece,
   SlotCoord,
   TacticalMap,
+  WallMaterial,
   WallSegment,
+  WallType,
 } from "../../../types/tacticalMap";
 import { resolveOverlaps } from "../utils/walls";
 
@@ -29,6 +31,9 @@ export type EditorState = {
   isDirty: boolean;
   activeTool: ToolKind;
   selection: Selection;
+  activeWallType: WallType;
+  activeMaterial: WallMaterial;
+  wallsDrawMode: "browse" | "draw";
 
   setGrid: (grid: GridShape) => void;
   setName: (name: string) => void;
@@ -46,6 +51,9 @@ export type EditorState = {
   setSelection: (sel: Selection) => void;
   markClean: () => void;
   markDirty: () => void;
+  setActiveMaterial: (m: WallMaterial) => void;
+  enterWallsDrawMode: (t: WallType) => void;
+  exitWallsDrawMode: () => void;
 };
 
 export function createEditorStore(initialMap: TacticalMap) {
@@ -56,6 +64,9 @@ export function createEditorStore(initialMap: TacticalMap) {
         isDirty: false,
         activeTool: "grid",
         selection: null,
+        activeWallType: "wall",
+        activeMaterial: "stone",
+        wallsDrawMode: "browse",
 
         setGrid: (grid) =>
           set((s) => {
@@ -111,6 +122,9 @@ export function createEditorStore(initialMap: TacticalMap) {
         removePiece: (pieceId) =>
           set((s) => {
             s.map.pieces = s.map.pieces.filter((x) => x.id !== pieceId);
+            // A seleção não pode sobreviver ao alvo: um painel de propriedades
+            // apontando para uma peça removida renderiza com dados fantasma.
+            if (s.selection?.kind === "piece" && s.selection.id === pieceId) s.selection = null;
             s.isDirty = true;
           }),
         mergeWalls: (segments) =>
@@ -126,10 +140,19 @@ export function createEditorStore(initialMap: TacticalMap) {
             if (w) { Object.assign(w, patch); s.isDirty = true; }
           }),
         removeWallSegment: (id) =>
-          set((s) => { s.map.walls = s.map.walls.filter((x) => x.id !== id); s.isDirty = true; }),
+          set((s) => {
+            s.map.walls = s.map.walls.filter((x) => x.id !== id);
+            // Mesma regra de removePiece: seleção não sobrevive ao alvo removido.
+            if (s.selection?.kind === "wall" && s.selection.id === id) s.selection = null;
+            s.isDirty = true;
+          }),
         setActiveTool: (tool) =>
           set((s) => {
             s.activeTool = tool;
+            // Sair da aba de paredes sempre volta para browse: continuar em "draw" numa
+            // outra aba deixaria o desenho armado invisível, e o próximo clique no
+            // canvas criaria parede sem o usuário pedir.
+            if (tool !== "walls") s.wallsDrawMode = "browse";
           }),
         setSelection: (sel) =>
           set((s) => {
@@ -142,6 +165,19 @@ export function createEditorStore(initialMap: TacticalMap) {
         markDirty: () =>
           set((s) => {
             s.isDirty = true;
+          }),
+        setActiveMaterial: (m) =>
+          set((s) => {
+            s.activeMaterial = m;
+          }),
+        enterWallsDrawMode: (t) =>
+          set((s) => {
+            s.activeWallType = t;
+            s.wallsDrawMode = "draw";
+          }),
+        exitWallsDrawMode: () =>
+          set((s) => {
+            s.wallsDrawMode = "browse";
           }),
       })),
       {

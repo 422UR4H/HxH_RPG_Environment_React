@@ -28,6 +28,9 @@ const MEMORY_WALL_ALPHA = 0.5;
 // apart, so a few world units cannot reach a genuinely remembered neighbour.
 const LOS_WALL_DILATION = Math.max(...Object.values(MATERIAL_WIDTH)) / 2;
 
+// Over the ~400-line guideline (docs/superpowers/specs/2026-08-06-tactical-map-refactor-design.md
+// §6): out of scope for Fase 5 entirely — splitting this file is not part of this phase's plan.
+
 type Props = {
   walls: WallSegment[];
   grid: GridShape;

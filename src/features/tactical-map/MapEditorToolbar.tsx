@@ -1,7 +1,9 @@
-import { useState, type ChangeEvent } from "react";
+import { useMemo, useState, type ChangeEvent } from "react";
 import styled from "styled-components";
-import type { ToolKind } from "./store/editorStore";
-import type { BgImage, GridShape, Piece, WallSegment, WallType, WallMaterial } from "../../types/tacticalMap";
+import { useEditorStore, useEditorStoreRef } from "./store/EditorStoreContext";
+import { useEditorHistory } from "./hooks/useEditorHistory";
+import useToken from "../../hooks/useToken";
+import { useCampaignDetails } from "../../hooks/useCampaignDetails";
 import type { CharacterPrivateSummary } from "../../types/characterSheet";
 import { fitGridAndCover } from "./utils/bgFit";
 import GridConfigPanel from "../../components/molecules/GridConfigPanel";
@@ -12,52 +14,35 @@ import WallTypeChips from "../../components/molecules/WallTypeChips";
 import WallConfigPanel from "../../components/molecules/WallConfigPanel";
 import InlineFeedback from "../../components/ions/InlineFeedback";
 import { colors, fonts } from "../../styles/tokens";
+import type { ToolKind } from "./store/editorStore";
+
+// Over the ~400-line guideline (docs/superpowers/specs/2026-08-06-tactical-map-refactor-design.md
+// §6): roughly the last 180 lines are styled-components definitions, not logic.
 
 type Props = {
-  activeTool: ToolKind;
-  onToolChange: (tool: ToolKind) => void;
-  grid: GridShape;
-  onGridChange: (grid: GridShape) => void;
-  bg: BgImage;
-  onBgChange: (bg: BgImage | null) => void;
-  onApplyBg?: (bg: BgImage | null, grid: GridShape) => void;
-  onBgUploadingChange?: (uploading: boolean) => void;
-  mapId: string;
-  mapName: string;
-  mapDescription: string;
-  onNameChange: (name: string) => void;
-  onDescriptionChange: (desc: string) => void;
-  onSave: () => void;
-  isSaving: boolean;
-  saveLabel: string;
-  nameError?: string | null;
-  saveError?: string | null;
-  saveSuccessMsg?: string | null;
-  onSaveSuccessDismiss?: () => void;
-  // Fase 4 — pieces
+  // Não sourceável do store — dependem de estado de drag/upload local do editor.
   campaignId: string;
-  placedCharacterIds: Set<string>;
-  placingNpcId: string | null;
-  isDraggingPieceToRoster: boolean;
-  selectedPiece: Piece | null;
-  npcMap: Map<string, CharacterPrivateSummary>;
-  onPointerDownNpc: (npc: CharacterPrivateSummary, e: React.PointerEvent) => void;
-  onZChange: (pieceId: string, z: number) => void;
-  onRemovePiece: (pieceId: string) => void;
-  onUndo: () => void;
-  onRedo: () => void;
-  canUndo: boolean;
-  canRedo: boolean;
-  // Fase 10 — walls
-  activeWallType: WallType;
-  activeMaterial: WallMaterial;
-  wallsDrawMode: "browse" | "draw";
-  onEnterWallsDrawMode: (t: WallType) => void;
-  onExitWallsDrawMode: () => void;
-  onMaterialChange: (m: WallMaterial) => void;
-  selectedWall: WallSegment | null;
-  onWallUpdate: (id: string, patch: Partial<WallSegment>) => void;
-  onRemoveWall: (id: string) => void;
+  onBgUploadingChange?: (uploading: boolean) => void;
+
+  // Fluxo de salvamento: vive no TacticalMapEditor porque depende do onSave que a
+  // página injeta (criar vs editar mapa).
+  save: {
+    onSave: () => void;
+    isSaving: boolean;
+    label: string;
+    nameError?: string | null;
+    error?: string | null;
+    successMsg?: string | null;
+    onSuccessDismiss?: () => void;
+  };
+
+  // Arraste do roster: o TacticalMapEditor é dono do useRosterDrag (Fase 3) porque
+  // ele também renderiza os ghosts e alimenta o TacticalMapStage.
+  roster: {
+    placingNpcId: string | null;
+    isDropTarget: boolean;
+    onPointerDownNpc: (npc: CharacterPrivateSummary, e: React.PointerEvent) => void;
+  };
 };
 
 type TabDef = {
@@ -75,57 +60,80 @@ const TABS: TabDef[] = [
 ];
 
 export default function MapEditorToolbar({
-  activeTool,
-  onToolChange,
-  grid,
-  onGridChange,
-  bg,
-  onBgChange,
-  onApplyBg,
-  onBgUploadingChange,
-  mapId,
-  mapName,
-  mapDescription,
-  onNameChange,
-  onDescriptionChange,
-  onSave,
-  isSaving,
-  saveLabel,
-  nameError,
-  saveError,
-  saveSuccessMsg,
-  onSaveSuccessDismiss,
-  // Fase 4 — pieces
   campaignId,
-  placedCharacterIds,
-  placingNpcId,
-  isDraggingPieceToRoster,
-  selectedPiece,
-  npcMap,
-  onPointerDownNpc,
-  onZChange,
-  onRemovePiece,
-  onUndo,
-  onRedo,
-  canUndo,
-  canRedo,
-  // Fase 10 — walls
-  activeWallType,
-  activeMaterial,
-  wallsDrawMode,
-  onEnterWallsDrawMode,
-  onExitWallsDrawMode,
-  onMaterialChange,
-  selectedWall,
-  onWallUpdate,
-  onRemoveWall,
+  onBgUploadingChange,
+  save,
+  roster,
 }: Props) {
+  const {
+    onSave,
+    isSaving,
+    label: saveLabel,
+    nameError,
+    error: saveError,
+    successMsg: saveSuccessMsg,
+    onSuccessDismiss: onSaveSuccessDismiss,
+  } = save;
+  const { placingNpcId, isDropTarget: isDraggingPieceToRoster, onPointerDownNpc } = roster;
+
+  const activeTool = useEditorStore((s) => s.activeTool);
+  const setActiveTool = useEditorStore((s) => s.setActiveTool);
+  const grid = useEditorStore((s) => s.map.grid);
+  const setGrid = useEditorStore((s) => s.setGrid);
+  const bg = useEditorStore((s) => s.map.bg);
+  const setBg = useEditorStore((s) => s.setBg);
+  const setBgWithGrid = useEditorStore((s) => s.setBgWithGrid);
+  const mapId = useEditorStore((s) => s.map.id);
+  const mapName = useEditorStore((s) => s.map.name);
+  const mapDescription = useEditorStore((s) => s.map.description ?? "");
+  const setName = useEditorStore((s) => s.setName);
+  const setDescription = useEditorStore((s) => s.setDescription);
+  const pieces = useEditorStore((s) => s.map.pieces);
+  const walls = useEditorStore((s) => s.map.walls);
+  const selection = useEditorStore((s) => s.selection);
+  const setPieceZ = useEditorStore((s) => s.setPieceZ);
+  const removePiece = useEditorStore((s) => s.removePiece);
+  const updateWallSegment = useEditorStore((s) => s.updateWallSegment);
+  const removeWallSegment = useEditorStore((s) => s.removeWallSegment);
+  const activeWallType = useEditorStore((s) => s.activeWallType);
+  const activeMaterial = useEditorStore((s) => s.activeMaterial);
+  const wallsDrawMode = useEditorStore((s) => s.wallsDrawMode);
+  const setActiveMaterial = useEditorStore((s) => s.setActiveMaterial);
+  const enterWallsDrawMode = useEditorStore((s) => s.enterWallsDrawMode);
+  const exitWallsDrawMode = useEditorStore((s) => s.exitWallsDrawMode);
+
+  // beginGesture/endGesture (useGestureHistory) são exclusivos do TacticalMapEditor
+  // (canvas); o toolbar só precisa de undo/redo/canUndo/canRedo.
+  const { undo, redo, canUndo, canRedo } = useEditorHistory(useEditorStoreRef());
+
+  const { token } = useToken();
+  const { data: campaign } = useCampaignDetails(token, campaignId);
+  // Map uuid → CharacterPrivateSummary for PieceSprite lookup. TacticalMapEditor
+  // keeps its own copy (needed for TacticalMapStage) — React Query dedupes by
+  // queryKey, so this doesn't cost an extra request.
+  const npcMap = useMemo(() => {
+    const m = new Map<string, CharacterPrivateSummary>();
+    (campaign?.characterSheets ?? []).forEach((cs) => m.set(cs.uuid, cs));
+    return m;
+  }, [campaign]);
+
+  // new Set() aloca — precisa ficar fora do seletor (ver "A armadilha do zustand").
+  const placedCharacterIds = useMemo(
+    () => new Set(pieces.map((p) => p.characterId)),
+    [pieces],
+  );
+
+  const selectedPiece =
+    selection?.kind === "piece" ? (pieces.find((p) => p.id === selection.id) ?? null) : null;
+  const selectedWall =
+    selection?.kind === "wall" ? (walls.find((w) => w.id === selection.id) ?? null) : null;
+
   const handleNameChange = (e: ChangeEvent<HTMLInputElement>) => {
-    onNameChange(e.target.value);
+    setName(e.target.value);
   };
 
   const handleDescriptionChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
-    onDescriptionChange(e.target.value);
+    setDescription(e.target.value);
   };
 
   // "Encaixar Grade" — shared by the Fundo and Grade tabs. Lives here because
@@ -138,11 +146,7 @@ export default function MapEditorToolbar({
     const nw = bgNaturalSize?.w ?? bg.width;
     const nh = bgNaturalSize?.h ?? bg.height;
     const { grid: newGrid, bg: fitted } = fitGridAndCover(nw, nh, grid, bg.url, bg.r2Url);
-    if (onApplyBg) onApplyBg(fitted, newGrid);
-    else {
-      onGridChange(newGrid);
-      onBgChange(fitted);
-    }
+    setBgWithGrid(fitted, newGrid);
   };
 
   return (
@@ -155,7 +159,7 @@ export default function MapEditorToolbar({
             $active={activeTool === tool}
             data-active={activeTool === tool}
             disabled={!enabled}
-            onClick={() => enabled && onToolChange(tool)}
+            onClick={() => enabled && setActiveTool(tool)}
           >
             {label}
           </TabButton>
@@ -166,7 +170,7 @@ export default function MapEditorToolbar({
         <HistoryButton
           type="button"
           disabled={!canUndo}
-          onClick={onUndo}
+          onClick={undo}
           aria-label="Desfazer"
           title="Desfazer (Ctrl+Z)"
         >
@@ -175,7 +179,7 @@ export default function MapEditorToolbar({
         <HistoryButton
           type="button"
           disabled={!canRedo}
-          onClick={onRedo}
+          onClick={redo}
           aria-label="Refazer"
           title="Refazer (Shift+Ctrl+Z)"
         >
@@ -187,7 +191,7 @@ export default function MapEditorToolbar({
         {activeTool === "grid" && (
           <GridConfigPanel
             grid={grid}
-            onChange={onGridChange}
+            onChange={setGrid}
             onRefit={handleRefitGrid}
             canRefit={!!bg}
           />
@@ -197,9 +201,9 @@ export default function MapEditorToolbar({
             bg={bg}
             grid={grid}
             mapId={mapId}
-            onBgChange={onBgChange}
-            onGridChange={onGridChange}
-            onApplyBg={onApplyBg}
+            onBgChange={setBg}
+            onGridChange={setGrid}
+            onApplyBg={setBgWithGrid}
             onUploadingChange={onBgUploadingChange}
             onRefit={handleRefitGrid}
             onNaturalSizeChange={setBgNaturalSize}
@@ -211,8 +215,8 @@ export default function MapEditorToolbar({
               <PiecePropertyPanel
                 piece={selectedPiece}
                 npc={npcMap.get(selectedPiece.characterId)!}
-                onZChange={(z) => onZChange(selectedPiece.id, z)}
-                onRemove={() => onRemovePiece(selectedPiece.id)}
+                onZChange={(z) => setPieceZ(selectedPiece.id, z)}
+                onRemove={() => removePiece(selectedPiece.id)}
               />
             )}
             <NpcRosterPanel
@@ -231,16 +235,16 @@ export default function MapEditorToolbar({
               activeMaterial={activeMaterial}
               drawMode={wallsDrawMode === "draw"}
               onTypeChange={(t) => {
-                if (t === null) onExitWallsDrawMode();
-                else onEnterWallsDrawMode(t);
+                if (t === null) exitWallsDrawMode();
+                else enterWallsDrawMode(t);
               }}
-              onMaterialChange={onMaterialChange}
+              onMaterialChange={setActiveMaterial}
             />
             {wallsDrawMode === "browse" && selectedWall && (
               <WallConfigPanel
                 wall={selectedWall}
-                onUpdate={(patch) => onWallUpdate(selectedWall.id, patch)}
-                onRemove={() => onRemoveWall(selectedWall.id)}
+                onUpdate={(patch) => updateWallSegment(selectedWall.id, patch)}
+                onRemove={() => removeWallSegment(selectedWall.id)}
               />
             )}
           </>
