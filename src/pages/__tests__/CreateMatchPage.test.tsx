@@ -72,7 +72,7 @@ describe("CreateMatchPage", () => {
   it("mostra erro quando API falha no submit", async () => {
     server.use(
       http.post(`${baseUrl}/matches`, () =>
-        HttpResponse.json({ message: "Erro do server" }, { status: 500 }),
+        HttpResponse.json({ detail: "Erro do server" }, { status: 500 }),
       ),
     );
     renderPage();
@@ -80,7 +80,7 @@ describe("CreateMatchPage", () => {
     await u.type(screen.getByLabelText(/Título da Partida/i), "X");
     await u.type(screen.getByLabelText(/Descrição Breve/i), "Y");
     await u.click(screen.getByRole("button", { name: /Criar Partida/i }));
-    expect(await screen.findByText(/Erro do server|Erro ao criar partida/i, {}, { timeout: 5000 })).toBeInTheDocument();
+    expect(await screen.findByText(/Não foi possível criar a partida/i, {}, { timeout: 5000 })).toBeInTheDocument();
   });
 
   // Conditional test 1: visibility checkbox exists (id="isPublic", label "Partida Pública", starts checked=true)
