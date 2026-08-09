@@ -8,7 +8,7 @@ import {
   npcFixture,
   npc2Fixture,
   playerSheetFixture,
-  campaignWithNpcs,
+  campaignWithNpcsApi,
   npcListFixture,
 } from "../../../test/fixtures/campaign";
 import { server } from "../../../test/server";
@@ -26,7 +26,7 @@ beforeEach(() => {
   server.use(
     http.get("http://localhost:5000/campaigns/:id", () =>
       HttpResponse.json({
-        campaign: campaignWithNpcs([npcFixture, npc2Fixture], [playerSheetFixture]),
+        campaign: campaignWithNpcsApi([npcFixture, npc2Fixture], [playerSheetFixture]),
       }),
     ),
   );
@@ -67,7 +67,7 @@ describe("NpcRosterPanel — lista", () => {
     const many = npcListFixture(16);
     server.use(
       http.get("http://localhost:5000/campaigns/:id", () =>
-        HttpResponse.json({ campaign: campaignWithNpcs(many) }),
+        HttpResponse.json({ campaign: campaignWithNpcsApi(many) }),
       ),
     );
     renderWithProviders(<NpcRosterPanel {...baseProps} />);
@@ -105,7 +105,7 @@ describe("NpcRosterPanel — lista", () => {
   it("oculta o card do NPC que está sendo colocado no campo", async () => {
     server.use(
       http.get("http://localhost:5000/campaigns/:id", () =>
-        HttpResponse.json({ campaign: campaignWithNpcs([npcFixture, npc2Fixture]) })
+        HttpResponse.json({ campaign: campaignWithNpcsApi([npcFixture, npc2Fixture]) })
       )
     );
     renderWithProviders(

@@ -4,8 +4,8 @@ import { http, HttpResponse } from "msw";
 import { screen, waitFor } from "@testing-library/react";
 import { server } from "../../test/server";
 import { renderWithProviders } from "../../test/render";
-import { matchFixture } from "../../test/fixtures/match";
-import { mapFixture } from "../../test/fixtures/map";
+import { matchApiFixture } from "../../test/fixtures/match";
+import { mapApiFixture } from "../../test/fixtures/map";
 import GamePage from "../GamePage";
 
 const baseUrl = "http://localhost:5000";
@@ -25,7 +25,7 @@ describe("GamePage", () => {
         new HttpResponse(null, { status: 204 }),
       ),
       http.get(`${baseUrl}/matches/:id`, () =>
-        HttpResponse.json({ match: matchFixture }),
+        HttpResponse.json({ match: matchApiFixture }),
       ),
       http.get(`${baseUrl}/matches/:id/participants`, () =>
         HttpResponse.json({ participants: [] }),
@@ -45,19 +45,19 @@ describe("GamePage", () => {
         HttpResponse.json({
           match_map: {
             match_uuid: "match-1",
-            map_uuid: mapFixture.id,
+            map_uuid: mapApiFixture.id,
             attached_at: "2026-06-04T00:00:00Z",
           },
         }),
       ),
       http.get(`${baseUrl}/matches/:id`, () =>
-        HttpResponse.json({ match: matchFixture }),
+        HttpResponse.json({ match: matchApiFixture }),
       ),
       http.get(`${baseUrl}/matches/:id/participants`, () =>
         HttpResponse.json({ participants: [] }),
       ),
       http.get(`${baseUrl}/maps/:id`, () =>
-        HttpResponse.json({ map: mapFixture }),
+        HttpResponse.json({ map: mapApiFixture }),
       ),
     );
 

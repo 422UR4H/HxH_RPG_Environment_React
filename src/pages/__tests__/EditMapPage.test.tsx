@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { server } from "../../test/server";
 import { renderWithProviders } from "../../test/render";
 import { masterUserFixture } from "../../test/fixtures/user";
-import { mapFixture } from "../../test/fixtures/map";
+import { mapFixture, mapApiFixture } from "../../test/fixtures/map";
 import EditMapPage from "../EditMapPage";
 
 const baseUrl = "http://localhost:5000";
@@ -13,7 +13,7 @@ const baseUrl = "http://localhost:5000";
 function renderPage() {
   server.use(
     http.get(`${baseUrl}/maps/:mapId`, () =>
-      HttpResponse.json({ map: mapFixture }, { status: 200 }),
+      HttpResponse.json({ map: mapApiFixture }, { status: 200 }),
     ),
   );
   return renderWithProviders(<EditMapPage />, {

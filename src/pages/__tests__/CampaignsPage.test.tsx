@@ -5,7 +5,7 @@ import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { server } from "../../test/server";
 import { renderWithProviders } from "../../test/render";
-import { campaignSummaryFixture } from "../../test/fixtures/campaign";
+import { campaignSummaryFixture, campaignSummaryApiFixture } from "../../test/fixtures/campaign";
 import CampaignsPage from "../CampaignsPage";
 
 const mockNavigate = vi.fn();
@@ -32,7 +32,7 @@ describe("CampaignsPage", () => {
     server.use(
       http.get(`${baseUrl}/campaigns`, async () => {
         await new Promise((r) => setTimeout(r, 50));
-        return HttpResponse.json({ campaigns: [campaignSummaryFixture] });
+        return HttpResponse.json({ campaigns: [campaignSummaryApiFixture] });
       }),
     );
     renderPage();

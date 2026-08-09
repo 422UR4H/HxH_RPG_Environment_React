@@ -5,9 +5,9 @@ import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { server } from "../../test/server";
 import { renderWithProviders } from "../../test/render";
-import { matchFixture, matchAsMaster, matchOngoing, matchEnded } from "../../test/fixtures/match";
+import { matchApiFixture, matchAsMasterApi, matchOngoingApi, matchEndedApi } from "../../test/fixtures/match";
 import { masterUserFixture, userFixture } from "../../test/fixtures/user";
-import { mapFixture } from "../../test/fixtures/map";
+import { mapApiFixture } from "../../test/fixtures/map";
 import MatchPage from "../MatchPage";
 
 const mockNavigate = vi.fn();
@@ -36,7 +36,7 @@ describe("MatchPage", () => {
       server.use(
         http.get(`${baseUrl}/matches/:id`, async () => {
           await new Promise((r) => setTimeout(r, 50));
-          return HttpResponse.json({ match: matchFixture });
+          return HttpResponse.json({ match: matchApiFixture });
         }),
       );
       renderPage();
@@ -77,7 +77,7 @@ describe("MatchPage", () => {
 
     it("exibe 'EM ANDAMENTO' quando há gameStartAt mas sem storyEndAt", async () => {
       server.use(
-        http.get(`${baseUrl}/matches/:id`, () => HttpResponse.json({ match: matchOngoing() })),
+        http.get(`${baseUrl}/matches/:id`, () => HttpResponse.json({ match: matchOngoingApi() })),
       );
       renderPage();
       expect(await screen.findByText("EM ANDAMENTO")).toBeInTheDocument();
@@ -85,7 +85,7 @@ describe("MatchPage", () => {
 
     it("exibe 'ENCERRADA' e descrição final quando storyEndAt existe", async () => {
       server.use(
-        http.get(`${baseUrl}/matches/:id`, () => HttpResponse.json({ match: matchEnded() })),
+        http.get(`${baseUrl}/matches/:id`, () => HttpResponse.json({ match: matchEndedApi() })),
       );
       renderPage();
       expect(await screen.findByText("ENCERRADA")).toBeInTheDocument();
@@ -97,7 +97,7 @@ describe("MatchPage", () => {
     it("exibe 'Abrir Lobby' quando a partida não começou", async () => {
       server.use(
         http.get(`${baseUrl}/matches/:id`, () =>
-          HttpResponse.json({ match: matchAsMaster(masterUserFixture.user.uuid) }),
+          HttpResponse.json({ match: matchAsMasterApi(masterUserFixture.user.uuid) }),
         ),
       );
       renderPage({ user: masterUserFixture });
@@ -107,7 +107,7 @@ describe("MatchPage", () => {
     it("exibe botão 'Gerenciar' quando a partida não começou", async () => {
       server.use(
         http.get(`${baseUrl}/matches/:id`, () =>
-          HttpResponse.json({ match: matchAsMaster(masterUserFixture.user.uuid) }),
+          HttpResponse.json({ match: matchAsMasterApi(masterUserFixture.user.uuid) }),
         ),
       );
       renderPage({ user: masterUserFixture });
@@ -117,7 +117,7 @@ describe("MatchPage", () => {
     it("clicar em 'Gerenciar' exibe opções Editar e Excluir", async () => {
       server.use(
         http.get(`${baseUrl}/matches/:id`, () =>
-          HttpResponse.json({ match: matchAsMaster(masterUserFixture.user.uuid) }),
+          HttpResponse.json({ match: matchAsMasterApi(masterUserFixture.user.uuid) }),
         ),
       );
       renderPage({ user: masterUserFixture });
@@ -130,7 +130,7 @@ describe("MatchPage", () => {
     it("clicar em 'Editar' no menu navega para a página de edição", async () => {
       server.use(
         http.get(`${baseUrl}/matches/:id`, () =>
-          HttpResponse.json({ match: matchAsMaster(masterUserFixture.user.uuid) }),
+          HttpResponse.json({ match: matchAsMasterApi(masterUserFixture.user.uuid) }),
         ),
       );
       renderPage({ user: masterUserFixture });
@@ -145,7 +145,7 @@ describe("MatchPage", () => {
     it("clicar em 'Excluir' no menu exibe confirmação de exclusão", async () => {
       server.use(
         http.get(`${baseUrl}/matches/:id`, () =>
-          HttpResponse.json({ match: matchAsMaster(masterUserFixture.user.uuid) }),
+          HttpResponse.json({ match: matchAsMasterApi(masterUserFixture.user.uuid) }),
         ),
       );
       renderPage({ user: masterUserFixture });
@@ -158,7 +158,7 @@ describe("MatchPage", () => {
     it("NÃO exibe 'Gerenciar' quando a partida já começou", async () => {
       server.use(
         http.get(`${baseUrl}/matches/:id`, () =>
-          HttpResponse.json({ match: matchOngoing() }),
+          HttpResponse.json({ match: matchOngoingApi() }),
         ),
       );
       renderPage({ user: masterUserFixture });
@@ -169,7 +169,7 @@ describe("MatchPage", () => {
     it("clicar em 'Abrir Lobby' mostra dialog de confirmação", async () => {
       server.use(
         http.get(`${baseUrl}/matches/:id`, () =>
-          HttpResponse.json({ match: matchAsMaster(masterUserFixture.user.uuid) }),
+          HttpResponse.json({ match: matchAsMasterApi(masterUserFixture.user.uuid) }),
         ),
       );
       renderPage({ user: masterUserFixture });
@@ -183,7 +183,7 @@ describe("MatchPage", () => {
     it("clicar em 'Abrir Lobby' no dialog navega pro lobby", async () => {
       server.use(
         http.get(`${baseUrl}/matches/:id`, () =>
-          HttpResponse.json({ match: matchAsMaster(masterUserFixture.user.uuid) }),
+          HttpResponse.json({ match: matchAsMasterApi(masterUserFixture.user.uuid) }),
         ),
       );
       renderPage({ user: masterUserFixture });
@@ -203,7 +203,7 @@ describe("MatchPage", () => {
 
     it("NÃO exibe 'Inscrever-se' se a partida já começou", async () => {
       server.use(
-        http.get(`${baseUrl}/matches/:id`, () => HttpResponse.json({ match: matchOngoing() })),
+        http.get(`${baseUrl}/matches/:id`, () => HttpResponse.json({ match: matchOngoingApi() })),
       );
       renderPage({ user: userFixture, state: { sheetId: "sheet-1" } });
       await screen.findByText("EM ANDAMENTO");
@@ -229,13 +229,13 @@ describe("MatchPage", () => {
               {
                 uuid: "enr-1",
                 status: "pending" as const,
-                createdAt: "2025-01-01T00:00:00.000Z",
+                created_at: "2025-01-01T00:00:00.000Z",
                 player: { uuid: "user-x", nick: "PlayerX" },
-                characterSheet: {
+                character_sheet: {
                   uuid: "sheet-x",
-                  nickName: "Enrolled",
-                  createdAt: "2025-01-01T00:00:00.000Z",
-                  updatedAt: "2025-01-01T00:00:00.000Z",
+                  nick_name: "Enrolled",
+                  created_at: "2025-01-01T00:00:00.000Z",
+                  updated_at: "2025-01-01T00:00:00.000Z",
                 },
               },
             ],
@@ -248,19 +248,19 @@ describe("MatchPage", () => {
 
     it("depois do gameStart busca /participants e renderiza", async () => {
       server.use(
-        http.get(`${baseUrl}/matches/:id`, () => HttpResponse.json({ match: matchOngoing() })),
+        http.get(`${baseUrl}/matches/:id`, () => HttpResponse.json({ match: matchOngoingApi() })),
         http.get(`${baseUrl}/matches/:id/participants`, () =>
           HttpResponse.json({
             participants: [
               {
                 uuid: "part-1",
-                joinedAt: "2025-12-01T19:06:00Z",
-                leftAt: null,
-                characterSheet: {
+                joined_at: "2025-12-01T19:06:00Z",
+                left_at: null,
+                character_sheet: {
                   uuid: "sheet-y",
-                  nickName: "Participant",
-                  createdAt: "2025-01-01T00:00:00.000Z",
-                  updatedAt: "2025-01-01T00:00:00.000Z",
+                  nick_name: "Participant",
+                  created_at: "2025-01-01T00:00:00.000Z",
+                  updated_at: "2025-01-01T00:00:00.000Z",
                   private: null,
                 },
               },
@@ -292,7 +292,7 @@ describe("MatchPage", () => {
   });
 
   describe("MatchPage — mapa", () => {
-    const masterMatch = matchAsMaster(masterUserFixture.user.uuid);
+    const masterMatch = matchAsMasterApi(masterUserFixture.user.uuid);
 
     it("exibe botão Anexar quando nenhum mapa está anexado", async () => {
       server.use(
@@ -303,7 +303,7 @@ describe("MatchPage", () => {
           new HttpResponse(null, { status: 204 }),
         ),
         http.get(`${baseUrl}/campaigns/:cid/maps`, () =>
-          HttpResponse.json({ maps: [mapFixture] }),
+          HttpResponse.json({ maps: [mapApiFixture] }),
         ),
       );
       renderPage({ user: masterUserFixture });
@@ -322,13 +322,13 @@ describe("MatchPage", () => {
           HttpResponse.json({
             match_map: {
               match_uuid: "match-1",
-              map_uuid: mapFixture.id,
+              map_uuid: mapApiFixture.id,
               attached_at: "2026-06-04T00:00:00Z",
             },
           }),
         ),
         http.get(`${baseUrl}/campaigns/:cid/maps`, () =>
-          HttpResponse.json({ maps: [mapFixture] }),
+          HttpResponse.json({ maps: [mapApiFixture] }),
         ),
       );
       renderPage({ user: masterUserFixture });
