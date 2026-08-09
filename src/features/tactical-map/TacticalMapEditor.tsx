@@ -16,6 +16,7 @@ import type { CharacterPrivateSummary } from "../../types/characterSheet";
 import { useEditorHistory, useGestureHistory } from "./hooks/useEditorHistory";
 import { useRosterDrag } from "./hooks/useRosterDrag";
 import { isSlotInBounds, isSameSlot } from "./utils/coords";
+import { getApiErrorDetail } from "../../utils/apiError";
 
 // Over the ~400-line guideline (docs/superpowers/specs/2026-08-06-tactical-map-refactor-design.md
 // §6): this component orchestrates the whole editor — keyboard shortcuts, the
@@ -352,8 +353,7 @@ export default function TacticalMapEditor({
       setSaveSuccess("Mapa salvo!");
       onSaveSuccess?.();
     } catch (err: unknown) {
-      const detail = (err as { response?: { data?: { detail?: string } } })
-        ?.response?.data?.detail ?? "";
+      const detail = getApiErrorDetail(err) ?? "";
       setSaveError(
         detail === "wall segment out of grid bounds"
           ? "Uma ou mais paredes estão fora dos limites do mapa. Ajuste ou remova-as antes de salvar."
