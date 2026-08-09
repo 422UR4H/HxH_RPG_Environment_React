@@ -1,4 +1,4 @@
-import { type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import useForm from "../hooks/useForm";
 import Form from "../components/atoms/Form";
@@ -8,6 +8,8 @@ import type { SignUpBody } from "../types/user";
 import { useSignUp } from "../hooks/useSignUp";
 import useToken from "../hooks/useToken";
 import BaseInput from "../components/ions/BaseInput";
+import InlineFeedback from "../components/ions/InlineFeedback";
+import { getApiErrorDetail } from "../utils/apiError";
 
 function isAnyFieldEmpty({ nick, email, password, confirmPass }: SignUpBody) {
   return email === "" || password === "" || nick === "" || confirmPass === "";
@@ -23,11 +25,13 @@ export default function RegisterPage() {
   });
   const { logout } = useToken();
   const { mutate: signUp, isPending } = useSignUp();
+  const [error, setError] = useState<string | null>(null);
 
   function handleSubmit(e: FormEvent<HTMLFormElement>): void {
     e.preventDefault();
+    setError(null);
     if (isAnyFieldEmpty(form)) {
-      alert("Preencha todos os campos!");
+      setError("Preencha todos os campos!");
       return;
     }
     signUp(form, {
@@ -35,8 +39,8 @@ export default function RegisterPage() {
         logout();
         navigate("/");
       },
-      onError: (err: any) => {
-        alert(err.response?.data?.message || "Erro ao criar conta");
+      onError: (err: unknown) => {
+        setError(getApiErrorDetail(err) ?? "Erro ao criar conta");
       },
     });
   }
@@ -84,6 +88,7 @@ export default function RegisterPage() {
           maxLength={32}
           required
         />
+        {error && <InlineFeedback message={error} variant="error" onDismiss={() => setError(null)} />}
         <ButtonSubmit disabled={isPending}>Sign Up</ButtonSubmit>
       </Form>
       <Link to="/">Switch back to log in</Link>

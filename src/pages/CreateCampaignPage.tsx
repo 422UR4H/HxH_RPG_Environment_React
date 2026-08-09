@@ -11,6 +11,7 @@ import FormInput from "../components/ions/FormInput";
 import FormTextArea from "../components/ions/FormTextArea";
 import RulesSidebar from "../components/organisms/RulesSidebar";
 import RuleSection from "../components/molecules/RuleSection";
+import { getApiErrorDetail } from "../utils/apiError";
 
 interface CampaignFormData {
   name: string;
@@ -46,11 +47,8 @@ export default function CreateCampaignPage() {
     setError(null);
     createCampaign(form, {
       onSuccess: () => navigate(-1),
-      onError: (err: any) => {
-        setError(
-          err.response?.data?.message ||
-            "Erro ao criar campanha. Tente novamente."
-        );
+      onError: (err: unknown) => {
+        setError(getApiErrorDetail(err) ?? "Erro ao criar campanha. Tente novamente.");
       },
     });
   };

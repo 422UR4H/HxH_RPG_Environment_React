@@ -16,6 +16,7 @@ import FormTextArea from "../components/ions/FormTextArea";
 import RulesSidebar from "../components/organisms/RulesSidebar";
 import RuleSection from "../components/molecules/RuleSection";
 import { LoadingContainer, ErrorContainer } from "../components/atoms/PageStates";
+import { getApiErrorDetail } from "../utils/apiError";
 
 interface CampaignEditFormData {
   name: string;
@@ -35,7 +36,7 @@ function getErrorMessage(err: unknown): string {
   if (isApiError(err, 403)) return "Apenas o mestre pode editar esta campanha.";
   if (isApiError(err, 404)) return "Campanha não encontrada.";
   if (isApiError(err, 422)) {
-    const detail = (err as any).response?.data?.detail as string | undefined;
+    const detail = getApiErrorDetail(err);
     return (
       getCampaignValidationMessage(detail ?? "") ||
       "Dados inválidos. Verifique os campos e tente novamente."

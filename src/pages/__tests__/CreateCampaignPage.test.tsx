@@ -81,7 +81,7 @@ describe("CreateCampaignPage", () => {
   it("mostra erro quando API retorna falha no submit", async () => {
     server.use(
       http.post(`${baseUrl}/campaigns`, () =>
-        HttpResponse.json({ message: "Server explodiu" }, { status: 500 }),
+        HttpResponse.json({ detail: "Server explodiu" }, { status: 500 }),
       ),
     );
     renderPage();
@@ -89,7 +89,7 @@ describe("CreateCampaignPage", () => {
     await u.type(screen.getByLabelText(/Nome da Campanha/i), "Nova");
     await u.type(screen.getByLabelText(/Descrição Breve/i), "Brief");
     await u.click(screen.getByRole("button", { name: /Criar Campanha/i }));
-    expect(await screen.findByText(/Server explodiu|Erro ao criar campanha/i, {}, { timeout: 5000 })).toBeInTheDocument();
+    expect(await screen.findByText(/Server explodiu/i, {}, { timeout: 5000 })).toBeInTheDocument();
   });
 
   it("toggle de 'Campanha Pública' inverte o checkbox", async () => {

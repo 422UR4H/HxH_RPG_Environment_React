@@ -16,7 +16,7 @@ httpClient.interceptors.response.use(
   (response) => response,
   (error) => {
     // Centralized error handling
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && localStorage.getItem("token")) {
       // Automatic logout in case of expired token
       localStorage.removeItem("token");
       localStorage.removeItem("user");

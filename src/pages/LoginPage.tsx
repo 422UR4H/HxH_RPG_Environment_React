@@ -1,4 +1,4 @@
-import { useEffect, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import SignPagesTemplate from "../components/templates/SignPagesTemplate";
 import Form from "../components/atoms/Form";
 import useForm from "../hooks/useForm";
@@ -8,6 +8,8 @@ import { Link, useNavigate } from "react-router-dom";
 import useUser from "../hooks/useUser";
 import { useSignIn } from "../hooks/useSignIn";
 import BaseInput from "../components/ions/BaseInput";
+import InlineFeedback from "../components/ions/InlineFeedback";
+import { getApiErrorDetail } from "../utils/apiError";
 
 interface LoginForm {
   email: string;
@@ -20,6 +22,7 @@ export default function LoginPage() {
   const { form, handleForm } = useForm<LoginForm>({ email: "", password: "" });
   const navigate = useNavigate();
   const { mutate: signIn, isPending } = useSignIn();
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (token) navigate("/home");
@@ -27,8 +30,9 @@ export default function LoginPage() {
 
   function handleSubmit(e: FormEvent<HTMLFormElement>): void {
     e.preventDefault();
+    setError(null);
     if (form.email === "" || form.password === "") {
-      alert("Preencha todos os campos!");
+      setError("Preencha todos os campos!");
       return;
     }
     signIn(form, {
@@ -37,8 +41,8 @@ export default function LoginPage() {
         putUser(data);
         navigate("/home");
       },
-      onError: (err: any) => {
-        alert(err.response?.data?.message || "Erro ao fazer login");
+      onError: (err: unknown) => {
+        setError(getApiErrorDetail(err) ?? "Erro ao fazer login");
       },
     });
   }
@@ -65,6 +69,7 @@ export default function LoginPage() {
           maxLength={32}
           required
         />
+        {error && <InlineFeedback message={error} variant="error" onDismiss={() => setError(null)} />}
         <ButtonSubmit disabled={isPending}>Log In</ButtonSubmit>
       </Form>
       <Link to="/sign-up">First time? Create an account!</Link>
