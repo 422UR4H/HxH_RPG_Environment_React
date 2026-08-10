@@ -146,6 +146,18 @@ Confira que `map_validator.go` e os use cases não dependem do nome da tag em lu
 - **7 contratos** em `docs/dev/api/`: `maps.md`, `match-maps.md` e os outros. Atualize todo
   exemplo de request/response. O contrato é a fonte da verdade para o front; contrato errado
   aqui vira bug lá.
+
+  > **`character-sheet.md` é caso à parte — leia antes de estimar.** A auditoria da Fase 7
+  > (`docs/dev/http-boundary-inventory.md` §3, item 8) encontrou que essa doc **já diverge
+  > fortemente** do `CharacterSheetResponse` real, muito além de case: falta o envelope
+  > `{ "character_sheet": … }`, usa `user_uuid` onde o Go usa `player_uuid`, tem campos de
+  > perfil soltos na raiz quando o Go os aninha em `profile`, e lista `skills_exps` /
+  > `proficiencies_exps` / `categories` como booleano — nenhum dos três existe no struct atual.
+  >
+  > Ou seja: aqui não dá para "trocar o case dos exemplos". A doc precisa ser **reescrita a
+  > partir do struct Go**. Trate como task própria e reserve tempo. Se ficar grande demais para
+  > caber neste PR, **abra um PR separado só para ela** e registre a pendência — o que não pode
+  > é atualizar só o case e deixar o resto mentindo.
 - Se houver doc de WS descrevendo `message.go`, atualize também.
 
 ## Verificação (backend)
@@ -177,6 +189,29 @@ Só comece com o PR 1 mergeado.
    comentário para descrever a diferença real.
 4. Os campos lidos crus em snake (`.character_id`, `.fog_mode`, `.max_hp`, `.piece_id`,
    `.visible_polygons`, `.wall_id`) passam a camel. A Fase 7 deixou teste em cada um.
+
+## Task 5-B — Três divergências de type que a Fase 7 desenterrou
+
+`docs/dev/http-boundary-inventory.md` §3 registra divergências entre os types do front e os
+structs do Go que **não são de case** — o conversor as escondia. Com ele fora, elas ficam
+visíveis (ou continuam invisíveis, o que é pior). Trate as três:
+
+1. **`mental_skills` é enviado pelo Go e o front não tem `mentalSkills`** — o campo é
+   descartado silenciosamente hoje. Acrescente ao type `CharacterSheet` se a ficha usa
+   habilidades mentais; se não usar, **documente no inventário por que é ignorado de
+   propósito**. Campo que chega e some sem registro é o pior dos dois mundos.
+2. **`joint_proficiencies` é objeto (mapa nome→dados) no Go e está tipado como array no
+   front.** Incompatibilidade de forma, não de case — o conversor nunca consertou isso.
+   Corrija o type para espelhar o Go.
+3. **`aura` é obrigatório no type `CharacterSheetSummary` e o backend nunca envia.** Torne
+   opcional ou remova. Campo obrigatório que nunca chega é `undefined` mentindo ser `number`.
+
+Também: os types declaram `playerUUID`/`masterUUID`/`campaignUUID` (UUID em maiúsculas), mas a
+conversão real produzia `playerUuid`. Depois da Fase 8 o Go passa a mandar `playerUuid` —
+alinhe os types com **uma** convenção (`Uuid`, como o resto do projeto) e não deixe as duas.
+
+**Cada um desses precisa de teste** antes da correção — os testes de service da Fase 7 são o
+lugar.
 
 ## Task 6 — Envelopes
 

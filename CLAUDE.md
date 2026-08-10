@@ -36,6 +36,8 @@ Two parallel contexts, each hydrated from `localStorage` on mount:
 
 `src/services/httpClient.ts` has a 401 interceptor that clears **both** localStorage keys and hard-redirects to `/` — it bypasses both contexts. If you add another auth-related key, update that interceptor too.
 
+It only fires when a token was already stored. A failed login also returns 401, and firing there would wipe the error message before the page could render it.
+
 Pages self-guard with `if (!token) return <Navigate to="/" replace />`. No route wrapper.
 
 ## API boundary: snake_case ⇄ camelCase
