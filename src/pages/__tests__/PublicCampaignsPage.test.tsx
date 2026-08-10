@@ -4,7 +4,7 @@ import { http, HttpResponse } from "msw";
 import { screen } from "@testing-library/react";
 import { server } from "../../test/server";
 import { renderWithProviders } from "../../test/render";
-import { campaignSummaryFixture } from "../../test/fixtures/campaign";
+import { campaignSummaryFixture, campaignSummaryApiFixture } from "../../test/fixtures/campaign";
 import PublicCampaignsPage from "../PublicCampaignsPage";
 
 const baseUrl = "http://localhost:5000";
@@ -22,7 +22,7 @@ describe("PublicCampaignsPage", () => {
     server.use(
       http.get(`${baseUrl}/public/campaigns`, async () => {
         await new Promise((r) => setTimeout(r, 50));
-        return HttpResponse.json({ campaigns: [campaignSummaryFixture] });
+        return HttpResponse.json({ campaigns: [campaignSummaryApiFixture] });
       }),
     );
     renderPage();

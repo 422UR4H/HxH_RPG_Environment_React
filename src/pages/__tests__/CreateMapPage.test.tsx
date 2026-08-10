@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { server } from "../../test/server";
 import { renderWithProviders } from "../../test/render";
 import { masterUserFixture } from "../../test/fixtures/user";
-import { mapFixture } from "../../test/fixtures/map";
+import { mapApiFixture } from "../../test/fixtures/map";
 import CreateMapPage from "../CreateMapPage";
 
 const mockNavigate = vi.fn();
@@ -46,7 +46,7 @@ describe("CreateMapPage", () => {
   it("salvar com nome chama POST e navega para /campaigns/:id", async () => {
     server.use(
       http.post(`${baseUrl}/campaigns/:campaignId/maps`, () =>
-        HttpResponse.json({ map: mapFixture }, { status: 201 }),
+        HttpResponse.json({ map: mapApiFixture }, { status: 201 }),
       ),
     );
     renderPage();

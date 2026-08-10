@@ -4,7 +4,7 @@ import { http, HttpResponse } from "msw";
 import { screen } from "@testing-library/react";
 import { server } from "../../test/server";
 import { renderWithProviders } from "../../test/render";
-import { sheetFixture } from "../../test/fixtures/sheet";
+import { sheetApiFixture } from "../../test/fixtures/sheet";
 import { userFixture } from "../../test/fixtures/user";
 import CharacterSheetPage from "../CharacterSheetPage";
 
@@ -33,7 +33,7 @@ describe("CharacterSheetPage", () => {
     server.use(
       http.get(`${baseUrl}/charactersheets/:id`, async () => {
         await new Promise((r) => setTimeout(r, 50));
-        return HttpResponse.json({ character_sheet: sheetFixture });
+        return HttpResponse.json({ character_sheet: sheetApiFixture });
       }),
     );
     const { container } = renderPage();

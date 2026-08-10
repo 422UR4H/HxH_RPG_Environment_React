@@ -5,7 +5,7 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { server } from "../../test/server";
 import { renderWithProviders } from "../../test/render";
-import { sheetSummaryFixture } from "../../test/fixtures/sheet";
+import { sheetSummaryFixture, sheetSummaryApiFixture } from "../../test/fixtures/sheet";
 import CharacterSheetsPage from "../CharacterSheetsPage";
 
 const mockNavigate = vi.fn();
@@ -33,7 +33,7 @@ describe("CharacterSheetsPage", () => {
     server.use(
       http.get(`${baseUrl}/charactersheets`, async () => {
         await new Promise((r) => setTimeout(r, 50));
-        return HttpResponse.json({ characterSheets: [sheetSummaryFixture] });
+        return HttpResponse.json({ character_sheets: [sheetSummaryApiFixture] });
       }),
     );
     renderPage();
@@ -57,7 +57,7 @@ describe("CharacterSheetsPage", () => {
 
   it("redireciona pra /charactersheet/new se lista vem vazia", async () => {
     server.use(
-      http.get(`${baseUrl}/charactersheets`, () => HttpResponse.json({ characterSheets: [] })),
+      http.get(`${baseUrl}/charactersheets`, () => HttpResponse.json({ character_sheets: [] })),
     );
     renderPage();
     await waitFor(() => {

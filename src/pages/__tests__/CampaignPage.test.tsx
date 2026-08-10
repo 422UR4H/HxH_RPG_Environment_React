@@ -5,10 +5,10 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { server } from "../../test/server";
 import { renderWithProviders } from "../../test/render";
-import { campaignFixture, campaignAsMaster } from "../../test/fixtures/campaign";
-import { pendingSheetFixture } from "../../test/fixtures/sheet";
+import { campaignFixture, campaignApiFixture, campaignAsMasterApi } from "../../test/fixtures/campaign";
+import { pendingSheetApiFixture } from "../../test/fixtures/sheet";
 import { masterUserFixture, userFixture } from "../../test/fixtures/user";
-import { mapFixture } from "../../test/fixtures/map";
+import { mapApiFixture } from "../../test/fixtures/map";
 import CampaignPage from "../CampaignPage";
 
 const mockNavigate = vi.fn();
@@ -36,7 +36,7 @@ describe("CampaignPage", () => {
       server.use(
         http.get(`${baseUrl}/campaigns/:id`, async () => {
           await new Promise((r) => setTimeout(r, 50));
-          return HttpResponse.json({ campaign: campaignFixture });
+          return HttpResponse.json({ campaign: campaignApiFixture });
         }),
       );
       renderPage();
@@ -68,7 +68,7 @@ describe("CampaignPage", () => {
     it("exibe botão 'Criar NPC' na sidebar", async () => {
       server.use(
         http.get(`${baseUrl}/campaigns/:id`, () =>
-          HttpResponse.json({ campaign: campaignAsMaster(masterUserFixture.user.uuid) }),
+          HttpResponse.json({ campaign: campaignAsMasterApi(masterUserFixture.user.uuid) }),
         ),
       );
       renderWithProviders(<CampaignPage />, {
@@ -80,7 +80,7 @@ describe("CampaignPage", () => {
     it("exibe botão 'Criar Partida' no main content", async () => {
       server.use(
         http.get(`${baseUrl}/campaigns/:id`, () =>
-          HttpResponse.json({ campaign: campaignAsMaster(masterUserFixture.user.uuid) }),
+          HttpResponse.json({ campaign: campaignAsMasterApi(masterUserFixture.user.uuid) }),
         ),
       );
       renderWithProviders(<CampaignPage />, {
@@ -93,7 +93,10 @@ describe("CampaignPage", () => {
       server.use(
         http.get(`${baseUrl}/campaigns/:id`, () =>
           HttpResponse.json({
-            campaign: { ...campaignAsMaster(masterUserFixture.user.uuid), pendingSheets: [pendingSheetFixture] },
+            campaign: {
+              ...campaignAsMasterApi(masterUserFixture.user.uuid),
+              pending_sheets: [pendingSheetApiFixture],
+            },
           }),
         ),
       );
@@ -128,9 +131,9 @@ describe("CampaignPage", () => {
         http.get(`${baseUrl}/campaigns/:id`, () =>
           HttpResponse.json({
             campaign: {
-              ...campaignFixture,
-              characterSheets: [
-                { uuid: "existing-sheet", nickName: conflictNick, playerUuid: "other-user", coverUrl: null, avatarUrl: null, createdAt: "2025-01-01T00:00:00.000Z", updatedAt: "2025-01-01T00:00:00.000Z", fullName: "Existing", alignment: "Neutral", characterClass: "Especialista", birthday: "2000-01-01", categoryName: "Emissor", level: 1, points: 0, currExp: 0, nextLvlBaseExp: 100, talentLvl: 1, physicalsLvl: 1, mentalsLvl: 1, spiritualsLvl: 1, skillsLvl: 1, stamina: { min: 0, current: 100, max: 100 }, health: { min: 0, current: 100, max: 100 } },
+              ...campaignApiFixture,
+              character_sheets: [
+                { uuid: "existing-sheet", nick_name: conflictNick, player_uuid: "other-user", cover_url: null, avatar_url: null, created_at: "2025-01-01T00:00:00.000Z", updated_at: "2025-01-01T00:00:00.000Z", full_name: "Existing", alignment: "Neutral", character_class: "Especialista", birthday: "2000-01-01", category_name: "Emissor", level: 1, points: 0, curr_exp: 0, next_lvl_base_exp: 100, talent_lvl: 1, physicals_lvl: 1, mentals_lvl: 1, spirituals_lvl: 1, skills_lvl: 1, stamina: { min: 0, current: 100, max: 100 }, health: { min: 0, current: 100, max: 100 } },
               ],
             },
           }),
@@ -153,32 +156,32 @@ describe("CampaignPage", () => {
         http.get(`${baseUrl}/campaigns/:id`, () =>
           HttpResponse.json({
             campaign: {
-              ...campaignAsMaster(masterUserFixture.user.uuid),
-              characterSheets: [
+              ...campaignAsMasterApi(masterUserFixture.user.uuid),
+              character_sheets: [
                 {
                   uuid: "sheet-clickable",
-                  nickName: "Clickable",
-                  playerUuid: "user-2",
-                  coverUrl: null,
-                  avatarUrl: null,
-                  fullName: "Click Me",
-                  characterClass: "Especialista",
+                  nick_name: "Clickable",
+                  player_uuid: "user-2",
+                  cover_url: null,
+                  avatar_url: null,
+                  full_name: "Click Me",
+                  character_class: "Especialista",
                   alignment: "Neutral",
                   birthday: "2000-01-01",
-                  categoryName: "Emissor",
+                  category_name: "Emissor",
                   level: 1,
                   points: 0,
-                  currExp: 0,
-                  nextLvlBaseExp: 100,
-                  talentLvl: 1,
-                  physicalsLvl: 1,
-                  mentalsLvl: 1,
-                  spiritualsLvl: 1,
-                  skillsLvl: 1,
+                  curr_exp: 0,
+                  next_lvl_base_exp: 100,
+                  talent_lvl: 1,
+                  physicals_lvl: 1,
+                  mentals_lvl: 1,
+                  spirituals_lvl: 1,
+                  skills_lvl: 1,
                   stamina: { min: 0, current: 100, max: 100 },
                   health: { min: 0, current: 100, max: 100 },
-                  createdAt: "2025-01-01T00:00:00.000Z",
-                  updatedAt: "2025-01-01T00:00:00.000Z",
+                  created_at: "2025-01-01T00:00:00.000Z",
+                  updated_at: "2025-01-01T00:00:00.000Z",
                 },
               ],
             },
@@ -202,7 +205,7 @@ describe("CampaignPage", () => {
     it("clicar em 'Criar NPC' chama navigate para /campaigns/:id/npcs/new", async () => {
       server.use(
         http.get(`${baseUrl}/campaigns/:id`, () =>
-          HttpResponse.json({ campaign: campaignAsMaster(masterUserFixture.user.uuid) }),
+          HttpResponse.json({ campaign: campaignAsMasterApi(masterUserFixture.user.uuid) }),
         ),
       );
       renderWithProviders(<CampaignPage />, {
@@ -236,7 +239,7 @@ describe("CampaignPage", () => {
     it("exibe 'Gerenciar' para master", async () => {
       server.use(
         http.get(`${baseUrl}/campaigns/:id`, () =>
-          HttpResponse.json({ campaign: campaignAsMaster(masterUserFixture.user.uuid) }),
+          HttpResponse.json({ campaign: campaignAsMasterApi(masterUserFixture.user.uuid) }),
         ),
       );
       renderWithProviders(<CampaignPage />, {
@@ -260,7 +263,7 @@ describe("CampaignPage", () => {
     it("delete com sucesso navega para /campaigns", async () => {
       server.use(
         http.get(`${baseUrl}/campaigns/:id`, () =>
-          HttpResponse.json({ campaign: campaignAsMaster(masterUserFixture.user.uuid) }),
+          HttpResponse.json({ campaign: campaignAsMasterApi(masterUserFixture.user.uuid) }),
         ),
         http.delete(`${baseUrl}/campaigns/:id`, () =>
           new HttpResponse(null, { status: 204 }),
@@ -283,7 +286,7 @@ describe("CampaignPage", () => {
     it("delete 422 exibe mensagem 'partida iniciada'", async () => {
       server.use(
         http.get(`${baseUrl}/campaigns/:id`, () =>
-          HttpResponse.json({ campaign: campaignAsMaster(masterUserFixture.user.uuid) }),
+          HttpResponse.json({ campaign: campaignAsMasterApi(masterUserFixture.user.uuid) }),
         ),
         http.delete(`${baseUrl}/campaigns/:id`, () =>
           HttpResponse.json({ error: "has started match" }, { status: 422 }),
@@ -305,21 +308,21 @@ describe("CampaignPage", () => {
 
     it("campanha com partida iniciada exibe 'Excluir' desabilitado com motivo", async () => {
       const campaignWithStartedMatch = {
-        ...campaignAsMaster(masterUserFixture.user.uuid),
+        ...campaignAsMasterApi(masterUserFixture.user.uuid),
         matches: [
           {
             uuid: "match-started",
-            campaignUuid: "campaign-1",
-            masterUuid: masterUserFixture.user.uuid,
+            campaign_uuid: "campaign-1",
+            master_uuid: masterUserFixture.user.uuid,
             title: "Partida Iniciada",
-            briefInitialDescription: "Brief",
+            brief_initial_description: "Brief",
             description: "Desc",
-            isPublic: true,
-            gameScheduledAt: "2025-01-01T10:00:00Z",
-            gameStartAt: "2025-01-01T10:05:00Z",
-            storyStartAt: "2025-01-01",
-            createdAt: "2025-01-01T00:00:00.000Z",
-            updatedAt: "2025-01-01T00:00:00.000Z",
+            is_public: true,
+            game_scheduled_at: "2025-01-01T10:00:00Z",
+            game_start_at: "2025-01-01T10:05:00Z",
+            story_start_at: "2025-01-01",
+            created_at: "2025-01-01T00:00:00.000Z",
+            updated_at: "2025-01-01T00:00:00.000Z",
           },
         ],
       };
@@ -341,7 +344,7 @@ describe("CampaignPage", () => {
     it("'Criar Partida' em BottomActions chama navigate", async () => {
       server.use(
         http.get(`${baseUrl}/campaigns/:id`, () =>
-          HttpResponse.json({ campaign: campaignAsMaster(masterUserFixture.user.uuid) }),
+          HttpResponse.json({ campaign: campaignAsMasterApi(masterUserFixture.user.uuid) }),
         ),
       );
       renderWithProviders(<CampaignPage />, {
@@ -360,11 +363,11 @@ describe("CampaignPage", () => {
       server.use(
         http.get(`${baseUrl}/campaigns/:id`, () =>
           HttpResponse.json({
-            campaign: campaignAsMaster(masterUserFixture.user.uuid),
+            campaign: campaignAsMasterApi(masterUserFixture.user.uuid),
           }),
         ),
         http.get(`${baseUrl}/campaigns/:id/maps`, () =>
-          HttpResponse.json({ maps: [mapFixture] }),
+          HttpResponse.json({ maps: [mapApiFixture] }),
         ),
       );
       return renderWithProviders(<CampaignPage />, {
@@ -378,7 +381,7 @@ describe("CampaignPage", () => {
       server.use(
         http.get(`${baseUrl}/campaigns/:id`, () =>
           HttpResponse.json({
-            campaign: campaignAsMaster(masterUserFixture.user.uuid),
+            campaign: campaignAsMasterApi(masterUserFixture.user.uuid),
           }),
         ),
       );
@@ -438,7 +441,7 @@ describe("CampaignPage", () => {
       server.use(
         http.get(`${baseUrl}/campaigns/:id`, () =>
           HttpResponse.json({
-            campaign: campaignAsMaster(masterUserFixture.user.uuid),
+            campaign: campaignAsMasterApi(masterUserFixture.user.uuid),
           }),
         ),
         http.get(`${baseUrl}/campaigns/:id/maps`, () =>

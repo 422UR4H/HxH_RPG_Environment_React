@@ -1,5 +1,6 @@
 // src/test/fixtures/match.ts
 import type { Match } from "../../types/match";
+import { objToSnakeCase } from "../../utils/caseConverter";
 
 export const matchFixture: Match = {
   uuid: "match-1",
@@ -31,3 +32,19 @@ export const matchEnded = (): Match => ({
   storyEndAt: "2025-12-15",
   briefFinalDescription: "Partida encerrada",
 });
+
+// ─── Wire-format (backend) counterparts ────────────────────────────────────
+// Go's MatchResponse (internal/app/api/match/create_match.go) serializes
+// snake_case; matchService applies objToCamelCase() on the way in. These run
+// the fixtures above through objToSnakeCase() so MSW mocks reflect the real
+// wire shape instead of the frontend's already-converted one.
+export const matchApiFixture = objToSnakeCase<Record<string, unknown>>(matchFixture);
+
+export const matchAsMasterApi = (userUuid: string): Record<string, unknown> =>
+  objToSnakeCase<Record<string, unknown>>(matchAsMaster(userUuid));
+
+export const matchOngoingApi = (): Record<string, unknown> =>
+  objToSnakeCase<Record<string, unknown>>(matchOngoing());
+
+export const matchEndedApi = (): Record<string, unknown> =>
+  objToSnakeCase<Record<string, unknown>>(matchEnded());

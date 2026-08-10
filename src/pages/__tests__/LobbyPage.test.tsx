@@ -4,9 +4,9 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { server } from "../../test/server";
 import { renderWithProviders } from "../../test/render";
-import { matchFixture } from "../../test/fixtures/match";
+import { matchApiFixture, matchAsMasterApi } from "../../test/fixtures/match";
 import { masterUserFixture, userFixture } from "../../test/fixtures/user";
-import { mapFixture, mapWithPieces, pieceFixture } from "../../test/fixtures/map";
+import { mapApiFixture, mapWithPiecesApi, pieceFixture } from "../../test/fixtures/map";
 import LobbyPage from "../LobbyPage";
 
 const mockNavigate = vi.fn();
@@ -74,7 +74,7 @@ function setupHandlers(masterUuid = "master-1") {
   server.use(
     http.get(`${baseUrl}/matches/:id`, () =>
       HttpResponse.json({
-        match: { ...matchFixture, master_uuid: masterUuid },
+        match: matchAsMasterApi(masterUuid),
       }),
     ),
     http.get(`${baseUrl}/matches/:id/enrollments`, () =>
@@ -107,7 +107,7 @@ describe("LobbyPage", () => {
     server.use(
       http.get(`${baseUrl}/matches/:id`, async () => {
         await new Promise((r) => setTimeout(r, 50));
-        return HttpResponse.json({ match: matchFixture });
+        return HttpResponse.json({ match: matchApiFixture });
       }),
       http.get(`${baseUrl}/matches/:id/enrollments`, () =>
         HttpResponse.json({ enrollments: [] }),
@@ -208,7 +208,7 @@ describe("LobbyPage", () => {
     server.use(
       http.get(`${baseUrl}/matches/:id`, () =>
         HttpResponse.json({
-          match: { ...matchFixture, master_uuid: "master-1" },
+          match: matchAsMasterApi("master-1"),
         }),
       ),
       http.get(`${baseUrl}/matches/:id/enrollments`, () =>
@@ -286,7 +286,7 @@ describe("LobbyPage", () => {
           }),
         ),
         http.get(`${baseUrl}/maps/:id`, () =>
-          HttpResponse.json({ map: mapFixture }),
+          HttpResponse.json({ map: mapApiFixture }),
         ),
       );
       renderPage({ user: masterUserFixture });
@@ -306,7 +306,7 @@ describe("LobbyPage", () => {
     it("handleStartMatch salva peças antes de enviar start_match", async () => {
       let updateMapCalled = false;
       const pieceWithChar = { ...pieceFixture, characterId: "sheet-1" };
-      const mapWithChar = mapWithPieces([pieceWithChar]);
+      const mapWithChar = mapWithPiecesApi([pieceWithChar]);
 
       setupHandlers("master-1");
       server.use(
