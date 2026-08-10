@@ -2,14 +2,14 @@
 import { http, HttpResponse } from "msw";
 import { campaignApiFixture, campaignSummaryApiFixture } from "./fixtures/campaign";
 import { matchApiFixture } from "./fixtures/match";
-import { sheetFixture, sheetSummaryApiFixture } from "./fixtures/sheet";
+import { sheetApiFixture, sheetSummaryApiFixture } from "./fixtures/sheet";
 
 const baseUrl = "http://localhost:5000";
 
 // Default handlers cover the happy path. Response bodies mirror the Go backend's actual
 // wire format (envelope key + snake_case fields, per internal/app/api/**/*.go json tags)
-// — NOT the frontend's post-conversion camelCase shape. The *ApiFixture / sheetFixture
-// exports already are that wire format; each service under src/services/ is what turns
+// — NOT the frontend's post-conversion camelCase shape. The *ApiFixture exports already
+// are that wire format; each service under src/services/ is what turns
 // them back into camelCase (objToCamelCase). Tests override individual handlers via
 // server.use(...) for error/role scenarios — those overrides must follow the same
 // convention (see src/test/fixtures/*.ts for the audit notes per endpoint).
@@ -48,7 +48,7 @@ export const defaultHandlers = [
     HttpResponse.json({ character_sheets: [sheetSummaryApiFixture] }),
   ),
   http.get(`${baseUrl}/charactersheets/:id`, () =>
-    HttpResponse.json({ character_sheet: sheetFixture }),
+    HttpResponse.json({ character_sheet: sheetApiFixture }),
   ),
   // Go: ListCharacterClassesBody.CharacterClasses `json:"CharacterClasses"` — PascalCase
   // on the wire is intentional (see comment in internal/app/api/sheet/list_classes.go),

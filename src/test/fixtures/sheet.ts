@@ -8,8 +8,11 @@ import { objToSnakeCase } from "../../utils/caseConverter";
 // stamina/health, `character_exp`/`talent` instead of characterExp/talent as separate
 // top-level camelCase keys, enum-named attribute/skill maps) — it's hand-built to match
 // Go's json tags directly rather than derived from a frontend-shaped fixture via
-// objToSnakeCase(), since the two shapes don't actually correspond 1:1.
-export const sheetFixture: Record<string, unknown> = {
+// objToSnakeCase(), since the two shapes don't actually correspond 1:1. There is no
+// frontend-shaped sibling fixture for this endpoint (unlike campaignFixture/mapFixture/
+// matchFixture), so this is wire-format-only — named with the Api suffix, per the
+// convention used everywhere else in these fixture files, to make that unambiguous.
+export const sheetApiFixture: Record<string, unknown> = {
   uuid: "sheet-1",
   player_uuid: "user-1",
   character_class: "Especialista",
