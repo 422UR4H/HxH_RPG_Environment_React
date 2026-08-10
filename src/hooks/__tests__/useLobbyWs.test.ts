@@ -101,23 +101,45 @@ describe("useLobbyWs", () => {
     expect(result.current.participants[0].uuid).toBe("p1");
   });
 
+  // FINDING (real bug, not fixed — documenting current behavior, already
+  // tracked as finding [7] in docs/dev/http-boundary-inventory.md):
+  // the Go server's PlayerPayload for this event (internal/app/game/message.go,
+  // confirmed by room.go's broadcastPlayerJoined) is `{uuid, nickname}` only —
+  // no `is_master`/`is_online` field is ever sent on the wire for
+  // player_joined/master_joined. useLobbyWs.ts still reads `p.is_master` for
+  // isMaster (undefined here, falsy), while isOnline is hardcoded `true` in
+  // the handler regardless of payload. This mock previously fabricated
+  // is_master/is_online fields the server never sends, which masked the bug.
   it("adds participant on player_joined", () => {
     const { result } = renderHook(() => useLobbyWs(defaultParams));
     simulateOpen();
     sendFromServer("room_state", { match_uuid: "match-1", state: "lobby", players: [] });
-    sendFromServer("player_joined", { uuid: "p2", nickname: "Killua", is_master: false, is_online: true });
+    sendFromServer("player_joined", { uuid: "p2", nickname: "Killua" });
     expect(result.current.participants).toHaveLength(1);
     expect(result.current.participants[0].uuid).toBe("p2");
+    // isMaster is undefined: the real wire payload has no is_master field.
+    expect(result.current.participants[0].isMaster).toBeUndefined();
+    // isOnline is hardcoded true in the handler, independent of the payload.
+    expect(result.current.participants[0].isOnline).toBe(true);
   });
 
+  // FINDING (real bug, not fixed — documenting current behavior, already
+  // tracked as finding [7] in docs/dev/http-boundary-inventory.md): same
+  // is_master/is_online fabrication issue as player_joined above. Note this
+  // means a participant who joins via master_joined is indistinguishable
+  // from a regular player in `participants` until the next room_state sync.
   it("adds master on master_joined", () => {
     const { result } = renderHook(() => useLobbyWs(defaultParams));
     simulateOpen();
     sendFromServer("room_state", { match_uuid: "match-1", state: "lobby", players: [] });
-    sendFromServer("master_joined", { uuid: "master-1", nickname: "Bisky", is_master: true, is_online: true });
+    sendFromServer("master_joined", { uuid: "master-1", nickname: "Bisky" });
     expect(result.current.participants).toHaveLength(1);
     expect(result.current.participants[0].uuid).toBe("master-1");
-    expect(result.current.participants[0].isMaster).toBe(true);
+    // BUG: isMaster is undefined, not true — the server never sends is_master
+    // on this event, so the "master" participant looks like a regular player
+    // until the next room_state message corrects it.
+    expect(result.current.participants[0].isMaster).toBeUndefined();
+    expect(result.current.participants[0].isOnline).toBe(true);
   });
 
   it("removes participant on player_left", () => {

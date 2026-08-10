@@ -471,7 +471,7 @@ describe("createCharacterSheet", () => {
   });
 
   it("defaults campaign_uuid to null when no campaignUuid is passed", async () => {
-    let capturedBody: any;
+    let capturedBody: unknown;
     server.use(
       http.post(`${baseUrl}/charactersheets`, async ({ request }) => {
         capturedBody = await request.json();
@@ -481,11 +481,11 @@ describe("createCharacterSheet", () => {
 
     await characterSheetsService.createCharacterSheet(token, charSheet, charClass);
 
-    expect(capturedBody.campaign_uuid).toBeNull();
+    expect((capturedBody as Record<string, unknown>).campaign_uuid).toBeNull();
   });
 
   it("sends empty allow-list maps when charClass is undefined", async () => {
-    let capturedBody: any;
+    let capturedBody: unknown;
     server.use(
       http.post(`${baseUrl}/charactersheets`, async ({ request }) => {
         capturedBody = await request.json();
@@ -495,10 +495,11 @@ describe("createCharacterSheet", () => {
 
     await characterSheetsService.createCharacterSheet(token, charSheet, undefined);
 
-    expect(capturedBody.skills_exps).toEqual({});
-    expect(capturedBody.proficiencies_exps).toEqual({});
+    const body = capturedBody as Record<string, unknown>;
+    expect(body.skills_exps).toEqual({});
+    expect(body.proficiencies_exps).toEqual({});
     // attribute_points is NOT allow-list filtered, so it's unaffected by a missing charClass
-    expect(capturedBody.attribute_points).toEqual({ Resistance: 3, Strength: 2, Resilience: 1 });
+    expect(body.attribute_points).toEqual({ Resistance: 3, Strength: 2, Resilience: 1 });
   });
 
   it("returns { uuid } read from the character_sheet envelope", async () => {
@@ -608,7 +609,7 @@ describe("updateCharacterSheet", () => {
   });
 
   it("sends empty allow-list maps when charClass is undefined", async () => {
-    let capturedBody: any;
+    let capturedBody: unknown;
     server.use(
       http.patch(`${baseUrl}/charactersheets/:uuid`, async ({ request }) => {
         capturedBody = await request.json();
@@ -618,11 +619,12 @@ describe("updateCharacterSheet", () => {
 
     await characterSheetsService.updateCharacterSheet(token, "sheet-1", charSheet, undefined);
 
-    expect(capturedBody.skills_exps).toEqual({});
-    expect(capturedBody.proficiencies_exps).toEqual({});
+    const body = capturedBody as Record<string, unknown>;
+    expect(body.skills_exps).toEqual({});
+    expect(body.proficiencies_exps).toEqual({});
     // attribute_points survives without a charClass — it's filtered only by
     // PRIMARY_PHYS_ATTRS (a hardcoded set) + mentalAttributes, not by distribution.
-    expect(capturedBody.attribute_points).toEqual({ Resistance: 4, Agility: 2, Adaptability: 2 });
+    expect(body.attribute_points).toEqual({ Resistance: 4, Agility: 2, Adaptability: 2 });
   });
 
   it("returns the updated sheet in camelCase, field by field", async () => {
