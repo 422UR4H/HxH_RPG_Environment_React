@@ -2,7 +2,6 @@
 import type { CampaignMaster } from "../../types/campaign";
 import type { CampaignSummary } from "../../types/campaigns";
 import type { CharacterPrivateSummary } from "../../types/characterSheet";
-import { objToSnakeCase } from "../../utils/caseConverter";
 
 export const campaignSummaryFixture: CampaignSummary = {
   uuid: "campaign-1",
@@ -103,19 +102,17 @@ export const campaignWithNpcs = (
 });
 
 // ─── Wire-format (backend) counterparts ────────────────────────────────────
-// The Go handlers serialize snake_case (internal/app/api/campaign/*.go);
-// campaignService applies objToCamelCase() on the way in. These run the same
-// fixtures through objToSnakeCase() so MSW mocks exercise that real
-// conversion instead of skipping it (a body that's already camelCase makes
-// objToCamelCase a no-op and hides real backend/frontend drift).
-export const campaignSummaryApiFixture = objToSnakeCase<Record<string, unknown>>(campaignSummaryFixture);
-export const campaignApiFixture = objToSnakeCase<Record<string, unknown>>(campaignFixture);
+// The Go handlers (internal/app/api/campaign/*.go) now serialize camelCase
+// all the way down (Fase 8), matching the frontend types field-for-field —
+// so the "Api" fixtures are just the frontend fixtures themselves, no
+// conversion needed.
+export const campaignSummaryApiFixture: CampaignSummary = campaignSummaryFixture;
+export const campaignApiFixture: CampaignMaster = campaignFixture;
 
-export const campaignAsMasterApi = (userUuid: string): Record<string, unknown> =>
-  objToSnakeCase<Record<string, unknown>>(campaignAsMaster(userUuid));
+export const campaignAsMasterApi = (userUuid: string): CampaignMaster =>
+  campaignAsMaster(userUuid);
 
 export const campaignWithNpcsApi = (
   npcs: CharacterPrivateSummary[],
   players: CharacterPrivateSummary[] = [],
-): Record<string, unknown> =>
-  objToSnakeCase<Record<string, unknown>>(campaignWithNpcs(npcs, players));
+): CampaignMaster => campaignWithNpcs(npcs, players);

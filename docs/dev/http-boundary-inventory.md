@@ -221,6 +221,20 @@ formato encontrado (mock/doc) contra o formato real (struct Go).
    `GET /charactersheets`) nem `CharacterSheetResponse` (`GET /charactersheets/:id`, campo
    `Aura` comentado no código-fonte) têm um campo `aura`.
 
+> **Resolvido na Task 5-B (Fase 8):** os itens 2, 3 (parcial) e 4 foram corrigidos em
+> `src/types/characterSheet.ts` — `CharacterSheetSummary` agora usa `playerUuid`/`masterUuid`/
+> `campaignUuid` (item 2) e `aura?: StatusBar` opcional (item 4); `CharacterSheet.
+> jointProficiencies` agora é `Record<string, JointProficiency>` (item 3, segundo bullet).
+> `CharacterSheet.mentalSkills` foi adicionado como `Record<string, Skill>` (item 3, primeiro
+> bullet) — **mas nenhuma UI da ficha o consome hoje**: existe `MentalsDiagram` para os
+> *atributos* mentais, mas não há um grupo de perícias mentais equivalente a
+> `PhysicalSkillsGroup`/`SpiritualSkillsGroup` (nem em `CharacterSheetTemplate.tsx` nem em
+> `features/sheet/utils/distribute.ts`, cujo `getBaseSkillsForType` só cobre `"physical" |
+> "spiritual"`). O campo foi tipado mesmo assim — para não descartar silenciosamente o que o
+> backend envia — mas fica sem UI até que perícias mentais sejam um requisito real do jogo.
+> O primeiro bullet do item 3 (`status` como mapa vs. campos fixos) segue como está: shape
+> genuinamente diferente, fora do escopo de um rename de case/shape 1:1.
+
 5. **`authService.signIn` não converte a resposta; `signUp` converte.** Ver achado `[4]` na
    tabela de endpoints acima — mesmo achado, catalogado aqui como inconsistência de
    contrato porque foi descoberto na auditoria de mocks da Task 1.

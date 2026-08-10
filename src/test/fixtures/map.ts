@@ -1,6 +1,5 @@
 // src/test/fixtures/map.ts
 import type { Piece, TacticalMap } from "../../types/tacticalMap";
-import { objToSnakeCase } from "../../utils/caseConverter";
 
 export const mapFixture: TacticalMap = {
   id: "map-1",
@@ -40,12 +39,11 @@ export const mapWithPieces = (pieces: Piece[]): TacticalMap => ({
 });
 
 // ─── Wire-format (backend) counterparts ────────────────────────────────────
-// Go's MapResponse (internal/app/api/map/map_response.go) serializes
-// snake_case (id, campaign_id, grid.cell_size, grid.skew_ratio, grid.line_style,
-// created_at, updated_at); mapsService applies objToCamelCase() on the way in.
-// These run the fixtures above through objToSnakeCase() so MSW mocks reflect
-// the real wire shape instead of the frontend's already-converted one.
-export const mapApiFixture = objToSnakeCase<Record<string, unknown>>(mapFixture);
+// Go's MapResponse (internal/app/api/map/map_response.go) now serializes
+// camelCase all the way down (Fase 8), matching the frontend's TacticalMap
+// type field-for-field — so the "Api" fixture is just the frontend fixture
+// itself, no conversion needed.
+export const mapApiFixture: Record<string, unknown> = mapFixture;
 
 export const mapWithPiecesApi = (pieces: Piece[]): Record<string, unknown> =>
-  objToSnakeCase<Record<string, unknown>>(mapWithPieces(pieces));
+  mapWithPieces(pieces);

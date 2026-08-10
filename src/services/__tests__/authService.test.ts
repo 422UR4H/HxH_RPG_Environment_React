@@ -4,12 +4,11 @@
 // System_X_System/internal/app/api/auth/{request,response}.go and
 // auth_handler.go (RegisterRequestBody/LoginRequestBody, LoginResponseBody).
 //
-// Per method: (1) request URL/verb + wire-format (snake_case) body,
-// (2) response — authService.signIn and authService.signUp behave
-// *differently* on the response side (see FINDING comments below), so this
-// file asserts what each one actually does today rather than assuming they
-// match, (3) no Authorization header case — both endpoints precede having a
-// token.
+// Fase 8: the backend now speaks camelCase all the way down, and authService
+// no longer runs request/response bodies through any case-conversion — both
+// signIn and signUp pass the body straight through, in both directions.
+// (Before Fase 8, signUp ran its response through the generic case converter while
+// signIn didn't — that asymmetry is gone now that neither converts anything.)
 import { describe, it, expect } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
@@ -19,7 +18,7 @@ const baseUrl = "http://localhost:5000";
 
 describe("authService", () => {
   describe("signIn", () => {
-    it("POSTs to /auth/login with a snake_case body", async () => {
+    it("POSTs to /auth/login with the body untouched", async () => {
       let capturedUrl = "";
       let capturedBody: unknown;
       server.use(
@@ -36,33 +35,21 @@ describe("authService", () => {
       await authService.signIn({ email: "gon@test.com", password: "secret123" });
 
       expect(capturedUrl).toBe(`${baseUrl}/auth/login`);
-      // email/password are already single-word keys — objToSnakeCase is a
-      // no-op here, but this locks the wire shape down regardless.
       expect(capturedBody).toEqual({
         email: "gon@test.com",
         password: "secret123",
       });
     });
 
-    // FINDING (not fixed — documenting current behavior, Task 1's Finding 5):
-    // signIn's `.then(({ data }) => data)` never calls objToCamelCase, unlike
-    // signUp below. Every real field on LoginResponseBody (token, user.uuid,
-    // user.nick, user.email) is already a single word, so in production this
-    // is currently harmless — there's no snake_case key that would fail to
-    // convert. To make the asymmetry *observable*, this test adds a
-    // synthetic multi-word key that isn't part of the real contract. It
-    // proves signIn passes the wire response through completely untouched.
-    it("returns the raw wire response untouched (no camelCase conversion, unlike signUp)", async () => {
-      const wireWithSyntheticField = {
+    it("returns the wire response untouched (no case conversion)", async () => {
+      const wireWithMultiWordField = {
         token: "jwt-abc",
         user: { uuid: "user-1", nick: "Gon", email: "gon@test.com" },
-        // Not part of LoginResponseBody — added only to expose the
-        // signIn/signUp asymmetry (see FINDING above).
-        session_expires_at: "2026-08-10T00:00:00Z",
+        sessionExpiresAt: "2026-08-10T00:00:00Z",
       };
       server.use(
         http.post(`${baseUrl}/auth/login`, () =>
-          HttpResponse.json(wireWithSyntheticField),
+          HttpResponse.json(wireWithMultiWordField),
         ),
       );
 
@@ -71,16 +58,12 @@ describe("authService", () => {
         password: "secret123",
       });
 
-      expect(result).toEqual(wireWithSyntheticField);
-      // Still snake_case — proves no conversion happened.
-      expect((result as unknown as Record<string, unknown>).session_expires_at).toBe(
-        "2026-08-10T00:00:00Z",
-      );
+      expect(result).toEqual(wireWithMultiWordField);
     });
   });
 
   describe("signUp", () => {
-    it("POSTs to /auth/register with a snake_case body (confirmPass -> confirm_pass)", async () => {
+    it("POSTs to /auth/register with the body untouched (confirmPass stays confirmPass)", async () => {
       let capturedUrl = "";
       let capturedBody: unknown;
       server.use(
@@ -103,19 +86,19 @@ describe("authService", () => {
         nick: "Gon",
         email: "gon@test.com",
         password: "secret123",
-        confirm_pass: "secret123",
+        confirmPass: "secret123",
       });
     });
 
-    it("returns the response camelCase-converted, unlike signIn (hypothetical body-bearing response)", async () => {
-      const wireWithSyntheticField = {
+    it("returns the wire response untouched, same as signIn (hypothetical body-bearing response)", async () => {
+      const wireWithMultiWordField = {
         token: "jwt-abc",
         user: { uuid: "user-1", nick: "Gon", email: "gon@test.com" },
-        session_expires_at: "2026-08-10T00:00:00Z",
+        sessionExpiresAt: "2026-08-10T00:00:00Z",
       };
       server.use(
         http.post(`${baseUrl}/auth/register`, () =>
-          HttpResponse.json(wireWithSyntheticField, { status: 201 }),
+          HttpResponse.json(wireWithMultiWordField, { status: 201 }),
         ),
       );
 
@@ -126,11 +109,7 @@ describe("authService", () => {
         confirmPass: "secret123",
       });
 
-      expect(result).toEqual({
-        token: "jwt-abc",
-        user: { uuid: "user-1", nick: "Gon", email: "gon@test.com" },
-        sessionExpiresAt: "2026-08-10T00:00:00Z",
-      });
+      expect(result).toEqual(wireWithMultiWordField);
     });
 
     // FINDING (real bug, not fixed — documenting current behavior):

@@ -5,16 +5,13 @@ import type {
   CharacterSheetSummary,
 } from "../types/characterSheet";
 import type { CharacterClass } from "../types/characterClass";
-import { objToCamelCase, objToSnakeCase } from "../utils/caseConverter";
 import config from "./config";
 
 export const characterSheetsService = {
   listCharacterSheets: (token: string): Promise<CharacterSheetSummary[]> =>
     httpClient
       .get<CharacterSheetResponse>("/charactersheets", config(token))
-      .then(({ data }) =>
-        objToCamelCase<CharacterSheetResponse>(data).characterSheets ?? []
-      ),
+      .then(({ data }) => data.characterSheets ?? []),
 
   getCharacterSheetDetails: (token: string, id: string): Promise<CharacterSheet> =>
     httpClient
@@ -22,7 +19,7 @@ export const characterSheetsService = {
         `/charactersheets/${id}?include=submission`,
         config(token)
       )
-      .then(({ data }) => objToCamelCase<CharacterSheet>(data.character_sheet)),
+      .then(({ data }) => data.character_sheet),
 
   submitCharacterSheet: (
     token: string,
@@ -32,7 +29,7 @@ export const characterSheetsService = {
     httpClient
       .post(
         "/submissions/charactersheets/submit",
-        objToSnakeCase({ sheetUuid, campaignUuid }),
+        { sheetUuid, campaignUuid },
         config(token)
       )
       .then(() => undefined),
@@ -81,7 +78,7 @@ export const characterSheetsService = {
         "/charactersheets",
         {
           campaign_uuid: campaignUuid ?? null,
-          profile: objToSnakeCase({
+          profile: {
             nickname: charSheet.profile.nickname,
             fullname: charSheet.profile.fullname,
             alignment: charSheet.profile.alignment,
@@ -89,7 +86,7 @@ export const characterSheetsService = {
             briefDescription: charSheet.profile.briefDescription,
             birthday: charSheet.profile.birthday,
             age: charSheet.profile.age,
-          }),
+          },
           character_class: charSheet.characterClass,
           skills_exps: skillsExps,
           proficiencies_exps: proficienciesExps,
@@ -151,7 +148,7 @@ export const characterSheetsService = {
       .patch<{ character_sheet: CharacterSheet }>(
         `/charactersheets/${uuid}`,
         {
-          profile: objToSnakeCase({
+          profile: {
             nickname: charSheet.profile.nickname,
             fullname: charSheet.profile.fullname,
             alignment: charSheet.profile.alignment,
@@ -159,7 +156,7 @@ export const characterSheetsService = {
             briefDescription: charSheet.profile.briefDescription,
             birthday: charSheet.profile.birthday,
             age: charSheet.profile.age,
-          }),
+          },
           character_class: charSheet.characterClass,
           skills_exps: skillsExps,
           proficiencies_exps: proficienciesExps,
@@ -167,7 +164,7 @@ export const characterSheetsService = {
         },
         config(token)
       )
-      .then(({ data }) => objToCamelCase<CharacterSheet>(data.character_sheet));
+      .then(({ data }) => data.character_sheet);
   },
 
   patchCharacterSheetProfile: (
@@ -180,7 +177,7 @@ export const characterSheetsService = {
     httpClient
       .patch(
         `/charactersheets/${sheetUuid}/profile`,
-        objToSnakeCase({ avatarUrl, coverUrl, briefDescription }),
+        { avatarUrl, coverUrl, briefDescription },
         config(token)
       )
       .then(() => undefined),

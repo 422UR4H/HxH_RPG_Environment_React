@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { SlotCoord, Piece, WallSegment, GridShape } from "../types/tacticalMap";
-import { objToSnakeCase } from "../utils/caseConverter";
 
 export type WsStatus =
   | "connecting"
@@ -146,25 +145,25 @@ export function useLobbyWs({
             const players = (payload.players as Array<{
               uuid: string;
               nickname: string;
-              is_master: boolean;
-              is_online: boolean;
+              isMaster: boolean;
+              isOnline: boolean;
             }> | undefined) ?? [];
             setParticipants(
               players.map((p) => ({
                 uuid: p.uuid,
                 nickname: p.nickname,
-                isMaster: p.is_master,
-                isOnline: p.is_online,
+                isMaster: p.isMaster,
+                isOnline: p.isOnline,
               }))
             );
             break;
           }
           case "player_joined":
           case "master_joined": {
-            const p = payload as { uuid: string; nickname: string; is_master: boolean; is_online: boolean };
+            const p = payload as { uuid: string; nickname: string; isMaster: boolean; isOnline: boolean };
             setParticipants((prev) => [
               ...prev,
-              { uuid: p.uuid, nickname: p.nickname, isMaster: p.is_master, isOnline: true },
+              { uuid: p.uuid, nickname: p.nickname, isMaster: p.isMaster, isOnline: true },
             ]);
             break;
           }
@@ -192,13 +191,13 @@ export function useLobbyWs({
             break;
           case "piece_moved": {
             const p = payload as {
-              piece_id: string;
+              pieceId: string;
               slot: { kind: string; col?: number; row?: number; q?: number; r?: number };
-              character_id?: string;
+              characterId?: string;
               visible?: boolean;
               z?: number;
             };
-            if (!p.piece_id || !p.slot) break;
+            if (!p.pieceId || !p.slot) break;
             let slot: SlotCoord;
             if (p.slot.kind === "square" && p.slot.col != null && p.slot.row != null) {
               slot = { kind: "square", col: p.slot.col, row: p.slot.row };
@@ -207,24 +206,24 @@ export function useLobbyWs({
             } else {
               break;
             }
-            onPieceMovedRef.current?.(p.piece_id, slot, p.character_id, p.visible, p.z ?? 0);
+            onPieceMovedRef.current?.(p.pieceId, slot, p.characterId, p.visible, p.z ?? 0);
             break;
           }
           case "piece_removed": {
-            const p = payload as { piece_id?: string };
-            if (p.piece_id) onPieceRemovedRef.current?.(p.piece_id);
+            const p = payload as { pieceId?: string };
+            if (p.pieceId) onPieceRemovedRef.current?.(p.pieceId);
             break;
           }
           case "map_full_state": {
             const rawPieces = (payload.pieces as Array<{
-              piece_id: string;
+              pieceId: string;
               slot: { kind: string; col?: number; row?: number; q?: number; r?: number };
-              character_id?: string;
+              characterId?: string;
               visible?: boolean;
             }> | undefined) ?? [];
             const pieces: LobbyPieceFullState[] = [];
             for (const p of rawPieces) {
-              if (!p.piece_id || !p.slot || !p.character_id) continue;
+              if (!p.pieceId || !p.slot || !p.characterId) continue;
               let slot: SlotCoord;
               if (p.slot.kind === "square" && p.slot.col != null && p.slot.row != null) {
                 slot = { kind: "square", col: p.slot.col, row: p.slot.row };
@@ -233,7 +232,7 @@ export function useLobbyWs({
               } else {
                 continue;
               }
-              pieces.push({ pieceId: p.piece_id, characterId: p.character_id, slot, visible: p.visible });
+              pieces.push({ pieceId: p.pieceId, characterId: p.characterId, slot, visible: p.visible });
             }
             onFullStateRef.current?.(pieces);
             break;
@@ -301,7 +300,7 @@ export function useLobbyWs({
   const sendStartMatch = useCallback(() => sendMessage("start_match"), [sendMessage]);
   const sendCancelLobby = useCallback(() => sendMessage("cancel_lobby"), [sendMessage]);
   const sendKick = useCallback(
-    (userUuid: string) => sendMessage("kick_player", { player_uuid: userUuid }),
+    (userUuid: string) => sendMessage("kick_player", { playerUuid: userUuid }),
     [sendMessage]
   );
 
@@ -312,9 +311,9 @@ export function useLobbyWs({
           ? { kind: "square", col: slot.col, row: slot.row }
           : { kind: "hex", q: slot.q, r: slot.r };
       sendMessage("piece_moved", {
-        piece_id: pieceId,
+        pieceId,
         slot: slotPayload,
-        ...(characterId != null && { character_id: characterId }),
+        ...(characterId != null && { characterId }),
         ...(visible != null && { visible }),
         ...(z != null && { z }),
       });
@@ -323,7 +322,7 @@ export function useLobbyWs({
   );
 
   const sendPieceRemoved = useCallback(
-    (pieceId: string) => sendMessage("piece_removed", { piece_id: pieceId }),
+    (pieceId: string) => sendMessage("piece_removed", { pieceId }),
     [sendMessage],
   );
 
@@ -336,14 +335,14 @@ export function useLobbyWs({
               ? { kind: "square", col: p.coord.slot.col, row: p.coord.slot.row }
               : { kind: "hex", q: p.coord.slot.q, r: p.coord.slot.r };
           return {
-            piece_id: p.id,
+            pieceId: p.id,
             slot: slotPayload,
-            character_id: p.characterId,
+            characterId: p.characterId,
             visible: p.visible,
           };
         }),
-        walls: walls.map((w) => objToSnakeCase(w)),
-        ...(grid ? { grid: { cell_size: grid.cellSize } } : {}),
+        walls: walls,
+        ...(grid ? { grid: { cellSize: grid.cellSize } } : {}),
       });
     },
     [sendMessage],

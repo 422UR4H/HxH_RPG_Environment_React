@@ -3,8 +3,8 @@
 // Basic I/O coverage for uploadService.ts. Per the Fase 7 plan, this service
 // "não passa por conversão — cobrir só o básico": no case-conversion
 // happens here (the upload_url/public_url -> uploadUrl/publicUrl renaming
-// is manual field-by-field, not objToCamelCase), so this file just locks
-// down request shape, response mapping, and auth header where applicable.
+// is manual field-by-field), so this file just locks down request shape,
+// response mapping, and auth header where applicable.
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
@@ -41,7 +41,7 @@ describe("uploadService", () => {
       });
     });
 
-    it("maps upload_url/public_url to uploadUrl/publicUrl (manual renaming, not objToCamelCase)", async () => {
+    it("maps upload_url/public_url to uploadUrl/publicUrl (manual renaming)", async () => {
       server.use(
         http.post(`${baseUrl}/upload/presigned-url`, () =>
           HttpResponse.json({

@@ -229,13 +229,13 @@ describe("MatchPage", () => {
               {
                 uuid: "enr-1",
                 status: "pending" as const,
-                created_at: "2025-01-01T00:00:00.000Z",
+                createdAt: "2025-01-01T00:00:00.000Z",
                 player: { uuid: "user-x", nick: "PlayerX" },
-                character_sheet: {
+                characterSheet: {
                   uuid: "sheet-x",
-                  nick_name: "Enrolled",
-                  created_at: "2025-01-01T00:00:00.000Z",
-                  updated_at: "2025-01-01T00:00:00.000Z",
+                  nickName: "Enrolled",
+                  createdAt: "2025-01-01T00:00:00.000Z",
+                  updatedAt: "2025-01-01T00:00:00.000Z",
                 },
               },
             ],
@@ -254,13 +254,13 @@ describe("MatchPage", () => {
             participants: [
               {
                 uuid: "part-1",
-                joined_at: "2025-12-01T19:06:00Z",
-                left_at: null,
-                character_sheet: {
+                joinedAt: "2025-12-01T19:06:00Z",
+                leftAt: null,
+                characterSheet: {
                   uuid: "sheet-y",
-                  nick_name: "Participant",
-                  created_at: "2025-01-01T00:00:00.000Z",
-                  updated_at: "2025-01-01T00:00:00.000Z",
+                  nickName: "Participant",
+                  createdAt: "2025-01-01T00:00:00.000Z",
+                  updatedAt: "2025-01-01T00:00:00.000Z",
                   private: null,
                 },
               },
@@ -321,9 +321,9 @@ describe("MatchPage", () => {
         http.get(`${baseUrl}/matches/:id/map`, () =>
           HttpResponse.json({
             match_map: {
-              match_uuid: "match-1",
-              map_uuid: mapApiFixture.id,
-              attached_at: "2026-06-04T00:00:00Z",
+              matchUuid: "match-1",
+              mapUuid: mapApiFixture.id,
+              attachedAt: "2026-06-04T00:00:00Z",
             },
           }),
         ),

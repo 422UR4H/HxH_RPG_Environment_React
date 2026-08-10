@@ -7,12 +7,14 @@ import { sheetApiFixture, sheetSummaryApiFixture } from "./fixtures/sheet";
 const baseUrl = "http://localhost:5000";
 
 // Default handlers cover the happy path. Response bodies mirror the Go backend's actual
-// wire format (envelope key + snake_case fields, per internal/app/api/**/*.go json tags)
-// — NOT the frontend's post-conversion camelCase shape. The *ApiFixture exports already
-// are that wire format; each service under src/services/ is what turns
-// them back into camelCase (objToCamelCase). Tests override individual handlers via
-// server.use(...) for error/role scenarios — those overrides must follow the same
-// convention (see src/test/fixtures/*.ts for the audit notes per endpoint).
+// wire format per internal/app/api/**/*.go json tags — camelCase fields, as of Fase 8.
+// The *ApiFixture exports already are that wire format; services under src/services/ pass
+// the body straight through with no case conversion. A handful of envelope keys
+// (character_sheet(s), CharacterClasses, match_map) are still snake_case/PascalCase here
+// on purpose — renaming those is a separate, later task (see http-boundary-inventory.md).
+// Tests override individual handlers via server.use(...) for error/role scenarios — those
+// overrides must follow the same convention (see src/test/fixtures/*.ts for the audit
+// notes per endpoint).
 export const defaultHandlers = [
   http.get(`${baseUrl}/campaigns`, () =>
     HttpResponse.json({ campaigns: [campaignSummaryApiFixture] }),
@@ -41,18 +43,22 @@ export const defaultHandlers = [
   http.get(`${baseUrl}/matches/:id/participants`, () =>
     HttpResponse.json({ participants: [] }),
   ),
-  // Go: ListCharacterSheetsBody.CharacterSheets `json:"character_sheets"` — the mock used
-  // to say "characterSheets" (already-converted shape), which made objToCamelCase() a
-  // no-op and hid this exact envelope mismatch.
+  // Go: ListCharacterSheetsBody.CharacterSheets now tags `json:"characterSheets"`
+  // (camelCase) — matches both the real backend and the literal key
+  // characterSheetsService.listCharacterSheets already reads, no deferral needed.
   http.get(`${baseUrl}/charactersheets`, () =>
-    HttpResponse.json({ character_sheets: [sheetSummaryApiFixture] }),
+    HttpResponse.json({ characterSheets: [sheetSummaryApiFixture] }),
   ),
+  // Deferred: characterSheetsService.getCharacterSheetDetails still reads the raw
+  // `character_sheet` key, though the real backend now sends `characterSheet`
+  // (camelCase) — see http-boundary-inventory.md. Kept snake_case here so the
+  // default handler matches what the (not-yet-updated) service code expects.
   http.get(`${baseUrl}/charactersheets/:id`, () =>
     HttpResponse.json({ character_sheet: sheetApiFixture }),
   ),
-  // Go: ListCharacterClassesBody.CharacterClasses `json:"CharacterClasses"` — PascalCase
-  // on the wire is intentional (see comment in internal/app/api/sheet/list_classes.go),
-  // not a bug to "fix" here.
+  // Deferred: characterClassesService.listCharacterClasses still reads the raw
+  // PascalCase `CharacterClasses` key, though the real backend now sends
+  // `characterClasses` (camelCase) — see http-boundary-inventory.md.
   http.get(`${baseUrl}/classes`, () =>
     HttpResponse.json({ CharacterClasses: [] }),
   ),

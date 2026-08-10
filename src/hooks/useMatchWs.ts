@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { GridShape, Piece, SlotCoord, WallSegment } from "../types/tacticalMap";
-import { objToCamelCase, objToSnakeCase } from "../utils/caseConverter";
 
 export type MatchWsStatus = "connecting" | "connected" | "disconnected";
 
@@ -21,29 +20,34 @@ export type MatchBoardSync = {
 function toPiecePayload(p: Piece) {
   const slot = p.coord.slot;
   return {
-    piece_id: p.id,
+    pieceId: p.id,
     slot:
       slot.kind === "square"
         ? { kind: "square", col: slot.col, row: slot.row }
         : { kind: "hex", q: slot.q, r: slot.r },
-    character_id: p.characterId,
+    characterId: p.characterId,
     visible: p.visible,
     z: p.coord.z,
   };
 }
 
-/** A piece exactly as the game server serializes it (flat, snake_case). */
+/**
+ * A piece exactly as the game server serializes it: flat (`pieceId`/`slot` as
+ * siblings), camelCase. NOT equivalent to the frontend's own `Piece` type, which
+ * nests `slot` under `coord` — this is a genuinely distinct wire shape, not just a
+ * naming difference.
+ */
 type WirePiece = {
-  piece_id: string;
+  pieceId: string;
   slot: SlotCoord;
-  character_id?: string;
+  characterId?: string;
   visible?: boolean;
   z?: number;
 };
 
 /**
  * Wire → domain. The server's piece shape is NOT the frontend's: it is flat
- * (`piece_id`/`slot`) while `Piece` nests the slot under `coord`. Handing the raw
+ * (`pieceId`/`slot`) while `Piece` nests the slot under `coord`. Handing the raw
  * payload to the renderer makes it read `piece.coord.slot` off `undefined` and crash
  * the whole Pixi tree.
  *
@@ -51,8 +55,8 @@ type WirePiece = {
  */
 function fromPiecePayload(w: WirePiece): Piece {
   return {
-    id: w.piece_id,
-    characterId: w.character_id ?? "",
+    id: w.pieceId,
+    characterId: w.characterId ?? "",
     coord: { slot: w.slot, z: w.z ?? 0 },
     visible: w.visible ?? true,
   };
@@ -68,7 +72,7 @@ const MAX_RECONNECTS = 5;
 const BASE_DELAY_MS = 1000;
 
 type WallStateChangedPayload = {
-  wall_id: string;
+  wallId: string;
   open: boolean;
   locked: boolean;
 };
@@ -146,8 +150,8 @@ export function useMatchWs({
     if (!b) return; // map not loaded yet; the effect below re-fires once it is
     sendRaw("map_state_sync", {
       pieces: b.pieces.map(toPiecePayload),
-      walls: b.walls.map((w) => objToSnakeCase(w)),
-      ...(b.grid ? { grid: objToSnakeCase(b.grid) } : {}),
+      walls: b.walls,
+      ...(b.grid ? { grid: b.grid } : {}),
     });
   }, [sendRaw]);
 
@@ -179,35 +183,31 @@ export function useMatchWs({
           const msg = JSON.parse(event.data as string) as { type: string; payload: unknown };
           if (msg.type === "wall_state_changed") {
             const p = msg.payload as WallStateChangedPayload;
-            onWallStateChangedRef.current?.(p.wall_id, p.open, p.locked);
+            onWallStateChangedRef.current?.(p.wallId, p.open, p.locked);
           } else if (msg.type === "wall_hp_changed") {
-            const p = msg.payload as { wall_id: string; hp: number; max_hp: number; destroyed: boolean };
-            onWallHpChangedRef.current?.(p.wall_id, p.hp, p.max_hp, p.destroyed);
+            const p = msg.payload as { wallId: string; hp: number; maxHp: number; destroyed: boolean };
+            onWallHpChangedRef.current?.(p.wallId, p.hp, p.maxHp, p.destroyed);
           } else if (msg.type === "map_full_state") {
             const p = msg.payload as {
               pieces?: WirePiece[];
               walls?: unknown[];
-              visible_polygons?: Array<Array<{ x: number; y: number }>>;
-              fog_mode?: string;
+              visiblePolygons?: Array<Array<{ x: number; y: number }>>;
+              fogMode?: string;
             };
             onMapFullStateRef.current?.({
               pieces: (p.pieces ?? []).map(fromPiecePayload),
-              walls: (p.walls ?? []).map(
-                (w) => objToCamelCase(w as Record<string, unknown>) as unknown as WallSegment,
-              ),
-              visiblePolygons: parsePolys(p.visible_polygons ?? []),
-              fogMode: p.fog_mode === "explored" ? "explored" : "live",
+              walls: (p.walls ?? []) as unknown as WallSegment[],
+              visiblePolygons: parsePolys(p.visiblePolygons ?? []),
+              fogMode: p.fogMode === "explored" ? "explored" : "live",
             });
           } else if (msg.type === "visibility_updated") {
             const p = msg.payload as {
-              visible_polygons?: Array<Array<{ x: number; y: number }>>;
+              visiblePolygons?: Array<Array<{ x: number; y: number }>>;
             };
-            onVisibilityUpdatedRef.current?.(parsePolys(p.visible_polygons ?? []));
+            onVisibilityUpdatedRef.current?.(parsePolys(p.visiblePolygons ?? []));
           } else if (msg.type === "wall_revealed") {
             const p = msg.payload as { wall: Record<string, unknown> };
-            onWallRevealedRef.current?.(
-              objToCamelCase(p.wall) as unknown as WallSegment,
-            );
+            onWallRevealedRef.current?.(p.wall as unknown as WallSegment);
           }
         } catch {
           // ignore malformed messages
@@ -255,10 +255,10 @@ export function useMatchWs({
   /** Send a player action (enqueue_action). */
   const sendAction = useCallback(
     (payload: {
-      target_id?: string[];
+      targetId?: string[];
       interact?: { kind: string };
       move?: { from: [number, number, number]; position: [number, number, number]; category: string };
-      attack?: { hit: { skill_name: string }; damage: { skill_name: string } };
+      attack?: { hit: { skillName: string }; damage: { skillName: string } };
     }) => {
       sendRaw("enqueue_action", payload);
     },
@@ -268,9 +268,9 @@ export function useMatchWs({
   /** Send a master action (enqueue_master_action). */
   const sendMasterAction = useCallback(
     (payload: {
-      target_ids: string[];
+      targetIds: string[];
       interact?: { kind: string };
-      attack?: { hit: { skill_name: string }; damage: { skill_name: string } };
+      attack?: { hit: { skillName: string }; damage: { skillName: string } };
     }) => {
       sendRaw("enqueue_master_action", payload);
     },

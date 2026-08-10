@@ -13,7 +13,7 @@ import { colors } from "../../styles/tokens";
 interface ProficienciesListProps {
   mode: ProficiencyMode;
   commonProfs?: Record<string, Proficiency>;
-  jointProfs?: JointProficiency[];
+  jointProfs?: Record<string, JointProficiency>;
   distribution?: Distribution;
   charSheet?: CharacterSheet;
   setCharSheet?: (s: CharacterSheet) => void;
@@ -28,7 +28,7 @@ export default function ProficienciesList({
   setCharSheet,
 }: ProficienciesListProps) {
   // proficienciesAllowed values are PascalCase ("ThrowingDagger").
-  // commonProficiencies keys come through objToCamelCase → camelCase ("throwingDagger").
+  // commonProficiencies keys arrive from the backend already camelCase ("throwingDagger").
   // Build a bidirectional map so we can look up by either casing.
   const buildCamelToOriginal = (allowed: string[]) => {
     const toCamel = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
@@ -118,11 +118,10 @@ export default function ProficienciesList({
         })}
 
       {jointProfs &&
-        jointProfs.length > 0 &&
-        jointProfs.map((prof) => (
+        Object.entries(jointProfs).map(([name, prof]) => (
           <ProficiencyCard
-            key={prof.name}
-            name={prof.name}
+            key={name}
+            name={name}
             level={prof.level}
             currExp={prof.currExp}
             nextLvlBaseExp={prof.nextLvlBaseExp}

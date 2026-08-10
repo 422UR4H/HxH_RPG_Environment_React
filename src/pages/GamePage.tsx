@@ -207,7 +207,7 @@ function GamePageInner({
               isMaster ? (
                 <WallActionButton onClick={() => {
                   sendMasterAction({
-                    target_ids: [wallPicker.id],
+                    targetIds: [wallPicker.id],
                     interact: { kind: wallPicker.open ? "close" : "open" },
                   });
                   setWallPicker(null);
@@ -217,7 +217,7 @@ function GamePageInner({
               ) : !wallPicker.locked ? (
                 <WallActionButton onClick={() => {
                   sendAction({
-                    target_id: [wallPicker.id],
+                    targetId: [wallPicker.id],
                     interact: { kind: wallPicker.open ? "close" : "open" },
                   });
                   setWallPicker(null);
@@ -226,7 +226,7 @@ function GamePageInner({
                 </WallActionButton>
               ) : wallPicker.wallType === "door" ? (
                 <WallActionButton onClick={() => {
-                  sendAction({ target_id: [wallPicker.id], interact: { kind: "lockpick" } });
+                  sendAction({ targetId: [wallPicker.id], interact: { kind: "lockpick" } });
                   setWallPicker(null);
                 }}>
                   Arrombar fechadura
@@ -239,10 +239,10 @@ function GamePageInner({
               isMaster ? (
                 <WallActionButton onClick={() => {
                   sendMasterAction({
-                    target_ids: [wallPicker.id],
+                    targetIds: [wallPicker.id],
                     attack: {
-                      hit: { skill_name: "combat_strength" },
-                      damage: { skill_name: "combat_strength" },
+                      hit: { skillName: "combat_strength" },
+                      damage: { skillName: "combat_strength" },
                     },
                   });
                   setWallPicker(null);
@@ -252,10 +252,10 @@ function GamePageInner({
               ) : (
                 <WallActionButton onClick={() => {
                   sendAction({
-                    target_id: [wallPicker.id],
+                    targetId: [wallPicker.id],
                     attack: {
-                      hit: { skill_name: "combat_strength" },
-                      damage: { skill_name: "combat_strength" },
+                      hit: { skillName: "combat_strength" },
+                      damage: { skillName: "combat_strength" },
                     },
                   });
                   setWallPicker(null);

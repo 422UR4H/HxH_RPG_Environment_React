@@ -37,6 +37,11 @@ export function createEmptyCharacterSheet(): CharacterSheet {
     mentalAttributes: createEmptyMentalAttributes(),
     spiritualAttributes: createEmptySpiritualAttributes(),
     physicalSkills: createEmptyPhysicalSkills(),
+    // No sheet UI surfaces mental skills yet (see the type's own comment in
+    // src/types/characterSheet.ts) — kept as an empty stub so the field is
+    // never silently dropped, not distributed from the class like the other
+    // skill groups.
+    mentalSkills: {},
     spiritualSkills: createEmptySpiritualSkills(),
     principles: createEmptyPrinciples(),
     categories: createEmptyCategories(),
