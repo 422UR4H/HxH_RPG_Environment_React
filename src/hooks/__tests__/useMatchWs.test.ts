@@ -281,3 +281,115 @@ describe("useMatchWs board sync", () => {
     expect(syncs[syncs.length - 1].pieces[0].z).toBe(2);
   });
 });
+
+// ─── Wall events (server→client) ────────────────────────────────────────────
+
+describe("useMatchWs wall events", () => {
+  it("calls onWallStateChanged with the exact wall_id, open and locked on wall_state_changed", () => {
+    const onWallStateChanged = vi.fn();
+    renderHook(() =>
+      useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onWallStateChanged }),
+    );
+    const ws = FakeWS.instances[0];
+    act(() => { ws.onopen?.(); });
+    act(() => {
+      ws.emit("wall_state_changed", { wall_id: "wall-7", open: true, locked: false });
+    });
+    expect(onWallStateChanged).toHaveBeenCalledWith("wall-7", true, false);
+  });
+
+  it("calls onWallHpChanged with the exact wall_id, hp, max_hp and destroyed on wall_hp_changed", () => {
+    const onWallHpChanged = vi.fn();
+    renderHook(() =>
+      useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onWallHpChanged }),
+    );
+    const ws = FakeWS.instances[0];
+    act(() => { ws.onopen?.(); });
+    act(() => {
+      ws.emit("wall_hp_changed", { wall_id: "wall-9", hp: 40, max_hp: 100, destroyed: false });
+    });
+    expect(onWallHpChanged).toHaveBeenCalledWith("wall-9", 40, 100, false);
+  });
+
+  it("calls onWallHpChanged with destroyed=true when a wall's HP reaches 0", () => {
+    const onWallHpChanged = vi.fn();
+    renderHook(() =>
+      useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onWallHpChanged }),
+    );
+    const ws = FakeWS.instances[0];
+    act(() => { ws.onopen?.(); });
+    act(() => {
+      ws.emit("wall_hp_changed", { wall_id: "wall-10", hp: 0, max_hp: 50, destroyed: true });
+    });
+    expect(onWallHpChanged).toHaveBeenCalledWith("wall-10", 0, 50, true);
+  });
+
+  it("calls onWallRevealed with the wall converted to camelCase on wall_revealed", () => {
+    const onWallRevealed = vi.fn();
+    renderHook(() =>
+      useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onWallRevealed }),
+    );
+    const ws = FakeWS.instances[0];
+    act(() => { ws.onopen?.(); });
+    act(() => {
+      ws.emit("wall_revealed", {
+        wall: {
+          id: "wall-secret",
+          p1: [0, 0], p2: [1, 0],
+          wall_type: "secret_door",
+          material: "stone",
+          move: false, sense: "none", direction: "both",
+          open: false, locked: false,
+          hp: 5, max_hp: 5, resistance: 0,
+          destroyed: false, revealed: true,
+        },
+      });
+    });
+    expect(onWallRevealed).toHaveBeenCalledTimes(1);
+    const wall = onWallRevealed.mock.calls[0][0];
+    expect(wall.id).toBe("wall-secret");
+    expect(wall.wallType).toBe("secret_door");
+    expect(wall.maxHp).toBe(5);
+    expect(wall.revealed).toBe(true);
+  });
+});
+
+// ─── Outgoing actions (sendAction / sendMasterAction) ───────────────────────
+
+describe("useMatchWs outgoing actions", () => {
+  it("sendAction sends enqueue_action with the payload forwarded as-is", () => {
+    const { result } = renderHook(() =>
+      useMatchWs({ matchUuid: "m1", token: "t", isMaster: false }),
+    );
+    const ws = FakeWS.instances[0];
+    act(() => { ws.onopen?.(); });
+    const payload = {
+      target_id: ["char-1"],
+      move: {
+        from: [0, 0, 0] as [number, number, number],
+        position: [1, 1, 0] as [number, number, number],
+        category: "walk",
+      },
+    };
+    act(() => { result.current.sendAction(payload); });
+    const sent = JSON.parse(ws.send.mock.calls[0][0] as string);
+    expect(sent.type).toBe("enqueue_action");
+    expect(sent.payload).toEqual(payload);
+  });
+
+  it("sendMasterAction sends enqueue_master_action with the payload forwarded as-is", () => {
+    const { result } = renderHook(() =>
+      useMatchWs({ matchUuid: "m1", token: "t", isMaster: true }),
+    );
+    const ws = FakeWS.instances[0];
+    act(() => { ws.onopen?.(); });
+    const payload = {
+      target_ids: ["char-1", "char-2"],
+      attack: { hit: { skill_name: "punch" }, damage: { skill_name: "punch" } },
+    };
+    act(() => { result.current.sendMasterAction(payload); });
+    const sent = JSON.parse(ws.send.mock.calls[0][0] as string);
+    expect(sent.type).toBe("enqueue_master_action");
+    expect(sent.payload).toEqual(payload);
+  });
+});
