@@ -6,14 +6,20 @@
 //
 // Fase 8: the backend now speaks camelCase for struct-tagged fields, and
 // characterClassesService no longer runs the response through any generic
-// case-conversion — it passes the body straight through. See the FINDING
-// below the fixtures for a real consequence of that: map keys built from Go
-// enum String() values (e.g. "Resistance") are NOT struct fields, so the
-// backend's camelCase migration never touched them, and they now arrive
-// PascalCase, unconverted, into CharacterClass.
+// case-conversion — it passes the body straight through, EXCEPT for four
+// specific fields (abilities/attributes/skills/proficiencies) whose map KEYS
+// are Go enum String() values (e.g. "Resistance") rather than struct field
+// names. The backend's camelCase migration never touched those (they're
+// runtime enum values, not schema), but the frontend's own internal naming
+// convention for them is lowercase-first (see distribute.ts, PhysicalsDiagram.tsx,
+// etc.) — so the service normalizes exactly those four fields via
+// src/utils/lowercaseFirstKeys.ts before returning. See that file for the
+// full rationale; this is a narrow, targeted fix, not a reincarnation of the
+// generic converter Fase 8 deleted.
 //
 // Per method: (1) request URL/verb + Authorization header, (2) response
-// passed straight through into the src/types/characterClass.ts shape.
+// passed straight through into the src/types/characterClass.ts shape, with
+// abilities/attributes/skills/proficiencies key-normalized.
 import { describe, it, expect } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
@@ -65,26 +71,15 @@ const characterClassWire = {
   },
 };
 
-// What a caller of characterClassesService actually receives now: the exact
-// same shape as the wire, untouched — no key gets lowercased anymore.
-//
-// FINDING (real regression surfaced by removing the converter, NOT fixed
-// here — production code, out of scope for this task): before Fase 8, the
-// generic case converter recursively lowercased the first letter of *every*
-// key it saw, including these enum-derived map keys ("Resistance" -> "resistance").
-// src/features/sheet/utils/distribute.ts's getBaseAbilities()/
-// getBaseAttributesForType()/getBaseSkillsForType() hardcode the
-// lowercase-first form to look entries up in charClass.abilities/attributes/
-// skills (e.g. `charClass.attributes["resistance"]`). With the converter
-// gone, the real keys stay PascalCase ("Resistance"), so every one of those
-// lookups now misses and distributeAttributes/distributeSkills/
-// distributeAbilities silently fall back to their zero-value defaults for
-// every class — the character-class distribution step of sheet creation is
-// affected. Flagged for the PR body / follow-up task; fixing it means either
-// changing distribute.ts's lookup keys or normalizing casing somewhere in
-// the service, both of which are production-logic decisions outside this
-// task's "remove the wrapper, let the body pass through" scope.
-const characterClassCamel = {
+// What a caller of characterClassesService actually receives now:
+// abilities/attributes/skills/proficiencies keys lowercased-first
+// (Resistance -> resistance), matching the frontend's own naming convention
+// (distribute.ts's getBaseAbilities()/getBaseAttributesForType()/
+// getBaseSkillsForType() hardcode this lowercase-first form to look entries
+// up, e.g. `charClass.attributes["resistance"]`). Everything else — values,
+// jointSkills, jointProficiencies (array, not enum-keyed), indicatedCategories,
+// distribution, profile — passes through untouched.
+const characterClassNormalized = {
   profile: {
     name: "Hunter",
     alignment: "Bom",
@@ -92,17 +87,17 @@ const characterClassCamel = {
     briefDescription: "Descrição breve",
   },
   abilities: {
-    Physicals: { level: 2, exp: 50, currExp: 10, nextLvlBaseExp: 100, bonus: 1.5 },
+    physicals: { level: 2, exp: 50, currExp: 10, nextLvlBaseExp: 100, bonus: 1.5 },
   },
   attributes: {
-    Resistance: { level: 3, exp: 80, currExp: 20, nextLvlBaseExp: 150, points: 4, power: 12 },
+    resistance: { level: 3, exp: 80, currExp: 20, nextLvlBaseExp: 150, points: 4, power: 12 },
   },
   skills: {
-    Vitality: { level: 1, exp: 10, currExp: 5, nextLvlBaseExp: 50, value: 3 },
+    vitality: { level: 1, exp: 10, currExp: 5, nextLvlBaseExp: 50, value: 3 },
   },
   jointSkills: {},
   proficiencies: {
-    Dagger: { level: 1, exp: 5, currExp: 2, nextLvlBaseExp: 30 },
+    dagger: { level: 1, exp: 5, currExp: 2, nextLvlBaseExp: 30 },
   },
   jointProficiencies: [
     { level: 1, exp: 5, currExp: 2, nextLvlBaseExp: 30, name: "Bow" },
@@ -125,7 +120,7 @@ describe("characterClassesService", () => {
         http.get(`${baseUrl}/classes`, ({ request }) => {
           capturedAuth = request.headers.get("authorization");
           capturedUrl = request.url;
-          // PascalCase envelope, see FINDING below.
+          // PascalCase envelope, see NOTE below.
           return HttpResponse.json({ CharacterClasses: [characterClassWire] });
         }),
       );
@@ -148,7 +143,7 @@ describe("characterClassesService", () => {
     // actually THROW against the real backend today (`.map()` on
     // `undefined`), not just resolve to a wrong value. Flagged for the PR
     // body as higher severity than a silent-undefined bug.
-    it("returns the list untouched, field by field, via the (deferred) PascalCase `CharacterClasses` envelope", async () => {
+    it("returns the list with abilities/attributes/skills/proficiencies key-normalized, via the (deferred) PascalCase `CharacterClasses` envelope", async () => {
       server.use(
         http.get(`${baseUrl}/classes`, () =>
           HttpResponse.json({ CharacterClasses: [characterClassWire] }),
@@ -157,7 +152,29 @@ describe("characterClassesService", () => {
 
       const result = await characterClassesService.listCharacterClasses(token);
 
-      expect(result).toEqual([characterClassCamel]);
+      expect(result).toEqual([characterClassNormalized]);
+    });
+
+    // Regression test for the enum-key-casing bug: before the fix, this
+    // lookup returned undefined (the real key was "Resistance", not
+    // "resistance"), which is exactly how distribute.ts and the diagram
+    // components read this data.
+    it("normalizes enum-derived map keys so lowercase-first lookups (as used by distribute.ts) succeed", async () => {
+      server.use(
+        http.get(`${baseUrl}/classes`, () =>
+          HttpResponse.json({ CharacterClasses: [characterClassWire] }),
+        ),
+      );
+
+      const [result] = await characterClassesService.listCharacterClasses(token);
+
+      expect(result.attributes["resistance"]).toEqual(characterClassWire.attributes.Resistance);
+      expect(result.abilities["physicals"]).toEqual(characterClassWire.abilities.Physicals);
+      expect(result.skills["vitality"]).toEqual(characterClassWire.skills.Vitality);
+      expect(result.proficiencies["dagger"]).toEqual(characterClassWire.proficiencies.Dagger);
+      // The PascalCase keys must NOT survive — otherwise both spellings would
+      // exist and silently double memory/iteration without anyone noticing.
+      expect(result.attributes).not.toHaveProperty("Resistance");
     });
   });
 
@@ -179,7 +196,7 @@ describe("characterClassesService", () => {
       expect(capturedUrl).toBe(`${baseUrl}/classes/Hunter`);
     });
 
-    it("returns the class untouched, field by field (as the code is written, `character_class` envelope)", async () => {
+    it("returns the class with abilities/attributes/skills/proficiencies key-normalized (as the code is written, `character_class` envelope)", async () => {
       server.use(
         http.get(`${baseUrl}/classes/:id`, () =>
           HttpResponse.json({ character_class: characterClassWire }),
@@ -191,7 +208,7 @@ describe("characterClassesService", () => {
         "Hunter",
       );
 
-      expect(result).toEqual(characterClassCamel);
+      expect(result).toEqual(characterClassNormalized);
     });
 
     // FINDING (real bug, not fixed — documenting current behavior):
@@ -209,6 +226,11 @@ describe("characterClassesService", () => {
     // Reported for the PR body; not fixed here since fixing requires editing
     // either get_class.go (backend, out of scope) or
     // characterClassesService.ts (production code, excluded from this task).
+    //
+    // Also proves the enum-key normalization guards against undefined input:
+    // when data.character_class is undefined, normalizeClassEnumKeyedMaps is
+    // never called (short-circuited), so this still resolves to undefined
+    // cleanly instead of throwing on `undefined.attributes`.
     it("resolves to undefined against the real (PascalCase `CharacterClass`) backend response", async () => {
       server.use(
         http.get(`${baseUrl}/classes/:id`, () =>

@@ -168,6 +168,56 @@ function expectedConvertedSheet() {
   };
 }
 
+// ─── Enum-keyed map fixture ─────────────────────────────────────────────────
+// sheetApiFixture (above) has every enum-keyed map empty, which is exactly
+// why the enum-key-casing bug (map keys like "Resistance" arriving PascalCase
+// instead of the frontend's lowercase-first convention) slipped through
+// initially — an empty map has no keys to get wrong. This fixture adds real
+// PascalCase Go-style keys to prove the service normalizes them.
+function sheetWireWithEnumKeyedMaps() {
+  return {
+    ...sheetApiFixture,
+    abilities: { Physicals: { level: 2, exp: 50, currExp: 10, nextLvlBaseExp: 100, bonus: 1.5 } },
+    physicalAttributes: {
+      Resistance: { level: 3, exp: 80, currExp: 20, nextLvlBaseExp: 150, points: 4, power: 12 },
+    },
+    mentalAttributes: {
+      Resilience: { level: 1, exp: 0, currExp: 0, nextLvlBaseExp: 100, points: 0, power: 0 },
+    },
+    spiritualAttributes: {
+      Flame: { level: 0, exp: 0, currExp: 0, nextLvlBaseExp: 100, points: 0, power: 0 },
+    },
+    physicalSkills: { Vitality: { level: 1, exp: 10, currExp: 5, nextLvlBaseExp: 50, value: 3 } },
+    mentalSkills: { Focus: { level: 1, exp: 0, currExp: 0, nextLvlBaseExp: 100, value: 0 } },
+    spiritualSkills: { Coa: { level: 0, exp: 0, currExp: 0, nextLvlBaseExp: 100, value: 0 } },
+    principles: { Ten: { level: 0, exp: 0, currExp: 0, nextLvlBaseExp: 100, value: 0 } },
+    categories: { Transmutation: { exp: 0, level: 0, value: 0, percent: 0 } },
+    commonProficiencies: { Sword: { level: 1, exp: 20 } },
+    // jointProficiencies keys are DM-defined free text, not enum values —
+    // must stay untouched by the normalization.
+    jointProficiencies: { "Custom Weapon": { level: 1, exp: 5, name: "Custom Weapon" } },
+  };
+}
+
+function expectAllMapsNormalized(result: CharacterSheet, wire: ReturnType<typeof sheetWireWithEnumKeyedMaps>) {
+  expect(result.abilities).toEqual({ physicals: wire.abilities.Physicals });
+  expect(result.physicalAttributes).toEqual({ resistance: wire.physicalAttributes.Resistance });
+  expect(result.mentalAttributes).toEqual({ resilience: wire.mentalAttributes.Resilience });
+  expect(result.spiritualAttributes).toEqual({ flame: wire.spiritualAttributes.Flame });
+  expect(result.physicalSkills).toEqual({ vitality: wire.physicalSkills.Vitality });
+  expect(result.mentalSkills).toEqual({ focus: wire.mentalSkills.Focus });
+  expect(result.spiritualSkills).toEqual({ coa: wire.spiritualSkills.Coa });
+  expect(result.principles).toEqual({ ten: wire.principles.Ten });
+  expect(result.categories).toEqual({ transmutation: wire.categories.Transmutation });
+  expect(result.commonProficiencies).toEqual({ sword: wire.commonProficiencies.Sword });
+  // Free-form DM-defined names, not enum values — untouched.
+  expect(result.jointProficiencies).toEqual(wire.jointProficiencies);
+  // The exact lookup pattern distribute.ts / the diagram components use —
+  // this is the regression this test guards against.
+  expect(result.physicalAttributes["resistance"]).toBeDefined();
+  expect(result.physicalAttributes).not.toHaveProperty("Resistance");
+}
+
 // ─── Task 5-B: type fixes ───────────────────────────────────────────────────
 //
 // Each of these would have failed to compile (tsc) before the corresponding
@@ -349,6 +399,30 @@ describe("getCharacterSheetDetails", () => {
       campaignUuid: "campaign-1",
       createdAt: "2026-06-01T00:00:00Z",
     });
+  });
+
+  // Regression test for the enum-key-casing bug: sheetApiFixture's maps are
+  // all empty, which is exactly why this slipped through initially. With
+  // real PascalCase Go-style keys present, this proves the service
+  // normalizes abilities/physicalAttributes/mentalAttributes/
+  // spiritualAttributes/physicalSkills/mentalSkills/spiritualSkills/
+  // principles/categories/commonProficiencies to the frontend's
+  // lowercase-first convention — without which every existing sheet's
+  // diagrams/skills/abilities/principles/categories/proficiencies would
+  // render blank, since PhysicalsDiagram.tsx/MentalsDiagram.tsx/
+  // NenPrinciplesDiagram.tsx and distribute.ts all look these up by
+  // lowercase-first key.
+  it("normalizes enum-keyed maps to the frontend's lowercase-first convention", async () => {
+    const wire = sheetWireWithEnumKeyedMaps();
+    server.use(
+      http.get(`${baseUrl}/charactersheets/:id`, () =>
+        HttpResponse.json({ character_sheet: wire }),
+      ),
+    );
+
+    const result = await characterSheetsService.getCharacterSheetDetails(token, "sheet-1");
+
+    expectAllMapsNormalized(result, wire);
   });
 
   // D4 (deferred, not fixed here): this method still reads the raw
@@ -712,6 +786,26 @@ describe("updateCharacterSheet", () => {
     );
 
     expect(result).toEqual(expectedConvertedSheet());
+  });
+
+  // Same regression coverage as getCharacterSheetDetails above — updateCharacterSheet
+  // has its own response-mapping call site and must normalize independently.
+  it("normalizes enum-keyed maps to the frontend's lowercase-first convention", async () => {
+    const wire = sheetWireWithEnumKeyedMaps();
+    server.use(
+      http.patch(`${baseUrl}/charactersheets/:uuid`, () =>
+        HttpResponse.json({ character_sheet: wire }),
+      ),
+    );
+
+    const result = await characterSheetsService.updateCharacterSheet(
+      token,
+      "sheet-1",
+      charSheet,
+      charClass,
+    );
+
+    expectAllMapsNormalized(result, wire);
   });
 
   // D4 (deferred, not fixed here): same raw-key pattern as

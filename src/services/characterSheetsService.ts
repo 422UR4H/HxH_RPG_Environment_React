@@ -6,6 +6,29 @@ import type {
 } from "../types/characterSheet";
 import type { CharacterClass } from "../types/characterClass";
 import config from "./config";
+import { lowercaseFirstKeys } from "../utils/lowercaseFirstKeys";
+
+// CharacterSheet fields whose map KEYS are Go enum String() values
+// (PascalCase, e.g. "Resistance") rather than struct field names — the
+// backend's camelCase migration never touched them. See
+// src/utils/lowercaseFirstKeys.ts for the full explanation. `status` is
+// excluded (already lowercased server-side) and `jointProficiencies` is
+// excluded (free-form DM-defined names, not enum-derived).
+function normalizeSheetEnumKeyedMaps(sheet: CharacterSheet): CharacterSheet {
+  return {
+    ...sheet,
+    abilities: lowercaseFirstKeys(sheet.abilities),
+    physicalAttributes: lowercaseFirstKeys(sheet.physicalAttributes),
+    mentalAttributes: lowercaseFirstKeys(sheet.mentalAttributes),
+    spiritualAttributes: lowercaseFirstKeys(sheet.spiritualAttributes),
+    physicalSkills: lowercaseFirstKeys(sheet.physicalSkills),
+    mentalSkills: lowercaseFirstKeys(sheet.mentalSkills),
+    spiritualSkills: lowercaseFirstKeys(sheet.spiritualSkills),
+    principles: lowercaseFirstKeys(sheet.principles),
+    categories: lowercaseFirstKeys(sheet.categories),
+    commonProficiencies: lowercaseFirstKeys(sheet.commonProficiencies),
+  };
+}
 
 export const characterSheetsService = {
   listCharacterSheets: (token: string): Promise<CharacterSheetSummary[]> =>
@@ -19,7 +42,9 @@ export const characterSheetsService = {
         `/charactersheets/${id}?include=submission`,
         config(token)
       )
-      .then(({ data }) => data.character_sheet),
+      .then(({ data }) =>
+        data.character_sheet ? normalizeSheetEnumKeyedMaps(data.character_sheet) : data.character_sheet
+      ),
 
   submitCharacterSheet: (
     token: string,
@@ -164,7 +189,9 @@ export const characterSheetsService = {
         },
         config(token)
       )
-      .then(({ data }) => data.character_sheet);
+      .then(({ data }) =>
+        data.character_sheet ? normalizeSheetEnumKeyedMaps(data.character_sheet) : data.character_sheet
+      );
   },
 
   patchCharacterSheetProfile: (
