@@ -40,14 +40,11 @@ It only fires when a token was already stored. A failed login also returns 401, 
 
 Pages self-guard with `if (!token) return <Navigate to="/" replace />`. No route wrapper.
 
-## API boundary: snake_case ⇄ camelCase
+## API boundary: camelCase end-to-end
 
-Backend speaks snake_case; frontend types are camelCase. Every service in `src/services/` must convert at the boundary via `src/utils/caseConverter.ts`:
+Backend and frontend both speak camelCase natively — there is no conversion layer at the HTTP boundary. `src/utils/caseConverter.ts` (`objToSnakeCase`/`objToCamelCase`) was deleted in Fase 8; services in `src/services/` pass request/response bodies straight through, and `src/types/` declarations are the direct 1:1 shape of what the wire sends. Do not reintroduce a generic converter.
 
-- Outbound: `objToSnakeCase(body)` before `httpClient.post/put/patch`.
-- Inbound: `objToCamelCase<T>(response.data)` before returning.
-
-Types in `src/types/` assume camelCase is already applied.
+One narrow, intentional exception: `src/utils/lowercaseFirstKeys.ts`, used by `characterSheetsService.ts`/`characterClassesService.ts`, lowercases the first letter of keys in a handful of response maps (`abilities`, `physicalAttributes`, `commonProficiencies`, etc.) whose keys are Go enum `String()` values (e.g. `"Resistance"`), not struct field names — the backend's camelCase json-tag migration has nothing to rename there. Read that file's header comment for the full rationale and field list before touching it.
 
 ## React Query (`src/hooks/`)
 
