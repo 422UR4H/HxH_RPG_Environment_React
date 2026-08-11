@@ -1,10 +1,10 @@
 // src/services/__tests__/uploadService.test.ts
 //
 // Basic I/O coverage for uploadService.ts. Per the Fase 7 plan, this service
-// "não passa por conversão — cobrir só o básico": no case-conversion
-// happens here (the upload_url/public_url -> uploadUrl/publicUrl renaming
-// is manual field-by-field), so this file just locks down request shape,
-// response mapping, and auth header where applicable.
+// "não passa por conversão — cobrir só o básico": the backend now speaks
+// genuine camelCase end-to-end, so this service is a clean passthrough
+// (no case conversion, no manual field renaming). This file locks down
+// request shape, response passthrough, and auth header where applicable.
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
@@ -15,7 +15,7 @@ const token = "test-token";
 
 describe("uploadService", () => {
   describe("getPresignedUrl", () => {
-    it("POSTs to /upload/presigned-url with a snake_case body and Authorization header", async () => {
+    it("POSTs to /upload/presigned-url with a camelCase body and Authorization header", async () => {
       let capturedUrl = "";
       let capturedAuth: string | null = null;
       let capturedBody: unknown;
@@ -25,8 +25,8 @@ describe("uploadService", () => {
           capturedAuth = request.headers.get("authorization");
           capturedBody = await request.json();
           return HttpResponse.json({
-            upload_url: "https://r2.example.com/upload?sig=abc",
-            public_url: "https://r2.example.com/public/avatar.webp",
+            uploadUrl: "https://r2.example.com/upload?sig=abc",
+            publicUrl: "https://r2.example.com/public/avatar.webp",
           });
         }),
       );
@@ -36,17 +36,17 @@ describe("uploadService", () => {
       expect(capturedUrl).toBe(`${baseUrl}/upload/presigned-url`);
       expect(capturedAuth).toBe(`Bearer ${token}`);
       expect(capturedBody).toEqual({
-        file_type: "avatar",
-        sheet_uuid: "sheet-1",
+        fileType: "avatar",
+        sheetUuid: "sheet-1",
       });
     });
 
-    it("maps upload_url/public_url to uploadUrl/publicUrl (manual renaming)", async () => {
+    it("passes uploadUrl/publicUrl through unchanged", async () => {
       server.use(
         http.post(`${baseUrl}/upload/presigned-url`, () =>
           HttpResponse.json({
-            upload_url: "https://r2.example.com/upload?sig=abc",
-            public_url: "https://r2.example.com/public/avatar.webp",
+            uploadUrl: "https://r2.example.com/upload?sig=abc",
+            publicUrl: "https://r2.example.com/public/avatar.webp",
           }),
         ),
       );
@@ -61,7 +61,7 @@ describe("uploadService", () => {
   });
 
   describe("getPresignedUrlForMap", () => {
-    it("POSTs to /upload/presigned-url with file_type 'map_bg' and map_uuid, and Authorization header", async () => {
+    it("POSTs to /upload/presigned-url with fileType 'map_bg' and mapUuid, and Authorization header", async () => {
       let capturedAuth: string | null = null;
       let capturedBody: unknown;
       server.use(
@@ -69,8 +69,8 @@ describe("uploadService", () => {
           capturedAuth = request.headers.get("authorization");
           capturedBody = await request.json();
           return HttpResponse.json({
-            upload_url: "https://r2.example.com/upload?sig=map",
-            public_url: "https://r2.example.com/public/map.webp",
+            uploadUrl: "https://r2.example.com/upload?sig=map",
+            publicUrl: "https://r2.example.com/public/map.webp",
           });
         }),
       );
@@ -79,17 +79,17 @@ describe("uploadService", () => {
 
       expect(capturedAuth).toBe(`Bearer ${token}`);
       expect(capturedBody).toEqual({
-        file_type: "map_bg",
-        map_uuid: "map-1",
+        fileType: "map_bg",
+        mapUuid: "map-1",
       });
     });
 
-    it("maps upload_url/public_url to uploadUrl/publicUrl", async () => {
+    it("passes uploadUrl/publicUrl through unchanged", async () => {
       server.use(
         http.post(`${baseUrl}/upload/presigned-url`, () =>
           HttpResponse.json({
-            upload_url: "https://r2.example.com/upload?sig=map",
-            public_url: "https://r2.example.com/public/map.webp",
+            uploadUrl: "https://r2.example.com/upload?sig=map",
+            publicUrl: "https://r2.example.com/public/map.webp",
           }),
         ),
       );
