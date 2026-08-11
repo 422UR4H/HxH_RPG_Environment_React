@@ -120,8 +120,7 @@ describe("characterClassesService", () => {
         http.get(`${baseUrl}/classes`, ({ request }) => {
           capturedAuth = request.headers.get("authorization");
           capturedUrl = request.url;
-          // PascalCase envelope, see NOTE below.
-          return HttpResponse.json({ CharacterClasses: [characterClassWire] });
+          return HttpResponse.json({ characterClasses: [characterClassWire] });
         }),
       );
 
@@ -131,22 +130,16 @@ describe("characterClassesService", () => {
       expect(capturedUrl).toBe(`${baseUrl}/classes`);
     });
 
-    // NOTE (deferred, not fixed here): characterClassesService.ts still reads
-    // the raw PascalCase envelope key `data.CharacterClasses` — matching the
-    // literal key this code has always read. The real backend
-    // (list_classes.go) actually renamed this envelope key to camelCase
-    // `characterClasses` as part of the same Fase 8 migration that removed
-    // the converter, which this task's brief explicitly deferred to a
-    // follow-up (envelope-key renames). Until that follow-up lands, this
-    // fixture uses the PascalCase key the service code still expects, so the
-    // test suite stays green — but that means listCharacterClasses will
-    // actually THROW against the real backend today (`.map()` on
-    // `undefined`), not just resolve to a wrong value. Flagged for the PR
-    // body as higher severity than a silent-undefined bug.
-    it("returns the list with abilities/attributes/skills/proficiencies key-normalized, via the (deferred) PascalCase `CharacterClasses` envelope", async () => {
+    // D4 (fixed): characterClassesService.ts now reads the camelCase
+    // envelope key `data.characterClasses`, matching the real backend
+    // (list_classes.go tags that field `json:"characterClasses"` as of the
+    // same Fase 8 migration that removed the converter). Before this fix,
+    // listCharacterClasses would THROW against the real backend today
+    // (`.map()` on `undefined`), not just resolve to a wrong value.
+    it("returns the list with abilities/attributes/skills/proficiencies key-normalized, via the camelCase `characterClasses` envelope", async () => {
       server.use(
         http.get(`${baseUrl}/classes`, () =>
-          HttpResponse.json({ CharacterClasses: [characterClassWire] }),
+          HttpResponse.json({ characterClasses: [characterClassWire] }),
         ),
       );
 
@@ -162,7 +155,7 @@ describe("characterClassesService", () => {
     it("normalizes enum-derived map keys so lowercase-first lookups (as used by distribute.ts) succeed", async () => {
       server.use(
         http.get(`${baseUrl}/classes`, () =>
-          HttpResponse.json({ CharacterClasses: [characterClassWire] }),
+          HttpResponse.json({ characterClasses: [characterClassWire] }),
         ),
       );
 
@@ -186,7 +179,7 @@ describe("characterClassesService", () => {
         http.get(`${baseUrl}/classes/:id`, ({ request }) => {
           capturedAuth = request.headers.get("authorization");
           capturedUrl = request.url;
-          return HttpResponse.json({ character_class: characterClassWire });
+          return HttpResponse.json({ characterClass: characterClassWire });
         }),
       );
 
@@ -196,10 +189,10 @@ describe("characterClassesService", () => {
       expect(capturedUrl).toBe(`${baseUrl}/classes/Hunter`);
     });
 
-    it("returns the class with abilities/attributes/skills/proficiencies key-normalized (as the code is written, `character_class` envelope)", async () => {
+    it("returns the class with abilities/attributes/skills/proficiencies key-normalized, via the camelCase `characterClass` envelope", async () => {
       server.use(
         http.get(`${baseUrl}/classes/:id`, () =>
-          HttpResponse.json({ character_class: characterClassWire }),
+          HttpResponse.json({ characterClass: characterClassWire }),
         ),
       );
 
@@ -211,24 +204,23 @@ describe("characterClassesService", () => {
       expect(result).toEqual(characterClassNormalized);
     });
 
-    // FINDING (real bug, not fixed — documenting current behavior):
-    // GetCharacterClassBody (get_class.go) is
+    // FINDING (real backend bug, out of scope for this frontend task —
+    // documenting current behavior): GetCharacterClassBody (get_class.go) is
     // `struct { CharacterClass CharacterClassResponse }` — no json tag at
     // all, so encoding/json serializes it with the exact Go field name:
     // `CharacterClass` (PascalCase). This one genuinely was NOT touched by
     // the backend's Fase 8 migration (confirmed against the current source),
-    // unlike list_classes.go's plural envelope key, which was. But
-    // characterClassesService.ts reads `data.character_class` (snake_case) —
-    // a key that never exists on the real wire response either way.
+    // unlike list_classes.go's/get_character_sheet.go's envelope keys, which
+    // were. characterClassesService.ts now reads `data.characterClass`
+    // (camelCase, matching the migration convention every other envelope
+    // follows) — but that key never exists on THIS particular real wire
+    // response either way, since get_class.go still sends `CharacterClass`.
     // getCharacterClassDetails silently resolves to `undefined` in
-    // production instead of the requested class. This is the same class of
-    // bug list_classes.go just had fixed — get_class.go still has it.
-    // Reported for the PR body; not fixed here since fixing requires editing
-    // either get_class.go (backend, out of scope) or
-    // characterClassesService.ts (production code, excluded from this task).
+    // production instead of the requested class. Fixing this requires
+    // editing get_class.go (backend, out of scope for this frontend repo).
     //
     // Also proves the enum-key normalization guards against undefined input:
-    // when data.character_class is undefined, normalizeClassEnumKeyedMaps is
+    // when data.characterClass is undefined, normalizeClassEnumKeyedMaps is
     // never called (short-circuited), so this still resolves to undefined
     // cleanly instead of throwing on `undefined.attributes`.
     it("resolves to undefined against the real (PascalCase `CharacterClass`) backend response", async () => {

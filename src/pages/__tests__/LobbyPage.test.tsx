@@ -278,7 +278,7 @@ describe("LobbyPage", () => {
       server.use(
         http.get(`${baseUrl}/matches/:id/map`, () =>
           HttpResponse.json({
-            match_map: {
+            matchMap: {
               matchUuid: "match-1",
               mapUuid: "map-1",
               attachedAt: "2026-01-01T00:00:00Z",
@@ -312,7 +312,7 @@ describe("LobbyPage", () => {
       server.use(
         http.get(`${baseUrl}/matches/:id/map`, () =>
           HttpResponse.json({
-            match_map: {
+            matchMap: {
               matchUuid: "match-1",
               mapUuid: "map-1",
               attachedAt: "2026-01-01T00:00:00Z",

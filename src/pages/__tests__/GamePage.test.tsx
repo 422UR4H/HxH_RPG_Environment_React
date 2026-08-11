@@ -43,10 +43,10 @@ describe("GamePage", () => {
     server.use(
       http.get(`${baseUrl}/matches/:id/map`, () =>
         HttpResponse.json({
-          match_map: {
-            match_uuid: "match-1",
-            map_uuid: mapApiFixture.id,
-            attached_at: "2026-06-04T00:00:00Z",
+          matchMap: {
+            matchUuid: "match-1",
+            mapUuid: mapApiFixture.id,
+            attachedAt: "2026-06-04T00:00:00Z",
           },
         }),
       ),

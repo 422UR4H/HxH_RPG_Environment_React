@@ -16,21 +16,20 @@
 // (2) response passed straight through into the src/types/ shape,
 // (3) Authorization header sent when a token is passed.
 //
-// D4 (still present, still NOT fixed here — a follow-up task will rename
-// these envelope keys):
-//   - listCharacterSheets reads the literal key `.characterSheets` — this
-//     already matches the real backend (list_character_sheets.go now tags
-//     the field `json:"characterSheets"`), so this path is actually correct
-//     today, no follow-up needed for THIS method.
-//   - getCharacterSheetDetails / updateCharacterSheet / createCharacterSheet
-//     still read the raw snake_case envelope key `character_sheet` — but the
-//     real backend (get_character_sheet.go, update_character_sheet.go,
-//     create_character_sheet.go) now tags that field `json:"characterSheet"`
-//     (camelCase). So unlike before Fase 8, this is no longer a "works by
-//     coincidence of two valid spellings" situation — it is now a confirmed
-//     mismatch against the real wire, deferred to the envelope-key rename
-//     task. Tests below assert the actual (still snake_case) key each method
-//     depends on today, so that follow-up can't silently miss one.
+// D4 (resolved): all three call sites (getCharacterSheetDetails,
+// createCharacterSheet, updateCharacterSheet) now read the same envelope
+// shape consistently — the singular `characterSheet` key, camelCase, read
+// directly with no transform step, matching listCharacterSheets' existing
+// `characterSheets` key and the real backend (get_character_sheet.go,
+// update_character_sheet.go, create_character_sheet.go, list_character_sheets.go
+// all tag `json:"characterSheet(s)"`, camelCase).
+//
+// createCharacterSheet/updateCharacterSheet's outer request-body keys
+// (campaignUuid, characterClass, skillsExps, proficienciesExps,
+// attributePoints) were also flipped to camelCase here — they were
+// hand-typed literals never touched by the deleted case converter, and were
+// left snake_case (a functional break against the real backend) until this
+// task.
 import { describe, it, expect } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
@@ -125,7 +124,7 @@ function buildCharClass(overrides: Partial<CharacterClass> = {}): CharacterClass
 }
 
 // Since the service no longer converts anything, this is just sheetApiFixture
-// with the (still-deferred) `character_sheet` envelope key peeled off. Two
+// with the `characterSheet` envelope key peeled off. Two
 // fields that used to diverge from src/types/characterSheet.ts's
 // CharacterSheet (Task 5-B fixed both):
 //   - mentalSkills: present on the wire, and now typed on CharacterSheet too
@@ -228,7 +227,7 @@ describe("Task 5-B type fixes", () => {
   it("CharacterSheet.mentalSkills exists and is typed as Record<string, Skill>", async () => {
     server.use(
       http.get(`${baseUrl}/charactersheets/:id`, () =>
-        HttpResponse.json({ character_sheet: sheetApiFixture }),
+        HttpResponse.json({ characterSheet: sheetApiFixture }),
       ),
     );
 
@@ -242,7 +241,7 @@ describe("Task 5-B type fixes", () => {
   it("CharacterSheet.jointProficiencies is a Record<string, JointProficiency>, not an array", async () => {
     server.use(
       http.get(`${baseUrl}/charactersheets/:id`, () =>
-        HttpResponse.json({ character_sheet: sheetApiFixture }),
+        HttpResponse.json({ characterSheet: sheetApiFixture }),
       ),
     );
 
@@ -359,7 +358,7 @@ describe("getCharacterSheetDetails", () => {
       http.get(`${baseUrl}/charactersheets/:id`, ({ request }) => {
         capturedAuth = request.headers.get("authorization");
         capturedUrl = request.url;
-        return HttpResponse.json({ character_sheet: sheetApiFixture });
+        return HttpResponse.json({ characterSheet: sheetApiFixture });
       }),
     );
 
@@ -372,7 +371,7 @@ describe("getCharacterSheetDetails", () => {
   it("returns the sheet untouched, field by field", async () => {
     server.use(
       http.get(`${baseUrl}/charactersheets/:id`, () =>
-        HttpResponse.json({ character_sheet: sheetApiFixture }),
+        HttpResponse.json({ characterSheet: sheetApiFixture }),
       ),
     );
 
@@ -385,7 +384,7 @@ describe("getCharacterSheetDetails", () => {
     server.use(
       http.get(`${baseUrl}/charactersheets/:id`, () =>
         HttpResponse.json({
-          character_sheet: {
+          characterSheet: {
             ...sheetApiFixture,
             submission: { campaignUuid: "campaign-1", createdAt: "2026-06-01T00:00:00Z" },
           },
@@ -416,7 +415,7 @@ describe("getCharacterSheetDetails", () => {
     const wire = sheetWireWithEnumKeyedMaps();
     server.use(
       http.get(`${baseUrl}/charactersheets/:id`, () =>
-        HttpResponse.json({ character_sheet: wire }),
+        HttpResponse.json({ characterSheet: wire }),
       ),
     );
 
@@ -425,15 +424,11 @@ describe("getCharacterSheetDetails", () => {
     expectAllMapsNormalized(result, wire);
   });
 
-  // D4 (deferred, not fixed here): this method still reads the raw
-  // snake_case `character_sheet` key. The real backend (get_character_sheet.go)
-  // now tags that field `json:"characterSheet"` — confirmed against the
-  // current backend source, not hypothetical — so this scenario is exactly
-  // what happens against the real backend TODAY, not a simulated future
-  // refactor. data.character_sheet is undefined against that real response,
-  // and getCharacterSheetDetails silently resolves to undefined — no error,
-  // no throw. Deferred to the envelope-key rename follow-up task.
-  it("resolves undefined against the real (camelCase `characterSheet`) backend response", async () => {
+  // D4 (fixed): this method now reads the camelCase `characterSheet` key,
+  // matching the real backend (get_character_sheet.go tags that field
+  // `json:"characterSheet"`) — this used to resolve to `undefined` against
+  // this exact response body before the envelope-key rename.
+  it("resolves the sheet against the real (camelCase `characterSheet`) backend response", async () => {
     server.use(
       http.get(`${baseUrl}/charactersheets/:id`, () =>
         HttpResponse.json({ characterSheet: sheetApiFixture }),
@@ -442,7 +437,7 @@ describe("getCharacterSheetDetails", () => {
 
     const result = await characterSheetsService.getCharacterSheetDetails(token, "sheet-1");
 
-    expect(result).toBeUndefined();
+    expect(result).toEqual(expectedConvertedSheet());
   });
 });
 
@@ -573,7 +568,7 @@ describe("createCharacterSheet", () => {
         capturedBody = await request.json();
         capturedAuth = request.headers.get("authorization");
         return HttpResponse.json(
-          { character_sheet: { uuid: "new-sheet-uuid" } },
+          { characterSheet: { uuid: "new-sheet-uuid" } },
           { status: 201 },
         );
       }),
@@ -584,17 +579,14 @@ describe("createCharacterSheet", () => {
     expect(capturedAuth).toBe(`Bearer ${token}`);
     // NOTE: profile.* used to go through the generic case converter
     // (briefDescription -> brief_description); now it passes straight
-    // through untouched. The
-    // top-level keys (campaign_uuid, character_class, skills_exps, ...) are
-    // hand-typed literals in characterSheetsService.ts, NOT produced by the
-    // converter — they were never touched by this task and remain
-    // snake_case, a pre-existing mismatch against the real backend
-    // (create_character_sheet.go now expects camelCase there too:
-    // campaignUuid/characterClass/skillsExps/proficienciesExps/
-    // attributePoints), unrelated to and unaffected by removing the
-    // converter. Flagged for the PR body; not fixed here.
+    // through untouched. The top-level keys (campaignUuid, characterClass,
+    // skillsExps, proficienciesExps, attributePoints) are hand-typed
+    // literals in characterSheetsService.ts, NOT produced by any converter —
+    // they were left snake_case when the generic converter was removed (a
+    // functional break against the real backend, which expects camelCase
+    // there too per create_character_sheet.go) until this task flipped them.
     expect(capturedBody).toEqual({
-      campaign_uuid: "campaign-1",
+      campaignUuid: "campaign-1",
       profile: {
         nickname: "TestNick",
         fullname: "Test Character",
@@ -604,25 +596,25 @@ describe("createCharacterSheet", () => {
         birthday: "2000-01-01",
         age: 25,
       },
-      character_class: "Especialista",
-      skills_exps: { Vitality: 10 },
-      proficiencies_exps: { Dagger: 20 },
-      attribute_points: { Resistance: 3, Strength: 2, Resilience: 1 },
+      characterClass: "Especialista",
+      skillsExps: { Vitality: 10 },
+      proficienciesExps: { Dagger: 20 },
+      attributePoints: { Resistance: 3, Strength: 2, Resilience: 1 },
     });
   });
 
-  it("defaults campaign_uuid to null when no campaignUuid is passed", async () => {
+  it("defaults campaignUuid to null when no campaignUuid is passed", async () => {
     let capturedBody: unknown;
     server.use(
       http.post(`${baseUrl}/charactersheets`, async ({ request }) => {
         capturedBody = await request.json();
-        return HttpResponse.json({ character_sheet: { uuid: "new-sheet-uuid" } }, { status: 201 });
+        return HttpResponse.json({ characterSheet: { uuid: "new-sheet-uuid" } }, { status: 201 });
       }),
     );
 
     await characterSheetsService.createCharacterSheet(token, charSheet, charClass);
 
-    expect((capturedBody as Record<string, unknown>).campaign_uuid).toBeNull();
+    expect((capturedBody as Record<string, unknown>).campaignUuid).toBeNull();
   });
 
   it("sends empty allow-list maps when charClass is undefined", async () => {
@@ -630,23 +622,23 @@ describe("createCharacterSheet", () => {
     server.use(
       http.post(`${baseUrl}/charactersheets`, async ({ request }) => {
         capturedBody = await request.json();
-        return HttpResponse.json({ character_sheet: { uuid: "new-sheet-uuid" } }, { status: 201 });
+        return HttpResponse.json({ characterSheet: { uuid: "new-sheet-uuid" } }, { status: 201 });
       }),
     );
 
     await characterSheetsService.createCharacterSheet(token, charSheet, undefined);
 
     const body = capturedBody as Record<string, unknown>;
-    expect(body.skills_exps).toEqual({});
-    expect(body.proficiencies_exps).toEqual({});
-    // attribute_points is NOT allow-list filtered, so it's unaffected by a missing charClass
-    expect(body.attribute_points).toEqual({ Resistance: 3, Strength: 2, Resilience: 1 });
+    expect(body.skillsExps).toEqual({});
+    expect(body.proficienciesExps).toEqual({});
+    // attributePoints is NOT allow-list filtered, so it's unaffected by a missing charClass
+    expect(body.attributePoints).toEqual({ Resistance: 3, Strength: 2, Resilience: 1 });
   });
 
-  it("returns { uuid } read from the character_sheet envelope", async () => {
+  it("returns { uuid } read from the characterSheet envelope", async () => {
     server.use(
       http.post(`${baseUrl}/charactersheets`, () =>
-        HttpResponse.json({ character_sheet: { uuid: "new-sheet-uuid" } }, { status: 201 }),
+        HttpResponse.json({ characterSheet: { uuid: "new-sheet-uuid" } }, { status: 201 }),
       ),
     );
 
@@ -724,7 +716,7 @@ describe("updateCharacterSheet", () => {
         capturedBody = await request.json();
         capturedAuth = request.headers.get("authorization");
         capturedUrl = request.url;
-        return HttpResponse.json({ character_sheet: sheetApiFixture });
+        return HttpResponse.json({ characterSheet: sheetApiFixture });
       }),
     );
 
@@ -732,9 +724,8 @@ describe("updateCharacterSheet", () => {
 
     expect(capturedUrl).toBe(`${baseUrl}/charactersheets/sheet-1`);
     expect(capturedAuth).toBe(`Bearer ${token}`);
-    // See the createCharacterSheet test above for why briefDescription is
-    // camelCase but the other top-level keys stay snake_case (pre-existing,
-    // out of this task's scope).
+    // See the createCharacterSheet test above for why these top-level keys
+    // are camelCase (campaignUuid-style), fixed alongside briefDescription.
     expect(capturedBody).toEqual({
       profile: {
         nickname: "TestNick",
@@ -745,10 +736,10 @@ describe("updateCharacterSheet", () => {
         birthday: "2000-01-01",
         age: 25,
       },
-      character_class: "Especialista",
-      skills_exps: { Vitality: 10 },
-      proficiencies_exps: { Dagger: 12, Bow: 8 },
-      attribute_points: { Resistance: 4, Agility: 2, Adaptability: 2 },
+      characterClass: "Especialista",
+      skillsExps: { Vitality: 10 },
+      proficienciesExps: { Dagger: 12, Bow: 8 },
+      attributePoints: { Resistance: 4, Agility: 2, Adaptability: 2 },
     });
   });
 
@@ -757,24 +748,24 @@ describe("updateCharacterSheet", () => {
     server.use(
       http.patch(`${baseUrl}/charactersheets/:uuid`, async ({ request }) => {
         capturedBody = await request.json();
-        return HttpResponse.json({ character_sheet: sheetApiFixture });
+        return HttpResponse.json({ characterSheet: sheetApiFixture });
       }),
     );
 
     await characterSheetsService.updateCharacterSheet(token, "sheet-1", charSheet, undefined);
 
     const body = capturedBody as Record<string, unknown>;
-    expect(body.skills_exps).toEqual({});
-    expect(body.proficiencies_exps).toEqual({});
-    // attribute_points survives without a charClass — it's filtered only by
+    expect(body.skillsExps).toEqual({});
+    expect(body.proficienciesExps).toEqual({});
+    // attributePoints survives without a charClass — it's filtered only by
     // PRIMARY_PHYS_ATTRS (a hardcoded set) + mentalAttributes, not by distribution.
-    expect(body.attribute_points).toEqual({ Resistance: 4, Agility: 2, Adaptability: 2 });
+    expect(body.attributePoints).toEqual({ Resistance: 4, Agility: 2, Adaptability: 2 });
   });
 
   it("returns the updated sheet untouched, field by field", async () => {
     server.use(
       http.patch(`${baseUrl}/charactersheets/:uuid`, () =>
-        HttpResponse.json({ character_sheet: sheetApiFixture }),
+        HttpResponse.json({ characterSheet: sheetApiFixture }),
       ),
     );
 
@@ -794,7 +785,7 @@ describe("updateCharacterSheet", () => {
     const wire = sheetWireWithEnumKeyedMaps();
     server.use(
       http.patch(`${baseUrl}/charactersheets/:uuid`, () =>
-        HttpResponse.json({ character_sheet: wire }),
+        HttpResponse.json({ characterSheet: wire }),
       ),
     );
 
@@ -808,9 +799,9 @@ describe("updateCharacterSheet", () => {
     expectAllMapsNormalized(result, wire);
   });
 
-  // D4 (deferred, not fixed here): same raw-key pattern as
-  // getCharacterSheetDetails — confirmed real against update_character_sheet.go.
-  it("resolves undefined against the real (camelCase `characterSheet`) backend response", async () => {
+  // D4 (fixed): same envelope-key fix as getCharacterSheetDetails —
+  // confirmed real against update_character_sheet.go.
+  it("resolves the sheet against the real (camelCase `characterSheet`) backend response", async () => {
     server.use(
       http.patch(`${baseUrl}/charactersheets/:uuid`, () =>
         HttpResponse.json({ characterSheet: sheetApiFixture }),
@@ -824,7 +815,7 @@ describe("updateCharacterSheet", () => {
       charClass,
     );
 
-    expect(result).toBeUndefined();
+    expect(result).toEqual(expectedConvertedSheet());
   });
 });
 

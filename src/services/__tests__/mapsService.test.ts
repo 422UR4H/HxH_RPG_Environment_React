@@ -368,15 +368,12 @@ describe("mapsService", () => {
   });
 
   describe("attachMatchMap", () => {
-    // NOTE: the `match_map` envelope key here matches the literal key
-    // mapsService.ts still reads (`res.match_map`) — deferred, out of this
-    // task's scope. The real backend (matchmap/attach.go) actually already
-    // renamed this envelope key to `matchMap` (camelCase) as part of the same
-    // Fase 8 migration; this mock intentionally keeps the stale spelling so
-    // the test suite matches today's (not-yet-updated) service code. The
-    // request body key (mapUuid) and the response's inner fields
-    // (matchUuid/mapUuid/attachedAt) are NOT envelope keys — those already
-    // match the real backend, no deferral needed.
+    // The `matchMap` envelope key matches both the literal key
+    // mapsService.ts reads (`res.matchMap`) and the real backend
+    // (matchmap/attach.go tags this field `json:"matchMap"` as of the Fase 8
+    // migration). The request body key (mapUuid) and the response's inner
+    // fields (matchUuid/mapUuid/attachedAt) are NOT envelope keys — those
+    // already matched the real backend before this task, no change needed.
     it("POSTs to /matches/:matchId/map with { mapUuid } body and Authorization header", async () => {
       let capturedBody: unknown;
       let capturedAuth: string | null = null;
@@ -387,7 +384,7 @@ describe("mapsService", () => {
           capturedAuth = request.headers.get("authorization");
           capturedUrl = request.url;
           return HttpResponse.json({
-            match_map: {
+            matchMap: {
               matchUuid: "match-1",
               mapUuid: "map-1",
               attachedAt: "2026-06-01T00:00:00Z",
@@ -416,8 +413,7 @@ describe("mapsService", () => {
   });
 
   describe("getMatchMap", () => {
-    // See the note on attachMatchMap above re: the deferred `match_map`
-    // envelope key.
+    // See the note on attachMatchMap above re: the `matchMap` envelope key.
     it("GETs /matches/:matchId/map with Authorization header and returns the body untouched on 200", async () => {
       let capturedAuth: string | null = null;
       let capturedUrl = "";
@@ -426,7 +422,7 @@ describe("mapsService", () => {
           capturedAuth = request.headers.get("authorization");
           capturedUrl = request.url;
           return HttpResponse.json({
-            match_map: {
+            matchMap: {
               matchUuid: "match-1",
               mapUuid: "map-1",
               attachedAt: "2026-06-01T00:00:00Z",

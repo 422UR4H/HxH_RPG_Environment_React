@@ -9,9 +9,10 @@ const baseUrl = "http://localhost:5000";
 // Default handlers cover the happy path. Response bodies mirror the Go backend's actual
 // wire format per internal/app/api/**/*.go json tags — camelCase fields, as of Fase 8.
 // The *ApiFixture exports already are that wire format; services under src/services/ pass
-// the body straight through with no case conversion. A handful of envelope keys
-// (character_sheet(s), CharacterClasses, match_map) are still snake_case/PascalCase here
-// on purpose — renaming those is a separate, later task (see http-boundary-inventory.md).
+// the body straight through with no case conversion. The three envelope keys that were
+// deliberately left snake_case/PascalCase during the case-converter removal
+// (characterSheet, characterClasses, matchMap) are now also camelCase, matching the real
+// backend — see http-boundary-inventory.md for the (now-closed) migration history.
 // Tests override individual handlers via server.use(...) for error/role scenarios — those
 // overrides must follow the same convention (see src/test/fixtures/*.ts for the audit
 // notes per endpoint).
@@ -49,17 +50,16 @@ export const defaultHandlers = [
   http.get(`${baseUrl}/charactersheets`, () =>
     HttpResponse.json({ characterSheets: [sheetSummaryApiFixture] }),
   ),
-  // Deferred: characterSheetsService.getCharacterSheetDetails still reads the raw
-  // `character_sheet` key, though the real backend now sends `characterSheet`
-  // (camelCase) — see http-boundary-inventory.md. Kept snake_case here so the
-  // default handler matches what the (not-yet-updated) service code expects.
+  // Go: GetCharacterSheetBody.CharacterSheet now tags `json:"characterSheet"`
+  // (camelCase) — matches both the real backend and the literal key
+  // characterSheetsService.getCharacterSheetDetails reads.
   http.get(`${baseUrl}/charactersheets/:id`, () =>
-    HttpResponse.json({ character_sheet: sheetApiFixture }),
+    HttpResponse.json({ characterSheet: sheetApiFixture }),
   ),
-  // Deferred: characterClassesService.listCharacterClasses still reads the raw
-  // PascalCase `CharacterClasses` key, though the real backend now sends
-  // `characterClasses` (camelCase) — see http-boundary-inventory.md.
+  // Go: ListClassesBody's envelope field now tags `json:"characterClasses"`
+  // (camelCase) — matches both the real backend and the literal key
+  // characterClassesService.listCharacterClasses reads.
   http.get(`${baseUrl}/classes`, () =>
-    HttpResponse.json({ CharacterClasses: [] }),
+    HttpResponse.json({ characterClasses: [] }),
   ),
 ];

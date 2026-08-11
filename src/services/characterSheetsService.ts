@@ -38,12 +38,12 @@ export const characterSheetsService = {
 
   getCharacterSheetDetails: (token: string, id: string): Promise<CharacterSheet> =>
     httpClient
-      .get<{ character_sheet: CharacterSheet }>(
+      .get<{ characterSheet: CharacterSheet }>(
         `/charactersheets/${id}?include=submission`,
         config(token)
       )
       .then(({ data }) =>
-        data.character_sheet ? normalizeSheetEnumKeyedMaps(data.character_sheet) : data.character_sheet
+        data.characterSheet ? normalizeSheetEnumKeyedMaps(data.characterSheet) : data.characterSheet
       ),
 
   submitCharacterSheet: (
@@ -99,10 +99,10 @@ export const characterSheetsService = {
     });
 
     return httpClient
-      .post<{ character_sheet: { uuid: string } }>(
+      .post<{ characterSheet: { uuid: string } }>(
         "/charactersheets",
         {
-          campaign_uuid: campaignUuid ?? null,
+          campaignUuid: campaignUuid ?? null,
           profile: {
             nickname: charSheet.profile.nickname,
             fullname: charSheet.profile.fullname,
@@ -112,15 +112,15 @@ export const characterSheetsService = {
             birthday: charSheet.profile.birthday,
             age: charSheet.profile.age,
           },
-          character_class: charSheet.characterClass,
-          skills_exps: skillsExps,
-          proficiencies_exps: proficienciesExps,
-          attribute_points: attributePoints,
+          characterClass: charSheet.characterClass,
+          skillsExps,
+          proficienciesExps,
+          attributePoints,
           // categories: {},
         },
         config(token)
       )
-      .then(({ data }) => ({ uuid: data.character_sheet.uuid }));
+      .then(({ data }) => ({ uuid: data.characterSheet.uuid }));
   },
 
   deleteCharacterSheet: (token: string, uuid: string): Promise<void> =>
@@ -170,7 +170,7 @@ export const characterSheetsService = {
     });
 
     return httpClient
-      .patch<{ character_sheet: CharacterSheet }>(
+      .patch<{ characterSheet: CharacterSheet }>(
         `/charactersheets/${uuid}`,
         {
           profile: {
@@ -182,15 +182,15 @@ export const characterSheetsService = {
             birthday: charSheet.profile.birthday,
             age: charSheet.profile.age,
           },
-          character_class: charSheet.characterClass,
-          skills_exps: skillsExps,
-          proficiencies_exps: proficienciesExps,
-          attribute_points: attributePoints,
+          characterClass: charSheet.characterClass,
+          skillsExps,
+          proficienciesExps,
+          attributePoints,
         },
         config(token)
       )
       .then(({ data }) =>
-        data.character_sheet ? normalizeSheetEnumKeyedMaps(data.character_sheet) : data.character_sheet
+        data.characterSheet ? normalizeSheetEnumKeyedMaps(data.characterSheet) : data.characterSheet
       );
   },
 

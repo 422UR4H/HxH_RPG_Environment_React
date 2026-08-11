@@ -33,7 +33,7 @@ describe("CharacterSheetPage", () => {
     server.use(
       http.get(`${baseUrl}/charactersheets/:id`, async () => {
         await new Promise((r) => setTimeout(r, 50));
-        return HttpResponse.json({ character_sheet: sheetApiFixture });
+        return HttpResponse.json({ characterSheet: sheetApiFixture });
       }),
     );
     const { container } = renderPage();

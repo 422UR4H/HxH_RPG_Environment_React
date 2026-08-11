@@ -45,24 +45,24 @@ export const mapsService = {
     mapId: string,
   ): Promise<MatchMapResponse> =>
     httpClient
-      .post<{ match_map: Record<string, unknown> }>(
+      .post<{ matchMap: Record<string, unknown> }>(
         `/matches/${matchId}/map`,
         { mapUuid: mapId },
         config(token),
       )
-      .then(({ data: res }) => res.match_map as MatchMapResponse),
+      .then(({ data: res }) => res.matchMap as MatchMapResponse),
 
   getMatchMap: (
     token: string,
     matchId: string,
   ): Promise<MatchMapResponse | null> =>
     httpClient
-      .get<{ match_map: Record<string, unknown> } | null>(
+      .get<{ matchMap: Record<string, unknown> } | null>(
         `/matches/${matchId}/map`,
         config(token),
       )
       .then(({ data: res }) =>
-        res?.match_map ? (res.match_map as MatchMapResponse) : null,
+        res?.matchMap ? (res.matchMap as MatchMapResponse) : null,
       )
       .catch((err: unknown) => {
         const status = (err as { response?: { status?: number } })?.response?.status;

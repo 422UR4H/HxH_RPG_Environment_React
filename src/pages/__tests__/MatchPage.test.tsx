@@ -320,7 +320,7 @@ describe("MatchPage", () => {
         ),
         http.get(`${baseUrl}/matches/:id/map`, () =>
           HttpResponse.json({
-            match_map: {
+            matchMap: {
               matchUuid: "match-1",
               mapUuid: mapApiFixture.id,
               attachedAt: "2026-06-04T00:00:00Z",

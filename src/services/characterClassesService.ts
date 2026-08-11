@@ -21,12 +21,12 @@ export const characterClassesService = {
   listCharacterClasses: (token: string): Promise<CharacterClass[]> =>
     httpClient
       .get<CharacterClassResponse>("/classes", config(token))
-      .then(({ data }) => data.CharacterClasses.map(normalizeClassEnumKeyedMaps)),
+      .then(({ data }) => data.characterClasses.map(normalizeClassEnumKeyedMaps)),
 
   getCharacterClassDetails: (token: string, id: string): Promise<CharacterClass> =>
     httpClient
-      .get<{ character_class: CharacterClass }>(`/classes/${id}`, config(token))
+      .get<{ characterClass: CharacterClass }>(`/classes/${id}`, config(token))
       .then(({ data }) =>
-        data.character_class ? normalizeClassEnumKeyedMaps(data.character_class) : data.character_class
+        data.characterClass ? normalizeClassEnumKeyedMaps(data.characterClass) : data.characterClass
       ),
 };
