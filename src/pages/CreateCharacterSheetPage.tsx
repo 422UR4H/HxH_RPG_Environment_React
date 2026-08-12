@@ -100,8 +100,8 @@ function CreateCharacterSheetPage() {
         await characterSheetsService.patchCharacterSheetProfile(
           token,
           uuid,
-          resolvedAvatarUrl ?? null,
-          resolvedCoverUrl ?? null,
+          resolvedAvatarUrl,
+          resolvedCoverUrl,
           charSheet.profile.briefDescription ?? null,
         );
       }
@@ -113,8 +113,8 @@ function CreateCharacterSheetPage() {
         characterSheetsService.patchCharacterSheetProfile(
           token,
           createdUuid,
-          resolvedAvatarUrl ?? null,
-          resolvedCoverUrl ?? null,
+          resolvedAvatarUrl,
+          resolvedCoverUrl,
           charSheet.profile.briefDescription ?? null,
         ).catch(() => undefined);
       }

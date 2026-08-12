@@ -211,8 +211,8 @@ function EditCharacterSheetPage() {
           await characterSheetsService.patchCharacterSheetProfile(
             token,
             id,
-            resolvedAvatarUrl ?? null,
-            resolvedCoverUrl ?? null,
+            resolvedAvatarUrl,
+            resolvedCoverUrl,
             charSheet.profile.briefDescription ?? null,
           );
         }
