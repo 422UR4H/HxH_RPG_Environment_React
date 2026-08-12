@@ -137,6 +137,26 @@ grep -c "PENDENTE de configurações de partida" internal/app/game/room.go   # 0
 
 ---
 
+## Item 4 — Uma asserção de data que falta *(pequeno, React)*
+
+A Fase 9 consolidou 7 formas de parsing de data em `utils/date.ts`, com teste unitário forte —
+inclusive do caso de shift de fuso. Mas **nenhum teste de página assere uma data renderizada**:
+`MatchPage.test.tsx` (23 casos) não verifica que a tela mostra `09/08/2026`.
+
+Ou seja: o util está provado e os call sites foram conferidos manualmente, mas a *integração*
+entre os dois não tem rede. Se alguém trocar `formatDateBR` por `formatDateTimeBR` num call
+site, a suíte continua verde.
+
+**Acrescente a `MatchPage.test.tsx`:** um caso que renderiza a página com uma fixture de data
+conhecida e assere o texto formatado na tela — tanto o `formatDateBR` (datas de história)
+quanto o `formatDateTimeBR` (agendamento, com o ` às `).
+
+Use uma data que **exponha o fuso**: `"2026-08-09T23:00:00Z"` deve renderizar `09/08/2026`, não
+`10/08`. É o caso que só quebra em certas horas do dia — por isso teste é melhor evidência que
+olhar a tela.
+
+---
+
 ## Verificação de fechamento
 
 Com os três itens e a Fase 9 mergeados, o refactor inteiro está fechado. Rode e reporte:
