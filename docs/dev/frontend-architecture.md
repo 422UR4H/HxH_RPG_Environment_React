@@ -15,9 +15,12 @@ hooks/ (React Query)  →  services/ (Axios, fronteira HTTP)  →  backend Go
 ```
 
 - **`src/pages/`** — uma página por rota. Buscam dados via hooks e compõem
-  templates + organisms. "Thin orchestrators": sem styled-components de layout
-  próprio, sem lógica de negócio pesada. Ver `src/pages/CLAUDE.md` para o padrão de
-  erro de API e o loading guard usado em formulários que dependem de query.
+  templates + organisms. Objetivo: "thin orchestrators", sem styled-components
+  de layout próprio nem lógica de negócio pesada — mas isso é uma meta, não um
+  fato consumado; várias páginas (`HomePage`, `CampaignPage`, `GamePage`,
+  `LobbyPage`, `EditMapPage`) ainda definem styled-components próprios. Ver
+  `src/pages/CLAUDE.md` para o padrão de erro de API e o loading guard usado em
+  formulários que dependem de query.
 - **`src/features/<feature>/`** — UI e lógica específicas de uma única feature
   (`campaign`, `match`, `sheet`, `tactical-map`). Se um componente daqui passa a
   ser importado por uma 2ª feature, ele deve ser promovido para `components/` —
@@ -95,6 +98,19 @@ schema, são valor de runtime. Não é uma reencarnação do conversor genérico
 recursão) e vive nos dois pontos exatos da fronteira onde esse mismatch
 acontece. Leia o cabeçalho do próprio arquivo antes de mexer nele.
 
+### Datas: nunca `new Date()` em cima de string do wire
+
+O backend manda datas ISO (`"2026-08-09T14:30:00Z"` ou `"2026-08-09"`) já no
+dia que o usuário deve ver. `new Date(iso)` converte para o timezone local do
+navegador, o que pode **deslocar o dia** — `"2026-08-09T23:00:00Z"` vira 10/08
+em timezones à frente de UTC. `src/utils/date.ts` centraliza a formatação
+lendo os dígitos direto da string (`formatDateBR`, `formatDateTimeBR`,
+`toDateInputValue`, `toDateTimeLocalValue`); nenhuma delas passa por `Date`.
+Essa regra só vive hoje como comentário no topo do arquivo — é fácil alguém
+"melhorar" um desses call sites trocando por `toLocaleDateString` e quebrar em
+silêncio (sem erro de tipo, sem teste falhando fora do timezone de quem
+escreveu). Antes de tocar em `date.ts`, leia o comentário do arquivo inteiro.
+
 ## Como erros de API são tratados
 
 O backend usa huma, que responde no formato RFC7807 (`problem+json`): o campo
@@ -106,8 +122,9 @@ com a mensagem específica do erro é `detail` — não existe `data.message`.
 - devolve essa string, ou `null` quando não há mensagem aproveitável — para o
   chamador aplicar o próprio fallback com `??`.
 
-É a forma única de ler erro de API no front hoje — 8 call sites em produção,
-todos em páginas, todos no mesmo formato:
+É a forma única de ler erro de API no front hoje — 7 call sites hoje, quase
+todos em páginas (+ `TacticalMapEditor`, em `src/features/tactical-map/`),
+todos no mesmo formato:
 
 ```tsx
 // src/pages/LoginPage.tsx:45
@@ -174,6 +191,9 @@ npm run preview          # serve o build de produção localmente
 - `src/pages/CLAUDE.md` — padrão de erro de API e loading guard em formulário.
 - `src/features/sheet/CLAUDE.md` — convenções específicas da ficha de
   personagem (factories, distribute utils, `SheetMode`).
+- `docs/dev/tactical-map/` — a pilha Pixi do mapa tático em detalhe
+  (`overview`, `pixi-stack`, `coordinates`, `state-management`,
+  `sync-and-delta`, `testing`).
 - `docs/dev/http-boundary-inventory.md` — mapa completo endpoint ↔ struct Go
   ↔ type do front ↔ service, com os bugs estruturais conhecidos da fronteira.
 - `CLAUDE.md` (raiz deste repo) — auth/sessão, convenções de TypeScript,

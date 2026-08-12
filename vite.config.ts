@@ -25,6 +25,8 @@ export default defineConfig({
         "src/pages/CreateCampaignPage.tsx",
         "src/pages/CreateMatchPage.tsx",
         "src/pages/CharacterSheetPage.tsx",
+        "src/features/match/**",
+        "src/utils/**",
       ],
     },
   },
