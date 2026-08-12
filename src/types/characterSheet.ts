@@ -199,4 +199,4 @@ export interface CharacterPrivateSummary extends CharacterBaseSummary {
   health: StatusBar;
 }
 
-export interface CharacterPublicSummary extends CharacterBaseSummary {}
+export type CharacterPublicSummary = CharacterBaseSummary;
