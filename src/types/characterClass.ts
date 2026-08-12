@@ -29,7 +29,12 @@ export interface CharacterClass {
   profile: CharacterClassProfile;
   distribution?: Distribution;
   skills: Record<string, Skill>;
-  jointSkills: Record<string, any>;
+  // Backend's JointSkill struct (character_class_response.go) has no exported
+  // fields and no json tags — every entry always marshals to `{}` regardless
+  // of data ("TODO: update to JointSkill / do not expose to users, its in v0"
+  // per the Go source). No frontend code reads this field today, so `unknown`
+  // is the honest bound rather than guessing a shape nothing exercises.
+  jointSkills: Record<string, unknown>;
   proficiencies: Record<string, Proficiency>;
   jointProficiencies: JointProficiency[];
   attributes: Record<string, Attribute>;
