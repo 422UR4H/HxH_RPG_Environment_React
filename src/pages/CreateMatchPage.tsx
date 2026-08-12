@@ -14,7 +14,7 @@ import FormTextArea from "../components/ions/FormTextArea";
 import RulesSidebar from "../components/organisms/RulesSidebar";
 import RuleSection from "../components/molecules/RuleSection";
 import { getApiErrorDetail } from "../utils/apiError";
-import { toDateInputValue } from "../utils/date";
+import { toDateInputValue, toDateTimeLocalValue } from "../utils/date";
 
 type MatchFormData = {
   title: string;
@@ -36,9 +36,9 @@ export default function CreateMatchPage() {
     briefInitialDescription: "",
     description: "",
     isPublic: true,
-    gameScheduledAt: new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .substring(0, 16),
+    gameScheduledAt: toDateTimeLocalValue(
+      new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    ),
     storyStartAt: toDateInputValue(new Date().toISOString()),
   });
 

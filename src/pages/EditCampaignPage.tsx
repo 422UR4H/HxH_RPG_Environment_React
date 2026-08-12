@@ -17,6 +17,7 @@ import RulesSidebar from "../components/organisms/RulesSidebar";
 import RuleSection from "../components/molecules/RuleSection";
 import { LoadingContainer, ErrorContainer } from "../components/atoms/PageStates";
 import { getApiErrorDetail } from "../utils/apiError";
+import { toDateTimeLocalValue } from "../utils/date";
 
 type CampaignEditFormData = {
   name: string;
@@ -27,10 +28,6 @@ type CampaignEditFormData = {
   storyStartAt: string;
   storyCurrentAt: string;
 };
-
-function toDateTimeLocal(iso: string): string {
-  return iso.replace("Z", "").substring(0, 16);
-}
 
 function getErrorMessage(err: unknown): string {
   if (isApiError(err, 403)) return "Apenas o mestre pode editar esta campanha.";
@@ -75,7 +72,7 @@ export default function EditCampaignPage() {
         callLink: campaign.callLink,
         storyStartAt: campaign.storyStartAt,
         storyCurrentAt: campaign.storyCurrentAt
-          ? toDateTimeLocal(campaign.storyCurrentAt)
+          ? toDateTimeLocalValue(campaign.storyCurrentAt)
           : "",
       });
       setInitialized(true);
@@ -232,7 +229,7 @@ export default function EditCampaignPage() {
             onChange={handleForm}
             min={
               campaign.storyCurrentAt
-                ? toDateTimeLocal(campaign.storyCurrentAt)
+                ? toDateTimeLocalValue(campaign.storyCurrentAt)
                 : `${campaign.storyStartAt}T00:00`
             }
           />

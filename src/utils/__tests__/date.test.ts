@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { formatDateBR, formatDateTimeBR, toDateInputValue } from "../date";
+import {
+  formatDateBR,
+  formatDateTimeBR,
+  toDateInputValue,
+  toDateTimeLocalValue,
+} from "../date";
 
 describe("formatDateBR", () => {
   it("case 1: formats a full ISO datetime with timezone as dd/mm/aaaa", () => {
@@ -91,5 +96,36 @@ describe("toDateInputValue", () => {
   it("case 7: returns empty string for a malformed string without throwing", () => {
     expect(() => toDateInputValue("not-a-date")).not.toThrow();
     expect(toDateInputValue("not-a-date")).toBe("");
+  });
+});
+
+describe("toDateTimeLocalValue", () => {
+  it("case 1: extracts date and time from a full ISO datetime with timezone as aaaa-mm-ddTHH:mm", () => {
+    expect(toDateTimeLocalValue("2026-08-09T14:30:00Z")).toBe("2026-08-09T14:30");
+  });
+
+  it("case 2: defaults the time to 00:00 for a date-only ISO string", () => {
+    expect(toDateTimeLocalValue("2026-08-09")).toBe("2026-08-09T00:00");
+  });
+
+  it("case 3: does not shift the day across timezones (late UTC time stays on the same calendar day)", () => {
+    expect(toDateTimeLocalValue("2026-08-09T23:00:00Z")).toBe("2026-08-09T23:00");
+  });
+
+  it("case 4: returns empty string for an empty string", () => {
+    expect(toDateTimeLocalValue("")).toBe("");
+  });
+
+  it("case 5: returns empty string for undefined", () => {
+    expect(toDateTimeLocalValue(undefined)).toBe("");
+  });
+
+  it("case 6: returns empty string for null", () => {
+    expect(toDateTimeLocalValue(null)).toBe("");
+  });
+
+  it("case 7: returns empty string for a malformed string without throwing", () => {
+    expect(() => toDateTimeLocalValue("not-a-date")).not.toThrow();
+    expect(toDateTimeLocalValue("not-a-date")).toBe("");
   });
 });

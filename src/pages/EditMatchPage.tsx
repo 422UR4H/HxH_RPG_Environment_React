@@ -17,6 +17,7 @@ import RulesSidebar from "../components/organisms/RulesSidebar";
 import RuleSection from "../components/molecules/RuleSection";
 import { LoadingContainer, ErrorContainer } from "../components/atoms/PageStates";
 import { getApiErrorDetail } from "../utils/apiError";
+import { toDateTimeLocalValue } from "../utils/date";
 
 type MatchFormData = {
   title: string;
@@ -26,10 +27,6 @@ type MatchFormData = {
   gameScheduledAt: string;
   storyStartAt: string;
 };
-
-function toDateTimeLocal(iso: string): string {
-  return iso.replace("Z", "").substring(0, 16);
-}
 
 function getErrorMessage(err: unknown): string {
   if (isApiError(err, 403)) return "Apenas o mestre pode editar esta partida.";
@@ -77,7 +74,7 @@ export default function EditMatchPage() {
         briefInitialDescription: match.briefInitialDescription,
         description: match.description,
         isPublic: match.isPublic,
-        gameScheduledAt: toDateTimeLocal(match.gameScheduledAt),
+        gameScheduledAt: toDateTimeLocalValue(match.gameScheduledAt),
         storyStartAt: match.storyStartAt,
       });
       setInitialized(true);

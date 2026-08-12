@@ -44,3 +44,15 @@ export function toDateInputValue(iso: string | undefined | null): string {
   if (!parts) return "";
   return `${parts.year}-${parts.month}-${parts.day}`;
 }
+
+/**
+ * `"2026-08-09T14:30:00Z"` → `"2026-08-09T14:30"`, for `<input type="datetime-local">`.
+ * Date-only input (no `T` section) defaults the time to `"00:00"`.
+ */
+export function toDateTimeLocalValue(iso: string | undefined | null): string {
+  const parts = parseIsoDateParts(iso);
+  if (!parts) return "";
+  const timePart = iso!.split("T")[1];
+  const time = timePart?.substring(0, 5) ?? "00:00";
+  return `${parts.year}-${parts.month}-${parts.day}T${time}`;
+}
