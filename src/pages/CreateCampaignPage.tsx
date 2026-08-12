@@ -14,14 +14,14 @@ import RuleSection from "../components/molecules/RuleSection";
 import { getApiErrorDetail } from "../utils/apiError";
 import { toDateInputValue } from "../utils/date";
 
-interface CampaignFormData {
+type CampaignFormData = {
   name: string;
   briefInitialDescription: string;
   description: string;
   isPublic: boolean;
   callLink: string;
   storyStartAt: string;
-}
+};
 
 export default function CreateCampaignPage() {
   const { token } = useToken();

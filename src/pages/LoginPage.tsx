@@ -11,10 +11,10 @@ import BaseInput from "../components/ions/BaseInput";
 import InlineFeedback from "../components/ions/InlineFeedback";
 import { getApiErrorDetail } from "../utils/apiError";
 
-interface LoginForm {
+type LoginForm = {
   email: string;
   password: string;
-}
+};
 
 export default function LoginPage() {
   const { token, login } = useToken();

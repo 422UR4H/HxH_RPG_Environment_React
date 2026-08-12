@@ -18,7 +18,7 @@ import RuleSection from "../components/molecules/RuleSection";
 import { LoadingContainer, ErrorContainer } from "../components/atoms/PageStates";
 import { getApiErrorDetail } from "../utils/apiError";
 
-interface CampaignEditFormData {
+type CampaignEditFormData = {
   name: string;
   briefInitialDescription: string;
   description: string;
@@ -26,7 +26,7 @@ interface CampaignEditFormData {
   callLink: string;
   storyStartAt: string;
   storyCurrentAt: string;
-}
+};
 
 function toDateTimeLocal(iso: string): string {
   return iso.replace("Z", "").substring(0, 16);
