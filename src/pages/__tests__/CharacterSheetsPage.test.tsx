@@ -33,7 +33,7 @@ describe("CharacterSheetsPage", () => {
     server.use(
       http.get(`${baseUrl}/charactersheets`, async () => {
         await new Promise((r) => setTimeout(r, 50));
-        return HttpResponse.json({ character_sheets: [sheetSummaryApiFixture] });
+        return HttpResponse.json({ characterSheets: [sheetSummaryApiFixture] });
       }),
     );
     renderPage();
@@ -57,7 +57,7 @@ describe("CharacterSheetsPage", () => {
 
   it("redireciona pra /charactersheet/new se lista vem vazia", async () => {
     server.use(
-      http.get(`${baseUrl}/charactersheets`, () => HttpResponse.json({ character_sheets: [] })),
+      http.get(`${baseUrl}/charactersheets`, () => HttpResponse.json({ characterSheets: [] })),
     );
     renderPage();
     await waitFor(() => {

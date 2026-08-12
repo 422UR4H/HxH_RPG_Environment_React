@@ -2,7 +2,6 @@
 import type { CampaignMaster } from "../../types/campaign";
 import type { CampaignSummary } from "../../types/campaigns";
 import type { CharacterPrivateSummary } from "../../types/characterSheet";
-import { objToSnakeCase } from "../../utils/caseConverter";
 
 export const campaignSummaryFixture: CampaignSummary = {
   uuid: "campaign-1",
@@ -103,19 +102,51 @@ export const campaignWithNpcs = (
 });
 
 // ─── Wire-format (backend) counterparts ────────────────────────────────────
-// The Go handlers serialize snake_case (internal/app/api/campaign/*.go);
-// campaignService applies objToCamelCase() on the way in. These run the same
-// fixtures through objToSnakeCase() so MSW mocks exercise that real
-// conversion instead of skipping it (a body that's already camelCase makes
-// objToCamelCase a no-op and hides real backend/frontend drift).
-export const campaignSummaryApiFixture = objToSnakeCase<Record<string, unknown>>(campaignSummaryFixture);
-export const campaignApiFixture = objToSnakeCase<Record<string, unknown>>(campaignFixture);
+// Hand-built directly from the Go response structs' `json` tags
+// (internal/app/api/campaign/{list_campaigns,campaign_response}.go) — NOT
+// derived from the frontend fixtures above, and typed as Record<string,
+// unknown> rather than CampaignSummary/CampaignMaster, so a future field
+// rename on those frontend types can't silently drag these along and mask
+// wire-format drift. Values mirror campaignSummaryFixture/campaignFixture.
+export const campaignSummaryApiFixture: Record<string, unknown> = {
+  uuid: "campaign-1",
+  name: "Campanha de Teste",
+  briefInitialDescription: "Brief",
+  isPublic: true,
+  callLink: "",
+  storyStartAt: "2025-01-01",
+  createdAt: "2025-01-01T00:00:00.000Z",
+  updatedAt: "2025-01-01T00:00:00.000Z",
+};
 
-export const campaignAsMasterApi = (userUuid: string): Record<string, unknown> =>
-  objToSnakeCase<Record<string, unknown>>(campaignAsMaster(userUuid));
+// Mirrors CampaignMasterResponse = CampaignBaseResponse + characterSheets +
+// pendingSheets (campaign_response.go).
+export const campaignApiFixture: Record<string, unknown> = {
+  uuid: "campaign-1",
+  masterUuid: "master-1",
+  name: "Campanha de Teste",
+  briefInitialDescription: "Brief inicial",
+  description: "Descrição completa da campanha",
+  isPublic: true,
+  callLink: "",
+  storyStartAt: "2025-01-01",
+  storyCurrentAt: "2025-06-15T12:00:00Z",
+  createdAt: "2025-01-01T00:00:00.000Z",
+  updatedAt: "2025-01-01T00:00:00.000Z",
+  characterSheets: [],
+  pendingSheets: [],
+  matches: [],
+};
+
+export const campaignAsMasterApi = (userUuid: string): Record<string, unknown> => ({
+  ...campaignApiFixture,
+  masterUuid: userUuid,
+});
 
 export const campaignWithNpcsApi = (
   npcs: CharacterPrivateSummary[],
   players: CharacterPrivateSummary[] = [],
-): Record<string, unknown> =>
-  objToSnakeCase<Record<string, unknown>>(campaignWithNpcs(npcs, players));
+): Record<string, unknown> => ({
+  ...campaignApiFixture,
+  characterSheets: [...npcs, ...players],
+});

@@ -11,10 +11,10 @@ describe("usePresignedUpload", () => {
     server.use(
       http.post(`${baseUrl}/upload/presigned-url`, async ({ request }) => {
         const body = await request.json() as Record<string, string>;
-        if (body.file_type === "map_bg" && body.map_uuid === "map-abc") {
+        if (body.fileType === "map_bg" && body.mapUuid === "map-abc") {
           return HttpResponse.json({
-            upload_url: "https://r2/put-url",
-            public_url: "https://pub/img.webp",
+            uploadUrl: "https://r2/put-url",
+            publicUrl: "https://pub/img.webp",
           });
         }
         return HttpResponse.json({}, { status: 400 });

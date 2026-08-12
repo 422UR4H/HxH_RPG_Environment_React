@@ -38,5 +38,5 @@ export interface CharacterClass {
 }
 
 export interface CharacterClassResponse {
-  CharacterClasses: CharacterClass[];
+  characterClasses: CharacterClass[];
 }

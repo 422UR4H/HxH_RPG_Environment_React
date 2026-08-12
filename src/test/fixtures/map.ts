@@ -1,6 +1,5 @@
 // src/test/fixtures/map.ts
 import type { Piece, TacticalMap } from "../../types/tacticalMap";
-import { objToSnakeCase } from "../../utils/caseConverter";
 
 export const mapFixture: TacticalMap = {
   id: "map-1",
@@ -40,12 +39,37 @@ export const mapWithPieces = (pieces: Piece[]): TacticalMap => ({
 });
 
 // ─── Wire-format (backend) counterparts ────────────────────────────────────
-// Go's MapResponse (internal/app/api/map/map_response.go) serializes
-// snake_case (id, campaign_id, grid.cell_size, grid.skew_ratio, grid.line_style,
-// created_at, updated_at); mapsService applies objToCamelCase() on the way in.
-// These run the fixtures above through objToSnakeCase() so MSW mocks reflect
-// the real wire shape instead of the frontend's already-converted one.
-export const mapApiFixture = objToSnakeCase<Record<string, unknown>>(mapFixture);
+// Hand-built directly from MapResponse's `json` tags
+// (internal/app/api/map/map_response.go) — NOT derived from mapFixture
+// above, and kept as Record<string, unknown> (not TacticalMap), so a future
+// field rename on TacticalMap can't silently drag this along and mask
+// wire-format drift. Values mirror mapFixture.
+export const mapApiFixture: Record<string, unknown> = {
+  id: "map-1",
+  campaignId: "campaign-1",
+  name: "Floresta do Norte",
+  description: "Uma floresta densa ao norte do reino.",
+  grid: {
+    kind: "square",
+    cols: 25,
+    rows: 25,
+    cellSize: 64,
+    skewRatio: 1.0,
+    rotation: 0,
+    color: "#ffffff",
+    opacity: 0.5,
+    lineStyle: "solid",
+  },
+  bg: null,
+  pieces: [],
+  walls: [],
+  decorations: [],
+  items: [],
+  createdAt: "2026-05-31T00:00:00.000Z",
+  updatedAt: "2026-05-31T00:00:00.000Z",
+};
 
-export const mapWithPiecesApi = (pieces: Piece[]): Record<string, unknown> =>
-  objToSnakeCase<Record<string, unknown>>(mapWithPieces(pieces));
+export const mapWithPiecesApi = (pieces: Piece[]): Record<string, unknown> => ({
+  ...mapApiFixture,
+  pieces,
+});

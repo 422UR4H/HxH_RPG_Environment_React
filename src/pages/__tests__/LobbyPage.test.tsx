@@ -61,11 +61,11 @@ function sendFromServer(type: string, payload: unknown = {}) {
 const acceptedEnrollment = {
   uuid: "enrollment-1",
   status: "accepted",
-  created_at: "2025-01-01T00:00:00Z",
-  character_sheet: {
+  createdAt: "2025-01-01T00:00:00Z",
+  characterSheet: {
     uuid: "sheet-1",
-    nick_name: "Gon",
-    player_uuid: "user-1",
+    nickName: "Gon",
+    playerUuid: "user-1",
   },
   player: { uuid: "user-1", nick: "Gon" },
 };
@@ -123,7 +123,7 @@ describe("LobbyPage", () => {
     await waitForWsConnect();
     simulateWsOpen();
     sendFromServer("room_state", {
-      match_uuid: "match-1",
+      matchUuid: "match-1",
       state: "lobby",
       players: [],
     });
@@ -144,7 +144,7 @@ describe("LobbyPage", () => {
     await waitForWsConnect();
     simulateWsOpen();
     sendFromServer("room_state", {
-      match_uuid: "match-1",
+      matchUuid: "match-1",
       state: "lobby",
       players: [],
     });
@@ -191,7 +191,7 @@ describe("LobbyPage", () => {
     await waitForWsConnect();
     simulateWsOpen();
     sendFromServer("room_state", {
-      match_uuid: "match-1",
+      matchUuid: "match-1",
       state: "lobby",
       players: [],
     });
@@ -230,7 +230,7 @@ describe("LobbyPage", () => {
     await waitForWsConnect();
     simulateWsOpen();
     sendFromServer("room_state", {
-      match_uuid: "match-1",
+      matchUuid: "match-1",
       state: "lobby",
       players: [],
     });
@@ -258,7 +258,7 @@ describe("LobbyPage", () => {
       await waitForWsConnect();
       simulateWsOpen();
       sendFromServer("room_state", {
-        match_uuid: "match-1",
+        matchUuid: "match-1",
         state: "lobby",
         players: [],
       });
@@ -278,10 +278,10 @@ describe("LobbyPage", () => {
       server.use(
         http.get(`${baseUrl}/matches/:id/map`, () =>
           HttpResponse.json({
-            match_map: {
-              match_uuid: "match-1",
-              map_uuid: "map-1",
-              attached_at: "2026-01-01T00:00:00Z",
+            matchMap: {
+              matchUuid: "match-1",
+              mapUuid: "map-1",
+              attachedAt: "2026-01-01T00:00:00Z",
             },
           }),
         ),
@@ -293,7 +293,7 @@ describe("LobbyPage", () => {
       await waitForWsConnect();
       simulateWsOpen();
       sendFromServer("room_state", {
-        match_uuid: "match-1",
+        matchUuid: "match-1",
         state: "lobby",
         players: [],
       });
@@ -312,10 +312,10 @@ describe("LobbyPage", () => {
       server.use(
         http.get(`${baseUrl}/matches/:id/map`, () =>
           HttpResponse.json({
-            match_map: {
-              match_uuid: "match-1",
-              map_uuid: "map-1",
-              attached_at: "2026-01-01T00:00:00Z",
+            matchMap: {
+              matchUuid: "match-1",
+              mapUuid: "map-1",
+              attachedAt: "2026-01-01T00:00:00Z",
             },
           }),
         ),
@@ -331,7 +331,7 @@ describe("LobbyPage", () => {
       await waitForWsConnect();
       simulateWsOpen();
       sendFromServer("room_state", {
-        match_uuid: "match-1",
+        matchUuid: "match-1",
         state: "lobby",
         players: [],
       });

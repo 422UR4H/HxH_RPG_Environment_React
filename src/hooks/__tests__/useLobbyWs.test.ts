@@ -90,11 +90,11 @@ describe("useLobbyWs", () => {
     const { result } = renderHook(() => useLobbyWs(defaultParams));
     simulateOpen();
     sendFromServer("room_state", {
-      match_uuid: "match-1",
+      matchUuid: "match-1",
       state: "lobby",
       players: [
-        { uuid: "p1", nickname: "Gon", is_master: false, is_online: true },
-        { uuid: "master-1", nickname: "Master", is_master: true, is_online: true },
+        { uuid: "p1", nickname: "Gon", isMaster: false, isOnline: true },
+        { uuid: "master-1", nickname: "Master", isMaster: true, isOnline: true },
       ],
     });
     expect(result.current.participants).toHaveLength(2);
@@ -105,19 +105,19 @@ describe("useLobbyWs", () => {
   // tracked as finding [7] in docs/dev/http-boundary-inventory.md):
   // the Go server's PlayerPayload for this event (internal/app/game/message.go,
   // confirmed by room.go's broadcastPlayerJoined) is `{uuid, nickname}` only —
-  // no `is_master`/`is_online` field is ever sent on the wire for
-  // player_joined/master_joined. useLobbyWs.ts still reads `p.is_master` for
-  // isMaster (undefined here, falsy), while isOnline is hardcoded `true` in
-  // the handler regardless of payload. This mock previously fabricated
-  // is_master/is_online fields the server never sends, which masked the bug.
+  // no `isMaster`/`isOnline` field is ever sent on the wire for
+  // player_joined/master_joined. useLobbyWs.ts still reads `p.isMaster`
+  // (undefined here, falsy), while isOnline is hardcoded `true` in the
+  // handler regardless of payload. This mock previously fabricated
+  // isMaster/isOnline fields the server never sends, which masked the bug.
   it("adds participant on player_joined", () => {
     const { result } = renderHook(() => useLobbyWs(defaultParams));
     simulateOpen();
-    sendFromServer("room_state", { match_uuid: "match-1", state: "lobby", players: [] });
+    sendFromServer("room_state", { matchUuid: "match-1", state: "lobby", players: [] });
     sendFromServer("player_joined", { uuid: "p2", nickname: "Killua" });
     expect(result.current.participants).toHaveLength(1);
     expect(result.current.participants[0].uuid).toBe("p2");
-    // isMaster is undefined: the real wire payload has no is_master field.
+    // isMaster is undefined: the real wire payload has no isMaster field.
     expect(result.current.participants[0].isMaster).toBeUndefined();
     // isOnline is hardcoded true in the handler, independent of the payload.
     expect(result.current.participants[0].isOnline).toBe(true);
@@ -125,17 +125,17 @@ describe("useLobbyWs", () => {
 
   // FINDING (real bug, not fixed — documenting current behavior, already
   // tracked as finding [7] in docs/dev/http-boundary-inventory.md): same
-  // is_master/is_online fabrication issue as player_joined above. Note this
+  // isMaster/isOnline fabrication issue as player_joined above. Note this
   // means a participant who joins via master_joined is indistinguishable
   // from a regular player in `participants` until the next room_state sync.
   it("adds master on master_joined", () => {
     const { result } = renderHook(() => useLobbyWs(defaultParams));
     simulateOpen();
-    sendFromServer("room_state", { match_uuid: "match-1", state: "lobby", players: [] });
+    sendFromServer("room_state", { matchUuid: "match-1", state: "lobby", players: [] });
     sendFromServer("master_joined", { uuid: "master-1", nickname: "Bisky" });
     expect(result.current.participants).toHaveLength(1);
     expect(result.current.participants[0].uuid).toBe("master-1");
-    // BUG: isMaster is undefined, not true — the server never sends is_master
+    // BUG: isMaster is undefined, not true — the server never sends isMaster
     // on this event, so the "master" participant looks like a regular player
     // until the next room_state message corrects it.
     expect(result.current.participants[0].isMaster).toBeUndefined();
@@ -146,8 +146,8 @@ describe("useLobbyWs", () => {
     const { result } = renderHook(() => useLobbyWs(defaultParams));
     simulateOpen();
     sendFromServer("room_state", {
-      match_uuid: "match-1", state: "lobby",
-      players: [{ uuid: "p1", nickname: "Gon", is_master: false, is_online: true }],
+      matchUuid: "match-1", state: "lobby",
+      players: [{ uuid: "p1", nickname: "Gon", isMaster: false, isOnline: true }],
     });
     sendFromServer("player_left", { uuid: "p1", nickname: "Gon" });
     expect(result.current.participants).toHaveLength(0);
@@ -157,8 +157,8 @@ describe("useLobbyWs", () => {
     const { result } = renderHook(() => useLobbyWs(defaultParams));
     simulateOpen();
     sendFromServer("room_state", {
-      match_uuid: "match-1", state: "lobby",
-      players: [{ uuid: "master-1", nickname: "Bisky", is_master: true, is_online: true }],
+      matchUuid: "match-1", state: "lobby",
+      players: [{ uuid: "master-1", nickname: "Bisky", isMaster: true, isOnline: true }],
     });
     sendFromServer("master_left", { uuid: "master-1", nickname: "Bisky" });
     expect(result.current.participants).toHaveLength(0);
@@ -284,19 +284,19 @@ describe("useLobbyWs", () => {
     act(() => { result.current.sendKick("target-uuid"); });
     const sent = JSON.parse(wsInstance.send.mock.calls[0][0]);
     expect(sent.type).toBe("kick_player");
-    expect(sent.payload.player_uuid).toBe("target-uuid");
+    expect(sent.payload.playerUuid).toBe("target-uuid");
   });
 
   // ─── Board messages (piece_moved / piece_removed / map_full_state) ────────
 
-  it("calls onPieceMoved with the exact square slot, character_id and z on piece_moved", () => {
+  it("calls onPieceMoved with the exact square slot, characterId and z on piece_moved", () => {
     const onPieceMoved = vi.fn();
     renderHook(() => useLobbyWs({ ...defaultParams, onPieceMoved }));
     simulateOpen();
     sendFromServer("piece_moved", {
-      piece_id: "piece-1",
+      pieceId: "piece-1",
       slot: { kind: "square", col: 3, row: 4 },
-      character_id: "char-1",
+      characterId: "char-1",
       visible: true,
       z: 2,
     });
@@ -314,7 +314,7 @@ describe("useLobbyWs", () => {
     renderHook(() => useLobbyWs({ ...defaultParams, onPieceMoved }));
     simulateOpen();
     sendFromServer("piece_moved", {
-      piece_id: "piece-2",
+      pieceId: "piece-2",
       slot: { kind: "hex", q: 1, r: -2 },
     });
     expect(onPieceMoved).toHaveBeenCalledWith(
@@ -326,24 +326,24 @@ describe("useLobbyWs", () => {
     );
   });
 
-  it("does not call onPieceMoved when piece_moved is missing piece_id or slot", () => {
+  it("does not call onPieceMoved when piece_moved is missing pieceId or slot", () => {
     const onPieceMoved = vi.fn();
     renderHook(() => useLobbyWs({ ...defaultParams, onPieceMoved }));
     simulateOpen();
     sendFromServer("piece_moved", { slot: { kind: "square", col: 1, row: 1 } });
-    sendFromServer("piece_moved", { piece_id: "piece-3" });
+    sendFromServer("piece_moved", { pieceId: "piece-3" });
     expect(onPieceMoved).not.toHaveBeenCalled();
   });
 
-  it("calls onPieceRemoved with the exact piece_id on piece_removed", () => {
+  it("calls onPieceRemoved with the exact pieceId on piece_removed", () => {
     const onPieceRemoved = vi.fn();
     renderHook(() => useLobbyWs({ ...defaultParams, onPieceRemoved }));
     simulateOpen();
-    sendFromServer("piece_removed", { piece_id: "piece-9" });
+    sendFromServer("piece_removed", { pieceId: "piece-9" });
     expect(onPieceRemoved).toHaveBeenCalledWith("piece-9");
   });
 
-  it("does not call onPieceRemoved when piece_removed is missing piece_id", () => {
+  it("does not call onPieceRemoved when piece_removed is missing pieceId", () => {
     const onPieceRemoved = vi.fn();
     renderHook(() => useLobbyWs({ ...defaultParams, onPieceRemoved }));
     simulateOpen();
@@ -357,8 +357,8 @@ describe("useLobbyWs", () => {
     simulateOpen();
     sendFromServer("map_full_state", {
       pieces: [
-        { piece_id: "p1", slot: { kind: "square", col: 1, row: 2 }, character_id: "c1", visible: true },
-        { piece_id: "p2", slot: { kind: "hex", q: 0, r: 0 }, character_id: "c2" },
+        { pieceId: "p1", slot: { kind: "square", col: 1, row: 2 }, characterId: "c1", visible: true },
+        { pieceId: "p2", slot: { kind: "hex", q: 0, r: 0 }, characterId: "c2" },
       ],
     });
     expect(onFullState).toHaveBeenCalledWith([
@@ -367,14 +367,14 @@ describe("useLobbyWs", () => {
     ]);
   });
 
-  it("silently skips map_full_state pieces missing character_id", () => {
-    // Current hook behavior: `if (!p.piece_id || !p.slot || !p.character_id) continue;`
-    // A piece without character_id is dropped rather than surfaced with a placeholder.
+  it("silently skips map_full_state pieces missing characterId", () => {
+    // Current hook behavior: `if (!p.pieceId || !p.slot || !p.characterId) continue;`
+    // A piece without characterId is dropped rather than surfaced with a placeholder.
     const onFullState = vi.fn();
     renderHook(() => useLobbyWs({ ...defaultParams, onFullState }));
     simulateOpen();
     sendFromServer("map_full_state", {
-      pieces: [{ piece_id: "orphan", slot: { kind: "square", col: 0, row: 0 } }],
+      pieces: [{ pieceId: "orphan", slot: { kind: "square", col: 0, row: 0 } }],
     });
     expect(onFullState).toHaveBeenCalledWith([]);
   });
@@ -390,9 +390,9 @@ describe("useLobbyWs", () => {
     const sent = JSON.parse(wsInstance.send.mock.calls[0][0]);
     expect(sent.type).toBe("piece_moved");
     expect(sent.payload).toEqual({
-      piece_id: "piece-1",
+      pieceId: "piece-1",
       slot: { kind: "square", col: 5, row: 6 },
-      character_id: "char-1",
+      characterId: "char-1",
       visible: true,
       z: 2,
     });
@@ -407,10 +407,10 @@ describe("useLobbyWs", () => {
     const sent = JSON.parse(wsInstance.send.mock.calls[0][0]);
     expect(sent.type).toBe("piece_moved");
     expect(sent.payload).toEqual({
-      piece_id: "piece-2",
+      pieceId: "piece-2",
       slot: { kind: "hex", q: -1, r: 3 },
     });
-    expect("character_id" in sent.payload).toBe(false);
+    expect("characterId" in sent.payload).toBe(false);
     expect("visible" in sent.payload).toBe(false);
     expect("z" in sent.payload).toBe(false);
   });
@@ -421,10 +421,10 @@ describe("useLobbyWs", () => {
     act(() => { result.current.sendPieceRemoved("piece-3"); });
     const sent = JSON.parse(wsInstance.send.mock.calls[0][0]);
     expect(sent.type).toBe("piece_removed");
-    expect(sent.payload).toEqual({ piece_id: "piece-3" });
+    expect(sent.payload).toEqual({ pieceId: "piece-3" });
   });
 
-  it("sendLobbySync sends pieces, snake_case walls and the grid cell_size", () => {
+  it("sendLobbySync sends pieces, walls and the grid cellSize untouched (camelCase)", () => {
     const { result } = renderHook(() => useLobbyWs(defaultParams));
     simulateOpen();
     const pieces: Piece[] = [
@@ -445,10 +445,10 @@ describe("useLobbyWs", () => {
     const sent = JSON.parse(wsInstance.send.mock.calls[0][0]);
     expect(sent.type).toBe("map_state_sync");
     expect(sent.payload.pieces).toEqual([
-      { piece_id: "p1", slot: { kind: "square", col: 1, row: 2 }, character_id: "c1", visible: true },
+      { pieceId: "p1", slot: { kind: "square", col: 1, row: 2 }, characterId: "c1", visible: true },
     ]);
-    expect(sent.payload.walls[0]).toMatchObject({ wall_type: "wall", max_hp: 10 });
-    expect(sent.payload.grid).toEqual({ cell_size: 32 });
+    expect(sent.payload.walls[0]).toMatchObject({ wallType: "wall", maxHp: 10 });
+    expect(sent.payload.grid).toEqual({ cellSize: 32 });
   });
 
   it("sendLobbySync omits the grid key entirely when no grid is provided", () => {

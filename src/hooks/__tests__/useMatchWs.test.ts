@@ -37,7 +37,7 @@ afterEach(() => {
 });
 
 describe("useMatchWs fog events", () => {
-  it("parses map_full_state into camelCase fog state", () => {
+  it("parses map_full_state fog state", () => {
     const onMapFullState = vi.fn();
     renderHook(() =>
       useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onMapFullState }),
@@ -46,9 +46,9 @@ describe("useMatchWs fog events", () => {
     ws.onopen?.();
     ws.emit("map_full_state", {
       pieces: [],
-      walls: [{ id: "w1", wall_type: "wall", max_hp: 100 }],
-      visible_polygons: [[{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 10, y: 10 }]],
-      fog_mode: "explored",
+      walls: [{ id: "w1", wallType: "wall", maxHp: 100 }],
+      visiblePolygons: [[{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 10, y: 10 }]],
+      fogMode: "explored",
     });
     expect(onMapFullState).toHaveBeenCalledTimes(1);
     const arg = onMapFullState.mock.calls[0][0];
@@ -65,16 +65,16 @@ describe("useMatchWs fog events", () => {
     const ws = FakeWS.instances[0];
     ws.onopen?.();
     ws.emit("visibility_updated", {
-      visible_polygons: [[{ x: 1, y: 1 }, { x: 2, y: 1 }, { x: 2, y: 2 }]],
+      visiblePolygons: [[{ x: 1, y: 1 }, { x: 2, y: 1 }, { x: 2, y: 2 }]],
     });
     expect(onVisibilityUpdated).toHaveBeenCalledWith([[[1, 1], [2, 1], [2, 2]]]);
   });
 
-  // The server's piece shape is flat (piece_id/slot); the renderer reads piece.coord.slot
-  // and piece.id. Forwarding the raw payload throws "Cannot read properties of undefined
-  // (reading 'slot')" inside PieceSprite, which takes down the whole Pixi tree — the map,
-  // the background and the fog all stop rendering.
-  it("converts map_full_state pieces into the renderer's Piece shape", () => {
+  // The server's piece shape is flat (pieceId/slot as siblings); the renderer reads
+  // piece.coord.slot and piece.id. Forwarding the raw payload throws "Cannot read
+  // properties of undefined (reading 'slot')" inside PieceSprite, which takes down the
+  // whole Pixi tree — the map, the background and the fog all stop rendering.
+  it("maps map_full_state pieces into the renderer's Piece shape", () => {
     const onMapFullState = vi.fn();
     renderHook(() =>
       useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onMapFullState }),
@@ -85,13 +85,13 @@ describe("useMatchWs fog events", () => {
       ws.emit("map_full_state", {
         pieces: [
           {
-            piece_id: "9255b4e4",
+            pieceId: "9255b4e4",
             slot: { kind: "square", col: 18, row: 19 },
-            character_id: "9fae82da",
+            characterId: "9fae82da",
             visible: true,
           },
         ],
-        walls: [], visible_polygons: [], fog_mode: "explored",
+        walls: [], visiblePolygons: [], fogMode: "explored",
       });
     });
 
@@ -107,7 +107,7 @@ describe("useMatchWs fog events", () => {
     expect(piece.id).toBeTruthy();
   });
 
-  it("keeps hex slots intact through the conversion", () => {
+  it("keeps hex slots intact through the mapping", () => {
     const onMapFullState = vi.fn();
     renderHook(() =>
       useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onMapFullState }),
@@ -116,8 +116,8 @@ describe("useMatchWs fog events", () => {
     act(() => { ws.onopen?.(); });
     act(() => {
       ws.emit("map_full_state", {
-        pieces: [{ piece_id: "p", slot: { kind: "hex", q: 2, r: -3 }, character_id: "c" }],
-        walls: [], visible_polygons: [], fog_mode: "live",
+        pieces: [{ pieceId: "p", slot: { kind: "hex", q: 2, r: -3 }, characterId: "c" }],
+        walls: [], visiblePolygons: [], fogMode: "live",
       });
     });
     expect(onMapFullState.mock.calls[0][0].pieces[0].coord.slot).toEqual({
@@ -135,10 +135,10 @@ describe("useMatchWs fog events", () => {
     act(() => {
       ws.emit("map_full_state", {
         pieces: [
-          { piece_id: "high", slot: { kind: "square", col: 1, row: 1 }, character_id: "c", z: 3 },
-          { piece_id: "ground", slot: { kind: "square", col: 2, row: 2 }, character_id: "c" },
+          { pieceId: "high", slot: { kind: "square", col: 1, row: 1 }, characterId: "c", z: 3 },
+          { pieceId: "ground", slot: { kind: "square", col: 2, row: 2 }, characterId: "c" },
         ],
-        walls: [], visible_polygons: [], fog_mode: "explored",
+        walls: [], visiblePolygons: [], fogMode: "explored",
       });
     });
 
@@ -198,14 +198,14 @@ describe("useMatchWs board sync", () => {
     const last = syncs[syncs.length - 1];
     expect(last.pieces).toEqual([
       {
-        piece_id: "piece-1",
+        pieceId: "piece-1",
         slot: { kind: "square", col: 3, row: 4 },
-        character_id: "sheet-1",
+        characterId: "sheet-1",
         visible: true,
         z: 0,
       },
     ]);
-    expect(last.grid).toMatchObject({ cell_size: 64, cols: 20, rows: 20 });
+    expect(last.grid).toMatchObject({ cellSize: 64, cols: 20, rows: 20 });
     expect(last.walls).toHaveLength(1);
   });
 
@@ -255,7 +255,7 @@ describe("useMatchWs board sync", () => {
 
     act(() => {
       ws.emit("map_full_state", {
-        pieces: [], walls: [], visible_polygons: [], fog_mode: "explored",
+        pieces: [], walls: [], visiblePolygons: [], fogMode: "explored",
       });
     });
     rerender({ board });
@@ -285,7 +285,7 @@ describe("useMatchWs board sync", () => {
 // ─── Wall events (server→client) ────────────────────────────────────────────
 
 describe("useMatchWs wall events", () => {
-  it("calls onWallStateChanged with the exact wall_id, open and locked on wall_state_changed", () => {
+  it("calls onWallStateChanged with the exact wallId, open and locked on wall_state_changed", () => {
     const onWallStateChanged = vi.fn();
     renderHook(() =>
       useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onWallStateChanged }),
@@ -293,12 +293,12 @@ describe("useMatchWs wall events", () => {
     const ws = FakeWS.instances[0];
     act(() => { ws.onopen?.(); });
     act(() => {
-      ws.emit("wall_state_changed", { wall_id: "wall-7", open: true, locked: false });
+      ws.emit("wall_state_changed", { wallId: "wall-7", open: true, locked: false });
     });
     expect(onWallStateChanged).toHaveBeenCalledWith("wall-7", true, false);
   });
 
-  it("calls onWallHpChanged with the exact wall_id, hp, max_hp and destroyed on wall_hp_changed", () => {
+  it("calls onWallHpChanged with the exact wallId, hp, maxHp and destroyed on wall_hp_changed", () => {
     const onWallHpChanged = vi.fn();
     renderHook(() =>
       useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onWallHpChanged }),
@@ -306,7 +306,7 @@ describe("useMatchWs wall events", () => {
     const ws = FakeWS.instances[0];
     act(() => { ws.onopen?.(); });
     act(() => {
-      ws.emit("wall_hp_changed", { wall_id: "wall-9", hp: 40, max_hp: 100, destroyed: false });
+      ws.emit("wall_hp_changed", { wallId: "wall-9", hp: 40, maxHp: 100, destroyed: false });
     });
     expect(onWallHpChanged).toHaveBeenCalledWith("wall-9", 40, 100, false);
   });
@@ -319,12 +319,12 @@ describe("useMatchWs wall events", () => {
     const ws = FakeWS.instances[0];
     act(() => { ws.onopen?.(); });
     act(() => {
-      ws.emit("wall_hp_changed", { wall_id: "wall-10", hp: 0, max_hp: 50, destroyed: true });
+      ws.emit("wall_hp_changed", { wallId: "wall-10", hp: 0, maxHp: 50, destroyed: true });
     });
     expect(onWallHpChanged).toHaveBeenCalledWith("wall-10", 0, 50, true);
   });
 
-  it("calls onWallRevealed with the wall converted to camelCase on wall_revealed", () => {
+  it("calls onWallRevealed with the wall payload passed through untouched on wall_revealed", () => {
     const onWallRevealed = vi.fn();
     renderHook(() =>
       useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onWallRevealed }),
@@ -336,11 +336,11 @@ describe("useMatchWs wall events", () => {
         wall: {
           id: "wall-secret",
           p1: [0, 0], p2: [1, 0],
-          wall_type: "secret_door",
+          wallType: "secret_door",
           material: "stone",
           move: false, sense: "none", direction: "both",
           open: false, locked: false,
-          hp: 5, max_hp: 5, resistance: 0,
+          hp: 5, maxHp: 5, resistance: 0,
           destroyed: false, revealed: true,
         },
       });
@@ -364,7 +364,7 @@ describe("useMatchWs outgoing actions", () => {
     const ws = FakeWS.instances[0];
     act(() => { ws.onopen?.(); });
     const payload = {
-      target_id: ["char-1"],
+      targetId: ["char-1"],
       move: {
         from: [0, 0, 0] as [number, number, number],
         position: [1, 1, 0] as [number, number, number],
@@ -384,8 +384,8 @@ describe("useMatchWs outgoing actions", () => {
     const ws = FakeWS.instances[0];
     act(() => { ws.onopen?.(); });
     const payload = {
-      target_ids: ["char-1", "char-2"],
-      attack: { hit: { skill_name: "punch" }, damage: { skill_name: "punch" } },
+      targetIds: ["char-1", "char-2"],
+      attack: { hit: { skillName: "punch" }, damage: { skillName: "punch" } },
     };
     act(() => { result.current.sendMasterAction(payload); });
     const sent = JSON.parse(ws.send.mock.calls[0][0] as string);

@@ -5,24 +5,46 @@ import type {
   CharacterSheetSummary,
 } from "../types/characterSheet";
 import type { CharacterClass } from "../types/characterClass";
-import { objToCamelCase, objToSnakeCase } from "../utils/caseConverter";
 import config from "./config";
+import { lowercaseFirstKeys } from "../utils/lowercaseFirstKeys";
+
+// CharacterSheet fields whose map KEYS are Go enum String() values
+// (PascalCase, e.g. "Resistance") rather than struct field names — the
+// backend's camelCase migration never touched them. See
+// src/utils/lowercaseFirstKeys.ts for the full explanation. `status` is
+// excluded (already lowercased server-side) and `jointProficiencies` is
+// excluded (free-form DM-defined names, not enum-derived).
+function normalizeSheetEnumKeyedMaps(sheet: CharacterSheet): CharacterSheet {
+  return {
+    ...sheet,
+    abilities: lowercaseFirstKeys(sheet.abilities),
+    physicalAttributes: lowercaseFirstKeys(sheet.physicalAttributes),
+    mentalAttributes: lowercaseFirstKeys(sheet.mentalAttributes),
+    spiritualAttributes: lowercaseFirstKeys(sheet.spiritualAttributes),
+    physicalSkills: lowercaseFirstKeys(sheet.physicalSkills),
+    mentalSkills: lowercaseFirstKeys(sheet.mentalSkills),
+    spiritualSkills: lowercaseFirstKeys(sheet.spiritualSkills),
+    principles: lowercaseFirstKeys(sheet.principles),
+    categories: lowercaseFirstKeys(sheet.categories),
+    commonProficiencies: lowercaseFirstKeys(sheet.commonProficiencies),
+  };
+}
 
 export const characterSheetsService = {
   listCharacterSheets: (token: string): Promise<CharacterSheetSummary[]> =>
     httpClient
       .get<CharacterSheetResponse>("/charactersheets", config(token))
-      .then(({ data }) =>
-        objToCamelCase<CharacterSheetResponse>(data).characterSheets ?? []
-      ),
+      .then(({ data }) => data.characterSheets ?? []),
 
   getCharacterSheetDetails: (token: string, id: string): Promise<CharacterSheet> =>
     httpClient
-      .get<{ character_sheet: CharacterSheet }>(
+      .get<{ characterSheet: CharacterSheet }>(
         `/charactersheets/${id}?include=submission`,
         config(token)
       )
-      .then(({ data }) => objToCamelCase<CharacterSheet>(data.character_sheet)),
+      .then(({ data }) =>
+        data.characterSheet ? normalizeSheetEnumKeyedMaps(data.characterSheet) : data.characterSheet
+      ),
 
   submitCharacterSheet: (
     token: string,
@@ -32,7 +54,7 @@ export const characterSheetsService = {
     httpClient
       .post(
         "/submissions/charactersheets/submit",
-        objToSnakeCase({ sheetUuid, campaignUuid }),
+        { sheetUuid, campaignUuid },
         config(token)
       )
       .then(() => undefined),
@@ -77,11 +99,11 @@ export const characterSheetsService = {
     });
 
     return httpClient
-      .post<{ character_sheet: { uuid: string } }>(
+      .post<{ characterSheet: { uuid: string } }>(
         "/charactersheets",
         {
-          campaign_uuid: campaignUuid ?? null,
-          profile: objToSnakeCase({
+          campaignUuid: campaignUuid ?? null,
+          profile: {
             nickname: charSheet.profile.nickname,
             fullname: charSheet.profile.fullname,
             alignment: charSheet.profile.alignment,
@@ -89,16 +111,16 @@ export const characterSheetsService = {
             briefDescription: charSheet.profile.briefDescription,
             birthday: charSheet.profile.birthday,
             age: charSheet.profile.age,
-          }),
-          character_class: charSheet.characterClass,
-          skills_exps: skillsExps,
-          proficiencies_exps: proficienciesExps,
-          attribute_points: attributePoints,
+          },
+          characterClass: charSheet.characterClass,
+          skillsExps,
+          proficienciesExps,
+          attributePoints,
           // categories: {},
         },
         config(token)
       )
-      .then(({ data }) => ({ uuid: data.character_sheet.uuid }));
+      .then(({ data }) => ({ uuid: data.characterSheet.uuid }));
   },
 
   deleteCharacterSheet: (token: string, uuid: string): Promise<void> =>
@@ -148,10 +170,10 @@ export const characterSheetsService = {
     });
 
     return httpClient
-      .patch<{ character_sheet: CharacterSheet }>(
+      .patch<{ characterSheet: CharacterSheet }>(
         `/charactersheets/${uuid}`,
         {
-          profile: objToSnakeCase({
+          profile: {
             nickname: charSheet.profile.nickname,
             fullname: charSheet.profile.fullname,
             alignment: charSheet.profile.alignment,
@@ -159,15 +181,17 @@ export const characterSheetsService = {
             briefDescription: charSheet.profile.briefDescription,
             birthday: charSheet.profile.birthday,
             age: charSheet.profile.age,
-          }),
-          character_class: charSheet.characterClass,
-          skills_exps: skillsExps,
-          proficiencies_exps: proficienciesExps,
-          attribute_points: attributePoints,
+          },
+          characterClass: charSheet.characterClass,
+          skillsExps,
+          proficienciesExps,
+          attributePoints,
         },
         config(token)
       )
-      .then(({ data }) => objToCamelCase<CharacterSheet>(data.character_sheet));
+      .then(({ data }) =>
+        data.characterSheet ? normalizeSheetEnumKeyedMaps(data.characterSheet) : data.characterSheet
+      );
   },
 
   patchCharacterSheetProfile: (
@@ -180,7 +204,7 @@ export const characterSheetsService = {
     httpClient
       .patch(
         `/charactersheets/${sheetUuid}/profile`,
-        objToSnakeCase({ avatarUrl, coverUrl, briefDescription }),
+        { avatarUrl, coverUrl, briefDescription },
         config(token)
       )
       .then(() => undefined),

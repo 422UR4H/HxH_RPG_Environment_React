@@ -76,17 +76,23 @@ export function distributeProficiencies(charClass: CharacterClass) {
   return distributed;
 }
 
+// Builds the CharacterSheet.jointProficiencies map (keyed by name, mirroring
+// the backend's map[string]JointProficiencyResponse shape) from
+// CharacterClass.jointProficiencies — a different, array-shaped field
+// describing the class's proficiency slot definitions. The input stays an
+// array on purpose; only the output changes shape to match CharacterSheet.
 export function distributeJointProficiencies(charClass: CharacterClass) {
-  const distributed: JointProficiency[] = [];
+  const distributed: Record<string, JointProficiency> = {};
 
   charClass.jointProficiencies.forEach((prof) => {
-    distributed.push({
+    const name = prof.name || "";
+    distributed[name] = {
       exp: prof.exp || 0,
       level: prof.level || 0,
-      name: prof.name || "",
+      name,
       currExp: prof.currExp,
       nextLvlBaseExp: prof.nextLvlBaseExp,
-    });
+    };
   });
   return distributed;
 }

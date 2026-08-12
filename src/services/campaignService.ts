@@ -1,6 +1,5 @@
 import { httpClient } from "./httpClient";
 import type { CampaignMaster, CampaignEditResult } from "../types/campaign";
-import { objToCamelCase, objToSnakeCase } from "../utils/caseConverter";
 import config from "./config";
 import type {
   CampaignsResponse,
@@ -13,28 +12,22 @@ export const campaignService = {
   getCampaignDetails: (token: string, id: string): Promise<CampaignMaster> =>
     httpClient
       .get<{ campaign: CampaignMaster }>(`/campaigns/${id}`, config(token))
-      .then(({ data }) => objToCamelCase<CampaignMaster>(data.campaign)),
+      .then(({ data }) => data.campaign),
 
   listCampaigns: (token: string): Promise<CampaignSummary[]> =>
     httpClient
       .get<CampaignsResponse>("/campaigns", config(token))
-      .then(({ data }) => objToCamelCase<CampaignsResponse>(data).campaigns ?? []),
+      .then(({ data }) => data.campaigns ?? []),
 
   listPublicCampaigns: (token: string): Promise<PublicCampaignSummary[]> =>
     httpClient
       .get<PublicCampaignsResponse>("/public/campaigns", config(token))
-      .then(({ data }) =>
-        objToCamelCase<PublicCampaignsResponse>(data).campaigns ?? []
-      ),
+      .then(({ data }) => data.campaigns ?? []),
 
   createCampaign: (token: string, campaignData: object): Promise<CampaignMaster> =>
     httpClient
-      .post<{ campaign: CampaignMaster }>(
-        "/campaigns",
-        objToSnakeCase(campaignData),
-        config(token)
-      )
-      .then(({ data }) => objToCamelCase<CampaignMaster>(data.campaign)),
+      .post<{ campaign: CampaignMaster }>("/campaigns", campaignData, config(token))
+      .then(({ data }) => data.campaign),
 
   deleteCampaign: (token: string, id: string): Promise<void> =>
     httpClient
@@ -43,6 +36,6 @@ export const campaignService = {
 
   updateCampaign: (token: string, id: string, data: object): Promise<CampaignEditResult> =>
     httpClient
-      .patch<{ campaign: CampaignEditResult }>(`/campaigns/${id}`, objToSnakeCase(data), config(token))
-      .then(({ data }) => objToCamelCase<CampaignEditResult>(data.campaign)),
+      .patch<{ campaign: CampaignEditResult }>(`/campaigns/${id}`, data, config(token))
+      .then(({ data }) => data.campaign),
 };

@@ -1,18 +1,17 @@
 import { httpClient } from "./httpClient";
-import { objToCamelCase, objToSnakeCase } from "../utils/caseConverter";
 import config from "./config";
 import type { Match, Enrollment, Participant } from "../types/match";
 
 export const matchService = {
   createMatch: (token: string, matchData: object): Promise<Match> =>
     httpClient
-      .post<{ match: Match }>("/matches", objToSnakeCase(matchData), config(token))
-      .then(({ data }) => objToCamelCase<Match>(data.match)),
+      .post<{ match: Match }>("/matches", matchData, config(token))
+      .then(({ data }) => data.match),
 
   getMatchDetails: (token: string, matchId: string): Promise<Match> =>
     httpClient
       .get<{ match: Match }>(`/matches/${matchId}`, config(token))
-      .then(({ data }) => objToCamelCase<Match>(data.match)),
+      .then(({ data }) => data.match),
 
   getEnrollments: (token: string, matchId: string): Promise<Enrollment[]> =>
     httpClient
@@ -20,7 +19,7 @@ export const matchService = {
         `/matches/${matchId}/enrollments`,
         config(token)
       )
-      .then(({ data }) => objToCamelCase<Enrollment[]>(data.enrollments)),
+      .then(({ data }) => data.enrollments),
 
   getParticipants: (token: string, matchId: string): Promise<Participant[]> =>
     httpClient
@@ -28,7 +27,7 @@ export const matchService = {
         `/matches/${matchId}/participants`,
         config(token)
       )
-      .then(({ data }) => objToCamelCase<Participant[]>(data.participants)),
+      .then(({ data }) => data.participants),
 
   acceptEnrollment: (token: string, enrollmentId: string): Promise<void> =>
     httpClient
@@ -42,8 +41,8 @@ export const matchService = {
 
   updateMatch: (token: string, matchId: string, matchData: object): Promise<Match> =>
     httpClient
-      .patch<{ match: Match }>(`/matches/${matchId}`, objToSnakeCase(matchData), config(token))
-      .then(({ data }) => objToCamelCase<Match>(data.match)),
+      .patch<{ match: Match }>(`/matches/${matchId}`, matchData, config(token))
+      .then(({ data }) => data.match),
 
   deleteMatch: (token: string, matchId: string): Promise<void> =>
     httpClient
@@ -58,7 +57,7 @@ export const matchService = {
     httpClient
       .post(
         "/enrollments/charactersheets/enroll",
-        objToSnakeCase({ sheetUuid, matchUuid }),
+        { sheetUuid, matchUuid },
         config(token)
       )
       .then(() => undefined),

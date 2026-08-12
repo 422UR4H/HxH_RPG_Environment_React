@@ -1,8 +1,8 @@
 export interface CharacterSheetSummary {
   uuid: string;
-  playerUUID: string;
-  masterUUID: string;
-  campaignUUID: string;
+  playerUuid: string;
+  masterUuid: string;
+  campaignUuid: string;
   nickName: string;
   fullName: string;
   alignment: string;
@@ -24,7 +24,11 @@ export interface CharacterSheetSummary {
   skillsLvl: number;
   stamina: StatusBar;
   health: StatusBar;
-  aura: StatusBar;
+  // Not sent by GET /charactersheets (CharacterPrivateSummaryResponse /
+  // CharacterBaseSummaryResponse) nor GET /charactersheets/:id (Aura is
+  // commented out server-side on CharacterSheetResponse too) — optional so an
+  // absent field doesn't lie as a `StatusBar` that's actually `undefined`.
+  aura?: StatusBar;
   createdAt: string;
   updatedAt: string;
 }
@@ -63,11 +67,22 @@ export interface CharacterSheet {
   mentalAttributes: Record<string, Attribute>;
   spiritualAttributes: Record<string, Attribute>;
   physicalSkills: Record<string, Skill>;
+  // Sent by the backend (mentalSkills, GET /charactersheets/:id) but not yet
+  // surfaced by any sheet UI — there's a MentalsDiagram for mental
+  // ATTRIBUTES, but no equivalent skills group for physicalSkills/
+  // spiritualSkills' mental counterpart. Typed here (rather than left
+  // unmapped) so the field isn't silently dropped from the network response;
+  // see docs/dev/http-boundary-inventory.md §3 for the full note.
+  mentalSkills: Record<string, Skill>;
   spiritualSkills: Record<string, Skill>;
   principles: Record<string, Skill>;
   categories: Record<string, Category>;
   commonProficiencies: Record<string, Proficiency>;
-  jointProficiencies: JointProficiency[];
+  // Mirrors the backend's map[string]JointProficiencyResponse shape (keyed by
+  // proficiency name) — NOT the same concept as CharacterClass.jointProficiencies
+  // (src/types/characterClass.ts), which is an array of slot definitions used
+  // during sheet creation/distribution and stays an array on purpose.
+  jointProficiencies: Record<string, JointProficiency>;
   submission?: Submission;
 }
 

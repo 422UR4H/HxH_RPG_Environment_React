@@ -1,12 +1,11 @@
 // src/test/fixtures/user.ts
 //
 // Audited against auth.LoginResponseBody / user.User (Go) — no fix needed here.
-// This fixture doesn't cross the HTTP/case-conversion boundary: renderWithProviders
+// This fixture doesn't cross the HTTP boundary: renderWithProviders
 // (src/test/render.tsx) writes it straight into localStorage["user"] to simulate an
 // already-authenticated session, bypassing authService entirely. And unlike every other
 // fixture file, User's own fields (uuid, nick, email) have no snake_case/camelCase
-// distinction to get wrong. authService.signIn (unlike signUp) also never calls
-// objToCamelCase on its response — see PR body finding.
+// distinction to get wrong — the backend now sends camelCase directly either way.
 import type { UserStorage, User } from "../../types/user";
 
 export const playerUser: User = {

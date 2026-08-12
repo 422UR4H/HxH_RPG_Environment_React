@@ -14,30 +14,24 @@ export const uploadService = {
     sheetUuid: string
   ): Promise<PresignedUrlResponse> =>
     httpClient
-      .post<{ upload_url: string; public_url: string }>(
+      .post<PresignedUrlResponse>(
         "/upload/presigned-url",
-        { file_type: fileType, sheet_uuid: sheetUuid },
+        { fileType, sheetUuid },
         config(token)
       )
-      .then(({ data }) => ({
-        uploadUrl: data.upload_url,
-        publicUrl: data.public_url,
-      })),
+      .then(({ data }) => data),
 
   getPresignedUrlForMap: (
     token: string,
     mapId: string,
   ): Promise<PresignedUrlResponse> =>
     httpClient
-      .post<{ upload_url: string; public_url: string }>(
+      .post<PresignedUrlResponse>(
         "/upload/presigned-url",
-        { file_type: "map_bg", map_uuid: mapId },
+        { fileType: "map_bg", mapUuid: mapId },
         config(token),
       )
-      .then(({ data }) => ({
-        uploadUrl: data.upload_url,
-        publicUrl: data.public_url,
-      })),
+      .then(({ data }) => data),
 
   uploadToR2: (uploadUrl: string, blob: Blob): Promise<void> =>
     fetch(uploadUrl, {

@@ -6,8 +6,12 @@
 // .../map/create_map.go, .../map/update_map.go and
 // .../matchmap/{response,attach,get}.go.
 //
-// Per method: (1) request URL/verb + wire-format (snake_case) body,
-// (2) response mapped field-by-field into the camelCase src/types/ shape,
+// Fase 8: the backend now speaks camelCase all the way down, and
+// mapsService no longer runs request/response bodies through any
+// case-conversion — the body passes straight through, in both directions.
+//
+// Per method: (1) request URL/verb + wire-format (camelCase) body,
+// (2) response passed straight through into the src/types/ shape,
 // (3) Authorization header sent when a token is passed.
 import { describe, it, expect } from "vitest";
 import { http, HttpResponse } from "msw";
@@ -26,22 +30,16 @@ const baseUrl = "http://localhost:5000";
 const token = "test-token";
 
 // ─── Wire-format (Go) fixtures ──────────────────────────────────────────────
-// Mirrors GridShapeResponse in map_response.go (snake_case: cell_size,
-// skew_ratio, line_style). origin_x/origin_y never appear on the wire —
-// they're editor-only per src/types/tacticalMap.ts.
-const gridWire = {
-  kind: "square",
-  cols: 20,
-  rows: 15,
-  cell_size: 48,
-  skew_ratio: 0.5,
-  rotation: 90,
-  color: "#112233",
-  opacity: 0.75,
-  line_style: "dashed",
-};
-
-const gridCamel: GridShape = {
+// Hand-written literals, typed as Record<string, unknown> rather than the
+// frontend GridShape/BgImage/Piece types — so a future field rename on those
+// types can't silently drag these along and mask wire-format drift (see the
+// campaign/map/match "Api" fixtures in src/test/fixtures/ for the same
+// pattern, and finding [1] in the Fase 8 final review for why this matters).
+//
+// Mirrors GridShapeResponse in map_response.go — camelCase (cellSize,
+// skewRatio, lineStyle). originX/originY never appear on the wire — they're
+// editor-only per src/types/tacticalMap.ts.
+const gridWire: Record<string, unknown> = {
   kind: "square",
   cols: 20,
   rows: 15,
@@ -53,20 +51,10 @@ const gridCamel: GridShape = {
   lineStyle: "dashed",
 };
 
-// Mirrors entity.BgImage — no r2_url on the wire (r2Url is a frontend-only
+// Mirrors entity.BgImage — no r2Url on the wire (r2Url is a frontend-only
 // editor concept swapped into `url` before persistence; see
 // TacticalMapEditor.tsx).
-const bgWire = {
-  url: "https://r2.example.com/bg.png",
-  x: 10,
-  y: 20,
-  width: 800,
-  height: 600,
-  rotation: 5,
-  opacity: 0.9,
-};
-
-const bgCamel: BgImage = {
+const bgWire: Record<string, unknown> = {
   url: "https://r2.example.com/bg.png",
   x: 10,
   y: 20,
@@ -77,14 +65,7 @@ const bgCamel: BgImage = {
 };
 
 // Mirrors entity.Piece / entity.PieceCoord (Slot serialised as-is).
-const pieceWire = {
-  id: "piece-1",
-  character_id: "char-1",
-  coord: { slot: { kind: "square", col: 3, row: 4 }, z: 1.5 },
-  visible: true,
-};
-
-const pieceCamel: Piece = {
+const pieceWire: Record<string, unknown> = {
   id: "piece-1",
   characterId: "char-1",
   coord: { slot: { kind: "square", col: 3, row: 4 }, z: 1.5 },
@@ -92,26 +73,8 @@ const pieceCamel: Piece = {
 };
 
 // Mirrors entity.WallSegment. Two walls: one with an omitted (omitempty)
-// door_subtype/window_subtype, one door with door_subtype set.
-const wallWireBasic = {
-  id: "wall-1",
-  p1: [0, 0],
-  p2: [1, 0],
-  wall_type: "wall",
-  material: "stone",
-  move: false,
-  sense: "none",
-  direction: "both",
-  open: false,
-  locked: false,
-  hp: 100,
-  max_hp: 100,
-  resistance: 5,
-  destroyed: false,
-  revealed: false,
-};
-
-const wallCamelBasic: WallSegment = {
+// doorSubtype/windowSubtype, one door with doorSubtype set.
+const wallWireBasic: WallSegment = {
   id: "wall-1",
   p1: [0, 0],
   p2: [1, 0],
@@ -129,26 +92,7 @@ const wallCamelBasic: WallSegment = {
   revealed: false,
 };
 
-const wallWireDoor = {
-  id: "wall-2",
-  p1: [2, 2],
-  p2: [2, 3],
-  wall_type: "door",
-  material: "wood",
-  door_subtype: "basic",
-  move: true,
-  sense: "sight",
-  direction: "left",
-  open: true,
-  locked: false,
-  hp: 40,
-  max_hp: 50,
-  resistance: 2,
-  destroyed: false,
-  revealed: true,
-};
-
-const wallCamelDoor: WallSegment = {
+const wallWireDoor: WallSegment = {
   id: "wall-2",
   p1: [2, 2],
   p2: [2, 3],
@@ -171,7 +115,7 @@ const wallCamelDoor: WallSegment = {
 function mapResponseWire(overrides: Partial<Record<string, unknown>> = {}) {
   return {
     id: "map-1",
-    campaign_id: "campaign-1",
+    campaignId: "campaign-1",
     name: "Floresta do Norte",
     description: "Uma floresta densa ao norte do reino.",
     grid: gridWire,
@@ -180,8 +124,8 @@ function mapResponseWire(overrides: Partial<Record<string, unknown>> = {}) {
     walls: [wallWireBasic, wallWireDoor],
     decorations: [],
     items: [],
-    created_at: "2026-05-31T00:00:00Z",
-    updated_at: "2026-06-01T00:00:00Z",
+    createdAt: "2026-05-31T00:00:00Z",
+    updatedAt: "2026-06-01T00:00:00Z",
     ...overrides,
   };
 }
@@ -194,10 +138,10 @@ function expectedTacticalMap(
     campaignId: "campaign-1",
     name: "Floresta do Norte",
     description: "Uma floresta densa ao norte do reino.",
-    grid: gridCamel,
-    bg: bgCamel,
-    pieces: [pieceCamel],
-    walls: [wallCamelBasic, wallCamelDoor],
+    grid: gridWire as GridShape,
+    bg: bgWire as BgImage,
+    pieces: [pieceWire as Piece],
+    walls: [wallWireBasic, wallWireDoor],
     decorations: [],
     items: [],
     createdAt: "2026-05-31T00:00:00Z",
@@ -208,7 +152,7 @@ function expectedTacticalMap(
 
 describe("mapsService", () => {
   describe("createMap", () => {
-    it("POSTs to /campaigns/:campaignId/maps with snake_case body and Authorization header", async () => {
+    it("POSTs to /campaigns/:campaignId/maps with the body untouched and Authorization header", async () => {
       let capturedBody: unknown;
       let capturedAuth: string | null = null;
       server.use(
@@ -228,9 +172,9 @@ describe("mapsService", () => {
       await mapsService.createMap(token, "campaign-1", {
         name: "Floresta do Norte",
         description: "Uma floresta densa ao norte do reino.",
-        grid: gridCamel,
-        bg: bgCamel,
-        pieces: [pieceCamel],
+        grid: gridWire as GridShape,
+        bg: bgWire as BgImage,
+        pieces: [pieceWire as Piece],
       });
 
       expect(capturedAuth).toBe(`Bearer ${token}`);
@@ -243,7 +187,7 @@ describe("mapsService", () => {
       });
     });
 
-    it("returns the created map in camelCase, field by field", async () => {
+    it("returns the created map untouched, field by field", async () => {
       server.use(
         http.post(`${baseUrl}/campaigns/:campaignId/maps`, () =>
           HttpResponse.json({ map: mapResponseWire() }, { status: 201 }),
@@ -252,7 +196,7 @@ describe("mapsService", () => {
 
       const result = await mapsService.createMap(token, "campaign-1", {
         name: "Floresta do Norte",
-        grid: gridCamel,
+        grid: gridWire as GridShape,
       });
 
       expect(result).toEqual(expectedTacticalMap());
@@ -277,7 +221,7 @@ describe("mapsService", () => {
       expect(capturedUrl).toBe(`${baseUrl}/campaigns/campaign-1/maps`);
     });
 
-    it("returns the list mapped to camelCase, field by field", async () => {
+    it("returns the list untouched, field by field", async () => {
       server.use(
         http.get(`${baseUrl}/campaigns/:campaignId/maps`, () =>
           HttpResponse.json({ maps: [mapResponseWire()] }),
@@ -320,7 +264,7 @@ describe("mapsService", () => {
       expect(capturedUrl).toBe(`${baseUrl}/maps/map-1`);
     });
 
-    it("returns the map in camelCase, field by field (grid, bg, pieces, walls)", async () => {
+    it("returns the map untouched, field by field (grid, bg, pieces, walls)", async () => {
       server.use(
         http.get(`${baseUrl}/maps/:mapId`, () =>
           HttpResponse.json({ map: mapResponseWire() }),
@@ -376,7 +320,7 @@ describe("mapsService", () => {
   });
 
   describe("updateMap", () => {
-    it("PUTs to /maps/:mapId with snake_case body and Authorization header, resolving void", async () => {
+    it("PUTs to /maps/:mapId with the body untouched and Authorization header, resolving void", async () => {
       let capturedBody: unknown;
       let capturedAuth: string | null = null;
       let capturedUrl = "";
@@ -391,9 +335,9 @@ describe("mapsService", () => {
 
       const result = await mapsService.updateMap(token, "map-1", {
         name: "Novo nome",
-        grid: gridCamel,
-        pieces: [pieceCamel],
-        walls: [wallCamelBasic],
+        grid: gridWire,
+        pieces: [pieceWire],
+        walls: [wallWireBasic],
       });
 
       expect(capturedUrl).toBe(`${baseUrl}/maps/map-1`);
@@ -429,7 +373,13 @@ describe("mapsService", () => {
   });
 
   describe("attachMatchMap", () => {
-    it("POSTs to /matches/:matchId/map with { map_uuid } body and Authorization header", async () => {
+    // The `matchMap` envelope key matches both the literal key
+    // mapsService.ts reads (`res.matchMap`) and the real backend
+    // (matchmap/attach.go tags this field `json:"matchMap"` as of the Fase 8
+    // migration). The request body key (mapUuid) and the response's inner
+    // fields (matchUuid/mapUuid/attachedAt) are NOT envelope keys — those
+    // already matched the real backend before this task, no change needed.
+    it("POSTs to /matches/:matchId/map with { mapUuid } body and Authorization header", async () => {
       let capturedBody: unknown;
       let capturedAuth: string | null = null;
       let capturedUrl = "";
@@ -439,10 +389,10 @@ describe("mapsService", () => {
           capturedAuth = request.headers.get("authorization");
           capturedUrl = request.url;
           return HttpResponse.json({
-            match_map: {
-              match_uuid: "match-1",
-              map_uuid: "map-1",
-              attached_at: "2026-06-01T00:00:00Z",
+            matchMap: {
+              matchUuid: "match-1",
+              mapUuid: "map-1",
+              attachedAt: "2026-06-01T00:00:00Z",
             },
           });
         }),
@@ -456,7 +406,7 @@ describe("mapsService", () => {
 
       expect(capturedUrl).toBe(`${baseUrl}/matches/match-1/map`);
       expect(capturedAuth).toBe(`Bearer ${token}`);
-      expect(capturedBody).toEqual({ map_uuid: "map-1" });
+      expect(capturedBody).toEqual({ mapUuid: "map-1" });
 
       const expected: MatchMapResponse = {
         matchUuid: "match-1",
@@ -468,7 +418,8 @@ describe("mapsService", () => {
   });
 
   describe("getMatchMap", () => {
-    it("GETs /matches/:matchId/map with Authorization header and returns camelCase on 200", async () => {
+    // See the note on attachMatchMap above re: the `matchMap` envelope key.
+    it("GETs /matches/:matchId/map with Authorization header and returns the body untouched on 200", async () => {
       let capturedAuth: string | null = null;
       let capturedUrl = "";
       server.use(
@@ -476,10 +427,10 @@ describe("mapsService", () => {
           capturedAuth = request.headers.get("authorization");
           capturedUrl = request.url;
           return HttpResponse.json({
-            match_map: {
-              match_uuid: "match-1",
-              map_uuid: "map-1",
-              attached_at: "2026-06-01T00:00:00Z",
+            matchMap: {
+              matchUuid: "match-1",
+              mapUuid: "map-1",
+              attachedAt: "2026-06-01T00:00:00Z",
             },
           });
         }),
