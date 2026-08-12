@@ -18,6 +18,8 @@ Frontend for an HxH (Hunter x Hunter) RPG system — character sheets, campaigns
 
 Vercel SPA rewrite in `vercel.json`.
 
+**New to this codebase?** See `docs/dev/frontend-architecture.md` for a full walkthrough (layers, data flow, error handling, pixel-tuned zone, Pixi coverage gap) — this file assumes it.
+
 > **Cobertura:** `src/test/setup.ts` mocka `@pixi/react` (tudo vira `<div>`) e
 > `ResizeObserver` com dimensão zero, então `TacticalMapStage` e toda a camada Pixi
 > (`MapHandlesLayer`, `WallsLayer`, `PieceSprite`) **não são cobertos por teste**.
