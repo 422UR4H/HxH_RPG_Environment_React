@@ -24,7 +24,7 @@ import ConfirmDialog from "../components/molecules/ConfirmDialog";
 import DetailPageTemplate from "../components/templates/DetailPageTemplate";
 import RulesSidebar from "../components/organisms/RulesSidebar";
 import RuleSection from "../components/molecules/RuleSection";
-import type { MatchStatus } from "./MatchPage.styles";
+import type { MatchStatus } from "../types/match";
 import { ActionsList } from "./MatchPage.styles";
 
 function getMatchStatus(match: { gameStartAt?: string; storyEndAt?: string }): MatchStatus {

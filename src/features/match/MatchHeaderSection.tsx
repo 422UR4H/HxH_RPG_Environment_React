@@ -1,7 +1,6 @@
 // src/features/match/MatchHeaderSection.tsx
 import styled from "styled-components";
-import type { Match } from "../../types/match";
-import type { MatchStatus } from "../../pages/MatchPage.styles";
+import type { Match, MatchStatus } from "../../types/match";
 import ExpandableText from "../../components/molecules/ExpandableText";
 import { colors, fonts } from "../../styles/tokens";
 import { formatDateBR, formatDateTimeBR } from "../../utils/date";

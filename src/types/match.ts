@@ -1,5 +1,7 @@
 import type { CharacterBaseSummary, CharacterPrivateSummary } from "./characterSheet";
 
+export type MatchStatus = "scheduled" | "ongoing" | "ended";
+
 export interface Match {
   uuid: string;
   campaignUuid: string;
