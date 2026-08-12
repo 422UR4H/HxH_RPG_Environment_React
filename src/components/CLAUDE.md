@@ -80,6 +80,8 @@ Em refactors estruturais (mover arquivo, extrair template): preservar os valores
 
 `styled-components` apenas — sem arquivos CSS separados. `CharacterSheetTemplate` e filhos (incluindo os Diagrams) usam CSS container queries (`container-type: inline-size` + unidades `cqi`) intensamente — a tipografia escala pela largura do container; cuidado ao redimensionar.
 
+Quando o bloco de `styled-components` de um arquivo passa de ~150 linhas, extraia para `<Componente>.styles.ts` ao lado (ex.: `src/pages/MatchPage.styles.ts`).
+
 ## Testes
 
 Componentes compartilhados são cobertos pelos **integration tests das páginas** que os consomem (`src/pages/__tests__/`, via MSW — ver `src/test/`). Não escrevemos unit test por componente — replicaria o que o integration test já valida. Exceções: ions com lógica própria não-trivial (`ExpBar` tem teste de long-press) e utils puros (`src/features/sheet/__tests__/`).
