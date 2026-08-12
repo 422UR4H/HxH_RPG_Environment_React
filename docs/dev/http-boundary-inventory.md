@@ -129,7 +129,7 @@ presente só quando quem pede é o master — sem transformação nenhuma, hoje 
 
 | Método | Path | Chave do envelope | Struct Go (arquivo) | Estado |
 |---|---|---|---|---|
-| POST | `/upload/presigned-url` (avatar/cover) | — (flat) | `PresignedURLResponseBody` (`internal/app/api/upload/presigned_url.go`) | **service ainda escreve/lê snake_case (`file_type`, `sheet_uuid`, `upload_url`, `public_url`) — o backend migrou este struct para camelCase (`fileType`, `sheetUuid`, `uploadUrl`, `publicUrl`) e este service não foi tocado na Fase 8** [9] |
+| POST | `/upload/presigned-url` (avatar/cover) | — (flat) | `PresignedURLResponseBody` (`internal/app/api/upload/presigned_url.go`) | passthrough, corrigido [9] — envia/lê `fileType`/`sheetUuid`/`uploadUrl`/`publicUrl`, batendo com o struct real |
 | POST | `/upload/presigned-url` (mapa) | idem | idem | idem [9] |
 | PUT | URL pré-assinada (S3/R2, fora do backend) | — | — | sem relação com o backend Go |
 
@@ -183,23 +183,23 @@ contrário.
 > abaixo) — a sequência é global entre as duas tabelas, na ordem em que cada achado foi
 > descoberto, não reiniciada por seção.
 
-9. **`uploadService.getPresignedUrl`/`getPresignedUrlForMap`** (novo, encontrado ao
-   reconferir este documento no fechamento da Fase 8, fora do escopo original da Task 7):
-   o commit que reescreveu as tags do backend para camelCase
-   (`refactor(api): tags de DTO para camelCase (internal/app/**)`, branch `main` do
-   backend) também converteu `PresignedURLRequestBody`/`PresignedURLResponseBody`
+9. **`uploadService.getPresignedUrl`/`getPresignedUrlForMap`** (encontrado ao reconferir
+   este documento no fechamento da Fase 8, fora do escopo original da Task 7 — **e
+   corrigido no commit seguinte, `40906e0`**): o commit que reescreveu as tags do backend
+   para camelCase (`refactor(api): tags de DTO para camelCase (internal/app/**)`, branch
+   `main` do backend) converteu `PresignedURLRequestBody`/`PresignedURLResponseBody`
    (`internal/app/api/upload/presigned_url.go`) para `fileType`/`sheetUuid`/`mapUuid`/
-   `uploadUrl`/`publicUrl`. `uploadService.ts` não foi atualizado: ele ainda monta o
-   corpo do request em snake_case (`file_type`, `sheet_uuid`, `map_uuid`) e lê a resposta
-   em snake_case (`data.upload_url`, `data.public_url`) — travado assim pelo teste da
-   Fase 7 (`uploadService.test.ts`, que documenta isso no próprio comentário de cabeçalho
-   como comportamento esperado). Como `encoding/json` no Go não casa `file_type` com uma
-   tag `fileType` (o underscore quebra o fallback case-insensitive), o request atual
-   provavelmente falha a bind no backend (`FileType` chega vazio, cai no `default` do
-   switch e retorna 422) e a resposta seria lida como `undefined` mesmo se o request
-   passasse. Este é um gap real deixado pela Fase 8, não coberto pela Task 7 original —
-   avatar/cover/capa de mapa via upload direto pode estar quebrado em produção hoje.
-   Vale abrir como item separado, não como parte deste documento de referência.
+   `uploadUrl`/`publicUrl`, mas `uploadService.ts` não tinha sido atualizado junto — ele
+   ainda montava o corpo do request em snake_case (`file_type`, `sheet_uuid`,
+   `map_uuid`) e lia a resposta em snake_case (`data.upload_url`, `data.public_url`),
+   travado assim pelo teste da Fase 7. Como `encoding/json` no Go não casa `file_type`
+   com uma tag `fileType` (o underscore quebra o fallback case-insensitive), o request
+   como estava provavelmente falhava a bind no backend (`FileType` chegaria vazio, caindo
+   no `default` do switch e retornando 422). **Corrigido em `40906e0`** (mesma branch,
+   commit logo após a reescrita deste documento): `uploadService.ts` agora envia/lê
+   `fileType`/`sheetUuid`/`mapUuid`/`uploadUrl`/`publicUrl` diretamente — passthrough
+   limpo, igual a todo o resto do sistema — e `uploadService.test.ts` foi reajustado para
+   o payload camelCase. Achado fechado; nenhuma ação pendente.
 
 ---
 
@@ -392,12 +392,14 @@ decisão: um conversor genérico esconde bugs de contrato atrás de uma operaç�
 "sempre funciona" (converte o que existir, ignora o resto), e o TypeScript não verifica
 em runtime se o shape prometido bate com o shape real. Migrar o formato do próprio
 backend elimina a etapa de tradução inteira — não move o problema para uma nova camada
-de DTOs, tira a camada. O preço é que um mismatch de contrato (como o achado `[9]`,
-`uploadService.ts`, descoberto só ao reconferir este documento) já não tem uma função
+de DTOs, tira a camada. O preço é que um mismatch de contrato já não tem uma função
 genérica "salvando" a leitura com uma conversão que ao menos não quebra sintaticamente —
 ele simplesmente lê `undefined` de uma chave que nunca existiu, exatamente como os
 achados `[3]` e `[6]` sempre fizeram para os bugs que já eram estruturais antes da
-Fase 8.
+Fase 8. O achado `[9]` (`uploadService.ts`, ver seção 1) é um exemplo real desse preço:
+um serviço que ficou para trás na migração de case, silenciosamente incompatível com o
+backend real — encontrado ao reconferir este documento e corrigido no commit seguinte
+(`40906e0`), na mesma branch.
 
 ### Achados: o que a Fase 8 encontrou e corrigiu vs. encontrou e deixou como débito documentado
 
@@ -412,6 +414,11 @@ feita depois que a Fase 8 já estava commitada:
   Task 6); o achado `[4]` (`signIn`) deixou de fazer sentido porque o mecanismo que o
   causava não existe mais; `docs/dev/api/character-sheet.md` (achado 8 da seção 3) foi
   reescrito do zero no backend.
+- **Encontrado durante o fechamento da Fase 8 e corrigido no commit seguinte:** `[9]`
+  (`uploadService.ts` tinha ficado para trás na migração de case, ainda em snake_case
+  enquanto o backend real já falava camelCase no mesmo endpoint) — descoberto ao
+  reconferir este documento, corrigido em `40906e0` na mesma branch. Não é mais débito
+  aberto.
 - **Continuam presentes, porque são bugs estruturais/de lógica que uma migração de case
   não tinha como tocar:** `[1]` (`getMatchMap` mascara erro de rede), `[2]`
   (`getCampaignDetails` tipado errado para players), `[3]` (`createCampaign` sem
@@ -419,11 +426,6 @@ feita depois que a Fase 8 já estava commitada:
   `player_joined`/`master_joined` sem `isMaster`/`isOnline` reais), `[8]` (`map_full_state`
   descarta peças sem `characterId` silenciosamente), e o primeiro bullet do item 3 da
   seção 3 (`status` como mapa vs. campos fixos).
-- **Novo, descoberto só nesta reescrita, fora do escopo da Task 7 original:** `[9]`
-  (`uploadService.ts` continua em snake_case enquanto o backend real já fala camelCase
-  no mesmo endpoint) — um gap que a migração de case deveria ter fechado e não fechou.
-  Registrado aqui para virar um item de trabalho separado, não corrigido neste documento
-  (este é só o inventário).
 
 Os testes que a Fase 7 deixou (`src/services/__tests__/*.test.ts` e
 `src/hooks/__tests__/use*Ws.test.ts`), reajustados na Fase 8 para o payload camelCase,
