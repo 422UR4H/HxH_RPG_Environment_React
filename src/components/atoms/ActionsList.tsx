@@ -1,4 +1,3 @@
-// src/pages/MatchPage.styles.ts
 import styled from "styled-components";
 
 export const ActionsList = styled.div`

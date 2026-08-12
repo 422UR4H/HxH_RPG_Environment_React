@@ -80,7 +80,7 @@ Em refactors estruturais (mover arquivo, extrair template): preservar os valores
 
 `styled-components` apenas — sem arquivos CSS separados. `CharacterSheetTemplate` e filhos (incluindo os Diagrams) usam CSS container queries (`container-type: inline-size` + unidades `cqi`) intensamente — a tipografia escala pela largura do container; cuidado ao redimensionar.
 
-Quando o bloco de `styled-components` de um arquivo passa de ~150 linhas, extraia para `<Componente>.styles.ts` ao lado (ex.: `src/pages/MatchPage.styles.ts`).
+Quando o bloco de `styled-components` de um arquivo passa de ~150 linhas, extraia para `<Componente>.styles.ts` ao lado.
 
 ## Testes
 

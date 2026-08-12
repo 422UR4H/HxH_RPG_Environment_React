@@ -17,6 +17,7 @@ import {
   LoadingContainer,
   ErrorContainer,
 } from "../components/atoms/PageStates";
+import { ActionsList as BaseActionsList } from "../components/atoms/ActionsList";
 import ExpandableText from "../components/molecules/ExpandableText";
 import ConfirmDialog from "../components/molecules/ConfirmDialog";
 import DetailPageTemplate from "../components/templates/DetailPageTemplate";
@@ -395,10 +396,8 @@ const MatchesList = styled.div`
   position: relative;
 `;
 
-const ActionsList = styled.div`
-  position: relative;
+const ActionsList = styled(BaseActionsList)`
   margin-top: 24px;
-  padding-bottom: 112px;
 `;
 
 const InlineErrorMessage = styled.p`

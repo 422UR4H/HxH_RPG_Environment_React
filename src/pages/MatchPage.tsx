@@ -25,7 +25,7 @@ import DetailPageTemplate from "../components/templates/DetailPageTemplate";
 import RulesSidebar from "../components/organisms/RulesSidebar";
 import RuleSection from "../components/molecules/RuleSection";
 import type { MatchStatus } from "../types/match";
-import { ActionsList } from "./MatchPage.styles";
+import { ActionsList } from "../components/atoms/ActionsList";
 
 function getMatchStatus(match: { gameStartAt?: string; storyEndAt?: string }): MatchStatus {
   if (!match.gameStartAt) return "scheduled";
