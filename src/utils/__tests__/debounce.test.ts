@@ -8,6 +8,7 @@ describe("debounce", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.useRealTimers();
   });
 
   it("case 1: single call runs after the delay, not before", () => {
