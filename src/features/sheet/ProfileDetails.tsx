@@ -2,6 +2,7 @@ import styled, { keyframes } from "styled-components";
 import BackgroundButton from "../../components/atoms/BackgroundButton";
 import type { Profile } from "../../types/characterSheet";
 import { colors } from "../../styles/tokens";
+import { toDateInputValue } from "../../utils/date";
 
 interface ProfileDetailsProps {
   profile: Profile;
@@ -36,7 +37,7 @@ export default function ProfileDetails({
           <BirthdayAgeRow>
             <DetailItem>
               <DetailLabel>Data de Nascimento:</DetailLabel>
-              <DetailValue>{birthday?.split("T")[0]}</DetailValue>
+              <DetailValue>{toDateInputValue(birthday)}</DetailValue>
             </DetailItem>
             <DetailItem>
               <DetailLabel>Idade:</DetailLabel>

@@ -13,12 +13,12 @@ export interface SignInBody {
   password: string;
 }
 
-export interface SignUpBody {
+export type SignUpBody = {
   nick: string;
   email: string;
   password: string;
   confirmPass: string;
-}
+};
 
 export interface UserResponse {
   token: string;

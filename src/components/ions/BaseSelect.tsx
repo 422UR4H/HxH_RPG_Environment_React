@@ -1,14 +1,13 @@
-import type { ChangeEvent, JSXElementConstructor, ReactElement } from "react";
+import type { ChangeEvent, ReactElement } from "react";
 import styled from "styled-components";
 import { colors } from "../../styles/tokens";
+import type { BaseOptionProps } from "./BaseOption";
 
 interface BaseSelectProps {
   value?: string;
   defaultValue?: string;
   onChange: (e: ChangeEvent<HTMLSelectElement>) => void;
-  children:
-    | ReactElement<HTMLOptionElement, string | JSXElementConstructor<any>>
-    | ReactElement<HTMLOptionElement, string | JSXElementConstructor<any>>[];
+  children: ReactElement<BaseOptionProps> | ReactElement<BaseOptionProps>[];
 }
 
 export default function BaseSelect({

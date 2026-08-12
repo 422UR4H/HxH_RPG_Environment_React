@@ -14,6 +14,7 @@ import {
   LoadingContainer,
   ErrorContainer,
 } from "../components/atoms/PageStates";
+import { ActionsList } from "../components/atoms/ActionsList";
 import ConfirmDialog from "../components/molecules/ConfirmDialog";
 import DetailPageTemplate from "../components/templates/DetailPageTemplate";
 import CharactersSidebar from "../components/organisms/CharactersSidebar";
@@ -379,11 +380,6 @@ const WsStatusBar = styled.div<{ $isError: boolean }>`
   color: ${({ $isError }) => ($isError ? colors.danger : colors.textMuted)};
   border: 1px solid
     ${({ $isError }) => ($isError ? colors.dangerDark : colors.borderDivider)};
-`;
-
-const ActionsList = styled.div`
-  position: relative;
-  padding-bottom: 112px;
 `;
 
 const MasterActions = styled.div`

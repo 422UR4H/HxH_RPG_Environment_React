@@ -2,17 +2,18 @@
 
 ## Erros de API
 
-O campo de erro do backend é `data.detail`, não `data.message`.
+O campo de erro do backend é `data.detail`, não `data.message`. A forma única de ler
+isso é `getApiErrorDetail(err)` (`src/utils/apiError.ts`) — não acesse
+`err.response?.data` direto, e não tipe o erro como `any` (é `unknown`).
 
 ```tsx
-onError: (err: any) => {
-  console.error("[NomeDaPágina]", err.response?.data); // técnico → dev
-  const detail: string = err.response?.data?.detail ?? "";
-  setError(friendlyMessages[detail] || "Mensagem genérica em português.");
+onError: (err: unknown) => {
+  const detail = getApiErrorDetail(err);
+  setError(friendlyMessages[detail ?? ""] || "Mensagem genérica em português.");
 },
 ```
 
-Mapeie os erros de validação esperados para mensagens em português. O que não estiver no mapa cai no fallback genérico.
+Mapeie os erros de validação esperados para mensagens em português. O que não estiver no mapa cai no fallback genérico. Ver `src/pages/EditCampaignPage.tsx` para um exemplo real combinando isso com `isApiError` para diferenciar por status code.
 
 ## Dados assíncronos no formulário
 

@@ -9,7 +9,7 @@ interface AdaptiveActionButtonProps {
   type: "character" | "match";
   onClick: () => void;
   containerRef: React.RefObject<HTMLDivElement | null>;
-  contentChangeSignal?: any;
+  contentChangeSignal?: unknown;
 }
 
 export default function AdaptiveActionButton({

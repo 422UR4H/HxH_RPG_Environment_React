@@ -4,6 +4,7 @@ import type { Profile, CharacterSheet } from "../../types/characterSheet";
 import BaseOption from "../../components/ions/BaseOption";
 import BaseSelect from "../../components/ions/BaseSelect";
 import { colors } from "../../styles/tokens";
+import { toDateInputValue } from "../../utils/date";
 
 interface ProfileInputsProps {
   charSheet?: CharacterSheet;
@@ -41,9 +42,9 @@ export default function ProfileInputs({
   const profile = charSheet?.profile;
   const defaultAge = 20;
 
-  const birthdayParts = (profile?.birthday ?? "0000-01-01T00:00:00.000Z")
-    .split("T")[0]
-    .split("-");
+  const birthdayParts = toDateInputValue(
+    profile?.birthday ?? "0000-01-01T00:00:00.000Z"
+  ).split("-");
   const currentMonth = parseInt(birthdayParts[1]);
   const currentDay = parseInt(birthdayParts[2]);
   const alignmentOptions: { value: string; label: string }[] = [

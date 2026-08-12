@@ -14,15 +14,16 @@ import FormTextArea from "../components/ions/FormTextArea";
 import RulesSidebar from "../components/organisms/RulesSidebar";
 import RuleSection from "../components/molecules/RuleSection";
 import { getApiErrorDetail } from "../utils/apiError";
+import { toDateInputValue, toDateTimeLocalValue } from "../utils/date";
 
-interface MatchFormData {
+type MatchFormData = {
   title: string;
   briefInitialDescription: string;
   description: string;
   isPublic: boolean;
   gameScheduledAt: string;
   storyStartAt: string;
-}
+};
 
 export default function CreateMatchPage() {
   const { campaignId } = useParams<{ campaignId: string }>();
@@ -35,10 +36,10 @@ export default function CreateMatchPage() {
     briefInitialDescription: "",
     description: "",
     isPublic: true,
-    gameScheduledAt: new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .substring(0, 16),
-    storyStartAt: new Date().toISOString().split("T")[0],
+    gameScheduledAt: toDateTimeLocalValue(
+      new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    ),
+    storyStartAt: toDateInputValue(new Date().toISOString()),
   });
 
   const { data: campaign } = useCampaignDetails(token, campaignId);

@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react-swc";
 
 // https://vite.dev/config/
@@ -25,7 +25,9 @@ export default defineConfig({
         "src/pages/CreateCampaignPage.tsx",
         "src/pages/CreateMatchPage.tsx",
         "src/pages/CharacterSheetPage.tsx",
+        "src/features/match/**",
+        "src/utils/**",
       ],
     },
   },
-} as any);
+});

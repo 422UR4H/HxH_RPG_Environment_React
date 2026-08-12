@@ -17,6 +17,7 @@ import {
   LoadingContainer,
   ErrorContainer,
 } from "../components/atoms/PageStates";
+import { ActionsList as BaseActionsList } from "../components/atoms/ActionsList";
 import ExpandableText from "../components/molecules/ExpandableText";
 import ConfirmDialog from "../components/molecules/ConfirmDialog";
 import DetailPageTemplate from "../components/templates/DetailPageTemplate";
@@ -27,6 +28,7 @@ import { isApiError } from "../services/httpClient";
 import { useMaps } from "../hooks/useMaps";
 import PageTabNav from "../components/organisms/PageTabNav";
 import MapCard from "../components/molecules/MapCard";
+import { formatDateBR } from "../utils/date";
 
 export default function CampaignPage() {
   const { id } = useParams<{ id: string }>();
@@ -201,12 +203,9 @@ export default function CampaignPage() {
           <CampaignTitle>{campaign.name.toUpperCase()}</CampaignTitle>
           <CampaignDate>
             Data Atual:{" "}
-            {(() => {
-              if (!campaign.storyCurrentAt) return "Data não disponível";
-              const [date] = campaign.storyCurrentAt.split("T");
-              const [year, month, day] = date.split("-");
-              return `${day}/${month}/${year}`;
-            })()}
+            {campaign.storyCurrentAt
+              ? formatDateBR(campaign.storyCurrentAt)
+              : "Data não disponível"}
           </CampaignDate>
         </CampaignHeader>
 
@@ -397,10 +396,8 @@ const MatchesList = styled.div`
   position: relative;
 `;
 
-const ActionsList = styled.div`
-  position: relative;
+const ActionsList = styled(BaseActionsList)`
   margin-top: 24px;
-  padding-bottom: 112px;
 `;
 
 const InlineErrorMessage = styled.p`

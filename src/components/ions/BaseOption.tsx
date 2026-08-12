@@ -1,7 +1,7 @@
 import styled from "styled-components";
 import { colors } from "../../styles/tokens";
 
-interface BaseOptionProps {
+export interface BaseOptionProps {
   value: string;
   children: string;
 }
