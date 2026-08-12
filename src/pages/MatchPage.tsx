@@ -13,24 +13,19 @@ import { useMaps } from "../hooks/useMaps";
 import { useMatchMap } from "../hooks/useMatchMap";
 import { useAttachMatchMap } from "../hooks/useAttachMatchMap";
 import { useDetachMatchMap } from "../hooks/useDetachMatchMap";
-import type { CharacterPrivateSummary } from "../types/characterSheet";
 import PageTabNav from "../components/organisms/PageTabNav";
 import MapCard from "../components/molecules/MapCard";
-import EnrollmentSidebarItem from "../features/match/EnrollmentSidebarItem";
-import CharacterSidebarItem from "../components/molecules/CharacterSidebarItem";
+import MatchCharactersSidebar from "../features/match/MatchCharactersSidebar";
 import BottomActions from "../components/molecules/BottomActions";
 import ExpandableText from "../components/molecules/ExpandableText";
 import { LoadingContainer, ErrorContainer } from "../components/atoms/PageStates";
 import ConfirmDialog from "../components/molecules/ConfirmDialog";
 import DetailPageTemplate from "../components/templates/DetailPageTemplate";
-import CharactersSidebar from "../components/organisms/CharactersSidebar";
 import RulesSidebar from "../components/organisms/RulesSidebar";
 import RuleSection from "../components/molecules/RuleSection";
 import { formatDateBR, formatDateTimeBR } from "../utils/date";
 import type { MatchStatus } from "./MatchPage.styles";
 import {
-  BasicParticipantItem,
-  LeftBadge,
   MatchHeader,
   MatchTitle,
   DateSection,
@@ -216,55 +211,18 @@ export default function MatchPage() {
       <DetailPageTemplate
         mainRef={mainContentRef}
         leftSidebar={
-          !match.gameStartAt ? (
-            <CharactersSidebar
-              items={enrollments}
-              renderItem={(enrollment) => (
-                <EnrollmentSidebarItem
-                  key={enrollment.uuid}
-                  enrollment={enrollment}
-                  isMaster={isMaster}
-                  isLoading={!!actionLoading[enrollment.uuid]}
-                  onAccept={handleAccept}
-                  onReject={handleReject}
-                  onClick={() =>
-                    navigate(`/charactersheet/${enrollment.characterSheet.uuid}`)
-                  }
-                />
-              )}
-            />
-          ) : (
-            <CharactersSidebar
-              items={participants}
-              renderItem={(participant) => {
-                const priv = participant.characterSheet.private;
-                if (!priv) {
-                  return (
-                    <BasicParticipantItem key={participant.uuid}>
-                      <span>{participant.characterSheet.nickName}</span>
-                      {participant.leftAt && <LeftBadge>Saiu</LeftBadge>}
-                    </BasicParticipantItem>
-                  );
-                }
-                const character = {
-                  ...participant.characterSheet,
-                  ...priv,
-                  isPending: false,
-                } as CharacterPrivateSummary & { isPending?: boolean };
-                return (
-                  <CharacterSidebarItem
-                    key={participant.uuid}
-                    character={character}
-                    isMaster={isMaster}
-                    hasLeft={!!participant.leftAt}
-                    onClick={() =>
-                      navigate(`/charactersheet/${participant.characterSheet.uuid}`)
-                    }
-                  />
-                );
-              }}
-            />
-          )
+          <MatchCharactersSidebar
+            gameStarted={!!match.gameStartAt}
+            enrollments={enrollments}
+            participants={participants}
+            isMaster={isMaster}
+            actionLoading={actionLoading}
+            onAccept={handleAccept}
+            onReject={handleReject}
+            onSelectCharacterSheet={(sheetUuid) =>
+              navigate(`/charactersheet/${sheetUuid}`)
+            }
+          />
         }
         rightSidebar={
           <RulesSidebar>

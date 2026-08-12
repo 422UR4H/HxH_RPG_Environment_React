@@ -4,29 +4,6 @@ import { colors, fonts } from "../styles/tokens";
 
 export type MatchStatus = "scheduled" | "ongoing" | "ended";
 
-export const BasicParticipantItem = styled.div`
-  background-color: ${colors.surfaceMuted};
-  border-radius: 8px;
-  padding: 15px;
-  border-left: 4px solid ${colors.orange};
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-family: ${fonts.display};
-  font-size: 18px;
-  font-weight: bold;
-  color: ${colors.textPrimary};
-`;
-
-export const LeftBadge = styled.span`
-  border-radius: 4px;
-  padding: 2px 6px;
-  font-size: 12px;
-  font-weight: bold;
-  background-color: ${colors.statusLeft};
-  color: ${colors.textDisabled};
-`;
-
 export const MatchHeader = styled.div`
   display: flex;
   justify-content: space-between;
