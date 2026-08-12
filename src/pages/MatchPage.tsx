@@ -17,6 +17,7 @@ import PageTabNav from "../components/organisms/PageTabNav";
 import MatchCharactersSidebar from "../features/match/MatchCharactersSidebar";
 import MatchHeaderSection from "../features/match/MatchHeaderSection";
 import MatchMapsPanel from "../features/match/MatchMapsPanel";
+import LobbyConfirmDialog from "../features/match/LobbyConfirmDialog";
 import BottomActions from "../components/molecules/BottomActions";
 import { LoadingContainer, ErrorContainer } from "../components/atoms/PageStates";
 import ConfirmDialog from "../components/molecules/ConfirmDialog";
@@ -24,15 +25,7 @@ import DetailPageTemplate from "../components/templates/DetailPageTemplate";
 import RulesSidebar from "../components/organisms/RulesSidebar";
 import RuleSection from "../components/molecules/RuleSection";
 import type { MatchStatus } from "./MatchPage.styles";
-import {
-  ActionsList,
-  ConfirmOverlay,
-  StyledLobbyDialog,
-  ConfirmText,
-  ConfirmButtons,
-  DialogCancelButton,
-  DialogLobbyButton,
-} from "./MatchPage.styles";
+import { ActionsList } from "./MatchPage.styles";
 
 function getMatchStatus(match: { gameStartAt?: string; storyEndAt?: string }): MatchStatus {
   if (!match.gameStartAt) return "scheduled";
@@ -284,22 +277,10 @@ export default function MatchPage() {
       </DetailPageTemplate>
 
       {showLobbyConfirm && (
-        <ConfirmOverlay onClick={() => setShowLobbyConfirm(false)}>
-          <StyledLobbyDialog onClick={(e) => e.stopPropagation()}>
-            <ConfirmText>
-              Tem certeza que deseja abrir o lobby desta partida? Os jogadores
-              aceitos poderão entrar.
-            </ConfirmText>
-            <ConfirmButtons>
-              <DialogCancelButton onClick={() => setShowLobbyConfirm(false)}>
-                Cancelar
-              </DialogCancelButton>
-              <DialogLobbyButton onClick={handleLobbyConfirm}>
-                Abrir Lobby
-              </DialogLobbyButton>
-            </ConfirmButtons>
-          </StyledLobbyDialog>
-        </ConfirmOverlay>
+        <LobbyConfirmDialog
+          onCancel={() => setShowLobbyConfirm(false)}
+          onConfirm={handleLobbyConfirm}
+        />
       )}
 
       {showEnrollConfirm && (
