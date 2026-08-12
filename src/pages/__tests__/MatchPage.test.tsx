@@ -291,6 +291,29 @@ describe("MatchPage", () => {
     });
   });
 
+  describe("datas exibidas", () => {
+    it("formata gameScheduledAt com hora e storyStartAt sem hora, sem shift de fuso", async () => {
+      server.use(
+        http.get(`${baseUrl}/matches/:id`, () =>
+          HttpResponse.json({
+            match: {
+              ...matchApiFixture,
+              gameScheduledAt: "2026-08-09T23:00:00Z",
+              storyStartAt: "2026-08-09T23:00:00Z",
+            },
+          }),
+        ),
+      );
+      renderPage();
+      expect(
+        await screen.findByText("09/08/2026 às 23:00"),
+      ).toBeInTheDocument();
+      expect(
+        await screen.findByText(/^Início na história: 09\/08\/2026$/),
+      ).toBeInTheDocument();
+    });
+  });
+
   describe("MatchPage — mapa", () => {
     const masterMatch = matchAsMasterApi(masterUserFixture.user.uuid);
 
