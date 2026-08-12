@@ -27,6 +27,7 @@ import { isApiError } from "../services/httpClient";
 import { useMaps } from "../hooks/useMaps";
 import PageTabNav from "../components/organisms/PageTabNav";
 import MapCard from "../components/molecules/MapCard";
+import { formatDateBR } from "../utils/date";
 
 export default function CampaignPage() {
   const { id } = useParams<{ id: string }>();
@@ -201,12 +202,9 @@ export default function CampaignPage() {
           <CampaignTitle>{campaign.name.toUpperCase()}</CampaignTitle>
           <CampaignDate>
             Data Atual:{" "}
-            {(() => {
-              if (!campaign.storyCurrentAt) return "Data não disponível";
-              const [date] = campaign.storyCurrentAt.split("T");
-              const [year, month, day] = date.split("-");
-              return `${day}/${month}/${year}`;
-            })()}
+            {campaign.storyCurrentAt
+              ? formatDateBR(campaign.storyCurrentAt)
+              : "Data não disponível"}
           </CampaignDate>
         </CampaignHeader>
 

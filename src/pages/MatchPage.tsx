@@ -28,6 +28,7 @@ import DetailPageTemplate from "../components/templates/DetailPageTemplate";
 import CharactersSidebar from "../components/organisms/CharactersSidebar";
 import RulesSidebar from "../components/organisms/RulesSidebar";
 import RuleSection from "../components/molecules/RuleSection";
+import { formatDateBR, formatDateTimeBR } from "../utils/date";
 
 type MatchStatus = "scheduled" | "ongoing" | "ended";
 
@@ -35,18 +36,6 @@ function getMatchStatus(match: { gameStartAt?: string; storyEndAt?: string }): M
   if (!match.gameStartAt) return "scheduled";
   if (!match.storyEndAt) return "ongoing";
   return "ended";
-}
-
-function formatDate(iso: string): string {
-  const [year, month, day] = iso.split("T")[0].split("-");
-  return `${day}/${month}/${year}`;
-}
-
-function formatDateTime(iso: string): string {
-  const [datePart, timePart] = iso.split("T");
-  const [year, month, day] = datePart.split("-");
-  const time = timePart?.substring(0, 5);
-  return `${day}/${month}/${year}${time ? ` às ${time}` : ""}`;
 }
 
 export default function MatchPage() {
@@ -275,22 +264,22 @@ export default function MatchPage() {
             {status === "scheduled" ? (
               <DateLabel>
                 Agendada para:{" "}
-                <span>{formatDateTime(match.gameScheduledAt)}</span>
+                <span>{formatDateTimeBR(match.gameScheduledAt)}</span>
               </DateLabel>
             ) : (
               <DateLabel>
                 Iniciada em:{" "}
                 <DateValueWithTooltip
-                  title={`Agendada para: ${formatDateTime(match.gameScheduledAt)}`}
+                  title={`Agendada para: ${formatDateTimeBR(match.gameScheduledAt)}`}
                 >
-                  {formatDateTime(match.gameStartAt!)}
+                  {formatDateTimeBR(match.gameStartAt!)}
                 </DateValueWithTooltip>
               </DateLabel>
             )}
           </DateSection>
         </MatchHeader>
 
-        <StoryDate>Início na história: {formatDate(match.storyStartAt)}</StoryDate>
+        <StoryDate>Início na história: {formatDateBR(match.storyStartAt)}</StoryDate>
 
         <MatchBriefDescription>
           {match.briefInitialDescription}
@@ -307,7 +296,7 @@ export default function MatchPage() {
         )}
 
         {match.storyEndAt && (
-          <StoryDate>Fim na história: {formatDate(match.storyEndAt)}</StoryDate>
+          <StoryDate>Fim na história: {formatDateBR(match.storyEndAt)}</StoryDate>
         )}
 
         {lobbyNotOpen && (

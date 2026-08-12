@@ -12,6 +12,7 @@ import FormTextArea from "../components/ions/FormTextArea";
 import RulesSidebar from "../components/organisms/RulesSidebar";
 import RuleSection from "../components/molecules/RuleSection";
 import { getApiErrorDetail } from "../utils/apiError";
+import { toDateInputValue } from "../utils/date";
 
 interface CampaignFormData {
   name: string;
@@ -33,7 +34,7 @@ export default function CreateCampaignPage() {
     description: "",
     isPublic: true,
     callLink: "",
-    storyStartAt: new Date().toISOString().split("T")[0],
+    storyStartAt: toDateInputValue(new Date().toISOString()),
   });
 
   const { mutate: createCampaign, isPending } = useCreateCampaign(token);

@@ -14,6 +14,7 @@ import FormTextArea from "../components/ions/FormTextArea";
 import RulesSidebar from "../components/organisms/RulesSidebar";
 import RuleSection from "../components/molecules/RuleSection";
 import { getApiErrorDetail } from "../utils/apiError";
+import { toDateInputValue } from "../utils/date";
 
 interface MatchFormData {
   title: string;
@@ -38,7 +39,7 @@ export default function CreateMatchPage() {
     gameScheduledAt: new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000)
       .toISOString()
       .substring(0, 16),
-    storyStartAt: new Date().toISOString().split("T")[0],
+    storyStartAt: toDateInputValue(new Date().toISOString()),
   });
 
   const { data: campaign } = useCampaignDetails(token, campaignId);
