@@ -14,9 +14,9 @@ import { useMatchMap } from "../hooks/useMatchMap";
 import { useAttachMatchMap } from "../hooks/useAttachMatchMap";
 import { useDetachMatchMap } from "../hooks/useDetachMatchMap";
 import PageTabNav from "../components/organisms/PageTabNav";
-import MapCard from "../components/molecules/MapCard";
 import MatchCharactersSidebar from "../features/match/MatchCharactersSidebar";
 import MatchHeaderSection from "../features/match/MatchHeaderSection";
+import MatchMapsPanel from "../features/match/MatchMapsPanel";
 import BottomActions from "../components/molecules/BottomActions";
 import { LoadingContainer, ErrorContainer } from "../components/atoms/PageStates";
 import ConfirmDialog from "../components/molecules/ConfirmDialog";
@@ -32,14 +32,6 @@ import {
   ConfirmButtons,
   DialogCancelButton,
   DialogLobbyButton,
-  MapsGrid,
-  MapsEmptyText,
-  MapsPlaceholder,
-  MapCardWrapper,
-  MapAttachRow,
-  AttachedBadge,
-  AttachButton,
-  DetachButton,
 } from "./MatchPage.styles";
 
 function getMatchStatus(match: { gameStartAt?: string; storyEndAt?: string }): MatchStatus {
@@ -273,57 +265,22 @@ export default function MatchPage() {
           </ActionsList>
         )}
 
-        {activeTab === "maps" && isMaster && (
-          <MapsGrid>
-            {mapsPending ? (
-              <MapsEmptyText>Carregando mapas...</MapsEmptyText>
-            ) : (maps ?? []).length === 0 ? (
-              <MapsEmptyText>Nenhum mapa criado ainda.</MapsEmptyText>
-            ) : (
-              (maps ?? []).map((map) => {
-                const isAttached = matchMap?.mapUuid === map.id;
-                return (
-                  <MapCardWrapper key={map.id}>
-                    <MapCard
-                      map={map}
-                      onClick={() =>
-                        navigate(`/campaigns/${campaignId}/maps/${map.id}/edit`)
-                      }
-                    />
-                    {!matchStarted && (
-                      <MapAttachRow>
-                        {isAttached ? (
-                          <>
-                            <AttachedBadge>Anexado</AttachedBadge>
-                            <DetachButton
-                              onClick={() => detachMap()}
-                              disabled={isDetaching}
-                            >
-                              {isDetaching ? "Desanexando..." : "Desanexar"}
-                            </DetachButton>
-                          </>
-                        ) : (
-                          <AttachButton
-                            onClick={() => attachMap(map.id)}
-                            disabled={isAttaching}
-                          >
-                            {isAttaching ? "Anexando..." : "Anexar"}
-                          </AttachButton>
-                        )}
-                      </MapAttachRow>
-                    )}
-                  </MapCardWrapper>
-                );
-              })
-            )}
-          </MapsGrid>
-        )}
-
-        {activeTab === "maps" && !isMaster && matchEnded && (
-          <MapsPlaceholder>
-            Os mapas jogados nesta partida estarão disponíveis em breve.
-          </MapsPlaceholder>
-        )}
+        <MatchMapsPanel
+          activeTab={activeTab}
+          isMaster={isMaster}
+          matchEnded={matchEnded}
+          matchStarted={matchStarted}
+          mapsPending={mapsPending}
+          maps={maps}
+          matchMap={matchMap}
+          isAttaching={isAttaching}
+          isDetaching={isDetaching}
+          onMapClick={(mapId) =>
+            navigate(`/campaigns/${campaignId}/maps/${mapId}/edit`)
+          }
+          onAttach={(mapId) => attachMap(mapId)}
+          onDetach={() => detachMap()}
+        />
       </DetailPageTemplate>
 
       {showLobbyConfirm && (
