@@ -16,27 +16,16 @@ import { useDetachMatchMap } from "../hooks/useDetachMatchMap";
 import PageTabNav from "../components/organisms/PageTabNav";
 import MapCard from "../components/molecules/MapCard";
 import MatchCharactersSidebar from "../features/match/MatchCharactersSidebar";
+import MatchHeaderSection from "../features/match/MatchHeaderSection";
 import BottomActions from "../components/molecules/BottomActions";
-import ExpandableText from "../components/molecules/ExpandableText";
 import { LoadingContainer, ErrorContainer } from "../components/atoms/PageStates";
 import ConfirmDialog from "../components/molecules/ConfirmDialog";
 import DetailPageTemplate from "../components/templates/DetailPageTemplate";
 import RulesSidebar from "../components/organisms/RulesSidebar";
 import RuleSection from "../components/molecules/RuleSection";
-import { formatDateBR, formatDateTimeBR } from "../utils/date";
 import type { MatchStatus } from "./MatchPage.styles";
 import {
-  MatchHeader,
-  MatchTitle,
-  DateSection,
-  StatusPill,
-  DateLabel,
-  DateValueWithTooltip,
-  StoryDate,
-  MatchBriefDescription,
-  MatchFinalDescription,
   ActionsList,
-  LobbyNotOpenBanner,
   ConfirmOverlay,
   StyledLobbyDialog,
   ConfirmText,
@@ -185,12 +174,6 @@ export default function MatchPage() {
 
   const status = getMatchStatus(match);
 
-  const statusLabels: Record<MatchStatus, string> = {
-    scheduled: "AGENDADA",
-    ongoing: "EM ANDAMENTO",
-    ended: "ENCERRADA",
-  };
-
   const canEnterLobby =
     !!sheetId &&
     !isMaster &&
@@ -241,53 +224,12 @@ export default function MatchPage() {
           </RulesSidebar>
         }
       >
-        <MatchHeader>
-          <MatchTitle>{match.title.toUpperCase()}</MatchTitle>
-          <DateSection>
-            <StatusPill $status={status}>{statusLabels[status]}</StatusPill>
-            {status === "scheduled" ? (
-              <DateLabel>
-                Agendada para:{" "}
-                <span>{formatDateTimeBR(match.gameScheduledAt)}</span>
-              </DateLabel>
-            ) : (
-              <DateLabel>
-                Iniciada em:{" "}
-                <DateValueWithTooltip
-                  title={`Agendada para: ${formatDateTimeBR(match.gameScheduledAt)}`}
-                >
-                  {formatDateTimeBR(match.gameStartAt!)}
-                </DateValueWithTooltip>
-              </DateLabel>
-            )}
-          </DateSection>
-        </MatchHeader>
-
-        <StoryDate>Início na história: {formatDateBR(match.storyStartAt)}</StoryDate>
-
-        <MatchBriefDescription>
-          {match.briefInitialDescription}
-        </MatchBriefDescription>
-
-        <ExpandableText onToggle={() => setDescriptionSignal((s) => !s)}>
-          {match.description}
-        </ExpandableText>
-
-        {match.briefFinalDescription && (
-          <MatchFinalDescription>
-            {match.briefFinalDescription}
-          </MatchFinalDescription>
-        )}
-
-        {match.storyEndAt && (
-          <StoryDate>Fim na história: {formatDateBR(match.storyEndAt)}</StoryDate>
-        )}
-
-        {lobbyNotOpen && (
-          <LobbyNotOpenBanner>
-            O lobby ainda não foi aberto pelo mestre.
-          </LobbyNotOpenBanner>
-        )}
+        <MatchHeaderSection
+          match={match}
+          status={status}
+          lobbyNotOpen={lobbyNotOpen}
+          onDescriptionToggle={() => setDescriptionSignal((s) => !s)}
+        />
 
         <PageTabNav tabs={availableTabs} />
 
