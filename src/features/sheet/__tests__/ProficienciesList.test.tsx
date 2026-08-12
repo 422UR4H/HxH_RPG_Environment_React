@@ -21,7 +21,7 @@ function makeSheet(
     principles: [],
     commonProficiencies,
     jointProficiencies: [],
-    status: undefined as any,
+    status: undefined,
     categories: {},
   } as unknown as CharacterSheet;
 }
