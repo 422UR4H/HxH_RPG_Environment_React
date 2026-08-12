@@ -341,7 +341,7 @@ export function useLobbyWs({
             visible: p.visible,
           };
         }),
-        walls: walls,
+        walls,
         ...(grid ? { grid: { cellSize: grid.cellSize } } : {}),
       });
     },

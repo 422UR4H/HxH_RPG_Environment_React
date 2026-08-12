@@ -90,7 +90,7 @@ describe("useLobbyWs", () => {
     const { result } = renderHook(() => useLobbyWs(defaultParams));
     simulateOpen();
     sendFromServer("room_state", {
-      match_uuid: "match-1",
+      matchUuid: "match-1",
       state: "lobby",
       players: [
         { uuid: "p1", nickname: "Gon", isMaster: false, isOnline: true },

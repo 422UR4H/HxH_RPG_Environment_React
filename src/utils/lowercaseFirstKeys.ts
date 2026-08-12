@@ -27,7 +27,17 @@
 // non-map fields, no touching array-valued or free-form-named fields (e.g.
 // CharacterSheet.jointProficiencies, whose keys are DM-defined names, not
 // enum values).
-export function lowercaseFirstKeys<T>(obj: Record<string, T>): Record<string, T> {
+export function lowercaseFirstKeys<T>(obj: Record<string, T>): Record<string, T>;
+export function lowercaseFirstKeys<T>(
+  obj: Record<string, T> | undefined,
+): Record<string, T> | undefined;
+export function lowercaseFirstKeys<T>(
+  obj: Record<string, T> | undefined,
+): Record<string, T> | undefined {
+  // `for...in` over undefined/null is a silent no-op — without this guard a
+  // missing map would come back as `{}` instead of staying missing.
+  if (!obj) return obj;
+
   const result: Record<string, T> = {};
   for (const key in obj) {
     if (Object.prototype.hasOwnProperty.call(obj, key)) {

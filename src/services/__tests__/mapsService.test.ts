@@ -30,11 +30,16 @@ const baseUrl = "http://localhost:5000";
 const token = "test-token";
 
 // ─── Wire-format (Go) fixtures ──────────────────────────────────────────────
+// Hand-written literals, typed as Record<string, unknown> rather than the
+// frontend GridShape/BgImage/Piece types — so a future field rename on those
+// types can't silently drag these along and mask wire-format drift (see the
+// campaign/map/match "Api" fixtures in src/test/fixtures/ for the same
+// pattern, and finding [1] in the Fase 8 final review for why this matters).
+//
 // Mirrors GridShapeResponse in map_response.go — camelCase (cellSize,
 // skewRatio, lineStyle). originX/originY never appear on the wire — they're
-// editor-only per src/types/tacticalMap.ts. Since neither side converts case
-// anymore, this is identical to the frontend's own GridShape shape.
-const gridWire: GridShape = {
+// editor-only per src/types/tacticalMap.ts.
+const gridWire: Record<string, unknown> = {
   kind: "square",
   cols: 20,
   rows: 15,
@@ -49,7 +54,7 @@ const gridWire: GridShape = {
 // Mirrors entity.BgImage — no r2Url on the wire (r2Url is a frontend-only
 // editor concept swapped into `url` before persistence; see
 // TacticalMapEditor.tsx).
-const bgWire: BgImage = {
+const bgWire: Record<string, unknown> = {
   url: "https://r2.example.com/bg.png",
   x: 10,
   y: 20,
@@ -60,7 +65,7 @@ const bgWire: BgImage = {
 };
 
 // Mirrors entity.Piece / entity.PieceCoord (Slot serialised as-is).
-const pieceWire: Piece = {
+const pieceWire: Record<string, unknown> = {
   id: "piece-1",
   characterId: "char-1",
   coord: { slot: { kind: "square", col: 3, row: 4 }, z: 1.5 },
@@ -133,9 +138,9 @@ function expectedTacticalMap(
     campaignId: "campaign-1",
     name: "Floresta do Norte",
     description: "Uma floresta densa ao norte do reino.",
-    grid: gridWire,
-    bg: bgWire,
-    pieces: [pieceWire],
+    grid: gridWire as GridShape,
+    bg: bgWire as BgImage,
+    pieces: [pieceWire as Piece],
     walls: [wallWireBasic, wallWireDoor],
     decorations: [],
     items: [],
@@ -167,9 +172,9 @@ describe("mapsService", () => {
       await mapsService.createMap(token, "campaign-1", {
         name: "Floresta do Norte",
         description: "Uma floresta densa ao norte do reino.",
-        grid: gridWire,
-        bg: bgWire,
-        pieces: [pieceWire],
+        grid: gridWire as GridShape,
+        bg: bgWire as BgImage,
+        pieces: [pieceWire as Piece],
       });
 
       expect(capturedAuth).toBe(`Bearer ${token}`);
@@ -191,7 +196,7 @@ describe("mapsService", () => {
 
       const result = await mapsService.createMap(token, "campaign-1", {
         name: "Floresta do Norte",
-        grid: gridWire,
+        grid: gridWire as GridShape,
       });
 
       expect(result).toEqual(expectedTacticalMap());

@@ -102,17 +102,51 @@ export const campaignWithNpcs = (
 });
 
 // ─── Wire-format (backend) counterparts ────────────────────────────────────
-// The Go handlers (internal/app/api/campaign/*.go) now serialize camelCase
-// all the way down (Fase 8), matching the frontend types field-for-field —
-// so the "Api" fixtures are just the frontend fixtures themselves, no
-// conversion needed.
-export const campaignSummaryApiFixture: CampaignSummary = campaignSummaryFixture;
-export const campaignApiFixture: CampaignMaster = campaignFixture;
+// Hand-built directly from the Go response structs' `json` tags
+// (internal/app/api/campaign/{list_campaigns,campaign_response}.go) — NOT
+// derived from the frontend fixtures above, and typed as Record<string,
+// unknown> rather than CampaignSummary/CampaignMaster, so a future field
+// rename on those frontend types can't silently drag these along and mask
+// wire-format drift. Values mirror campaignSummaryFixture/campaignFixture.
+export const campaignSummaryApiFixture: Record<string, unknown> = {
+  uuid: "campaign-1",
+  name: "Campanha de Teste",
+  briefInitialDescription: "Brief",
+  isPublic: true,
+  callLink: "",
+  storyStartAt: "2025-01-01",
+  createdAt: "2025-01-01T00:00:00.000Z",
+  updatedAt: "2025-01-01T00:00:00.000Z",
+};
 
-export const campaignAsMasterApi = (userUuid: string): CampaignMaster =>
-  campaignAsMaster(userUuid);
+// Mirrors CampaignMasterResponse = CampaignBaseResponse + characterSheets +
+// pendingSheets (campaign_response.go).
+export const campaignApiFixture: Record<string, unknown> = {
+  uuid: "campaign-1",
+  masterUuid: "master-1",
+  name: "Campanha de Teste",
+  briefInitialDescription: "Brief inicial",
+  description: "Descrição completa da campanha",
+  isPublic: true,
+  callLink: "",
+  storyStartAt: "2025-01-01",
+  storyCurrentAt: "2025-06-15T12:00:00Z",
+  createdAt: "2025-01-01T00:00:00.000Z",
+  updatedAt: "2025-01-01T00:00:00.000Z",
+  characterSheets: [],
+  pendingSheets: [],
+  matches: [],
+};
+
+export const campaignAsMasterApi = (userUuid: string): Record<string, unknown> => ({
+  ...campaignApiFixture,
+  masterUuid: userUuid,
+});
 
 export const campaignWithNpcsApi = (
   npcs: CharacterPrivateSummary[],
   players: CharacterPrivateSummary[] = [],
-): CampaignMaster => campaignWithNpcs(npcs, players);
+): Record<string, unknown> => ({
+  ...campaignApiFixture,
+  characterSheets: [...npcs, ...players],
+});
