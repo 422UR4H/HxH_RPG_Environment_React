@@ -1,5 +1,5 @@
 // src/components/molecules/ImagePickerModal.tsx
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Cropper, CircleStencil, RectangleStencil } from "react-advanced-cropper";
 import "react-advanced-cropper/dist/style.css";
 import type { CropperRef } from "react-advanced-cropper";
@@ -7,6 +7,8 @@ import imageCompression from "browser-image-compression";
 import styled from "styled-components";
 import { colors } from "../../styles/tokens";
 import { IMAGE_PICKER_TIP } from '../../constants/uiStrings';
+import ConfirmDialog from "./ConfirmDialog";
+import { useBackdropDismiss } from "../../hooks/useBackdropDismiss";
 
 export type ImageType = "avatar" | "cover";
 
@@ -34,6 +36,33 @@ export default function ImagePickerModal({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const hasPendingContent = mode === "upload" ? imageSrc !== null : urlInput.trim() !== "";
+
+  const [showDiscardPrompt, setShowDiscardPrompt] = useState(false);
+
+  const attemptClose = () => {
+    if (hasPendingContent) {
+      setShowDiscardPrompt(true);
+    } else {
+      onClose();
+    }
+  };
+
+  const handleDiscard = () => {
+    setShowDiscardPrompt(false);
+    onClose();
+  };
+
+  const backdropDismiss = useBackdropDismiss(attemptClose);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (showDiscardPrompt) return;
+      attemptClose();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [showDiscardPrompt, hasPendingContent]);
 
   const handleModeClick = (next: Mode) => {
     if (next === mode) return;
@@ -89,8 +118,12 @@ export default function ImagePickerModal({
   const borderRadius = type === "avatar" ? "50%" : "8px";
 
   return (
-    <Overlay onClick={onClose}>
-      <Modal onClick={(e) => e.stopPropagation()}>
+    <Overlay
+      data-testid="image-picker-overlay"
+      onMouseDown={backdropDismiss.onMouseDown}
+      onMouseUp={backdropDismiss.onMouseUp}
+    >
+      <Modal>
         <ModalTitle>{type === "avatar" ? "Adicionar Avatar" : "Adicionar Capa"}</ModalTitle>
         <Subtitle>{IMAGE_PICKER_TIP}</Subtitle>
 
@@ -168,12 +201,22 @@ export default function ImagePickerModal({
         )}
 
         <ModalActions>
-          <CancelButton onClick={onClose}>Cancelar</CancelButton>
+          <CancelButton onClick={attemptClose}>Cancelar</CancelButton>
           <ConfirmButton onClick={handleConfirm} disabled={!hasPendingContent || isCompressing}>
             {isCompressing ? "Processando..." : "Confirmar"}
           </ConfirmButton>
         </ModalActions>
       </Modal>
+      {showDiscardPrompt && (
+        <ConfirmDialog
+          message="⚠ Descartar imagem?"
+          confirmLabel="Descartar"
+          cancelLabel="Continuar editando"
+          confirmVariant="danger"
+          onConfirm={handleDiscard}
+          onCancel={() => setShowDiscardPrompt(false)}
+        />
+      )}
     </Overlay>
   );
 }
