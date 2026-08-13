@@ -4,6 +4,7 @@ import TurndownService from "turndown";
 import { colors } from "../../styles/tokens";
 import DescriptionMarkdown from "./DescriptionMarkdown";
 import ConfirmDialog from "./ConfirmDialog";
+import { useBackdropDismiss } from "../../hooks/useBackdropDismiss";
 
 interface BackgroundEditorModalProps {
   initialValue: string;
@@ -60,6 +61,8 @@ export default function BackgroundEditorModal({
     }
   };
 
+  const backdropDismiss = useBackdropDismiss(attemptClose);
+
   const handleSaveAndClose = () => {
     onSave?.(draft);
     onClose();
@@ -85,8 +88,12 @@ export default function BackgroundEditorModal({
   }, [onClose, showDiscardPrompt, isDirty]);
 
   return (
-    <Overlay onClick={attemptClose}>
-      <Modal onClick={(e) => e.stopPropagation()}>
+    <Overlay
+      data-testid="background-editor-overlay"
+      onMouseDown={backdropDismiss.onMouseDown}
+      onMouseUp={backdropDismiss.onMouseUp}
+    >
+      <Modal>
         <Title>Background do personagem</Title>
         <Body>
           {readOnly ? (
