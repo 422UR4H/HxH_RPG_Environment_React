@@ -237,3 +237,56 @@ describe("BackgroundEditorModal — formatting tip", () => {
     ).not.toBeInTheDocument();
   });
 });
+
+describe("BackgroundEditorModal — backdrop click", () => {
+  it("fecha direto via clique no backdrop quando o draft não mudou", () => {
+    const onClose = vi.fn();
+    render(
+      <BackgroundEditorModal
+        initialValue="hello"
+        readOnly={false}
+        onClose={onClose}
+        onSave={vi.fn()}
+      />
+    );
+    const overlay = screen.getByTestId("background-editor-overlay");
+    fireEvent.mouseDown(overlay);
+    fireEvent.mouseUp(overlay);
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it("abre o prompt de descarte via clique no backdrop quando o draft mudou", async () => {
+    const onClose = vi.fn();
+    render(
+      <BackgroundEditorModal
+        initialValue="hello"
+        readOnly={false}
+        onClose={onClose}
+        onSave={vi.fn()}
+      />
+    );
+    await userEvent.type(screen.getByRole("textbox"), " world");
+    const overlay = screen.getByTestId("background-editor-overlay");
+    fireEvent.mouseDown(overlay);
+    fireEvent.mouseUp(overlay);
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByText(/Descartar alterações/)).toBeInTheDocument();
+  });
+
+  it("NÃO fecha nem abre o prompt quando o mousedown começa dentro do modal e o mouseup termina no backdrop", async () => {
+    const onClose = vi.fn();
+    render(
+      <BackgroundEditorModal
+        initialValue="hello"
+        readOnly={false}
+        onClose={onClose}
+        onSave={vi.fn()}
+      />
+    );
+    const overlay = screen.getByTestId("background-editor-overlay");
+    fireEvent.mouseDown(screen.getByRole("textbox"));
+    fireEvent.mouseUp(overlay);
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.queryByText(/Descartar alterações/)).not.toBeInTheDocument();
+  });
+});
