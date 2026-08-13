@@ -283,8 +283,6 @@ function EditCharacterSheetPage() {
     }
   };
 
-  if (!charSheet) return null;
-
   return (
     <CharacterSheetTemplate
       sheetMode={sheetMode}
