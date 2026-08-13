@@ -58,11 +58,15 @@ export default function ImagePickerModal({
     const handler = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       if (showDiscardPrompt) return;
-      attemptClose();
+      if (hasPendingContent) {
+        setShowDiscardPrompt(true);
+      } else {
+        onClose();
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [showDiscardPrompt, hasPendingContent]);
+  }, [onClose, showDiscardPrompt, hasPendingContent]);
 
   const handleModeClick = (next: Mode) => {
     if (next === mode) return;
