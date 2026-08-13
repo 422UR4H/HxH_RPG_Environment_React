@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { useCreateMatch } from "../hooks/useCreateMatch";
 import { useCampaignDetails } from "../hooks/useCampaignDetails";
 import useToken from "../hooks/useToken";
@@ -13,6 +13,7 @@ import FormInput from "../components/ions/FormInput";
 import FormTextArea from "../components/ions/FormTextArea";
 import RulesSidebar from "../components/organisms/RulesSidebar";
 import RuleSection from "../components/molecules/RuleSection";
+import { LoadingContainer, ErrorContainer } from "../components/atoms/PageStates";
 import { getApiErrorDetail } from "../utils/apiError";
 import { toDateInputValue, toDateTimeLocalValue } from "../utils/date";
 
@@ -42,7 +43,11 @@ export default function CreateMatchPage() {
     storyStartAt: toDateInputValue(new Date().toISOString()),
   });
 
-  const { data: campaign } = useCampaignDetails(token, campaignId);
+  const {
+    data: campaign,
+    isPending: campaignPending,
+    isError: campaignError,
+  } = useCampaignDetails(token, campaignId);
   const { mutate: createMatch, isPending } = useCreateMatch(token, campaignId);
 
   useEffect(() => {
@@ -81,6 +86,13 @@ export default function CreateMatchPage() {
   const handleTogglePublic = () => {
     setForm({ ...form, isPublic: !form.isPublic });
   };
+
+  if (!token) return <Navigate to="/" replace />;
+  if (!campaignId) return <Navigate to="/campaigns" replace />;
+  if (campaignPending)
+    return <LoadingContainer>Carregando campanha...</LoadingContainer>;
+  if (campaignError || !campaign)
+    return <ErrorContainer>Falha ao carregar campanha.</ErrorContainer>;
 
   return (
     <CreateFormTemplate

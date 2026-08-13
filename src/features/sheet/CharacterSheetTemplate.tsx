@@ -68,7 +68,13 @@ function CharacterSheetTemplate({
   },
   sheetMode,
 }: CharacterSheetTemplateProps) {
+  if (isLoading)
+    return (
+      <LoadingContainer>Carregando ficha do personagem...</LoadingContainer>
+    );
+  if (error) return <ErrorContainer>{error}</ErrorContainer>;
   if (!charSheet) return <ErrorContainer>Ficha não encontrada</ErrorContainer>;
+
   const {
     // categoryName,
     // characterExp,
@@ -90,12 +96,6 @@ function CharacterSheetTemplate({
   const selectedClass = charClasses?.find(
     (cc) => cc.profile.name === charSheet.characterClass,
   );
-
-  if (isLoading)
-    return (
-      <LoadingContainer>Carregando ficha do personagem...</LoadingContainer>
-    );
-  if (error) return <ErrorContainer>{error}</ErrorContainer>;
 
   const mode = sheetMode.headerMode;
   if ((mode === "create" || mode === "edit") && !charClasses) {
