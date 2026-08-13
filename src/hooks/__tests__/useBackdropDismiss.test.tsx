@@ -45,6 +45,15 @@ describe("useBackdropDismiss", () => {
     expect(onDismiss).not.toHaveBeenCalled();
   });
 
+  it("não dispara para clique com botão secundário (botão direito) no backdrop", () => {
+    const onDismiss = vi.fn();
+    const { getByTestId } = render(<Harness onDismiss={onDismiss} />);
+    const overlay = getByTestId("overlay");
+    fireEvent.mouseDown(overlay, { button: 2 });
+    fireEvent.mouseUp(overlay, { button: 2 });
+    expect(onDismiss).not.toHaveBeenCalled();
+  });
+
   it("rearma a cada novo ciclo mousedown/mouseup (não trava em false)", () => {
     const onDismiss = vi.fn();
     const { getByTestId } = render(<Harness onDismiss={onDismiss} />);

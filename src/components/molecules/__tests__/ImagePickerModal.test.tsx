@@ -103,6 +103,17 @@ describe("ImagePickerModal — guarda de descarte", () => {
     );
   });
 
+  it("NÃO fecha nem abre a confirmação quando um drag começa dentro do modal (com conteúdo já adicionado) e termina no backdrop", async () => {
+    const onClose = vi.fn();
+    render(<ImagePickerModal type="cover" onConfirm={vi.fn()} onClose={onClose} />);
+    await preencherUrl("https://example.com/img.png");
+    const overlay = screen.getByTestId("image-picker-overlay");
+    fireEvent.mouseDown(screen.getByRole("button", { name: /Colar link/ }));
+    fireEvent.mouseUp(overlay);
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.queryByText("⚠ Descartar imagem?")).not.toBeInTheDocument();
+  });
+
   it("'Descartar' fecha o modal", async () => {
     const onClose = vi.fn();
     render(<ImagePickerModal type="cover" onConfirm={vi.fn()} onClose={onClose} />);
