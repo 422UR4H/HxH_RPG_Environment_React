@@ -33,7 +33,7 @@ export default function PhysicalSkillsGroup({ attributes, skills }: PhysicalSkil
         attributePower={attributes?.["agility"]?.power}
         attributeCurrExp={attributes?.["agility"]?.currExp}
         attributeNextLvlBaseExp={attributes?.["agility"]?.nextLvlBaseExp}
-        skillsSubList={["accelerate", "brake", "velocity"]}
+        skillsSubList={["accelerate", "brake", "quickness"]}
         skillsList={skills}
       />
       <AttributeSkillGroup

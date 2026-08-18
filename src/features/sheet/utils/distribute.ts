@@ -161,7 +161,7 @@ function getBaseSkillsForType(type: "physical" | "spiritual") {
         // agility
         "accelerate",
         "brake",
-        "velocity",
+        "quickness",
         // celerity
         "legerity",
         "feint",
