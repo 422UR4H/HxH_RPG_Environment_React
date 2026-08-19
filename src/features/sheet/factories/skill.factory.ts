@@ -32,7 +32,7 @@ export function createEmptyPhysicalSkills(): Record<string, Skill> {
     tact: createEmptySkill(),
     taste: createEmptySkill(),
     tenacity: createEmptySkill(),
-    velocity: createEmptySkill(),
+    quickness: createEmptySkill(),
     vision: createEmptySkill(),
     vitality: createEmptySkill(),
   };
