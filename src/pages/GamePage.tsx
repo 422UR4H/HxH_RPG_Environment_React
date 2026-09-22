@@ -13,6 +13,8 @@ import type { MatchBoardSync } from "../hooks/useMatchWs";
 import useUser from "../hooks/useUser";
 import TacticalMapViewer from "../features/tactical-map/TacticalMapViewer";
 import GamePageTemplate from "../components/templates/GamePageTemplate";
+import MatchErrorBanner from "../features/match/combat/MatchErrorBanner";
+import type { WsError } from "../features/match/combat/combatErrorMessages";
 import { colors, fonts } from "../styles/tokens";
 import type { CharacterPrivateSummary } from "../types/characterSheet";
 import type { FogState, Piece, WallSegment } from "../types/tacticalMap";
@@ -54,6 +56,7 @@ function GamePageInner({
   const [wallPicker, setWallPicker] = useState<WallSegment | null>(null);
   const [livePieces, setLivePieces] = useState<Piece[] | null>(null);
   const [fog, setFog] = useState<FogState>({ fogMode: "explored", visiblePolygons: [] });
+  const [wsError, setWsError] = useState<WsError | null>(null);
 
   // Determine if current user is the master.
   const isMaster = match != null && user != null && match.masterUuid === user.uuid;
@@ -111,6 +114,10 @@ function GamePageInner({
     setLiveWalls((prev) => prev.map((w) => (w.id === wall.id ? wall : w)));
   }, []);
 
+  // Wrapped in useCallback so the banner's 6s auto-dismiss timer (keyed off this
+  // identity via onDismiss) is not reset on every GamePage render.
+  const dismissWsError = useCallback(() => setWsError(null), []);
+
   // Board the master seeds the game server with. Derived from the REST map only —
   // using live WS state here would feed the server's own pushes back into a sync loop.
   const board = useMemo<MatchBoardSync | null>(
@@ -127,6 +134,7 @@ function GamePageInner({
     onMapFullState: handleMapFullState,
     onVisibilityUpdated: handleVisibilityUpdated,
     onWallRevealed: handleWallRevealed,
+    onWsError: (e) => setWsError({ ...e, at: Date.now() }),
     board,
   });
 
@@ -171,6 +179,7 @@ function GamePageInner({
 
   return (
     <>
+      <MatchErrorBanner error={wsError} onDismiss={dismissWsError} />
       <GamePageTemplate sidebar={sidebar}>
         <CanvasWrapper ref={canvasRef}>
           {isLoading ? (
@@ -238,26 +247,14 @@ function GamePageInner({
             {wallPicker.wallType !== "terrain" && wallPicker.maxHp > 0 && !wallPicker.destroyed && (
               isMaster ? (
                 <WallActionButton onClick={() => {
-                  sendMasterAction({
-                    targetIds: [wallPicker.id],
-                    attack: {
-                      hit: { skillName: "combat_strength" },
-                      damage: { skillName: "combat_strength" },
-                    },
-                  });
+                  sendMasterAction({ targetIds: [wallPicker.id], attack: {} });
                   setWallPicker(null);
                 }}>
                   Atacar
                 </WallActionButton>
               ) : (
                 <WallActionButton onClick={() => {
-                  sendAction({
-                    targetId: [wallPicker.id],
-                    attack: {
-                      hit: { skillName: "combat_strength" },
-                      damage: { skillName: "combat_strength" },
-                    },
-                  });
+                  sendAction({ targetId: [wallPicker.id], attack: {} });
                   setWallPicker(null);
                 }}>
                   Atacar

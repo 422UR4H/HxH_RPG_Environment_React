@@ -56,6 +56,7 @@ export const colors = {
   statusPending: "#3498db",
   statusNpc: "#2ecc71",
   statusLeft: "#555", // same value as grayMid; kept semantic for rebrand independence
+  statusError: "#e74c3c", // WS error banner border (same value as danger)
 
   // feedback
   danger: "#e74c3c",

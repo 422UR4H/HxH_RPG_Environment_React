@@ -385,11 +385,38 @@ describe("useMatchWs outgoing actions", () => {
     act(() => { ws.onopen?.(); });
     const payload = {
       targetIds: ["char-1", "char-2"],
-      attack: { hit: { skillName: "punch" }, damage: { skillName: "punch" } },
+      attack: { weapon: "punch" },
     };
     act(() => { result.current.sendMasterAction(payload); });
     const sent = JSON.parse(ws.send.mock.calls[0][0] as string);
     expect(sent.type).toBe("enqueue_master_action");
     expect(sent.payload).toEqual(payload);
+  });
+});
+
+// ─── Server error (error) ───────────────────────────────────────────────────
+
+describe("useMatchWs error handling", () => {
+  it("surfaces a server error with the type of the last send", () => {
+    const onWsError = vi.fn();
+    const { result } = renderHook(() =>
+      useMatchWs({ matchUuid: "m1", token: "t", isMaster: true, onWsError }),
+    );
+    const ws = FakeWS.instances[0];
+    ws.onopen?.();
+    act(() => { result.current.sendAction({ targetId: ["w1"] }); });
+    ws.emit("error", { code: "invalid_action", message: "actorId is required" });
+    expect(onWsError).toHaveBeenCalledWith({
+      code: "invalid_action",
+      message: "actorId is required",
+      sentType: "enqueue_action",
+    });
+  });
+
+  it("does not throw on an unknown message type", () => {
+    renderHook(() => useMatchWs({ matchUuid: "m1", token: "t", isMaster: false }));
+    const ws = FakeWS.instances[0];
+    ws.onopen?.();
+    expect(() => ws.emit("something_new", {})).not.toThrow();
   });
 });

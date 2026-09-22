@@ -98,6 +98,8 @@ type UseMatchWsOptions = {
   ) => void;
   /** Called when a secret door is revealed by the master. */
   onWallRevealed?: (wall: WallSegment) => void;
+  /** Server refusal (`error`). Never broadcast: it is always about our own last send. */
+  onWsError?: (e: { code: string; message: string; sentType?: string }) => void;
   /**
    * Pieces, walls and grid used to seed the game server once connected (master only).
    * Pass `null`/`undefined` while the REST map is still loading — syncing early would
@@ -115,6 +117,7 @@ export function useMatchWs({
   onMapFullState,
   onVisibilityUpdated,
   onWallRevealed,
+  onWsError,
   board,
 }: UseMatchWsOptions) {
   const [status, setStatus] = useState<MatchWsStatus>("disconnected");
@@ -129,6 +132,9 @@ export function useMatchWs({
   onVisibilityUpdatedRef.current = onVisibilityUpdated;
   const onWallRevealedRef = useRef(onWallRevealed);
   onWallRevealedRef.current = onWallRevealed;
+  const onWsErrorRef = useRef(onWsError);
+  onWsErrorRef.current = onWsError;
+  const lastSentTypeRef = useRef<string | undefined>(undefined);
   const boardRef = useRef(board);
   boardRef.current = board;
   const isMasterRef = useRef(isMaster);
@@ -137,6 +143,7 @@ export function useMatchWs({
   const sendRaw = useCallback((type: string, payload: unknown = {}) => {
     const ws = wsRef.current;
     if (ws && ws.readyState === WebSocket.OPEN) {
+      lastSentTypeRef.current = type;
       ws.send(JSON.stringify({ type, payload }));
     }
   }, []);
@@ -208,9 +215,18 @@ export function useMatchWs({
           } else if (msg.type === "wall_revealed") {
             const p = msg.payload as { wall: Record<string, unknown> };
             onWallRevealedRef.current?.(p.wall as unknown as WallSegment);
+          } else if (msg.type === "error") {
+            const p = msg.payload as { code?: string; message?: string };
+            onWsErrorRef.current?.({
+              code: p.code ?? "unknown",
+              message: p.message ?? "",
+              sentType: lastSentTypeRef.current,
+            });
+          } else if (import.meta.env.DEV) {
+            console.warn("[match-ws] unhandled message type:", msg.type);
           }
-        } catch {
-          // ignore malformed messages
+        } catch (err) {
+          if (import.meta.env.DEV) console.warn("[match-ws] malformed message", err);
         }
       };
 
@@ -258,7 +274,7 @@ export function useMatchWs({
       targetId?: string[];
       interact?: { kind: string };
       move?: { from: [number, number, number]; position: [number, number, number]; category: string };
-      attack?: { hit: { skillName: string }; damage: { skillName: string } };
+      attack?: { weapon?: string };
     }) => {
       sendRaw("enqueue_action", payload);
     },
@@ -270,7 +286,7 @@ export function useMatchWs({
     (payload: {
       targetIds: string[];
       interact?: { kind: string };
-      attack?: { hit: { skillName: string }; damage: { skillName: string } };
+      attack?: { weapon?: string };
     }) => {
       sendRaw("enqueue_master_action", payload);
     },
