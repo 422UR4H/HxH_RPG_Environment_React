@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { GridShape, Piece, SlotCoord, WallSegment } from "../types/tacticalMap";
+import type { CombatServerMessage, EnqueueActionPayload, RoundMode } from "../features/match/combat/combatMessages";
 
 export type MatchWsStatus = "connecting" | "connected" | "disconnected";
 
@@ -71,6 +72,12 @@ function parsePolys(
 const MAX_RECONNECTS = 5;
 const BASE_DELAY_MS = 1000;
 
+const COMBAT_TYPES = new Set([
+  "match_full_state", "bars_updated", "action_enqueued", "action_queued",
+  "turn_opened", "turn_closed", "resolution_updated", "character_hp_changed",
+  "round_closed", "round_mode_changed", "scene_changed", "close_turn_refused",
+]);
+
 type WallStateChangedPayload = {
   wallId: string;
   open: boolean;
@@ -100,6 +107,8 @@ type UseMatchWsOptions = {
   onWallRevealed?: (wall: WallSegment) => void;
   /** Server refusal (`error`). Never broadcast: it is always about our own last send. */
   onWsError?: (e: { code: string; message: string; sentType?: string }) => void;
+  /** Called when a combat message is received from the server. */
+  onCombatMessage?: (msg: CombatServerMessage) => void;
   /**
    * Pieces, walls and grid used to seed the game server once connected (master only).
    * Pass `null`/`undefined` while the REST map is still loading — syncing early would
@@ -118,6 +127,7 @@ export function useMatchWs({
   onVisibilityUpdated,
   onWallRevealed,
   onWsError,
+  onCombatMessage,
   board,
 }: UseMatchWsOptions) {
   const [status, setStatus] = useState<MatchWsStatus>("disconnected");
@@ -134,6 +144,8 @@ export function useMatchWs({
   onWallRevealedRef.current = onWallRevealed;
   const onWsErrorRef = useRef(onWsError);
   onWsErrorRef.current = onWsError;
+  const onCombatMessageRef = useRef(onCombatMessage);
+  onCombatMessageRef.current = onCombatMessage;
   const lastSentTypeRef = useRef<string | undefined>(undefined);
   const boardRef = useRef(board);
   boardRef.current = board;
@@ -222,6 +234,8 @@ export function useMatchWs({
               message: p.message ?? "",
               sentType: lastSentTypeRef.current,
             });
+          } else if (COMBAT_TYPES.has(msg.type)) {
+            onCombatMessageRef.current?.(msg as CombatServerMessage);
           } else if (import.meta.env.DEV) {
             console.warn("[match-ws] unhandled message type:", msg.type);
           }
@@ -293,5 +307,32 @@ export function useMatchWs({
     [sendRaw],
   );
 
-  return { status, sendAction, sendMasterAction };
+  const sendEnqueueAction = useCallback(
+    (payload: EnqueueActionPayload) => sendRaw("enqueue_action", payload),
+    [sendRaw],
+  );
+  const sendOpenNextAction = useCallback(() => sendRaw("open_next_action", {}), [sendRaw]);
+  const sendPullAction = useCallback(
+    (actionId: string) => sendRaw("pull_action", { actionId }),
+    [sendRaw],
+  );
+  const sendCloseTurn = useCallback(
+    (confirm?: boolean) => sendRaw("close_turn", confirm ? { confirm: true } : {}),
+    [sendRaw],
+  );
+  const sendChangeRoundMode = useCallback(
+    (mode: RoundMode) => sendRaw("change_round_mode", { mode }),
+    [sendRaw],
+  );
+
+  return {
+    status,
+    sendAction,
+    sendMasterAction,
+    sendEnqueueAction,
+    sendOpenNextAction,
+    sendPullAction,
+    sendCloseTurn,
+    sendChangeRoundMode,
+  };
 }

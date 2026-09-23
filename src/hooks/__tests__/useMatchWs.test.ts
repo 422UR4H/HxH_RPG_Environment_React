@@ -420,3 +420,44 @@ describe("useMatchWs error handling", () => {
     expect(() => ws.emit("something_new", {})).not.toThrow();
   });
 });
+
+// ─── Combat messages and verbs (Task 5) ───────────────────────────────────
+
+describe("useMatchWs combat", () => {
+  it("forwards every combat message it knows", () => {
+    const onCombatMessage = vi.fn();
+    renderHook(() =>
+      useMatchWs({ matchUuid: "m1", token: "t", isMaster: true, onCombatMessage }),
+    );
+    const ws = FakeWS.instances[0];
+    ws.onopen?.();
+    ws.emit("bars_updated", { seq: 2, prices: {}, characters: [], order: [] });
+    ws.emit("turn_opened", { turnId: "t1", actorId: "c1", actionId: "a1", actionType: "" });
+    expect(onCombatMessage).toHaveBeenCalledTimes(2);
+    expect(onCombatMessage.mock.calls[1][0]).toEqual({
+      type: "turn_opened",
+      payload: { turnId: "t1", actorId: "c1", actionId: "a1", actionType: "" },
+    });
+  });
+
+  it("sends the master verbs with the payloads the contract names", () => {
+    const { result } = renderHook(() =>
+      useMatchWs({ matchUuid: "m1", token: "t", isMaster: true }),
+    );
+    const ws = FakeWS.instances[0];
+    ws.onopen?.();
+    act(() => {
+      result.current.sendOpenNextAction();
+      result.current.sendPullAction("a1");
+      result.current.sendCloseTurn(true);
+      result.current.sendChangeRoundMode("Race");
+    });
+    const sent = ws.send.mock.calls.map((c) => JSON.parse(c[0] as string));
+    expect(sent.map((m) => m.type)).toEqual([
+      "open_next_action", "pull_action", "close_turn", "change_round_mode",
+    ]);
+    expect(sent[1].payload).toEqual({ actionId: "a1" });
+    expect(sent[2].payload).toEqual({ confirm: true });
+    expect(sent[3].payload).toEqual({ mode: "Race" });
+  });
+});
