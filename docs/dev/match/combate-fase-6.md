@@ -213,15 +213,28 @@ protótipo, como o spec §7.2 já assumia — declarado para evoluir depois.
 
 ### O mestre clica numa peça que não controla, sem ator selecionado
 
-**Decisão.** A peça vira **inspecionada**: recebe moldura de foco e a aba Personagens rola
-até aquele personagem. Nada é enviado ao servidor, e ela não vira ator (`GameMasterPage.
-handlePieceSelect`: sem `actorId`, clique num NPC controlável vira ator; clique numa peça
-de jogador vira `inspectedId`, força a aba Personagens e abre a gaveta).
+**Decisão.** A peça vira **inspecionada**: recebe moldura de foco (anel cinza,
+`colors.pieceInspectRing`, distinto do dourado de seleção e do azul de alvo — round de
+browser F7) e a aba Personagens rola até aquele personagem. Nada é enviado ao servidor, e
+ela não vira ator (`GameMasterPage.handlePieceSelect`: sem `actorId`, clique num NPC
+controlável vira ator; clique numa peça de jogador OU num NPC do mapa que não é
+participante da partida vira `inspectedId`, força a aba Personagens e abre a gaveta — o
+painel explica que um NPC não-participante não está inscrito na partida).
 
 **Por quê.** Virar ator produziria `action actor does not match player` na primeira
 tentativa de declarar — o servidor só deixa o mestre agir por NPC. E não fazer nada
 desperdiçaria o gesto mais natural numa mesa ("quem é esse, como ele está"), que a Fase 6
 já consegue responder porque o HP do mestre chega por `character_hp_changed`.
+
+**Emenda do round de browser (F7).** Antes, inspecionar reaproveitava `selectedPieceId` —
+a mesma prop/anel do ator — então "só olhando" e "virou meu ator" eram visualmente
+idênticos. `TacticalMapViewer`/`TacticalMapStage`/`ViewportInner`/`PiecesLayer` ganharam um
+`inspectedPieceId` próprio, até `PieceSprite.isInspected`. `onPieceLongPress` e
+`onEmptySlotClick` também só chegam ao viewer quando há ator selecionado (sem ator não há
+alvo pra um hold marcar, nem `actorSlot` pra um clique em slot vazio desenhar). A dica do
+painel Fichas passou a distinguir "esta partida não tem NPC nenhum" (`npcCharacterIds.size
+=== 0` — convide alguém a adicionar um) de "clique num NPC no mapa" (existe um, é só
+clicar).
 
 ## Exceções declaradas ao invariante I2
 
@@ -311,6 +324,65 @@ o fantasma de espera; migrar os breakpoints antigos do resto do app.
   `StageZone` reserva a mesma faixa (`padding-bottom`) para o mapa não ficar embaixo do
   rail fixo. Em/acima de `railUp` os dois voltam ao normal (o rail entra na grade como
   coluna estática) — ainda decisão só de CSS.
+
+## Correções do round de browser (F1–F7)
+
+Uma sessão de verificação manual real (a que a seção anterior registrava como pendente)
+encontrou sete problemas, com causa raiz achada por um debugger e corrigidos numa sessão
+subsequente (`W/browser-fix-findings.md`, relatório completo em
+`W/browser-fix-report.md`):
+
+- **F1 — o fog engolia cliques em peça/slot vazio DENTRO do campo de visão.**
+  `FogLayer`'s Graphics de mundo inteiro não tinha `eventMode` — o Pixi 8 propaga o
+  `eventMode="static"` do viewport para filhos "passive" durante o hit-test, e a máscara
+  inversa de estêncil só afeta o desenho, nunca `containsPoint`. `eventMode="none"` em
+  `FogLayer` e nos dois wrappers de `LosSplit` (usados por `WallsLayer` quando há fog —
+  paredes já resolvem clique por `pointerup` de DOM, nunca hit-test do Pixi, então nada se
+  perde). `PieceSprite` ganhou um `hitArea` circular (`Circle` no raio do token): sem ele
+  o Pixi testava a união da geometria dos filhos, incluindo os anéis de seleção/alvo, que
+  alcançam além do token e por cima de linhas de parede vizinhas. Secundário: em jogo toda
+  peça tem `draggable:false` (o servidor decide onde ela para, I1), então uma pressão numa
+  peça também deixava o pan da câmera começar por baixo (`ViewportInner`), e o arrasto
+  cancelava o gesto de segurar — `pieceDragActiveRef` agora também fica `true` quando
+  `onPieceLongPress`/`onPieceSelect` estão plugados, não só quando a peça é arrastável.
+- **F2 — rascunho sobrevivia a uma recusa do servidor para sempre.** Uma recusa do
+  Declarar (`WS_ERROR`, `sentType: "enqueue_action"`, sobre o envio mais antigo com
+  `clearsDraft:true`) agora derruba só o `move` do rascunho — alvo e arma continuam,
+  porque o culpado de uma recusa é quase sempre o destino (`move_blocked`).
+- **F3 (crítico) — o socket da partida não tratava `piece_moved`/`piece_removed`.** O
+  contrato prevê o servidor movendo peças sozinho na abertura do turno (ou numa fuga de
+  reação) — o par reaproveita exatamente o formato que o lobby já entende
+  (`useLobbyWs.ts`). `useMatchWs` agora expõe `onPieceMoved`/`onPieceRemoved`, aplicados em
+  `useLiveMapSync` para os dois papéis; uma peça ainda não conhecida é inserida (dado
+  suficiente chega no wire), não ignorada. `actorSlot`/`actorPiece` são derivados a cada
+  render, então seguem a peça movida de graça.
+- **F4 — `RailNav` ficava deitado mesmo em pé.** `Nav` tinha `flex-direction: row` fixo
+  mesmo com o template (`MatchStageTemplate`/`RailZone`) já decidindo a orientação por CSS
+  (rodapé abaixo de `railUp`, coluna dali em diante). Agora herda a orientação do
+  container.
+- **F5 — mensagens do lobby no socket de partida.** `room_state`,
+  `player_joined`/`master_joined`/`player_left`/`master_left`, `chat_message`,
+  `match_started` e `player_kicked` são legítimas nesse socket (é a mesma conexão
+  `room.go`) — um conjunto de ignorados explícito em `useMatchWs` evita o warn de "tipo não
+  tratado" para elas, mantendo o warn útil para tipos realmente desconhecidos.
+- **F6 — lista de Personagens vazava/escondia errado.** O mestre agora vê todo
+  participante MAIS todo personagem com peça no mapa, mesmo sem inscrição (uma entrada
+  sintética sem `.private`, então sem HP inventado — R7 intacto). O jogador só vê quem tem
+  peça projetada no canvas dele após o fog do servidor, mais o próprio personagem. Nenhum
+  `isMaster` novo: cada página deriva a lista das peças que já renderiza.
+- **F7 — ver seção "O mestre clica numa peça que não controla" acima.**
+
+Camada Pixi (F1, parte de F7): não coberta por teste (mock de `@pixi/react`) — verificada
+por leitura do caminho do ponteiro, não em browser real (sem ferramenta de browser nesta
+sessão). Lobby/editor de mapa (que compartilham `PiecesLayer`/`PieceSprite`/`WallsLayer`)
+não mudam de comportamento visível: `FogLayer`/`LosSplit` nunca montam lá (nenhuma das duas
+páginas passa `fog`), e o hitArea mais estreito só deixa de responder num anel de seleção
+fora do token — nunca dentro dele. Uma exceção honesta: no editor um jogador pressionando a
+peça de OUTRO jogador (não arrastável para ele) parava de também iniciar o pan da câmera
+por baixo, porque o editor também liga `onPieceSelect` — o clique em si (o que seleciona)
+já não dependia disso (R19: sem `onPieceLongPress` o clique sempre resolve no release,
+lobby). Ou seja, suprime um glitch pré-existente (clicar customizava a câmera junto), não
+muda o que é selecionado nem a arrastabilidade de nada.
 
 ## Verificação no browser
 
