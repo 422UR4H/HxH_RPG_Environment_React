@@ -408,6 +408,10 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                   onWallClick={handleWallClick}
                   piecesInteractive
                   draggablePieceIds={EMPTY_SET}
+                  // F1 batch 2: explicit game-only opt-in — see stageProps.ts's doc
+                  // comment for why this can't be inferred from onPieceLongPress/
+                  // onPieceSelect (both wired in the lobby too, for different reasons).
+                  suppressPanOnPiecePress
                   onPieceSelect={handlePieceSelect}
                   // F7 (M1): only wired once an actor exists — without an actor there is
                   // nothing for a hold to mark as a target, so the hold-progress ring

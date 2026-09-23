@@ -14,6 +14,15 @@ export type TacticalMapStageProps = {
   // undefined = all pieces draggable (editor mode).
   // Set<string> = only listed piece IDs draggable (lobby placer mode).
   draggablePieceIds?: Set<string>;
+  // F1 batch 2 (Important): explicit game-only opt-in — a piece press should suppress
+  // ViewportInner's pan-on-press even when the piece itself isn't draggable (the server
+  // decides where it lands in game, I1). Only GamePlayerPage/GameMasterPage pass this;
+  // the lobby editor/placer never do, even though they wire onPieceSelect too, because a
+  // lobby player pressing ANOTHER player's (non-draggable) piece must still be able to
+  // drag-to-pan the camera off of that press — inferring this from onPieceLongPress/
+  // onPieceSelect broke exactly that (and F7 makes onPieceLongPress conditional on the
+  // master having an actor selected, so it can't be the signal either).
+  suppressPanOnPiecePress?: boolean;
   selection?: Selection;
   npcMap?: Map<string, CharacterPrivateSummary>;
   placingNpcId?: string | null;

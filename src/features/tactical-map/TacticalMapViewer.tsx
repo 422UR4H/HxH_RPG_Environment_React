@@ -21,6 +21,8 @@ type Props = {
   selectedPieceId?: string | null;
   inspectedPieceId?: string | null;
   targetPieceIds?: Set<string>;
+  // See stageProps.ts's doc comment — game-only, explicit opt-in.
+  suppressPanOnPiecePress?: boolean;
   // The declared-intent ghost (§8) — forwarded straight through to GhostLayer
   // via TacticalMapStage/ViewportInner.
   ghosts?: Array<{ from: [number, number, number]; to: [number, number, number] }>;
@@ -31,6 +33,7 @@ export default function TacticalMapViewer({
   map, width, height, npcMap, onWallClick, fog, isMaster,
   piecesInteractive, draggablePieceIds, onPieceSelect, onPieceLongPress,
   selectedPieceId, inspectedPieceId, targetPieceIds, ghosts, onEmptySlotClick,
+  suppressPanOnPiecePress,
 }: Props) {
   return (
     <TacticalMapStage
@@ -51,6 +54,7 @@ export default function TacticalMapViewer({
       targetPieceIds={targetPieceIds}
       ghosts={ghosts}
       onEmptySlotClick={onEmptySlotClick}
+      suppressPanOnPiecePress={suppressPanOnPiecePress}
     />
   );
 }

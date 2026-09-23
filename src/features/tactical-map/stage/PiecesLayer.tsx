@@ -38,7 +38,8 @@ type PieceLocalDragState = {
 } | null;
 
 export default function PiecesLayer({
-  map, vpRef, piecesInteractive, draggablePieceIds, selection, npcMap, pieceDragActiveRef,
+  map, vpRef, piecesInteractive, draggablePieceIds, suppressPanOnPiecePress, selection,
+  npcMap, pieceDragActiveRef,
   onPieceSelect, onPieceLongPress, selectedPieceId, inspectedPieceId, targetPieceIds,
   onPieceMove, onPieceDragToRoster, onPieceDragStart, onPieceDragEnd, onStageDeselect,
   onEmptySlotClick,
@@ -47,6 +48,8 @@ export default function PiecesLayer({
   vpRef: React.MutableRefObject<Viewport | null>;
   piecesInteractive?: boolean;
   draggablePieceIds?: Set<string>;
+  // See stageProps.ts's doc comment — game-only, explicit opt-in.
+  suppressPanOnPiecePress?: boolean;
   selection?: Selection;
   npcMap?: Map<string, CharacterPrivateSummary>;
   pieceDragActiveRef: React.MutableRefObject<boolean>;
@@ -432,7 +435,11 @@ export default function PiecesLayer({
       }}
     >
       <pixiGraphics draw={drawHoverSlot} />
-      <pixiGraphics draw={drawHoldProgress} />
+      {/* F1 batch 2 (minor): the hold-progress ring reaches tokenRadius+16 — same class of
+          bug as the per-piece selection/target rings (now hitArea-clamped in PieceSprite),
+          just drawn at the layer level instead. eventMode="none" so it never steals a hit
+          from a piece or wall underneath its arc. */}
+      <pixiGraphics draw={drawHoldProgress} eventMode="none" />
       {orderedPieces.map((p) => {
         const stack = stacks.get(p.id);
         return (
@@ -473,14 +480,19 @@ export default function PiecesLayer({
                 startHoldProgress(p.id);
               }
             }
-            // F1 secondary: in game mode every piece has draggable:false (the server
-            // decides where it lands, I1), so this used to fall through to `draggable`
-            // (false) and let ViewportInner's window pointerdown start a pan on top of
-            // the press — the drift then cancelled the hold gesture. Any consumer that
-            // actually wants to resolve this press as a click/hold (long-press or plain
-            // select, both wired only in the game) must suppress the pan too. The lobby
-            // never wires either, so `draggable` alone (already true there) still governs.
-            pieceDragActiveRef.current = draggable || !!onPieceLongPress || !!onPieceSelect;
+            // F1 secondary (amended, browser batch 2): in game mode every piece has
+            // draggable:false (the server decides where it lands, I1), so this used to
+            // fall through to `draggable` (false) and let ViewportInner's window
+            // pointerdown start a pan on top of the press — the drift then cancelled the
+            // hold gesture. `suppressPanOnPiecePress` is an explicit, game-only prop
+            // (only GamePlayerPage/GameMasterPage pass it) — NOT inferred from
+            // onPieceLongPress/onPieceSelect. The lobby editor DOES wire onPieceSelect,
+            // and a lobby player's draggablePieceIds holds only their own pieces, so
+            // inferring this from either prop suppressed drag-to-pan when a player
+            // pressed someone ELSE's (non-draggable) piece there — the lobby must stay
+            // unchanged. F7 also made onPieceLongPress conditional on the master having
+            // an actor selected, so it can't double as this signal either.
+            pieceDragActiveRef.current = draggable || !!suppressPanOnPiecePress;
             localDrag.current = {
               pieceId: p.id,
               startScreen: { x: e.global.x, y: e.global.y },

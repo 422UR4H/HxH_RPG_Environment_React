@@ -38,6 +38,7 @@ export default function ViewportInner({
   onBgLoadingChange,
   piecesInteractive,
   draggablePieceIds,
+  suppressPanOnPiecePress,
   selection,
   npcMap,
   placingNpcId,
@@ -309,6 +310,7 @@ export default function ViewportInner({
         vpRef={vpRef}
         piecesInteractive={piecesInteractive}
         draggablePieceIds={draggablePieceIds}
+        suppressPanOnPiecePress={suppressPanOnPiecePress}
         selection={selection}
         npcMap={npcMap}
         pieceDragActiveRef={pieceDragActiveRef}
