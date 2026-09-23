@@ -1,11 +1,14 @@
 // src/pages/__tests__/GamePage.test.tsx
+//
+// GamePage é a ROTA (Tarefa 12): loading guard + escolha da página pelo papel. Os
+// comportamentos de tela (mapa, ação, histórico...) são cobertos por
+// GamePlayerPage.test.tsx — aqui só o que é responsabilidade da rota.
 import { describe, it, expect } from "vitest";
-import { http, HttpResponse } from "msw";
+import { http, HttpResponse, delay } from "msw";
 import { screen, waitFor } from "@testing-library/react";
 import { server } from "../../test/server";
 import { renderWithProviders } from "../../test/render";
-import { matchApiFixture } from "../../test/fixtures/match";
-import { mapApiFixture } from "../../test/fixtures/map";
+import { matchApiFixture, matchAsMasterApi } from "../../test/fixtures/match";
 import GamePage from "../GamePage";
 
 const baseUrl = "http://localhost:5000";
@@ -18,15 +21,14 @@ function renderPage(opts: Parameters<typeof renderWithProviders>[1] = {}) {
   });
 }
 
-describe("GamePage", () => {
-  it("exibe mensagem quando nenhum mapa está anexado", async () => {
+describe("GamePage (rota)", () => {
+  it("mostra o loading guard enquanto a partida ainda não chegou", async () => {
     server.use(
-      http.get(`${baseUrl}/matches/:id/map`, () =>
-        new HttpResponse(null, { status: 204 }),
-      ),
-      http.get(`${baseUrl}/matches/:id`, () =>
-        HttpResponse.json({ match: matchApiFixture }),
-      ),
+      http.get(`${baseUrl}/matches/:id`, async () => {
+        await delay(30);
+        return HttpResponse.json({ match: matchApiFixture });
+      }),
+      http.get(`${baseUrl}/matches/:id/map`, () => new HttpResponse(null, { status: 204 })),
       http.get(`${baseUrl}/matches/:id/participants`, () =>
         HttpResponse.json({ participants: [] }),
       ),
@@ -34,39 +36,41 @@ describe("GamePage", () => {
 
     renderPage();
 
-    expect(
-      await screen.findByText(/nenhum mapa anexado/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/carregando partida/i)).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByText(/carregando partida/i)).not.toBeInTheDocument(),
+    );
   });
 
-  it("não exibe mensagem de erro quando mapa está carregado", async () => {
+  it("monta GamePlayerPage para quem não é mestre", async () => {
     server.use(
-      http.get(`${baseUrl}/matches/:id/map`, () =>
-        HttpResponse.json({
-          matchMap: {
-            matchUuid: "match-1",
-            mapUuid: mapApiFixture.id,
-            attachedAt: "2026-06-04T00:00:00Z",
-          },
-        }),
-      ),
-      http.get(`${baseUrl}/matches/:id`, () =>
-        HttpResponse.json({ match: matchApiFixture }),
-      ),
+      http.get(`${baseUrl}/matches/:id`, () => HttpResponse.json({ match: matchApiFixture })),
+      http.get(`${baseUrl}/matches/:id/map`, () => new HttpResponse(null, { status: 204 })),
       http.get(`${baseUrl}/matches/:id/participants`, () =>
         HttpResponse.json({ participants: [] }),
-      ),
-      http.get(`${baseUrl}/maps/:id`, () =>
-        HttpResponse.json({ map: mapApiFixture }),
       ),
     );
 
     renderPage();
 
-    await waitFor(() => {
-      expect(
-        screen.queryByText(/nenhum mapa anexado/i),
-      ).not.toBeInTheDocument();
-    });
+    expect(await screen.findByRole("button", { name: /^ação$/i })).toBeInTheDocument();
+  });
+
+  // Até a Tarefa 13 criar GameMasterPage, o ramo do mestre também monta GamePlayerPage —
+  // TODO(task-13) autorizado pelo plano/addendum (R11). Esta rota não muda de caminho.
+  it("monta a mesma página para o mestre, com o TODO(task-13) autorizado", async () => {
+    server.use(
+      http.get(`${baseUrl}/matches/:id`, () =>
+        HttpResponse.json({ match: matchAsMasterApi("user-1") }),
+      ),
+      http.get(`${baseUrl}/matches/:id/map`, () => new HttpResponse(null, { status: 204 })),
+      http.get(`${baseUrl}/matches/:id/participants`, () =>
+        HttpResponse.json({ participants: [] }),
+      ),
+    );
+
+    renderPage();
+
+    expect(await screen.findByRole("button", { name: /^ação$/i })).toBeInTheDocument();
   });
 });

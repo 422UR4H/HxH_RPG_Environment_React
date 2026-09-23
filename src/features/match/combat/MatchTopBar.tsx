@@ -41,13 +41,8 @@ export default function MatchTopBar({
       <RoundBadge>{roundMode ? ROUND_MODE_LABELS[roundMode] : "—"}</RoundBadge>
       <StatusLabel data-testid="ws-status">{STATUS_LABELS[status]}</StatusLabel>
       {actions}
-      <AsideToggle
-        type="button"
-        aria-pressed={asideOpen}
-        aria-label="Histórico"
-        onClick={onToggleAside}
-      >
-        Histórico
+      <AsideToggle type="button" aria-pressed={asideOpen} onClick={onToggleAside}>
+        Ver histórico
       </AsideToggle>
     </Bar>
   );
