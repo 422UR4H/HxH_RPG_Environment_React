@@ -17,11 +17,17 @@ export default function TacticalMapStage({
   onBgPositionChange,
   piecesInteractive,
   draggablePieceIds,
+  suppressPanOnPiecePress,
   selection,
   npcMap,
   placingNpcId,
   onPieceSelect,
+  onPieceLongPress,
+  selectedPieceId,
+  inspectedPieceId,
+  targetPieceIds,
   onPieceMove,
+  ghosts,
   onPieceDragToRoster,
   onPieceDragStart,
   onPieceDragEnd,
@@ -94,11 +100,17 @@ export default function TacticalMapStage({
           onBgLoadingChange={handleBgLoadingChange}
           piecesInteractive={piecesInteractive}
           draggablePieceIds={draggablePieceIds}
+          suppressPanOnPiecePress={suppressPanOnPiecePress}
           selection={selection}
           npcMap={npcMap}
           placingNpcId={placingNpcId}
           onPieceSelect={onPieceSelect}
+          onPieceLongPress={onPieceLongPress}
+          selectedPieceId={selectedPieceId}
+          inspectedPieceId={inspectedPieceId}
+          targetPieceIds={targetPieceIds}
           onPieceMove={onPieceMove}
+          ghosts={ghosts}
           onPieceDragToRoster={onPieceDragToRoster}
           onPieceDragStart={onPieceDragStart}
           onPieceDragEnd={onPieceDragEnd}

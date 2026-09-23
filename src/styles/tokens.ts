@@ -56,6 +56,7 @@ export const colors = {
   statusPending: "#3498db",
   statusNpc: "#2ecc71",
   statusLeft: "#555", // same value as grayMid; kept semantic for rebrand independence
+  statusError: "#e74c3c", // WS error banner border (same value as danger)
 
   // feedback
   danger: "#e74c3c",
@@ -76,7 +77,15 @@ export const colors = {
   warningBorder: "#a07000", // warning border / pill bg
   warningBgDark: "#3a2a00", // warning notice background
 
+  // tactical map — piece rings (Pixi numeric colors; parseInt(hex.replace("#",""),16))
+  pieceSelectionRing: "#ffd700", // selected piece ring (gold, matches prior inline hex)
+  pieceTargetRing: "#3ba7ff", // combat target ring — distinct hue from selection
+  pieceInspectRing: "#9ca3af", // "just looking" ring (F7) — neutral gray, never the actor's own gold
+  pieceGhost: "#9d7bff", // declared-intent ghost (§8) — translucent copy + arrow
+  pieceStackBadge: "#1c1c1c", // ×N cascade badge background (§7.2)
+
   // surfaces — translucent
+  rowHighlight: "rgba(8, 142, 59, 0.25)", // GeneralBar: highlighted actor's order row (brandAccentBright tint)
   overlay: "rgba(0, 0, 0, 0.7)",
   overlaySoft: "rgba(0, 0, 0, 0.44)",
   overlayMedium: "rgba(0, 0, 0, 0.6)",

@@ -1,24 +1,50 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Assets, BlurFilter, ImageSource, Texture } from "pixi.js";
+import { Assets, BlurFilter, Circle, ImageSource, Texture } from "pixi.js";
 import type { Container, FederatedPointerEvent } from "pixi.js";
 import type { Graphics as PixiGraphics } from "pixi.js";
 import gungiFrameUrl from "../../../assets/icons/gungi.svg";
 import avatarPlaceholderUrl from "../../../assets/placeholder/avatar.png";
 import type { GridShape, Piece } from "../../../types/tacticalMap";
 import type { CharacterPrivateSummary } from "../../../types/characterSheet";
-import { slotToWorld, slotInradius } from "../utils/coords";
+import { slotToWorld, slotInradius, stackOffsetToPx } from "../utils/coords";
 import { getAvatarBlobUrl, getAvatarInsetShadowTexture } from "../utils/avatarTexture";
+import { colors } from "../../../styles/tokens";
+
+// Pixi Graphics wants numeric colors, not CSS hex strings — same conversion
+// GridLayer already does for grid.color.
+const toPixiColor = (hex: string) => parseInt(hex.replace("#", ""), 16);
+const SELECTION_RING_COLOR = toPixiColor(colors.pieceSelectionRing);
+const TARGET_RING_COLOR = toPixiColor(colors.pieceTargetRing);
+const INSPECT_RING_COLOR = toPixiColor(colors.pieceInspectRing);
+const STACK_BADGE_BG = toPixiColor(colors.pieceStackBadge);
 
 type PieceSpriteProps = {
   piece: Piece;
   grid: GridShape;
   npc?: CharacterPrivateSummary;
   isSelected: boolean;
+  isTarget?: boolean;
+  // F7 (M1): a piece the master (or player) is just looking at, not controlling as an
+  // actor — a distinct ring so inspect never reads as "this is my actor now". Mutually
+  // exclusive with isSelected in practice (callers never set both for the same piece),
+  // but each draws its own ring independently, so nothing breaks if they briefly did.
+  isInspected?: boolean;
   piecesInteractive?: boolean;
   onPointerDown: (piece: Piece, e: FederatedPointerEvent) => void;
+  // Cascade (§7.2): dx/dy are a FRACTION of the slot's inradius (from
+  // stackOffsets), converted here to px so the offset scales with grid size
+  // like everything else PieceSprite draws (tokenRadius, zOffsetPx).
+  offset?: { dx: number; dy: number };
+  // Occupant count sharing this piece's slot. The ×N badge only ever renders
+  // when the caller also says this is the top piece of that group.
+  stackCount?: number;
+  isTopOfStack?: boolean;
 };
 
-export default function PieceSprite({ piece, grid, npc, isSelected, piecesInteractive, onPointerDown }: PieceSpriteProps) {
+export default function PieceSprite({
+  piece, grid, npc, isSelected, isTarget, isInspected, piecesInteractive, onPointerDown,
+  offset, stackCount, isTopOfStack,
+}: PieceSpriteProps) {
   const center = useMemo(() => slotToWorld(piece.coord.slot, grid), [piece.coord.slot, grid]);
   // 90% of the slot's inscribed-circle radius. Square keeps the original
   // 0.45·cellSize; hex tokens grow to fill their (much larger) cell by the same
@@ -27,6 +53,26 @@ export default function PieceSprite({ piece, grid, npc, isSelected, piecesIntera
   const avatarRadius = tokenRadius * 0.7;
   const z = piece.coord.z;
   const zOffsetPx = z * 10;
+  // §7.2: same mechanism as zOffsetPx above — a fraction of the slot converted
+  // to px and added to the container's position — but for x/y cascade instead
+  // of the z "height" shadow-offset. Shared with PiecesLayer's hold-progress
+  // ring via stackOffsetToPx so the two positions can't drift apart.
+  const { x: stackDx, y: stackDy } = stackOffsetToPx(offset, grid);
+  const showStackBadge = !!isTopOfStack && (stackCount ?? 1) > 1;
+
+  const drawStackBadge = useCallback(
+    (g: PixiGraphics) => {
+      g.clear();
+      if (!showStackBadge) return;
+      const r = tokenRadius * 0.32;
+      const bx = tokenRadius - r * 0.3;
+      const by = -zOffsetPx + tokenRadius - r * 0.3;
+      g.setFillStyle({ color: STACK_BADGE_BG, alpha: 0.9 });
+      g.circle(bx, by, r);
+      g.fill();
+    },
+    [showStackBadge, tokenRadius, zOffsetPx],
+  );
 
   const [avatarTexture, setAvatarTexture] = useState<Texture | null>(null);
   useEffect(() => {
@@ -121,26 +167,64 @@ export default function PieceSprite({ piece, grid, npc, isSelected, piecesIntera
 
   const insetShadowTexture = useMemo(() => getAvatarInsetShadowTexture(avatarRadius), [avatarRadius]);
 
+  // F1: without an explicit hitArea, Pixi hit-tests the union of this container's
+  // children geometry — which includes the selection ring (tokenRadius+8) and the
+  // target ring (tokenRadius+12), both drawn well outside the visible token. On a
+  // crowded board those rings reach over an adjacent wall line and steal its click.
+  // Clamping the hit area to the token's own circle means only the token itself
+  // (never a ring around it) is ever clickable.
+  const hitArea = useMemo(() => new Circle(0, -zOffsetPx, tokenRadius), [zOffsetPx, tokenRadius]);
+
   const drawSelection = useCallback(
     (g: PixiGraphics) => {
       g.clear();
       if (!isSelected) return;
-      g.setStrokeStyle({ color: 0xffd700, width: 3.5, alpha: 1.0 });
+      g.setStrokeStyle({ color: SELECTION_RING_COLOR, width: 3.5, alpha: 1.0 });
       g.circle(0, -zOffsetPx, tokenRadius + 4);
       g.stroke();
-      g.setStrokeStyle({ color: 0xffe066, width: 2, alpha: 0.5 });
+      g.setStrokeStyle({ color: SELECTION_RING_COLOR, width: 2, alpha: 0.5 });
       g.circle(0, -zOffsetPx, tokenRadius + 8);
       g.stroke();
     },
     [isSelected, tokenRadius, zOffsetPx],
   );
 
+  // F7 (M1): a single dim gray ring — visually nothing like the two-ring gold of
+  // drawSelection or the blue of drawTarget — so inspecting a piece never reads as
+  // "this is now my actor". Sits between the two in radius; harmless if a piece is ever
+  // both selected and inspected (shouldn't happen — pages never set both for one piece).
+  const drawInspect = useCallback(
+    (g: PixiGraphics) => {
+      g.clear();
+      if (!isInspected) return;
+      g.setStrokeStyle({ color: INSPECT_RING_COLOR, width: 3, alpha: 0.85 });
+      g.circle(0, -zOffsetPx, tokenRadius + 6);
+      g.stroke();
+    },
+    [isInspected, tokenRadius, zOffsetPx],
+  );
+
+  // Target ring sits further out than the selection ring so a piece that is both
+  // the acting actor (selected) and its own target (self-target is legitimate,
+  // spec §6) shows both rings distinctly instead of one occluding the other.
+  const drawTarget = useCallback(
+    (g: PixiGraphics) => {
+      g.clear();
+      if (!isTarget) return;
+      g.setStrokeStyle({ color: TARGET_RING_COLOR, width: 3.5, alpha: 1.0 });
+      g.circle(0, -zOffsetPx, tokenRadius + 12);
+      g.stroke();
+    },
+    [isTarget, tokenRadius, zOffsetPx],
+  );
+
   return (
     <pixiContainer
       label={`piece-${piece.id}`}
-      x={center.x}
-      y={center.y}
+      x={center.x + stackDx}
+      y={center.y + stackDy}
       eventMode={piecesInteractive ? "static" : "none"}
+      hitArea={piecesInteractive ? hitArea : undefined}
       cursor={piecesInteractive ? "pointer" : "default"}
       onPointerDown={(e: FederatedPointerEvent) => onPointerDown(piece, e)}
     >
@@ -186,6 +270,21 @@ export default function PieceSprite({ piece, grid, npc, isSelected, piecesIntera
       )}
 
       <pixiGraphics draw={drawSelection} />
+      <pixiGraphics draw={drawInspect} />
+      <pixiGraphics draw={drawTarget} />
+
+      {showStackBadge && (
+        <>
+          <pixiGraphics draw={drawStackBadge} />
+          <pixiText
+            text={`×${stackCount}`}
+            x={tokenRadius - tokenRadius * 0.32 * 0.3}
+            y={-zOffsetPx + tokenRadius - tokenRadius * 0.32 * 0.3}
+            anchor={0.5}
+            style={{ fontSize: Math.max(10, tokenRadius * 0.34), fill: 0xffffff, fontWeight: "bold" }}
+          />
+        </>
+      )}
 
       {z > 0 && (
         <pixiText

@@ -72,3 +72,7 @@ Colors, fonts and gradients live in `src/styles/tokens.ts` (`colors`, `fonts`, `
 ## Feature: character sheet
 
 See `src/features/sheet/CLAUDE.md` for sheet-specific conventions (factories, distribute utils, SheetMode pattern).
+
+## Feature: match combat
+
+See `docs/dev/match/combate-fase-6.md` for the combat-loop architecture (reducer, `useMatchCombat`, the hold gesture, ghost, stacking cascade) delivered in Fase 6.
