@@ -291,11 +291,19 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   const isLoading = matchMapPending || (!!matchMap && mapPending);
   const canCloseTurn = state.openTurn != null;
 
-  const selectedPieceId = actorId
-    ? actorPiece?.id
-    : inspectedId
-      ? pieceIdsByCharacterId.get(inspectedId)?.[0]
-      : undefined;
+  // F7 (M1): selectedPieceId is ONLY the actor's own ring (gold) — an inspected piece
+  // (no actor controlled by the master, or a third party's piece with an actor already
+  // set) gets its own distinct inspectedPieceId ring instead, so looking at a sheet
+  // never reads as "I selected this as my actor".
+  const selectedPieceId = actorId ? actorPiece?.id : undefined;
+  const inspectedPieceId = inspectedId ? pieceIdsByCharacterId.get(inspectedId)?.[0] : undefined;
+
+  // F7 (M1): a map NPC that is NOT a match participant (a campaign NPC the master
+  // dragged onto the board ad hoc, never enrolled) is inspected like any other
+  // third-party piece — but the Personagens panel needs to say why it has no HP/sheet
+  // actions there instead of leaving it looking like a broken row.
+  const inspectedIsNotInMatch =
+    !!inspectedId && !participants.some((p) => p.characterSheet.uuid === inspectedId);
 
   return (
     <>
@@ -375,7 +383,11 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                   )}
                 </>
               ) : (
-                <NoActorHint>Clique num NPC no mapa para agir por ele.</NoActorHint>
+                <NoActorHint>
+                  {npcCharacterIds.size === 0
+                    ? "Nenhum NPC nesta partida — adicione NPCs à partida para agir por eles."
+                    : "Clique num NPC no mapa para agir por ele."}
+                </NoActorHint>
               )}
             </>
           )
@@ -397,11 +409,17 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                   piecesInteractive
                   draggablePieceIds={EMPTY_SET}
                   onPieceSelect={handlePieceSelect}
-                  onPieceLongPress={handlePieceLongPress}
+                  // F7 (M1): only wired once an actor exists — without an actor there is
+                  // nothing for a hold to mark as a target, so the hold-progress ring
+                  // would just be a useless affordance on every piece press.
+                  onPieceLongPress={actorId ? handlePieceLongPress : undefined}
                   selectedPieceId={selectedPieceId}
+                  inspectedPieceId={inspectedPieceId}
                   targetPieceIds={targetPieceIds}
                   ghosts={Object.values(state.ghosts)}
-                  onEmptySlotClick={setDestination}
+                  // F7 (M1): only wired once an actor exists — setDestination with no
+                  // actor had no actorSlot to draw a ghost's origin from (a known minor).
+                  onEmptySlotClick={actorId ? setDestination : undefined}
                 />
               ) : !map ? (
                 <NoMapMessage>Nenhum mapa anexado a esta partida.</NoMapMessage>
@@ -418,16 +436,23 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
             onTabChange={setAsideTab}
             historico={<EventStream events={state.events} nameOf={nameOf} />}
             personagens={
-              <MatchCharactersSidebar
-                gameStarted
-                enrollments={[]}
-                participants={visibleParticipants}
-                isMaster
-                actionLoading={{}}
-                onAccept={() => {}}
-                onReject={() => {}}
-                onSelectCharacterSheet={(sheetUuid) => navigate(`/charactersheet/${sheetUuid}`)}
-              />
+              <>
+                {inspectedIsNotInMatch && (
+                  <NotInMatchHint>
+                    Este personagem não está inscrito na partida — é um NPC do mapa.
+                  </NotInMatchHint>
+                )}
+                <MatchCharactersSidebar
+                  gameStarted
+                  enrollments={[]}
+                  participants={visibleParticipants}
+                  isMaster
+                  actionLoading={{}}
+                  onAccept={() => {}}
+                  onReject={() => {}}
+                  onSelectCharacterSheet={(sheetUuid) => navigate(`/charactersheet/${sheetUuid}`)}
+                />
+              </>
             }
           />
         }
@@ -466,6 +491,17 @@ const NoActorHint = styled.p`
   font-size: 13px;
   font-style: italic;
   padding: 12px;
+`;
+
+// F7 (M1): explains why an inspected map NPC has no sheet actions/HP in the list below —
+// it was never enrolled in the match, just placed on the board.
+const NotInMatchHint = styled.p`
+  color: ${colors.textPlaceholderStrong};
+  font-family: ${fonts.sans};
+  font-size: 12px;
+  font-style: italic;
+  padding: 8px 12px 0;
+  margin: 0;
 `;
 
 const RegencyActions = styled.div`

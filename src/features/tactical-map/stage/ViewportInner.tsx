@@ -44,6 +44,7 @@ export default function ViewportInner({
   onPieceSelect,
   onPieceLongPress,
   selectedPieceId,
+  inspectedPieceId,
   targetPieceIds,
   onPieceMove,
   ghosts,
@@ -314,6 +315,7 @@ export default function ViewportInner({
         onPieceSelect={onPieceSelect}
         onPieceLongPress={onPieceLongPress}
         selectedPieceId={selectedPieceId}
+        inspectedPieceId={inspectedPieceId}
         targetPieceIds={targetPieceIds}
         onPieceMove={onPieceMove}
         onPieceDragToRoster={onPieceDragToRoster}

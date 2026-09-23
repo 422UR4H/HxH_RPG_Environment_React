@@ -15,6 +15,7 @@ import { colors } from "../../../styles/tokens";
 const toPixiColor = (hex: string) => parseInt(hex.replace("#", ""), 16);
 const SELECTION_RING_COLOR = toPixiColor(colors.pieceSelectionRing);
 const TARGET_RING_COLOR = toPixiColor(colors.pieceTargetRing);
+const INSPECT_RING_COLOR = toPixiColor(colors.pieceInspectRing);
 const STACK_BADGE_BG = toPixiColor(colors.pieceStackBadge);
 
 type PieceSpriteProps = {
@@ -23,6 +24,11 @@ type PieceSpriteProps = {
   npc?: CharacterPrivateSummary;
   isSelected: boolean;
   isTarget?: boolean;
+  // F7 (M1): a piece the master (or player) is just looking at, not controlling as an
+  // actor — a distinct ring so inspect never reads as "this is my actor now". Mutually
+  // exclusive with isSelected in practice (callers never set both for the same piece),
+  // but each draws its own ring independently, so nothing breaks if they briefly did.
+  isInspected?: boolean;
   piecesInteractive?: boolean;
   onPointerDown: (piece: Piece, e: FederatedPointerEvent) => void;
   // Cascade (§7.2): dx/dy are a FRACTION of the slot's inradius (from
@@ -36,7 +42,7 @@ type PieceSpriteProps = {
 };
 
 export default function PieceSprite({
-  piece, grid, npc, isSelected, isTarget, piecesInteractive, onPointerDown,
+  piece, grid, npc, isSelected, isTarget, isInspected, piecesInteractive, onPointerDown,
   offset, stackCount, isTopOfStack,
 }: PieceSpriteProps) {
   const center = useMemo(() => slotToWorld(piece.coord.slot, grid), [piece.coord.slot, grid]);
@@ -183,6 +189,21 @@ export default function PieceSprite({
     [isSelected, tokenRadius, zOffsetPx],
   );
 
+  // F7 (M1): a single dim gray ring — visually nothing like the two-ring gold of
+  // drawSelection or the blue of drawTarget — so inspecting a piece never reads as
+  // "this is now my actor". Sits between the two in radius; harmless if a piece is ever
+  // both selected and inspected (shouldn't happen — pages never set both for one piece).
+  const drawInspect = useCallback(
+    (g: PixiGraphics) => {
+      g.clear();
+      if (!isInspected) return;
+      g.setStrokeStyle({ color: INSPECT_RING_COLOR, width: 3, alpha: 0.85 });
+      g.circle(0, -zOffsetPx, tokenRadius + 6);
+      g.stroke();
+    },
+    [isInspected, tokenRadius, zOffsetPx],
+  );
+
   // Target ring sits further out than the selection ring so a piece that is both
   // the acting actor (selected) and its own target (self-target is legitimate,
   // spec §6) shows both rings distinctly instead of one occluding the other.
@@ -249,6 +270,7 @@ export default function PieceSprite({
       )}
 
       <pixiGraphics draw={drawSelection} />
+      <pixiGraphics draw={drawInspect} />
       <pixiGraphics draw={drawTarget} />
 
       {showStackBadge && (

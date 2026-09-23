@@ -20,11 +20,19 @@ vi.mock("../../features/tactical-map/TacticalMapViewer", () => ({
     onPieceSelect?: (pieceId: string) => void;
     onPieceLongPress?: (pieceId: string) => void;
     onEmptySlotClick?: (slot: { kind: "square"; col: number; row: number }, x: number, y: number) => void;
+    selectedPieceId?: string | null;
+    inspectedPieceId?: string | null;
   }) => (
     <div
       data-testid="map-stub"
       // Final review, Important 1 (mirrors GamePlayerPage.test.tsx).
       data-draggable-piece-ids={props.draggablePieceIds ? JSON.stringify([...props.draggablePieceIds]) : "undefined"}
+      // F7: whether the viewer received a live handler at all — proves onPieceLongPress/
+      // onEmptySlotClick are truly omitted without an actor, not just no-op internally.
+      data-has-long-press={String(!!props.onPieceLongPress)}
+      data-has-empty-slot-click={String(!!props.onEmptySlotClick)}
+      data-selected-piece-id={props.selectedPieceId ?? ""}
+      data-inspected-piece-id={props.inspectedPieceId ?? ""}
     >
       {props.map.pieces.map((piece) => (
         <button
@@ -284,5 +292,96 @@ describe("GameMasterPage", () => {
     expect(await screen.findByText("Gon")).toBeInTheDocument();
     // não virou ator: a bottom sheet de compor ação não aparece
     expect(screen.queryByRole("button", { name: /declarar/i })).not.toBeInTheDocument();
+
+    // F7 (M1): o anel é de INSPEÇÃO, não de seleção de ator — os dois props do viewer
+    // não podem apontar para a mesma peça aqui.
+    const mapStub = screen.getByTestId("map-stub");
+    expect(mapStub).toHaveAttribute("data-inspected-piece-id", "piece-c1");
+    expect(mapStub).toHaveAttribute("data-selected-piece-id", "");
+  });
+
+  // F7 (M1): sem ator selecionado não há alvo pra um hold marcar, nem actorSlot pra um
+  // clique em slot vazio desenhar — os dois handlers ficam de fora do viewer até um NPC
+  // virar ator; depois de virar, o anel de seleção (não mais inspeção) segue a peça dele.
+  it("sem ator: onPieceLongPress/onEmptySlotClick não vão pro viewer; com ator, o anel de seleção segue a peça (F7)", async () => {
+    renderMasterPage();
+    const ws = FakeWS.instances[0];
+    act(() => ws.onopen?.());
+
+    let mapStub = await screen.findByTestId("map-stub");
+    expect(mapStub).toHaveAttribute("data-has-long-press", "false");
+    expect(mapStub).toHaveAttribute("data-has-empty-slot-click", "false");
+
+    const npcButton = await screen.findByTestId("select-actor-npc1");
+    act(() => npcButton.click());
+
+    mapStub = screen.getByTestId("map-stub");
+    expect(mapStub).toHaveAttribute("data-has-long-press", "true");
+    expect(mapStub).toHaveAttribute("data-has-empty-slot-click", "true");
+    expect(mapStub).toHaveAttribute("data-selected-piece-id", "piece-npc1");
+    expect(mapStub).toHaveAttribute("data-inspected-piece-id", "");
+  });
+
+  // F7 (M1): a dica muda quando a partida não tem NENHUM NPC controlável — "clique num
+  // NPC" seria um beco sem saída, já que não existe nenhum pra clicar.
+  it("sem NPC nenhum na partida, a dica de Fichas diz isso em vez de mandar clicar num NPC (F7)", async () => {
+    server.use(
+      http.get(`${baseUrl}/matches/:id/participants`, () =>
+        HttpResponse.json({
+          participants: [participantsFixture[0]], // só o PC (Gon) — nenhum NPC
+        }),
+      ),
+    );
+    renderMasterPage();
+    const ws = FakeWS.instances[0];
+    act(() => ws.onopen?.());
+
+    act(() => screen.getByRole("button", { name: "Fichas" }).click());
+    expect(
+      await screen.findByText(/nenhum npc nesta partida/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/clique num npc no mapa/i)).not.toBeInTheDocument();
+  });
+
+  // F7 (M1): um NPC do mapa que NÃO é participante da partida é inspecionado (nunca vira
+  // ator) e o painel explica por que ele não tem ficha/ações ali.
+  it("NPC do mapa fora da partida: inspeciona e o painel explica que ele não está na partida (F7)", async () => {
+    server.use(
+      http.get(`${baseUrl}/maps/:id`, () =>
+        HttpResponse.json({
+          map: mapWithPiecesApi([
+            ...piecesFixture,
+            {
+              id: "piece-mapnpc",
+              characterId: "map-npc-1",
+              coord: { slot: { kind: "square", col: 6, row: 6 }, z: 0 },
+              visible: true,
+            },
+          ] as never),
+        }),
+      ),
+      http.get(`${baseUrl}/campaigns/:id`, () =>
+        HttpResponse.json({
+          campaign: campaignWithNpcsApi([{ ...npcFixture, uuid: "map-npc-1", nickName: "NPC Só no Mapa" }]),
+        }),
+      ),
+    );
+    renderWithProviders(
+      <GameMasterPage token="fake-jwt-token" matchId="match-1" campaignId="campaign-1" />,
+    );
+    const ws = FakeWS.instances[FakeWS.instances.length - 1];
+    act(() => ws.onopen?.());
+
+    const mapNpcButton = await screen.findByTestId("select-actor-map-npc-1");
+    act(() => mapNpcButton.click());
+
+    const mapStub = screen.getByTestId("map-stub");
+    expect(mapStub).toHaveAttribute("data-inspected-piece-id", "piece-mapnpc");
+    expect(mapStub).toHaveAttribute("data-selected-piece-id", "");
+    // não virou ator
+    expect(screen.queryByRole("button", { name: /declarar/i })).not.toBeInTheDocument();
+    expect(
+      await screen.findByText(/não está inscrito na partida/i),
+    ).toBeInTheDocument();
   });
 });

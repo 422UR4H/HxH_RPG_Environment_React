@@ -23,6 +23,7 @@ export default function TacticalMapStage({
   onPieceSelect,
   onPieceLongPress,
   selectedPieceId,
+  inspectedPieceId,
   targetPieceIds,
   onPieceMove,
   ghosts,
@@ -104,6 +105,7 @@ export default function TacticalMapStage({
           onPieceSelect={onPieceSelect}
           onPieceLongPress={onPieceLongPress}
           selectedPieceId={selectedPieceId}
+          inspectedPieceId={inspectedPieceId}
           targetPieceIds={targetPieceIds}
           onPieceMove={onPieceMove}
           ghosts={ghosts}

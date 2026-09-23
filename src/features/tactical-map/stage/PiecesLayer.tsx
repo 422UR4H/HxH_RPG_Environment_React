@@ -39,7 +39,7 @@ type PieceLocalDragState = {
 
 export default function PiecesLayer({
   map, vpRef, piecesInteractive, draggablePieceIds, selection, npcMap, pieceDragActiveRef,
-  onPieceSelect, onPieceLongPress, selectedPieceId, targetPieceIds,
+  onPieceSelect, onPieceLongPress, selectedPieceId, inspectedPieceId, targetPieceIds,
   onPieceMove, onPieceDragToRoster, onPieceDragStart, onPieceDragEnd, onStageDeselect,
   onEmptySlotClick,
 }: {
@@ -53,6 +53,7 @@ export default function PiecesLayer({
   onPieceSelect?: (pieceId: string) => void;
   onPieceLongPress?: (pieceId: string) => void;
   selectedPieceId?: string | null;
+  inspectedPieceId?: string | null;
   targetPieceIds?: Set<string>;
   onPieceMove?: (pieceId: string, slot: SlotCoord) => void;
   onPieceDragToRoster?: (pieceId: string) => void;
@@ -441,6 +442,7 @@ export default function PiecesLayer({
           grid={map.grid}
           npc={npcMap?.get(p.characterId)}
           isSelected={(selection?.kind === "piece" && selection.id === p.id) || selectedPieceId === p.id}
+          isInspected={inspectedPieceId === p.id}
           isTarget={!!targetPieceIds?.has(p.id)}
           offset={stack ? { dx: stack.dx, dy: stack.dy } : undefined}
           stackCount={stack?.count}

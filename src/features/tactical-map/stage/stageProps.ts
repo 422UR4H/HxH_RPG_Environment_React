@@ -22,6 +22,10 @@ export type TacticalMapStageProps = {
   // gesture the game uses to mark multiple combat targets.
   onPieceLongPress?: (pieceId: string) => void;
   selectedPieceId?: string | null;
+  // F7 (M1): a distinct ring for "looking at this piece's sheet" vs. "this piece is the
+  // acting actor" (selectedPieceId) — the master inspecting a piece he doesn't control
+  // must not look like he selected it as his actor.
+  inspectedPieceId?: string | null;
   targetPieceIds?: Set<string>;
   onPieceMove?: (pieceId: string, slot: SlotCoord) => void;
   // The declared-intent ghost (§8): translucent copy of a piece at its intended
