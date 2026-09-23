@@ -9,6 +9,10 @@ type Props = {
   stage: ReactNode;
   panel?: ReactNode;
   aside?: ReactNode;
+  /** R24: abaixo de `railUp` um painel fechado some por CSS; a partir dali sempre aparece. */
+  panelOpen?: boolean;
+  /** R24: abaixo de `asideUp` uma gaveta fechada some por CSS; a partir dali sempre aparece. */
+  asideOpen?: boolean;
 };
 
 /**
@@ -20,15 +24,31 @@ type Props = {
  *
  * O `stage` nunca colapsa — é a única faixa 1fr do grid.
  */
-export default function MatchStageTemplate({ topbar, rail, stage, panel, aside }: Props) {
+export default function MatchStageTemplate({
+  topbar,
+  rail,
+  stage,
+  panel,
+  aside,
+  panelOpen = true,
+  asideOpen = true,
+}: Props) {
   return (
     <Shell>
       <TopBarZone>{topbar}</TopBarZone>
       <Middle>
         <RailZone>{rail}</RailZone>
-        {panel && <PanelZone data-testid="match-panel">{panel}</PanelZone>}
+        {panel && (
+          <PanelZone data-testid="match-panel" data-open={panelOpen} $open={panelOpen}>
+            {panel}
+          </PanelZone>
+        )}
         <StageZone>{stage}</StageZone>
-        {aside && <AsideZone data-testid="match-aside">{aside}</AsideZone>}
+        {aside && (
+          <AsideZone data-testid="match-aside" data-open={asideOpen} $open={asideOpen}>
+            {aside}
+          </AsideZone>
+        )}
       </Middle>
     </Shell>
   );
@@ -91,8 +111,9 @@ const RailZone = styled.nav`
   }
 `;
 
-/* Bottom sheet no celular e no tablet em pé; coluna a partir de railUp. */
-const PanelZone = styled.section`
+/* Bottom sheet no celular e no tablet em pé; coluna a partir de railUp. Fechado (R24) some
+   por CSS abaixo de railUp — dali em diante é coluna fixa e sempre aparece. */
+const PanelZone = styled.section<{ $open: boolean }>`
   position: fixed;
   left: 0;
   right: 0;
@@ -103,11 +124,13 @@ const PanelZone = styled.section`
   background: ${colors.surfaceSidebar};
   border-top-left-radius: 12px;
   border-top-right-radius: 12px;
+  display: ${({ $open }) => ($open ? "block" : "none")};
 
   ${media.tabletUp} {
     max-height: 80dvh;
   }
   ${media.railUp} {
+    display: block;
     position: static;
     grid-area: panel;
     width: 320px;
@@ -116,8 +139,9 @@ const PanelZone = styled.section`
   }
 `;
 
-/* Gaveta sobre o stage; fixa a partir de asideUp. */
-const AsideZone = styled.aside`
+/* Gaveta sobre o stage; fixa a partir de asideUp. Fechada (R24) some por CSS abaixo de
+   asideUp — dali em diante é coluna fixa e sempre aparece. */
+const AsideZone = styled.aside<{ $open: boolean }>`
   position: absolute;
   top: 0;
   right: 0;
@@ -126,8 +150,10 @@ const AsideZone = styled.aside`
   z-index: 25;
   overflow-y: auto;
   background: ${colors.surfaceSidebar};
+  display: ${({ $open }) => ($open ? "block" : "none")};
 
   ${media.asideUp} {
+    display: block;
     position: static;
     grid-area: aside;
     width: auto;
