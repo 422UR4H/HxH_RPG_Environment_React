@@ -3,7 +3,7 @@ import { useMatchWs } from "../../../hooks/useMatchWs";
 import type { MatchBoardSync } from "../../../hooks/useMatchWs";
 import { loadGhosts, saveGhosts } from "./actionDraft";
 import { combatReducer, initialCombatState } from "./combatReducer";
-import type { Ghost } from "./combatReducer";
+import type { Ghost, PendingSend } from "./combatReducer";
 import type { EnqueueActionPayload } from "./combatMessages";
 
 /** Repassado a `onActionEnqueued` (R28): quem mandou, e se era um envio do composer. */
@@ -51,6 +51,17 @@ export function useMatchCombat({
   const onActionRefusedRef = useRef(onActionRefused);
   onActionRefusedRef.current = onActionRefused;
 
+  // R31 (final residual, fixed): `state.pendingSends` is a snapshot of the LAST RENDER —
+  // reading `state.pendingSends[0]` from this closure is correct for one ack at a time,
+  // but a batch of two `action_enqueued` in the same `act`/microtask (or a WS_ERROR
+  // immediately followed by an ack) both fire before React re-renders, so both reads see
+  // the same stale head: the second call reports the FIRST send's metadata, not its own.
+  // This ref mirrors the reducer's own FIFO synchronously (push/shift happen in the same
+  // tick as the socket event, never waiting for a render) — the reducer's own
+  // `pendingSends` is untouched and keeps driving the UI (`hasPendingComposerSend` in the
+  // pages), only the metadata READ for onActionEnqueued/onActionRefused moves here.
+  const pendingSendsRef = useRef<PendingSend[]>([]);
+
   const ws = useMatchWs({
     matchUuid,
     token,
@@ -58,11 +69,15 @@ export function useMatchCombat({
     board,
     ...mapHandlers,
     onCombatMessage: (msg) => {
-      // Final review, Important 2/M3 (R28): lê a metadata do envio mais antigo ANTES do
-      // dispatch — `state` aqui é a foto do último render, exatamente o pendingSends que
-      // este action_enqueued está prestes a consumir (só uma mensagem por vez passa por
-      // este handler, então nada mais pode ter mexido nele entre o último render e agora).
-      const oldestPending = msg.type === "action_enqueued" ? state.pendingSends[0] : undefined;
+      // R31: shift the ref's own FIFO head, synchronously, in the same tick the message
+      // arrived in — not a read of `state` (last render's snapshot).
+      const oldestPending =
+        msg.type === "action_enqueued" ? pendingSendsRef.current.shift() : undefined;
+      // match_full_state is always a fresh register (new socket) — any pendingSend here
+      // belongs to a connection whose ack/error can never arrive on this one. Mirrors the
+      // reducer's own `match_full_state` case, which resets `pendingSends: []` (Important
+      // 2(d)).
+      if (msg.type === "match_full_state") pendingSendsRef.current = [];
       dispatch(msg);
       if (msg.type === "action_enqueued" && oldestPending) {
         onActionEnqueuedRef.current?.(msg.payload.actionId, {
@@ -72,12 +87,11 @@ export function useMatchCombat({
       }
     },
     onWsError: (e) => {
-      // F2: same FIFO read as onCombatMessage above — capture the oldest pendingSend
-      // BEFORE dispatch (the reducer's own WS_ERROR case pops it), and only for a
-      // refused enqueue_action whose oldest entry is the composer's own (clearsDraft).
-      // The wall menu's send (clearsDraft: false) never drops the composer's draft.
+      // F2/R31: same synchronous shift — a refused enqueue_action pops the ref's oldest
+      // entry, and only a composer send (clearsDraft) drops the draft. The wall menu's
+      // send (clearsDraft: false) never drops the composer's draft.
       const oldestPending =
-        e.sentType === "enqueue_action" ? state.pendingSends[0] : undefined;
+        e.sentType === "enqueue_action" ? pendingSendsRef.current.shift() : undefined;
       dispatch({ type: "WS_ERROR", payload: { ...e, at: Date.now() } });
       if (oldestPending?.clearsDraft) {
         onActionRefusedRef.current?.(oldestPending.actorId);
@@ -106,14 +120,20 @@ export function useMatchCombat({
       const ghost: Ghost | undefined = payload.move?.from
         ? { actorId: payload.actorId, from: payload.move.from, to: payload.move.position }
         : undefined;
+      const localId = `local-${localGhostSeq}`;
+      const clearsDraft = options?.clearsDraft ?? true;
+      // R31: pushed synchronously, right alongside ACTION_SENT — the ref's FIFO order
+      // must match the reducer's own `pendingSends` order exactly, and both need to
+      // reflect this send before the next one can possibly arrive.
+      pendingSendsRef.current.push({ localId, actorId: payload.actorId, clearsDraft });
       dispatch({
         type: "ACTION_SENT",
         payload: {
-          localId: `local-${localGhostSeq}`,
+          localId,
           actorId: payload.actorId,
           // R29/M3: wall actions passam clearsDraft:false explicitamente; o composer não
           // passa `options` e herda o default true.
-          clearsDraft: options?.clearsDraft ?? true,
+          clearsDraft,
           ghost,
         },
       });

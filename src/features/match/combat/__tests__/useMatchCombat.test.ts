@@ -146,4 +146,75 @@ describe("useMatchCombat", () => {
     act(() => { ws.emit("action_enqueued", { actionId: "action-7" }); });
     expect(onActionEnqueued).toHaveBeenCalledWith("action-7", { actorId: "c1", clearsDraft: false });
   });
+
+  // R31 (final residual, fixed): `state.pendingSends[0]` is a snapshot of the LAST
+  // RENDER — two `action_enqueued` arriving in the same batch (same `act`, before React
+  // re-renders) both used to read that SAME stale head, so the second callback reported
+  // the FIRST send's metadata instead of its own. A synchronous `useRef` FIFO
+  // (push on send, shift on ack/error) fixes it: the ref mutates immediately, in the
+  // same tick, independent of render timing.
+  it("dois action_enqueued no mesmo lote reportam CADA UM a metadata do envio certo (R31)", () => {
+    const onActionEnqueued = vi.fn();
+    const { result } = renderHook(() =>
+      useMatchCombat({
+        matchUuid: "m1", userUuid: "master-1", token: "t", isMaster: true, onActionEnqueued,
+      }),
+    );
+    const ws = FakeWS.instances[0];
+    act(() => { ws.onopen?.(); });
+
+    act(() => {
+      // npcA pelo menu de parede (clearsDraft: false) — igual à repetição do revisor.
+      result.current.send.enqueueAction(
+        { actorId: "npcA", targetId: ["wall-1"], interact: { kind: "open" } },
+        { clearsDraft: false },
+      );
+      result.current.send.enqueueAction({ actorId: "npcB", targetId: ["c1"], attack: {} });
+    });
+    expect(result.current.state.pendingSends).toEqual([
+      { localId: expect.stringMatching(/^local-/) as string, actorId: "npcA", clearsDraft: false },
+      { localId: expect.stringMatching(/^local-/) as string, actorId: "npcB", clearsDraft: true },
+    ]);
+
+    // Os dois acks chegam no MESMO lote — nenhum re-render do reducer acontece entre eles.
+    act(() => {
+      ws.emit("action_enqueued", { actionId: "action-npcA" });
+      ws.emit("action_enqueued", { actionId: "action-npcB" });
+    });
+
+    expect(onActionEnqueued).toHaveBeenNthCalledWith(1, "action-npcA", { actorId: "npcA", clearsDraft: false });
+    // A chamada 2 tem que reportar npcB, não repetir npcA (o bug reportado pelo revisor).
+    expect(onActionEnqueued).toHaveBeenNthCalledWith(2, "action-npcB", { actorId: "npcB", clearsDraft: true });
+    expect(onActionEnqueued).toHaveBeenCalledTimes(2);
+  });
+
+  // R31: o mesmo problema com WS_ERROR seguido de um ack no mesmo lote — o ack reportava
+  // a metadata do envio RECUSADO em vez do seu próprio.
+  it("WS_ERROR seguido de action_enqueued no mesmo lote: o ack reporta a metadata do SEGUNDO envio (R31)", () => {
+    const onActionEnqueued = vi.fn();
+    const onActionRefused = vi.fn();
+    const { result } = renderHook(() =>
+      useMatchCombat({
+        matchUuid: "m1", userUuid: "master-1", token: "t", isMaster: true,
+        onActionEnqueued, onActionRefused,
+      }),
+    );
+    const ws = FakeWS.instances[0];
+    act(() => { ws.onopen?.(); });
+
+    act(() => {
+      result.current.send.enqueueAction({ actorId: "npcA", targetId: ["c1"], attack: {} });
+      result.current.send.enqueueAction({ actorId: "npcB", targetId: ["c1"], attack: {} });
+    });
+
+    // O servidor recusa o envio mais antigo (npcA) e, no mesmo lote, confirma o segundo.
+    act(() => {
+      ws.emit("error", { code: "game_error", message: "move blocked by a wall" });
+      ws.emit("action_enqueued", { actionId: "action-npcB" });
+    });
+
+    expect(onActionRefused).toHaveBeenCalledWith("npcA");
+    expect(onActionEnqueued).toHaveBeenCalledWith("action-npcB", { actorId: "npcB", clearsDraft: true });
+    expect(onActionEnqueued).toHaveBeenCalledTimes(1);
+  });
 });
