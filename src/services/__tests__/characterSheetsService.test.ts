@@ -33,7 +33,7 @@
 import { describe, it, expect } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
-import { characterSheetsService } from "../characterSheetsService";
+import { characterSheetsService, getCombatCatalogue } from "../characterSheetsService";
 import { sheetApiFixture, sheetSummaryApiFixture, sheetSummaryFixture } from "../../test/fixtures/sheet";
 import type {
   CharacterSheet,
@@ -816,6 +816,32 @@ describe("updateCharacterSheet", () => {
     );
 
     expect(result).toEqual(expectedConvertedSheet());
+  });
+});
+
+// ─── getCombatCatalogue ─────────────────────────────────────────────────────
+
+describe("getCombatCatalogue", () => {
+  it("GETs /charactersheets/:uuid/combat-catalogue with Authorization header", async () => {
+    const data = {
+      weapons: [{ name: "Fist", dice: [6, 6, 4], flatDamage: 0, defenseBonus: 0, proficiencyLevel: 0 }],
+      skills: ["Push"],
+    };
+    let capturedUrl = "";
+    let capturedAuth: string | null = null;
+    server.use(
+      http.get(`${baseUrl}/charactersheets/:uuid/combat-catalogue`, ({ request }) => {
+        capturedUrl = request.url;
+        capturedAuth = request.headers.get("authorization");
+        return HttpResponse.json(data);
+      }),
+    );
+
+    const result = await getCombatCatalogue(token, "s1");
+
+    expect(result).toEqual(data);
+    expect(capturedUrl).toBe(`${baseUrl}/charactersheets/s1/combat-catalogue`);
+    expect(capturedAuth).toBe(`Bearer ${token}`);
   });
 });
 
