@@ -61,7 +61,9 @@ export function useMatchCombat({
   const enqueueAction = useCallback(
     (payload: EnqueueActionPayload) => {
       localGhostSeq += 1;
-      const ghost: Ghost | undefined = payload.move
+      // R14: `move.from` agora é opcional (sem actorSlot o composer não o envia); sem
+      // origem conhecida não há como desenhar o fantasma from→to.
+      const ghost: Ghost | undefined = payload.move?.from
         ? { actorId: payload.actorId, from: payload.move.from, to: payload.move.position }
         : undefined;
       dispatch({

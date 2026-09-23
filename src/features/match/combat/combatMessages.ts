@@ -112,7 +112,8 @@ export type EnqueueActionPayload = {
   attack?: { weapon?: string };
   move?: {
     category: MoveCategory;
-    from: [number, number, number];
+    /** Opcional (R14): sem ela o servidor só não liga a checagem de parede. */
+    from?: [number, number, number];
     position: [number, number, number];
   };
   interact?: { kind: string };
