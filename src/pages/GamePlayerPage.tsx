@@ -15,8 +15,8 @@ import { useCampaignDetails } from "../hooks/useCampaignDetails";
 import { useCombatCatalogue } from "../hooks/useCombatCatalogue";
 import { useResizeObserver } from "../hooks/useResizeObserver";
 import { useMatchCombat } from "../features/match/combat/useMatchCombat";
-import { loadDraft, saveDraft, clearDraft, migrateTargets, emptyDraft } from "../features/match/combat/actionDraft";
-import type { ActionDraft } from "../features/match/combat/actionDraft";
+import { useActionComposerState } from "../features/match/combat/useActionComposerState";
+import { clearDraft } from "../features/match/combat/actionDraft";
 import { defaultMoveCategory } from "../features/match/combat/defaultMoveCategory";
 import MatchStageTemplate from "../components/templates/MatchStageTemplate";
 import MatchTopBar from "../features/match/combat/MatchTopBar";
@@ -33,18 +33,13 @@ import TacticalMapViewer from "../features/tactical-map/TacticalMapViewer";
 import { visibleBoardPieces } from "../features/tactical-map/utils/boardSource";
 import { colors, fonts } from "../styles/tokens";
 import type { CharacterPrivateSummary } from "../types/characterSheet";
-import type { FogState, Piece, PieceCoord, SlotCoord, WallSegment } from "../types/tacticalMap";
+import type { FogState, Piece, WallSegment } from "../types/tacticalMap";
 
 type Props = {
   token: string;
   campaignId?: string;
   matchId?: string;
 };
-
-function slotToTuple(coord: PieceCoord): [number, number, number] {
-  const s = coord.slot;
-  return s.kind === "square" ? [s.col, s.row, coord.z] : [s.q, s.r, coord.z];
-}
 
 export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
@@ -64,23 +59,6 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
   const actorName = myParticipant?.characterSheet.nickName ?? "Você";
 
   const { data: catalogue } = useCombatCatalogue(token, actorId);
-
-  // ─── Rascunho persistente (por partida + ator) ───────────────────────────
-  const [draft, setDraft] = useState<ActionDraft>(emptyDraft());
-  const draftLoadedFor = useRef<string | undefined>(undefined);
-  useEffect(() => {
-    if (!matchId || !actorId || draftLoadedFor.current === actorId) return;
-    draftLoadedFor.current = actorId;
-    setDraft(loadDraft(matchId, actorId));
-  }, [matchId, actorId]);
-
-  const updateDraft = useCallback(
-    (next: ActionDraft) => {
-      setDraft(next);
-      if (matchId && actorId) saveDraft(matchId, actorId, next);
-    },
-    [matchId, actorId],
-  );
 
   // ─── Mapa ao vivo: paredes/peças/fog só chegam pelo WS (comentário em
   // visibleBoardPieces explica por quê o jogador nunca semeia do REST) ──────
@@ -129,7 +107,16 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
     setLiveWalls((prev) => prev.map((w) => (w.id === wall.id ? wall : w)));
   }, []);
 
+  const boardPieces = visibleBoardPieces(livePieces, map?.pieces, false);
+
   // ─── Combate ──────────────────────────────────────────────────────────────
+  // `useActionComposerState` (abaixo) precisa de `state`, que só existe depois de
+  // chamar `useMatchCombat` — e `useMatchCombat` precisa do callback de limpeza do
+  // rascunho já na chamada. Um ref quebra o ciclo: o indireto é estável desde o
+  // primeiro render, e o valor real é atribuído no corpo do render (mesma convenção de
+  // `useMatchWs.ts`), antes de qualquer envio poder chegar.
+  const onActionEnqueuedRef = useRef<() => void>(() => {});
+
   const { state, status, send, dismissError } = useMatchCombat({
     matchUuid: matchId,
     token,
@@ -139,12 +126,27 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
     onMapFullState: handleMapFullState,
     onVisibilityUpdated: handleVisibilityUpdated,
     onWallRevealed: handleWallRevealed,
-    onActionEnqueued: () => {
-      if (!matchId || !actorId) return;
-      clearDraft(matchId, actorId);
-      setDraft(emptyDraft());
-    },
+    onActionEnqueued: () => onActionEnqueuedRef.current(),
   });
+
+  // ─── Rascunho de ação + mapas peça↔personagem (compartilhado com o mestre) ─
+  const {
+    draft,
+    updateDraft,
+    characterIdByPieceId,
+    targetPieceIds,
+    actorSlot,
+    replaceTarget,
+    toggleTarget,
+    setDestination,
+    resetDraft,
+  } = useActionComposerState({ matchId, actorId, boardPieces, state });
+
+  onActionEnqueuedRef.current = () => {
+    if (!matchId || !actorId) return;
+    clearDraft(matchId, actorId);
+    resetDraft();
+  };
 
   const nameOf = useCallback(
     (id: string) =>
@@ -152,66 +154,22 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
     [participants],
   );
 
-  const boardPieces = visibleBoardPieces(livePieces, map?.pieces, false);
-
-  const characterIdByPieceId = useMemo(
-    () => new Map(boardPieces.map((p) => [p.id, p.characterId] as const)),
-    [boardPieces],
-  );
-  const pieceIdsByCharacterId = useMemo(() => {
-    const m = new Map<string, string[]>();
-    boardPieces.forEach((p) => {
-      const arr = m.get(p.characterId) ?? [];
-      arr.push(p.id);
-      m.set(p.characterId, arr);
-    });
-    return m;
-  }, [boardPieces]);
-
-  const targetPieceIds = useMemo(() => {
-    const s = new Set<string>();
-    draft.targets.forEach((charId) =>
-      (pieceIdsByCharacterId.get(charId) ?? []).forEach((id) => s.add(id)),
-    );
-    return s;
-  }, [draft.targets, pieceIdsByCharacterId]);
-
-  const actorPiece = actorId ? boardPieces.find((p) => p.characterId === actorId) : undefined;
-  const actorSlot = actorPiece ? slotToTuple(actorPiece.coord) : undefined;
-
-  // Clicar numa peça marca alvo (troca a lista, migrando arma/movimento — R4); segurar
-  // marca mais de um (alterna). Alvejar a própria peça é legítimo e não desfaz nada.
   const handlePieceSelect = useCallback(
     (pieceId: string) => {
       const charId = characterIdByPieceId.get(pieceId);
       if (!charId) return;
-      updateDraft(migrateTargets(draft, [charId]));
+      replaceTarget(charId);
     },
-    [characterIdByPieceId, draft, updateDraft],
+    [characterIdByPieceId, replaceTarget],
   );
 
   const handlePieceLongPress = useCallback(
     (pieceId: string) => {
       const charId = characterIdByPieceId.get(pieceId);
       if (!charId) return;
-      const already = draft.targets.includes(charId);
-      const next = already
-        ? draft.targets.filter((t) => t !== charId)
-        : [...draft.targets, charId];
-      updateDraft(migrateTargets(draft, next));
+      toggleTarget(charId);
     },
-    [characterIdByPieceId, draft, updateDraft],
-  );
-
-  const handleEmptySlotClick = useCallback(
-    (slot: SlotCoord) => {
-      const category = draft.move?.category ?? defaultMoveCategory(state);
-      const z = actorPiece?.coord.z ?? 0;
-      const to: [number, number, number] =
-        slot.kind === "square" ? [slot.col, slot.row, z] : [slot.q, slot.r, z];
-      updateDraft({ ...draft, move: { category, to } });
-    },
-    [draft, actorPiece, state, updateDraft],
+    [characterIdByPieceId, toggleTarget],
   );
 
   const handleWallClick = useCallback((wall: WallSegment) => setWallPicker(wall), []);
@@ -292,7 +250,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
                   onPieceLongPress={handlePieceLongPress}
                   targetPieceIds={targetPieceIds}
                   ghosts={Object.values(state.ghosts)}
-                  onEmptySlotClick={handleEmptySlotClick}
+                  onEmptySlotClick={setDestination}
                 />
               ) : !map ? (
                 <NoMapMessage>Nenhum mapa anexado a esta partida.</NoMapMessage>
