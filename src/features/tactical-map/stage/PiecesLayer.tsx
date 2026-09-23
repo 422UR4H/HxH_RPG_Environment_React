@@ -9,6 +9,7 @@ import type { CharacterPrivateSummary } from "../../../types/characterSheet";
 import type { Selection } from "../store/editorStore";
 import { worldToSlot, isSlotInBounds, slotCorners, isSameSlot, slotToWorld, slotInradius } from "../utils/coords";
 import { createHoldTracker, createRightPressTracker, HOLD_MS } from "../hooks/useHoldGesture";
+import { stackOffsets } from "../utils/stacking";
 import { colors } from "../../../styles/tokens";
 import PieceSprite from "./PieceSprite";
 
@@ -359,6 +360,22 @@ export default function PiecesLayer({
     [map.pieces, draggingPieceId],
   );
 
+  // Cascade (§7.2): pieces sharing a slot are drawn offset and, past the first,
+  // carry a ×N badge on the top one. topPieceId is the selected piece — the one
+  // the player is aiming with needs to be visible, on top of its stack.
+  const stacks = useMemo(
+    () => stackOffsets(visiblePieces, selectedPieceId ?? undefined),
+    [visiblePieces, selectedPieceId],
+  );
+
+  // Render in index order within each group so the top piece (highest index)
+  // paints last and sits visually above its stack-mates. Sorting globally by
+  // index is enough: groups never overlap each other, only within themselves.
+  const orderedPieces = useMemo(
+    () => [...visiblePieces].sort((a, b) => (stacks.get(a.id)?.index ?? 0) - (stacks.get(b.id)?.index ?? 0)),
+    [visiblePieces, stacks],
+  );
+
   return (
     <pixiContainer
       label="pieces-layer"
@@ -385,7 +402,9 @@ export default function PiecesLayer({
     >
       <pixiGraphics draw={drawHoverSlot} />
       <pixiGraphics draw={drawHoldProgress} />
-      {visiblePieces.map((p) => (
+      {orderedPieces.map((p) => {
+        const stack = stacks.get(p.id);
+        return (
         <PieceSprite
           key={p.id}
           piece={p}
@@ -393,6 +412,9 @@ export default function PiecesLayer({
           npc={npcMap?.get(p.characterId)}
           isSelected={(selection?.kind === "piece" && selection.id === p.id) || selectedPieceId === p.id}
           isTarget={!!targetPieceIds?.has(p.id)}
+          offset={stack ? { dx: stack.dx, dy: stack.dy } : undefined}
+          stackCount={stack?.count}
+          isTopOfStack={stack ? stack.index === stack.count - 1 : undefined}
           piecesInteractive={piecesInteractive}
           onPointerDown={(_piece, e) => {
             if (!piecesInteractive || localDrag.current) return;
@@ -431,7 +453,8 @@ export default function PiecesLayer({
             e.stopPropagation();
           }}
         />
-      ))}
+        );
+      })}
     </pixiContainer>
   );
 }

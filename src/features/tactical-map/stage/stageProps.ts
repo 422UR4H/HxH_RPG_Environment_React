@@ -24,6 +24,10 @@ export type TacticalMapStageProps = {
   selectedPieceId?: string | null;
   targetPieceIds?: Set<string>;
   onPieceMove?: (pieceId: string, slot: SlotCoord) => void;
+  // The declared-intent ghost (§8): translucent copy of a piece at its intended
+  // slot + arrow from its current position. A `Ghost` (combatReducer.ts, which
+  // also carries actorId) satisfies this structurally.
+  ghosts?: Array<{ from: [number, number, number]; to: [number, number, number] }>;
   onPieceDragToRoster?: (pieceId: string) => void;
   onPieceDragStart?: (pieceId: string, npc: CharacterPrivateSummary | undefined) => void;
   onPieceDragEnd?: () => void;

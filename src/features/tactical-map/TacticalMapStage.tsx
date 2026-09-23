@@ -25,6 +25,7 @@ export default function TacticalMapStage({
   selectedPieceId,
   targetPieceIds,
   onPieceMove,
+  ghosts,
   onPieceDragToRoster,
   onPieceDragStart,
   onPieceDragEnd,
@@ -105,6 +106,7 @@ export default function TacticalMapStage({
           selectedPieceId={selectedPieceId}
           targetPieceIds={targetPieceIds}
           onPieceMove={onPieceMove}
+          ghosts={ghosts}
           onPieceDragToRoster={onPieceDragToRoster}
           onPieceDragStart={onPieceDragStart}
           onPieceDragEnd={onPieceDragEnd}

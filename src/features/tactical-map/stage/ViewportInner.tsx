@@ -12,6 +12,7 @@ import type { TacticalMapStageProps } from "./stageProps";
 import BgLayer from "./BgLayer";
 import GridLayer from "./GridLayer";
 import PiecesLayer from "./PiecesLayer";
+import GhostLayer from "../GhostLayer";
 
 type BgDragState = {
   startWorldX: number;
@@ -45,6 +46,7 @@ export default function ViewportInner({
   selectedPieceId,
   targetPieceIds,
   onPieceMove,
+  ghosts,
   onPieceDragToRoster,
   onPieceDragStart,
   onPieceDragEnd,
@@ -320,6 +322,8 @@ export default function ViewportInner({
         onStageDeselect={onStageDeselect}
         onEmptySlotClick={onEmptySlotClick}
       />
+      {/* Mounted after PiecesLayer so the ghost draws on top of the real pieces (§8). */}
+      <GhostLayer ghosts={ghosts ?? []} grid={map.grid} />
       {fog && !fogDisabled && (
         <FogLayer
           fog={fog}

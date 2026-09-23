@@ -15,6 +15,7 @@ import { colors } from "../../../styles/tokens";
 const toPixiColor = (hex: string) => parseInt(hex.replace("#", ""), 16);
 const SELECTION_RING_COLOR = toPixiColor(colors.pieceSelectionRing);
 const TARGET_RING_COLOR = toPixiColor(colors.pieceTargetRing);
+const STACK_BADGE_BG = toPixiColor(colors.pieceStackBadge);
 
 type PieceSpriteProps = {
   piece: Piece;
@@ -24,9 +25,20 @@ type PieceSpriteProps = {
   isTarget?: boolean;
   piecesInteractive?: boolean;
   onPointerDown: (piece: Piece, e: FederatedPointerEvent) => void;
+  // Cascade (§7.2): dx/dy are a FRACTION of the slot's inradius (from
+  // stackOffsets), converted here to px so the offset scales with grid size
+  // like everything else PieceSprite draws (tokenRadius, zOffsetPx).
+  offset?: { dx: number; dy: number };
+  // Occupant count sharing this piece's slot. The ×N badge only ever renders
+  // when the caller also says this is the top piece of that group.
+  stackCount?: number;
+  isTopOfStack?: boolean;
 };
 
-export default function PieceSprite({ piece, grid, npc, isSelected, isTarget, piecesInteractive, onPointerDown }: PieceSpriteProps) {
+export default function PieceSprite({
+  piece, grid, npc, isSelected, isTarget, piecesInteractive, onPointerDown,
+  offset, stackCount, isTopOfStack,
+}: PieceSpriteProps) {
   const center = useMemo(() => slotToWorld(piece.coord.slot, grid), [piece.coord.slot, grid]);
   // 90% of the slot's inscribed-circle radius. Square keeps the original
   // 0.45·cellSize; hex tokens grow to fill their (much larger) cell by the same
@@ -35,6 +47,27 @@ export default function PieceSprite({ piece, grid, npc, isSelected, isTarget, pi
   const avatarRadius = tokenRadius * 0.7;
   const z = piece.coord.z;
   const zOffsetPx = z * 10;
+  // §7.2: same mechanism as zOffsetPx above — a fraction of the slot converted
+  // to px and added to the container's position — but for x/y cascade instead
+  // of the z "height" shadow-offset.
+  const inradius = slotInradius(grid);
+  const stackDx = (offset?.dx ?? 0) * inradius;
+  const stackDy = (offset?.dy ?? 0) * inradius;
+  const showStackBadge = !!isTopOfStack && (stackCount ?? 1) > 1;
+
+  const drawStackBadge = useCallback(
+    (g: PixiGraphics) => {
+      g.clear();
+      if (!showStackBadge) return;
+      const r = tokenRadius * 0.32;
+      const bx = tokenRadius - r * 0.3;
+      const by = -zOffsetPx + tokenRadius - r * 0.3;
+      g.setFillStyle({ color: STACK_BADGE_BG, alpha: 0.9 });
+      g.circle(bx, by, r);
+      g.fill();
+    },
+    [showStackBadge, tokenRadius, zOffsetPx],
+  );
 
   const [avatarTexture, setAvatarTexture] = useState<Texture | null>(null);
   useEffect(() => {
@@ -160,8 +193,8 @@ export default function PieceSprite({ piece, grid, npc, isSelected, isTarget, pi
   return (
     <pixiContainer
       label={`piece-${piece.id}`}
-      x={center.x}
-      y={center.y}
+      x={center.x + stackDx}
+      y={center.y + stackDy}
       eventMode={piecesInteractive ? "static" : "none"}
       cursor={piecesInteractive ? "pointer" : "default"}
       onPointerDown={(e: FederatedPointerEvent) => onPointerDown(piece, e)}
@@ -209,6 +242,19 @@ export default function PieceSprite({ piece, grid, npc, isSelected, isTarget, pi
 
       <pixiGraphics draw={drawSelection} />
       <pixiGraphics draw={drawTarget} />
+
+      {showStackBadge && (
+        <>
+          <pixiGraphics draw={drawStackBadge} />
+          <pixiText
+            text={`×${stackCount}`}
+            x={tokenRadius - tokenRadius * 0.32 * 0.3}
+            y={-zOffsetPx + tokenRadius - tokenRadius * 0.32 * 0.3}
+            anchor={0.5}
+            style={{ fontSize: Math.max(10, tokenRadius * 0.34), fill: 0xffffff, fontWeight: "bold" }}
+          />
+        </>
+      )}
 
       {z > 0 && (
         <pixiText

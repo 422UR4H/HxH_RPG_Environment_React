@@ -20,13 +20,16 @@ type Props = {
   onPieceLongPress?: (pieceId: string) => void;
   selectedPieceId?: string | null;
   targetPieceIds?: Set<string>;
+  // The declared-intent ghost (§8) — forwarded straight through to GhostLayer
+  // via TacticalMapStage/ViewportInner.
+  ghosts?: Array<{ from: [number, number, number]; to: [number, number, number] }>;
   onEmptySlotClick?: (slot: SlotCoord, clientX: number, clientY: number) => void;
 };
 
 export default function TacticalMapViewer({
   map, width, height, npcMap, onWallClick, fog, isMaster,
   piecesInteractive, draggablePieceIds, onPieceSelect, onPieceLongPress,
-  selectedPieceId, targetPieceIds, onEmptySlotClick,
+  selectedPieceId, targetPieceIds, ghosts, onEmptySlotClick,
 }: Props) {
   return (
     <TacticalMapStage
@@ -44,6 +47,7 @@ export default function TacticalMapViewer({
       onPieceLongPress={onPieceLongPress}
       selectedPieceId={selectedPieceId}
       targetPieceIds={targetPieceIds}
+      ghosts={ghosts}
       onEmptySlotClick={onEmptySlotClick}
     />
   );

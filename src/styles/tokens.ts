@@ -80,6 +80,8 @@ export const colors = {
   // tactical map — piece rings (Pixi numeric colors; parseInt(hex.replace("#",""),16))
   pieceSelectionRing: "#ffd700", // selected piece ring (gold, matches prior inline hex)
   pieceTargetRing: "#3ba7ff", // combat target ring — distinct hue from selection
+  pieceGhost: "#9d7bff", // declared-intent ghost (§8) — translucent copy + arrow
+  pieceStackBadge: "#1c1c1c", // ×N cascade badge background (§7.2)
 
   // surfaces — translucent
   overlay: "rgba(0, 0, 0, 0.7)",
