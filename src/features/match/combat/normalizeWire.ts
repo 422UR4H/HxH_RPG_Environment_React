@@ -9,8 +9,9 @@ import type {
 
 /**
  * Wire boundary normalizer (R33). Go serializes a nil slice/map as JSON `null`, not `[]`/
- * `{}`, whenever the struct tag lacks `omitempty` — see the field-by-field audit in
- * `docs/dev/match/combate-fase-6.md` (post-PR#67 fix). combatMessages.ts's types say these
+ * `{}`, whenever the struct tag lacks `omitempty` — see the field-by-field table in
+ * `docs/dev/match/combate-fase-6.md`, section "Normalização do wire (R33)" (post-PR#67
+ * fix). combatMessages.ts's types say these
  * fields are always arrays/objects; this file is what makes that true, once, before a
  * combat message reaches the reducer. Everything downstream (GeneralBar, OwnBars,
  * combatReducer, …) may keep assuming the TS types at face value.

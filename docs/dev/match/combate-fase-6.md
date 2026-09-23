@@ -325,6 +325,33 @@ o fantasma de espera; migrar os breakpoints antigos do resto do app.
   rail fixo. Em/acima de `railUp` os dois voltam ao normal (o rail entra na grade como
   coluna estática) — ainda decisão só de CSS.
 
+## Normalização do wire (R33)
+
+`normalizeWire.ts` aplica, uma vez só (`useMatchWs`, antes do reducer ver qualquer coisa),
+a normalização de campos nil-áveis que o Go serializa como `null` em vez de `[]`/`{}`
+sempre que a struct tag não tem `omitempty`. `combatMessages.ts` promete a esses campos o
+tipo array/objeto sempre presente; sem isto um round vazio (`bars_updated` com
+`order`/`characters`/`prices` genuinamente `null`) derrubava a página inteira em
+`bars.order is not iterable` (regressão pós-PR#67).
+
+| Mensagem | Campo | Tag Go | Nil-ável? |
+|---|---|---|---|
+| `bars_updated` / `match_full_state.bars` | `prices` (`map[string]int`) | sem `omitempty` | sim |
+| ” | `characters` (`[]CharacterBarsPayload`) | sem `omitempty` | sim |
+| ” | `characters[].actionSpeeds`/`moveSpeeds` (`[]int`) | sem `omitempty` | sim — `append([]int(nil), …)` num round vazio devolve nil de verdade |
+| ” | `order` (`[]BarSlotPayload`) | sem `omitempty` | sim |
+| ” | `order[].bars` (`[]string`) | sem `omitempty` | defensivo — os dois construtores atuais sempre `make` não-nil |
+| `resolution_updated` / `match_full_state.resolution` | `targets` (`[]CharacterResultPayload`) | sem `omitempty` | defensivo — `newResolutionUpdatedPayload` sempre semeia `[]CharacterResultPayload{}` hoje, mas a tag não promete isso pra sempre |
+| ” | `action.diceRolled` (`[]int`) | sem `omitempty` | sim, alcançável de verdade (`ActionResult.DiceRolled` sem rolagem) |
+| ” | `pendingReactions` | **com** `omitempty` | **não normalizado** — `omitempty` omite a chave inteira, não emite `null`; já bate com o `pendingReactions?:` opcional de `combatMessages.ts` |
+| `close_turn_refused` | `pendingReactions` | sem `omitempty` | sim, genuinamente nil-ável — mesmo `room.go` só construindo hoje quando `len(result.Refused) > 0` |
+| `action_queued`, e cada item de `match_full_state.queue` | `bars` (`[]string`) | sem `omitempty` | defensivo — os dois construtores conhecidos sempre `make`m não-nil |
+| `match_full_state` | `queue` (`[]ActionQueuedPayload`) | **com** `omitempty` | **não normalizado** — opcional, nunca `null`, já bate com `queue?:` |
+
+A lacuna de contrato (o back não documentar quais campos carecem de `omitempty`) foi
+registrada como um fix de doc separado no repo `System_X_System` — este arquivo é só o
+lado de consumo.
+
 ## Correções do round de browser (F1–F7)
 
 Uma sessão de verificação manual real (a que a seção anterior registrava como pendente)
@@ -340,11 +367,20 @@ subsequente (`W/browser-fix-findings.md`, relatório completo em
   paredes já resolvem clique por `pointerup` de DOM, nunca hit-test do Pixi, então nada se
   perde). `PieceSprite` ganhou um `hitArea` circular (`Circle` no raio do token): sem ele
   o Pixi testava a união da geometria dos filhos, incluindo os anéis de seleção/alvo, que
-  alcançam além do token e por cima de linhas de parede vizinhas. Secundário: em jogo toda
-  peça tem `draggable:false` (o servidor decide onde ela para, I1), então uma pressão numa
-  peça também deixava o pan da câmera começar por baixo (`ViewportInner`), e o arrasto
-  cancelava o gesto de segurar — `pieceDragActiveRef` agora também fica `true` quando
-  `onPieceLongPress`/`onPieceSelect` estão plugados, não só quando a peça é arrastável.
+  alcançam além do token e por cima de linhas de parede vizinhas; o anel de progresso do
+  gesto de segurar (`PiecesLayer`, não por peça) ganhou o mesmo `eventMode="none"` pela
+  mesma razão. Secundário: em jogo toda peça tem `draggable:false` (o servidor decide onde
+  ela para, I1), então uma pressão numa peça também deixava o pan da câmera começar por
+  baixo (`ViewportInner`), e o arrasto cancelava o gesto de segurar.
+  **Emenda (browser batch 2):** a correção original inferia a supressão do pan de
+  `onPieceLongPress`/`onPieceSelect`, o que quebrava o lobby — o editor também liga
+  `onPieceSelect`, e `draggablePieceIds` de um jogador ali só contém as peças dele
+  próprio, então pressionar a peça de OUTRO jogador (não arrastável) parava de
+  arrastar-para-panorâmica. Agora é um prop explícito, só de jogo —
+  `suppressPanOnPiecePress` (`stageProps.ts` → `TacticalMapViewer` → `TacticalMapStage` →
+  `ViewportInner` → `PiecesLayer`) — que só `GamePlayerPage`/`GameMasterPage` passam; o
+  editor/placer do lobby nunca o passam, então `pieceDragActiveRef` ali continua governado
+  só por `draggable`, como sempre foi.
 - **F2 — rascunho sobrevivia a uma recusa do servidor para sempre.** Uma recusa do
   Declarar (`WS_ERROR`, `sentType: "enqueue_action"`, sobre o envio mais antigo com
   `clearsDraft:true`) agora derruba só o `move` do rascunho — alvo e arma continuam,
@@ -376,13 +412,10 @@ Camada Pixi (F1, parte de F7): não coberta por teste (mock de `@pixi/react`) �
 por leitura do caminho do ponteiro, não em browser real (sem ferramenta de browser nesta
 sessão). Lobby/editor de mapa (que compartilham `PiecesLayer`/`PieceSprite`/`WallsLayer`)
 não mudam de comportamento visível: `FogLayer`/`LosSplit` nunca montam lá (nenhuma das duas
-páginas passa `fog`), e o hitArea mais estreito só deixa de responder num anel de seleção
-fora do token — nunca dentro dele. Uma exceção honesta: no editor um jogador pressionando a
-peça de OUTRO jogador (não arrastável para ele) parava de também iniciar o pan da câmera
-por baixo, porque o editor também liga `onPieceSelect` — o clique em si (o que seleciona)
-já não dependia disso (R19: sem `onPieceLongPress` o clique sempre resolve no release,
-lobby). Ou seja, suprime um glitch pré-existente (clicar customizava a câmera junto), não
-muda o que é selecionado nem a arrastabilidade de nada.
+páginas passa `fog`), o hitArea mais estreito só deixa de responder num anel de seleção
+fora do token — nunca dentro dele —, e `suppressPanOnPiecePress` (acima) é um prop que só
+as duas páginas de jogo passam, então o pan-ao-pressionar do lobby/editor é bit-a-bit o
+mesmo de antes desta fase inteira.
 
 ## Verificação no browser
 
