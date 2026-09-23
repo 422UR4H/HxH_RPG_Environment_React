@@ -1,5 +1,6 @@
 import styled from "styled-components";
 import { colors, fonts } from "../../../styles/tokens";
+import { media } from "../../../styles/breakpoints";
 
 export type RailNavItem = { id: string; label: string };
 
@@ -33,9 +34,14 @@ export default function RailNav({
   );
 }
 
+// F4 (B2): the rail and the phone footer are the SAME component (R6) — RailZone
+// (MatchStageTemplate) decides the orientation by CSS, row below railUp and column from
+// it on. Hard-coding row here fought that: above railUp the buttons stayed a horizontal
+// strip crammed into a 72px-wide column. `inherit` lets Nav follow whatever RailZone set.
 const Nav = styled.div`
   display: flex;
-  flex-direction: row;
+  flex-direction: inherit;
+  justify-content: inherit;
   width: 100%;
   height: 100%;
 `;
@@ -52,6 +58,12 @@ const NavButton = styled.button`
   border: none;
   padding: 10px 4px;
   cursor: pointer;
+
+  // flex: 1 on a column stretches every button to fill the rail's full height equally;
+  // above railUp they should size to content and stack at the top instead.
+  ${media.railUp} {
+    flex: 0 0 auto;
+  }
 
   &[aria-pressed="true"] {
     color: ${colors.textPrimary};
