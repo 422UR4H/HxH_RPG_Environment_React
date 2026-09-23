@@ -51,6 +51,11 @@ type Props = {
 
 type RailTab = "fila" | "fichas";
 
+// Final review, Important 1 (mirrors GamePlayerPage.tsx): draggablePieceIds === undefined
+// reads to PiecesLayer as "every piece is draggable" — the map-editor meaning, not the
+// game's. Module-level so the Set identity never invalidates PiecesLayer's memos.
+const EMPTY_SET = new Set<string>();
+
 export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const { width, height } = useResizeObserver(canvasRef);
@@ -345,6 +350,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                   npcMap={npcMap}
                   onWallClick={handleWallClick}
                   piecesInteractive
+                  draggablePieceIds={EMPTY_SET}
                   onPieceSelect={handlePieceSelect}
                   onPieceLongPress={handlePieceLongPress}
                   selectedPieceId={selectedPieceId}

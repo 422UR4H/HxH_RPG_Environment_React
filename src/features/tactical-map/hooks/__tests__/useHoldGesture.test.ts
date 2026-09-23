@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { createHoldTracker, createRightPressTracker } from "../useHoldGesture";
+import { createHoldTracker, createRightPressTracker, shouldSelectOnRelease } from "../useHoldGesture";
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
@@ -83,5 +83,26 @@ describe("createRightPressTracker", () => {
     t.press("p1");
     t.reset();
     expect(t.contextmenu()).toBeNull();
+  });
+});
+
+// Final review, Important 1: com draggable=false (jogo), um press que anda >6px (mas <
+// limiar de arraste real) cancela o holdRef e end() volta "none" — o código antigo
+// tratava "none" igual a "click" e disparava onPieceSelect de qualquer forma, o que
+// substituía uma seleção múltipla por engano. A peça só deve ser selecionada em "click"
+// quando o chamador passou onPieceLongPress (jogo); a lobby (sem onPieceLongPress) nunca
+// arma o tracker, então SEMPRE reporta "none" e precisa manter o comportamento de sempre
+// selecionar — mudar isso quebraria clique normal na lobby.
+describe("shouldSelectOnRelease", () => {
+  it("com onPieceLongPress: seleciona só em 'click'", () => {
+    expect(shouldSelectOnRelease("click", true)).toBe(true);
+    expect(shouldSelectOnRelease("none", true)).toBe(false);
+    expect(shouldSelectOnRelease("hold", true)).toBe(false);
+  });
+
+  it("sem onPieceLongPress (lobby): 'click' e 'none' sempre selecionam, como antes", () => {
+    expect(shouldSelectOnRelease("click", false)).toBe(true);
+    expect(shouldSelectOnRelease("none", false)).toBe(true);
+    expect(shouldSelectOnRelease("hold", false)).toBe(false);
   });
 });

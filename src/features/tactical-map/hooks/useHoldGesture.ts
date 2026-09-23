@@ -11,6 +11,26 @@ const MOVE_TOLERANCE_PX = 6;
 
 export type HoldOutcome = "hold" | "click" | "none";
 
+/**
+ * Decide se um pointerup solto sem arraste deve virar `onPieceSelect` (Final review,
+ * Important 1). Sem `hasLongPress` (lobby/editor de mapa, R19), o tracker nunca é armado
+ * — `end()` sempre volta "none" ali — então mantemos o comportamento de sempre selecionar
+ * que já existia antes do gesto de segurar nascer.
+ *
+ * Com `hasLongPress` (jogo), "none" passou a significar algo novo: um press que andou
+ * mais que a tolerância de 6px do próprio hold tracker (mas não o suficiente para armar
+ * `draggable: false` como arraste de verdade, que só existe quando `draggablePieceIds`
+ * permite) cancela o hold e cai em "none". Tratar "none" igual a "click" ali select(v)a a
+ * peça por baixo de um pan que só passou de raspão — e um pan começando sobre uma peça já
+ * selecionada como alvo (multi-seleção) perdia tudo via replaceTarget. Só "click" (soltar
+ * sem nunca ter andado o bastante para cancelar) deve selecionar.
+ */
+export function shouldSelectOnRelease(outcome: HoldOutcome, hasLongPress: boolean): boolean {
+  if (outcome === "hold") return false;
+  if (hasLongPress) return outcome === "click";
+  return true;
+}
+
 export function createHoldTracker({
   onHold,
   holdMs = HOLD_MS,

@@ -16,11 +16,17 @@ const baseUrl = "http://localhost:5000";
 vi.mock("../../features/tactical-map/TacticalMapViewer", () => ({
   default: (props: {
     map: { pieces: Array<{ id: string; characterId: string }> };
+    draggablePieceIds?: Set<string>;
     onPieceSelect?: (pieceId: string) => void;
     onPieceLongPress?: (pieceId: string) => void;
     onEmptySlotClick?: (slot: { kind: "square"; col: number; row: number }, x: number, y: number) => void;
   }) => (
-    <div data-testid="map-stub">
+    <div
+      data-testid="map-stub"
+      // Final review, Important 1: draggablePieceIds must reach PiecesLayer as an empty
+      // Set (not undefined) — undefined reads there as "every piece is draggable".
+      data-draggable-piece-ids={props.draggablePieceIds ? JSON.stringify([...props.draggablePieceIds]) : "undefined"}
+    >
       {props.map.pieces.map((piece) => (
         <button
           key={piece.id}
@@ -239,6 +245,14 @@ describe("GamePlayerPage", () => {
     act(() => ws.emit("action_enqueued", { actionId: "action-1" }));
 
     await waitFor(() => expect(localStorage.getItem("match-draft:match-1:c1")).toBeNull());
+  });
+
+  it("passa draggablePieceIds vazio ao mapa — o servidor decide onde a peça para (I1)", async () => {
+    renderPlayerPage();
+    expect(await screen.findByTestId("map-stub")).toHaveAttribute(
+      "data-draggable-piece-ids",
+      "[]",
+    );
   });
 
   it("o aside abre em Histórico (padrão) e o rail só tem Ação", async () => {

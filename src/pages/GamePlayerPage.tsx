@@ -40,6 +40,13 @@ type Props = {
   matchId?: string;
 };
 
+// Final review, Important 1: sem isto, PiecesLayer via draggablePieceIds === undefined
+// como "toda peça é arrastável" (regra pensada pro editor de mapa) — no jogo o servidor é
+// quem decide onde a peça para (I1), e um dedo escorregando 5px no toque já passa o
+// limiar de 4px de arraste, cancela o hold e some com a peça da tela até soltar. Módulo
+// (não por render) para a mesma identidade de Set nunca invalidar memos de PiecesLayer.
+const EMPTY_SET = new Set<string>();
+
 export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const { width, height } = useResizeObserver(canvasRef);
@@ -103,6 +110,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
     updateDraft,
     characterIdByPieceId,
     targetPieceIds,
+    actorPiece,
     actorSlot,
     replaceTarget,
     toggleTarget,
@@ -208,8 +216,10 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
                   npcMap={npcMap}
                   onWallClick={handleWallClick}
                   piecesInteractive
+                  draggablePieceIds={EMPTY_SET}
                   onPieceSelect={handlePieceSelect}
                   onPieceLongPress={handlePieceLongPress}
+                  selectedPieceId={actorPiece?.id}
                   targetPieceIds={targetPieceIds}
                   ghosts={Object.values(state.ghosts)}
                   onEmptySlotClick={setDestination}

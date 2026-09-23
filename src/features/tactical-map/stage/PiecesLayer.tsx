@@ -8,7 +8,7 @@ import type { TacticalMap, SlotCoord } from "../../../types/tacticalMap";
 import type { CharacterPrivateSummary } from "../../../types/characterSheet";
 import type { Selection } from "../store/editorStore";
 import { worldToSlot, isSlotInBounds, slotCorners, isSameSlot, slotToWorld, slotInradius, stackOffsetToPx } from "../utils/coords";
-import { createHoldTracker, createRightPressTracker, HOLD_MS } from "../hooks/useHoldGesture";
+import { createHoldTracker, createRightPressTracker, shouldSelectOnRelease, HOLD_MS } from "../hooks/useHoldGesture";
 import { stackOffsets } from "../utils/stacking";
 import { colors } from "../../../styles/tokens";
 import PieceSprite from "./PieceSprite";
@@ -178,8 +178,13 @@ export default function PiecesLayer({
       }
       if (!drag.isDragging) {
         const outcome = holdRef.current.end();
-        if (outcome === "hold") return; // segurar já marcou; não alveje duas vezes
-        onPieceSelect?.(drag.pieceId);
+        // Final review, Important 1: com onPieceLongPress (jogo), "none" (o hold foi
+        // cancelado por movimento > 6px, um pan de raspão) não é mais tratado como
+        // clique — ver shouldSelectOnRelease. Sem onPieceLongPress (lobby, R19) o
+        // tracker nunca arma e isto sempre seleciona, como antes.
+        if (shouldSelectOnRelease(outcome, !!onPieceLongPressRef.current)) {
+          onPieceSelect?.(drag.pieceId);
+        }
         return;
       }
       const { width: cw, height: ch } = app.screen;
@@ -225,8 +230,10 @@ export default function PiecesLayer({
         e.clientY >= rect.top  && e.clientY <= rect.bottom;
       if (!drag.isDragging) {
         const outcome = holdRef.current.end();
-        if (outcome === "hold") return; // segurar já marcou; não alveje duas vezes
-        if (overCanvas) onPieceSelect?.(drag.pieceId);
+        // Final review, Important 1 (mirrors handleUp above).
+        if (overCanvas && shouldSelectOnRelease(outcome, !!onPieceLongPressRef.current)) {
+          onPieceSelect?.(drag.pieceId);
+        }
         return;
       }
       if (!overCanvas) {
@@ -261,11 +268,26 @@ export default function PiecesLayer({
     };
     const canvas = app?.renderer ? app.canvas : null;
 
+    // M7 (spec §7.1): losing window focus mid-gesture (alt-tab, a native dialog, DevTools
+    // grabbing focus) never delivers pointerup/pointercancel for the press in progress —
+    // without this, the hold ring and localDrag state get stuck forever, and a stale
+    // rightPressTracker id could resolve a much later, unrelated contextmenu.
+    const handleBlur = () => {
+      localDrag.current = null;
+      setDraggingPieceId(null);
+      onPieceDragEnd?.();
+      setHoverSlot(null);
+      stopHoldProgress();
+      holdRef.current.cancel();
+      rightPressTrackerRef.current.reset();
+    };
+
     stage.on("pointerup", handleUp);
     stage.on("pointerupoutside", handleUp);
     window.addEventListener("pointermove", handleMoveDOM);
     window.addEventListener("pointerup", handleWindowUp);
     window.addEventListener("pointercancel", handleWindowUp);
+    window.addEventListener("blur", handleBlur);
     canvas?.addEventListener("contextmenu", handleContextMenu);
 
     return () => {
@@ -274,6 +296,7 @@ export default function PiecesLayer({
       window.removeEventListener("pointermove", handleMoveDOM);
       window.removeEventListener("pointerup", handleWindowUp);
       window.removeEventListener("pointercancel", handleWindowUp);
+      window.removeEventListener("blur", handleBlur);
       canvas?.removeEventListener("contextmenu", handleContextMenu);
     };
   }, [app, vpRef, map.grid, map.pieces, piecesInteractive, onPieceSelect, onPieceMove, onPieceDragToRoster, onPieceDragStart, onPieceDragEnd, stopHoldProgress]);

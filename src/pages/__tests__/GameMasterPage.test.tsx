@@ -15,11 +15,16 @@ const baseUrl = "http://localhost:5000";
 vi.mock("../../features/tactical-map/TacticalMapViewer", () => ({
   default: (props: {
     map: { pieces: Array<{ id: string; characterId: string }> };
+    draggablePieceIds?: Set<string>;
     onPieceSelect?: (pieceId: string) => void;
     onPieceLongPress?: (pieceId: string) => void;
     onEmptySlotClick?: (slot: { kind: "square"; col: number; row: number }, x: number, y: number) => void;
   }) => (
-    <div data-testid="map-stub">
+    <div
+      data-testid="map-stub"
+      // Final review, Important 1 (mirrors GamePlayerPage.test.tsx).
+      data-draggable-piece-ids={props.draggablePieceIds ? JSON.stringify([...props.draggablePieceIds]) : "undefined"}
+    >
       {props.map.pieces.map((piece) => (
         <button
           key={piece.id}
@@ -212,6 +217,14 @@ describe("GameMasterPage", () => {
     const sent = ws.send.mock.calls.map((c) => JSON.parse(c[0] as string));
     expect(sent[sent.length - 1]?.type).toBe("enqueue_action");
     expect(sent[sent.length - 1]?.payload.actorId).toBe("npc1");
+  });
+
+  it("passa draggablePieceIds vazio ao mapa — o servidor decide onde a peça para (I1)", async () => {
+    renderMasterPage();
+    expect(await screen.findByTestId("map-stub")).toHaveAttribute(
+      "data-draggable-piece-ids",
+      "[]",
+    );
   });
 
   it("inspeciona (não vira ator) quem o mestre não controla e nada envia", async () => {
