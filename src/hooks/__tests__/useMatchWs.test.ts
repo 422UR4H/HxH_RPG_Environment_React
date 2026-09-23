@@ -182,8 +182,26 @@ function syncPayloads(ws: FakeWS) {
     .map((m) => m.payload);
 }
 
+// Batch 3: minimal valid raw match_full_state wire payload (normalizeMatchFullState's own
+// test, normalizeWire.test.ts, uses this exact minimal shape) — this is the "register
+// finished, decide now" marker maybeSyncBoard waits for. Emitting it after `ws.onopen?.()`
+// simulates room.go's register case (room.go:249-270) sending it right after room_state
+// and (if `hasPieces`) map_full_state, before broadcastPlayerJoined.
+const matchFullStatePayload = { roundMode: "", bars: { seq: 0, prices: null, characters: null, order: null } };
+function emitMatchFullState(ws: FakeWS) {
+  act(() => { ws.emit("match_full_state", matchFullStatePayload); });
+}
+function emitMapFullState(ws: FakeWS, pieces: unknown[] = [{ pieceId: "existing", slot: { kind: "square", col: 0, row: 0 } }]) {
+  act(() => {
+    ws.emit("map_full_state", { pieces, walls: [], visiblePolygons: [], fogMode: "explored" });
+  });
+}
+
 describe("useMatchWs board sync", () => {
-  it("sends the master's pieces so the server has line-of-sight origins", () => {
+  // Batch 3, test (c): first load into an empty room (register sends no map_full_state,
+  // hasPieces is false) — the marker alone is enough to sync, same behavior as before
+  // batch 3's fix.
+  it("first load into an empty room: syncs once the register-finished marker arrives", () => {
     const { rerender } = renderHook(
       (props: { board: MatchBoardSync | null }) =>
         useMatchWs({ matchUuid: "m1", token: "t", isMaster: true, board: props.board }),
@@ -192,11 +210,13 @@ describe("useMatchWs board sync", () => {
     const ws = FakeWS.instances[0];
     act(() => { ws.onopen?.(); });
     rerender({ board });
+    expect(syncPayloads(ws)).toHaveLength(0); // not yet — marker hasn't arrived
+
+    emitMatchFullState(ws);
 
     const syncs = syncPayloads(ws);
-    expect(syncs.length).toBeGreaterThan(0);
-    const last = syncs[syncs.length - 1];
-    expect(last.pieces).toEqual([
+    expect(syncs).toHaveLength(1);
+    expect(syncs[0].pieces).toEqual([
       {
         pieceId: "piece-1",
         slot: { kind: "square", col: 3, row: 4 },
@@ -205,11 +225,11 @@ describe("useMatchWs board sync", () => {
         z: 0,
       },
     ]);
-    expect(last.grid).toMatchObject({ cellSize: 64, cols: 20, rows: 20 });
-    expect(last.walls).toHaveLength(1);
+    expect(syncs[0].grid).toMatchObject({ cellSize: 64, cols: 20, rows: 20 });
+    expect(syncs[0].walls).toHaveLength(1);
   });
 
-  it("does not sync before the map has loaded, then syncs once it arrives", () => {
+  it("does not sync before the map has loaded, then syncs once it arrives (marker already seen)", () => {
     const { rerender } = renderHook(
       (props: { board: MatchBoardSync | null }) =>
         useMatchWs({ matchUuid: "m1", token: "t", isMaster: true, board: props.board }),
@@ -219,8 +239,11 @@ describe("useMatchWs board sync", () => {
     act(() => { ws.onopen?.(); });
     rerender({ board: null });
 
+    // The marker arrives before the REST map does — maybeSyncBoard must not act yet.
+    emitMatchFullState(ws);
     expect(syncPayloads(ws)).toHaveLength(0);
 
+    // The `board`-reactive effect catches it once the REST map arrives.
     rerender({ board });
     const syncs = syncPayloads(ws);
     expect(syncs).toHaveLength(1);
@@ -236,13 +259,14 @@ describe("useMatchWs board sync", () => {
     const ws = FakeWS.instances[0];
     act(() => { ws.onopen?.(); });
     rerender({ board });
+    emitMatchFullState(ws);
 
     expect(syncPayloads(ws)).toHaveLength(0);
   });
 
   // Guards the infinite-loop regression: the board must be derived from the REST map,
-  // so a server push that changes live state must not trigger another sync.
-  it("does not re-sync when the server pushes map_full_state", () => {
+  // so a server push/rerender after the sync already happened must not trigger another.
+  it("does not re-sync when the server pushes another map_full_state after the initial sync", () => {
     const { rerender } = renderHook(
       (props: { board: MatchBoardSync | null }) =>
         useMatchWs({ matchUuid: "m1", token: "t", isMaster: true, board: props.board }),
@@ -251,7 +275,8 @@ describe("useMatchWs board sync", () => {
     const ws = FakeWS.instances[0];
     act(() => { ws.onopen?.(); });
     rerender({ board });
-    const before = syncPayloads(ws).length;
+    emitMatchFullState(ws);
+    expect(syncPayloads(ws)).toHaveLength(1);
 
     act(() => {
       ws.emit("map_full_state", {
@@ -260,7 +285,7 @@ describe("useMatchWs board sync", () => {
     });
     rerender({ board });
 
-    expect(syncPayloads(ws)).toHaveLength(before);
+    expect(syncPayloads(ws)).toHaveLength(1);
   });
 
   it("sends piece elevation so the server can hand it back", () => {
@@ -276,46 +301,88 @@ describe("useMatchWs board sync", () => {
     const ws = FakeWS.instances[0];
     act(() => { ws.onopen?.(); });
     rerender({ board: elevated });
+    emitMatchFullState(ws);
 
     const syncs = syncPayloads(ws);
     expect(syncs[syncs.length - 1].pieces[0].z).toBe(2);
   });
 
-  // Batch 2 (Important): map_state_sync's `pieces` list REPLACES the server's board
-  // authoritatively (contract). Re-sending the master's REST-derived `board` on every
-  // reconnect would silently undo any piece the server had since moved on its own via
-  // combat (F3's piece_moved) — status cycles connecting→connected on every reconnect,
-  // which is exactly what used to re-trigger this effect.
-  it("does not re-send the board sync on a reconnect within the same page load", () => {
-    vi.useFakeTimers();
-    try {
-      const { rerender } = renderHook(
-        (props: { board: MatchBoardSync | null }) =>
-          useMatchWs({ matchUuid: "m1", token: "t", isMaster: true, board: props.board }),
-        { initialProps: { board } },
-      );
-      const firstWs = FakeWS.instances[0];
-      act(() => { firstWs.onopen?.(); });
-      rerender({ board });
-      expect(syncPayloads(firstWs)).toHaveLength(1);
-
-      // Abnormal close (not 1000/1001) — the hook's internal retry kicks in.
-      act(() => { firstWs.onclose?.({ code: 1006 } as CloseEvent); });
-      act(() => { vi.advanceTimersByTime(1000); }); // BASE_DELAY_MS, first attempt
-      expect(FakeWS.instances.length).toBe(2);
-
-      const secondWs = FakeWS.instances[1];
+  // Batch 3 (Important): the regression the re-reviewer found in batch 2's fix. A
+  // once-per-MOUNT guard survived an ordinary reconnect fine, but not a game-server
+  // restart — room.go's NewRoom starts with `pieces` empty, Register sends
+  // map_full_state only when `hasPieces` (room.go:257-262), and only the master's own
+  // map_state_sync ever refills `r.pieces` server-side. The fix must re-sync PER
+  // CONNECTION, gated on whether THAT connection's register produced a map_full_state.
+  describe("reconnect (per-connection re-sync)", () => {
+    function reconnect(firstWs: FakeWS) {
+      act(() => { firstWs.onclose?.({ code: 1006 } as CloseEvent); }); // abnormal close
+      act(() => { vi.advanceTimersByTime(1000); }); // BASE_DELAY_MS, first retry attempt
+      expect(FakeWS.instances.length).toBeGreaterThan(1);
+      const secondWs = FakeWS.instances[FakeWS.instances.length - 1];
       act(() => { secondWs.onopen?.(); });
-      rerender({ board });
-
-      // The reconnected socket never got a map_state_sync — the master's REST snapshot
-      // was already applied once this page load, and must not be re-pushed over
-      // whatever the server has done to the board since.
-      expect(syncPayloads(secondWs)).toHaveLength(0);
-    } finally {
-      vi.useRealTimers();
+      return secondWs;
     }
+
+    // Test (a): the server still has the pieces (an ordinary reconnect, room never
+    // restarted) — its register sends map_full_state, so the reconnected socket must NOT
+    // re-push the master's REST snapshot over whatever the server already has.
+    it("(a) reconnect where the server still has the board: no map_state_sync on the second socket", () => {
+      vi.useFakeTimers();
+      try {
+        const { rerender } = renderHook(
+          (props: { board: MatchBoardSync | null }) =>
+            useMatchWs({ matchUuid: "m1", token: "t", isMaster: true, board: props.board }),
+          { initialProps: { board } },
+        );
+        const firstWs = FakeWS.instances[0];
+        act(() => { firstWs.onopen?.(); });
+        rerender({ board });
+        emitMatchFullState(firstWs);
+        expect(syncPayloads(firstWs)).toHaveLength(1);
+
+        const secondWs = reconnect(firstWs);
+        rerender({ board });
+        emitMapFullState(secondWs); // hasPieces was true — register sent it
+        emitMatchFullState(secondWs);
+
+        expect(syncPayloads(secondWs)).toHaveLength(0);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    // Test (b): the exact regression — the game server restarted, the new Room has no
+    // pieces (hasPieces false), so register sends NO map_full_state this connection. The
+    // reconnected socket must re-sync exactly once, or the board stays empty for
+    // everyone until a manual page reload.
+    it("(b) reconnect into an empty room (server restart): exactly one map_state_sync", () => {
+      vi.useFakeTimers();
+      try {
+        const { rerender } = renderHook(
+          (props: { board: MatchBoardSync | null }) =>
+            useMatchWs({ matchUuid: "m1", token: "t", isMaster: true, board: props.board }),
+          { initialProps: { board } },
+        );
+        const firstWs = FakeWS.instances[0];
+        act(() => { firstWs.onopen?.(); });
+        rerender({ board });
+        emitMatchFullState(firstWs);
+        expect(syncPayloads(firstWs)).toHaveLength(1);
+
+        const secondWs = reconnect(firstWs);
+        rerender({ board });
+        // No map_full_state this time — the restarted room has no pieces.
+        emitMatchFullState(secondWs);
+
+        const syncs = syncPayloads(secondWs);
+        expect(syncs).toHaveLength(1);
+        expect(syncs[0].pieces).toHaveLength(1);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
   });
+
 });
 
 // ─── Wall events (server→client) ────────────────────────────────────────────
