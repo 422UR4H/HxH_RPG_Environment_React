@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { CampaignMaster } from "../../../types/campaign";
 import type { CharacterPrivateSummary } from "../../../types/characterSheet";
-import type { FogState, Piece, TacticalMap, WallSegment } from "../../../types/tacticalMap";
+import type { FogState, Piece, SlotCoord, TacticalMap, WallSegment } from "../../../types/tacticalMap";
 
 type Options = {
   map: TacticalMap | undefined;
@@ -66,20 +66,43 @@ export function useLiveMapSync({ map, campaign, seedFromRest }: Options) {
     setLiveWalls((prev) => prev.map((w) => (w.id === wall.id ? wall : w)));
   }, []);
 
-  // F3: the server moves a piece by itself when a turn (or a Shift/passed-Dash escape
-  // reaction) opens — `piece_moved` carries a full piece, enough to upsert even when
-  // `livePieces` hasn't been seeded yet (the player page never seeds from REST) or when
-  // this is the first time this piece is visible to this viewer (it "enters" view).
-  const handlePieceMoved = useCallback((piece: Piece) => {
-    setLivePieces((prev) => {
-      const list = prev ?? [];
-      const idx = list.findIndex((p) => p.id === piece.id);
-      if (idx === -1) return [...list, piece];
-      const next = [...list];
-      next[idx] = piece;
-      return next;
-    });
-  }, []);
+  // F3 (amended, browser batch 2): the server moves a piece by itself when a turn (or a
+  // Shift/passed-Dash escape reaction) opens. `characterId`/`visible`/`z` are OMITTED
+  // (not defaulted) by useMatchWs when the wire omits them — mirrors useLobbyWs's own
+  // piece_moved parsing, and LobbyPage.tsx's handler (its own version of this function)
+  // patches ONLY the slot of an already-known piece for the same reason: a bare
+  // "it moved to X" for a piece we already track must not stomp its characterId/visible
+  // back to blank/true. Unlike the lobby, this DOES update z/characterId/visible in place
+  // when the wire provides them (not just on insert) — elevation is load-bearing in
+  // combat (§7.2's z "height" offset), so a piece_moved that carries a new z must apply
+  // it. A piece not yet known is inserted only when characterId is present (same rule the
+  // lobby uses) — without it there's no character to attach the new piece to.
+  const handlePieceMoved = useCallback(
+    (pieceId: string, slot: SlotCoord, characterId?: string, visible?: boolean, z?: number) => {
+      setLivePieces((prev) => {
+        const list = prev ?? [];
+        const idx = list.findIndex((p) => p.id === pieceId);
+        if (idx !== -1) {
+          const existing = list[idx];
+          const next = [...list];
+          next[idx] = {
+            ...existing,
+            characterId: characterId ?? existing.characterId,
+            visible: visible ?? existing.visible,
+            coord: { slot, z: z ?? existing.coord.z },
+          };
+          return next;
+        }
+        // Nothing to attach a brand-new piece to, and nothing actually changes — return
+        // the ORIGINAL `prev` (possibly still null), not the `?? []` coercion, so a
+        // dropped/no-op piece_moved can't prematurely turn "never seeded" into "known
+        // empty" (visibleBoardPieces.ts treats those two very differently for the master).
+        if (!characterId) return prev;
+        return [...list, { id: pieceId, characterId, coord: { slot, z: z ?? 0 }, visible: visible ?? true }];
+      });
+    },
+    [],
+  );
 
   // F3: pairs with piece_moved — sent instead of it when the piece left this viewer's
   // fog (still exists on the board, just no longer visible to them).

@@ -280,6 +280,42 @@ describe("useMatchWs board sync", () => {
     const syncs = syncPayloads(ws);
     expect(syncs[syncs.length - 1].pieces[0].z).toBe(2);
   });
+
+  // Batch 2 (Important): map_state_sync's `pieces` list REPLACES the server's board
+  // authoritatively (contract). Re-sending the master's REST-derived `board` on every
+  // reconnect would silently undo any piece the server had since moved on its own via
+  // combat (F3's piece_moved) — status cycles connecting→connected on every reconnect,
+  // which is exactly what used to re-trigger this effect.
+  it("does not re-send the board sync on a reconnect within the same page load", () => {
+    vi.useFakeTimers();
+    try {
+      const { rerender } = renderHook(
+        (props: { board: MatchBoardSync | null }) =>
+          useMatchWs({ matchUuid: "m1", token: "t", isMaster: true, board: props.board }),
+        { initialProps: { board } },
+      );
+      const firstWs = FakeWS.instances[0];
+      act(() => { firstWs.onopen?.(); });
+      rerender({ board });
+      expect(syncPayloads(firstWs)).toHaveLength(1);
+
+      // Abnormal close (not 1000/1001) — the hook's internal retry kicks in.
+      act(() => { firstWs.onclose?.({ code: 1006 } as CloseEvent); });
+      act(() => { vi.advanceTimersByTime(1000); }); // BASE_DELAY_MS, first attempt
+      expect(FakeWS.instances.length).toBe(2);
+
+      const secondWs = FakeWS.instances[1];
+      act(() => { secondWs.onopen?.(); });
+      rerender({ board });
+
+      // The reconnected socket never got a map_state_sync — the master's REST snapshot
+      // was already applied once this page load, and must not be re-pushed over
+      // whatever the server has done to the board since.
+      expect(syncPayloads(secondWs)).toHaveLength(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
 
 // ─── Wall events (server→client) ────────────────────────────────────────────
@@ -361,7 +397,12 @@ describe("useMatchWs wall events", () => {
 // lobby already parses (useLobbyWs.ts).
 
 describe("useMatchWs piece events", () => {
-  it("calls onPieceMoved with a mapped Piece on piece_moved", () => {
+  // Batch 2: onPieceMoved is called positionally (pieceId, slot, characterId?, visible?,
+  // z?) — NOT a mapped Piece object — because characterId/visible/z must stay undefined
+  // when the server's payload omits them (the caller, useLiveMapSync, decides whether
+  // that means "keep the old value" or "use a default"; fromPiecePayload's defaulting is
+  // wrong here, see the comment above parsePieceMovedSlot in useMatchWs.ts).
+  it("calls onPieceMoved positionally with everything the payload carries", () => {
     const onPieceMoved = vi.fn();
     renderHook(() =>
       useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onPieceMoved }),
@@ -377,16 +418,19 @@ describe("useMatchWs piece events", () => {
         z: 1,
       });
     });
-    expect(onPieceMoved).toHaveBeenCalledWith({
-      id: "p1",
-      characterId: "c1",
-      coord: { slot: { kind: "square", col: 5, row: 6 }, z: 1 },
-      visible: true,
-    });
+    expect(onPieceMoved).toHaveBeenCalledWith(
+      "p1",
+      { kind: "square", col: 5, row: 6 },
+      "c1",
+      true,
+      1,
+    );
   });
 
-  // z omitted by the server means "on the ground" (same convention as map_full_state).
-  it("defaults z to 0 and characterId to empty string when the server omits them", () => {
+  // characterId/visible/z stay undefined (not defaulted) when the server omits them —
+  // the whole point of the fix: the caller must be able to tell "omitted" from "false"/
+  // "zero"/"blank" apart to patch only what changed on an already-known piece.
+  it("leaves characterId/visible/z undefined when the server omits them", () => {
     const onPieceMoved = vi.fn();
     renderHook(() =>
       useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onPieceMoved }),
@@ -396,10 +440,38 @@ describe("useMatchWs piece events", () => {
     act(() => {
       ws.emit("piece_moved", { pieceId: "p2", slot: { kind: "square", col: 0, row: 0 } });
     });
-    const piece = onPieceMoved.mock.calls[0][0];
-    expect(piece.coord.z).toBe(0);
-    expect(piece.characterId).toBe("");
-    expect(piece.visible).toBe(true);
+    expect(onPieceMoved).toHaveBeenCalledWith(
+      "p2",
+      { kind: "square", col: 0, row: 0 },
+      undefined,
+      undefined,
+      undefined,
+    );
+  });
+
+  it("keeps hex slots intact and drops a piece_moved with an invalid/missing slot.kind", () => {
+    const onPieceMoved = vi.fn();
+    renderHook(() =>
+      useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onPieceMoved }),
+    );
+    const ws = FakeWS.instances[0];
+    act(() => { ws.onopen?.(); });
+    act(() => {
+      ws.emit("piece_moved", { pieceId: "hex1", slot: { kind: "hex", q: 2, r: -3 } });
+      // Same rule useLobbyWs.ts's parser applies: an unrecognized/incomplete slot.kind
+      // means the whole message is dropped, never forwarded with a garbage slot.
+      ws.emit("piece_moved", { pieceId: "bad1", slot: { kind: "triangle" } });
+      ws.emit("piece_moved", { pieceId: "bad2", slot: {} });
+      ws.emit("piece_moved", { pieceId: "bad3" });
+    });
+    expect(onPieceMoved).toHaveBeenCalledTimes(1);
+    expect(onPieceMoved).toHaveBeenCalledWith(
+      "hex1",
+      { kind: "hex", q: 2, r: -3 },
+      undefined,
+      undefined,
+      undefined,
+    );
   });
 
   it("calls onPieceRemoved with the pieceId on piece_removed", () => {

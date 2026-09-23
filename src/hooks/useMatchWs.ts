@@ -64,6 +64,25 @@ function fromPiecePayload(w: WirePiece): Piece {
   };
 }
 
+/**
+ * F3 batch 2: validates a piece_moved's raw slot the same way useLobbyWs.ts's parser
+ * does — an unrecognized/incomplete kind is dropped (returns undefined) rather than
+ * handed through untyped. Unlike fromPiecePayload above, this never defaults missing
+ * fields on the REST of the piece (characterId/visible/z) — those are the caller's call.
+ */
+function parsePieceMovedSlot(
+  raw: { kind?: string; col?: number; row?: number; q?: number; r?: number } | undefined,
+): SlotCoord | undefined {
+  if (!raw) return undefined;
+  if (raw.kind === "square" && raw.col != null && raw.row != null) {
+    return { kind: "square", col: raw.col, row: raw.row };
+  }
+  if (raw.kind === "hex" && raw.q != null && raw.r != null) {
+    return { kind: "hex", q: raw.q, r: raw.r };
+  }
+  return undefined;
+}
+
 function parsePolys(
   raw: Array<Array<{ x: number; y: number }>>,
 ): Array<Array<[number, number]>> {
@@ -119,9 +138,21 @@ type UseMatchWsOptions = {
   /**
    * F3: called when the server moves a piece by itself (a turn's Move opening, or a
    * Shift/passed-Dash escape reaction) — fog-gated per recipient, same pair the lobby
-   * already relays. Absent when the caller doesn't track live pieces (none today).
+   * already relays. Signature matches useLobbyWs's onPieceMoved on purpose: characterId/
+   * visible/z are OMITTED (not defaulted) when the server's payload omits them, so the
+   * caller can tell "server didn't say" apart from "server said false/0/absent" and patch
+   * only what actually changed (the lobby's own handler, LobbyPage.tsx, does the same —
+   * see useLiveMapSync.ts's handlePieceMoved for the match version, which additionally
+   * updates z/characterId/visible in place when the wire DOES carry them, since elevation
+   * is load-bearing in combat).
    */
-  onPieceMoved?: (piece: Piece) => void;
+  onPieceMoved?: (
+    pieceId: string,
+    slot: SlotCoord,
+    characterId?: string,
+    visible?: boolean,
+    z?: number,
+  ) => void;
   /** F3: pairs with onPieceMoved — sent when the moved piece left this viewer's fog. */
   onPieceRemoved?: (pieceId: string) => void;
   /** Server refusal (`error`). Never broadcast: it is always about our own last send. */
@@ -262,10 +293,25 @@ export function useMatchWs({
             const p = msg.payload as { wall: Record<string, unknown> };
             onWallRevealedRef.current?.(p.wall as unknown as WallSegment);
           } else if (msg.type === "piece_moved") {
-            // F3: same wire shape the lobby already parses (useLobbyWs.ts) — flat
-            // pieceId/slot, reused via fromPiecePayload/WirePiece above.
-            const p = msg.payload as WirePiece;
-            if (p.pieceId && p.slot) onPieceMovedRef.current?.(fromPiecePayload(p));
+            // F3 (amended, browser batch 2): parsed the same way useLobbyWs.ts parses its
+            // own piece_moved — NOT through fromPiecePayload, which defaults absent
+            // characterId/visible/z to "fully known" values ("", true, 0). Those defaults
+            // are right for map_full_state (a full snapshot, nothing is ever "omitted")
+            // but wrong here: a piece_moved that only reports a new slot for an
+            // ALREADY-known piece must not stomp its characterId/visible/z back to
+            // defaults — see useLiveMapSync.ts's handlePieceMoved, which merges instead
+            // of overwriting. An invalid/missing slot.kind is dropped, matching the lobby.
+            const p = msg.payload as {
+              pieceId?: string;
+              slot?: { kind?: string; col?: number; row?: number; q?: number; r?: number };
+              characterId?: string;
+              visible?: boolean;
+              z?: number;
+            };
+            const slot = parsePieceMovedSlot(p.slot);
+            if (p.pieceId && slot) {
+              onPieceMovedRef.current?.(p.pieceId, slot, p.characterId, p.visible, p.z);
+            }
           } else if (msg.type === "piece_removed") {
             const p = msg.payload as { pieceId?: string };
             if (p.pieceId) onPieceRemovedRef.current?.(p.pieceId);
@@ -325,9 +371,23 @@ export function useMatchWs({
   // Seed the board once the socket is up AND the map has arrived, in either order.
   // `board` is derived from the REST map, so its identity changes only when that data
   // changes — this cannot be retriggered by the server's own map_full_state pushes.
+  //
+  // Batch 2 (Important, checked against F3): `map_state_sync`'s `pieces` field is a
+  // non-empty list here (always `board.pieces.map(toPiecePayload)`), and per the
+  // contract a non-empty list REPLACES the server's board authoritatively — never
+  // merges. `status` cycles connecting→connected on every reconnect (a network blip,
+  // the tab regaining focus, …), and this effect re-runs each time `status` changes —
+  // so without the guard below, a master's reconnect mid-match would silently teleport
+  // every piece the server had since moved via combat (F3's own piece_moved) back to
+  // its REST position from page-load time. `boardSyncedRef` makes the sync fire at most
+  // once per mount of this hook (i.e. once per page load — a real remount, e.g.
+  // navigating away and back, is a fresh board seed exactly like today's first
+  // connect); a reconnect within the same page load never re-sends it.
+  const boardSyncedRef = useRef(false);
   useEffect(() => {
-    if (!isMaster || !board || status !== "connected") return;
+    if (!isMaster || !board || status !== "connected" || boardSyncedRef.current) return;
     sendBoardSync();
+    boardSyncedRef.current = true;
   }, [isMaster, board, status, sendBoardSync]);
 
   /** Send a player action (enqueue_action). */
