@@ -18,6 +18,11 @@ export type TacticalMapStageProps = {
   npcMap?: Map<string, CharacterPrivateSummary>;
   placingNpcId?: string | null;
   onPieceSelect?: (pieceId: string) => void;
+  // Long-press (450ms) or right-click shortcut on a piece — §7.1: the same
+  // gesture the game uses to mark multiple combat targets.
+  onPieceLongPress?: (pieceId: string) => void;
+  selectedPieceId?: string | null;
+  targetPieceIds?: Set<string>;
   onPieceMove?: (pieceId: string, slot: SlotCoord) => void;
   onPieceDragToRoster?: (pieceId: string) => void;
   onPieceDragStart?: (pieceId: string, npc: CharacterPrivateSummary | undefined) => void;

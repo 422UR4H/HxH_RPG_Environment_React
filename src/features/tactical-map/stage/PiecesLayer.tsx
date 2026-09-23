@@ -7,21 +7,33 @@ import type { Viewport } from "pixi-viewport";
 import type { TacticalMap, SlotCoord } from "../../../types/tacticalMap";
 import type { CharacterPrivateSummary } from "../../../types/characterSheet";
 import type { Selection } from "../store/editorStore";
-import { worldToSlot, isSlotInBounds, slotCorners, isSameSlot } from "../utils/coords";
+import { worldToSlot, isSlotInBounds, slotCorners, isSameSlot, slotToWorld, slotInradius } from "../utils/coords";
+import { createHoldTracker, HOLD_MS } from "../hooks/useHoldGesture";
+import { colors } from "../../../styles/tokens";
 import PieceSprite from "./PieceSprite";
+
+const HOLD_PROGRESS_COLOR = parseInt(colors.warningText.replace("#", ""), 16);
 
 // No containerRef: piece position is driven by React state (dragWorldPos) to
 // avoid @pixi/react reconciler overwriting imperative position.set() calls.
+//
+// `draggable`: false when the piece isn't in `draggablePieceIds` (game mode —
+// the server moves the piece, not the client) or when the press started with a
+// non-primary button (right-click shortcut). handleMoveDOM only enters the drag
+// branch when this is true, so the piece still resolves click/hold while staying
+// visually still.
 type PieceLocalDragState = {
   pieceId: string;
   startScreen: { x: number; y: number };
   isDragging: boolean;
   currentSlot: SlotCoord | null;
+  draggable: boolean;
 } | null;
 
 export default function PiecesLayer({
   map, vpRef, piecesInteractive, draggablePieceIds, selection, npcMap, pieceDragActiveRef,
-  onPieceSelect, onPieceMove, onPieceDragToRoster, onPieceDragStart, onPieceDragEnd, onStageDeselect,
+  onPieceSelect, onPieceLongPress, selectedPieceId, targetPieceIds,
+  onPieceMove, onPieceDragToRoster, onPieceDragStart, onPieceDragEnd, onStageDeselect,
   onEmptySlotClick,
 }: {
   map: TacticalMap;
@@ -32,6 +44,9 @@ export default function PiecesLayer({
   npcMap?: Map<string, CharacterPrivateSummary>;
   pieceDragActiveRef: React.MutableRefObject<boolean>;
   onPieceSelect?: (pieceId: string) => void;
+  onPieceLongPress?: (pieceId: string) => void;
+  selectedPieceId?: string | null;
+  targetPieceIds?: Set<string>;
   onPieceMove?: (pieceId: string, slot: SlotCoord) => void;
   onPieceDragToRoster?: (pieceId: string) => void;
   onPieceDragStart?: (pieceId: string, npc: CharacterPrivateSummary | undefined) => void;
@@ -43,6 +58,47 @@ export default function PiecesLayer({
   const localDrag = useRef<PieceLocalDragState>(null);
   const [draggingPieceId, setDraggingPieceId] = useState<string | null>(null);
   const [hoverSlot, setHoverSlot] = useState<SlotCoord | null>(null);
+
+  // Kept in a ref like the rest of this file's callbacks (see handleMoveDOM/
+  // handleUp closures below) — the effect that owns the window listeners
+  // doesn't need to re-subscribe when the consumer passes a new function
+  // identity each render.
+  const onPieceLongPressRef = useRef(onPieceLongPress);
+  useEffect(() => { onPieceLongPressRef.current = onPieceLongPress; }, [onPieceLongPress]);
+
+  // R19: only start the tracker when onPieceLongPress is provided. The lobby/map
+  // editor (TacticalMapEditor, TacticalMapPlacer) never passes it — a 450ms
+  // press-and-release there must stay a plain click, not get swallowed by hold
+  // bookkeeping.
+  const holdRef = useRef(createHoldTracker({ onHold: (id) => onPieceLongPressRef.current?.(id) }));
+
+  // Hold-progress ring: the arc grows from 120ms to HOLD_MS around the piece
+  // currently in localDrag. Without this the gesture reads as a stall.
+  const [holdProgress, setHoldProgress] = useState<{ pieceId: string; ratio: number } | null>(null);
+  const holdRafRef = useRef<number | null>(null);
+  const stopHoldProgress = useCallback(() => {
+    if (holdRafRef.current != null) cancelAnimationFrame(holdRafRef.current);
+    holdRafRef.current = null;
+    setHoldProgress(null);
+  }, []);
+  const startHoldProgress = useCallback((pieceId: string) => {
+    const startedAt = performance.now();
+    const HOLD_PROGRESS_START_MS = 120;
+    const tick = () => {
+      const drag = localDrag.current;
+      if (!drag || drag.pieceId !== pieceId) { stopHoldProgress(); return; }
+      const elapsed = performance.now() - startedAt;
+      if (elapsed < HOLD_PROGRESS_START_MS) {
+        holdRafRef.current = requestAnimationFrame(tick);
+        return;
+      }
+      const ratio = Math.min(1, (elapsed - HOLD_PROGRESS_START_MS) / (HOLD_MS - HOLD_PROGRESS_START_MS));
+      setHoldProgress({ pieceId, ratio });
+      if (ratio < 1) holdRafRef.current = requestAnimationFrame(tick);
+      else holdRafRef.current = null;
+    };
+    holdRafRef.current = requestAnimationFrame(tick);
+  }, [stopHoldProgress]);
 
   // Tracks a pending empty-slot click for click-vs-drag discrimination.
   // Set on pointerdown; resolved on pointerup only if movement < threshold.
@@ -67,10 +123,19 @@ export default function PiecesLayer({
       if (!rect) return;
       const stageX = e.clientX - rect.left;
       const stageY = e.clientY - rect.top;
+      holdRef.current.move(stageX, stageY);
+      // Game mode (draggable: false): the piece never moves locally — the
+      // server is the only one that decides where it ends up (I1). Click and
+      // hold still resolve on pointerup below; only the drag branch is gated.
+      if (!drag.draggable) return;
       const dx = stageX - drag.startScreen.x;
       const dy = stageY - drag.startScreen.y;
       if (!drag.isDragging && Math.hypot(dx, dy) > 4) {
         drag.isDragging = true;
+        // A real drag and a hold are mutually exclusive — once the piece is
+        // actually moving, cancel the timer so it can't fire mid-drag.
+        holdRef.current.cancel();
+        stopHoldProgress();
         setDraggingPieceId(drag.pieceId);
         const pieceData = map.pieces.find((p) => p.id === drag.pieceId);
         const npc = pieceData ? npcMap?.get(pieceData.characterId) : undefined;
@@ -91,7 +156,10 @@ export default function PiecesLayer({
       setDraggingPieceId(null);
       onPieceDragEnd?.();
       setHoverSlot(null);
+      stopHoldProgress();
       if (!drag.isDragging) {
+        const outcome = holdRef.current.end();
+        if (outcome === "hold") return; // segurar já marcou; não alveje duas vezes
         onPieceSelect?.(drag.pieceId);
         return;
       }
@@ -120,13 +188,16 @@ export default function PiecesLayer({
       setDraggingPieceId(null);
       onPieceDragEnd?.();
       setHoverSlot(null);
-      if (e.type === "pointercancel") return;
+      stopHoldProgress();
+      if (e.type === "pointercancel") { holdRef.current.cancel(); return; }
       const rect = (app?.renderer ? app.canvas : null)?.getBoundingClientRect();
       const overCanvas =
         !!rect &&
         e.clientX >= rect.left && e.clientX <= rect.right &&
         e.clientY >= rect.top  && e.clientY <= rect.bottom;
       if (!drag.isDragging) {
+        const outcome = holdRef.current.end();
+        if (outcome === "hold") return; // segurar já marcou; não alveje duas vezes
         if (overCanvas) onPieceSelect?.(drag.pieceId);
         return;
       }
@@ -145,11 +216,28 @@ export default function PiecesLayer({
       }
     };
 
+    // Right-click shortcut for the hold gesture (§7.1): suppresses the browser's
+    // native context menu over the canvas and fires the hold path immediately via
+    // fireNow (R5) instead of cancel()+direct call — that keeps the following
+    // pointerup's holdRef.current.end() reporting "hold", so the click branch
+    // above doesn't also run onPieceSelect and clobber the target just added.
+    // R19: gated on onPieceLongPress being provided at all — the lobby/map
+    // editor never passes it, so its right-click behavior (whatever it was)
+    // stays untouched.
+    const handleContextMenu = (e: MouseEvent) => {
+      if (!onPieceLongPressRef.current) return;
+      e.preventDefault();
+      const drag = localDrag.current;
+      if (drag) holdRef.current.fireNow(drag.pieceId);
+    };
+    const canvas = app?.renderer ? app.canvas : null;
+
     stage.on("pointerup", handleUp);
     stage.on("pointerupoutside", handleUp);
     window.addEventListener("pointermove", handleMoveDOM);
     window.addEventListener("pointerup", handleWindowUp);
     window.addEventListener("pointercancel", handleWindowUp);
+    canvas?.addEventListener("contextmenu", handleContextMenu);
 
     return () => {
       stage.off("pointerup", handleUp);
@@ -157,8 +245,9 @@ export default function PiecesLayer({
       window.removeEventListener("pointermove", handleMoveDOM);
       window.removeEventListener("pointerup", handleWindowUp);
       window.removeEventListener("pointercancel", handleWindowUp);
+      canvas?.removeEventListener("contextmenu", handleContextMenu);
     };
-  }, [app, vpRef, map.grid, map.pieces, piecesInteractive, onPieceSelect, onPieceMove, onPieceDragToRoster, onPieceDragStart, onPieceDragEnd]);
+  }, [app, vpRef, map.grid, map.pieces, piecesInteractive, onPieceSelect, onPieceMove, onPieceDragToRoster, onPieceDragStart, onPieceDragEnd, stopHoldProgress]);
 
   // Resolve empty-slot click on pointerup: fires onEmptySlotClick only if the
   // pointer moved less than CLICK_THRESHOLD pixels since pointerdown (i.e. it was
@@ -212,6 +301,28 @@ export default function PiecesLayer({
     [hoverSlot, draggingPieceId, map.pieces, map.grid],
   );
 
+  // Hold-progress arc: closes clockwise from 0 to 2π as holdProgress.ratio goes
+  // 0→1 (i.e. from 120ms to HOLD_MS after pointerdown). Drawn as one shared
+  // graphics rather than per-PieceSprite, since at most one piece is ever mid-hold.
+  const drawHoldProgress = useCallback(
+    (g: PixiGraphics) => {
+      g.clear();
+      if (!holdProgress) return;
+      const piece = map.pieces.find((p) => p.id === holdProgress.pieceId);
+      if (!piece) return;
+      const center = slotToWorld(piece.coord.slot, map.grid);
+      const tokenRadius = slotInradius(map.grid) * 0.9;
+      const zOffsetPx = piece.coord.z * 10;
+      const radius = tokenRadius + 16;
+      const startAngle = -Math.PI / 2;
+      const endAngle = startAngle + Math.PI * 2 * holdProgress.ratio;
+      g.setStrokeStyle({ color: HOLD_PROGRESS_COLOR, width: 3, alpha: 0.9 });
+      g.arc(center.x, center.y - zOffsetPx, radius, startAngle, endAngle);
+      g.stroke();
+    },
+    [holdProgress, map.pieces, map.grid],
+  );
+
   // The dragged piece is hidden from the scene while dragging — a single DOM
   // ghost (rendered by TacticalMapEditor) represents it across the whole screen.
   // The canvas only shows the target-slot highlight (drawHoverSlot).
@@ -245,23 +356,38 @@ export default function PiecesLayer({
       }}
     >
       <pixiGraphics draw={drawHoverSlot} />
+      <pixiGraphics draw={drawHoldProgress} />
       {visiblePieces.map((p) => (
         <PieceSprite
           key={p.id}
           piece={p}
           grid={map.grid}
           npc={npcMap?.get(p.characterId)}
-          isSelected={selection?.kind === "piece" && selection.id === p.id}
+          isSelected={(selection?.kind === "piece" && selection.id === p.id) || selectedPieceId === p.id}
+          isTarget={!!targetPieceIds?.has(p.id)}
           piecesInteractive={piecesInteractive}
           onPointerDown={(_piece, e) => {
             if (!piecesInteractive || localDrag.current) return;
-            if (draggablePieceIds !== undefined && !draggablePieceIds.has(p.id)) return;
-            pieceDragActiveRef.current = true;
+            // Right-click never starts a drag (R19) — it's the hold shortcut's
+            // press, resolved on the `contextmenu` event below. localDrag is
+            // still recorded (draggable: false) so that handler knows the piece.
+            const rightClick = e.button !== 0;
+            const draggable = !rightClick && (draggablePieceIds === undefined || draggablePieceIds.has(p.id));
+            // R19: only arm the tracker when the caller opted into the gesture.
+            // Starting it unconditionally would mean a plain, slightly slow
+            // click in the lobby (no onPieceLongPress) crosses HOLD_MS, marks
+            // `fired`, and gets silently swallowed by the "hold" outcome below.
+            if (onPieceLongPress) {
+              holdRef.current.start(p.id, e.global.x, e.global.y);
+              startHoldProgress(p.id);
+            }
+            pieceDragActiveRef.current = draggable;
             localDrag.current = {
               pieceId: p.id,
               startScreen: { x: e.global.x, y: e.global.y },
               isDragging: false,
               currentSlot: null,
+              draggable,
             };
             e.stopPropagation();
           }}

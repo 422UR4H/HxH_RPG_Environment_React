@@ -8,17 +8,25 @@ import type { GridShape, Piece } from "../../../types/tacticalMap";
 import type { CharacterPrivateSummary } from "../../../types/characterSheet";
 import { slotToWorld, slotInradius } from "../utils/coords";
 import { getAvatarBlobUrl, getAvatarInsetShadowTexture } from "../utils/avatarTexture";
+import { colors } from "../../../styles/tokens";
+
+// Pixi Graphics wants numeric colors, not CSS hex strings — same conversion
+// GridLayer already does for grid.color.
+const toPixiColor = (hex: string) => parseInt(hex.replace("#", ""), 16);
+const SELECTION_RING_COLOR = toPixiColor(colors.pieceSelectionRing);
+const TARGET_RING_COLOR = toPixiColor(colors.pieceTargetRing);
 
 type PieceSpriteProps = {
   piece: Piece;
   grid: GridShape;
   npc?: CharacterPrivateSummary;
   isSelected: boolean;
+  isTarget?: boolean;
   piecesInteractive?: boolean;
   onPointerDown: (piece: Piece, e: FederatedPointerEvent) => void;
 };
 
-export default function PieceSprite({ piece, grid, npc, isSelected, piecesInteractive, onPointerDown }: PieceSpriteProps) {
+export default function PieceSprite({ piece, grid, npc, isSelected, isTarget, piecesInteractive, onPointerDown }: PieceSpriteProps) {
   const center = useMemo(() => slotToWorld(piece.coord.slot, grid), [piece.coord.slot, grid]);
   // 90% of the slot's inscribed-circle radius. Square keeps the original
   // 0.45·cellSize; hex tokens grow to fill their (much larger) cell by the same
@@ -125,14 +133,28 @@ export default function PieceSprite({ piece, grid, npc, isSelected, piecesIntera
     (g: PixiGraphics) => {
       g.clear();
       if (!isSelected) return;
-      g.setStrokeStyle({ color: 0xffd700, width: 3.5, alpha: 1.0 });
+      g.setStrokeStyle({ color: SELECTION_RING_COLOR, width: 3.5, alpha: 1.0 });
       g.circle(0, -zOffsetPx, tokenRadius + 4);
       g.stroke();
-      g.setStrokeStyle({ color: 0xffe066, width: 2, alpha: 0.5 });
+      g.setStrokeStyle({ color: SELECTION_RING_COLOR, width: 2, alpha: 0.5 });
       g.circle(0, -zOffsetPx, tokenRadius + 8);
       g.stroke();
     },
     [isSelected, tokenRadius, zOffsetPx],
+  );
+
+  // Target ring sits further out than the selection ring so a piece that is both
+  // the acting actor (selected) and its own target (self-target is legitimate,
+  // spec §6) shows both rings distinctly instead of one occluding the other.
+  const drawTarget = useCallback(
+    (g: PixiGraphics) => {
+      g.clear();
+      if (!isTarget) return;
+      g.setStrokeStyle({ color: TARGET_RING_COLOR, width: 3.5, alpha: 1.0 });
+      g.circle(0, -zOffsetPx, tokenRadius + 12);
+      g.stroke();
+    },
+    [isTarget, tokenRadius, zOffsetPx],
   );
 
   return (
@@ -186,6 +208,7 @@ export default function PieceSprite({ piece, grid, npc, isSelected, piecesIntera
       )}
 
       <pixiGraphics draw={drawSelection} />
+      <pixiGraphics draw={drawTarget} />
 
       {z > 0 && (
         <pixiText

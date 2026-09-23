@@ -21,6 +21,9 @@ export default function TacticalMapStage({
   npcMap,
   placingNpcId,
   onPieceSelect,
+  onPieceLongPress,
+  selectedPieceId,
+  targetPieceIds,
   onPieceMove,
   onPieceDragToRoster,
   onPieceDragStart,
@@ -98,6 +101,9 @@ export default function TacticalMapStage({
           npcMap={npcMap}
           placingNpcId={placingNpcId}
           onPieceSelect={onPieceSelect}
+          onPieceLongPress={onPieceLongPress}
+          selectedPieceId={selectedPieceId}
+          targetPieceIds={targetPieceIds}
           onPieceMove={onPieceMove}
           onPieceDragToRoster={onPieceDragToRoster}
           onPieceDragStart={onPieceDragStart}

@@ -41,6 +41,9 @@ export default function ViewportInner({
   npcMap,
   placingNpcId,
   onPieceSelect,
+  onPieceLongPress,
+  selectedPieceId,
+  targetPieceIds,
   onPieceMove,
   onPieceDragToRoster,
   onPieceDragStart,
@@ -307,6 +310,9 @@ export default function ViewportInner({
         npcMap={npcMap}
         pieceDragActiveRef={pieceDragActiveRef}
         onPieceSelect={onPieceSelect}
+        onPieceLongPress={onPieceLongPress}
+        selectedPieceId={selectedPieceId}
+        targetPieceIds={targetPieceIds}
         onPieceMove={onPieceMove}
         onPieceDragToRoster={onPieceDragToRoster}
         onPieceDragStart={onPieceDragStart}

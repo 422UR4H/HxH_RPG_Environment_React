@@ -77,6 +77,10 @@ export const colors = {
   warningBorder: "#a07000", // warning border / pill bg
   warningBgDark: "#3a2a00", // warning notice background
 
+  // tactical map — piece rings (Pixi numeric colors; parseInt(hex.replace("#",""),16))
+  pieceSelectionRing: "#ffd700", // selected piece ring (gold, matches prior inline hex)
+  pieceTargetRing: "#3ba7ff", // combat target ring — distinct hue from selection
+
   // surfaces — translucent
   overlay: "rgba(0, 0, 0, 0.7)",
   overlaySoft: "rgba(0, 0, 0, 0.44)",
