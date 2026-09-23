@@ -4,10 +4,12 @@ import useUser from "../hooks/useUser";
 import { useMatchDetails } from "../hooks/useMatchDetails";
 import { LoadingContainer } from "../components/atoms/PageStates";
 import GamePlayerPage from "./GamePlayerPage";
+import GameMasterPage from "./GameMasterPage";
 
 /**
- * A rota (Tarefa 12, spec §3.4): lê o papel uma vez e monta a página certa. Daí para baixo
- * nenhum componente recebe `isMaster` (I2) — a exceção declarada é `WallActionSheet` (R23).
+ * A rota (Tarefas 12/13, spec §3.4): lê o papel uma vez e monta a página certa. Daí para
+ * baixo nenhum componente recebe `isMaster` (I2) — as exceções declaradas são
+ * `WallActionSheet` (R23), `TacticalMapStage.fogDisabled` e `MatchCharactersSidebar` (R25).
  *
  * A rota não muda de caminho — continua `/campaigns/:campaignId/matches/:matchId/game`.
  */
@@ -37,8 +39,8 @@ function GameRoute({
     return <LoadingContainer>Carregando partida...</LoadingContainer>;
   }
 
-  // TODO(task-13): match.masterUuid === user.uuid ? <GameMasterPage .../> : <GamePlayerPage .../>
-  // A Tarefa 13 cria GameMasterPage e remove este TODO — até lá os dois papéis veem a
-  // tela do jogador (plano-autorizado, addendum R11).
-  return <GamePlayerPage token={token} campaignId={campaignId} matchId={matchId} />;
+  const isMaster = match.masterUuid === user.uuid;
+  return isMaster
+    ? <GameMasterPage token={token} campaignId={campaignId} matchId={matchId} />
+    : <GamePlayerPage token={token} campaignId={campaignId} matchId={matchId} />;
 }

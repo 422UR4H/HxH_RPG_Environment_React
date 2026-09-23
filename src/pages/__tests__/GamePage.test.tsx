@@ -56,9 +56,9 @@ describe("GamePage (rota)", () => {
     expect(await screen.findByRole("button", { name: /^ação$/i })).toBeInTheDocument();
   });
 
-  // Até a Tarefa 13 criar GameMasterPage, o ramo do mestre também monta GamePlayerPage —
-  // TODO(task-13) autorizado pelo plano/addendum (R11). Esta rota não muda de caminho.
-  it("monta a mesma página para o mestre, com o TODO(task-13) autorizado", async () => {
+  // Tarefa 13: o ramo do mestre monta GameMasterPage — rail Fila/Fichas, não Ação.
+  // Esta rota não muda de caminho.
+  it("monta GameMasterPage para o mestre", async () => {
     server.use(
       http.get(`${baseUrl}/matches/:id`, () =>
         HttpResponse.json({ match: matchAsMasterApi("user-1") }),
@@ -71,6 +71,8 @@ describe("GamePage (rota)", () => {
 
     renderPage();
 
-    expect(await screen.findByRole("button", { name: /^ação$/i })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /^fila$/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^fichas$/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^ação$/i })).not.toBeInTheDocument();
   });
 });
