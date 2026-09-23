@@ -4,9 +4,8 @@
 // socket via `useMatchCombat` e compõe `MatchStageTemplate` + organismos. Nenhum
 // componente abaixo desta página recebe `isMaster` (I2) — a única exceção declarada é
 // `WallActionSheet` (R23), porque o menu de parede tem verbos diferentes por papel.
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import styled from "styled-components";
 import useUser from "../hooks/useUser";
 import { useMatchMap } from "../hooks/useMatchMap";
 import { useMap } from "../hooks/useMap";
@@ -16,6 +15,7 @@ import { useCombatCatalogue } from "../hooks/useCombatCatalogue";
 import { useResizeObserver } from "../hooks/useResizeObserver";
 import { useMatchCombat } from "../features/match/combat/useMatchCombat";
 import { useActionComposerState } from "../features/match/combat/useActionComposerState";
+import { useLiveMapSync } from "../features/match/combat/useLiveMapSync";
 import { clearDraft } from "../features/match/combat/actionDraft";
 import { defaultMoveCategory } from "../features/match/combat/defaultMoveCategory";
 import MatchStageTemplate from "../components/templates/MatchStageTemplate";
@@ -31,9 +31,8 @@ import MatchCharactersSidebar from "../features/match/MatchCharactersSidebar";
 import WallActionSheet from "../features/match/WallActionSheet";
 import TacticalMapViewer from "../features/tactical-map/TacticalMapViewer";
 import { visibleBoardPieces } from "../features/tactical-map/utils/boardSource";
-import { colors, fonts } from "../styles/tokens";
-import type { CharacterPrivateSummary } from "../types/characterSheet";
-import type { FogState, Piece, WallSegment } from "../types/tacticalMap";
+import { CanvasWrapper, MapLoadingMessage, NoMapMessage } from "../features/match/combat/mapCanvasStyles";
+import type { WallSegment } from "../types/tacticalMap";
 
 type Props = {
   token: string;
@@ -61,51 +60,20 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
   const { data: catalogue } = useCombatCatalogue(token, actorId);
 
   // ─── Mapa ao vivo: paredes/peças/fog só chegam pelo WS (comentário em
-  // visibleBoardPieces explica por quê o jogador nunca semeia do REST) ──────
-  const [liveWalls, setLiveWalls] = useState<WallSegment[]>([]);
-  const [livePieces, setLivePieces] = useState<Piece[] | null>(null);
-  const [fog, setFog] = useState<FogState>({ fogMode: "explored", visiblePolygons: [] });
+  // visibleBoardPieces e em useLiveMapSync explica por quê o jogador nunca semeia do
+  // REST) ────────────────────────────────────────────────────────────────────────────
+  const {
+    liveWalls,
+    livePieces,
+    fog,
+    npcMap,
+    handleWallStateChanged,
+    handleWallHpChanged,
+    handleMapFullState,
+    handleVisibilityUpdated,
+    handleWallRevealed,
+  } = useLiveMapSync({ map, campaign, seedFromRest: false });
   const [wallPicker, setWallPicker] = useState<WallSegment | null>(null);
-
-  useEffect(() => {
-    if (!map) return;
-    setFog((f) => ({ ...f, fogMode: map.fogMode ?? "explored" }));
-  }, [map]);
-
-  const handleWallStateChanged = useCallback((wallId: string, open: boolean, locked: boolean) => {
-    setLiveWalls((prev) => prev.map((w) => (w.id === wallId ? { ...w, open, locked } : w)));
-  }, []);
-
-  const handleWallHpChanged = useCallback(
-    (wallId: string, hp: number, maxHp: number, destroyed: boolean) => {
-      setLiveWalls((prev) =>
-        prev.map((w) => (w.id === wallId ? { ...w, hp, maxHp, destroyed } : w)),
-      );
-    },
-    [],
-  );
-
-  const handleMapFullState = useCallback(
-    (s: {
-      pieces: Piece[];
-      walls: WallSegment[];
-      visiblePolygons: Array<Array<[number, number]>>;
-      fogMode: "live" | "explored";
-    }) => {
-      setLiveWalls(s.walls);
-      setLivePieces(s.pieces);
-      setFog({ fogMode: s.fogMode, visiblePolygons: s.visiblePolygons });
-    },
-    [],
-  );
-
-  const handleVisibilityUpdated = useCallback((polys: Array<Array<[number, number]>>) => {
-    setFog((f) => ({ ...f, visiblePolygons: polys }));
-  }, []);
-
-  const handleWallRevealed = useCallback((wall: WallSegment) => {
-    setLiveWalls((prev) => prev.map((w) => (w.id === wall.id ? wall : w)));
-  }, []);
 
   const boardPieces = visibleBoardPieces(livePieces, map?.pieces, false);
 
@@ -173,12 +141,6 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
   );
 
   const handleWallClick = useCallback((wall: WallSegment) => setWallPicker(wall), []);
-
-  const npcMap = useMemo(() => {
-    const m = new Map<string, CharacterPrivateSummary>();
-    (campaign?.characterSheets ?? []).forEach((cs) => m.set(cs.uuid, cs));
-    return m;
-  }, [campaign]);
 
   const restHealth = myParticipant?.characterSheet.private?.health;
   const ownHp = actorId
@@ -297,27 +259,3 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
     </>
   );
 }
-
-const CanvasWrapper = styled.div`
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
-const MapLoadingMessage = styled.p`
-  color: ${colors.textMuted};
-  font-family: ${fonts.sans};
-  font-size: 16px;
-  text-align: center;
-  padding: 24px;
-`;
-
-const NoMapMessage = styled.p`
-  color: ${colors.textDisabled};
-  font-family: ${fonts.sans};
-  font-size: 16px;
-  text-align: center;
-  padding: 24px;
-`;

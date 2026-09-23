@@ -19,6 +19,7 @@ import { useResizeObserver } from "../hooks/useResizeObserver";
 import { useMatchCombat } from "../features/match/combat/useMatchCombat";
 import type { MatchBoardSync } from "../hooks/useMatchWs";
 import { useActionComposerState } from "../features/match/combat/useActionComposerState";
+import { useLiveMapSync } from "../features/match/combat/useLiveMapSync";
 import { clearDraft } from "../features/match/combat/actionDraft";
 import { defaultMoveCategory } from "../features/match/combat/defaultMoveCategory";
 import type { RoundMode } from "../features/match/combat/combatMessages";
@@ -38,9 +39,9 @@ import MatchCharactersSidebar from "../features/match/MatchCharactersSidebar";
 import WallActionSheet from "../features/match/WallActionSheet";
 import TacticalMapViewer from "../features/tactical-map/TacticalMapViewer";
 import { visibleBoardPieces } from "../features/tactical-map/utils/boardSource";
+import { CanvasWrapper, MapLoadingMessage, NoMapMessage } from "../features/match/combat/mapCanvasStyles";
 import { colors, fonts } from "../styles/tokens";
-import type { CharacterPrivateSummary } from "../types/characterSheet";
-import type { FogState, Piece, WallSegment } from "../types/tacticalMap";
+import type { WallSegment } from "../types/tacticalMap";
 
 type Props = {
   token: string;
@@ -63,53 +64,21 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   // ─── Mapa: o mestre é dono de todo o tabuleiro (visibleBoardPieces já entende
   // isso), então semeia direto do REST enquanto o WS não manda nada mais novo — sem
   // isso o mestre veria o mapa vazio até o primeiro map_full_state (R11: preserva o
-  // que o GamePage pré-Tarefa-12 fazia só para o papel de mestre). ───────────────────
-  const [liveWalls, setLiveWalls] = useState<WallSegment[]>([]);
-  const [livePieces, setLivePieces] = useState<Piece[] | null>(null);
-  const [fog, setFog] = useState<FogState>({ fogMode: "explored", visiblePolygons: [] });
+  // que o GamePage pré-Tarefa-12 fazia só para o papel de mestre). Os handlers e o
+  // liveWalls/livePieces/fog que eles atualizam moram em useLiveMapSync, compartilhado
+  // com GamePlayerPage — só `seedFromRest` muda entre os dois papéis. ────────────────
+  const {
+    liveWalls,
+    livePieces,
+    fog,
+    npcMap,
+    handleWallStateChanged,
+    handleWallHpChanged,
+    handleMapFullState,
+    handleVisibilityUpdated,
+    handleWallRevealed,
+  } = useLiveMapSync({ map, campaign, seedFromRest: true });
   const [wallPicker, setWallPicker] = useState<WallSegment | null>(null);
-
-  useEffect(() => {
-    if (!map) return;
-    setFog((f) => ({ ...f, fogMode: map.fogMode ?? "explored" }));
-    setLiveWalls(map.walls ?? []);
-    setLivePieces(map.pieces ?? null);
-  }, [map]);
-
-  const handleWallStateChanged = useCallback((wallId: string, open: boolean, locked: boolean) => {
-    setLiveWalls((prev) => prev.map((w) => (w.id === wallId ? { ...w, open, locked } : w)));
-  }, []);
-
-  const handleWallHpChanged = useCallback(
-    (wallId: string, hp: number, maxHp: number, destroyed: boolean) => {
-      setLiveWalls((prev) =>
-        prev.map((w) => (w.id === wallId ? { ...w, hp, maxHp, destroyed } : w)),
-      );
-    },
-    [],
-  );
-
-  const handleMapFullState = useCallback(
-    (s: {
-      pieces: Piece[];
-      walls: WallSegment[];
-      visiblePolygons: Array<Array<[number, number]>>;
-      fogMode: "live" | "explored";
-    }) => {
-      setLiveWalls(s.walls);
-      setLivePieces(s.pieces);
-      setFog({ fogMode: s.fogMode, visiblePolygons: s.visiblePolygons });
-    },
-    [],
-  );
-
-  const handleVisibilityUpdated = useCallback((polys: Array<Array<[number, number]>>) => {
-    setFog((f) => ({ ...f, visiblePolygons: polys }));
-  }, []);
-
-  const handleWallRevealed = useCallback((wall: WallSegment) => {
-    setLiveWalls((prev) => prev.map((w) => (w.id === wall.id ? wall : w)));
-  }, []);
 
   // Board que o mestre semeia no servidor de jogo (sempre a partir do REST — nunca do
   // que o próprio servidor acabou de mandar, senão vira loop).
@@ -239,12 +208,6 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   }, [inspectedId]);
 
   const handleWallClick = useCallback((wall: WallSegment) => setWallPicker(wall), []);
-
-  const npcMap = useMemo(() => {
-    const m = new Map<string, CharacterPrivateSummary>();
-    (campaign?.characterSheets ?? []).forEach((cs) => m.set(cs.uuid, cs));
-    return m;
-  }, [campaign]);
 
   // HP de todo mundo no aside — não precisa de isMaster (o servidor já só manda
   // character_hp_changed pra quem tem direito); aqui sobrepomos o HP ao vivo por
@@ -445,30 +408,6 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     </>
   );
 }
-
-const CanvasWrapper = styled.div`
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
-const MapLoadingMessage = styled.p`
-  color: ${colors.textMuted};
-  font-family: ${fonts.sans};
-  font-size: 16px;
-  text-align: center;
-  padding: 24px;
-`;
-
-const NoMapMessage = styled.p`
-  color: ${colors.textDisabled};
-  font-family: ${fonts.sans};
-  font-size: 16px;
-  text-align: center;
-  padding: 24px;
-`;
 
 const NoActorHint = styled.p`
   color: ${colors.textPlaceholderStrong};
