@@ -83,11 +83,27 @@ const Middle = styled.div`
   }
 `;
 
+/**
+ * Final review, Important 4: abaixo de `railUp` o rail é uma barra fixa no rodapé (ver
+ * `RailZone`) — esta é a altura dela, definida uma vez só, para o `PanelZone` poder ficar
+ * ACIMA dela (`bottom: RAIL_BAR_HEIGHT`) e o `StageZone` reservar a mesma faixa no próprio
+ * rodapé, senão o mapa fica embaixo do rail. Antes os dois eram `fixed; bottom: 0`
+ * empilhados no mesmo canto — o painel aberto cobria o rail (único controle pra fechá-lo)
+ * e não havia como fechar. Acima de `railUp` o rail entra na grade como coluna estática e
+ * nada disto se aplica.
+ */
+const RAIL_BAR_HEIGHT = "56px";
+
 const StageZone = styled.main`
   grid-area: stage;
   position: relative;
   min-width: 0;
   min-height: 0;
+  padding-bottom: ${RAIL_BAR_HEIGHT};
+
+  ${media.railUp} {
+    padding-bottom: 0;
+  }
 `;
 
 /* Rodapé abaixo de railUp; coluna em pé a partir dele. Um componente, duas formas. */
@@ -97,6 +113,7 @@ const RailZone = styled.nav`
   right: 0;
   bottom: 0;
   z-index: 20;
+  height: ${RAIL_BAR_HEIGHT};
   display: flex;
   flex-direction: row;
   justify-content: space-around;
@@ -105,6 +122,7 @@ const RailZone = styled.nav`
   ${media.railUp} {
     position: static;
     grid-area: rail;
+    height: auto;
     flex-direction: column;
     justify-content: flex-start;
     width: 72px;
@@ -112,12 +130,13 @@ const RailZone = styled.nav`
 `;
 
 /* Bottom sheet no celular e no tablet em pé; coluna a partir de railUp. Fechado (R24) some
-   por CSS abaixo de railUp — dali em diante é coluna fixa e sempre aparece. */
+   por CSS abaixo de railUp — dali em diante é coluna fixa e sempre aparece. Important 4:
+   abaixo de railUp fica ACIMA do rail (bottom: RAIL_BAR_HEIGHT), não empilhado nele. */
 const PanelZone = styled.section<{ $open: boolean }>`
   position: fixed;
   left: 0;
   right: 0;
-  bottom: 0;
+  bottom: ${RAIL_BAR_HEIGHT};
   z-index: 30;
   max-height: 70dvh;
   overflow-y: auto;
@@ -132,6 +151,7 @@ const PanelZone = styled.section<{ $open: boolean }>`
   ${media.railUp} {
     display: block;
     position: static;
+    bottom: auto;
     grid-area: panel;
     width: 320px;
     max-height: none;
