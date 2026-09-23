@@ -6,7 +6,7 @@ import gungiFrameUrl from "../../../assets/icons/gungi.svg";
 import avatarPlaceholderUrl from "../../../assets/placeholder/avatar.png";
 import type { GridShape, Piece } from "../../../types/tacticalMap";
 import type { CharacterPrivateSummary } from "../../../types/characterSheet";
-import { slotToWorld, slotInradius } from "../utils/coords";
+import { slotToWorld, slotInradius, stackOffsetToPx } from "../utils/coords";
 import { getAvatarBlobUrl, getAvatarInsetShadowTexture } from "../utils/avatarTexture";
 import { colors } from "../../../styles/tokens";
 
@@ -49,10 +49,9 @@ export default function PieceSprite({
   const zOffsetPx = z * 10;
   // §7.2: same mechanism as zOffsetPx above — a fraction of the slot converted
   // to px and added to the container's position — but for x/y cascade instead
-  // of the z "height" shadow-offset.
-  const inradius = slotInradius(grid);
-  const stackDx = (offset?.dx ?? 0) * inradius;
-  const stackDy = (offset?.dy ?? 0) * inradius;
+  // of the z "height" shadow-offset. Shared with PiecesLayer's hold-progress
+  // ring via stackOffsetToPx so the two positions can't drift apart.
+  const { x: stackDx, y: stackDy } = stackOffsetToPx(offset, grid);
   const showStackBadge = !!isTopOfStack && (stackCount ?? 1) > 1;
 
   const drawStackBadge = useCallback(

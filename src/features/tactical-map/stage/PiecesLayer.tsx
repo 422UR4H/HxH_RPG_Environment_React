@@ -7,7 +7,7 @@ import type { Viewport } from "pixi-viewport";
 import type { TacticalMap, SlotCoord } from "../../../types/tacticalMap";
 import type { CharacterPrivateSummary } from "../../../types/characterSheet";
 import type { Selection } from "../store/editorStore";
-import { worldToSlot, isSlotInBounds, slotCorners, isSameSlot, slotToWorld, slotInradius } from "../utils/coords";
+import { worldToSlot, isSlotInBounds, slotCorners, isSameSlot, slotToWorld, slotInradius, stackOffsetToPx } from "../utils/coords";
 import { createHoldTracker, createRightPressTracker, HOLD_MS } from "../hooks/useHoldGesture";
 import { stackOffsets } from "../utils/stacking";
 import { colors } from "../../../styles/tokens";
@@ -330,28 +330,6 @@ export default function PiecesLayer({
     [hoverSlot, draggingPieceId, map.pieces, map.grid],
   );
 
-  // Hold-progress arc: closes clockwise from 0 to 2π as holdProgress.ratio goes
-  // 0→1 (i.e. from 120ms to HOLD_MS after pointerdown). Drawn as one shared
-  // graphics rather than per-PieceSprite, since at most one piece is ever mid-hold.
-  const drawHoldProgress = useCallback(
-    (g: PixiGraphics) => {
-      g.clear();
-      if (!holdProgress) return;
-      const piece = map.pieces.find((p) => p.id === holdProgress.pieceId);
-      if (!piece) return;
-      const center = slotToWorld(piece.coord.slot, map.grid);
-      const tokenRadius = slotInradius(map.grid) * 0.9;
-      const zOffsetPx = piece.coord.z * 10;
-      const radius = tokenRadius + 16;
-      const startAngle = -Math.PI / 2;
-      const endAngle = startAngle + Math.PI * 2 * holdProgress.ratio;
-      g.setStrokeStyle({ color: HOLD_PROGRESS_COLOR, width: 3, alpha: 0.9 });
-      g.arc(center.x, center.y - zOffsetPx, radius, startAngle, endAngle);
-      g.stroke();
-    },
-    [holdProgress, map.pieces, map.grid],
-  );
-
   // The dragged piece is hidden from the scene while dragging — a single DOM
   // ghost (rendered by TacticalMapEditor) represents it across the whole screen.
   // The canvas only shows the target-slot highlight (drawHoverSlot).
@@ -374,6 +352,35 @@ export default function PiecesLayer({
   const orderedPieces = useMemo(
     () => [...visiblePieces].sort((a, b) => (stacks.get(a.id)?.index ?? 0) - (stacks.get(b.id)?.index ?? 0)),
     [visiblePieces, stacks],
+  );
+
+  // Hold-progress arc: closes clockwise from 0 to 2π as holdProgress.ratio goes
+  // 0→1 (i.e. from 120ms to HOLD_MS after pointerdown). Drawn as one shared
+  // graphics rather than per-PieceSprite, since at most one piece is ever mid-hold.
+  //
+  // The arc must be centered on the same point PieceSprite actually draws the
+  // token at — slot center PLUS the stack-cascade offset (§7.2) PLUS the z
+  // "height" offset — or it floats away from a stacked piece's real position.
+  // stackOffsetToPx is the shared conversion PieceSprite's own container
+  // position uses, so the two can't drift apart.
+  const drawHoldProgress = useCallback(
+    (g: PixiGraphics) => {
+      g.clear();
+      if (!holdProgress) return;
+      const piece = map.pieces.find((p) => p.id === holdProgress.pieceId);
+      if (!piece) return;
+      const center = slotToWorld(piece.coord.slot, map.grid);
+      const stackPx = stackOffsetToPx(stacks.get(piece.id), map.grid);
+      const tokenRadius = slotInradius(map.grid) * 0.9;
+      const zOffsetPx = piece.coord.z * 10;
+      const radius = tokenRadius + 16;
+      const startAngle = -Math.PI / 2;
+      const endAngle = startAngle + Math.PI * 2 * holdProgress.ratio;
+      g.setStrokeStyle({ color: HOLD_PROGRESS_COLOR, width: 3, alpha: 0.9 });
+      g.arc(center.x + stackPx.x, center.y + stackPx.y - zOffsetPx, radius, startAngle, endAngle);
+      g.stroke();
+    },
+    [holdProgress, map.pieces, map.grid, stacks],
   );
 
   return (
