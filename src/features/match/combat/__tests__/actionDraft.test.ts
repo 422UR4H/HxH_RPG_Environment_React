@@ -38,29 +38,36 @@ describe("actionDraft", () => {
 describe("actionDraft — ghosts", () => {
   const ghost: Ghost = { actorId: "c1", from: [0, 0, 0], to: [1, 1, 0] };
 
-  it("faz round-trip por partida", () => {
-    saveGhosts("m1", { "action-1": ghost });
-    expect(loadGhosts("m1")).toEqual({ "action-1": ghost });
-    expect(loadGhosts("m2")).toEqual({});
+  it("faz round-trip por partida + usuário", () => {
+    saveGhosts("m1", "u1", { "action-1": ghost });
+    expect(loadGhosts("m1", "u1")).toEqual({ "action-1": ghost });
+    expect(loadGhosts("m2", "u1")).toEqual({});
+  });
+
+  // M2 (final review): a chave leva o usuário — sem isso duas abas logadas como
+  // jogador/mestre na mesma partida veriam o fantasma uma da outra.
+  it("não vê o fantasma de outro usuário na mesma partida (M2)", () => {
+    saveGhosts("m1", "u1", { "action-1": ghost });
+    expect(loadGhosts("m1", "u2")).toEqual({});
   });
 
   it("não persiste fantasmas não confirmados (chave local-*)", () => {
-    saveGhosts("m1", { "local-1": ghost, "action-2": ghost });
-    expect(loadGhosts("m1")).toEqual({ "action-2": ghost });
+    saveGhosts("m1", "u1", { "local-1": ghost, "action-2": ghost });
+    expect(loadGhosts("m1", "u1")).toEqual({ "action-2": ghost });
   });
 
   it("remove a chave quando nada de confirmado sobra", () => {
-    saveGhosts("m1", { "action-1": ghost });
-    saveGhosts("m1", { "local-1": ghost });
-    expect(localStorage.getItem("match-ghosts:m1")).toBeNull();
-    expect(loadGhosts("m1")).toEqual({});
+    saveGhosts("m1", "u1", { "action-1": ghost });
+    saveGhosts("m1", "u1", { "local-1": ghost });
+    expect(localStorage.getItem("match-ghosts:m1:u1")).toBeNull();
+    expect(loadGhosts("m1", "u1")).toEqual({});
   });
 
   it("sobrevive a um localStorage que lança", () => {
     const spy = vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
       throw new Error("blocked");
     });
-    expect(loadGhosts("m1")).toEqual({});
+    expect(loadGhosts("m1", "u1")).toEqual({});
     spy.mockRestore();
   });
 });

@@ -10,6 +10,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
+import useUser from "../hooks/useUser";
 import { useMatchMap } from "../hooks/useMatchMap";
 import { useMap } from "../hooks/useMap";
 import { useMatchParticipants } from "../hooks/useMatchParticipants";
@@ -17,10 +18,10 @@ import { useCampaignDetails } from "../hooks/useCampaignDetails";
 import { useCombatCatalogue } from "../hooks/useCombatCatalogue";
 import { useResizeObserver } from "../hooks/useResizeObserver";
 import { useMatchCombat } from "../features/match/combat/useMatchCombat";
+import type { ActionEnqueuedMeta } from "../features/match/combat/useMatchCombat";
 import type { MatchBoardSync } from "../hooks/useMatchWs";
 import { useActionComposerState } from "../features/match/combat/useActionComposerState";
 import { useLiveMapSync } from "../features/match/combat/useLiveMapSync";
-import { clearDraft } from "../features/match/combat/actionDraft";
 import { defaultMoveCategory } from "../features/match/combat/defaultMoveCategory";
 import type { RoundMode } from "../features/match/combat/combatMessages";
 import MatchStageTemplate from "../components/templates/MatchStageTemplate";
@@ -61,6 +62,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   const { width, height } = useResizeObserver(canvasRef);
   const navigate = useNavigate();
 
+  const { user } = useUser();
   const { data: matchMap, isPending: matchMapPending } = useMatchMap(token, matchId);
   const { data: map, isPending: mapPending } = useMap(token, matchMap?.mapUuid);
   const { data: participants = [] } = useMatchParticipants(token, matchId, true);
@@ -109,10 +111,11 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   // Mesmo indireto por ref de GamePlayerPage: `useActionComposerState` precisa de
   // `state` (só existe depois de `useMatchCombat`), e `useMatchCombat` precisa do
   // callback de limpeza do rascunho já na chamada.
-  const onActionEnqueuedRef = useRef<() => void>(() => {});
+  const onActionEnqueuedRef = useRef<(meta: ActionEnqueuedMeta) => void>(() => {});
 
   const { state, status, send, dismissError, dismissCloseTurnDialog } = useMatchCombat({
     matchUuid: matchId,
+    userUuid: user?.uuid,
     token,
     isMaster: true,
     board,
@@ -121,7 +124,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     onMapFullState: handleMapFullState,
     onVisibilityUpdated: handleVisibilityUpdated,
     onWallRevealed: handleWallRevealed,
-    onActionEnqueued: () => onActionEnqueuedRef.current(),
+    onActionEnqueued: (_actionId, meta) => onActionEnqueuedRef.current(meta),
   });
 
   const {
@@ -135,14 +138,21 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     replaceTarget,
     toggleTarget,
     setDestination,
-    resetDraft,
+    clearDraftFor,
   } = useActionComposerState({ matchId, actorId, boardPieces, state });
 
-  onActionEnqueuedRef.current = () => {
-    if (!matchId || !actorId) return;
-    clearDraft(matchId, actorId);
-    resetDraft();
+  // R28: idem GamePlayerPage.tsx — só limpa no ack de um envio do composer.
+  onActionEnqueuedRef.current = (meta) => {
+    if (!meta.clearsDraft) return;
+    clearDraftFor(meta.actorId);
   };
+
+  // M4: Declarar fica desabilitado enquanto há um envio do composer ainda sem ack para o
+  // NPC-ator selecionado — evita reenfileirar em duplicidade num link lento.
+  const hasPendingComposerSend = state.pendingSends.some(
+    (p) => p.actorId === actorId && p.clearsDraft,
+  );
+  const canSubmit = status === "connected" && !hasPendingComposerSend;
 
   const nameOf = useCallback(
     (id: string) =>
@@ -326,6 +336,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                       onDraftChange={updateDraft}
                       onSubmit={send.enqueueAction}
                       onClearActor={() => setActorId(undefined)}
+                      canSubmit={canSubmit}
                     />
                   )}
                 </>

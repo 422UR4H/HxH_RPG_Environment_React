@@ -5,7 +5,7 @@
 // clique sem ator faz — isso continua na página. Extraído da Tarefa 12 (GamePlayerPage)
 // para a Tarefa 13 (GameMasterPage) reusar sem duplicar (addendum da Tarefa 13).
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { loadDraft, saveDraft, migrateTargets, emptyDraft } from "./actionDraft";
+import { loadDraft, saveDraft, clearDraft, migrateTargets, emptyDraft } from "./actionDraft";
 import type { ActionDraft } from "./actionDraft";
 import { defaultMoveCategory } from "./defaultMoveCategory";
 import type { CombatState } from "./combatReducer";
@@ -108,13 +108,20 @@ export function useActionComposerState({
     [draft, actorPiece, state, updateDraft],
   );
 
-  // R8 (custo aceito pela controladoria): limpa o rascunho do ator CORRENTE quando
-  // `action_enqueued` chega — a página chama isto de dentro do callback que passa a
-  // `useMatchCombat`. Se o mestre trocar de NPC entre o envio e o ack, o rascunho limpo
-  // é o do ator que estiver selecionado nesse instante, não necessariamente quem enviou;
-  // o FIFO de fantasmas do reducer já resolve o caso que importa (qual fantasma pertence
-  // a qual ação), então esse desalinhamento é só cosmético.
-  const resetDraft = useCallback(() => setDraft(emptyDraft()), []);
+  // R28 (final review, amends R8): a página só sabe QUEM enviou (actorId) e SE deve
+  // limpar (clearsDraft) depois que `action_enqueued` chega — vem da metadata do FIFO de
+  // pendingSends (combatReducer/useMatchCombat), não mais "o ator atual" às cegas. Limpa
+  // o localStorage do ator-alvo sempre; só mexe no rascunho EM MEMÓRIA se esse ator for o
+  // que está selecionado agora — trocar de NPC (mestre) entre o envio e o ack não deve
+  // fazer o rascunho do NPC novo sumir da tela por causa do ack de um NPC antigo.
+  const clearDraftFor = useCallback(
+    (targetActorId: string) => {
+      if (!matchId) return;
+      clearDraft(matchId, targetActorId);
+      if (targetActorId === actorId) setDraft(emptyDraft());
+    },
+    [matchId, actorId],
+  );
 
   return {
     draft,
@@ -127,6 +134,6 @@ export function useActionComposerState({
     replaceTarget,
     toggleTarget,
     setDestination,
-    resetDraft,
+    clearDraftFor,
   };
 }

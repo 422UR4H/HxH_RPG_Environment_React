@@ -14,9 +14,9 @@ import { useCampaignDetails } from "../hooks/useCampaignDetails";
 import { useCombatCatalogue } from "../hooks/useCombatCatalogue";
 import { useResizeObserver } from "../hooks/useResizeObserver";
 import { useMatchCombat } from "../features/match/combat/useMatchCombat";
+import type { ActionEnqueuedMeta } from "../features/match/combat/useMatchCombat";
 import { useActionComposerState } from "../features/match/combat/useActionComposerState";
 import { useLiveMapSync } from "../features/match/combat/useLiveMapSync";
-import { clearDraft } from "../features/match/combat/actionDraft";
 import { defaultMoveCategory } from "../features/match/combat/defaultMoveCategory";
 import MatchStageTemplate from "../components/templates/MatchStageTemplate";
 import MatchTopBar from "../features/match/combat/MatchTopBar";
@@ -90,10 +90,11 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
   // rascunho já na chamada. Um ref quebra o ciclo: o indireto é estável desde o
   // primeiro render, e o valor real é atribuído no corpo do render (mesma convenção de
   // `useMatchWs.ts`), antes de qualquer envio poder chegar.
-  const onActionEnqueuedRef = useRef<() => void>(() => {});
+  const onActionEnqueuedRef = useRef<(meta: ActionEnqueuedMeta) => void>(() => {});
 
   const { state, status, send, dismissError } = useMatchCombat({
     matchUuid: matchId,
+    userUuid: user?.uuid,
     token,
     isMaster: false,
     onWallStateChanged: handleWallStateChanged,
@@ -101,7 +102,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
     onMapFullState: handleMapFullState,
     onVisibilityUpdated: handleVisibilityUpdated,
     onWallRevealed: handleWallRevealed,
-    onActionEnqueued: () => onActionEnqueuedRef.current(),
+    onActionEnqueued: (_actionId, meta) => onActionEnqueuedRef.current(meta),
   });
 
   // ─── Rascunho de ação + mapas peça↔personagem (compartilhado com o mestre) ─
@@ -115,14 +116,22 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
     replaceTarget,
     toggleTarget,
     setDestination,
-    resetDraft,
+    clearDraftFor,
   } = useActionComposerState({ matchId, actorId, boardPieces, state });
 
-  onActionEnqueuedRef.current = () => {
-    if (!matchId || !actorId) return;
-    clearDraft(matchId, actorId);
-    resetDraft();
+  // R28: só limpa quando o envio confirmado é do composer (clearsDraft) — o menu de
+  // parede (R29) manda clearsDraft:false e não deve apagar um rascunho em voo.
+  onActionEnqueuedRef.current = (meta) => {
+    if (!meta.clearsDraft) return;
+    clearDraftFor(meta.actorId);
   };
+
+  // M4: Declarar fica desabilitado enquanto há um envio do composer ainda sem ack para
+  // este ator — evita reenfileirar em duplicidade num link lento.
+  const hasPendingComposerSend = state.pendingSends.some(
+    (p) => p.actorId === actorId && p.clearsDraft,
+  );
+  const canSubmit = status === "connected" && !hasPendingComposerSend;
 
   const nameOf = useCallback(
     (id: string) =>
@@ -197,6 +206,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
                 nameOf={nameOf}
                 onDraftChange={updateDraft}
                 onSubmit={send.enqueueAction}
+                canSubmit={canSubmit}
               />
             )}
           </>
@@ -251,17 +261,26 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
           />
         }
       />
-      {wallPicker && (
+      {wallPicker && actorId && (
         <WallActionSheet
           wall={wallPicker}
           isMaster={false}
           onClose={() => setWallPicker(null)}
           onInteract={(kind) => {
-            send.wallAction({ targetId: [wallPicker.id], interact: { kind } });
+            // RULING R29: enqueue_action exige actorId (contrato) — o menu de parede do
+            // jogador passa pela mesma via do composer, com clearsDraft:false (R28) para
+            // não apagar um rascunho do composer em voo.
+            send.enqueueAction(
+              { actorId, targetId: [wallPicker.id], interact: { kind } },
+              { clearsDraft: false },
+            );
             setWallPicker(null);
           }}
           onAttack={() => {
-            send.wallAction({ targetId: [wallPicker.id], attack: {} });
+            send.enqueueAction(
+              { actorId, targetId: [wallPicker.id], attack: {} },
+              { clearsDraft: false },
+            );
             setWallPicker(null);
           }}
         />

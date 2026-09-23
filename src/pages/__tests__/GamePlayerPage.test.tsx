@@ -15,10 +15,11 @@ const baseUrl = "http://localhost:5000";
 // (R13) que expõe um botão por peça e um botão de slot vazio.
 vi.mock("../../features/tactical-map/TacticalMapViewer", () => ({
   default: (props: {
-    map: { pieces: Array<{ id: string; characterId: string }> };
+    map: { pieces: Array<{ id: string; characterId: string }>; walls: Array<{ id: string }> };
     draggablePieceIds?: Set<string>;
     onPieceSelect?: (pieceId: string) => void;
     onPieceLongPress?: (pieceId: string) => void;
+    onWallClick?: (wall: { id: string }) => void;
     onEmptySlotClick?: (slot: { kind: "square"; col: number; row: number }, x: number, y: number) => void;
   }) => (
     <div
@@ -35,6 +36,11 @@ vi.mock("../../features/tactical-map/TacticalMapViewer", () => ({
           onContextMenu={() => props.onPieceLongPress?.(piece.id)}
         >
           {piece.id}
+        </button>
+      ))}
+      {(props.map.walls ?? []).map((wall) => (
+        <button key={wall.id} data-testid={`wall-${wall.id}`} onClick={() => props.onWallClick?.(wall)}>
+          {wall.id}
         </button>
       ))}
       <button data-testid="empty-slot" onClick={() => props.onEmptySlotClick?.({ kind: "square", col: 9, row: 9 }, 0, 0)}>
@@ -217,7 +223,11 @@ describe("GamePlayerPage", () => {
     });
   });
 
-  it("rascunho persiste no localStorage e some quando o servidor confirma (action_enqueued)", async () => {
+  // Final review, Important 2/M3 (R28): o rascunho só some no ack que CORRESPONDE ao
+  // envio do composer (clearsDraft:true) — não em qualquer action_enqueued que chegue.
+  // O teste agora manda de verdade (clica Declarar) em vez de só emitir o ack solto, para
+  // exercitar o FIFO de pendingSends que carrega essa metadata.
+  it("rascunho persiste no localStorage e some quando o PRÓPRIO envio é confirmado (action_enqueued)", async () => {
     renderPlayerPage();
     const ws = FakeWS.instances[0];
     act(() => ws.onopen?.());
@@ -242,9 +252,126 @@ describe("GamePlayerPage", () => {
       ),
     );
 
+    const declareButton = await screen.findByRole("button", { name: /declarar/i });
+    act(() => declareButton.click());
+
     act(() => ws.emit("action_enqueued", { actionId: "action-1" }));
 
     await waitFor(() => expect(localStorage.getItem("match-draft:match-1:c1")).toBeNull());
+  });
+
+  // Final review, Important 3 / RULING R29: enqueue_action SEM actorId era sempre
+  // recusado pelo servidor (contrato exige actorId) — o menu de parede do jogador agora
+  // passa pelo mesmo send.enqueueAction do composer, com actorId = a própria sheet do
+  // jogador, e clearsDraft: false (não deve apagar um rascunho do composer em voo, R28).
+  it("clica numa parede e Abrir manda enqueue_action com meu actorId, sem apagar o rascunho do composer", async () => {
+    renderPlayerPage();
+    const ws = FakeWS.instances[0];
+    act(() => ws.onopen?.());
+    act(() =>
+      ws.emit("map_full_state", {
+        pieces: [
+          { pieceId: "piece-c1", slot: { kind: "square", col: 1, row: 1 }, characterId: "c1", visible: true, z: 0 },
+          { pieceId: "piece-c2", slot: { kind: "square", col: 3, row: 3 }, characterId: "c2", visible: true, z: 0 },
+        ],
+        walls: [
+          {
+            id: "wall-1", p1: [0, 0], p2: [1, 0], wallType: "door", material: "wood",
+            move: false, sense: "none", direction: "both", open: false, locked: false,
+            hp: 10, maxHp: 10, resistance: 0, destroyed: false,
+          },
+        ],
+        visiblePolygons: [],
+        fogMode: "explored",
+      }),
+    );
+
+    // Um rascunho do composer em voo (alvo escolhido) não pode ser apagado pelo envio da
+    // parede — só o ack de um envio com clearsDraft:true (o composer) apaga.
+    const targetButton = await screen.findByTestId("select-actor-c2");
+    act(() => targetButton.click());
+    await waitFor(() =>
+      expect(localStorage.getItem("match-draft:match-1:c1")).toEqual(
+        JSON.stringify({ targets: ["c2"] }),
+      ),
+    );
+
+    const wallButton = await screen.findByTestId("wall-wall-1");
+    act(() => wallButton.click());
+    const openButton = await screen.findByRole("button", { name: /^abrir$/i });
+    act(() => openButton.click());
+
+    const calls = ws.send.mock.calls.map((c) => JSON.parse(c[0] as string));
+    const wallSend = calls.find((m) => m.payload?.targetId?.[0] === "wall-1");
+    expect(wallSend).toEqual({
+      type: "enqueue_action",
+      payload: { actorId: "c1", targetId: ["wall-1"], interact: { kind: "open" } },
+    });
+
+    act(() => ws.emit("action_enqueued", { actionId: "action-wall-1" }));
+    // O ack do envio da parede (clearsDraft:false) NÃO apaga o rascunho do composer.
+    expect(localStorage.getItem("match-draft:match-1:c1")).toEqual(
+      JSON.stringify({ targets: ["c2"] }),
+    );
+  });
+
+  // Final review, Important 2(b): Declarar não pode ficar habilitado enquanto o socket
+  // não está "connected" — enfileirar ali seria descartado em silêncio por sendRaw.
+  it("Declarar fica desabilitado enquanto o socket não está conectado", async () => {
+    renderPlayerPage();
+    const ws = FakeWS.instances[0];
+    // Sem chamar ws.onopen(): status continua "connecting", nunca "connected".
+    act(() =>
+      ws.emit("map_full_state", {
+        pieces: [
+          { pieceId: "piece-c1", slot: { kind: "square", col: 1, row: 1 }, characterId: "c1", visible: true, z: 0 },
+          { pieceId: "piece-c2", slot: { kind: "square", col: 3, row: 3 }, characterId: "c2", visible: true, z: 0 },
+        ],
+        walls: [],
+        visiblePolygons: [],
+        fogMode: "explored",
+      }),
+    );
+    const targetButton = await screen.findByTestId("select-actor-c2");
+    act(() => targetButton.click());
+
+    const declareButton = await screen.findByRole("button", { name: /declarar/i });
+    expect(declareButton).toBeDisabled();
+  });
+
+  // M4: sem isto, um link lento deixaria o jogador clicar Declarar de novo antes do ack
+  // do primeiro envio, enfileirando a mesma ação duas vezes.
+  it("Declarar fica desabilitado enquanto o meu próprio envio ainda não teve ack", async () => {
+    renderPlayerPage();
+    const ws = FakeWS.instances[0];
+    act(() => ws.onopen?.());
+    act(() =>
+      ws.emit("map_full_state", {
+        pieces: [
+          { pieceId: "piece-c1", slot: { kind: "square", col: 1, row: 1 }, characterId: "c1", visible: true, z: 0 },
+          { pieceId: "piece-c2", slot: { kind: "square", col: 3, row: 3 }, characterId: "c2", visible: true, z: 0 },
+        ],
+        walls: [],
+        visiblePolygons: [],
+        fogMode: "explored",
+      }),
+    );
+    const targetButton = await screen.findByTestId("select-actor-c2");
+    act(() => targetButton.click());
+
+    const declareButton = await screen.findByRole("button", { name: /declarar/i });
+    expect(declareButton).not.toBeDisabled();
+    act(() => declareButton.click());
+
+    // Ainda sem o ack: um segundo Declarar (mesmo ator) tem que estar bloqueado.
+    expect(await screen.findByRole("button", { name: /declarar/i })).toBeDisabled();
+
+    // O ack chega e limpa o rascunho (R28, clearsDraft:true por padrão do composer) — a
+    // trava de "envio pendente" solta; escolher um novo alvo já habilita Declarar de novo,
+    // provando que não é mais o pendingSend que está travando.
+    act(() => ws.emit("action_enqueued", { actionId: "action-1" }));
+    act(() => targetButton.click());
+    expect(await screen.findByRole("button", { name: /declarar/i })).not.toBeDisabled();
   });
 
   it("passa draggablePieceIds vazio ao mapa — o servidor decide onde a peça para (I1)", async () => {

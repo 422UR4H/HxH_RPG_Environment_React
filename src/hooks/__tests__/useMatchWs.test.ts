@@ -377,6 +377,28 @@ describe("useMatchWs outgoing actions", () => {
     expect(sent.payload).toEqual(payload);
   });
 
+  // Final review, Important 2(a): sendAction/sendEnqueueAction/etc must report whether the
+  // send actually left the socket — useMatchCombat gates ACTION_SENT (the ghost's birth)
+  // on this, so a Declarar sent while reconnecting doesn't nascer an orphan ghost.
+  it("sendAction returns true when the socket is OPEN and false when it is not", () => {
+    const { result } = renderHook(() =>
+      useMatchWs({ matchUuid: "m1", token: "t", isMaster: false }),
+    );
+    const ws = FakeWS.instances[0];
+    // Not open yet (still "connecting" in the fake — readyState defaults to OPEN=1 in
+    // this fake, so force it closed to simulate a dropped/reconnecting socket).
+    ws.readyState = 0;
+    let sent = true;
+    act(() => { sent = result.current.sendAction({ targetId: ["w1"] }); });
+    expect(sent).toBe(false);
+    expect(ws.send).not.toHaveBeenCalled();
+
+    ws.readyState = 1;
+    act(() => { sent = result.current.sendAction({ targetId: ["w1"] }); });
+    expect(sent).toBe(true);
+    expect(ws.send).toHaveBeenCalledTimes(1);
+  });
+
   it("sendMasterAction sends enqueue_master_action with the payload forwarded as-is", () => {
     const { result } = renderHook(() =>
       useMatchWs({ matchUuid: "m1", token: "t", isMaster: true }),

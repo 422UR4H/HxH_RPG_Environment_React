@@ -152,12 +152,21 @@ export function useMatchWs({
   const isMasterRef = useRef(isMaster);
   isMasterRef.current = isMaster;
 
-  const sendRaw = useCallback((type: string, payload: unknown = {}) => {
+  /**
+   * Final review, Important 2: retorna `true` só quando o socket estava OPEN de verdade e
+   * o `send` foi mesmo feito. Antes disto era `void` — `enqueueAction` (useMatchCombat)
+   * despachava ACTION_SENT incondicionalmente, então um Declarar com o socket caído (ou
+   * ainda reconectando) nascia um fantasma que nunca ganharia ack nem erro: fantasma órfão
+   * (spec §8 só previa "morre no error", não "nunca chegou a ser enviado").
+   */
+  const sendRaw = useCallback((type: string, payload: unknown = {}): boolean => {
     const ws = wsRef.current;
     if (ws && ws.readyState === WebSocket.OPEN) {
       lastSentTypeRef.current = type;
       ws.send(JSON.stringify({ type, payload }));
+      return true;
     }
+    return false;
   }, []);
 
   // Seed the server's in-memory board. Pieces are included because the game server
@@ -290,7 +299,7 @@ export function useMatchWs({
       move?: { from: [number, number, number]; position: [number, number, number]; category: string };
       attack?: { weapon?: string };
     }) => {
-      sendRaw("enqueue_action", payload);
+      return sendRaw("enqueue_action", payload);
     },
     [sendRaw],
   );
@@ -302,7 +311,7 @@ export function useMatchWs({
       interact?: { kind: string };
       attack?: { weapon?: string };
     }) => {
-      sendRaw("enqueue_master_action", payload);
+      return sendRaw("enqueue_master_action", payload);
     },
     [sendRaw],
   );

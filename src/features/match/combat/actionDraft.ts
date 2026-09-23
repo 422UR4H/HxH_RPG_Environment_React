@@ -49,12 +49,16 @@ export function migrateTargets(draft: ActionDraft, targets: string[]): ActionDra
 //
 // Chave separada da do rascunho de propósito: o rascunho é por ator (o mestre tem um por
 // NPC), o fantasma é por partida (chaveado por actionId depois do ack).
+//
+// M2 (final review): também por USUÁRIO — a chave antiga (`match-ghosts:{matchUuid}`) era
+// compartilhada por qualquer papel logado na mesma partida no mesmo browser (ex.: duas
+// abas de teste), então o jogador via o fantasma do mestre e vice-versa.
 
-const ghostsKey = (matchUuid: string) => `match-ghosts:${matchUuid}`;
+const ghostsKey = (matchUuid: string, userUuid: string) => `match-ghosts:${matchUuid}:${userUuid}`;
 
-export function loadGhosts(matchUuid: string): Record<string, Ghost> {
+export function loadGhosts(matchUuid: string, userUuid: string): Record<string, Ghost> {
   try {
-    const raw = localStorage.getItem(ghostsKey(matchUuid));
+    const raw = localStorage.getItem(ghostsKey(matchUuid, userUuid));
     if (!raw) return {};
     return JSON.parse(raw) as Record<string, Ghost>;
   } catch {
@@ -67,16 +71,16 @@ export function loadGhosts(matchUuid: string): Record<string, Ghost> {
  * `actionId` não tem como ser re-casado depois de um refresh, então guardá-lo seria lixo
  * morto na próxima leitura. Some a chave inteira quando não sobra nenhum confirmado.
  */
-export function saveGhosts(matchUuid: string, ghosts: Record<string, Ghost>): void {
+export function saveGhosts(matchUuid: string, userUuid: string, ghosts: Record<string, Ghost>): void {
   try {
     const confirmed = Object.fromEntries(
       Object.entries(ghosts).filter(([id]) => !id.startsWith("local-")),
     );
     if (Object.keys(confirmed).length === 0) {
-      localStorage.removeItem(ghostsKey(matchUuid));
+      localStorage.removeItem(ghostsKey(matchUuid, userUuid));
       return;
     }
-    localStorage.setItem(ghostsKey(matchUuid), JSON.stringify(confirmed));
+    localStorage.setItem(ghostsKey(matchUuid, userUuid), JSON.stringify(confirmed));
   } catch {
     /* sem persistência; os fantasmas ainda vivem em memória */
   }

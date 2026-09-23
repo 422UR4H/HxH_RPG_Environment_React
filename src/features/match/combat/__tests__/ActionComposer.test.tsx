@@ -188,6 +188,39 @@ describe("ActionComposer", () => {
     expect(onDraftChange).toHaveBeenCalledWith({ targets: [], weapon: "Sword" });
   });
 
+  // Final review, Important 2(b)/M4: canSubmit reúne "socket conectado" e "sem envio
+  // pendente deste ator" — a página calcula os dois e passa um booleano só.
+  it("desabilita Declarar quando canSubmit=false mesmo com alvo/movimento válido", () => {
+    render(
+      <ActionComposer
+        actorId="c1"
+        actorName="Gon"
+        actorSlot={[1, 1, 0]}
+        draft={{ targets: ["c2"] }}
+        catalogue={catalogue}
+        onDraftChange={vi.fn()}
+        onSubmit={vi.fn()}
+        canSubmit={false}
+      />,
+    );
+    expect(screen.getByRole("button", { name: /declarar/i })).toBeDisabled();
+  });
+
+  it("canSubmit omitido (default true) não desabilita quando há alvo/movimento", () => {
+    render(
+      <ActionComposer
+        actorId="c1"
+        actorName="Gon"
+        actorSlot={[1, 1, 0]}
+        draft={{ targets: ["c2"] }}
+        catalogue={catalogue}
+        onDraftChange={vi.fn()}
+        onSubmit={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole("button", { name: /declarar/i })).not.toBeDisabled();
+  });
+
   // Limpar destino escolhido (o "x" pequeno) seta move para undefined.
   it("limpar destino escolhido remove o move do rascunho", () => {
     const onDraftChange = vi.fn();

@@ -23,6 +23,7 @@ export default function ActionComposer({
   onDraftChange,
   onSubmit,
   onClearActor,
+  canSubmit = true,
 }: {
   actorId: string;
   actorName: string;
@@ -36,10 +37,17 @@ export default function ActionComposer({
   onDraftChange: (draft: ActionDraft) => void;
   onSubmit: (payload: EnqueueActionPayload) => void;
   onClearActor?: () => void;
+  /**
+   * Final review, Important 2(b)/M4: a página combina "socket conectado" (status ===
+   * "connected") e "sem envio do composer ainda pendente para este ator" (evita duplicar
+   * o enqueue num link lento) num único booleano. Default true preserva o comportamento
+   * anterior para qualquer chamador que ainda não passa isto.
+   */
+  canSubmit?: boolean;
 }) {
   const selectedWeapon = draft.weapon ?? "Fist";
   const hasDestination = draft.move !== undefined;
-  const canDeclare = draft.targets.length > 0 || draft.move !== undefined;
+  const canDeclare = (draft.targets.length > 0 || draft.move !== undefined) && canSubmit;
 
   function handleRemoveTarget(id: string) {
     onDraftChange(migrateTargets(draft, draft.targets.filter((t) => t !== id)));

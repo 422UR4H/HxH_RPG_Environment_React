@@ -11,6 +11,14 @@ export type Ghost = {
   to: [number, number, number];
 };
 
+/**
+ * Final review, Important 2 / M3 (R28): um envio ainda sem ack, com metadados suficientes
+ * para o hook saber, quando `action_enqueued` chegar, QUEM enviou (`actorId`) e se é o
+ * composer (`clearsDraft: true`) ou um menu de parede (`clearsDraft: false`, R29) — sem
+ * isto o rascunho errado (ou nenhum) seria limpo no ack.
+ */
+export type PendingSend = { localId: string; actorId: string; clearsDraft: boolean };
+
 export type TableEvent =
   | { kind: "turn_opened"; at: number; turnId: string; actorId: string }
   | { kind: "turn_closed"; at: number; turnId: string; resolution?: ResolutionPayload }
@@ -27,8 +35,8 @@ export type CombatState = {
   queue: QueuedAction[];
   hp: Record<string, { hp: number; maxHp: number }>;
   ghosts: Record<string, Ghost>;
-  /** FIFO de localIds ainda sem ack — acks chegam na ordem de envio (R2). */
-  pendingSends: string[];
+  /** FIFO de envios ainda sem ack — acks chegam na ordem de envio (R2). */
+  pendingSends: PendingSend[];
   events: TableEvent[];
   pendingCloseTurn: CloseTurnRefusedPayload | null;
   lastError: WsError | null;
@@ -60,7 +68,7 @@ export type CombatAction =
   | { type: "round_mode_changed"; payload: RoundModeChangedPayload }
   | { type: "scene_changed"; payload: ScenePayload }
   | { type: "close_turn_refused"; payload: CloseTurnRefusedPayload }
-  | { type: "ACTION_SENT"; payload: { localId: string; ghost?: Ghost } }
+  | { type: "ACTION_SENT"; payload: { localId: string; actorId: string; clearsDraft: boolean; ghost?: Ghost } }
   | { type: "WS_ERROR"; payload: WsError }
   | { type: "ERROR_DISMISSED" }
   | { type: "CLOSE_TURN_DIALOG_DISMISSED" };
@@ -88,6 +96,15 @@ export function combatReducer(state: CombatState, action: CombatAction): CombatS
     case "match_full_state": {
       const p = action.payload;
       const openTurn = p.openTurn ? { ...p.openTurn } : null;
+      // Final review, Important 2(d): match_full_state só chega num registro novo — socket
+      // novo. Um envio ainda pendente na hora da queda pertencia ao socket ANTERIOR; seu
+      // ack/error nunca vai chegar por este. pendingSends inteiro e todo fantasma ainda
+      // provisório (chave `local-*`, sem actionId de verdade) são descartados — um
+      // fantasma já confirmado (chaveado por actionId) sobrevive, e a varredura por ator
+      // abaixo ainda se aplica em cima do que sobrou.
+      const ghostsAfterReconnect = Object.fromEntries(
+        Object.entries(state.ghosts).filter(([id]) => !id.startsWith("local-")),
+      );
       return {
         ...state,
         scene: p.scene,
@@ -95,9 +112,11 @@ export function combatReducer(state: CombatState, action: CombatAction): CombatS
         bars: acceptBars(state, p.bars),
         openTurn,
         queue: p.queue ?? [],
+        pendingSends: [],
         // O snapshot não traz actionId (§15 do spec): varre por ator, que é conservador.
-        ghosts: openTurn ? withoutGhostsOfActor(state.ghosts, openTurn.actorId) : state.ghosts,
-        // Um envio em voo ainda vai ganhar seu ack ou erro; não mexe em pendingSends aqui.
+        ghosts: openTurn
+          ? withoutGhostsOfActor(ghostsAfterReconnect, openTurn.actorId)
+          : ghostsAfterReconnect,
       };
     }
 
@@ -105,10 +124,10 @@ export function combatReducer(state: CombatState, action: CombatAction): CombatS
       return { ...state, bars: acceptBars(state, action.payload) };
 
     case "ACTION_SENT": {
-      const { localId, ghost } = action.payload;
+      const { localId, actorId, clearsDraft, ghost } = action.payload;
       return {
         ...state,
-        pendingSends: [...state.pendingSends, localId],
+        pendingSends: [...state.pendingSends, { localId, actorId, clearsDraft }],
         ghosts: ghost ? { ...state.ghosts, [localId]: ghost } : state.ghosts,
       };
     }
@@ -119,9 +138,9 @@ export function combatReducer(state: CombatState, action: CombatAction): CombatS
       // um com movimento rouba o fantasma do segundo.
       const [oldest, ...rest] = state.pendingSends;
       if (oldest === undefined) return state;
-      const ghost = state.ghosts[oldest];
+      const ghost = state.ghosts[oldest.localId];
       if (!ghost) return { ...state, pendingSends: rest };
-      const { [oldest]: _gone, ...others } = state.ghosts;
+      const { [oldest.localId]: _gone, ...others } = state.ghosts;
       return {
         ...state,
         pendingSends: rest,
@@ -167,8 +186,10 @@ export function combatReducer(state: CombatState, action: CombatAction): CombatS
     }
 
     case "resolution_updated": {
-      // Só a resolução LIQUIDADA vira linha de histórico: a de turno aberto é o cálculo
-      // provisório do mestre, e ele já a vê no painel dele.
+      // M8 (final review): só a resolução LIQUIDADA vira linha de histórico. A de turno
+      // aberto é o cálculo provisório do servidor — nenhum painel exibe esse valor não
+      // liquidado nesta fase (não é um dado que o mestre já vê em algum lugar; ele só
+      // passa por aqui de propósito, até a versão settled chegar).
       if (!action.payload.isSettled) return state;
       const idx = state.events.findIndex(
         (e) => e.kind === "turn_closed" && e.turnId === action.payload.turnId,
@@ -229,12 +250,13 @@ export function combatReducer(state: CombatState, action: CombatAction): CombatS
       };
 
     case "scene_changed":
+      // R30 (final review, M5): nem o spec §5 nem o contrato pedem para scene_changed
+      // esvaziar queue/openTurn — e o servidor não troca de cena com turno aberto na Fase
+      // 6, então era inalcançável. Só cena e fantasmas mudam aqui.
       return {
         ...state,
         scene: action.payload,
         ghosts: {},
-        queue: [],
-        openTurn: null,
         events: push(state.events, {
           kind: "scene_changed",
           at: Date.now(),
@@ -251,7 +273,7 @@ export function combatReducer(state: CombatState, action: CombatAction): CombatS
     case "WS_ERROR": {
       if (action.payload.sentType === "enqueue_action" && state.pendingSends.length > 0) {
         const [oldest, ...rest] = state.pendingSends;
-        const { [oldest]: _gone, ...ghosts } = state.ghosts;
+        const { [oldest.localId]: _gone, ...ghosts } = state.ghosts;
         return { ...state, lastError: action.payload, pendingSends: rest, ghosts };
       }
       return { ...state, lastError: action.payload };
