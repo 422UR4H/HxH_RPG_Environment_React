@@ -32,7 +32,7 @@ export type TurnOpenedPayload = {
   actorId: string;
   actionId: string;
   /** Sempre "" hoje. NÃO ramifique por ele. */
-  actionType?: string;
+  actionType: string;
 };
 
 export type TurnClosedPayload = { turnId: string };
@@ -61,7 +61,7 @@ export type ResolutionPayload = {
     isCriticalFailure: boolean;
     margin?: number;
   };
-  targets?: Array<{
+  targets: Array<{
     targetId: string;
     avoided: boolean;
     defended: boolean;
