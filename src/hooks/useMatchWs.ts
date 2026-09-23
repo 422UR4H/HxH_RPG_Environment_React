@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { GridShape, Piece, SlotCoord, WallSegment } from "../types/tacticalMap";
 import type { CombatServerMessage, EnqueueActionPayload, RoundMode } from "../features/match/combat/combatMessages";
+import { normalizeCombatMessage } from "../features/match/combat/normalizeWire";
 
 export type MatchWsStatus = "connecting" | "connected" | "disconnected";
 
@@ -244,7 +245,10 @@ export function useMatchWs({
               sentType: lastSentTypeRef.current,
             });
           } else if (COMBAT_TYPES.has(msg.type)) {
-            onCombatMessageRef.current?.(msg as CombatServerMessage);
+            // R33: normalize nil-able Go slices/maps (serialized as JSON `null`) into the
+            // empty arrays/objects combatMessages.ts's types promise, once, here — before
+            // the reducer or any combat component ever sees this message.
+            onCombatMessageRef.current?.(normalizeCombatMessage(msg));
           } else if (import.meta.env.DEV) {
             console.warn("[match-ws] unhandled message type:", msg.type);
           }

@@ -192,6 +192,30 @@ describe("GamePlayerPage", () => {
     expect(screen.getAllByTestId("order-row")).toHaveLength(1);
   });
 
+  // R33 regression (post-PR#67): Go serializes a nil slice as JSON `null`, not `[]` — an
+  // empty round's bars_updated genuinely arrives with order/characters/prices null.
+  // Without normalizeWire.ts, GeneralBar's `[...bars.order]` (and OwnBars' `bars.prices`
+  // lookup) throw "bars.order is not iterable" and take the whole page down.
+  it("bars_updated com order/characters/prices null não derruba a página (R33)", async () => {
+    renderPlayerPage();
+    await screen.findByText("Gon");
+    const ws = FakeWS.instances[0];
+    act(() => ws.onopen?.());
+    act(() =>
+      ws.emit("bars_updated", {
+        seq: 1,
+        prices: null,
+        characters: null,
+        order: null,
+      }),
+    );
+
+    // A página não crashou: o preço da barra de ação ainda renderiza como "não precificado".
+    expect(await screen.findByTestId("price-action")).toHaveTextContent(/ainda não precificou/i);
+    // Sem entradas na ordem projetada (order normalizou para []).
+    expect(screen.queryByTestId("order-row")).not.toBeInTheDocument();
+  });
+
   it("clica numa peça e Declarar manda enqueue_action com meu ator e o alvo clicado", async () => {
     renderPlayerPage();
     const ws = FakeWS.instances[0];
