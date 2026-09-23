@@ -39,7 +39,7 @@ const Shell = styled.div`
   grid-template-rows: auto 1fr;
   height: 100dvh;
   overflow: hidden;
-  background: ${colors.grayBgDeeper};
+  background: ${colors.surfaceSidebar};
 `;
 
 const TopBarZone = styled.header`
