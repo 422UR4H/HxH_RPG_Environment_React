@@ -5,8 +5,8 @@
 > **Fontes, nesta ordem de autoridade:**
 > 1. `System_X_System/docs/superpowers/specs/2026-09-20-front-combat-phases.md` — documento
 >    mestre, §6 é o escopo desta fase. ⚠️ A versão que este spec segue é a da branch
->    **`docs/front-combat-phase-6-gaps` (PR #77, ainda aberto)**, que fecha as nove lacunas
->    levantadas pela sessão de planejamento. A versão em `main` está desatualizada.
+>    **`docs/front-combat-phase-6-gaps` (PR #77, mergeado em `main` em 2026-09-22)**, que
+>    fecha as nove lacunas levantadas pela sessão de planejamento.
 > 2. `System_X_System/docs/dev/api/match-combat-ws.md` — o contrato, em `main`, já com B1–B4.
 > 3. `System_X_System/docs/dev/match/flows/03-fluxo-de-acao.md` — os diagramas do fluxo.
 >
