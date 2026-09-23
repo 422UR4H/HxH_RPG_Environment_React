@@ -43,6 +43,7 @@ import { visibleBoardPieces } from "../features/tactical-map/utils/boardSource";
 import { CanvasWrapper, MapLoadingMessage, NoMapMessage } from "../features/match/combat/mapCanvasStyles";
 import { colors, fonts } from "../styles/tokens";
 import type { WallSegment } from "../types/tacticalMap";
+import type { Participant } from "../types/match";
 
 type Props = {
   token: string;
@@ -255,6 +256,28 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     [participants, state.hp],
   );
 
+  // F6 (B4): the master's Personagens list is every match participant PLUS every
+  // character that has a piece on the map, even one that never enrolled (a campaign NPC
+  // the master drags in ad hoc) — boardPieces is already every piece on the board,
+  // unfiltered, because the master's fog/REST projection never hides anything from
+  // them. No isMaster prop needed anywhere below: this page derives the list from the
+  // pieces it already renders. Map-only entries carry no `.private` (npcMap's
+  // CharacterPrivateSummary is flat, not nested), so MatchCharactersSidebar's own
+  // fallback branch renders just the name — no HP is invented for them (R7 unchanged).
+  const visibleParticipants = useMemo(() => {
+    const known = new Set(participantsWithLiveHp.map((p) => p.characterSheet.uuid));
+    const extra: Participant[] = [];
+    const seen = new Set<string>();
+    boardPieces.forEach((p) => {
+      if (!p.characterId || known.has(p.characterId) || seen.has(p.characterId)) return;
+      const npc = npcMap.get(p.characterId);
+      if (!npc) return;
+      seen.add(p.characterId);
+      extra.push({ uuid: `map-npc:${p.characterId}`, joinedAt: "", characterSheet: npc });
+    });
+    return [...participantsWithLiveHp, ...extra];
+  }, [participantsWithLiveHp, boardPieces, npcMap]);
+
   const actorParticipant = actorId
     ? participants.find((p) => p.characterSheet.uuid === actorId)
     : undefined;
@@ -398,7 +421,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
               <MatchCharactersSidebar
                 gameStarted
                 enrollments={[]}
-                participants={participantsWithLiveHp}
+                participants={visibleParticipants}
                 isMaster
                 actionLoading={{}}
                 onAccept={() => {}}

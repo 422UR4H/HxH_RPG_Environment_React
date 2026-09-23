@@ -6,6 +6,7 @@ import { server } from "../../test/server";
 import { renderWithProviders } from "../../test/render";
 import { matchApiFixture } from "../../test/fixtures/match";
 import { mapWithPiecesApi } from "../../test/fixtures/map";
+import { campaignWithNpcsApi, npcFixture } from "../../test/fixtures/campaign";
 import GameMasterPage from "../GameMasterPage";
 
 const baseUrl = "http://localhost:5000";
@@ -225,6 +226,46 @@ describe("GameMasterPage", () => {
       "data-draggable-piece-ids",
       "[]",
     );
+  });
+
+  // F6 (B4): a lista de Personagens do mestre é todo participante MAIS todo personagem
+  // com peça no mapa, mesmo um que nunca se inscreveu na partida (um NPC de campanha que
+  // o mestre arrasta ad hoc) — sem depender de nenhum isMaster nos componentes abaixo.
+  it("Personagens do mestre inclui um NPC do mapa que não é participante da partida (F6)", async () => {
+    server.use(
+      http.get(`${baseUrl}/maps/:id`, () =>
+        HttpResponse.json({
+          map: mapWithPiecesApi([
+            ...piecesFixture,
+            {
+              id: "piece-mapnpc",
+              characterId: "map-npc-1",
+              coord: { slot: { kind: "square", col: 6, row: 6 }, z: 0 },
+              visible: true,
+            },
+          ] as never),
+        }),
+      ),
+      http.get(`${baseUrl}/campaigns/:id`, () =>
+        HttpResponse.json({
+          campaign: campaignWithNpcsApi([{ ...npcFixture, uuid: "map-npc-1", nickName: "NPC Só no Mapa" }]),
+        }),
+      ),
+    );
+
+    renderWithProviders(
+      <GameMasterPage token="fake-jwt-token" matchId="match-1" campaignId="campaign-1" />,
+    );
+    const ws = FakeWS.instances[FakeWS.instances.length - 1];
+    act(() => ws.onopen?.());
+
+    const toggle = await screen.findByRole("button", { name: "Ver histórico" });
+    act(() => toggle.click());
+    act(() => screen.getByRole("button", { name: "Personagens" }).click());
+
+    expect(await screen.findByText("NPC Só no Mapa")).toBeInTheDocument();
+    // Continua mostrando os participantes normais também.
+    expect(screen.getByText("Gon")).toBeInTheDocument();
   });
 
   it("inspeciona (não vira ator) quem o mestre não controla e nada envia", async () => {

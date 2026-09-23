@@ -4,7 +4,7 @@
 // socket via `useMatchCombat` e compõe `MatchStageTemplate` + organismos. Nenhum
 // componente abaixo desta página recebe `isMaster` (I2) — a única exceção declarada é
 // `WallActionSheet` (R23), porque o menu de parede tem verbos diferentes por papel.
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useUser from "../hooks/useUser";
 import { useMatchMap } from "../hooks/useMatchMap";
@@ -150,6 +150,23 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
     [participants],
   );
 
+  // F6 (B4): a player only sees characters whose piece the server actually projected
+  // onto their canvas after fog (boardPieces IS livePieces once the WS is up — the
+  // player page never seeds from REST, see useLiveMapSync above), plus their own
+  // character even before any piece of theirs has arrived. No isMaster prop: this page
+  // derives the list from the pieces it already renders, same principle as the master.
+  const visibleCharacterIds = useMemo(
+    () => new Set(boardPieces.map((p) => p.characterId)),
+    [boardPieces],
+  );
+  const visibleParticipants = useMemo(
+    () =>
+      participants.filter(
+        (p) => p.characterSheet.uuid === actorId || visibleCharacterIds.has(p.characterSheet.uuid),
+      ),
+    [participants, visibleCharacterIds, actorId],
+  );
+
   const handlePieceSelect = useCallback(
     (pieceId: string) => {
       const charId = characterIdByPieceId.get(pieceId);
@@ -261,7 +278,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
               <MatchCharactersSidebar
                 gameStarted
                 enrollments={[]}
-                participants={participants}
+                participants={visibleParticipants}
                 isMaster={false}
                 actionLoading={{}}
                 onAccept={() => {}}

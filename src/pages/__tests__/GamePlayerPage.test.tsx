@@ -514,6 +514,47 @@ describe("GamePlayerPage", () => {
     );
   });
 
+  // F6 (B4): um personagem escondido pelo fog do jogador (participante sem peça
+  // visível para ele) não aparece na lista de Personagens — só quem tem peça projetada
+  // no canvas dele (após o fog do servidor) mais o próprio personagem, mesmo sem peça.
+  it("Personagens do jogador esconde quem o fog não mostra (F6)", async () => {
+    renderPlayerPage();
+    const ws = FakeWS.instances[0];
+    act(() => ws.onopen?.());
+    // Só a peça do próprio personagem (c1/Gon) chega — c2/Killua nunca teve peça
+    // projetada para este jogador (fog escondeu).
+    act(() =>
+      ws.emit("map_full_state", {
+        pieces: [
+          { pieceId: "piece-c1", slot: { kind: "square", col: 1, row: 1 }, characterId: "c1", visible: true, z: 0 },
+        ],
+        walls: [],
+        visiblePolygons: [],
+        fogMode: "explored",
+      }),
+    );
+
+    const toggle = await screen.findByRole("button", { name: "Ver histórico" });
+    act(() => toggle.click());
+    act(() => screen.getByRole("button", { name: "Personagens" }).click());
+
+    expect(await screen.findByText("Gon")).toBeInTheDocument();
+    expect(screen.queryByText("Killua")).not.toBeInTheDocument();
+
+    // Assim que a peça de Killua entra em campo de visão (piece_moved, F3), ele passa a
+    // aparecer — a lista segue o que o mapa realmente projeta, não um snapshot.
+    act(() =>
+      ws.emit("piece_moved", {
+        pieceId: "piece-c2",
+        slot: { kind: "square", col: 3, row: 3 },
+        characterId: "c2",
+        visible: true,
+        z: 0,
+      }),
+    );
+    expect(await screen.findByText("Killua")).toBeInTheDocument();
+  });
+
   it("o aside abre em Histórico (padrão) e o rail só tem Ação", async () => {
     renderPlayerPage();
 
