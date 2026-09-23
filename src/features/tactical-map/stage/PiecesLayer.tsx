@@ -8,7 +8,7 @@ import type { TacticalMap, SlotCoord } from "../../../types/tacticalMap";
 import type { CharacterPrivateSummary } from "../../../types/characterSheet";
 import type { Selection } from "../store/editorStore";
 import { worldToSlot, isSlotInBounds, slotCorners, isSameSlot, slotToWorld, slotInradius } from "../utils/coords";
-import { createHoldTracker, HOLD_MS } from "../hooks/useHoldGesture";
+import { createHoldTracker, createRightPressTracker, HOLD_MS } from "../hooks/useHoldGesture";
 import { colors } from "../../../styles/tokens";
 import PieceSprite from "./PieceSprite";
 
@@ -22,12 +22,18 @@ const HOLD_PROGRESS_COLOR = parseInt(colors.warningText.replace("#", ""), 16);
 // non-primary button (right-click shortcut). handleMoveDOM only enters the drag
 // branch when this is true, so the piece still resolves click/hold while staying
 // visually still.
+//
+// `rightClick`: true when the pointerdown that started this gesture was a
+// non-primary button. A right-button release NEVER produces a click (R20) —
+// handleUp/handleWindowUp check this flag and return before onPieceSelect,
+// regardless of event ordering between pointerup and contextmenu.
 type PieceLocalDragState = {
   pieceId: string;
   startScreen: { x: number; y: number };
   isDragging: boolean;
   currentSlot: SlotCoord | null;
   draggable: boolean;
+  rightClick: boolean;
 } | null;
 
 export default function PiecesLayer({
@@ -71,6 +77,11 @@ export default function PiecesLayer({
   // press-and-release there must stay a plain click, not get swallowed by hold
   // bookkeeping.
   const holdRef = useRef(createHoldTracker({ onHold: (id) => onPieceLongPressRef.current?.(id) }));
+
+  // R20: the right-click shortcut's own bookkeeping, independent from holdRef.
+  // See useHoldGesture.ts's doc comment on createRightPressTracker for why this
+  // exists (contextmenu vs pointerup ordering differs Windows vs Linux/macOS).
+  const rightPressTrackerRef = useRef(createRightPressTracker());
 
   // Hold-progress ring: the arc grows from 120ms to HOLD_MS around the piece
   // currently in localDrag. Without this the gesture reads as a stall.
@@ -157,6 +168,13 @@ export default function PiecesLayer({
       onPieceDragEnd?.();
       setHoverSlot(null);
       stopHoldProgress();
+      // R20: a right-button release is never a click — its outcome is resolved
+      // by handleContextMenu's `contextmenu()` call, whichever order the browser
+      // delivers pointerup/contextmenu in.
+      if (drag.rightClick) {
+        rightPressTrackerRef.current.release();
+        return;
+      }
       if (!drag.isDragging) {
         const outcome = holdRef.current.end();
         if (outcome === "hold") return; // segurar já marcou; não alveje duas vezes
@@ -189,7 +207,16 @@ export default function PiecesLayer({
       onPieceDragEnd?.();
       setHoverSlot(null);
       stopHoldProgress();
-      if (e.type === "pointercancel") { holdRef.current.cancel(); return; }
+      if (e.type === "pointercancel") {
+        holdRef.current.cancel();
+        rightPressTrackerRef.current.reset();
+        return;
+      }
+      // R20: a right-button release is never a click — see handleUp above.
+      if (drag.rightClick) {
+        rightPressTrackerRef.current.release();
+        return;
+      }
       const rect = (app?.renderer ? app.canvas : null)?.getBoundingClientRect();
       const overCanvas =
         !!rect &&
@@ -217,18 +244,19 @@ export default function PiecesLayer({
     };
 
     // Right-click shortcut for the hold gesture (§7.1): suppresses the browser's
-    // native context menu over the canvas and fires the hold path immediately via
-    // fireNow (R5) instead of cancel()+direct call — that keeps the following
-    // pointerup's holdRef.current.end() reporting "hold", so the click branch
-    // above doesn't also run onPieceSelect and clobber the target just added.
+    // native context menu over the canvas. R20 (supersedes R5's fireNow use here):
+    // the outcome is resolved through rightPressTrackerRef, not the hold tracker —
+    // fireNow/end()==="hold" assumed contextmenu always fires before pointerup,
+    // which is false on Windows (contextmenu fires after). rightPressTrackerRef
+    // resolves correctly regardless of that order; see its doc comment.
     // R19: gated on onPieceLongPress being provided at all — the lobby/map
     // editor never passes it, so its right-click behavior (whatever it was)
     // stays untouched.
     const handleContextMenu = (e: MouseEvent) => {
       if (!onPieceLongPressRef.current) return;
       e.preventDefault();
-      const drag = localDrag.current;
-      if (drag) holdRef.current.fireNow(drag.pieceId);
+      const id = rightPressTrackerRef.current.contextmenu();
+      if (id) onPieceLongPressRef.current(id);
     };
     const canvas = app?.renderer ? app.canvas : null;
 
@@ -368,9 +396,15 @@ export default function PiecesLayer({
           piecesInteractive={piecesInteractive}
           onPointerDown={(_piece, e) => {
             if (!piecesInteractive || localDrag.current) return;
-            // Right-click never starts a drag (R19) — it's the hold shortcut's
-            // press, resolved on the `contextmenu` event below. localDrag is
-            // still recorded (draggable: false) so that handler knows the piece.
+            // R20: every pointerdown (any button) clears whatever right-press
+            // bookkeeping is left over — a right-press that never got a matching
+            // contextmenu must not leak its id into a later, unrelated one.
+            rightPressTrackerRef.current.reset();
+            // Right-click never starts a drag (R19) — its outcome is resolved by
+            // rightPressTrackerRef via the `contextmenu` event below, independent
+            // of whether contextmenu or pointerup arrives first (R20). localDrag
+            // is still recorded (draggable: false) so handleUp/handleWindowUp
+            // know to skip onPieceSelect for this press.
             const rightClick = e.button !== 0;
             const draggable = !rightClick && (draggablePieceIds === undefined || draggablePieceIds.has(p.id));
             // R19: only arm the tracker when the caller opted into the gesture.
@@ -378,8 +412,12 @@ export default function PiecesLayer({
             // click in the lobby (no onPieceLongPress) crosses HOLD_MS, marks
             // `fired`, and gets silently swallowed by the "hold" outcome below.
             if (onPieceLongPress) {
-              holdRef.current.start(p.id, e.global.x, e.global.y);
-              startHoldProgress(p.id);
+              if (rightClick) {
+                rightPressTrackerRef.current.press(p.id);
+              } else {
+                holdRef.current.start(p.id, e.global.x, e.global.y);
+                startHoldProgress(p.id);
+              }
             }
             pieceDragActiveRef.current = draggable;
             localDrag.current = {
@@ -388,6 +426,7 @@ export default function PiecesLayer({
               isDragging: false,
               currentSlot: null,
               draggable,
+              rightClick,
             };
             e.stopPropagation();
           }}

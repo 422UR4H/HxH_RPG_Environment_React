@@ -74,3 +74,46 @@ export function createHoldTracker({
     },
   };
 }
+
+/**
+ * R20 (controller ruling, supersedes the contextmenu part of R5): the right-click
+ * shortcut can NOT rely on `contextmenu` firing before `pointerup` — Windows fires
+ * it after; Linux/macOS fire it before. `fireNow`/`end()==="hold"` assumed the
+ * "before" order and silently degraded to a plain select on Windows.
+ *
+ * This tracker makes the outcome independent of that order: `press` remembers which
+ * piece a right-button pointerdown targeted; `contextmenu` is the ONLY thing that
+ * resolves it into a long-press call, whichever of `release`/`contextmenu` the
+ * browser delivers first. `release` (the matching pointerup) is intentionally inert
+ * — a right-button release must never itself produce a click (see PiecesLayer's
+ * handleUp/handleWindowUp, which check `drag.rightClick` directly and return before
+ * ever calling `onPieceSelect`).
+ */
+export function createRightPressTracker() {
+  let pendingId: string | null = null;
+
+  return {
+    /** Call on EVERY pointerdown (any button) before deciding the branch — a
+     * right-press that never gets a matching contextmenu (browser quirk, focus
+     * loss, etc.) must not leak its id into a later, unrelated contextmenu event. */
+    reset() {
+      pendingId = null;
+    },
+    /** Right-button pointerdown. */
+    press(id: string) {
+      pendingId = id;
+    },
+    /** The matching pointerup. Always a no-op outcome — resolution happens in
+     * `contextmenu`, never here. */
+    release(): "none" {
+      return "none";
+    },
+    /** The native `contextmenu` event. Consumes and clears the pending id so it
+     * can't double-fire (e.g. two contextmenu events, or a stale one later). */
+    contextmenu(): string | null {
+      const id = pendingId;
+      pendingId = null;
+      return id;
+    },
+  };
+}

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { createHoldTracker } from "../useHoldGesture";
+import { createHoldTracker, createRightPressTracker } from "../useHoldGesture";
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
@@ -46,5 +46,42 @@ describe("createHoldTracker", () => {
     expect(t.end()).toBe("hold");
     vi.advanceTimersByTime(450);
     expect(onHold).toHaveBeenCalledTimes(1);
+  });
+});
+
+// R20: o atalho de botão direito não pode depender da ordem entre `contextmenu`
+// e `pointerup` — Windows entrega contextmenu DEPOIS do pointerup; Linux/macOS,
+// antes. O resolver precisa produzir exatamente um long-press e zero cliques
+// nas duas ordens.
+describe("createRightPressTracker", () => {
+  it("ordem Linux/macOS: press → contextmenu → release — um long-press, zero cliques", () => {
+    const t = createRightPressTracker();
+    t.press("p1");
+    expect(t.contextmenu()).toBe("p1");
+    expect(t.release()).toBe("none");
+  });
+
+  it("ordem Windows: press → release → contextmenu — um long-press, zero cliques", () => {
+    const t = createRightPressTracker();
+    t.press("p1");
+    expect(t.release()).toBe("none");
+    expect(t.contextmenu()).toBe("p1");
+  });
+
+  it("depois de resolvido, um contextmenu solto (sem press) não dispara de novo — clique esquerdo seguinte não é contaminado", () => {
+    const t = createRightPressTracker();
+    t.press("p1");
+    t.contextmenu();
+    // Nenhum novo press aconteceu (o próximo pointerdown foi um clique
+    // esquerdo comum, que nunca chama press/contextmenu deste tracker) —
+    // um contextmenu solto e tardio não deve reviver o id antigo.
+    expect(t.contextmenu()).toBeNull();
+  });
+
+  it("reset() limpa um press pendente sem contextmenu correspondente (novo pointerdown de qualquer botão)", () => {
+    const t = createRightPressTracker();
+    t.press("p1");
+    t.reset();
+    expect(t.contextmenu()).toBeNull();
   });
 });
