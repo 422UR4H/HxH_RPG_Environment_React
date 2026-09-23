@@ -84,6 +84,7 @@ export const colors = {
   pieceStackBadge: "#1c1c1c", // ×N cascade badge background (§7.2)
 
   // surfaces — translucent
+  rowHighlight: "rgba(8, 142, 59, 0.25)", // GeneralBar: highlighted actor's order row (brandAccentBright tint)
   overlay: "rgba(0, 0, 0, 0.7)",
   overlaySoft: "rgba(0, 0, 0, 0.44)",
   overlayMedium: "rgba(0, 0, 0, 0.6)",
