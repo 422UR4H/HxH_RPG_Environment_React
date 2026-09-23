@@ -57,7 +57,13 @@ export default function LosSplit({ polygons, dimAlpha, dilate = 0, children }: P
 
   return (
     <>
-      <pixiContainer label="los-lit" ref={litRef}>
+      {/* F1: eventMode="none" on both wrappers — wall interaction goes through
+          WallsLayer's own DOM pointerup/pointerdown on the canvas element, never Pixi
+          hit-testing, so nothing is lost here. Without it these full-geometry Graphics
+          (materials + selection + preview) sit above the pieces layer in z-order and,
+          under the viewport's eventMode="static", win hit-tests that should have landed
+          on a piece or an empty slot. */}
+      <pixiContainer label="los-lit" ref={litRef} eventMode="none">
         {children}
         {/* Each masked container needs its OWN Graphics: one display object cannot be
             the mask of two containers at the same time. And never visible={false} —
@@ -65,7 +71,7 @@ export default function LosSplit({ polygons, dimAlpha, dilate = 0, children }: P
             while hiding it empties the mask and breaks both passes silently. */}
         <pixiGraphics draw={drawMask} label="los-lit-mask" ref={litMaskRef} />
       </pixiContainer>
-      <pixiContainer label="los-dim" ref={dimRef} alpha={dimAlpha}>
+      <pixiContainer label="los-dim" ref={dimRef} alpha={dimAlpha} eventMode="none">
         {children}
         <pixiGraphics draw={drawMask} label="los-dim-mask" ref={dimMaskRef} />
       </pixiContainer>

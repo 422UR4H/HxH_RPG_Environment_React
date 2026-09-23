@@ -471,7 +471,14 @@ export default function PiecesLayer({
                 startHoldProgress(p.id);
               }
             }
-            pieceDragActiveRef.current = draggable;
+            // F1 secondary: in game mode every piece has draggable:false (the server
+            // decides where it lands, I1), so this used to fall through to `draggable`
+            // (false) and let ViewportInner's window pointerdown start a pan on top of
+            // the press — the drift then cancelled the hold gesture. Any consumer that
+            // actually wants to resolve this press as a click/hold (long-press or plain
+            // select, both wired only in the game) must suppress the pan too. The lobby
+            // never wires either, so `draggable` alone (already true there) still governs.
+            pieceDragActiveRef.current = draggable || !!onPieceLongPress || !!onPieceSelect;
             localDrag.current = {
               pieceId: p.id,
               startScreen: { x: e.global.x, y: e.global.y },

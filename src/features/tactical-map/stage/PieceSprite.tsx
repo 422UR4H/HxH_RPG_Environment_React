@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Assets, BlurFilter, ImageSource, Texture } from "pixi.js";
+import { Assets, BlurFilter, Circle, ImageSource, Texture } from "pixi.js";
 import type { Container, FederatedPointerEvent } from "pixi.js";
 import type { Graphics as PixiGraphics } from "pixi.js";
 import gungiFrameUrl from "../../../assets/icons/gungi.svg";
@@ -161,6 +161,14 @@ export default function PieceSprite({
 
   const insetShadowTexture = useMemo(() => getAvatarInsetShadowTexture(avatarRadius), [avatarRadius]);
 
+  // F1: without an explicit hitArea, Pixi hit-tests the union of this container's
+  // children geometry — which includes the selection ring (tokenRadius+8) and the
+  // target ring (tokenRadius+12), both drawn well outside the visible token. On a
+  // crowded board those rings reach over an adjacent wall line and steal its click.
+  // Clamping the hit area to the token's own circle means only the token itself
+  // (never a ring around it) is ever clickable.
+  const hitArea = useMemo(() => new Circle(0, -zOffsetPx, tokenRadius), [zOffsetPx, tokenRadius]);
+
   const drawSelection = useCallback(
     (g: PixiGraphics) => {
       g.clear();
@@ -195,6 +203,7 @@ export default function PieceSprite({
       x={center.x + stackDx}
       y={center.y + stackDy}
       eventMode={piecesInteractive ? "static" : "none"}
+      hitArea={piecesInteractive ? hitArea : undefined}
       cursor={piecesInteractive ? "pointer" : "default"}
       onPointerDown={(e: FederatedPointerEvent) => onPointerDown(piece, e)}
     >
