@@ -18,9 +18,17 @@ type Options = {
   board?: MatchBoardSync | null;
   /** Chamado quando `action_enqueued` chega, para a página limpar o rascunho do ator certo. */
   onActionEnqueued?: (actionId: string, meta: ActionEnqueuedMeta) => void;
+  /**
+   * F2: chamado quando o servidor RECUSA um envio do composer (WS_ERROR, sentType
+   * "enqueue_action", sobre o mais antigo `pendingSends` com `clearsDraft: true`) — a
+   * página deve derrubar só o `move` do rascunho desse ator (destino recusado, o alvo/arma
+   * continuam valendo). Nunca chamado para o menu de parede (`clearsDraft: false`).
+   */
+  onActionRefused?: (actorId: string) => void;
 } & Pick<
   Parameters<typeof useMatchWs>[0],
-  "onWallStateChanged" | "onWallHpChanged" | "onMapFullState" | "onVisibilityUpdated" | "onWallRevealed"
+  | "onWallStateChanged" | "onWallHpChanged" | "onMapFullState" | "onVisibilityUpdated"
+  | "onWallRevealed" | "onPieceMoved" | "onPieceRemoved"
 >;
 
 let localGhostSeq = 0;
@@ -30,7 +38,7 @@ let localGhostSeq = 0;
  * pedaço dele em useState.
  */
 export function useMatchCombat({
-  matchUuid, userUuid, token, isMaster, board, onActionEnqueued, ...mapHandlers
+  matchUuid, userUuid, token, isMaster, board, onActionEnqueued, onActionRefused, ...mapHandlers
 }: Options) {
   const [state, dispatch] = useReducer(
     combatReducer,
@@ -40,6 +48,8 @@ export function useMatchCombat({
 
   const onActionEnqueuedRef = useRef(onActionEnqueued);
   onActionEnqueuedRef.current = onActionEnqueued;
+  const onActionRefusedRef = useRef(onActionRefused);
+  onActionRefusedRef.current = onActionRefused;
 
   const ws = useMatchWs({
     matchUuid,
@@ -61,7 +71,18 @@ export function useMatchCombat({
         });
       }
     },
-    onWsError: (e) => dispatch({ type: "WS_ERROR", payload: { ...e, at: Date.now() } }),
+    onWsError: (e) => {
+      // F2: same FIFO read as onCombatMessage above — capture the oldest pendingSend
+      // BEFORE dispatch (the reducer's own WS_ERROR case pops it), and only for a
+      // refused enqueue_action whose oldest entry is the composer's own (clearsDraft).
+      // The wall menu's send (clearsDraft: false) never drops the composer's draft.
+      const oldestPending =
+        e.sentType === "enqueue_action" ? state.pendingSends[0] : undefined;
+      dispatch({ type: "WS_ERROR", payload: { ...e, at: Date.now() } });
+      if (oldestPending?.clearsDraft) {
+        onActionRefusedRef.current?.(oldestPending.actorId);
+      }
+    },
   });
 
   // Fantasmas confirmados sobrevivem a um refresh (R3, spec §8); os provisórios

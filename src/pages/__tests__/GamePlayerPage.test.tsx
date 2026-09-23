@@ -15,7 +15,10 @@ const baseUrl = "http://localhost:5000";
 // (R13) que expõe um botão por peça e um botão de slot vazio.
 vi.mock("../../features/tactical-map/TacticalMapViewer", () => ({
   default: (props: {
-    map: { pieces: Array<{ id: string; characterId: string }>; walls: Array<{ id: string }> };
+    map: {
+      pieces: Array<{ id: string; characterId: string; coord?: { slot?: { col?: number; row?: number } } }>;
+      walls: Array<{ id: string }>;
+    };
     draggablePieceIds?: Set<string>;
     onPieceSelect?: (pieceId: string) => void;
     onPieceLongPress?: (pieceId: string) => void;
@@ -32,6 +35,9 @@ vi.mock("../../features/tactical-map/TacticalMapViewer", () => ({
         <button
           key={piece.id}
           data-testid={`select-actor-${piece.characterId}`}
+          // F3: exposes the slot so a test can prove piece_moved actually reaches the
+          // rendered board, not just the reducer/hook state.
+          data-slot={JSON.stringify(piece.coord?.slot ?? null)}
           onClick={() => props.onPieceSelect?.(piece.id)}
           onContextMenu={() => props.onPieceLongPress?.(piece.id)}
         >
@@ -247,6 +253,65 @@ describe("GamePlayerPage", () => {
     });
   });
 
+  // F3: o contrato diz que o servidor move a peça sozinho na abertura do turno (ou numa
+  // fuga de reação) e emite piece_moved/piece_removed — antes disto useMatchWs só dava
+  // warn em DEV e o tabuleiro nunca se mexia sozinho.
+  it("piece_moved move a peça renderizada; um pieceId novo entra no tabuleiro (F3)", async () => {
+    renderPlayerPage();
+    const ws = FakeWS.instances[0];
+    act(() => ws.onopen?.());
+    act(() =>
+      ws.emit("map_full_state", {
+        pieces: [
+          { pieceId: "piece-c1", slot: { kind: "square", col: 1, row: 1 }, characterId: "c1", visible: true, z: 0 },
+        ],
+        walls: [],
+        visiblePolygons: [],
+        fogMode: "explored",
+      }),
+    );
+    const c1Button = await screen.findByTestId("select-actor-c1");
+    expect(c1Button).toHaveAttribute("data-slot", JSON.stringify({ kind: "square", col: 1, row: 1 }));
+
+    // O servidor move a peça existente sozinho (abertura do turno).
+    act(() =>
+      ws.emit("piece_moved", {
+        pieceId: "piece-c1",
+        slot: { kind: "square", col: 7, row: 7 },
+        characterId: "c1",
+        visible: true,
+        z: 0,
+      }),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("select-actor-c1")).toHaveAttribute(
+        "data-slot",
+        JSON.stringify({ kind: "square", col: 7, row: 7 }),
+      ),
+    );
+
+    // Uma peça ainda não conhecida (entrou em campo de visão) é inserida, não ignorada.
+    act(() =>
+      ws.emit("piece_moved", {
+        pieceId: "piece-c2",
+        slot: { kind: "square", col: 3, row: 3 },
+        characterId: "c2",
+        visible: true,
+        z: 0,
+      }),
+    );
+    expect(await screen.findByTestId("select-actor-c2")).toHaveAttribute(
+      "data-slot",
+      JSON.stringify({ kind: "square", col: 3, row: 3 }),
+    );
+
+    // piece_removed some com ela de novo (saiu de campo de visão).
+    act(() => ws.emit("piece_removed", { pieceId: "piece-c2" }));
+    await waitFor(() =>
+      expect(screen.queryByTestId("select-actor-c2")).not.toBeInTheDocument(),
+    );
+  });
+
   // Final review, Important 2/M3 (R28): o rascunho só some no ack que CORRESPONDE ao
   // envio do composer (clearsDraft:true) — não em qualquer action_enqueued que chegue.
   // O teste agora manda de verdade (clica Declarar) em vez de só emitir o ack solto, para
@@ -282,6 +347,49 @@ describe("GamePlayerPage", () => {
     act(() => ws.emit("action_enqueued", { actionId: "action-1" }));
 
     await waitFor(() => expect(localStorage.getItem("match-draft:match-1:c1")).toBeNull());
+  });
+
+  // F2: uma recusa do servidor ao envio do composer (WS_ERROR sobre enqueue_action) só
+  // derruba o `move` do rascunho — o destino recusado é o culpado usual (move_blocked) —
+  // e preserva alvo/arma, que continuam válidos.
+  it("recusa do servidor ao Declarar derruba só o destino do rascunho, mantém o alvo (F2)", async () => {
+    renderPlayerPage();
+    const ws = FakeWS.instances[0];
+    act(() => ws.onopen?.());
+    act(() =>
+      ws.emit("map_full_state", {
+        pieces: [
+          { pieceId: "piece-c1", slot: { kind: "square", col: 1, row: 1 }, characterId: "c1", visible: true, z: 0 },
+          { pieceId: "piece-c2", slot: { kind: "square", col: 3, row: 3 }, characterId: "c2", visible: true, z: 0 },
+        ],
+        walls: [],
+        visiblePolygons: [],
+        fogMode: "explored",
+      }),
+    );
+
+    const targetButton = await screen.findByTestId("select-actor-c2");
+    act(() => targetButton.click());
+    const emptySlot = await screen.findByTestId("empty-slot");
+    act(() => emptySlot.click());
+
+    await waitFor(() => {
+      const draft = JSON.parse(localStorage.getItem("match-draft:match-1:c1") ?? "{}");
+      expect(draft.targets).toEqual(["c2"]);
+      expect(draft.move.to).toEqual([9, 9, 0]);
+    });
+
+    const declareButton = await screen.findByRole("button", { name: /declarar/i });
+    act(() => declareButton.click());
+
+    // O servidor recusa o Declarar (ex.: move_blocked) — nada de action_enqueued chega.
+    act(() => ws.emit("error", { code: "game_error", message: "move blocked by a wall" }));
+
+    await waitFor(() => {
+      const draft = JSON.parse(localStorage.getItem("match-draft:match-1:c1") ?? "{}");
+      expect(draft.targets).toEqual(["c2"]);
+      expect(draft.move).toBeUndefined();
+    });
   });
 
   // Final review, Important 3 / RULING R29: enqueue_action SEM actorId era sempre

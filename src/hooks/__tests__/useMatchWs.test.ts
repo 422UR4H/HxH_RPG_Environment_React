@@ -354,6 +354,98 @@ describe("useMatchWs wall events", () => {
   });
 });
 
+// ─── Piece events (server→client, F3) ───────────────────────────────────────
+//
+// The server moves a piece by itself when a turn's Move opens (or a Shift/passed-Dash
+// escape reaction resolves) — piece_moved/piece_removed reuse the exact wire shape the
+// lobby already parses (useLobbyWs.ts).
+
+describe("useMatchWs piece events", () => {
+  it("calls onPieceMoved with a mapped Piece on piece_moved", () => {
+    const onPieceMoved = vi.fn();
+    renderHook(() =>
+      useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onPieceMoved }),
+    );
+    const ws = FakeWS.instances[0];
+    act(() => { ws.onopen?.(); });
+    act(() => {
+      ws.emit("piece_moved", {
+        pieceId: "p1",
+        slot: { kind: "square", col: 5, row: 6 },
+        characterId: "c1",
+        visible: true,
+        z: 1,
+      });
+    });
+    expect(onPieceMoved).toHaveBeenCalledWith({
+      id: "p1",
+      characterId: "c1",
+      coord: { slot: { kind: "square", col: 5, row: 6 }, z: 1 },
+      visible: true,
+    });
+  });
+
+  // z omitted by the server means "on the ground" (same convention as map_full_state).
+  it("defaults z to 0 and characterId to empty string when the server omits them", () => {
+    const onPieceMoved = vi.fn();
+    renderHook(() =>
+      useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onPieceMoved }),
+    );
+    const ws = FakeWS.instances[0];
+    act(() => { ws.onopen?.(); });
+    act(() => {
+      ws.emit("piece_moved", { pieceId: "p2", slot: { kind: "square", col: 0, row: 0 } });
+    });
+    const piece = onPieceMoved.mock.calls[0][0];
+    expect(piece.coord.z).toBe(0);
+    expect(piece.characterId).toBe("");
+    expect(piece.visible).toBe(true);
+  });
+
+  it("calls onPieceRemoved with the pieceId on piece_removed", () => {
+    const onPieceRemoved = vi.fn();
+    renderHook(() =>
+      useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onPieceRemoved }),
+    );
+    const ws = FakeWS.instances[0];
+    act(() => { ws.onopen?.(); });
+    act(() => { ws.emit("piece_removed", { pieceId: "p1" }); });
+    expect(onPieceRemoved).toHaveBeenCalledWith("p1");
+  });
+});
+
+// ─── Lobby message types reused on the match socket (F5) ───────────────────
+//
+// The match socket is the same room.go connection the lobby uses — these broadcasts are
+// legitimate here (a reconnecting player still gets room_state etc.), just unhandled by
+// this hook. They must not trip the "unhandled message type" DEV warn.
+
+describe("useMatchWs lobby message types", () => {
+  it("does not warn on legitimate lobby broadcasts reused by the match socket", () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    renderHook(() => useMatchWs({ matchUuid: "m1", token: "t", isMaster: false }));
+    const ws = FakeWS.instances[0];
+    act(() => { ws.onopen?.(); });
+    const ignored = [
+      "room_state", "player_joined", "master_joined", "player_left",
+      "master_left", "player_kicked", "chat_message", "match_started",
+    ];
+    for (const type of ignored) act(() => { ws.emit(type, {}); });
+    expect(warnSpy).not.toHaveBeenCalled();
+    warnSpy.mockRestore();
+  });
+
+  it("still warns on a genuinely unknown type", () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    renderHook(() => useMatchWs({ matchUuid: "m1", token: "t", isMaster: false }));
+    const ws = FakeWS.instances[0];
+    act(() => { ws.onopen?.(); });
+    act(() => { ws.emit("something_new", {}); });
+    expect(warnSpy).toHaveBeenCalled();
+    warnSpy.mockRestore();
+  });
+});
+
 // ─── Outgoing actions (sendAction / sendMasterAction) ───────────────────────
 
 describe("useMatchWs outgoing actions", () => {

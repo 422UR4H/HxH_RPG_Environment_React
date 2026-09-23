@@ -79,6 +79,8 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
     handleMapFullState,
     handleVisibilityUpdated,
     handleWallRevealed,
+    handlePieceMoved,
+    handlePieceRemoved,
   } = useLiveMapSync({ map, campaign, seedFromRest: false });
   const [wallPicker, setWallPicker] = useState<WallSegment | null>(null);
 
@@ -91,6 +93,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
   // primeiro render, e o valor real é atribuído no corpo do render (mesma convenção de
   // `useMatchWs.ts`), antes de qualquer envio poder chegar.
   const onActionEnqueuedRef = useRef<(meta: ActionEnqueuedMeta) => void>(() => {});
+  const onActionRefusedRef = useRef<(actorId: string) => void>(() => {});
 
   const { state, status, send, dismissError } = useMatchCombat({
     matchUuid: matchId,
@@ -102,7 +105,10 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
     onMapFullState: handleMapFullState,
     onVisibilityUpdated: handleVisibilityUpdated,
     onWallRevealed: handleWallRevealed,
+    onPieceMoved: handlePieceMoved,
+    onPieceRemoved: handlePieceRemoved,
     onActionEnqueued: (_actionId, meta) => onActionEnqueuedRef.current(meta),
+    onActionRefused: (actorId) => onActionRefusedRef.current(actorId),
   });
 
   // ─── Rascunho de ação + mapas peça↔personagem (compartilhado com o mestre) ─
@@ -117,6 +123,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
     toggleTarget,
     setDestination,
     clearDraftFor,
+    dropDraftMoveFor,
   } = useActionComposerState({ matchId, actorId, boardPieces, state });
 
   // R28: só limpa quando o envio confirmado é do composer (clearsDraft) — o menu de
@@ -125,6 +132,10 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
     if (!meta.clearsDraft) return;
     clearDraftFor(meta.actorId);
   };
+
+  // F2: o servidor recusou o envio do composer (WS_ERROR, geralmente move_blocked) —
+  // derruba só o `move` do rascunho, alvo e arma continuam.
+  onActionRefusedRef.current = (actorId) => dropDraftMoveFor(actorId);
 
   // M4: Declarar fica desabilitado enquanto há um envio do composer ainda sem ack para
   // este ator — evita reenfileirar em duplicidade num link lento.

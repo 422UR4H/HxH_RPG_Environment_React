@@ -123,6 +123,22 @@ export function useActionComposerState({
     [matchId, actorId],
   );
 
+  // F2: a COMPOSER send refused by the server (WS_ERROR, usually move_blocked) leaves the
+  // draft's `move` pointing at a destination the server just rejected — targets and weapon
+  // are unaffected by the refusal and stay. Drops only `move`, for the actor the refused
+  // send belonged to (not necessarily the one on screen right now, mirroring clearDraftFor).
+  const dropDraftMoveFor = useCallback(
+    (targetActorId: string) => {
+      if (!matchId) return;
+      const current = loadDraft(matchId, targetActorId);
+      if (!current.move) return;
+      const next: ActionDraft = { targets: current.targets, weapon: current.weapon };
+      saveDraft(matchId, targetActorId, next);
+      if (targetActorId === actorId) setDraft(next);
+    },
+    [matchId, actorId],
+  );
+
   return {
     draft,
     updateDraft,
@@ -135,5 +151,6 @@ export function useActionComposerState({
     toggleTarget,
     setDestination,
     clearDraftFor,
+    dropDraftMoveFor,
   };
 }

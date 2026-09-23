@@ -66,6 +66,27 @@ export function useLiveMapSync({ map, campaign, seedFromRest }: Options) {
     setLiveWalls((prev) => prev.map((w) => (w.id === wall.id ? wall : w)));
   }, []);
 
+  // F3: the server moves a piece by itself when a turn (or a Shift/passed-Dash escape
+  // reaction) opens — `piece_moved` carries a full piece, enough to upsert even when
+  // `livePieces` hasn't been seeded yet (the player page never seeds from REST) or when
+  // this is the first time this piece is visible to this viewer (it "enters" view).
+  const handlePieceMoved = useCallback((piece: Piece) => {
+    setLivePieces((prev) => {
+      const list = prev ?? [];
+      const idx = list.findIndex((p) => p.id === piece.id);
+      if (idx === -1) return [...list, piece];
+      const next = [...list];
+      next[idx] = piece;
+      return next;
+    });
+  }, []);
+
+  // F3: pairs with piece_moved — sent instead of it when the piece left this viewer's
+  // fog (still exists on the board, just no longer visible to them).
+  const handlePieceRemoved = useCallback((pieceId: string) => {
+    setLivePieces((prev) => (prev ? prev.filter((p) => p.id !== pieceId) : prev));
+  }, []);
+
   const npcMap = useMemo(() => {
     const m = new Map<string, CharacterPrivateSummary>();
     (campaign?.characterSheets ?? []).forEach((cs) => m.set(cs.uuid, cs));
@@ -82,5 +103,7 @@ export function useLiveMapSync({ map, campaign, seedFromRest }: Options) {
     handleMapFullState,
     handleVisibilityUpdated,
     handleWallRevealed,
+    handlePieceMoved,
+    handlePieceRemoved,
   };
 }

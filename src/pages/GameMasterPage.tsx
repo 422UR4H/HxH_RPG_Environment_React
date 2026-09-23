@@ -84,6 +84,8 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     handleMapFullState,
     handleVisibilityUpdated,
     handleWallRevealed,
+    handlePieceMoved,
+    handlePieceRemoved,
   } = useLiveMapSync({ map, campaign, seedFromRest: true });
   const [wallPicker, setWallPicker] = useState<WallSegment | null>(null);
 
@@ -112,6 +114,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   // `state` (só existe depois de `useMatchCombat`), e `useMatchCombat` precisa do
   // callback de limpeza do rascunho já na chamada.
   const onActionEnqueuedRef = useRef<(meta: ActionEnqueuedMeta) => void>(() => {});
+  const onActionRefusedRef = useRef<(actorId: string) => void>(() => {});
 
   const { state, status, send, dismissError, dismissCloseTurnDialog } = useMatchCombat({
     matchUuid: matchId,
@@ -124,7 +127,10 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     onMapFullState: handleMapFullState,
     onVisibilityUpdated: handleVisibilityUpdated,
     onWallRevealed: handleWallRevealed,
+    onPieceMoved: handlePieceMoved,
+    onPieceRemoved: handlePieceRemoved,
     onActionEnqueued: (_actionId, meta) => onActionEnqueuedRef.current(meta),
+    onActionRefused: (actorId) => onActionRefusedRef.current(actorId),
   });
 
   const {
@@ -139,6 +145,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     toggleTarget,
     setDestination,
     clearDraftFor,
+    dropDraftMoveFor,
   } = useActionComposerState({ matchId, actorId, boardPieces, state });
 
   // R28: idem GamePlayerPage.tsx — só limpa no ack de um envio do composer.
@@ -146,6 +153,10 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     if (!meta.clearsDraft) return;
     clearDraftFor(meta.actorId);
   };
+
+  // F2: idem GamePlayerPage.tsx — recusa do servidor derruba só o `move` do rascunho
+  // do NPC-ator que enviou.
+  onActionRefusedRef.current = (actorId) => dropDraftMoveFor(actorId);
 
   // M4: Declarar fica desabilitado enquanto há um envio do composer ainda sem ack para o
   // NPC-ator selecionado — evita reenfileirar em duplicidade num link lento.

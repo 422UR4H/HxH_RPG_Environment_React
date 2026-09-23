@@ -79,6 +79,16 @@ const COMBAT_TYPES = new Set([
   "round_closed", "round_mode_changed", "scene_changed", "close_turn_refused",
 ]);
 
+// F5: the match socket is the same `room.go` connection the lobby uses, so these
+// lobby/room broadcasts are legitimate here too (a player reconnecting mid-match still
+// gets room_state/player_joined et al) — they're just not acted on by this hook. Listed
+// so the DEV warn below stays meaningful for genuinely unknown types. See
+// internal/app/game/message.go for the authoritative type list.
+const IGNORED_LOBBY_TYPES = new Set([
+  "room_state", "player_joined", "master_joined", "player_left", "master_left",
+  "player_kicked", "chat_message", "match_started",
+]);
+
 type WallStateChangedPayload = {
   wallId: string;
   open: boolean;
@@ -106,6 +116,14 @@ type UseMatchWsOptions = {
   ) => void;
   /** Called when a secret door is revealed by the master. */
   onWallRevealed?: (wall: WallSegment) => void;
+  /**
+   * F3: called when the server moves a piece by itself (a turn's Move opening, or a
+   * Shift/passed-Dash escape reaction) — fog-gated per recipient, same pair the lobby
+   * already relays. Absent when the caller doesn't track live pieces (none today).
+   */
+  onPieceMoved?: (piece: Piece) => void;
+  /** F3: pairs with onPieceMoved — sent when the moved piece left this viewer's fog. */
+  onPieceRemoved?: (pieceId: string) => void;
   /** Server refusal (`error`). Never broadcast: it is always about our own last send. */
   onWsError?: (e: { code: string; message: string; sentType?: string }) => void;
   /** Called when a combat message is received from the server. */
@@ -127,6 +145,8 @@ export function useMatchWs({
   onMapFullState,
   onVisibilityUpdated,
   onWallRevealed,
+  onPieceMoved,
+  onPieceRemoved,
   onWsError,
   onCombatMessage,
   board,
@@ -143,6 +163,10 @@ export function useMatchWs({
   onVisibilityUpdatedRef.current = onVisibilityUpdated;
   const onWallRevealedRef = useRef(onWallRevealed);
   onWallRevealedRef.current = onWallRevealed;
+  const onPieceMovedRef = useRef(onPieceMoved);
+  onPieceMovedRef.current = onPieceMoved;
+  const onPieceRemovedRef = useRef(onPieceRemoved);
+  onPieceRemovedRef.current = onPieceRemoved;
   const onWsErrorRef = useRef(onWsError);
   onWsErrorRef.current = onWsError;
   const onCombatMessageRef = useRef(onCombatMessage);
@@ -237,6 +261,14 @@ export function useMatchWs({
           } else if (msg.type === "wall_revealed") {
             const p = msg.payload as { wall: Record<string, unknown> };
             onWallRevealedRef.current?.(p.wall as unknown as WallSegment);
+          } else if (msg.type === "piece_moved") {
+            // F3: same wire shape the lobby already parses (useLobbyWs.ts) — flat
+            // pieceId/slot, reused via fromPiecePayload/WirePiece above.
+            const p = msg.payload as WirePiece;
+            if (p.pieceId && p.slot) onPieceMovedRef.current?.(fromPiecePayload(p));
+          } else if (msg.type === "piece_removed") {
+            const p = msg.payload as { pieceId?: string };
+            if (p.pieceId) onPieceRemovedRef.current?.(p.pieceId);
           } else if (msg.type === "error") {
             const p = msg.payload as { code?: string; message?: string };
             onWsErrorRef.current?.({
@@ -249,6 +281,9 @@ export function useMatchWs({
             // empty arrays/objects combatMessages.ts's types promise, once, here — before
             // the reducer or any combat component ever sees this message.
             onCombatMessageRef.current?.(normalizeCombatMessage(msg));
+          } else if (IGNORED_LOBBY_TYPES.has(msg.type)) {
+            // F5: legitimate on this socket (see IGNORED_LOBBY_TYPES above), just not
+            // acted on here — not a warn-worthy "unhandled" type.
           } else if (import.meta.env.DEV) {
             console.warn("[match-ws] unhandled message type:", msg.type);
           }
