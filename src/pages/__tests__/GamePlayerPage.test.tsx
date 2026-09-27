@@ -618,4 +618,51 @@ describe("GamePlayerPage", () => {
       screen.getAllByRole("button", { name: /^(ação|ficha|inventário|nen)$/i }),
     ).toHaveLength(1);
   });
+
+  // F5: MatchCharactersSidebar sempre renderiza CharacterSidebarItem — um participante sem
+  // `private` (um NPC, aqui) usa só o dado público (toSidebarCharacter) e ganha o selo NPC.
+  it("Personagens do jogador: um NPC sem private mostra o card com o selo NPC (F5)", async () => {
+    server.use(
+      http.get(`${baseUrl}/matches/:id/participants`, () =>
+        HttpResponse.json({
+          participants: [
+            ...participantsFixture,
+            {
+              uuid: "p-npc",
+              joinedAt: "2026-06-01T00:00:00Z",
+              characterSheet: {
+                uuid: "npc-1",
+                nickName: "Guarda",
+                masterUuid: "master-1",
+                createdAt: "",
+                updatedAt: "",
+              },
+            },
+          ],
+        }),
+      ),
+    );
+    renderPlayerPage();
+    const ws = await waitForSocket();
+    act(() => ws.onopen?.());
+    // O NPC não é "meu" (sem playerUuid) — precisa de peça no tabuleiro pra entrar na lista
+    // (mesmo filtro de visibilidade do F6).
+    act(() =>
+      ws.emit("map_full_state", {
+        pieces: [
+          { pieceId: "piece-npc", slot: { kind: "square", col: 5, row: 5 }, characterId: "npc-1", visible: true, z: 0 },
+        ],
+        walls: [],
+        visiblePolygons: [],
+        fogMode: "explored",
+      }),
+    );
+
+    const toggle = await screen.findByRole("button", { name: "Ver histórico" });
+    act(() => toggle.click());
+    act(() => screen.getByRole("button", { name: "Personagens" }).click());
+
+    expect(await screen.findByTestId("character-row-npc-1")).toBeInTheDocument();
+    expect(screen.getByText("NPC")).toBeInTheDocument();
+  });
 });
