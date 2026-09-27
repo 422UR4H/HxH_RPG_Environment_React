@@ -236,6 +236,7 @@ git commit -m "feat(combate): hora do servidor no fio, npc_added, add_npc e chan
   - Toda variante de servidor em `CombatAction` aceita `at?: number` (hora do servidor, ms) e `receivedAt?: number` (hora local, ms).
   - `TableEvent` ganha `receivedAt: number` em todas as variantes; `at` passa a ser a hora do servidor quando houver (senão `Date.now()`).
   - `CombatState.openResolution: ResolutionPayload | null`.
+  - `CombatState.openQueued: QueuedAction | null` — a linha da fila que o `turn_opened` tirou (a ação em andamento continua visível no card da Fila, F7).
   - `match_full_state` zera `state.hp`.
 
 - [ ] **Step 1: tipos da resolução**
@@ -346,6 +347,26 @@ describe("combatReducer — resolução do turno aberto (F7)", () => {
   });
 });
 
+describe("combatReducer — a ação em andamento continua na Fila (F7)", () => {
+  const queued = (actionId: string): CombatAction => ({ type: "action_queued", payload: { actionId, actorId: "c1", bars: ["action"] } });
+
+  it("turn_opened guarda a linha que saiu da fila", () => {
+    const s = run([queued("a1"), opened("t1", "a1")]);
+    expect(s.queue).toHaveLength(0);
+    expect(s.openQueued).toMatchObject({ actionId: "a1", actorId: "c1" });
+  });
+
+  it("limpa no turn_closed do turno, no round_closed e no match_full_state", () => {
+    expect(run([queued("a1"), opened("t1", "a1"), closed("t1")]).openQueued).toBeNull();
+    expect(run([queued("a1"), opened("t1", "a1"), { type: "round_closed", payload: { roundMode: "Race" } }]).openQueued).toBeNull();
+    expect(run([queued("a1"), opened("t1", "a1"), { type: "match_full_state", payload: { roundMode: "Race" } }]).openQueued).toBeNull();
+  });
+
+  it("turn_opened de ação que não estava na fila deixa openQueued nulo", () => {
+    expect(run([opened("t1", "a9")]).openQueued).toBeNull();
+  });
+});
+
 describe("combatReducer — HP na reconexão", () => {
   it("match_full_state zera o HP ao vivo (o REST rebuscado vira a base)", () => {
     const s = run([
@@ -388,7 +409,8 @@ Em `combatReducer.ts`:
    `character_hp_changed`, `round_closed`, `round_mode_changed`, `scene_changed`). Dentro de
    `case`, `action` já está estreitado; `stampOf(action)` aceita porque toda variante de
    servidor tem `Stamp`.
-4. `CombatState`: `openResolution: ResolutionPayload | null;` e `initialCombatState.openResolution = null`.
+4. `CombatState`: `openResolution: ResolutionPayload | null;` e `openQueued: QueuedAction | null;`; `initialCombatState` com os dois `null`.
+   No `turn_opened`: `openQueued: state.queue.find((q) => q.actionId === actionId) ?? null,` (antes do filtro que tira a ação da fila). Limpar `openQueued` onde se limpa `openResolution` (itens 7 e 8 abaixo) e no `match_full_state` (`openQueued: null` — a linha não volta na reconexão; o card em andamento usa o `openTurn`).
 5. `match_full_state`: acrescentar ao objeto retornado
    ```ts
         openResolution: p.resolution && !p.resolution.isSettled ? p.resolution : null,
@@ -404,8 +426,8 @@ Em `combatReducer.ts`:
       }
    ```
    (substitui o `if (!action.payload.isSettled) return state;`).
-7. `turn_closed`: `openResolution: state.openResolution?.turnId === turnId ? null : state.openResolution,`
-8. `round_closed`: `openResolution: null,`
+7. `turn_closed`: `openResolution: state.openResolution?.turnId === turnId ? null : state.openResolution,` e `openQueued: state.openTurn?.turnId === turnId ? null : state.openQueued,`
+8. `round_closed`: `openResolution: null, openQueued: null,`
 
 - [ ] **Step 5: rodar e ver passar**
 
@@ -1061,6 +1083,7 @@ git commit -m "feat(combate): o mestre troca de cena (F8)"
 - Modify: `src/features/sheet/types/sheetMode.ts`
 - Modify: `src/features/sheet/CharacterSheetTemplate.tsx`
 - Create: `src/features/match/combat/MatchSheetPanel.tsx`
+- Modify: `src/components/templates/MatchStageTemplate.tsx` (`panelWide`)
 - Modify: `src/pages/GamePlayerPage.tsx`, `src/pages/GameMasterPage.tsx`
 - Test: `src/pages/__tests__/GamePlayerPage.test.tsx`, `src/pages/__tests__/GameMasterPage.test.tsx`
 
@@ -1068,6 +1091,7 @@ git commit -m "feat(combate): o mestre troca de cena (F8)"
 - Consumes: T5 (`ownPlayerUuid`), T2 (`state.hp`).
 - Produces:
   - `SheetMode.embedded?: boolean`; `export const MATCH_SHEET_MODE: SheetMode`.
+  - `MatchStageTemplate` prop `panelWide?: boolean` (o `PanelZone` expõe `data-wide`).
   - `MatchSheetPanel({ token, sheetUuid, liveHp, onClose }: { token: string; sheetUuid: string | undefined; liveHp?: { hp: number; maxHp: number }; onClose?: () => void })`.
 
 - [ ] **Step 1: testes que falham**
@@ -1100,6 +1124,11 @@ que ele mostra lendo o componente, sem editá-lo, e ajuste o matcher.)
     await user.click(screen.getByRole("button", { name: "Personagens" }));
     await user.click(await screen.findByTestId("character-row-c1"));
     expect(await screen.findByTestId("match-sheet")).toBeInTheDocument();
+    // o painel alarga só para a ficha, e a aba da direita continua em Personagens
+    expect(screen.getByTestId("match-panel")).toHaveAttribute("data-wide", "true");
+    expect(screen.getByRole("button", { name: "Personagens", pressed: true })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Fila/ }));
+    expect(screen.getByTestId("match-panel")).toHaveAttribute("data-wide", "false");
   });
 ```
 
@@ -1216,12 +1245,43 @@ const Close = styled.button`
 
 (Confira que `PanelHint` existe em `panelStyles.ts` — é usado por `MasterControls`.)
 
+- [ ] **Step 4b: o painel alarga para a ficha**
+
+Desenho do dono do produto: a ficha abre no painel, que hoje tem 340 px fixos a partir de
+`railUp` e não a comporta. Em `MatchStageTemplate.tsx`:
+
+```tsx
+type Props = {
+  // …as de hoje…
+  /** O painel mostra algo largo (a ficha): a coluna alarga a partir de `railUp`. */
+  panelWide?: boolean;
+};
+```
+
+Repassar para `PanelZone` como `$wide={panelWide}` e `data-wide={!!panelWide}`, e no estilo:
+
+```ts
+const PanelZone = styled.section<{ $open: boolean; $wide?: boolean }>`
+  /* …igual até o railUp… */
+  ${media.railUp} {
+    width: ${({ $wide }) => ($wide ? "clamp(340px, 46vw, 640px)" : "340px")};
+    max-height: none;
+    border-top: none;
+    border-right: 1px solid ${colors.surfaceInput};
+  }
+`;
+```
+
+Abaixo de `railUp` nada muda (a bottom sheet já tem a largura da tela). A largura final se
+confere no browser (a ficha usa container queries — ver `CharacterSheetTemplate`).
+
 - [ ] **Step 5: páginas**
 
 `GamePlayerPage`:
 - `type RailTab = "acao" | "ficha";`, `const [railActive, setRailActive] = useState<RailTab>("acao");`, handler igual ao do mestre (`handleRailSelect`: mesmo item alterna o painel; outro item troca e abre).
 - Rail: `[{ id: "acao", label: "Ação", icon: "⚔" }, { id: "ficha", label: "Ficha", icon: "📜" }]`.
 - `panel`: `railActive === "ficha" ? <MatchSheetPanel token={token} sheetUuid={actorId} liveHp={actorId ? state.hp[actorId] : undefined} /> : (…o painel de ação de hoje…)`.
+- `<MatchStageTemplate panelWide={railActive === "ficha"} …>`.
 - `MatchCharactersSidebar`: `ownPlayerUuid={user?.uuid}` e `onSelectCharacterSheet={() => { setRailActive("ficha"); setPanelOpen(true); }}` (o único card clicável do jogador é o dele; abrir a ficha do ator é o suficiente — se ele tiver dois personagens, `setChosenActor(sheetUuid)` antes).
 - Remover `useNavigate` e o `navigate`.
 - Em `handlePieceTap`/`handleSlotTap`/`handlePieceHold`, que hoje abrem o painel, trocar também para `setRailActive("acao")` — compor ação volta à aba Ação.
@@ -1230,7 +1290,8 @@ const Close = styled.button`
 - `type RailTab = "fila" | "agir" | "ficha";`, `const [sheetId, setSheetId] = useState<string | undefined>();`
 - Rail ganha `{ id: "ficha", label: "Ficha", icon: "📜" }`.
 - `panel`: ramo `railActive === "ficha"` → `<MatchSheetPanel token={token} sheetUuid={sheetId} liveHp={sheetId ? state.hp[sheetId] : undefined} onClose={() => setSheetId(undefined)} />`.
-- `onSelectCharacterSheet={(uuid) => { setSheetId(uuid); setRailActive("ficha"); setPanelOpen(true); }}`.
+- `onSelectCharacterSheet={(uuid) => { setSheetId(uuid); setRailActive("ficha"); setPanelOpen(true); }}` — o rail troca de item (é ali que a ficha mora); a aba da direita **não** muda.
+- `<MatchStageTemplate panelWide={railActive === "ficha"} …>`.
 - Remover `useNavigate` e o `navigate`.
 
 - [ ] **Step 6: rodar** — `npm run test -- src/pages src/features` → PASS. `npm run build` → sem erro.
@@ -1244,24 +1305,29 @@ git commit -m "feat(combate): a ficha abre dentro da partida, só leitura, com H
 
 ---
 
-### Task 9: F7 — o painel de resolução do mestre
+### Task 9: F7 — o cálculo do turno aberto, no card da ação na Fila
 
 **Files:**
-- Create: `src/features/match/combat/ResolutionPanel.tsx`
+- Create: `src/features/match/combat/ResolutionDetails.tsx`
 - Modify: `src/features/match/combat/combatText.ts`
+- Modify: `src/features/match/combat/QueuePanel.tsx` (card da ação em andamento)
 - Modify: `src/pages/GameMasterPage.tsx`
 - Test: `src/features/match/combat/__tests__/combatOrganisms.test.tsx`, `src/pages/__tests__/GameMasterPage.test.tsx`
 
 **Interfaces:**
-- Consumes: T2 (`ResolutionPayload` completo, `state.openResolution`).
-- Produces: `ResolutionPanel({ resolution, nameOf }: { resolution: ResolutionPayload | null; nameOf: (id: string) => string })`; `RUNG_LABELS` em `combatText.ts`.
+- Consumes: T2 (`ResolutionPayload` completo, `state.openResolution`, `state.openQueued`).
+- Produces: `ResolutionDetails({ resolution, nameOf }: { resolution: ResolutionPayload; nameOf: (id: string) => string })`; `RUNG_LABELS`, `REACTION_KIND_LABELS` em `combatText.ts`; `QueuePanel` ganha a prop `open?: { actorId: string; bars?: Bar[]; resolution: ResolutionPayload | null }`.
+
+**Desenho do dono do produto:** o cálculo não ganha item no rail. Ele aparece **anexado ao card
+da própria ação**, na Fila: a ação aberta continua na lista, no topo, marcada como em andamento,
+com os números embaixo. O desenho ainda vai ser refinado — faça simples e legível.
 
 - [ ] **Step 1: teste do organismo**
 
 Em `combatOrganisms.test.tsx`:
 
 ```tsx
-describe("ResolutionPanel", () => {
+describe("ResolutionDetails", () => {
   const res: ResolutionPayload = {
     turnId: "t1", isSettled: false,
     action: { skillName: "Accuracy", skillValue: 14, diceRolled: [6, 8], total: 20, isCritical: false, isCriticalFailure: false, margin: 3 },
@@ -1277,7 +1343,7 @@ describe("ResolutionPanel", () => {
   const nameOf = (id: string) => ({ c2: "Hisoka", c3: "Killua", c9: "Fantasma" }[id] ?? id);
 
   it("mostra acerto, alvo, reação, dano, reações pendentes e falta do motor", () => {
-    render(<ResolutionPanel resolution={res} nameOf={nameOf} />);
+    render(<ResolutionDetails resolution={res} nameOf={nameOf} />);
     expect(screen.getByText(/Accuracy/)).toBeInTheDocument();
     expect(screen.getByText(/6 \+ 8/)).toBeInTheDocument();
     expect(screen.getByText("Hisoka")).toBeInTheDocument();
@@ -1287,13 +1353,8 @@ describe("ResolutionPanel", () => {
     expect(screen.getByText(/incompleto/i)).toBeInTheDocument();
   });
 
-  it("sem resolução, diz que não há turno aberto", () => {
-    render(<ResolutionPanel resolution={null} nameOf={nameOf} />);
-    expect(screen.getByText(/Nenhum turno aberto/)).toBeInTheDocument();
-  });
-
   it("não tem botão nenhum (nasce só leitura)", () => {
-    render(<ResolutionPanel resolution={res} nameOf={nameOf} />);
+    render(<ResolutionDetails resolution={res} nameOf={nameOf} />);
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 });
@@ -1329,24 +1390,21 @@ import styled from "styled-components";
 import { colors, fonts } from "../../../styles/tokens";
 import type { ResolutionPayload } from "./combatMessages";
 import { REACTION_KIND_LABELS, RUNG_LABELS } from "./combatText";
-import { PanelHint, PanelTitle } from "./panelStyles";
 
 /**
  * O cálculo do turno aberto, que só o mestre recebe (F7). Nasce só leitura: dar a palavra a
  * uma reação é da Fase 7, editar é da Fase 8 — um botão antes disso não faria nada.
  */
-export default function ResolutionPanel({
+export default function ResolutionDetails({
   resolution,
   nameOf,
 }: {
-  resolution: ResolutionPayload | null;
+  resolution: ResolutionPayload;
   nameOf: (id: string) => string;
 }) {
-  if (!resolution) return <Wrap><PanelTitle>Turno</PanelTitle><PanelHint>Nenhum turno aberto.</PanelHint></Wrap>;
   const { action, targets, pendingReactions, errors } = resolution;
   return (
-    <Wrap aria-label="Resolução do turno">
-      <PanelTitle>Turno aberto</PanelTitle>
+    <Wrap aria-label="Cálculo do turno">
       {action && (
         <Block>
           <Label>Acerto</Label>
@@ -1405,10 +1463,10 @@ const Wrap = styled.section`
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 12px;
+  padding-top: 6px;
   color: ${colors.textPrimary};
   font-family: ${fonts.sans};
-  font-size: 13px;
+  font-size: 12px;
 `;
 const Block = styled.div`display: flex; flex-direction: column; gap: 2px;`;
 const Label = styled.span`font-size: 11px; color: ${colors.textPlaceholderStrong}; text-transform: uppercase;`;
@@ -1433,22 +1491,74 @@ const Warn = styled.div`
 
 (O teste procura `/10 → 7/`; o texto acima é "dano 10 → 7" — casa.)
 
-- [ ] **Step 5: página**
+- [ ] **Step 5: o card da ação em andamento, na Fila**
 
-`GameMasterPage`: `RailTab` ganha `"turno"`; item `{ id: "turno", label: "Turno", icon: "▶", badge: state.openTurn ? 1 : undefined }`
-(o `badge` numérico do `RailNav` serve de ponto); ramo do painel
-`railActive === "turno" → <ResolutionPanel resolution={state.openResolution} nameOf={nameOf} />`.
-**Não** trocar de aba sozinho quando um turno abrir (espírito de F11).
+Teste primeiro, em `combatOrganisms.test.tsx`:
 
-Teste de página: emitir `turn_opened` + `resolution_updated` (não liquidada) e, depois de clicar
-em "Turno", ver o nome do alvo.
+```tsx
+describe("QueuePanel — ação em andamento", () => {
+  it("mostra no topo o card da ação aberta, marcado, com o cálculo anexado", () => {
+    render(
+      <QueuePanel
+        queue={[{ actionId: "a2", actorId: "c3", bars: ["move"] }]}
+        open={{ actorId: "c1", bars: ["action"], resolution: res }}
+        nameOf={nameOf}
+        onPull={() => {}}
+      />,
+    );
+    const rows = screen.getAllByTestId(/queue-row|queue-open/);
+    expect(rows[0]).toHaveAttribute("data-testid", "queue-open");
+    expect(within(rows[0]).getByText(/em andamento/i)).toBeInTheDocument();
+    expect(within(rows[0]).getByText("Hisoka")).toBeInTheDocument();
+    expect(within(rows[0]).queryByRole("button")).not.toBeInTheDocument(); // sem "Abrir agora"
+  });
+
+  it("turno aberto ainda sem cálculo: o card aparece sem os números", () => {
+    render(<QueuePanel queue={[]} open={{ actorId: "c1", resolution: null }} nameOf={nameOf} onPull={() => {}} />);
+    expect(screen.getByTestId("queue-open")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Cálculo do turno")).not.toBeInTheDocument();
+  });
+});
+```
+
+(`res`/`nameOf`: os do `describe("ResolutionDetails")` — suba-os para o escopo do arquivo.
+`within` vem de `@testing-library/react`.)
+
+Em `QueuePanel.tsx`:
+- Nova prop `open?: { actorId: string; bars?: Bar[]; resolution: ResolutionPayload | null }`.
+- Com `open`, a lista começa por um card `data-testid="queue-open"` (mesmo `Row`, com borda de
+  destaque — `colors.pieceActiveTurn`, a cor do anel de "vez de" no mapa): nome do ator, as
+  barras (quando houver), o selo "em andamento", e, se `open.resolution`, o
+  `<ResolutionDetails resolution={open.resolution} nameOf={nameOf} />` embaixo. Sem botão.
+- A mensagem de fila vazia só aparece quando não há `queue` **nem** `open`.
+- Atualizar o comentário do componente: a fila mostra também a ação em andamento, com o
+  cálculo que só o mestre recebe.
+
+`GameMasterPage`, no `QueuePanel`:
+
+```tsx
+                open={
+                  state.openTurn
+                    ? {
+                        actorId: state.openTurn.actorId,
+                        bars: state.openQueued?.bars,
+                        resolution: state.openResolution,
+                      }
+                    : undefined
+                }
+```
+
+Sem item novo no rail, e sem trocar o item ativo quando um turno abre (espírito de F11).
+
+Teste de página: emitir `action_queued` (a1), `turn_opened` (a1) e `resolution_updated` não
+liquidado; no painel Fila, `queue-open` existe e mostra o nome do alvo.
 
 - [ ] **Step 6: rodar** → PASS.
 
 - [ ] **Step 7: commit**
 
 ```bash
-git add src/features/match/combat/ResolutionPanel.tsx src/features/match/combat/combatText.ts src/pages/GameMasterPage.tsx src/features/match/combat/__tests__/combatOrganisms.test.tsx src/pages/__tests__/GameMasterPage.test.tsx
+git add src/features/match/combat/ResolutionDetails.tsx src/features/match/combat/QueuePanel.tsx src/features/match/combat/combatText.ts src/pages/GameMasterPage.tsx src/features/match/combat/__tests__/combatOrganisms.test.tsx src/pages/__tests__/GameMasterPage.test.tsx
 git commit -m "feat(combate): o mestre vê o cálculo do turno aberto (F7)"
 ```
 
@@ -2175,18 +2285,19 @@ repassar alguma dessas props ao `TacticalMapStage`, acrescente o repasse (só o 
 ### Task 18: F14 — o mestre escolhe onde cai o escape que falhou (espera B13)
 
 **Files:** `combatMessages.ts` (resolução + verbo), `useMatchWs.ts`/`useMatchCombat.ts` (verbo),
-`ResolutionPanel.tsx`, `GameMasterPage.tsx`, testes.
+`ResolutionDetails.tsx`, `QueuePanel.tsx`, `GameMasterPage.tsx`, testes.
 
 - [ ] **Step 1: ler o contrato**: como `resolution_updated` marca o escape que falhou ("posição
   final a critério do mestre"), qual verbo o mestre manda para escolher o slot, e como ele aparece
   no histórico.
 - [ ] **Step 2: tipos + verbo (teste primeiro)** em `useMatchWs.test.ts`: o verbo manda o formato do
   contrato.
-- [ ] **Step 3: painel (teste primeiro).** `ResolutionPanel` ganha a prop opcional
+- [ ] **Step 3: card da ação em andamento (teste primeiro).** `ResolutionDetails` ganha a prop opcional
   `onChooseFallSlot?: (targetId: string) => void` e, para o alvo marcado, um destaque "Escape falhou
   — posição final a critério do mestre" com o botão "Escolher onde cai" (é o primeiro botão do
-  painel, e só aparece nesse caso; o painel continua sem botão nenhum fora dele). Mostrar o slot
-  já escolhido, se a resolução o trouxer.
+  cálculo, e só aparece nesse caso; fora dele o cálculo continua sem botão nenhum). `QueuePanel`
+  repassa `onChooseFallSlot` ao `ResolutionDetails` do card em andamento. Mostrar o slot já
+  escolhido, se a resolução o trouxer.
 - [ ] **Step 4: modo de escolha na página.** `const [choosingFall, setChoosingFall] =
   useState<string | null>(null)` (o `targetId`). Nesse modo: o ator é solto; `onEmptySlotClick`
   escolhe (`intentPreview` mostra o slot; um diálogo curto confirma e envia o verbo); `onPieceSelect`

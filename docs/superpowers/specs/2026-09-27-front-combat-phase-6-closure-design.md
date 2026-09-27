@@ -92,6 +92,12 @@ dessas tarefas; os nomes de campo exatos vêm do contrato.
 
 ## 4. Arquitetura — o que muda
 
+**Vocabulário da tela** (o do `MatchStageTemplate`): **rail** é a barra de botões — em pé à
+esquerda a partir de `railUp`, deitada no rodapé abaixo disso (Ação, Ficha; no mestre Fila,
+Agir, Ficha). **Painel** é o que o botão ativo abre — coluna ao lado do rail no desktop,
+bottom sheet no celular e no tablet em pé. **Aside** é a coluna/gaveta da direita (abas
+Histórico e Personagens). **Stage** é o mapa.
+
 A arquitetura da Fase 6 continua: um socket por partida (`useMatchWs`), um reducer puro
 (`combatReducer`), `useMatchCombat` ligando os dois, `useGameTable` com o que as duas páginas
 dividem, e as páginas como orquestradoras.
@@ -181,22 +187,28 @@ open`); a recusa, se vier, aparece no banner com o prefixo de `change_scene`.
   `BackButton` (ele navegaria para fora da partida) nem as ações de rodapé. Nenhum sub-modo novo:
   a ficha é a mesma de fora, só leitura. O `CharacterSheetHeader` (zona pixel-tuned) não é
   tocado.
-- **Onde:** na zona `panel` — coluna a partir de `railUp`, empilhada abaixo do mapa no celular
-  (é o que o template já faz com o painel). Componente `MatchSheetPanel`
+- **Onde (desenho do dono do produto):** no **painel**, no lugar de Ação/Fila — é mais um item
+  do rail, junto de Ação (e, quando existirem, Inventário e Nen). Abaixo de `railUp` é a mesma
+  bottom sheet em que a ação abre. Componente `MatchSheetPanel`
   (`src/features/match/combat/MatchSheetPanel.tsx`): busca a ficha (`useCharacterSheet`),
   sobrepõe o HP ao vivo (`state.hp[uuid]` → `status.health.current/max`) e renderiza o template
   com `MATCH_SHEET_MODE`, com um cabeçalho fino (nome + ×).
+- **O painel alarga para a ficha.** Hoje ele tem largura fixa (340 px a partir de `railUp`, em
+  `MatchStageTemplate`) e a ficha não cabe. O template ganha `panelWide?: boolean`; com ele, a
+  coluna passa a `clamp(340px, 46vw, 640px)`. A página liga `panelWide` só quando o item ativo
+  do rail é **Ficha**. Na bottom sheet (abaixo de `railUp`) a largura já é a da tela; a altura
+  continua a da ação. A largura final se ajusta na verificação no browser.
 - **Jogador:** o rail ganha o item **Ficha**, que abre a do ator atual. Tocar no próprio card
-  também abre.
+  também abre (e ativa o item Ficha).
 - **Mestre:** o rail ganha **Ficha**; tocar em qualquer card da aba Personagens abre aquela
-  ficha no painel e ativa o item. Sem ficha escolhida, o painel diz "Toque num personagem para
-  ver a ficha".
+  ficha no painel e ativa o item — o rail troca de item (é ali que a ficha mora), a aba da
+  direita não. Sem ficha escolhida, o painel diz "Toque num personagem para ver a ficha".
 - **Nenhum `navigate`** nas duas páginas.
 - **Resiliência:** a query da ficha é invalidada a cada `match_full_state` (o HP pode ter
   mudado enquanto a conexão estava caída; `character_hp_changed` perdido não volta), e o mapa
   `state.hp` é zerado no `match_full_state` — o REST recém-buscado vira a base de novo.
 
-### F7 — O painel de resolução do mestre (só leitura)
+### F7 — O cálculo do turno aberto, no card da ação (só leitura)
 
 - **Estado:** o reducer passa a guardar `openResolution: ResolutionPayload | null` — a última
   resolução **não liquidada** do turno aberto (`resolution_updated` com `isSettled: false` e
@@ -208,13 +220,22 @@ open`); a recusa, se vier, aparece no banner com o prefixo de `change_scene`.
   `rung?`, `margin`, `difference`, `stopsAttack`), `payouts?` e `errors?`. `normalizeResolution`
   não muda (`reaction`, `payouts`, `errors` e `pendingReactions` são `omitempty`: ausentes,
   nunca `null`).
-- **Tela:** `ResolutionPanel` (`src/features/match/combat/ResolutionPanel.tsx`) — acerto (perícia,
+- **A ação aberta continua na Fila.** Hoje `turn_opened` tira a ação da fila (`state.queue`) e
+  ela some da tela do mestre. O reducer passa a guardar a linha que saiu, `openQueued:
+  QueuedAction | null` (limpa com `openResolution`), e a Fila mostra no topo o card da ação
+  **em andamento** — marcado como aberto —, com o cálculo anexado a ele. Depois de uma
+  reconexão no meio do turno, a linha da fila não volta (o `match_full_state` só traz
+  `openTurn`); o card em andamento mostra o ator do `openTurn` e o cálculo, e com B1/B2 passa a
+  mostrar a declaração também.
+- **Tela:** `ResolutionDetails` (`src/features/match/combat/ResolutionDetails.tsx`), renderizado
+  **dentro do card em andamento** da `QueuePanel` — acerto (perícia,
   dados, total, crítico/falha crítica, margem quando houver); por alvo: nome, esquiva, defesa,
   tipo de reação e escada do repelir (`rung` em rótulo PT), dano bruto → aplicado a defesa →
   projetado, payouts em texto curto; as reações anexadas não abertas; os `errors` do motor como
   aviso discreto ("o cálculo deste alvo está incompleto"), com `detail` só em `title`.
-- **Onde:** rail do mestre ganha **Turno** (com um ponto quando há turno aberto). Nenhum botão —
-  dar a palavra é da Fase 7, editar da Fase 8 (documento mestre, F7).
+- **Sem item novo no rail.** O cálculo mora no card da ação, na Fila — desenho do dono do
+  produto, que ainda vai refiná-lo. Nenhum botão — dar a palavra é da Fase 7, editar da Fase 8
+  (documento mestre, F7).
 
 ### F4 — O histórico vem do servidor
 
@@ -240,9 +261,9 @@ open`); a recusa, se vier, aparece no banner com o prefixo de `change_scene`.
     derruba nada — a linha ao vivo fica até o próximo;
   - o **turno aberto** (`turn_opened` do turno que continua aberto) fica ao vivo até fechar;
   - **troca de cena, troca de regime e round fechado** ficam ao vivo e **não** são derrubados:
-    o REST de hoje não os guarda (documento mestre, F4/B15). Até B15 existem só na memória da
-    aba — recarregar os perde. Isso é "perder", não "divergir" (§0.2): ninguém passa a mostrar
-    algo que não aconteceu;
+    o REST de hoje não os guarda (documento mestre, F4/B15). **Na entrega final isso já está
+    resolvido:** B15 os persiste, a Parte 2 abaixo os lê do REST, e o PR deste fechamento só sai
+    depois do merge do back. O "só ao vivo" é o estado intermediário da Parte A;
   - ordenação por hora do servidor; empate: REST antes do ao vivo.
 - O reducer continua juntando eventos da mesa (`state.events`), agora com `at`/`receivedAt`, e
   para de ser a fonte da aba: `EventStream` recebe as linhas prontas.
@@ -359,7 +380,7 @@ troca de mapa numa partida iniciada e, se a recusa vier mesmo assim, mostra o `d
 
 ### F14 — O mestre escolhe onde cai o escape que falhou (espera B13)
 
-O `ResolutionPanel` (F7) destaca o alvo cujo escape falhou ("posição final a critério do
+O `ResolutionDetails` (F7, no card da ação em andamento) destaca o alvo cujo escape falhou ("posição final a critério do
 mestre"): **Escolher onde cai** põe o mapa do mestre em modo de escolha de slot (um toque num
 slot vazio escolhe; `Esc` ou × cancela), mostra o slot escolhido como fantasma de
 pré-visualização, e manda o verbo que o contrato de B13 definir como parte da resolução do
@@ -381,10 +402,10 @@ meio de cada coisa que esta fase entrega:**
 | Estado | Fonte | Recarregar | Reconectar | Servidor reinicia |
 |---|---|---|---|---|
 | Histórico (turnos) | REST | refaz o fetch | `match_full_state` invalida → refetch | o REST vem do banco — nada muda |
-| Histórico (cena/regime/round) | ao vivo até B15; REST depois | **perdido** até B15 (perder, não divergir) | mantido em memória | idem |
+| Histórico (cena/regime/round) | REST (B15) | refaz o fetch | `match_full_state` invalida → refetch | o REST vem do banco — nada muda |
 | HP ao vivo | `character_hp_changed` sobre REST | REST | `state.hp` zerado + participantes/ficha rebuscados (o HP perdido na queda volta pelo REST) | idem |
 | Ficha aberta | REST + HP ao vivo | aba não persiste (é UI) | ficha rebuscada | idem |
-| Resolução do turno aberto | `match_full_state.resolution` | volta | volta | o servidor perde a fila e o turno; `match_full_state` sem `openTurn` → painel limpa |
+| Cálculo do turno aberto (card em andamento) | `match_full_state.resolution` + `openTurn` | volta (sem a linha da fila até B1/B2) | idem | o servidor perde a fila e o turno; `match_full_state` sem `openTurn` → o card sai |
 | Barras (F6) | `bars_updated` com `seq` | volta por `match_full_state.bars` | idem | voltam zeradas — o servidor é a fonte, o cliente mostra o que vier |
 | Fila do mestre (F1) | `match_full_state.queue` | volta | volta | vazia, igual no servidor |
 | Declaradas do jogador | `localStorage` + reconciliação (F10) | reconciliadas na conexão | idem | as perdidas saem **com aviso** e o rascunho volta — **nunca** reenvio |
@@ -405,7 +426,9 @@ A verificação (§8) recarrega e reinicia no meio desses fluxos.
 | `src/features/match/combat/combatErrorMessages.ts` | prefixos `change_scene`, `add_npc`; códigos `not_found`, `invalid_npc` |
 | `src/features/match/combat/historyRows.ts` *(novo)* | árvore REST + eventos ao vivo → linhas |
 | `src/features/match/combat/EventStream.tsx` | renderiza linhas prontas |
-| `src/features/match/combat/ResolutionPanel.tsx` *(novo)* | F7 |
+| `src/features/match/combat/ResolutionDetails.tsx` *(novo)* | F7, dentro do card em andamento da `QueuePanel` |
+| `src/features/match/combat/QueuePanel.tsx` | card da ação em andamento no topo (F7) |
+| `src/components/templates/MatchStageTemplate.tsx` | `panelWide` (F3) |
 | `src/features/match/combat/CharacterBarsStrip.tsx` *(novo)* | F6 |
 | `src/features/match/combat/GeneralBar.tsx` | monta a faixa; chave nos chips |
 | `src/features/match/combat/SceneChangeDialog.tsx` *(novo)* | F8 |
@@ -437,10 +460,9 @@ painel sem `navigate`; painel de resolução; nova cena; histórico vindo do RES
 2. O NPC aparece no **Agir** do mestre e age (depende de B11 no back; antes do merge, registrar
    que a verificação espera o back).
 3. Um round com os dois jogadores e o NPC: declarar, abrir, a peça andar, fechar. A faixa de
-   barras mostra saldo, velocidades e média; **a ordem conferida pelos números** — os dados
-   caem no servidor e não dá para forçar 20/23/11 do exemplo canônico no browser; confere-se
-   que a ordem mostrada bate com a regra aplicada às velocidades mostradas (o exemplo canônico
-   está coberto pelos testes do `RoundScheduler` no back). Registrar isso no PR.
+   barras mostra saldo, velocidades e média, e a ordem mostrada bate com as velocidades
+   mostradas. (O dono do produto dispensou reproduzir o exemplo canônico 20/23/11 — os dados
+   caem no servidor; o que se exige é mostrar que funciona.)
 4. O jogador **não vê velocidade nenhuma** da própria ação antes de ela abrir.
 5. Ficha dentro da partida nas duas telas; HP da ficha andando com o dano.
 6. Histórico: fechar turnos, **recarregar a página** nas três telas no meio de um turno —
@@ -465,7 +487,8 @@ documento mestre §6A.5).
 | Decisão | Por quê |
 |---|---|
 | Arrastar do mestre vive num **modo Arrumar**, não sempre ligado (F12) | arraste e segurar brigam na mesma peça no toque; o modo separa sem tocar na zona pixel-tuned |
-| O painel de resolução ganha um item **Turno** no rail do mestre (F7) | a Fase 7 põe "dar a palavra" ali e F14 põe a escolha do slot — precisa de espaço próprio, não o topo da fila |
+| O cálculo do turno aberto aparece **no card da ação**, na Fila — sem item novo no rail (F7) | desenho do dono do produto, que ainda vai refiná-lo |
+| A ficha abre **no painel**, que alarga só para ela (F3) | desenho do dono do produto: Ficha é item do rail, junto de Ação, Inventário e Nen |
 | Inspecionar peça (mestre, sem ator) só marca o anel; não abre ficha nem troca aba (F11) | F11 pede que a navegação fique onde o usuário deixou; a ficha abre pelo card |
 | Sobreposição REST × WS pela **hora de início do fetch** (F4) | exata porque o servidor persiste antes de emitir; não depende de relógio do cliente vs servidor |
 | Eventos da mesa carimbados com a **hora do servidor** (envelope `timestamp`) | intercala REST e WS sem misturar relógios |
