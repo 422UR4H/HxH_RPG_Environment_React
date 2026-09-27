@@ -1,42 +1,50 @@
 import type {
   ActionEnqueuedPayload, BarsPayload, CloseTurnRefusedPayload, HpChangedPayload,
-  MatchFullStatePayload, QueuedAction, ResolutionPayload, RoundClosedPayload,
+  MatchFullStatePayload, MoveCategory, QueuedAction, ResolutionPayload, RoundClosedPayload,
   RoundModeChangedPayload, RoundMode, ScenePayload, TurnClosedPayload, TurnOpenedPayload,
 } from "./combatMessages";
 import type { WsError } from "./combatErrorMessages";
-
-export type Ghost = {
-  actorId: string;
-  from: [number, number, number];
-  to: [number, number, number];
-};
+import type { SlotTriple } from "../../tactical-map/utils/coords";
 
 /**
- * Final review, Important 2 / M3 (R28): um envio ainda sem ack, com metadados suficientes
- * para o hook saber, quando `action_enqueued` chegar, QUEM enviou (`actorId`) e se é o
- * composer (`clearsDraft: true`) ou um menu de parede (`clearsDraft: false`, R29) — sem
- * isto o rascunho errado (ou nenhum) seria limpo no ack.
+ * Uma ação que ESTE navegador declarou, do envio até o turno dela fechar. É o que só o dono
+ * conhece — o servidor nunca projeta a declaração de um jogador para a mesa — e é daqui que
+ * saem a lista "suas ações" e o fantasma do movimento pedido.
+ *
+ * `id` é local (`local-N`) até o `action_enqueued` devolver o `actionId` de verdade; os acks
+ * chegam na ordem dos envios, então o mais antigo ainda `sending` é sempre o do ack.
  */
-export type PendingSend = { localId: string; actorId: string; clearsDraft: boolean };
+export type DeclaredAction = {
+  id: string;
+  actorId: string;
+  status: "sending" | "queued" | "open";
+  turnId?: string;
+  move?: { category: MoveCategory; from?: SlotTriple; to: SlotTriple };
+  attack?: { targets: string[]; weapon?: string };
+  /** Interação com parede (menu de parede), não vem do compositor. */
+  interact?: { kind: string; targets: string[] };
+  /** Envio do compositor: o ack limpa o rascunho do ator. */
+  fromComposer: boolean;
+  at: number;
+};
 
 export type TableEvent =
-  | { kind: "turn_opened"; at: number; turnId: string; actorId: string }
-  | { kind: "turn_closed"; at: number; turnId: string; resolution?: ResolutionPayload }
+  | { kind: "turn_opened"; at: number; turnId: string; actorId: string; mine?: DeclaredAction }
+  | { kind: "turn_closed"; at: number; turnId: string; actorId?: string; resolution?: ResolutionPayload }
   | { kind: "round_closed"; at: number; roundMode: RoundMode }
   | { kind: "round_mode_changed"; at: number; mode: RoundMode }
   | { kind: "scene_changed"; at: number; scene: ScenePayload }
-  | { kind: "hp_changed"; at: number; characterId: string; hp: number; damage: number };
+  | { kind: "hp_changed"; at: number; characterId: string; hp: number; maxHp: number; damage: number };
 
 export type CombatState = {
   scene?: ScenePayload;
   roundMode: RoundMode | "";
   bars: BarsPayload | null;
   openTurn: { turnId: string; actorId: string; actionId?: string } | null;
+  /** A fila secreta — só chega ao mestre. */
   queue: QueuedAction[];
   hp: Record<string, { hp: number; maxHp: number }>;
-  ghosts: Record<string, Ghost>;
-  /** FIFO de envios ainda sem ack — acks chegam na ordem de envio (R2). */
-  pendingSends: PendingSend[];
+  declared: DeclaredAction[];
   events: TableEvent[];
   pendingCloseTurn: CloseTurnRefusedPayload | null;
   lastError: WsError | null;
@@ -48,8 +56,7 @@ export const initialCombatState: CombatState = {
   openTurn: null,
   queue: [],
   hp: {},
-  ghosts: {},
-  pendingSends: [],
+  declared: [],
   events: [],
   pendingCloseTurn: null,
   lastError: null,
@@ -68,7 +75,8 @@ export type CombatAction =
   | { type: "round_mode_changed"; payload: RoundModeChangedPayload }
   | { type: "scene_changed"; payload: ScenePayload }
   | { type: "close_turn_refused"; payload: CloseTurnRefusedPayload }
-  | { type: "ACTION_SENT"; payload: { localId: string; actorId: string; clearsDraft: boolean; ghost?: Ghost } }
+  | { type: "ACTION_SENT"; payload: DeclaredAction }
+  | { type: "DECLARED_DISMISSED"; payload: { ids: string[] } }
   | { type: "WS_ERROR"; payload: WsError }
   | { type: "ERROR_DISMISSED" }
   | { type: "CLOSE_TURN_DIALOG_DISMISSED" };
@@ -87,8 +95,8 @@ function acceptBars(state: CombatState, incoming: BarsPayload | undefined): Bars
   return incoming;
 }
 
-function withoutGhostsOfActor(ghosts: Record<string, Ghost>, actorId: string) {
-  return Object.fromEntries(Object.entries(ghosts).filter(([, g]) => g.actorId !== actorId));
+function oldestSendingIndex(declared: DeclaredAction[]): number {
+  return declared.findIndex((d) => d.status === "sending");
 }
 
 export function combatReducer(state: CombatState, action: CombatAction): CombatState {
@@ -96,14 +104,11 @@ export function combatReducer(state: CombatState, action: CombatAction): CombatS
     case "match_full_state": {
       const p = action.payload;
       const openTurn = p.openTurn ? { ...p.openTurn } : null;
-      // Final review, Important 2(d): match_full_state só chega num registro novo — socket
-      // novo. Um envio ainda pendente na hora da queda pertencia ao socket ANTERIOR; seu
-      // ack/error nunca vai chegar por este. pendingSends inteiro e todo fantasma ainda
-      // provisório (chave `local-*`, sem actionId de verdade) são descartados — um
-      // fantasma já confirmado (chaveado por actionId) sobrevive, e a varredura por ator
-      // abaixo ainda se aplica em cima do que sobrou.
-      const ghostsAfterReconnect = Object.fromEntries(
-        Object.entries(state.ghosts).filter(([id]) => !id.startsWith("local-")),
+      // Um registro novo é um socket novo: o ack (ou erro) de um envio feito pelo socket
+      // anterior nunca vai chegar por este. E um turno "meu" que estava aberto e não é mais
+      // o turno aberto fechou enquanto eu estava fora.
+      const declared = state.declared.filter(
+        (d) => d.status === "queued" || (d.status === "open" && d.turnId === openTurn?.turnId),
       );
       return {
         ...state,
@@ -112,101 +117,80 @@ export function combatReducer(state: CombatState, action: CombatAction): CombatS
         bars: acceptBars(state, p.bars),
         openTurn,
         queue: p.queue ?? [],
-        pendingSends: [],
-        // O snapshot não traz actionId (§15 do spec): varre por ator, que é conservador.
-        ghosts: openTurn
-          ? withoutGhostsOfActor(ghostsAfterReconnect, openTurn.actorId)
-          : ghostsAfterReconnect,
+        declared,
       };
     }
 
     case "bars_updated":
       return { ...state, bars: acceptBars(state, action.payload) };
 
-    case "ACTION_SENT": {
-      const { localId, actorId, clearsDraft, ghost } = action.payload;
-      return {
-        ...state,
-        pendingSends: [...state.pendingSends, { localId, actorId, clearsDraft }],
-        ghosts: ghost ? { ...state.ghosts, [localId]: ghost } : state.ghosts,
-      };
-    }
+    case "ACTION_SENT":
+      return { ...state, declared: [...state.declared, action.payload] };
 
     case "action_enqueued": {
-      // Acks chegam em ordem de envio (FIFO): reindexa sempre o envio mais ANTIGO ainda
-      // pendente, nunca "o último fantasma" (R2) — senão um envio sem movimento seguido de
-      // um com movimento rouba o fantasma do segundo.
-      const [oldest, ...rest] = state.pendingSends;
-      if (oldest === undefined) return state;
-      const ghost = state.ghosts[oldest.localId];
-      if (!ghost) return { ...state, pendingSends: rest };
-      const { [oldest.localId]: _gone, ...others } = state.ghosts;
-      return {
-        ...state,
-        pendingSends: rest,
-        ghosts: { ...others, [action.payload.actionId]: ghost },
-      };
+      const i = oldestSendingIndex(state.declared);
+      if (i < 0) return state;
+      const declared = [...state.declared];
+      declared[i] = { ...declared[i], id: action.payload.actionId, status: "queued" };
+      return { ...state, declared };
+    }
+
+    case "DECLARED_DISMISSED": {
+      const ids = new Set(action.payload.ids);
+      return { ...state, declared: state.declared.filter((d) => !ids.has(d.id)) };
     }
 
     case "action_queued":
       return { ...state, queue: [...state.queue, action.payload] };
 
     case "turn_opened": {
-      const { [action.payload.actionId]: _gone, ...ghosts } = state.ghosts;
+      const { turnId, actorId, actionId } = action.payload;
+      const mine = state.declared.find((d) => d.id === actionId);
       return {
         ...state,
         openTurn: action.payload,
-        ghosts,
-        queue: state.queue.filter((q) => q.actionId !== action.payload.actionId),
-        events: push(state.events, {
-          kind: "turn_opened",
-          at: Date.now(),
-          turnId: action.payload.turnId,
-          actorId: action.payload.actorId,
-        }),
+        declared: state.declared.map((d) =>
+          d.id === actionId ? { ...d, status: "open" as const, turnId } : d,
+        ),
+        queue: state.queue.filter((q) => q.actionId !== actionId),
+        events: push(state.events, { kind: "turn_opened", at: Date.now(), turnId, actorId, mine }),
       };
     }
 
     case "turn_closed": {
-      const existing = state.events.find(
-        (e) => e.kind === "turn_closed" && e.turnId === action.payload.turnId,
-      );
+      const { turnId } = action.payload;
+      const actorId = state.openTurn?.turnId === turnId ? state.openTurn.actorId : undefined;
+      const existing = state.events.some((e) => e.kind === "turn_closed" && e.turnId === turnId);
       return {
         ...state,
-        openTurn: null,
+        openTurn: state.openTurn?.turnId === turnId ? null : state.openTurn,
         pendingCloseTurn: null,
+        declared: state.declared.filter((d) => d.turnId !== turnId),
         events: existing
-          ? state.events
-          : push(state.events, {
-              kind: "turn_closed",
-              at: Date.now(),
-              turnId: action.payload.turnId,
-            }),
+          ? state.events.map((e) =>
+              e.kind === "turn_closed" && e.turnId === turnId && !e.actorId ? { ...e, actorId } : e,
+            )
+          : push(state.events, { kind: "turn_closed", at: Date.now(), turnId, actorId }),
       };
     }
 
     case "resolution_updated": {
-      // M8 (final review): só a resolução LIQUIDADA vira linha de histórico. A de turno
-      // aberto é o cálculo provisório do servidor — nenhum painel exibe esse valor não
-      // liquidado nesta fase (não é um dado que o mestre já vê em algum lugar; ele só
-      // passa por aqui de propósito, até a versão settled chegar).
+      // Só a resolução LIQUIDADA vira linha de histórico: a de turno aberto é o cálculo
+      // provisório do mestre, e o histórico conta o que aconteceu.
       if (!action.payload.isSettled) return state;
-      const idx = state.events.findIndex(
-        (e) => e.kind === "turn_closed" && e.turnId === action.payload.turnId,
-      );
+      const turnId = action.payload.turnId;
+      const idx = state.events.findIndex((e) => e.kind === "turn_closed" && e.turnId === turnId);
       if (idx >= 0) {
         const events = [...state.events];
         events[idx] = { ...(events[idx] as Extract<TableEvent, { kind: "turn_closed" }>), resolution: action.payload };
         return { ...state, events };
       }
       // Chegou antes do turn_closed — a ordem entre os dois não é promessa (contrato).
+      const actorId = state.openTurn?.turnId === turnId ? state.openTurn.actorId : undefined;
       return {
         ...state,
         events: push(state.events, {
-          kind: "turn_closed",
-          at: Date.now(),
-          turnId: action.payload.turnId,
-          resolution: action.payload,
+          kind: "turn_closed", at: Date.now(), turnId, actorId, resolution: action.payload,
         }),
       };
     }
@@ -217,51 +201,34 @@ export function combatReducer(state: CombatState, action: CombatAction): CombatS
         ...state,
         hp: { ...state.hp, [p.characterId]: { hp: p.hp, maxHp: p.maxHp } },
         events: push(state.events, {
-          kind: "hp_changed",
-          at: Date.now(),
-          characterId: p.characterId,
-          hp: p.hp,
-          damage: p.damage,
+          kind: "hp_changed", at: Date.now(), characterId: p.characterId,
+          hp: p.hp, maxHp: p.maxHp, damage: p.damage,
         }),
       };
     }
 
+    // O fim do round e a troca de cena não mexem na fila (`settleBars`/`ChangeScene` no
+    // servidor): uma ação declarada que ainda não abriu continua valendo no round seguinte,
+    // e o fantasma dela continua no mapa.
     case "round_closed":
       return {
         ...state,
         openTurn: null,
-        ghosts: {},
-        events: push(state.events, {
-          kind: "round_closed",
-          at: Date.now(),
-          roundMode: action.payload.roundMode,
-        }),
+        events: push(state.events, { kind: "round_closed", at: Date.now(), roundMode: action.payload.roundMode }),
       };
 
     case "round_mode_changed":
       return {
         ...state,
         roundMode: action.payload.mode,
-        events: push(state.events, {
-          kind: "round_mode_changed",
-          at: Date.now(),
-          mode: action.payload.mode,
-        }),
+        events: push(state.events, { kind: "round_mode_changed", at: Date.now(), mode: action.payload.mode }),
       };
 
     case "scene_changed":
-      // R30 (final review, M5): nem o spec §5 nem o contrato pedem para scene_changed
-      // esvaziar queue/openTurn — e o servidor não troca de cena com turno aberto na Fase
-      // 6, então era inalcançável. Só cena e fantasmas mudam aqui.
       return {
         ...state,
         scene: action.payload,
-        ghosts: {},
-        events: push(state.events, {
-          kind: "scene_changed",
-          at: Date.now(),
-          scene: action.payload,
-        }),
+        events: push(state.events, { kind: "scene_changed", at: Date.now(), scene: action.payload }),
       };
 
     case "close_turn_refused":
@@ -271,10 +238,17 @@ export function combatReducer(state: CombatState, action: CombatAction): CombatS
       return { ...state, pendingCloseTurn: null };
 
     case "WS_ERROR": {
-      if (action.payload.sentType === "enqueue_action" && state.pendingSends.length > 0) {
-        const [oldest, ...rest] = state.pendingSends;
-        const { [oldest.localId]: _gone, ...ghosts } = state.ghosts;
-        return { ...state, lastError: action.payload, pendingSends: rest, ghosts };
+      // `error` é sempre sobre o último envio deste socket; se foi um enqueue, o envio mais
+      // antigo ainda sem ack é o recusado.
+      if (action.payload.sentType === "enqueue_action") {
+        const i = oldestSendingIndex(state.declared);
+        if (i >= 0) {
+          return {
+            ...state,
+            lastError: action.payload,
+            declared: state.declared.filter((_, j) => j !== i),
+          };
+        }
       }
       return { ...state, lastError: action.payload };
     }
@@ -285,4 +259,12 @@ export function combatReducer(state: CombatState, action: CombatAction): CombatS
     default:
       return state;
   }
+}
+
+/** Os movimentos pedidos que ainda não aconteceram — o fantasma no mapa. */
+export function pendingMoves(declared: DeclaredAction[]): Array<DeclaredAction & { move: NonNullable<DeclaredAction["move"]> }> {
+  return declared.filter(
+    (d): d is DeclaredAction & { move: NonNullable<DeclaredAction["move"]> } =>
+      !!d.move && d.status !== "open",
+  );
 }

@@ -617,8 +617,8 @@ describe("useMatchWs outgoing actions", () => {
     const ws = flushConnect();
     act(() => { ws.onopen?.(); });
     const payload = {
-      targetIds: ["char-1", "char-2"],
-      attack: { weapon: "punch" },
+      targetIds: ["wall-1", "wall-2"],
+      interact: { kind: "reveal" },
     };
     act(() => { result.current.sendMasterAction(payload); });
     const sent = JSON.parse(ws.send.mock.calls[0][0] as string);

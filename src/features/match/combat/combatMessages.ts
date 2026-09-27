@@ -118,3 +118,13 @@ export type EnqueueActionPayload = {
   };
   interact?: { kind: string };
 };
+
+/**
+ * `enqueue_master_action`. Nesta fase só o menu de parede o usa (revelar/interagir): `move`
+ * e `attack` ainda não são mapeados pelo servidor — o mestre age por NPC com
+ * `enqueue_action`.
+ */
+export type MasterActionPayload = {
+  targetIds: string[];
+  interact: { kind: string };
+};

@@ -1,265 +1,238 @@
-import styled from "styled-components";
-import { colors, fonts } from "../../../styles/tokens";
 import type { CombatCatalogue } from "../../../services/characterSheetsService";
-import type { ActionDraft } from "./actionDraft";
-import { migrateTargets } from "./actionDraft";
-import type { EnqueueActionPayload, MoveCategory } from "./combatMessages";
+import type { GridKind } from "../../../types/tacticalMap";
+import {
+  removeTarget, setMoveCategory, setWeapon, toggleAttack, toggleMove,
+} from "./actionDraft";
+import type { ActionDraft, DraftKind, DraftVerdict, ResolvedDraft } from "./actionDraft";
+import type { MoveCategory } from "./combatMessages";
+import { formatSlot, humanWeapon } from "./combatText";
+import * as S from "./ActionComposer.styles";
 
-const MOVE_CATEGORIES: MoveCategory[] = ["Dash", "Shift"];
+const MOVE_CATEGORIES: Array<{ value: MoveCategory; label: string; hint: string }> = [
+  { value: "Dash", label: "Dash", hint: "corrida — rola a velocidade" },
+  { value: "Shift", label: "Shift", hint: "passo firme — não rola" },
+];
+
+const DECLARE_LABELS: Record<DraftKind, string> = {
+  move: "Declarar movimento",
+  attack: "Declarar ataque",
+  combined: "Declarar movimento + ataque",
+};
+
+const NOT_READY_HINTS: Record<Exclude<DraftVerdict, { ready: true }>["reason"], string> = {
+  empty: "Toque num espaço vazio do mapa para se mover, ou em alguém para atacar.",
+  needs_destination: "Toque num espaço do mapa para escolher o destino — ou desligue Mover.",
+  needs_target: "Toque em alguém no mapa para marcar o alvo — ou desligue Atacar.",
+};
 
 /**
- * Bottom sheet de compor ação (T11). Sem campo de perícia — o `hit` é derivado pelo
- * servidor (§11.1 do doc mestre). Nenhum `isMaster` aqui (I2): a página decide quem pode
- * abrir isto e para qual ator.
+ * O painel de compor uma ação. Mover e Atacar são interruptores independentes — nenhum vem
+ * ligado: a ação declarada é o que estiver ligado (só movimento, só ataque, ou os dois numa
+ * ação combinada). O mapa liga cada um sozinho: tocar num espaço vazio escolhe o destino,
+ * tocar em alguém escolhe o alvo. Sem campo de perícia — o servidor deriva o acerto.
+ *
+ * Nenhum `isMaster` aqui: a página decide quem pode compor e para qual ator.
  */
 export default function ActionComposer({
-  actorId,
   actorName,
-  actorSlot,
-  draft,
-  catalogue,
-  defaultCategory = "Dash",
-  nameOf = (id: string) => id,
-  onDraftChange,
-  onSubmit,
+  actors,
+  actorId,
+  onActorChange,
   onClearActor,
-  canSubmit = true,
+  draft,
+  resolved,
+  verdict,
+  catalogue,
+  gridKind,
+  defaultCategory,
+  nameOf,
+  onDraftChange,
+  onDeclare,
+  canDeclare,
+  blockedReason,
 }: {
-  actorId: string;
   actorName: string;
-  actorSlot?: [number, number, number];
-  draft: ActionDraft;
-  catalogue: CombatCatalogue;
-  /** Exibição do radio desabilitado quando não há destino ainda — vem de `defaultMoveCategory(state)`. */
-  defaultCategory?: MoveCategory;
-  /** Alvos são UUIDs de sheet ou de parede (R4); isto só traduz para exibição. */
-  nameOf?: (id: string) => string;
-  onDraftChange: (draft: ActionDraft) => void;
-  onSubmit: (payload: EnqueueActionPayload) => void;
+  /** Mais de um personagem para agir (o jogador com duas fichas na partida): vira seletor. */
+  actors?: Array<{ id: string; name: string }>;
+  actorId?: string;
+  onActorChange?: (id: string) => void;
   onClearActor?: () => void;
-  /**
-   * Final review, Important 2(b)/M4: a página combina "socket conectado" (status ===
-   * "connected") e "sem envio do composer ainda pendente para este ator" (evita duplicar
-   * o enqueue num link lento) num único booleano. Default true preserva o comportamento
-   * anterior para qualquer chamador que ainda não passa isto.
-   */
-  canSubmit?: boolean;
+  draft: ActionDraft;
+  resolved: ResolvedDraft;
+  verdict: DraftVerdict;
+  catalogue?: CombatCatalogue;
+  gridKind: GridKind;
+  defaultCategory: MoveCategory;
+  nameOf: (characterId: string) => string;
+  onDraftChange: (next: ActionDraft) => void;
+  onDeclare: () => void;
+  /** Conexão viva e nenhum envio deste ator esperando resposta. */
+  canDeclare: boolean;
+  /** Por que não dá para declarar agora, quando o motivo não é o rascunho. */
+  blockedReason?: string;
 }) {
-  const selectedWeapon = draft.weapon ?? "Fist";
-  const hasDestination = draft.move !== undefined;
-  const canDeclare = (draft.targets.length > 0 || draft.move !== undefined) && canSubmit;
-
-  function handleRemoveTarget(id: string) {
-    onDraftChange(migrateTargets(draft, draft.targets.filter((t) => t !== id)));
-  }
-
-  function handleWeaponChange(name: string) {
-    onDraftChange({ ...draft, weapon: name });
-  }
-
-  function handleCategoryChange(category: MoveCategory) {
-    if (!draft.move) return;
-    onDraftChange({ ...draft, move: { category, to: draft.move.to } });
-  }
-
-  function handleClearDestination() {
-    const { move: _move, ...rest } = draft;
-    onDraftChange(rest);
-  }
-
-  function handleSubmit() {
-    const payload: EnqueueActionPayload = {
-      actorId,
-      ...(draft.targets.length ? { targetId: draft.targets } : {}),
-      ...(draft.weapon || draft.targets.length
-        ? { attack: { ...(draft.weapon ? { weapon: draft.weapon } : {}) } }
-        : {}),
-      ...(draft.move
-        ? {
-            move: {
-              category: draft.move.category,
-              ...(actorSlot ? { from: actorSlot } : {}),
-              position: draft.move.to,
-            },
-          }
-        : {}),
-    };
-    onSubmit(payload);
-  }
+  const move = resolved.move;
+  const attack = resolved.attack;
+  const moveOn = move !== undefined;
+  const attackOn = attack !== undefined;
+  const category = move?.category ?? draft.category ?? defaultCategory;
+  const selectedWeapon = attack?.weapon ?? "Fist";
+  const primaryTarget = attack?.targets[0];
+  const farTarget =
+    attackOn && primaryTarget && resolved.targetSteps !== undefined && resolved.targetSteps > 1;
 
   return (
-    <Sheet>
-      <ActorRow>
-        <ActorName>{actorName}</ActorName>
-        {onClearActor && (
-          <ClearButton type="button" aria-label="Limpar ator" onClick={onClearActor}>
-            ×
-          </ClearButton>
-        )}
-      </ActorRow>
-
-      <TargetList>
-        {draft.targets.map((id) => {
-          const label = nameOf(id);
-          return (
-            <TargetChip key={id}>
-              <span>{label}</span>
-              <ClearButton
-                type="button"
-                aria-label={`Remover ${label}`}
-                onClick={() => handleRemoveTarget(id)}
-              >
-                ×
-              </ClearButton>
-            </TargetChip>
-          );
-        })}
-      </TargetList>
-
-      <Fieldset>
-        <legend>Arma</legend>
-        {catalogue.weapons.map((weapon) => (
-          <WeaponLabel key={weapon.name}>
-            <input
-              type="radio"
-              name="weapon"
-              value={weapon.name}
-              checked={selectedWeapon === weapon.name}
-              onChange={() => handleWeaponChange(weapon.name)}
-            />
-            {weapon.name} — {weapon.dice.map((d) => `d${d}`).join("+")}
-            {weapon.flatDamage ? ` +${weapon.flatDamage}` : ""} · proficiência{" "}
-            {weapon.proficiencyLevel}
-          </WeaponLabel>
-        ))}
-      </Fieldset>
-
-      <Fieldset>
-        <legend>Movimento</legend>
-        {MOVE_CATEGORIES.map((category) => (
-          <MoveLabel key={category}>
-            <input
-              type="radio"
-              name="moveCategory"
-              value={category}
-              disabled={!hasDestination}
-              checked={hasDestination ? draft.move!.category === category : defaultCategory === category}
-              onChange={() => handleCategoryChange(category)}
-            />
-            {category}
-          </MoveLabel>
-        ))}
-        {hasDestination ? (
-          <Destination>
-            Destino: ({draft.move!.to.join(", ")})
-            <ClearButton type="button" aria-label="Limpar destino" onClick={handleClearDestination}>
-              ×
-            </ClearButton>
-          </Destination>
+    <S.Sheet aria-label="Compor ação">
+      <S.Header>
+        {actors && actors.length > 1 && onActorChange ? (
+          <S.ActorLabel as="label">
+            Agindo como{" "}
+            <S.ActorSelect aria-label="Personagem" value={actorId} onChange={(e) => onActorChange(e.target.value)}>
+              {actors.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
+              ))}
+            </S.ActorSelect>
+          </S.ActorLabel>
         ) : (
-          <Hint>clique num espaço livre para escolher o destino</Hint>
+          <S.ActorLabel>
+            Agindo como <strong>{actorName}</strong>
+          </S.ActorLabel>
         )}
-      </Fieldset>
+        {onClearActor && (
+          <S.IconButton type="button" aria-label="Soltar ator" title="Soltar ator" onClick={onClearActor}>
+            ×
+          </S.IconButton>
+        )}
+      </S.Header>
 
-      <DeclareButton type="button" disabled={!canDeclare} onClick={handleSubmit}>
-        Declarar
-      </DeclareButton>
-    </Sheet>
+      <S.Toggles role="group" aria-label="O que fazer">
+        <S.Toggle
+          type="button"
+          $tone="move"
+          aria-pressed={moveOn}
+          onClick={() => onDraftChange(toggleMove(draft, resolved))}
+        >
+          <S.ToggleIcon aria-hidden>➜</S.ToggleIcon>
+          Mover
+        </S.Toggle>
+        <S.Toggle
+          type="button"
+          $tone="attack"
+          aria-pressed={attackOn}
+          onClick={() => onDraftChange(toggleAttack(draft))}
+        >
+          <S.ToggleIcon aria-hidden>⚔</S.ToggleIcon>
+          Atacar
+        </S.Toggle>
+      </S.Toggles>
+
+      {moveOn && (
+        <S.Section $tone="move" aria-label="Movimento">
+          <S.SectionRow>
+            {move.to ? (
+              <S.Detail data-testid="move-destination">
+                Destino: {formatSlot(move.to, gridKind)}
+                {move.auto && primaryTarget && (
+                  <S.Muted> — ao lado de {nameOf(primaryTarget)}</S.Muted>
+                )}
+              </S.Detail>
+            ) : (
+              <S.Hint>Toque num espaço do mapa para escolher o destino.</S.Hint>
+            )}
+          </S.SectionRow>
+          <S.Segmented role="radiogroup" aria-label="Tipo de movimento">
+            {MOVE_CATEGORIES.map((c) => (
+              <S.Segment
+                key={c.value}
+                type="button"
+                role="radio"
+                aria-checked={category === c.value}
+                title={c.hint}
+                onClick={() => onDraftChange(setMoveCategory(draft, c.value))}
+              >
+                {c.label}
+              </S.Segment>
+            ))}
+          </S.Segmented>
+          {move.auto && (
+            <S.Muted>Ataque à distância? Desligue Mover e ataque de onde está.</S.Muted>
+          )}
+        </S.Section>
+      )}
+
+      {attackOn && (
+        <S.Section $tone="attack" aria-label="Ataque">
+          {attack.targets.length > 0 ? (
+            <S.Chips aria-label="Alvos">
+              {attack.targets.map((id) => {
+                const label = nameOf(id);
+                return (
+                  <S.Chip key={id}>
+                    {label}
+                    <S.IconButton
+                      type="button"
+                      aria-label={`Remover ${label}`}
+                      onClick={() => onDraftChange(removeTarget(draft, id))}
+                    >
+                      ×
+                    </S.IconButton>
+                  </S.Chip>
+                );
+              })}
+            </S.Chips>
+          ) : (
+            <S.Hint>Toque em alguém no mapa para marcar o alvo · segure para marcar vários.</S.Hint>
+          )}
+          {farTarget && !moveOn && (
+            <S.Muted>
+              {resolved.approachBlocked
+                ? `Não há espaço livre ao lado de ${nameOf(primaryTarget)} — escolha um destino no mapa, ou ataque à distância.`
+                : `${nameOf(primaryTarget)} está a ${resolved.targetSteps} espaços — ataque à distância.`}
+            </S.Muted>
+          )}
+          {catalogue && (
+            <S.WeaponList role="radiogroup" aria-label="Arma">
+              {catalogue.weapons.map((w) => (
+                <S.Weapon
+                  key={w.name}
+                  type="button"
+                  role="radio"
+                  aria-checked={selectedWeapon === w.name}
+                  onClick={() => onDraftChange(setWeapon(draft, w.name))}
+                >
+                  <S.WeaponName>{humanWeapon(w.name)}</S.WeaponName>
+                  <S.WeaponStats>
+                    {w.dice.map((d) => `d${d}`).join("+")}
+                    {w.flatDamage ? ` +${w.flatDamage}` : ""} · prof. {w.proficiencyLevel}
+                  </S.WeaponStats>
+                </S.Weapon>
+              ))}
+            </S.WeaponList>
+          )}
+        </S.Section>
+      )}
+
+      <S.Footer>
+        <S.DeclareButton
+          type="button"
+          disabled={!verdict.ready || !canDeclare}
+          onClick={onDeclare}
+        >
+          {verdict.ready ? DECLARE_LABELS[verdict.kind] : "Declarar"}
+        </S.DeclareButton>
+        {(moveOn || attackOn) && (
+          <S.ClearButton type="button" onClick={() => onDraftChange({ moveMode: "none" })}>
+            Limpar
+          </S.ClearButton>
+        )}
+      </S.Footer>
+      {!verdict.ready ? (
+        <S.Hint data-testid="composer-hint">{NOT_READY_HINTS[verdict.reason]}</S.Hint>
+      ) : (
+        blockedReason && <S.Hint data-testid="composer-hint">{blockedReason}</S.Hint>
+      )}
+    </S.Sheet>
   );
 }
-
-const Sheet = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 12px;
-  background: ${colors.surfaceSidebar};
-  color: ${colors.textPrimary};
-  font-family: ${fonts.sans};
-  font-size: 13px;
-`;
-
-const ActorRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  font-weight: 600;
-`;
-
-const ActorName = styled.span``;
-
-const TargetList = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-`;
-
-const TargetChip = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 6px;
-  border-radius: 4px;
-  background: ${colors.surfaceInput};
-`;
-
-const ClearButton = styled.button`
-  border: none;
-  background: transparent;
-  color: ${colors.textPrimary};
-  cursor: pointer;
-  font-size: 13px;
-  line-height: 1;
-  padding: 0 2px;
-`;
-
-const Fieldset = styled.fieldset`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  border: 1px solid ${colors.borderDivider};
-  border-radius: 4px;
-  padding: 8px;
-`;
-
-const WeaponLabel = styled.label`
-  display: flex;
-  align-items: center;
-  gap: 6px;
-`;
-
-const MoveLabel = styled.label`
-  display: flex;
-  align-items: center;
-  gap: 6px;
-`;
-
-const Destination = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: ${colors.textMuted};
-`;
-
-const Hint = styled.div`
-  color: ${colors.textPlaceholderStrong};
-  font-style: italic;
-`;
-
-const DeclareButton = styled.button`
-  font-family: ${fonts.sans};
-  font-size: 13px;
-  font-weight: 600;
-  padding: 8px 12px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  background: ${colors.brandAccent};
-  color: ${colors.textPrimary};
-
-  &:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-`;

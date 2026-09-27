@@ -116,6 +116,15 @@ const participantsFixture = [
   },
 ];
 
+const DRAFT_KEY = "match-draft:v2:match-1:c1";
+const storedDraft = () => {
+  const raw = localStorage.getItem(DRAFT_KEY);
+  return raw ? JSON.parse(raw) : null;
+};
+
+const lastSent = (ws: { send: { mock: { calls: unknown[][] } } }) =>
+  ws.send.mock.calls[ws.send.mock.calls.length - 1]?.[0];
+
 function renderPlayerPage() {
   return renderWithProviders(<GamePlayerPage token="fake-jwt-token" matchId="match-1" />);
 }
@@ -196,8 +205,9 @@ describe("GamePlayerPage", () => {
       }),
     );
 
-    // A página não crashou: o preço da barra de ação ainda renderiza como "não precificado".
-    expect(await screen.findByTestId("price-action")).toHaveTextContent(/ainda não precificou/i);
+    // A página não crashou: a barra geral diz que a ordem está vazia e os saldos seguem lá.
+    expect(await screen.findByText("ordem vazia")).toBeInTheDocument();
+    expect(screen.getByTestId("balance-action")).toBeInTheDocument();
     // Sem entradas na ordem projetada (order normalizou para []).
     expect(screen.queryByTestId("order-row")).not.toBeInTheDocument();
   });
@@ -210,7 +220,7 @@ describe("GamePlayerPage", () => {
       ws.emit("map_full_state", {
         pieces: [
           { pieceId: "piece-c1", slot: { kind: "square", col: 1, row: 1 }, characterId: "c1", visible: true, z: 0 },
-          { pieceId: "piece-c2", slot: { kind: "square", col: 3, row: 3 }, characterId: "c2", visible: true, z: 0 },
+          { pieceId: "piece-c2", slot: { kind: "square", col: 2, row: 2 }, characterId: "c2", visible: true, z: 0 },
         ],
         walls: [],
         visiblePolygons: [],
@@ -218,10 +228,11 @@ describe("GamePlayerPage", () => {
       }),
     );
 
-    const declareButton = await screen.findByRole("button", { name: /declarar/i });
     const targetButton = await screen.findByTestId("select-actor-c2");
     act(() => targetButton.click());
 
+    // Alvo colado: só ataque — ninguém é obrigado a se mover.
+    const declareButton = await screen.findByRole("button", { name: "Declarar ataque" });
     expect(declareButton).not.toBeDisabled();
     act(() => declareButton.click());
 
@@ -304,7 +315,7 @@ describe("GamePlayerPage", () => {
       ws.emit("map_full_state", {
         pieces: [
           { pieceId: "piece-c1", slot: { kind: "square", col: 1, row: 1 }, characterId: "c1", visible: true, z: 0 },
-          { pieceId: "piece-c2", slot: { kind: "square", col: 3, row: 3 }, characterId: "c2", visible: true, z: 0 },
+          { pieceId: "piece-c2", slot: { kind: "square", col: 2, row: 2 }, characterId: "c2", visible: true, z: 0 },
         ],
         walls: [],
         visiblePolygons: [],
@@ -315,24 +326,20 @@ describe("GamePlayerPage", () => {
     const targetButton = await screen.findByTestId("select-actor-c2");
     act(() => targetButton.click());
 
-    await waitFor(() =>
-      expect(localStorage.getItem("match-draft:match-1:c1")).toEqual(
-        JSON.stringify({ targets: ["c2"] }),
-      ),
-    );
+    await waitFor(() => expect(storedDraft()?.attack).toEqual({ targets: ["c2"] }));
 
-    const declareButton = await screen.findByRole("button", { name: /declarar/i });
+    const declareButton = await screen.findByRole("button", { name: /^declarar/i });
     act(() => declareButton.click());
 
     act(() => ws.emit("action_enqueued", { actionId: "action-1" }));
 
-    await waitFor(() => expect(localStorage.getItem("match-draft:match-1:c1")).toBeNull());
+    await waitFor(() => expect(storedDraft()).toBeNull());
   });
 
-  // F2: uma recusa do servidor ao envio do composer (WS_ERROR sobre enqueue_action) só
-  // derruba o `move` do rascunho — o destino recusado é o culpado usual (move_blocked) —
-  // e preserva alvo/arma, que continuam válidos.
-  it("recusa do servidor ao Declarar derruba só o destino do rascunho, mantém o alvo (F2)", async () => {
+  // Uma recusa do servidor ao envio do composer (ex.: move_blocked) mantém o rascunho
+  // inteiro — destino e alvo — para o jogador só corrigir o que o servidor recusou e
+  // declarar de novo; nada some da lista de "declaradas" como se tivesse entrado na fila.
+  it("recusa do servidor ao Declarar mantém o rascunho e libera Declarar de novo", async () => {
     renderPlayerPage();
     const ws = await waitForSocket();
     act(() => ws.onopen?.());
@@ -340,7 +347,7 @@ describe("GamePlayerPage", () => {
       ws.emit("map_full_state", {
         pieces: [
           { pieceId: "piece-c1", slot: { kind: "square", col: 1, row: 1 }, characterId: "c1", visible: true, z: 0 },
-          { pieceId: "piece-c2", slot: { kind: "square", col: 3, row: 3 }, characterId: "c2", visible: true, z: 0 },
+          { pieceId: "piece-c2", slot: { kind: "square", col: 2, row: 2 }, characterId: "c2", visible: true, z: 0 },
         ],
         walls: [],
         visiblePolygons: [],
@@ -348,28 +355,93 @@ describe("GamePlayerPage", () => {
       }),
     );
 
-    const targetButton = await screen.findByTestId("select-actor-c2");
-    act(() => targetButton.click());
-    const emptySlot = await screen.findByTestId("empty-slot");
-    act(() => emptySlot.click());
+    act(() => screen.getByTestId("select-actor-c2").click());
+    act(() => screen.getByTestId("empty-slot").click());
 
     await waitFor(() => {
-      const draft = JSON.parse(localStorage.getItem("match-draft:match-1:c1") ?? "{}");
-      expect(draft.targets).toEqual(["c2"]);
-      expect(draft.move.to).toEqual([9, 9, 0]);
+      const draft = storedDraft();
+      expect(draft.attack.targets).toEqual(["c2"]);
+      expect(draft.to).toEqual([9, 9, 0]);
     });
 
-    const declareButton = await screen.findByRole("button", { name: /declarar/i });
+    const declareButton = await screen.findByRole("button", { name: "Declarar movimento + ataque" });
     act(() => declareButton.click());
-
-    // O servidor recusa o Declarar (ex.: move_blocked) — nada de action_enqueued chega.
-    act(() => ws.emit("error", { code: "game_error", message: "move blocked by a wall" }));
-
-    await waitFor(() => {
-      const draft = JSON.parse(localStorage.getItem("match-draft:match-1:c1") ?? "{}");
-      expect(draft.targets).toEqual(["c2"]);
-      expect(draft.move).toBeUndefined();
+    const sent = JSON.parse(lastSent(ws) as string);
+    expect(sent).toEqual({
+      type: "enqueue_action",
+      payload: {
+        actorId: "c1",
+        targetId: ["c2"],
+        attack: {},
+        move: { category: "Dash", from: [1, 1, 0], position: [9, 9, 0] },
+      },
     });
+    expect(screen.getByRole("button", { name: "Declarar movimento + ataque" })).toBeDisabled();
+
+    act(() => ws.emit("error", { code: "move_blocked", message: "move blocked by a wall" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Declarar movimento + ataque" })).not.toBeDisabled(),
+    );
+    expect(storedDraft().to).toEqual([9, 9, 0]);
+    expect(screen.queryByTestId("declared-row")).not.toBeInTheDocument();
+  });
+
+  // O pedido central da Fase 6 revisada: tocar em alguém longe liga "mover e atacar" com o
+  // destino ao lado dele — mas o jogador pode desligar o movimento e atacar de onde está.
+  it("alvo longe propõe aproximação; desligar Mover manda só o ataque", async () => {
+    renderPlayerPage();
+    const ws = await waitForSocket();
+    act(() => ws.onopen?.());
+    act(() =>
+      ws.emit("map_full_state", {
+        pieces: [
+          { pieceId: "piece-c1", slot: { kind: "square", col: 1, row: 1 }, characterId: "c1", visible: true, z: 0 },
+          { pieceId: "piece-c2", slot: { kind: "square", col: 6, row: 1 }, characterId: "c2", visible: true, z: 0 },
+        ],
+        walls: [],
+        visiblePolygons: [],
+        fogMode: "explored",
+      }),
+    );
+
+    act(() => screen.getByTestId("select-actor-c2").click());
+    expect(await screen.findByTestId("move-destination")).toHaveTextContent("ao lado de Killua");
+    expect(screen.getByRole("button", { name: "Declarar movimento + ataque" })).toBeInTheDocument();
+
+    act(() => screen.getByRole("button", { name: /Mover/ }).click());
+    const declareButton = await screen.findByRole("button", { name: "Declarar ataque" });
+    act(() => declareButton.click());
+    expect(JSON.parse(lastSent(ws) as string)).toEqual({
+      type: "enqueue_action",
+      payload: { actorId: "c1", targetId: ["c2"], attack: {} },
+    });
+  });
+
+  it("tocar num espaço vazio declara só movimento", async () => {
+    renderPlayerPage();
+    const ws = await waitForSocket();
+    act(() => ws.onopen?.());
+    act(() =>
+      ws.emit("map_full_state", {
+        pieces: [
+          { pieceId: "piece-c1", slot: { kind: "square", col: 1, row: 1 }, characterId: "c1", visible: true, z: 0 },
+        ],
+        walls: [],
+        visiblePolygons: [],
+        fogMode: "explored",
+      }),
+    );
+
+    act(() => screen.getByTestId("empty-slot").click());
+    const declareButton = await screen.findByRole("button", { name: "Declarar movimento" });
+    act(() => declareButton.click());
+    expect(JSON.parse(lastSent(ws) as string)).toEqual({
+      type: "enqueue_action",
+      payload: { actorId: "c1", move: { category: "Dash", from: [1, 1, 0], position: [9, 9, 0] } },
+    });
+    act(() => ws.emit("action_enqueued", { actionId: "action-9" }));
+    expect(await screen.findByTestId("declared-row")).toHaveTextContent("na fila");
   });
 
   // Final review, Important 3 / RULING R29: enqueue_action SEM actorId era sempre
@@ -384,7 +456,7 @@ describe("GamePlayerPage", () => {
       ws.emit("map_full_state", {
         pieces: [
           { pieceId: "piece-c1", slot: { kind: "square", col: 1, row: 1 }, characterId: "c1", visible: true, z: 0 },
-          { pieceId: "piece-c2", slot: { kind: "square", col: 3, row: 3 }, characterId: "c2", visible: true, z: 0 },
+          { pieceId: "piece-c2", slot: { kind: "square", col: 2, row: 2 }, characterId: "c2", visible: true, z: 0 },
         ],
         walls: [
           {
@@ -402,11 +474,7 @@ describe("GamePlayerPage", () => {
     // parede — só o ack de um envio com clearsDraft:true (o composer) apaga.
     const targetButton = await screen.findByTestId("select-actor-c2");
     act(() => targetButton.click());
-    await waitFor(() =>
-      expect(localStorage.getItem("match-draft:match-1:c1")).toEqual(
-        JSON.stringify({ targets: ["c2"] }),
-      ),
-    );
+    await waitFor(() => expect(storedDraft()?.attack).toEqual({ targets: ["c2"] }));
 
     const wallButton = await screen.findByTestId("wall-wall-1");
     act(() => wallButton.click());
@@ -422,9 +490,7 @@ describe("GamePlayerPage", () => {
 
     act(() => ws.emit("action_enqueued", { actionId: "action-wall-1" }));
     // O ack do envio da parede (clearsDraft:false) NÃO apaga o rascunho do composer.
-    expect(localStorage.getItem("match-draft:match-1:c1")).toEqual(
-      JSON.stringify({ targets: ["c2"] }),
-    );
+    expect(storedDraft()?.attack).toEqual({ targets: ["c2"] });
   });
 
   // Final review, Important 2(b): Declarar não pode ficar habilitado enquanto o socket
@@ -437,7 +503,7 @@ describe("GamePlayerPage", () => {
       ws.emit("map_full_state", {
         pieces: [
           { pieceId: "piece-c1", slot: { kind: "square", col: 1, row: 1 }, characterId: "c1", visible: true, z: 0 },
-          { pieceId: "piece-c2", slot: { kind: "square", col: 3, row: 3 }, characterId: "c2", visible: true, z: 0 },
+          { pieceId: "piece-c2", slot: { kind: "square", col: 2, row: 2 }, characterId: "c2", visible: true, z: 0 },
         ],
         walls: [],
         visiblePolygons: [],
@@ -449,7 +515,7 @@ describe("GamePlayerPage", () => {
     // O socket caiu de vez (fechamento normal): nada de reconexão, Declarar trava.
     act(() => ws.onclose?.({ code: 1000 } as CloseEvent));
 
-    const declareButton = await screen.findByRole("button", { name: /declarar/i });
+    const declareButton = await screen.findByRole("button", { name: /^declarar/i });
     expect(declareButton).toBeDisabled();
   });
 
@@ -463,7 +529,7 @@ describe("GamePlayerPage", () => {
       ws.emit("map_full_state", {
         pieces: [
           { pieceId: "piece-c1", slot: { kind: "square", col: 1, row: 1 }, characterId: "c1", visible: true, z: 0 },
-          { pieceId: "piece-c2", slot: { kind: "square", col: 3, row: 3 }, characterId: "c2", visible: true, z: 0 },
+          { pieceId: "piece-c2", slot: { kind: "square", col: 2, row: 2 }, characterId: "c2", visible: true, z: 0 },
         ],
         walls: [],
         visiblePolygons: [],
@@ -473,19 +539,19 @@ describe("GamePlayerPage", () => {
     const targetButton = await screen.findByTestId("select-actor-c2");
     act(() => targetButton.click());
 
-    const declareButton = await screen.findByRole("button", { name: /declarar/i });
+    const declareButton = await screen.findByRole("button", { name: /^declarar/i });
     expect(declareButton).not.toBeDisabled();
     act(() => declareButton.click());
 
     // Ainda sem o ack: um segundo Declarar (mesmo ator) tem que estar bloqueado.
-    expect(await screen.findByRole("button", { name: /declarar/i })).toBeDisabled();
+    expect(await screen.findByRole("button", { name: /^declarar/i })).toBeDisabled();
 
     // O ack chega e limpa o rascunho (R28, clearsDraft:true por padrão do composer) — a
     // trava de "envio pendente" solta; escolher um novo alvo já habilita Declarar de novo,
     // provando que não é mais o pendingSend que está travando.
     act(() => ws.emit("action_enqueued", { actionId: "action-1" }));
     act(() => targetButton.click());
-    expect(await screen.findByRole("button", { name: /declarar/i })).not.toBeDisabled();
+    expect(await screen.findByRole("button", { name: /^declarar/i })).not.toBeDisabled();
   });
 
   it("passa draggablePieceIds vazio ao mapa — o servidor decide onde a peça para (I1)", async () => {

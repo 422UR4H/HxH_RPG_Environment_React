@@ -166,10 +166,16 @@ describe("GameMasterPage", () => {
     const ws = await waitForSocket();
     act(() => ws.onopen?.());
     act(() => ws.emit("action_queued", { actionId: "a1", actorId: "c1", bars: ["action"] }));
-    act(() => screen.getByRole("button", { name: /antecipar/i }).click());
+    // O badge do rail conta o que está na fila.
+    expect(screen.getByRole("button", { name: /Fila/ })).toHaveTextContent("1");
+    act(() => screen.getByRole("button", { name: "Abrir agora" }).click());
 
-    const sent = ws.send.mock.calls.map((c) => JSON.parse(c[0] as string));
+    let sent = ws.send.mock.calls.map((c) => JSON.parse(c[0] as string));
     expect(sent[sent.length - 1]).toMatchObject({ type: "pull_action", payload: { actionId: "a1" } });
+
+    act(() => screen.getByRole("button", { name: "Abrir próxima" }).click());
+    sent = ws.send.mock.calls.map((c) => JSON.parse(c[0] as string));
+    expect(sent[sent.length - 1]?.type).toBe("open_next_action");
   });
 
   it("mostra o diálogo que o servidor computou e reenvia com confirm", async () => {
@@ -206,6 +212,21 @@ describe("GameMasterPage", () => {
     const sent = ws.send.mock.calls.map((c) => JSON.parse(c[0] as string));
     expect(sent[sent.length - 1]?.type).toBe("enqueue_action");
     expect(sent[sent.length - 1]?.payload.actorId).toBe("npc1");
+  });
+
+  it("escolhe o NPC pelo painel Agir e tocar de novo o solta", async () => {
+    renderMasterPage();
+    const ws = await waitForSocket();
+    act(() => ws.onopen?.());
+
+    act(() => screen.getByRole("button", { name: "Agir" }).click());
+    const chip = await screen.findByRole("button", { name: "Capanga" });
+    act(() => chip.click());
+    expect(screen.getByRole("button", { name: "Capanga" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByLabelText("Compor ação")).toHaveTextContent("Agindo como Capanga");
+
+    act(() => screen.getByRole("button", { name: "Capanga" }).click());
+    expect(screen.getByRole("button", { name: "Capanga" })).toHaveAttribute("aria-pressed", "false");
   });
 
   it("passa draggablePieceIds vazio ao mapa — o servidor decide onde a peça para (I1)", async () => {
@@ -304,7 +325,7 @@ describe("GameMasterPage", () => {
 
   // F7 (M1): a dica muda quando a partida não tem NENHUM NPC controlável — "clique num
   // NPC" seria um beco sem saída, já que não existe nenhum pra clicar.
-  it("sem NPC nenhum na partida, a dica de Fichas diz isso em vez de mandar clicar num NPC (F7)", async () => {
+  it("sem NPC nenhum na partida, o painel Agir diz isso em vez de mandar escolher um NPC (F7)", async () => {
     server.use(
       http.get(`${baseUrl}/matches/:id/participants`, () =>
         HttpResponse.json({
@@ -316,11 +337,11 @@ describe("GameMasterPage", () => {
     const ws = await waitForSocket();
     act(() => ws.onopen?.());
 
-    act(() => screen.getByRole("button", { name: "Fichas" }).click());
+    act(() => screen.getByRole("button", { name: "Agir" }).click());
     expect(
       await screen.findByText(/nenhum npc nesta partida/i),
     ).toBeInTheDocument();
-    expect(screen.queryByText(/clique num npc no mapa/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: "Agir por" })).not.toBeInTheDocument();
   });
 
   // F7 (M1): um NPC do mapa que NÃO é participante da partida é inspecionado (nunca vira

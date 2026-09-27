@@ -27,7 +27,7 @@ export default function MatchErrorBanner({
 
 const Banner = styled.div`
   position: absolute;
-  top: 12px;
+  top: 52px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 50;

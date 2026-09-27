@@ -1,8 +1,10 @@
 import type { ReactNode } from "react";
 import styled from "styled-components";
 import { colors, fonts } from "../../../styles/tokens";
+import { media } from "../../../styles/breakpoints";
 import type { MatchWsStatus } from "../../../hooks/useMatchWs";
 import type { RoundMode, ScenePayload } from "./combatMessages";
+import { ROUND_MODE_LABELS } from "./combatText";
 
 const STATUS_LABELS: Record<MatchWsStatus, string> = {
   connecting: "Conectando…",
@@ -11,20 +13,22 @@ const STATUS_LABELS: Record<MatchWsStatus, string> = {
   disconnected: "Desconectado",
 };
 
-const ROUND_MODE_LABELS: Record<RoundMode, string> = {
-  Free: "Livre",
-  Race: "Corrida",
+const STATUS_COLORS: Record<MatchWsStatus, string> = {
+  connecting: colors.warningText,
+  connected: colors.statusOngoing,
+  waiting: colors.warningText,
+  disconnected: colors.danger,
 };
 
 /**
- * Burro (R6/I2): cena, regime, status de conexão, um slot `actions` que a página do mestre
- * preenche com regência, e o único controle que abre/fecha o `aside` (R24). Nenhum `isMaster`
- * aqui — quem decide o que passar em `actions` é a página.
+ * Cena, regime, conexão e o controle da gaveta. `actions` é um slot que a página do mestre
+ * preenche com a regência — este componente não pergunta o papel de ninguém.
  */
 export default function MatchTopBar({
   scene,
   roundMode,
   status,
+  onReconnect,
   actions,
   asideOpen,
   onToggleAside,
@@ -32,19 +36,36 @@ export default function MatchTopBar({
   scene?: ScenePayload;
   roundMode: RoundMode | "";
   status: MatchWsStatus;
+  onReconnect?: () => void;
+  /** Substitui o selo de regime quando presente (o mestre troca o regime por aqui). */
   actions?: ReactNode;
   asideOpen: boolean;
   onToggleAside: () => void;
 }) {
   return (
     <Bar>
-      <SceneLabel>{scene?.briefInitialDescription ?? "Sem cena"}</SceneLabel>
-      <RoundBadge>{roundMode ? ROUND_MODE_LABELS[roundMode] : "—"}</RoundBadge>
-      <StatusLabel data-testid="ws-status">{STATUS_LABELS[status]}</StatusLabel>
+      <SceneLabel title={scene?.briefInitialDescription}>
+        {scene?.briefInitialDescription || (scene ? "Cena sem nome" : "Sem cena")}
+      </SceneLabel>
+      {!actions && roundMode && <RoundBadge>{ROUND_MODE_LABELS[roundMode]}</RoundBadge>}
+      <Status data-testid="ws-status" title={STATUS_LABELS[status]}>
+        <StatusDot style={{ background: STATUS_COLORS[status] }} aria-hidden />
+        <StatusText>{STATUS_LABELS[status]}</StatusText>
+      </Status>
+      {status === "disconnected" && onReconnect && (
+        <SmallButton type="button" onClick={onReconnect}>
+          Reconectar
+        </SmallButton>
+      )}
       {actions}
-      <AsideToggle type="button" aria-pressed={asideOpen} onClick={onToggleAside}>
-        Ver histórico
-      </AsideToggle>
+      <SmallButton
+        type="button"
+        aria-pressed={asideOpen}
+        aria-label={asideOpen ? "Ocultar histórico" : "Ver histórico"}
+        onClick={onToggleAside}
+      >
+        Histórico
+      </SmallButton>
     </Bar>
   );
 }
@@ -52,10 +73,9 @@ export default function MatchTopBar({
 const Bar = styled.div`
   display: flex;
   align-items: center;
-  gap: 12px;
-  height: 100%;
-  padding: 0 12px;
-  background: ${colors.surfaceSidebar};
+  gap: 10px;
+  min-height: 44px;
+  padding: 4px 10px;
   color: ${colors.textPrimary};
   font-family: ${fonts.sans};
   font-size: 13px;
@@ -67,30 +87,64 @@ const SceneLabel = styled.span`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-weight: 600;
 `;
 
 const RoundBadge = styled.span`
   flex-shrink: 0;
-  color: ${colors.textMuted};
-`;
-
-const StatusLabel = styled.span`
-  flex-shrink: 0;
-  color: ${colors.textPlaceholderStrong};
-`;
-
-const AsideToggle = styled.button`
-  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 999px;
   background: ${colors.surfaceInput};
-  color: ${colors.textPrimary};
+  color: ${colors.textMuted};
+  font-size: 12px;
+`;
+
+const Status = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 1;
+  min-width: 0;
+  color: ${colors.textPlaceholderStrong};
+  font-size: 12px;
+`;
+
+const StatusDot = styled.span`
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: 50%;
+`;
+
+const StatusText = styled.span`
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  ${media.phone} {
+    display: none;
+  }
+`;
+
+export const SmallButton = styled.button`
+  flex-shrink: 0;
   font-family: ${fonts.sans};
   font-size: 12px;
-  border: none;
-  border-radius: 4px;
+  font-weight: 600;
+  border: 1px solid ${colors.borderInput};
+  border-radius: 6px;
   padding: 6px 10px;
   cursor: pointer;
+  background: ${colors.surfaceInput};
+  color: ${colors.textPrimary};
 
   &[aria-pressed="true"] {
+    border-color: ${colors.brandAccentBright};
     background: ${colors.brandAccent};
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
   }
 `;

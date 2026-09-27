@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { GridShape, Piece, SlotCoord, WallSegment } from "../types/tacticalMap";
-import type { CombatServerMessage, EnqueueActionPayload, RoundMode } from "../features/match/combat/combatMessages";
+import type { CombatServerMessage, EnqueueActionPayload, MasterActionPayload, RoundMode } from "../features/match/combat/combatMessages";
 import { normalizeCombatMessage } from "../features/match/combat/normalizeWire";
 
 /**
@@ -542,13 +542,7 @@ export function useMatchWs({
 
   /** Send a master action (enqueue_master_action). */
   const sendMasterAction = useCallback(
-    (payload: {
-      targetIds: string[];
-      interact?: { kind: string };
-      attack?: { weapon?: string };
-    }) => {
-      return sendRaw("enqueue_master_action", payload);
-    },
+    (payload: MasterActionPayload) => sendRaw("enqueue_master_action", payload),
     [sendRaw],
   );
 

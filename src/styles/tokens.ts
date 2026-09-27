@@ -79,13 +79,18 @@ export const colors = {
 
   // tactical map — piece rings (Pixi numeric colors; parseInt(hex.replace("#",""),16))
   pieceSelectionRing: "#ffd700", // selected piece ring (gold, matches prior inline hex)
-  pieceTargetRing: "#3ba7ff", // combat target ring — distinct hue from selection
+  pieceTargetRing: "#ff6b4a", // combat target ring — the attack hue (pieceAttackIntent), distinct from the gold selection
   pieceInspectRing: "#9ca3af", // "just looking" ring (F7) — neutral gray, never the actor's own gold
-  pieceGhost: "#9d7bff", // declared-intent ghost (§8) — translucent copy + arrow
+  pieceGhost: "#9d7bff", // declared-intent ghost (§8) — translucent copy + arrow; also the "move" tint in the composer
   pieceStackBadge: "#1c1c1c", // ×N cascade badge background (§7.2)
+  pieceAttackIntent: "#ff6b4a", // attack being composed: line actor→target, "attack" tint in the composer
+  pieceActiveTurn: "#34d399", // ring on the piece whose turn is open
+  slotHover: "#f5f5f5", // slot under the pointer while composing (drawn at low alpha)
 
   // surfaces — translucent
   rowHighlight: "rgba(8, 142, 59, 0.25)", // GeneralBar: highlighted actor's order row (brandAccentBright tint)
+  moveIntentBg: "rgba(157, 123, 255, 0.16)", // composer "Mover" pressed (pieceGhost tint)
+  attackIntentBg: "rgba(255, 107, 74, 0.16)", // composer "Atacar" pressed (pieceAttackIntent tint)
   overlay: "rgba(0, 0, 0, 0.7)",
   overlaySoft: "rgba(0, 0, 0, 0.44)",
   overlayMedium: "rgba(0, 0, 0, 0.6)",

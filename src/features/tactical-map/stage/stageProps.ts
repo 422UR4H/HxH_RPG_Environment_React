@@ -2,6 +2,8 @@ import type { TacticalMap, GridShape, SlotCoord, BgImage, FogState } from "../..
 import type { WallSegment, WallType, WallMaterial } from "../../../types/tacticalMap";
 import type { CharacterPrivateSummary } from "../../../types/characterSheet";
 import type { Selection, ToolKind } from "../store/editorStore";
+import type { SlotTriple } from "../utils/coords";
+import type { IntentPreview } from "../utils/intentGeometry";
 
 export type TacticalMapStageProps = {
   map: TacticalMap;
@@ -37,10 +39,16 @@ export type TacticalMapStageProps = {
   inspectedPieceId?: string | null;
   targetPieceIds?: Set<string>;
   onPieceMove?: (pieceId: string, slot: SlotCoord) => void;
-  // The declared-intent ghost (§8): translucent copy of a piece at its intended
-  // slot + arrow from its current position. A `Ghost` (combatReducer.ts, which
-  // also carries actorId) satisfies this structurally.
-  ghosts?: Array<{ from: [number, number, number]; to: [number, number, number] }>;
+  // Combat intent (game only): the action being composed (destination slot, attack lines)
+  // and the moves already declared that have not happened yet (translucent ghost + arrow).
+  intentPreview?: IntentPreview;
+  intentGhosts?: Array<{ from?: SlotTriple; to: SlotTriple }>;
+  // The piece whose turn is open — its own ring, so everyone sees whose turn it is.
+  activePieceId?: string | null;
+  // Game only: outline the empty slot under the pointer — what a tap would choose.
+  highlightHoverSlot?: boolean;
+  // Game only: fit the whole grid on screen on mount, and again whenever this changes.
+  fitRequest?: number;
   onPieceDragToRoster?: (pieceId: string) => void;
   onPieceDragStart?: (pieceId: string, npc: CharacterPrivateSummary | undefined) => void;
   onPieceDragEnd?: () => void;

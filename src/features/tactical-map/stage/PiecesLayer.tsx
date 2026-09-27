@@ -14,6 +14,7 @@ import { colors } from "../../../styles/tokens";
 import PieceSprite from "./PieceSprite";
 
 const HOLD_PROGRESS_COLOR = parseInt(colors.warningText.replace("#", ""), 16);
+const HOVER_SLOT_COLOR = parseInt(colors.slotHover.replace("#", ""), 16);
 
 // No containerRef: piece position is driven by React state (dragWorldPos) to
 // avoid @pixi/react reconciler overwriting imperative position.set() calls.
@@ -41,6 +42,7 @@ export default function PiecesLayer({
   map, vpRef, piecesInteractive, draggablePieceIds, suppressPanOnPiecePress, selection,
   npcMap, pieceDragActiveRef,
   onPieceSelect, onPieceLongPress, selectedPieceId, inspectedPieceId, targetPieceIds,
+  activePieceId, highlightHoverSlot,
   onPieceMove, onPieceDragToRoster, onPieceDragStart, onPieceDragEnd, onStageDeselect,
   onEmptySlotClick,
 }: {
@@ -58,6 +60,8 @@ export default function PiecesLayer({
   selectedPieceId?: string | null;
   inspectedPieceId?: string | null;
   targetPieceIds?: Set<string>;
+  activePieceId?: string | null;
+  highlightHoverSlot?: boolean;
   onPieceMove?: (pieceId: string, slot: SlotCoord) => void;
   onPieceDragToRoster?: (pieceId: string) => void;
   onPieceDragStart?: (pieceId: string, npc: CharacterPrivateSummary | undefined) => void;
@@ -305,6 +309,61 @@ export default function PiecesLayer({
     };
   }, [app, vpRef, map.grid, map.pieces, piecesInteractive, onPieceSelect, onPieceMove, onPieceDragToRoster, onPieceDragStart, onPieceDragEnd, stopHoldProgress]);
 
+  // Game only: the empty slot under the pointer, outlined — what a tap would pick as the
+  // destination. Tracked on window like the drag above (Pixi only hit-tests what is under
+  // the pointer); only a CHANGE of slot re-renders.
+  const [pointerSlot, setPointerSlot] = useState<SlotCoord | null>(null);
+  const pointerSlotRef = useRef<SlotCoord | null>(null);
+  useEffect(() => {
+    if (!highlightHoverSlot) return;
+    const update = (next: SlotCoord | null) => {
+      const prev = pointerSlotRef.current;
+      if (prev === next || (prev && next && isSameSlot(prev, next))) return;
+      pointerSlotRef.current = next;
+      setPointerSlot(next);
+    };
+    const onMove = (e: PointerEvent) => {
+      const canvas = app?.renderer ? app.canvas : null;
+      const vp = vpRef.current;
+      if (!canvas || !vp || localDrag.current) return update(null);
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      if (x < 0 || y < 0 || x > rect.width || y > rect.height) return update(null);
+      const slot = worldToSlot(vp.toWorld(x, y), map.grid);
+      const free = isSlotInBounds(slot, map.grid) && !map.pieces.some((p) => isSameSlot(p.coord.slot, slot));
+      update(free ? slot : null);
+    };
+    // A finger lifting is not a pointer hovering: drop the outline on touch release.
+    const onUp = (e: PointerEvent) => { if (e.pointerType !== "mouse") update(null); };
+    const onLeave = () => update(null);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    document.addEventListener("pointerleave", onLeave);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      document.removeEventListener("pointerleave", onLeave);
+      update(null);
+    };
+  }, [highlightHoverSlot, app, vpRef, map.grid, map.pieces]);
+
+  const drawPointerSlot = useCallback(
+    (g: PixiGraphics) => {
+      g.clear();
+      if (!pointerSlot) return;
+      const corners = slotCorners(pointerSlot, map.grid);
+      g.setFillStyle({ color: HOVER_SLOT_COLOR, alpha: 0.08 });
+      g.setStrokeStyle({ color: HOVER_SLOT_COLOR, width: 2, alpha: 0.55 });
+      g.moveTo(corners[0].x, corners[0].y);
+      for (let i = 1; i < corners.length; i++) g.lineTo(corners[i].x, corners[i].y);
+      g.closePath();
+      g.fill();
+      g.stroke();
+    },
+    [pointerSlot, map.grid],
+  );
+
   // Resolve empty-slot click on pointerup: fires onEmptySlotClick only if the
   // pointer moved less than CLICK_THRESHOLD pixels since pointerdown (i.e. it was
   // a tap/click, not a map pan). This lets the viewport pan normally on drag while
@@ -435,6 +494,7 @@ export default function PiecesLayer({
       }}
     >
       <pixiGraphics draw={drawHoverSlot} />
+      <pixiGraphics draw={drawPointerSlot} eventMode="none" />
       {/* F1 batch 2 (minor): the hold-progress ring reaches tokenRadius+16 — same class of
           bug as the per-piece selection/target rings (now hitArea-clamped in PieceSprite),
           just drawn at the layer level instead. eventMode="none" so it never steals a hit
@@ -451,6 +511,7 @@ export default function PiecesLayer({
           isSelected={(selection?.kind === "piece" && selection.id === p.id) || selectedPieceId === p.id}
           isInspected={inspectedPieceId === p.id}
           isTarget={!!targetPieceIds?.has(p.id)}
+          isActiveTurn={activePieceId === p.id}
           offset={stack ? { dx: stack.dx, dy: stack.dy } : undefined}
           stackCount={stack?.count}
           isTopOfStack={stack ? stack.index === stack.count - 1 : undefined}
