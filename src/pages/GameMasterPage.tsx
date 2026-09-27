@@ -10,8 +10,10 @@ import { defaultMoveCategory } from "../features/match/combat/defaultMoveCategor
 import { describeDeclared } from "../features/match/combat/combatText";
 import MatchStageTemplate from "../components/templates/MatchStageTemplate";
 import MatchTopBar from "../features/match/combat/MatchTopBar";
-import { NpcPicker, PanelSection, RegencyControls, RoundModeSwitch } from "../features/match/combat/MasterControls";
-import { PanelMessage, PanelTitle } from "../features/match/combat/panelStyles";
+import {
+  AddNpcPicker, NpcPicker, PanelSection, RegencyControls, RoundModeSwitch,
+} from "../features/match/combat/MasterControls";
+import { PanelTitle } from "../features/match/combat/panelStyles";
 import RailNav from "../features/match/combat/RailNav";
 import AsideTabs from "../features/match/combat/AsideTabs";
 import GeneralBar from "../features/match/combat/GeneralBar";
@@ -29,7 +31,6 @@ import {
   CanvasWrapper, MapCornerButton, MapHint, MapLoadingMessage, NoMapMessage,
 } from "../features/match/combat/mapCanvasStyles";
 import type { SlotCoord, WallSegment } from "../types/tacticalMap";
-import type { Participant } from "../types/match";
 
 type Props = {
   token: string;
@@ -154,29 +155,43 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     [participants, state.hp],
   );
 
-  // Personagens: todo participante, mais quem está no mapa sem estar inscrito na partida (um
-  // NPC da campanha posto no tabuleiro) — esse aparece só com o nome.
-  const everyone = useMemo(() => {
-    const known = new Set(participantsWithLiveHp.map((p) => p.characterSheet.uuid));
-    const extra: Participant[] = [];
-    game.boardPieces.forEach((piece) => {
-      if (!piece.characterId || known.has(piece.characterId)) return;
-      const npc = live.npcMap.get(piece.characterId);
-      if (!npc) return;
-      known.add(piece.characterId);
-      extra.push({ uuid: `map-npc:${piece.characterId}`, joinedAt: "", characterSheet: npc });
-    });
-    return [...participantsWithLiveHp, ...extra];
-  }, [participantsWithLiveHp, game.boardPieces, live.npcMap]);
-
   const actorSheet = participants.find((p) => p.characterSheet.uuid === actorId)?.characterSheet;
   const actorRestHealth = actorSheet?.private?.health;
   const actorHp = actorId
     ? (state.hp[actorId] ?? (actorRestHealth ? { hp: actorRestHealth.current, maxHp: actorRestHealth.max } : undefined))
     : undefined;
 
-  const inspectedIsNotInMatch =
-    !!inspectedId && !participants.some((p) => p.characterSheet.uuid === inspectedId);
+  // F2: NPCs da campanha (sem jogador) que ainda não são participantes — candidatos a
+  // "pôr na partida" (`add_npc`).
+  const participantIds = useMemo(() => new Set(participants.map((p) => p.characterSheet.uuid)), [participants]);
+  const npcCandidates = useMemo(
+    () =>
+      [...live.npcMap.values()]
+        .filter((cs) => !cs.playerUuid && !participantIds.has(cs.uuid))
+        .map((cs) => ({ id: cs.uuid, name: cs.nickName })),
+    [live.npcMap, participantIds],
+  );
+
+  // Peça no tabuleiro de quem não é participante: o servidor inscreve (B11) e avisa com
+  // npc_added; se o aviso se perder, rebusca — uma vez por personagem, para não virar laço.
+  const refetchedFor = useRef(new Set<string>());
+  useEffect(() => {
+    if (!game.participantsLoaded) return;
+    const orphan = game.boardPieces.find(
+      (p) => p.characterId && !participantIds.has(p.characterId) && !refetchedFor.current.has(p.characterId),
+    );
+    if (!orphan?.characterId) return;
+    refetchedFor.current.add(orphan.characterId);
+    void game.refetchParticipants();
+  }, [game.boardPieces, game.participantsLoaded, participantIds, game]);
+
+  // npc_already_in_match quer dizer "o NPC está na partida" (contrato, add_npc): só rebusca.
+  useEffect(() => {
+    if (state.lastError?.code !== "npc_already_in_match") return;
+    void game.refetchParticipants();
+    combat.dismissError();
+  }, [state.lastError, game, combat]);
+
   const inspectedPieceId = inspectedId
     ? game.boardPieces.find((p) => p.characterId === inspectedId)?.id
     : undefined;
@@ -244,6 +259,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
           ) : (
             <>
               <NpcPicker npcs={npcs} actorId={actorId} onChoose={chooseActor} />
+              <AddNpcPicker candidates={npcCandidates} onAdd={(id) => combat.send.addNpc(id)} />
               {actorId && (
                 <>
                   <OwnBars bars={state.bars} characterId={actorId} hp={actorHp} />
@@ -313,7 +329,10 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
               nameOf={nameOf}
               highlightActorIds={npcIds}
             />
-            <MatchErrorBanner error={state.lastError} onDismiss={combat.dismissError} />
+            <MatchErrorBanner
+              error={state.lastError?.code === "npc_already_in_match" ? null : state.lastError}
+              onDismiss={combat.dismissError}
+            />
             {mapHint && <MapHint>{mapHint}</MapHint>}
             {map && <MapCornerButton type="button" onClick={game.refit}>Enquadrar</MapCornerButton>}
           </>
@@ -323,23 +342,16 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
             defaultTab="historico"
             historico={<EventStream events={state.events} nameOf={nameOf} gridKind={gridKind} />}
             personagens={
-              <>
-                {inspectedIsNotInMatch && (
-                  <PanelMessage>
-                    Este personagem não está inscrito na partida — é um NPC do mapa, e não age.
-                  </PanelMessage>
-                )}
-                <MatchCharactersSidebar
-                  gameStarted
-                  enrollments={[]}
-                  participants={everyone}
-                  isMaster
-                  actionLoading={{}}
-                  onAccept={() => {}}
-                  onReject={() => {}}
-                  onSelectCharacterSheet={(sheetUuid) => navigate(`/charactersheet/${sheetUuid}`)}
-                />
-              </>
+              <MatchCharactersSidebar
+                gameStarted
+                enrollments={[]}
+                participants={participantsWithLiveHp}
+                isMaster
+                actionLoading={{}}
+                onAccept={() => {}}
+                onReject={() => {}}
+                onSelectCharacterSheet={(sheetUuid) => navigate(`/charactersheet/${sheetUuid}`)}
+              />
             }
           />
         }

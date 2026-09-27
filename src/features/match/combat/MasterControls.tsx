@@ -1,5 +1,6 @@
 // Os controles que só a tela do mestre monta: regência (regime, abrir, fechar) e a escolha
 // do NPC por quem agir. Nenhum pergunta "sou mestre?" — a página é que decide montá-los.
+import { useState } from "react";
 import styled, { css } from "styled-components";
 import { colors, fonts } from "../../../styles/tokens";
 import { media } from "../../../styles/breakpoints";
@@ -75,7 +76,7 @@ export function NpcPicker({
       <PanelTitle>Agir por</PanelTitle>
       {npcs.length === 0 ? (
         <PanelHint>
-          Nenhum NPC nesta partida. Inscreva NPCs na partida (antes de abrir a sala) para agir por eles.
+          Nenhum NPC nesta partida. Ponha um NPC no mapa ou escolha abaixo.
         </PanelHint>
       ) : (
         <PickerList>
@@ -97,6 +98,54 @@ export function NpcPicker({
     </Picker>
   );
 }
+
+/**
+ * Pôr na partida um NPC da campanha que ainda não está nela (`add_npc`). Ele vira
+ * participante quando `npc_added` chegar e o REST for rebuscado.
+ */
+export function AddNpcPicker({
+  candidates,
+  onAdd,
+}: {
+  candidates: Array<{ id: string; name: string }>;
+  onAdd: (id: string) => void;
+}) {
+  const [chosen, setChosen] = useState("");
+  if (candidates.length === 0) return null;
+  return (
+    <Picker>
+      <PanelTitle as="label" htmlFor="add-npc-select">Pôr na partida</PanelTitle>
+      <AddRow>
+        <NpcSelect id="add-npc-select" value={chosen} onChange={(e) => setChosen(e.target.value)}>
+          <option value="">Escolha um NPC da campanha</option>
+          {candidates.map((c) => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </NpcSelect>
+        <SmallButton type="button" disabled={!chosen} onClick={() => { onAdd(chosen); setChosen(""); }}>
+          Pôr
+        </SmallButton>
+      </AddRow>
+    </Picker>
+  );
+}
+
+const AddRow = styled.div`
+  display: flex;
+  gap: 6px;
+`;
+
+const NpcSelect = styled.select`
+  flex: 1;
+  min-width: 0;
+  background: ${colors.surfaceInput};
+  color: ${colors.textPrimary};
+  border: 1px solid ${colors.surfaceInputHover};
+  border-radius: 6px;
+  font-family: ${fonts.sans};
+  font-size: 13px;
+  padding: 4px 6px;
+`;
 
 /** Painel da fila no celular: o regime vem para cá (ver `RoundModeSwitch`). */
 export const PanelSection = styled.div`

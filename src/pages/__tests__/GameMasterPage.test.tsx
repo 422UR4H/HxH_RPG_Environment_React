@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { http, HttpResponse } from "msw";
 import { act, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { server } from "../../test/server";
 import { renderWithProviders } from "../../test/render";
 import { matchApiFixture } from "../../test/fixtures/match";
@@ -11,6 +12,7 @@ import GameMasterPage from "../GameMasterPage";
 import { installFakeWebSocket, waitForSocket } from "../../test/fakeWebSocket";
 
 const baseUrl = "http://localhost:5000";
+const user = userEvent.setup();
 
 // Pixi não é coberto por teste (src/test/setup.ts mocka @pixi/react); o stub expõe um
 // botão por peça e um botão de slot vazio (R13, mesmo padrão de GamePlayerPage.test.tsx).
@@ -237,10 +239,10 @@ describe("GameMasterPage", () => {
     );
   });
 
-  // F6 (B4): a lista de Personagens do mestre é todo participante MAIS todo personagem
-  // com peça no mapa, mesmo um que nunca se inscreveu na partida (um NPC de campanha que
-  // o mestre arrasta ad hoc) — sem depender de nenhum isMaster nos componentes abaixo.
-  it("Personagens do mestre inclui um NPC do mapa que não é participante da partida (F6)", async () => {
+  // F2 removeu o `everyone` com participantes sintéticos `map-npc:*` (o antigo teste "F6"
+  // cobria exatamente isso): um NPC do mapa que ainda não é participante não aparece mais
+  // em Personagens — a rede de segurança do F2 rebusca os participantes até ele chegar.
+  it("Personagens do mestre não inclui um NPC do mapa que ainda não é participante (F2)", async () => {
     server.use(
       http.get(`${baseUrl}/maps/:id`, () =>
         HttpResponse.json({
@@ -272,9 +274,9 @@ describe("GameMasterPage", () => {
     act(() => toggle.click());
     act(() => screen.getByRole("button", { name: "Personagens" }).click());
 
-    expect(await screen.findByText("NPC Só no Mapa")).toBeInTheDocument();
-    // Continua mostrando os participantes normais também.
-    expect(screen.getByText("Gon")).toBeInTheDocument();
+    // Continua mostrando os participantes normais.
+    expect(await screen.findByText("Gon")).toBeInTheDocument();
+    expect(screen.queryByText("NPC Só no Mapa")).not.toBeInTheDocument();
   });
 
   it("F11: inspecionar uma peça que o mestre não controla não troca a aba da direita", async () => {
@@ -349,8 +351,9 @@ describe("GameMasterPage", () => {
   });
 
   // F7 (M1): um NPC do mapa que NÃO é participante da partida é inspecionado (nunca vira
-  // ator) e o painel explica por que ele não tem ficha/ações ali.
-  it("NPC do mapa fora da partida: inspeciona e o painel explica que ele não está na partida (F7)", async () => {
+  // ator) — a mensagem "não está inscrito" saiu com F2 (a rede de segurança do B11 cobre
+  // a janela e o participante chega pouco depois).
+  it("NPC do mapa fora da partida: inspeciona sem virar ator (F7)", async () => {
     server.use(
       http.get(`${baseUrl}/maps/:id`, () =>
         HttpResponse.json({
@@ -385,13 +388,90 @@ describe("GameMasterPage", () => {
     expect(mapStub).toHaveAttribute("data-selected-piece-id", "");
     // não virou ator
     expect(screen.queryByRole("button", { name: /declarar/i })).not.toBeInTheDocument();
+  });
 
-    // F11: inspecionar não abre a gaveta nem troca a aba mais — abrir e trocar à mão pra ver
-    // o aviso na aba Personagens.
-    act(() => screen.getByRole("button", { name: "Ver histórico" }).click());
-    act(() => screen.getByRole("button", { name: "Personagens" }).click());
-    expect(
-      await screen.findByText(/não está inscrito na partida/i),
-    ).toBeInTheDocument();
+  it("F2: pôr um NPC da campanha na partida manda add_npc", async () => {
+    server.use(
+      http.get(`${baseUrl}/campaigns/:id`, () =>
+        HttpResponse.json({ campaign: campaignWithNpcsApi([npcFixture]) }),
+      ),
+    );
+    renderWithProviders(
+      <GameMasterPage token="fake-jwt-token" matchId="match-1" campaignId="campaign-1" />,
+    );
+    const ws = await waitForSocket();
+    act(() => ws.onopen?.());
+
+    act(() => screen.getByRole("button", { name: "Agir" }).click());
+    await user.selectOptions(await screen.findByLabelText("Pôr na partida"), npcFixture.uuid);
+    await user.click(screen.getByRole("button", { name: "Pôr" }));
+    expect(ws.sent("add_npc")).toEqual([{ characterSheetUuid: npcFixture.uuid }]);
+  });
+
+  it("F2: npc_added rebusca os participantes", async () => {
+    let calls = 0;
+    server.use(
+      http.get(`${baseUrl}/matches/:id/participants`, () => {
+        calls += 1;
+        return HttpResponse.json({ participants: participantsFixture });
+      }),
+    );
+    renderMasterPage();
+    const ws = await waitForSocket();
+    act(() => ws.onopen?.());
+    await vi.waitFor(() => expect(calls).toBe(1));
+
+    act(() => { ws.emit("npc_added", { characterId: "npc-x" }); });
+    await vi.waitFor(() => expect(calls).toBe(2));
+  });
+
+  it("F2: peça de não-participante rebusca uma vez só", async () => {
+    let calls = 0;
+    server.use(
+      http.get(`${baseUrl}/matches/:id/participants`, () => {
+        calls += 1;
+        return HttpResponse.json({ participants: participantsFixture });
+      }),
+      http.get(`${baseUrl}/maps/:id`, () =>
+        HttpResponse.json({
+          map: mapWithPiecesApi([
+            ...piecesFixture,
+            {
+              id: "p-orfao",
+              characterId: "npc-orfao",
+              coord: { slot: { kind: "square", col: 5, row: 5 }, z: 0 },
+              visible: true,
+            },
+          ] as never),
+        }),
+      ),
+    );
+    renderMasterPage();
+    const ws = await waitForSocket();
+    act(() => ws.onopen?.());
+    await vi.waitFor(() => expect(calls).toBe(2));
+
+    // Outro re-render (ex.: bars_updated) não deve disparar uma segunda rebusca da mesma peça.
+    act(() => { ws.emit("bars_updated", { seq: 1, bars: [] }); });
+    expect(calls).toBe(2);
+  });
+
+  it("F2: npc_already_in_match não aparece como erro", async () => {
+    server.use(
+      http.get(`${baseUrl}/campaigns/:id`, () =>
+        HttpResponse.json({ campaign: campaignWithNpcsApi([npcFixture]) }),
+      ),
+    );
+    renderWithProviders(
+      <GameMasterPage token="fake-jwt-token" matchId="match-1" campaignId="campaign-1" />,
+    );
+    const ws = await waitForSocket();
+    act(() => ws.onopen?.());
+
+    act(() => screen.getByRole("button", { name: "Agir" }).click());
+    await user.selectOptions(await screen.findByLabelText("Pôr na partida"), npcFixture.uuid);
+    await user.click(screen.getByRole("button", { name: "Pôr" }));
+    act(() => { ws.emit("error", { code: "npc_already_in_match", message: "npc already in match" }); });
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });

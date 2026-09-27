@@ -34,7 +34,7 @@ export function useGameTable({
   const { user } = useUser();
   const { data: matchMap, isPending: matchMapPending } = useMatchMap(token, matchId);
   const { data: map, isPending: mapPending } = useMap(token, matchMap?.mapUuid);
-  const { data: participants = [] } = useMatchParticipants(token, matchId, true);
+  const { data: participants = [], isSuccess: participantsLoaded } = useMatchParticipants(token, matchId, true);
   const { data: campaign } = useCampaignDetails(token, campaignId);
 
   const queryClient = useQueryClient();
@@ -163,6 +163,7 @@ export function useGameTable({
     map,
     isLoading: matchMapPending || (!!matchMap && mapPending),
     participants,
+    participantsLoaded,
     refetchParticipants,
     campaign,
     live,
