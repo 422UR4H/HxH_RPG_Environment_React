@@ -1,6 +1,11 @@
 import { describe, it, expect, vi } from "vitest";
+import { useState } from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import ActionComposer from "../ActionComposer";
+import { chooseDestination, chooseTarget, draftVerdict, emptyDraft, resolveDraft } from "../actionDraft";
+import type { ActionDraft, ReachContext } from "../actionDraft";
+import { isSameSlot } from "../../../tactical-map/utils/coords";
+import type { GridShape, SlotCoord } from "../../../../types/tacticalMap";
 
 const catalogue = {
   weapons: [
@@ -10,232 +15,151 @@ const catalogue = {
   skills: ["Push"],
 };
 
+const grid: GridShape = {
+  kind: "square", cols: 14, rows: 10, cellSize: 64, skewRatio: 1, rotation: 0,
+  color: "#fff", opacity: 1, lineStyle: "solid",
+};
+const sq = (col: number, row: number): SlotCoord => ({ kind: "square", col, row });
+// Gon (ator) em (2,4); Hisoka longe em (8,4); Killua colado em (3,4).
+const positions: Record<string, SlotCoord> = { gon: sq(2, 4), hisoka: sq(8, 4), killua: sq(3, 4) };
+const ctx: ReachContext = {
+  grid,
+  actorSlot: positions.gon,
+  actorZ: 0,
+  slotOf: (id) => positions[id],
+  isFree: (s) => !Object.values(positions).some((p) => isSameSlot(p, s)),
+};
+const nameOf = (id: string) => ({ gon: "Gon", hisoka: "Hisoka", killua: "Killua" }[id] ?? id);
+
+/** O composer controlado de verdade: o rascunho vive aqui, como na página. */
+function Harness({
+  initial = emptyDraft(),
+  onDeclare = () => {},
+  canDeclare = true,
+  blockedReason,
+  spy,
+}: {
+  initial?: ActionDraft;
+  onDeclare?: () => void;
+  canDeclare?: boolean;
+  blockedReason?: string;
+  spy?: (d: ActionDraft) => void;
+}) {
+  const [draft, setDraft] = useState(initial);
+  const resolved = resolveDraft(draft, ctx, "Dash");
+  return (
+    <ActionComposer
+      actorName="Gon"
+      draft={draft}
+      resolved={resolved}
+      verdict={draftVerdict(resolved)}
+      catalogue={catalogue}
+      gridKind="square"
+      defaultCategory="Dash"
+      nameOf={nameOf}
+      onDraftChange={(d) => {
+        spy?.(d);
+        setDraft(d);
+      }}
+      onDeclare={onDeclare}
+      canDeclare={canDeclare}
+      blockedReason={blockedReason}
+    />
+  );
+}
+
+const moveToggle = () => screen.getByRole("button", { name: /Mover/ });
+const attackToggle = () => screen.getByRole("button", { name: /Atacar/ });
+const declare = () => screen.getByRole("button", { name: /^Declarar/ });
+
 describe("ActionComposer", () => {
-  it("monta o payload sem nenhum nome de perícia", () => {
-    const onSubmit = vi.fn();
-    render(
-      <ActionComposer
-        actorId="c1"
-        actorName="Gon"
-        actorSlot={[1, 1, 0]}
-        draft={{ targets: ["c2"], weapon: "Sword", move: { category: "Dash", to: [3, 1, 0] } }}
-        catalogue={catalogue}
-        onDraftChange={vi.fn()}
-        onSubmit={onSubmit}
-      />,
-    );
-    fireEvent.click(screen.getByRole("button", { name: /declarar/i }));
-    expect(onSubmit).toHaveBeenCalledWith({
-      actorId: "c1",
-      targetId: ["c2"],
-      attack: { weapon: "Sword" },
-      move: { category: "Dash", from: [1, 1, 0], position: [3, 1, 0] },
-    });
+  it("nasce sem mover e sem atacar, e explica como começar", () => {
+    render(<Harness />);
+    expect(moveToggle()).toHaveAttribute("aria-pressed", "false");
+    expect(attackToggle()).toHaveAttribute("aria-pressed", "false");
+    expect(declare()).toBeDisabled();
+    expect(screen.getByTestId("composer-hint")).toHaveTextContent(/Toque num espaço vazio/);
   });
 
   it("não oferece campo de perícia", () => {
-    render(
-      <ActionComposer
-        actorId="c1"
-        actorName="Gon"
-        actorSlot={[1, 1, 0]}
-        draft={{ targets: [] }}
-        catalogue={catalogue}
-        onDraftChange={vi.fn()}
-        onSubmit={vi.fn()}
-      />,
-    );
+    render(<Harness initial={chooseTarget(emptyDraft(), "killua")} />);
     expect(screen.queryByLabelText(/perícia/i)).toBeNull();
   });
 
-  it("oferece Dash e Shift, com Dash marcado", () => {
-    render(
-      <ActionComposer
-        actorId="c1"
-        actorName="Gon"
-        actorSlot={[1, 1, 0]}
-        draft={{ targets: [], move: { category: "Dash", to: [2, 1, 0] } }}
-        catalogue={catalogue}
-        onDraftChange={vi.fn()}
-        onSubmit={vi.fn()}
-      />,
-    );
-    expect(screen.getByRole("radio", { name: /dash/i })).toBeChecked();
-    expect(screen.getByRole("radio", { name: /shift/i })).not.toBeChecked();
+  it("só movimento: com destino, declara movimento; Dash/Shift trocam a categoria", () => {
+    const spy = vi.fn();
+    render(<Harness initial={chooseDestination(emptyDraft(), [5, 4, 0])} spy={spy} />);
+    expect(moveToggle()).toHaveAttribute("aria-pressed", "true");
+    expect(attackToggle()).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByTestId("move-destination")).toHaveTextContent("coluna 6, linha 5");
+    expect(declare()).toHaveTextContent("Declarar movimento");
+    expect(screen.getByRole("radio", { name: "Dash" })).toHaveAttribute("aria-checked", "true");
+
+    fireEvent.click(screen.getByRole("radio", { name: "Shift" }));
+    expect(spy).toHaveBeenLastCalledWith(expect.objectContaining({ category: "Shift" }));
+    expect(screen.getByRole("radio", { name: "Shift" })).toHaveAttribute("aria-checked", "true");
   });
 
-  // R14: sem actorSlot, o movimento vai sem `from` — from é opcional no contrato e só
-  // liga a checagem de parede no servidor.
-  it("monta o move sem `from` quando não há actorSlot", () => {
-    const onSubmit = vi.fn();
-    render(
-      <ActionComposer
-        actorId="c1"
-        actorName="Gon"
-        draft={{ targets: [], move: { category: "Shift", to: [3, 1, 0] } }}
-        catalogue={catalogue}
-        onDraftChange={vi.fn()}
-        onSubmit={onSubmit}
-      />,
-    );
-    fireEvent.click(screen.getByRole("button", { name: /declarar/i }));
-    expect(onSubmit).toHaveBeenCalledWith({
-      actorId: "c1",
-      move: { category: "Shift", position: [3, 1, 0] },
-    });
+  it("ligar Mover sem destino trava o envio até tocar no mapa", () => {
+    render(<Harness />);
+    fireEvent.click(moveToggle());
+    expect(moveToggle()).toHaveAttribute("aria-pressed", "true");
+    expect(declare()).toBeDisabled();
+    expect(screen.getByTestId("composer-hint")).toHaveTextContent(/escolher o destino/);
   });
 
-  // R4: alvos são UUIDs de sheet/parede; nameOf traduz para exibição, e remover um alvo
-  // migra o rascunho via onDraftChange(migrateTargets(...)).
-  it("exibe nomes de alvo via nameOf e remove alvo migrando o rascunho", () => {
-    const onDraftChange = vi.fn();
-    render(
-      <ActionComposer
-        actorId="c1"
-        actorName="Gon"
-        actorSlot={[1, 1, 0]}
-        draft={{ targets: ["c2", "c3"], weapon: "Sword" }}
-        catalogue={catalogue}
-        nameOf={(id) => (id === "c2" ? "Killua" : id)}
-        onDraftChange={onDraftChange}
-        onSubmit={vi.fn()}
-      />,
-    );
-    expect(screen.getByText("Killua")).toBeInTheDocument();
-    expect(screen.getByText("c3")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: /remover killua/i }));
-    expect(onDraftChange).toHaveBeenCalledWith({
-      targets: ["c3"],
-      weapon: "Sword",
-    });
+  it("só ataque em alvo colado: não se move", () => {
+    const onDeclare = vi.fn();
+    render(<Harness initial={chooseTarget(emptyDraft(), "killua")} onDeclare={onDeclare} />);
+    expect(moveToggle()).toHaveAttribute("aria-pressed", "false");
+    expect(attackToggle()).toHaveAttribute("aria-pressed", "true");
+    expect(declare()).toHaveTextContent("Declarar ataque");
+    fireEvent.click(declare());
+    expect(onDeclare).toHaveBeenCalled();
   });
 
-  // "Declarar" desabilitado quando o rascunho não tem alvo nem movimento.
-  it("desabilita Declarar sem alvo e sem movimento", () => {
-    render(
-      <ActionComposer
-        actorId="c1"
-        actorName="Gon"
-        actorSlot={[1, 1, 0]}
-        draft={{ targets: [] }}
-        catalogue={catalogue}
-        onDraftChange={vi.fn()}
-        onSubmit={vi.fn()}
-      />,
-    );
-    expect(screen.getByRole("button", { name: /declarar/i })).toBeDisabled();
+  it("ataque em alvo longe liga a aproximação — e dá para desligar e atacar à distância", () => {
+    render(<Harness initial={chooseTarget(emptyDraft(), "hisoka")} />);
+    expect(moveToggle()).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("move-destination")).toHaveTextContent("ao lado de Hisoka");
+    expect(declare()).toHaveTextContent("Declarar movimento + ataque");
+
+    fireEvent.click(moveToggle());
+    expect(moveToggle()).toHaveAttribute("aria-pressed", "false");
+    expect(declare()).toHaveTextContent("Declarar ataque");
+    expect(screen.getByText(/Hisoka está a 6 espaços/)).toBeInTheDocument();
   });
 
-  // Sem destino escolhido: radios mostram defaultCategory marcado, ficam desabilitados,
-  // e o hint aparece ao lado.
-  it("sem destino: radios desabilitados com defaultCategory marcado e hint visível", () => {
-    render(
-      <ActionComposer
-        actorId="c1"
-        actorName="Gon"
-        actorSlot={[1, 1, 0]}
-        draft={{ targets: [] }}
-        catalogue={catalogue}
-        defaultCategory="Shift"
-        onDraftChange={vi.fn()}
-        onSubmit={vi.fn()}
-      />,
+  it("escolhe a arma e remove o alvo pelo chip", () => {
+    const spy = vi.fn();
+    render(<Harness initial={chooseTarget(emptyDraft(), "killua")} spy={spy} />);
+    expect(screen.getByRole("radio", { name: /Fist/ })).toHaveAttribute("aria-checked", "true");
+    fireEvent.click(screen.getByRole("radio", { name: /Sword/ }));
+    expect(spy).toHaveBeenLastCalledWith(
+      expect.objectContaining({ attack: { targets: ["killua"], weapon: "Sword" } }),
     );
-    const dash = screen.getByRole("radio", { name: /dash/i });
-    const shift = screen.getByRole("radio", { name: /shift/i });
-    expect(dash).toBeDisabled();
-    expect(shift).toBeDisabled();
-    expect(shift).toBeChecked();
-    expect(dash).not.toBeChecked();
-    expect(screen.getByText(/clique num espaço livre para escolher o destino/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Remover Killua" }));
+    expect(attackToggle()).toHaveAttribute("aria-pressed", "false");
+    expect(declare()).toBeDisabled();
   });
 
-  // X explícito no nome do ator — nunca o clique de novo, que é alvejar a si mesmo.
-  it("chama onClearActor ao clicar no X do nome do ator", () => {
-    const onClearActor = vi.fn();
-    render(
-      <ActionComposer
-        actorId="c1"
-        actorName="Gon"
-        actorSlot={[1, 1, 0]}
-        draft={{ targets: [] }}
-        catalogue={catalogue}
-        onDraftChange={vi.fn()}
-        onSubmit={vi.fn()}
-        onClearActor={onClearActor}
-      />,
-    );
-    fireEvent.click(screen.getByRole("button", { name: /limpar ator/i }));
-    expect(onClearActor).toHaveBeenCalled();
+  it("Limpar volta ao rascunho vazio", () => {
+    render(<Harness initial={chooseTarget(chooseDestination(emptyDraft(), [2, 5, 0]), "killua")} />);
+    fireEvent.click(screen.getByRole("button", { name: "Limpar" }));
+    expect(moveToggle()).toHaveAttribute("aria-pressed", "false");
+    expect(attackToggle()).toHaveAttribute("aria-pressed", "false");
   });
 
-  // Escolher arma edita o rascunho via onDraftChange.
-  it("escolher arma seta draft.weapon via onDraftChange", () => {
-    const onDraftChange = vi.fn();
+  it("rascunho pronto mas conexão travada: desabilita e diz por quê", () => {
     render(
-      <ActionComposer
-        actorId="c1"
-        actorName="Gon"
-        actorSlot={[1, 1, 0]}
-        draft={{ targets: [] }}
-        catalogue={catalogue}
-        onDraftChange={onDraftChange}
-        onSubmit={vi.fn()}
+      <Harness
+        initial={chooseTarget(emptyDraft(), "killua")}
+        canDeclare={false}
+        blockedReason="Sem conexão com a mesa."
       />,
     );
-    fireEvent.click(screen.getByRole("radio", { name: /sword/i }));
-    expect(onDraftChange).toHaveBeenCalledWith({ targets: [], weapon: "Sword" });
-  });
-
-  // Final review, Important 2(b)/M4: canSubmit reúne "socket conectado" e "sem envio
-  // pendente deste ator" — a página calcula os dois e passa um booleano só.
-  it("desabilita Declarar quando canSubmit=false mesmo com alvo/movimento válido", () => {
-    render(
-      <ActionComposer
-        actorId="c1"
-        actorName="Gon"
-        actorSlot={[1, 1, 0]}
-        draft={{ targets: ["c2"] }}
-        catalogue={catalogue}
-        onDraftChange={vi.fn()}
-        onSubmit={vi.fn()}
-        canSubmit={false}
-      />,
-    );
-    expect(screen.getByRole("button", { name: /declarar/i })).toBeDisabled();
-  });
-
-  it("canSubmit omitido (default true) não desabilita quando há alvo/movimento", () => {
-    render(
-      <ActionComposer
-        actorId="c1"
-        actorName="Gon"
-        actorSlot={[1, 1, 0]}
-        draft={{ targets: ["c2"] }}
-        catalogue={catalogue}
-        onDraftChange={vi.fn()}
-        onSubmit={vi.fn()}
-      />,
-    );
-    expect(screen.getByRole("button", { name: /declarar/i })).not.toBeDisabled();
-  });
-
-  // Limpar destino escolhido (o "x" pequeno) seta move para undefined.
-  it("limpar destino escolhido remove o move do rascunho", () => {
-    const onDraftChange = vi.fn();
-    render(
-      <ActionComposer
-        actorId="c1"
-        actorName="Gon"
-        actorSlot={[1, 1, 0]}
-        draft={{ targets: [], move: { category: "Dash", to: [3, 1, 0] } }}
-        catalogue={catalogue}
-        onDraftChange={onDraftChange}
-        onSubmit={vi.fn()}
-      />,
-    );
-    fireEvent.click(screen.getByRole("button", { name: /limpar destino/i }));
-    expect(onDraftChange).toHaveBeenCalledWith({ targets: [] });
+    expect(declare()).toBeDisabled();
+    expect(screen.getByTestId("composer-hint")).toHaveTextContent("Sem conexão com a mesa.");
   });
 });

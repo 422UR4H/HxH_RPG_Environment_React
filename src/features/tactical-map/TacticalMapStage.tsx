@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState } from "react";
 import styled, { keyframes } from "styled-components";
 import { colors, fonts } from "../../styles/tokens";
 import { Application, extend } from "@pixi/react";
@@ -27,7 +27,11 @@ export default function TacticalMapStage({
   inspectedPieceId,
   targetPieceIds,
   onPieceMove,
-  ghosts,
+  intentPreview,
+  intentGhosts,
+  activePieceId,
+  highlightHoverSlot,
+  fitRequest,
   onPieceDragToRoster,
   onPieceDragStart,
   onPieceDragEnd,
@@ -60,6 +64,13 @@ export default function TacticalMapStage({
   worldHeight,
 }: TacticalMapStageProps) {
   const [isBgLoading, setIsBgLoading] = useState(() => !!map.bg?.url);
+  // @pixi/react (8.0.5) renders the Pixi tree from an async root: its FIRST render awaits
+  // `app.init()` and then commits the children it captured back then — overwriting every
+  // newer render that happened while the renderer was initializing. Whatever arrived in
+  // that window (the pieces and fog of `map_full_state`, typically) stayed off the canvas
+  // until some unrelated re-render: a blank, fully fogged board where a tap never finds a
+  // piece. Re-rendering once on init pushes the current props through.
+  const [, rerenderAfterInit] = useReducer((n: number) => n + 1, 0);
   const bgUrl = map.bg?.url;
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -89,7 +100,7 @@ export default function TacticalMapStage({
 
   return (
     <div ref={containerRef} style={{ position: "relative", width, height, overflow: "hidden", isolation: "isolate" }}>
-      <Application width={width} height={height} background={0x101820}>
+      <Application width={width} height={height} background={0x101820} onInit={rerenderAfterInit}>
         <ViewportInner
           map={map}
           width={width}
@@ -110,7 +121,11 @@ export default function TacticalMapStage({
           inspectedPieceId={inspectedPieceId}
           targetPieceIds={targetPieceIds}
           onPieceMove={onPieceMove}
-          ghosts={ghosts}
+          intentPreview={intentPreview}
+          intentGhosts={intentGhosts}
+          activePieceId={activePieceId}
+          highlightHoverSlot={highlightHoverSlot}
+          fitRequest={fitRequest}
           onPieceDragToRoster={onPieceDragToRoster}
           onPieceDragStart={onPieceDragStart}
           onPieceDragEnd={onPieceDragEnd}

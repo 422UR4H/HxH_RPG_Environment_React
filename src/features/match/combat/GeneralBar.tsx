@@ -1,98 +1,125 @@
 import styled from "styled-components";
 import { colors, fonts } from "../../../styles/tokens";
 import type { Bar, BarsPayload } from "./combatMessages";
+import { BAR_ICONS, BAR_LABELS } from "./combatText";
 
-const ALL_BARS: Bar[] = ["action", "move"];
-
-const BAR_LABELS: Record<Bar, string> = {
-  action: "Ação",
-  move: "Movimento",
-};
 
 /**
- * Flutua sobre o mapa: ordem projetada (maior key primeiro) + preço da rodada.
- * Uma barra ausente de `bars.prices` ainda não foi precificada — nunca é zero.
+ * A barra geral, flutuando sobre o mapa: de quem é a vez, quem age em seguida (maior `key`
+ * primeiro) e o preço da rodada. Pública — é ela que diz a cada um quanto tempo tem para
+ * montar a próxima ação. Uma barra ausente de `prices` ainda não foi precificada (no
+ * regime livre, nunca é).
  */
 export default function GeneralBar({
   bars,
+  openTurnActorId,
   nameOf,
-  highlightActorId,
+  highlightActorIds,
 }: {
   bars: BarsPayload | null;
+  openTurnActorId?: string;
   nameOf: (characterId: string) => string;
-  highlightActorId?: string;
+  /** Os atores de quem está olhando (o próprio personagem; os NPCs do mestre). */
+  highlightActorIds?: Set<string>;
 }) {
-  if (!bars) return null;
-
-  const order = [...bars.order].sort((a, b) => b.key - a.key);
+  const order = bars ? [...bars.order].sort((a, b) => b.key - a.key) : [];
+  const priced = bars ? (Object.keys(bars.prices) as Bar[]).filter((b) => bars.prices[b] !== undefined) : [];
 
   return (
-    <Wrapper>
-      <Prices>
-        {ALL_BARS.map((bar) => {
-          const price = bars.prices[bar];
-          return (
-            <PriceItem key={bar} data-testid={`price-${bar}`}>
-              {BAR_LABELS[bar]}: {price === undefined ? <Unpriced>ainda não precificou</Unpriced> : price}
-            </PriceItem>
-          );
-        })}
-      </Prices>
-      <Order>
-        {order.map((entry, i) => (
-          <OrderRow
-            key={`${entry.actorId}-${i}`}
-            data-testid="order-row"
-            $highlighted={entry.actorId === highlightActorId}
-          >
-            {nameOf(entry.actorId)} — {entry.bars.map((b) => BAR_LABELS[b]).join(", ")}
-          </OrderRow>
-        ))}
+    <Wrapper aria-label="Barra geral">
+      {openTurnActorId ? (
+        <Turn data-testid="open-turn">
+          <Dot aria-hidden /> Vez de <strong>{nameOf(openTurnActorId)}</strong>
+        </Turn>
+      ) : (
+        <Idle>Nenhum turno aberto</Idle>
+      )}
+      <Order aria-label="Ordem">
+        {order.length === 0 ? (
+          <Idle>ordem vazia</Idle>
+        ) : (
+          order.map((entry, i) => (
+            <OrderChip
+              key={`${entry.actorId}-${i}`}
+              data-testid="order-row"
+              $mine={!!highlightActorIds?.has(entry.actorId)}
+              title={entry.bars.map((b) => BAR_LABELS[b]).join(" + ")}
+            >
+              {nameOf(entry.actorId)} <Icons aria-hidden>{entry.bars.map((b) => BAR_ICONS[b]).join("")}</Icons>
+            </OrderChip>
+          ))
+        )}
       </Order>
+      {priced.length > 0 && (
+        <Prices data-testid="prices">
+          preço {priced.map((b) => `${BAR_ICONS[b]} ${bars!.prices[b]}`).join(" · ")}
+        </Prices>
+      )}
     </Wrapper>
   );
 }
 
 const Wrapper = styled.div`
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 40;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  z-index: 30;
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 16px;
-  padding: 6px 12px;
-  background: ${colors.surfaceSidebar};
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: ${colors.overlayMedium};
   color: ${colors.textPrimary};
   font-family: ${fonts.sans};
   font-size: 12px;
   overflow-x: auto;
+  white-space: nowrap;
+  scrollbar-width: none;
+  pointer-events: auto;
 `;
 
-const Prices = styled.div`
-  display: flex;
-  gap: 12px;
+const Turn = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   flex-shrink: 0;
 `;
 
-const PriceItem = styled.span``;
+const Dot = styled.span`
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: ${colors.pieceActiveTurn};
+  box-shadow: 0 0 0 3px ${colors.rowHighlight};
+`;
 
-const Unpriced = styled.span`
-  color: ${colors.textPlaceholder};
+const Idle = styled.span`
+  flex-shrink: 0;
+  color: ${colors.textPlaceholderStrong};
   font-style: italic;
 `;
 
 const Order = styled.div`
   display: flex;
-  gap: 10px;
-  overflow-x: auto;
+  gap: 6px;
+  flex-shrink: 0;
 `;
 
-const OrderRow = styled.span<{ $highlighted: boolean }>`
+const OrderChip = styled.span<{ $mine: boolean }>`
   padding: 2px 8px;
-  border-radius: 4px;
-  white-space: nowrap;
-  background: ${({ $highlighted }) => ($highlighted ? colors.rowHighlight : "transparent")};
+  border-radius: 999px;
+  background: ${({ $mine }) => ($mine ? colors.rowHighlight : colors.surfaceInput)};
+  border: 1px solid ${({ $mine }) => ($mine ? colors.brandAccentBright : "transparent")};
+`;
+
+const Icons = styled.span`
+  color: ${colors.textPlaceholderStrong};
+`;
+
+const Prices = styled.span`
+  margin-left: auto;
+  flex-shrink: 0;
+  color: ${colors.textPlaceholderStrong};
 `;

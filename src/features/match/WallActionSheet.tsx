@@ -29,7 +29,8 @@ export default function WallActionSheet({
   wall: WallSegment;
   isMaster: boolean;
   onInteract: (kind: "open" | "close" | "lockpick") => void;
-  onAttack: () => void;
+  /** Ausente quando não há quem ataque (o mestre sem NPC escolhido). */
+  onAttack?: () => void;
   onClose: () => void;
 }) {
   return (
@@ -55,7 +56,7 @@ export default function WallActionSheet({
           ) : null)}
 
         {/* Attack — available when destructible; terrain is scenery, not attackable */}
-        {wall.wallType !== "terrain" && wall.maxHp > 0 && !wall.destroyed && (
+        {onAttack && wall.wallType !== "terrain" && wall.maxHp > 0 && !wall.destroyed && (
           <WallActionButton onClick={onAttack}>Atacar</WallActionButton>
         )}
 

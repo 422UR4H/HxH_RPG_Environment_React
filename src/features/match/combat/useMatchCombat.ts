@@ -1,66 +1,53 @@
 import { useCallback, useEffect, useReducer, useRef } from "react";
 import { useMatchWs } from "../../../hooks/useMatchWs";
 import type { MatchBoardSync } from "../../../hooks/useMatchWs";
-import { loadGhosts, saveGhosts } from "./actionDraft";
 import { combatReducer, initialCombatState } from "./combatReducer";
-import type { Ghost, PendingSend } from "./combatReducer";
-import type { EnqueueActionPayload } from "./combatMessages";
-
-/** Repassado a `onActionEnqueued` (R28): quem mandou, e se era um envio do composer. */
-export type ActionEnqueuedMeta = { actorId: string; clearsDraft: boolean };
+import type { DeclaredAction } from "./combatReducer";
+import { loadDeclared, saveDeclared } from "./declaredStorage";
+import type { EnqueueActionPayload, MasterActionPayload } from "./combatMessages";
 
 type Options = {
   matchUuid: string | undefined;
-  /** M2: namespace da chave de fantasmas — sem isto duas abas na mesma partida colidem. */
+  /** Separa as ações declaradas por usuário no `localStorage`. */
   userUuid: string | undefined;
   token: string;
   isMaster: boolean;
   board?: MatchBoardSync | null;
-  /** Chamado quando `action_enqueued` chega, para a página limpar o rascunho do ator certo. */
-  onActionEnqueued?: (actionId: string, meta: ActionEnqueuedMeta) => void;
-  /**
-   * F2: chamado quando o servidor RECUSA um envio do composer (WS_ERROR, sentType
-   * "enqueue_action", sobre o mais antigo `pendingSends` com `clearsDraft: true`) — a
-   * página deve derrubar só o `move` do rascunho desse ator (destino recusado, o alvo/arma
-   * continuam valendo). Nunca chamado para o menu de parede (`clearsDraft: false`).
-   */
-  onActionRefused?: (actorId: string) => void;
+  /** O servidor aceitou um envio do compositor: a página limpa o rascunho DAQUELE ator. */
+  onComposerSendAccepted?: (actorId: string) => void;
 } & Pick<
   Parameters<typeof useMatchWs>[0],
   | "onWallStateChanged" | "onWallHpChanged" | "onMapFullState" | "onVisibilityUpdated"
   | "onWallRevealed" | "onPieceMoved" | "onPieceRemoved"
 >;
 
-let localGhostSeq = 0;
+type SendOptions = {
+  /** `false` para o menu de parede: o ack dele não pode limpar o rascunho do compositor. */
+  fromComposer?: boolean;
+};
+
+let localSeq = 0;
 
 /**
  * Liga o socket ao reducer. Todo o estado de combate sai daqui; nenhuma página guarda
  * pedaço dele em useState.
  */
 export function useMatchCombat({
-  matchUuid, userUuid, token, isMaster, board, onActionEnqueued, onActionRefused, ...mapHandlers
+  matchUuid, userUuid, token, isMaster, board, onComposerSendAccepted, ...mapHandlers
 }: Options) {
   const [state, dispatch] = useReducer(
     combatReducer,
     initialCombatState,
-    (s) => ({ ...s, ghosts: matchUuid && userUuid ? loadGhosts(matchUuid, userUuid) : {} }),
+    (s) => ({ ...s, declared: matchUuid && userUuid ? loadDeclared(matchUuid, userUuid) : [] }),
   );
 
-  const onActionEnqueuedRef = useRef(onActionEnqueued);
-  onActionEnqueuedRef.current = onActionEnqueued;
-  const onActionRefusedRef = useRef(onActionRefused);
-  onActionRefusedRef.current = onActionRefused;
+  const onAcceptedRef = useRef(onComposerSendAccepted);
+  onAcceptedRef.current = onComposerSendAccepted;
 
-  // R31 (final residual, fixed): `state.pendingSends` is a snapshot of the LAST RENDER —
-  // reading `state.pendingSends[0]` from this closure is correct for one ack at a time,
-  // but a batch of two `action_enqueued` in the same `act`/microtask (or a WS_ERROR
-  // immediately followed by an ack) both fire before React re-renders, so both reads see
-  // the same stale head: the second call reports the FIRST send's metadata, not its own.
-  // This ref mirrors the reducer's own FIFO synchronously (push/shift happen in the same
-  // tick as the socket event, never waiting for a render) — the reducer's own
-  // `pendingSends` is untouched and keeps driving the UI (`hasPendingComposerSend` in the
-  // pages), only the metadata READ for onActionEnqueued/onActionRefused moves here.
-  const pendingSendsRef = useRef<PendingSend[]>([]);
+  // Espelho SÍNCRONO dos envios ainda sem ack, na ordem de envio. O reducer tem a mesma fila
+  // (`declared` com status `sending`), mas o `state` que esta closure enxerga é o do último
+  // render: dois acks no mesmo tick leriam a mesma cabeça. O ref anda junto com o socket.
+  const unackedRef = useRef<Array<{ actorId: string; fromComposer: boolean }>>([]);
 
   const ws = useMatchWs({
     matchUuid,
@@ -69,93 +56,69 @@ export function useMatchCombat({
     board,
     ...mapHandlers,
     onCombatMessage: (msg) => {
-      // R31: shift the ref's own FIFO head, synchronously, in the same tick the message
-      // arrived in — not a read of `state` (last render's snapshot).
-      const oldestPending =
-        msg.type === "action_enqueued" ? pendingSendsRef.current.shift() : undefined;
-      // match_full_state is always a fresh register (new socket) — any pendingSend here
-      // belongs to a connection whose ack/error can never arrive on this one. Mirrors the
-      // reducer's own `match_full_state` case, which resets `pendingSends: []` (Important
-      // 2(d)).
-      if (msg.type === "match_full_state") pendingSendsRef.current = [];
+      if (msg.type === "match_full_state") unackedRef.current = [];
+      const acked = msg.type === "action_enqueued" ? unackedRef.current.shift() : undefined;
       dispatch(msg);
-      if (msg.type === "action_enqueued" && oldestPending) {
-        onActionEnqueuedRef.current?.(msg.payload.actionId, {
-          actorId: oldestPending.actorId,
-          clearsDraft: oldestPending.clearsDraft,
-        });
-      }
+      if (acked?.fromComposer) onAcceptedRef.current?.(acked.actorId);
     },
     onWsError: (e) => {
-      // F2/R31: same synchronous shift — a refused enqueue_action pops the ref's oldest
-      // entry, and only a composer send (clearsDraft) drops the draft. The wall menu's
-      // send (clearsDraft: false) never drops the composer's draft.
-      const oldestPending =
-        e.sentType === "enqueue_action" ? pendingSendsRef.current.shift() : undefined;
+      if (e.sentType === "enqueue_action") unackedRef.current.shift();
       dispatch({ type: "WS_ERROR", payload: { ...e, at: Date.now() } });
-      if (oldestPending?.clearsDraft) {
-        onActionRefusedRef.current?.(oldestPending.actorId);
-      }
     },
   });
 
-  // Fantasmas confirmados sobrevivem a um refresh (R3, spec §8); os provisórios
-  // (chave `local-*`) não têm actionId ainda e não seriam re-casáveis na volta.
   useEffect(() => {
     if (!matchUuid || !userUuid) return;
-    saveGhosts(matchUuid, userUuid, state.ghosts);
-  }, [matchUuid, userUuid, state.ghosts]);
+    saveDeclared(matchUuid, userUuid, state.declared);
+  }, [matchUuid, userUuid, state.declared]);
 
   const enqueueAction = useCallback(
-    (payload: EnqueueActionPayload, options?: { clearsDraft?: boolean }) => {
-      // Final review, Important 2(a)/(c): só nasce fantasma/entra em pendingSends quando o
-      // envio realmente saiu pelo socket — um Declarar com o socket caído não deve deixar
-      // um fantasma órfão que nunca vai ganhar ack nem erro (ActionComposer.canSubmit
-      // também desabilita Declarar nesse caso, mas isto é o que garante a invariante).
-      const sent = ws.sendEnqueueAction(payload);
-      if (!sent) return;
-      localGhostSeq += 1;
-      // R14: `move.from` agora é opcional (sem actorSlot o composer não o envia); sem
-      // origem conhecida não há como desenhar o fantasma from→to.
-      const ghost: Ghost | undefined = payload.move?.from
-        ? { actorId: payload.actorId, from: payload.move.from, to: payload.move.position }
-        : undefined;
-      const localId = `local-${localGhostSeq}`;
-      const clearsDraft = options?.clearsDraft ?? true;
-      // R31: pushed synchronously, right alongside ACTION_SENT — the ref's FIFO order
-      // must match the reducer's own `pendingSends` order exactly, and both need to
-      // reflect this send before the next one can possibly arrive.
-      pendingSendsRef.current.push({ localId, actorId: payload.actorId, clearsDraft });
-      dispatch({
-        type: "ACTION_SENT",
-        payload: {
-          localId,
-          actorId: payload.actorId,
-          // R29/M3: wall actions passam clearsDraft:false explicitamente; o composer não
-          // passa `options` e herda o default true.
-          clearsDraft,
-          ghost,
-        },
-      });
+    (payload: EnqueueActionPayload, options?: SendOptions): boolean => {
+      // Só nasce a entrada (e o fantasma) quando o envio saiu de verdade: com o socket caído
+      // ela nunca ganharia ack nem erro.
+      if (!ws.sendEnqueueAction(payload)) return false;
+      const fromComposer = options?.fromComposer ?? true;
+      localSeq += 1;
+      const declared: DeclaredAction = {
+        id: `local-${localSeq}`,
+        actorId: payload.actorId,
+        status: "sending",
+        fromComposer,
+        at: Date.now(),
+        ...(payload.move
+          ? { move: { category: payload.move.category, from: payload.move.from, to: payload.move.position } }
+          : {}),
+        ...(payload.attack ? { attack: { targets: payload.targetId ?? [], weapon: payload.attack.weapon } } : {}),
+        ...(payload.interact ? { interact: { kind: payload.interact.kind, targets: payload.targetId ?? [] } } : {}),
+      };
+      unackedRef.current.push({ actorId: payload.actorId, fromComposer });
+      dispatch({ type: "ACTION_SENT", payload: declared });
+      return true;
     },
+    [ws],
+  );
+
+  const masterAction = useCallback(
+    (payload: MasterActionPayload) => ws.sendMasterAction(payload),
     [ws],
   );
 
   return {
     state,
-    dispatch,
     status: ws.status,
+    reconnect: ws.reconnect,
     send: {
       enqueueAction,
       openNextAction: ws.sendOpenNextAction,
       pullAction: ws.sendPullAction,
       closeTurn: ws.sendCloseTurn,
       changeRoundMode: ws.sendChangeRoundMode,
-      masterAction: ws.sendMasterAction,
+      masterAction,
     },
     dismissError: useCallback(() => dispatch({ type: "ERROR_DISMISSED" }), []),
-    dismissCloseTurnDialog: useCallback(
-      () => dispatch({ type: "CLOSE_TURN_DIALOG_DISMISSED" }),
+    dismissCloseTurnDialog: useCallback(() => dispatch({ type: "CLOSE_TURN_DIALOG_DISMISSED" }), []),
+    dismissDeclared: useCallback(
+      (ids: string[]) => { if (ids.length) dispatch({ type: "DECLARED_DISMISSED", payload: { ids } }); },
       [],
     ),
   };

@@ -1,22 +1,13 @@
-// src/pages/GamePlayerPage.tsx
-//
-// A tela do jogador (Fase 6, Tarefa 12). Thin orchestrator: busca dados (hooks), liga o
-// socket via `useMatchCombat` e compõe `MatchStageTemplate` + organismos. Nenhum
-// componente abaixo desta página recebe `isMaster` (I2) — a única exceção declarada é
-// `WallActionSheet` (R23), porque o menu de parede tem verbos diferentes por papel.
+// A tela do jogador. Orquestra: dados e socket vêm de `useGameTable`; aqui fica só o que é
+// do jogador — o ator é o próprio personagem, e um toque no mapa compõe a ação dele.
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useUser from "../hooks/useUser";
-import { useMatchMap } from "../hooks/useMatchMap";
-import { useMap } from "../hooks/useMap";
 import { useMatchParticipants } from "../hooks/useMatchParticipants";
-import { useCampaignDetails } from "../hooks/useCampaignDetails";
-import { useCombatCatalogue } from "../hooks/useCombatCatalogue";
 import { useResizeObserver } from "../hooks/useResizeObserver";
-import { useMatchCombat } from "../features/match/combat/useMatchCombat";
-import type { ActionEnqueuedMeta } from "../features/match/combat/useMatchCombat";
-import { useActionComposerState } from "../features/match/combat/useActionComposerState";
-import { useLiveMapSync } from "../features/match/combat/useLiveMapSync";
+import { useCombatCatalogue } from "../hooks/useCombatCatalogue";
+import { useCharacterSheet } from "../hooks/useCharacterSheet";
+import { useGameTable } from "../features/match/combat/useGameTable";
 import { defaultMoveCategory } from "../features/match/combat/defaultMoveCategory";
 import MatchStageTemplate from "../components/templates/MatchStageTemplate";
 import MatchTopBar from "../features/match/combat/MatchTopBar";
@@ -26,13 +17,16 @@ import GeneralBar from "../features/match/combat/GeneralBar";
 import OwnBars from "../features/match/combat/OwnBars";
 import EventStream from "../features/match/combat/EventStream";
 import ActionComposer from "../features/match/combat/ActionComposer";
+import DeclaredActions from "../features/match/combat/DeclaredActions";
 import MatchErrorBanner from "../features/match/combat/MatchErrorBanner";
 import MatchCharactersSidebar from "../features/match/MatchCharactersSidebar";
+import { PanelMessage } from "../features/match/combat/panelStyles";
 import WallActionSheet from "../features/match/WallActionSheet";
 import TacticalMapViewer from "../features/tactical-map/TacticalMapViewer";
-import { visibleBoardPieces } from "../features/tactical-map/utils/boardSource";
-import { CanvasWrapper, MapLoadingMessage, NoMapMessage } from "../features/match/combat/mapCanvasStyles";
-import type { WallSegment } from "../types/tacticalMap";
+import {
+  CanvasWrapper, MapCornerButton, MapLoadingMessage, NoMapMessage,
+} from "../features/match/combat/mapCanvasStyles";
+import type { SlotCoord, WallSegment } from "../types/tacticalMap";
 
 type Props = {
   token: string;
@@ -40,164 +34,96 @@ type Props = {
   matchId?: string;
 };
 
-// Final review, Important 1: sem isto, PiecesLayer via draggablePieceIds === undefined
-// como "toda peça é arrastável" (regra pensada pro editor de mapa) — no jogo o servidor é
-// quem decide onde a peça para (I1), e um dedo escorregando 5px no toque já passa o
-// limiar de 4px de arraste, cancela o hold e some com a peça da tela até soltar. Módulo
-// (não por render) para a mesma identidade de Set nunca invalidar memos de PiecesLayer.
-const EMPTY_SET = new Set<string>();
+// No jogo nenhuma peça é arrastável: quem decide onde a peça para é o servidor. Um Set
+// vazio (e não `undefined`, que o PiecesLayer lê como "tudo arrastável", o modo editor).
+const NO_DRAG = new Set<string>();
+
+const initialAsideOpen = () =>
+  typeof window !== "undefined" && window.matchMedia?.("(min-width: 1280px)").matches === true;
 
 export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const { width, height } = useResizeObserver(canvasRef);
   const navigate = useNavigate();
 
+  // O ator: um dos personagens do jogador nesta partida (o primeiro, até ele trocar). A
+  // query de participantes é a mesma que `useGameTable` usa — o React Query a compartilha.
   const { user } = useUser();
-  const { data: matchMap, isPending: matchMapPending } = useMatchMap(token, matchId);
-  const { data: map, isPending: mapPending } = useMap(token, matchMap?.mapUuid);
   const { data: participants = [] } = useMatchParticipants(token, matchId, true);
-  const { data: campaign } = useCampaignDetails(token, campaignId);
-
-  const myParticipant = participants.find(
-    (p) => p.characterSheet.playerUuid === user?.uuid,
+  const [chosenActor, setChosenActor] = useState<string | undefined>(undefined);
+  const myCharacters = useMemo(
+    () => participants.filter((p) => !!user && p.characterSheet.playerUuid === user.uuid),
+    [participants, user],
   );
-  const actorId = myParticipant?.characterSheet.uuid;
-  const actorName = myParticipant?.characterSheet.nickName ?? "Você";
+  const actorId =
+    chosenActor && myCharacters.some((p) => p.characterSheet.uuid === chosenActor)
+      ? chosenActor
+      : myCharacters[0]?.characterSheet.uuid;
+
+  const game = useGameTable({ token, campaignId, matchId, isMaster: false, actorId });
+  const { combat, composer, live, map, nameOf } = game;
+  const { state } = combat;
 
   const { data: catalogue } = useCombatCatalogue(token, actorId);
+  const { data: ownSheet } = useCharacterSheet(token, actorId);
+  const actorName = myCharacters.find((p) => p.characterSheet.uuid === actorId)?.characterSheet.nickName ?? "Você";
 
-  // ─── Mapa ao vivo: paredes/peças/fog só chegam pelo WS (comentário em
-  // visibleBoardPieces e em useLiveMapSync explica por quê o jogador nunca semeia do
-  // REST) ────────────────────────────────────────────────────────────────────────────
-  const {
-    liveWalls,
-    livePieces,
-    fog,
-    npcMap,
-    handleWallStateChanged,
-    handleWallHpChanged,
-    handleMapFullState,
-    handleVisibilityUpdated,
-    handleWallRevealed,
-    handlePieceMoved,
-    handlePieceRemoved,
-  } = useLiveMapSync({ map, campaign, seedFromRest: false });
   const [wallPicker, setWallPicker] = useState<WallSegment | null>(null);
+  const [panelOpen, setPanelOpen] = useState(true);
+  const [asideOpen, setAsideOpen] = useState(initialAsideOpen);
 
-  const boardPieces = visibleBoardPieces(livePieces, map?.pieces, false);
-
-  // ─── Combate ──────────────────────────────────────────────────────────────
-  // `useActionComposerState` (abaixo) precisa de `state`, que só existe depois de
-  // chamar `useMatchCombat` — e `useMatchCombat` precisa do callback de limpeza do
-  // rascunho já na chamada. Um ref quebra o ciclo: o indireto é estável desde o
-  // primeiro render, e o valor real é atribuído no corpo do render (mesma convenção de
-  // `useMatchWs.ts`), antes de qualquer envio poder chegar.
-  const onActionEnqueuedRef = useRef<(meta: ActionEnqueuedMeta) => void>(() => {});
-  const onActionRefusedRef = useRef<(actorId: string) => void>(() => {});
-
-  const { state, status, send, dismissError } = useMatchCombat({
-    matchUuid: matchId,
-    userUuid: user?.uuid,
-    token,
-    isMaster: false,
-    onWallStateChanged: handleWallStateChanged,
-    onWallHpChanged: handleWallHpChanged,
-    onMapFullState: handleMapFullState,
-    onVisibilityUpdated: handleVisibilityUpdated,
-    onWallRevealed: handleWallRevealed,
-    onPieceMoved: handlePieceMoved,
-    onPieceRemoved: handlePieceRemoved,
-    onActionEnqueued: (_actionId, meta) => onActionEnqueuedRef.current(meta),
-    onActionRefused: (actorId) => onActionRefusedRef.current(actorId),
-  });
-
-  // ─── Rascunho de ação + mapas peça↔personagem (compartilhado com o mestre) ─
-  const {
-    draft,
-    updateDraft,
-    characterIdByPieceId,
-    targetPieceIds,
-    actorPiece,
-    actorSlot,
-    replaceTarget,
-    toggleTarget,
-    setDestination,
-    clearDraftFor,
-    dropDraftMoveFor,
-  } = useActionComposerState({ matchId, actorId, boardPieces, state });
-
-  // R28: só limpa quando o envio confirmado é do composer (clearsDraft) — o menu de
-  // parede (R29) manda clearsDraft:false e não deve apagar um rascunho em voo.
-  onActionEnqueuedRef.current = (meta) => {
-    if (!meta.clearsDraft) return;
-    clearDraftFor(meta.actorId);
-  };
-
-  // F2: o servidor recusou o envio do composer (WS_ERROR, geralmente move_blocked) —
-  // derruba só o `move` do rascunho, alvo e arma continuam.
-  onActionRefusedRef.current = (actorId) => dropDraftMoveFor(actorId);
-
-  // M4: Declarar fica desabilitado enquanto há um envio do composer ainda sem ack para
-  // este ator — evita reenfileirar em duplicidade num link lento.
-  const hasPendingComposerSend = state.pendingSends.some(
-    (p) => p.actorId === actorId && p.clearsDraft,
-  );
-  const canSubmit = status === "connected" && !hasPendingComposerSend;
-
-  const nameOf = useCallback(
-    (id: string) =>
-      participants.find((p) => p.characterSheet.uuid === id)?.characterSheet.nickName ?? id,
-    [participants],
+  const pieceCharacter = useCallback(
+    (pieceId: string) => game.boardPieces.find((p) => p.id === pieceId)?.characterId,
+    [game.boardPieces],
   );
 
-  // F6 (B4): a player only sees characters whose piece the server actually projected
-  // onto their canvas after fog (boardPieces IS livePieces once the WS is up — the
-  // player page never seeds from REST, see useLiveMapSync above), plus their own
-  // character even before any piece of theirs has arrived. No isMaster prop: this page
-  // derives the list from the pieces it already renders, same principle as the master.
-  const visibleCharacterIds = useMemo(
-    () => new Set(boardPieces.map((p) => p.characterId)),
-    [boardPieces],
-  );
-  const visibleParticipants = useMemo(
-    () =>
-      participants.filter(
-        (p) => p.characterSheet.uuid === actorId || visibleCharacterIds.has(p.characterSheet.uuid),
-      ),
-    [participants, visibleCharacterIds, actorId],
-  );
-
-  const handlePieceSelect = useCallback(
+  const handlePieceTap = useCallback(
     (pieceId: string) => {
-      const charId = characterIdByPieceId.get(pieceId);
-      if (!charId) return;
-      replaceTarget(charId);
+      const charId = pieceCharacter(pieceId);
+      if (!charId || !actorId) return;
+      composer.onCharacterTap(charId);
+      setPanelOpen(true);
     },
-    [characterIdByPieceId, replaceTarget],
+    [pieceCharacter, actorId, composer],
   );
-
-  const handlePieceLongPress = useCallback(
+  const handlePieceHold = useCallback(
     (pieceId: string) => {
-      const charId = characterIdByPieceId.get(pieceId);
-      if (!charId) return;
-      toggleTarget(charId);
+      const charId = pieceCharacter(pieceId);
+      if (!charId || !actorId) return;
+      composer.onCharacterHold(charId);
+      setPanelOpen(true);
     },
-    [characterIdByPieceId, toggleTarget],
+    [pieceCharacter, actorId, composer],
+  );
+  const handleSlotTap = useCallback(
+    (slot: SlotCoord) => {
+      if (!actorId) return;
+      composer.onSlotTap(slot);
+      setPanelOpen(true);
+    },
+    [actorId, composer],
   );
 
-  const handleWallClick = useCallback((wall: WallSegment) => setWallPicker(wall), []);
+  // Personagens: quem o mapa deste jogador mostra (o fog do servidor já recortou), mais os
+  // próprios personagens mesmo antes da peça chegar.
+  const visibleParticipants = useMemo(() => {
+    const onBoard = new Set(game.boardPieces.map((p) => p.characterId));
+    const mine = new Set(myCharacters.map((p) => p.characterSheet.uuid));
+    return game.participants.filter(
+      (p) => mine.has(p.characterSheet.uuid) || onBoard.has(p.characterSheet.uuid),
+    );
+  }, [game.participants, game.boardPieces, myCharacters]);
 
-  const restHealth = myParticipant?.characterSheet.private?.health;
+  const restHealth = ownSheet?.status?.health;
   const ownHp = actorId
     ? (state.hp[actorId] ?? (restHealth ? { hp: restHealth.current, maxHp: restHealth.max } : undefined))
     : undefined;
 
-  const isLoading = matchMapPending || (!!matchMap && mapPending);
-
-  // ─── Layout: painel aberto, gaveta fechada no primeiro render (o mapa
-  // precisa estar visível no celular) — R24. ───────────────────────────────
-  const [panelOpen, setPanelOpen] = useState(true);
-  const [asideOpen, setAsideOpen] = useState(false);
+  const myActorIds = useMemo(() => new Set(myCharacters.map((p) => p.characterSheet.uuid)), [myCharacters]);
+  const actorChoices = useMemo(
+    () => myCharacters.map((p) => ({ id: p.characterSheet.uuid, name: p.characterSheet.nickName })),
+    [myCharacters],
+  );
 
   return (
     <>
@@ -208,76 +134,100 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
           <MatchTopBar
             scene={state.scene}
             roundMode={state.roundMode}
-            status={status}
+            status={combat.status}
+            onReconnect={combat.reconnect}
             asideOpen={asideOpen}
             onToggleAside={() => setAsideOpen((o) => !o)}
           />
         }
         rail={
           <RailNav
-            items={[{ id: "acao", label: "Ação" }]}
+            items={[{ id: "acao", label: "Ação", icon: "⚔" }]}
             active="acao"
+            panelOpen={panelOpen}
             onSelect={() => setPanelOpen((o) => !o)}
           />
         }
         panel={
-          <>
-            <OwnBars bars={state.bars} characterId={actorId ?? ""} hp={ownHp} />
-            {actorId && catalogue && (
+          actorId ? (
+            <>
+              <OwnBars bars={state.bars} characterId={actorId} hp={ownHp} />
               <ActionComposer
-                actorId={actorId}
                 actorName={actorName}
-                actorSlot={actorSlot}
-                draft={draft}
+                actors={actorChoices}
+                actorId={actorId}
+                onActorChange={setChosenActor}
+                draft={composer.draft}
+                resolved={composer.resolved}
+                verdict={composer.verdict}
                 catalogue={catalogue}
+                gridKind={map?.grid.kind ?? "square"}
                 defaultCategory={defaultMoveCategory(state)}
                 nameOf={nameOf}
-                onDraftChange={updateDraft}
-                onSubmit={send.enqueueAction}
-                canSubmit={canSubmit}
+                onDraftChange={composer.updateDraft}
+                onDeclare={game.declare}
+                canDeclare={game.canDeclare}
+                blockedReason={game.blockedReason}
               />
-            )}
-          </>
+              <DeclaredActions
+                declared={state.declared}
+                nameOf={nameOf}
+                gridKind={map?.grid.kind ?? "square"}
+                onHide={(id) => combat.dismissDeclared([id])}
+              />
+            </>
+          ) : (
+            <PanelMessage>Você não tem personagem nesta partida.</PanelMessage>
+          )
         }
         stage={
           <>
             <CanvasWrapper ref={canvasRef}>
-              {isLoading ? (
+              {game.isLoading ? (
                 <MapLoadingMessage>Carregando mapa...</MapLoadingMessage>
               ) : map && width > 0 && height > 0 ? (
                 <TacticalMapViewer
-                  map={{ ...map, walls: liveWalls, pieces: boardPieces }}
-                  fog={fog}
+                  map={{ ...map, walls: live.liveWalls, pieces: game.boardPieces }}
+                  fog={live.fog}
                   isMaster={false}
                   width={width}
                   height={height}
-                  npcMap={npcMap}
-                  onWallClick={handleWallClick}
+                  npcMap={live.npcMap}
+                  onWallClick={setWallPicker}
                   piecesInteractive
-                  draggablePieceIds={EMPTY_SET}
-                  // F1 batch 2: explicit game-only opt-in — see stageProps.ts's doc
-                  // comment for why this can't be inferred from onPieceLongPress/
-                  // onPieceSelect (both wired in the lobby too, for different reasons).
+                  draggablePieceIds={NO_DRAG}
                   suppressPanOnPiecePress
-                  onPieceSelect={handlePieceSelect}
-                  onPieceLongPress={handlePieceLongPress}
-                  selectedPieceId={actorPiece?.id}
-                  targetPieceIds={targetPieceIds}
-                  ghosts={Object.values(state.ghosts)}
-                  onEmptySlotClick={setDestination}
+                  onPieceSelect={handlePieceTap}
+                  onPieceLongPress={handlePieceHold}
+                  selectedPieceId={composer.actorPiece?.id}
+                  targetPieceIds={composer.targetPieceIds}
+                  activePieceId={game.openTurnPieceId}
+                  intentPreview={composer.preview}
+                  intentGhosts={game.ghosts}
+                  highlightHoverSlot={!!actorId}
+                  fitRequest={game.fitRequest}
+                  onEmptySlotClick={handleSlotTap}
                 />
               ) : !map ? (
                 <NoMapMessage>Nenhum mapa anexado a esta partida.</NoMapMessage>
               ) : null}
             </CanvasWrapper>
-            <GeneralBar bars={state.bars} nameOf={nameOf} highlightActorId={actorId} />
-            <MatchErrorBanner error={state.lastError} onDismiss={dismissError} />
+            <GeneralBar
+              bars={state.bars}
+              openTurnActorId={state.openTurn?.actorId}
+              nameOf={nameOf}
+              highlightActorIds={myActorIds}
+            />
+            <MatchErrorBanner error={state.lastError} onDismiss={combat.dismissError} />
+            {map && <MapCornerButton type="button" onClick={game.refit}>Enquadrar</MapCornerButton>}
           </>
         }
         aside={
           <AsideTabs
             defaultTab="historico"
-            historico={<EventStream events={state.events} nameOf={nameOf} />}
+            historico={
+              <EventStream events={state.events} nameOf={nameOf} gridKind={map?.grid.kind ?? "square"} />
+            }
             personagens={
               <MatchCharactersSidebar
                 gameStarted
@@ -299,19 +249,18 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
           isMaster={false}
           onClose={() => setWallPicker(null)}
           onInteract={(kind) => {
-            // RULING R29: enqueue_action exige actorId (contrato) — o menu de parede do
-            // jogador passa pela mesma via do composer, com clearsDraft:false (R28) para
-            // não apagar um rascunho do composer em voo.
-            send.enqueueAction(
+            combat.send.enqueueAction(
               { actorId, targetId: [wallPicker.id], interact: { kind } },
-              { clearsDraft: false },
+              { fromComposer: false },
             );
             setWallPicker(null);
           }}
           onAttack={() => {
-            send.enqueueAction(
+            // Sem arma escolhida o servidor lê a proficiência de Fist; sem `hit`: o acerto é
+            // derivado (Accuracy + proficiência).
+            combat.send.enqueueAction(
               { actorId, targetId: [wallPicker.id], attack: {} },
-              { clearsDraft: false },
+              { fromComposer: false },
             );
             setWallPicker(null);
           }}
@@ -320,3 +269,4 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
     </>
   );
 }
+

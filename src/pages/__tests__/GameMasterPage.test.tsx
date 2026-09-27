@@ -8,6 +8,7 @@ import { matchApiFixture } from "../../test/fixtures/match";
 import { mapWithPiecesApi } from "../../test/fixtures/map";
 import { campaignWithNpcsApi, npcFixture } from "../../test/fixtures/campaign";
 import GameMasterPage from "../GameMasterPage";
+import { installFakeWebSocket, waitForSocket } from "../../test/fakeWebSocket";
 
 const baseUrl = "http://localhost:5000";
 
@@ -56,25 +57,6 @@ vi.mock("../../hooks/useResizeObserver", () => ({
 }));
 
 // Mesmo socket falso de GamePlayerPage.test.tsx/useMatchCombat.test.ts.
-class FakeWS {
-  static instances: FakeWS[] = [];
-  static OPEN = 1;
-  onopen?: () => void;
-  onmessage?: (e: MessageEvent) => void;
-  onclose?: (e: CloseEvent) => void;
-  onerror?: () => void;
-  readyState = 1;
-  url: string;
-  constructor(url: string) {
-    this.url = url;
-    FakeWS.instances.push(this);
-  }
-  send = vi.fn();
-  close = vi.fn();
-  emit(type: string, payload: unknown) {
-    this.onmessage?.({ data: JSON.stringify({ type, payload }) } as MessageEvent);
-  }
-}
 
 const participantsFixture = [
   {
@@ -151,9 +133,7 @@ function renderMasterPage() {
 }
 
 beforeEach(() => {
-  FakeWS.instances = [];
-  vi.stubGlobal("WebSocket", FakeWS as unknown as typeof WebSocket);
-  vi.stubEnv("VITE_WS_URL", "ws://test");
+  installFakeWebSocket();
 
   server.use(
     http.get(`${baseUrl}/matches/:id`, () => HttpResponse.json({ match: matchApiFixture })),
@@ -183,18 +163,24 @@ afterEach(() => {
 describe("GameMasterPage", () => {
   it("abre a próxima ação e antecipa uma da fila", async () => {
     renderMasterPage();
-    const ws = FakeWS.instances[0];
+    const ws = await waitForSocket();
     act(() => ws.onopen?.());
     act(() => ws.emit("action_queued", { actionId: "a1", actorId: "c1", bars: ["action"] }));
-    act(() => screen.getByRole("button", { name: /antecipar/i }).click());
+    // O badge do rail conta o que está na fila.
+    expect(screen.getByRole("button", { name: /Fila/ })).toHaveTextContent("1");
+    act(() => screen.getByRole("button", { name: "Abrir agora" }).click());
 
-    const sent = ws.send.mock.calls.map((c) => JSON.parse(c[0] as string));
+    let sent = ws.send.mock.calls.map((c) => JSON.parse(c[0] as string));
     expect(sent[sent.length - 1]).toMatchObject({ type: "pull_action", payload: { actionId: "a1" } });
+
+    act(() => screen.getByRole("button", { name: "Abrir próxima" }).click());
+    sent = ws.send.mock.calls.map((c) => JSON.parse(c[0] as string));
+    expect(sent[sent.length - 1]?.type).toBe("open_next_action");
   });
 
   it("mostra o diálogo que o servidor computou e reenvia com confirm", async () => {
     renderMasterPage();
-    const ws = FakeWS.instances[0];
+    const ws = await waitForSocket();
     act(() => ws.onopen?.());
     act(() =>
       ws.emit("close_turn_refused", {
@@ -210,7 +196,7 @@ describe("GameMasterPage", () => {
 
   it("compõe ação por um NPC com enqueue_action, não com enqueue_master_action", async () => {
     renderMasterPage();
-    const ws = FakeWS.instances[0];
+    const ws = await waitForSocket();
     act(() => ws.onopen?.());
 
     const actorButton = await screen.findByTestId("select-actor-npc1");
@@ -226,6 +212,21 @@ describe("GameMasterPage", () => {
     const sent = ws.send.mock.calls.map((c) => JSON.parse(c[0] as string));
     expect(sent[sent.length - 1]?.type).toBe("enqueue_action");
     expect(sent[sent.length - 1]?.payload.actorId).toBe("npc1");
+  });
+
+  it("escolhe o NPC pelo painel Agir e tocar de novo o solta", async () => {
+    renderMasterPage();
+    const ws = await waitForSocket();
+    act(() => ws.onopen?.());
+
+    act(() => screen.getByRole("button", { name: "Agir" }).click());
+    const chip = await screen.findByRole("button", { name: "Capanga" });
+    act(() => chip.click());
+    expect(screen.getByRole("button", { name: "Capanga" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByLabelText("Compor ação")).toHaveTextContent("Agindo como Capanga");
+
+    act(() => screen.getByRole("button", { name: "Capanga" }).click());
+    expect(screen.getByRole("button", { name: "Capanga" })).toHaveAttribute("aria-pressed", "false");
   });
 
   it("passa draggablePieceIds vazio ao mapa — o servidor decide onde a peça para (I1)", async () => {
@@ -264,7 +265,7 @@ describe("GameMasterPage", () => {
     renderWithProviders(
       <GameMasterPage token="fake-jwt-token" matchId="match-1" campaignId="campaign-1" />,
     );
-    const ws = FakeWS.instances[FakeWS.instances.length - 1];
+    const ws = await waitForSocket();
     act(() => ws.onopen?.());
 
     const toggle = await screen.findByRole("button", { name: "Ver histórico" });
@@ -278,7 +279,7 @@ describe("GameMasterPage", () => {
 
   it("inspeciona (não vira ator) quem o mestre não controla e nada envia", async () => {
     renderMasterPage();
-    const ws = FakeWS.instances[0];
+    const ws = await waitForSocket();
     act(() => ws.onopen?.());
 
     const pcButton = await screen.findByTestId("select-actor-c1");
@@ -305,7 +306,7 @@ describe("GameMasterPage", () => {
   // virar ator; depois de virar, o anel de seleção (não mais inspeção) segue a peça dele.
   it("sem ator: onPieceLongPress/onEmptySlotClick não vão pro viewer; com ator, o anel de seleção segue a peça (F7)", async () => {
     renderMasterPage();
-    const ws = FakeWS.instances[0];
+    const ws = await waitForSocket();
     act(() => ws.onopen?.());
 
     let mapStub = await screen.findByTestId("map-stub");
@@ -324,7 +325,7 @@ describe("GameMasterPage", () => {
 
   // F7 (M1): a dica muda quando a partida não tem NENHUM NPC controlável — "clique num
   // NPC" seria um beco sem saída, já que não existe nenhum pra clicar.
-  it("sem NPC nenhum na partida, a dica de Fichas diz isso em vez de mandar clicar num NPC (F7)", async () => {
+  it("sem NPC nenhum na partida, o painel Agir diz isso em vez de mandar escolher um NPC (F7)", async () => {
     server.use(
       http.get(`${baseUrl}/matches/:id/participants`, () =>
         HttpResponse.json({
@@ -333,14 +334,14 @@ describe("GameMasterPage", () => {
       ),
     );
     renderMasterPage();
-    const ws = FakeWS.instances[0];
+    const ws = await waitForSocket();
     act(() => ws.onopen?.());
 
-    act(() => screen.getByRole("button", { name: "Fichas" }).click());
+    act(() => screen.getByRole("button", { name: "Agir" }).click());
     expect(
       await screen.findByText(/nenhum npc nesta partida/i),
     ).toBeInTheDocument();
-    expect(screen.queryByText(/clique num npc no mapa/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: "Agir por" })).not.toBeInTheDocument();
   });
 
   // F7 (M1): um NPC do mapa que NÃO é participante da partida é inspecionado (nunca vira
@@ -369,7 +370,7 @@ describe("GameMasterPage", () => {
     renderWithProviders(
       <GameMasterPage token="fake-jwt-token" matchId="match-1" campaignId="campaign-1" />,
     );
-    const ws = FakeWS.instances[FakeWS.instances.length - 1];
+    const ws = await waitForSocket();
     act(() => ws.onopen?.());
 
     const mapNpcButton = await screen.findByTestId("select-actor-map-npc-1");

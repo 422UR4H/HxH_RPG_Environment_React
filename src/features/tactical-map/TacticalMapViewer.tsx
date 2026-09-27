@@ -1,6 +1,8 @@
 import TacticalMapStage from "./TacticalMapStage";
 import type { TacticalMap, WallSegment, FogState, SlotCoord } from "../../types/tacticalMap";
 import type { CharacterPrivateSummary } from "../../types/characterSheet";
+import type { SlotTriple } from "./utils/coords";
+import type { IntentPreview } from "./utils/intentGeometry";
 
 type Props = {
   map: TacticalMap;
@@ -10,10 +12,8 @@ type Props = {
   onWallClick?: (wall: WallSegment) => void;
   fog?: FogState;
   isMaster?: boolean;
-  // Combat piece interaction (Fase 6, §6/§7.1): the game pages (GamePlayerPage/
-  // GameMasterPage) wire these to select the acting piece and mark targets.
-  // Left undefined/false by any caller that doesn't pass them — piecesInteractive
-  // defaults to falsy in TacticalMapStage, so pieces stay non-interactive as before.
+  // Combat interaction (game pages only). Left undefined by any other caller —
+  // piecesInteractive defaults to falsy in TacticalMapStage, so pieces stay inert.
   piecesInteractive?: boolean;
   draggablePieceIds?: Set<string>;
   onPieceSelect?: (pieceId: string) => void;
@@ -21,19 +21,21 @@ type Props = {
   selectedPieceId?: string | null;
   inspectedPieceId?: string | null;
   targetPieceIds?: Set<string>;
-  // See stageProps.ts's doc comment — game-only, explicit opt-in.
+  activePieceId?: string | null;
+  // See stageProps.ts — game-only, explicit opt-in.
   suppressPanOnPiecePress?: boolean;
-  // The declared-intent ghost (§8) — forwarded straight through to GhostLayer
-  // via TacticalMapStage/ViewportInner.
-  ghosts?: Array<{ from: [number, number, number]; to: [number, number, number] }>;
+  intentPreview?: IntentPreview;
+  intentGhosts?: Array<{ from?: SlotTriple; to: SlotTriple }>;
+  highlightHoverSlot?: boolean;
+  fitRequest?: number;
   onEmptySlotClick?: (slot: SlotCoord, clientX: number, clientY: number) => void;
 };
 
 export default function TacticalMapViewer({
   map, width, height, npcMap, onWallClick, fog, isMaster,
   piecesInteractive, draggablePieceIds, onPieceSelect, onPieceLongPress,
-  selectedPieceId, inspectedPieceId, targetPieceIds, ghosts, onEmptySlotClick,
-  suppressPanOnPiecePress,
+  selectedPieceId, inspectedPieceId, targetPieceIds, activePieceId, onEmptySlotClick,
+  suppressPanOnPiecePress, intentPreview, intentGhosts, highlightHoverSlot, fitRequest,
 }: Props) {
   return (
     <TacticalMapStage
@@ -52,7 +54,11 @@ export default function TacticalMapViewer({
       selectedPieceId={selectedPieceId}
       inspectedPieceId={inspectedPieceId}
       targetPieceIds={targetPieceIds}
-      ghosts={ghosts}
+      activePieceId={activePieceId}
+      intentPreview={intentPreview}
+      intentGhosts={intentGhosts}
+      highlightHoverSlot={highlightHoverSlot}
+      fitRequest={fitRequest}
       onEmptySlotClick={onEmptySlotClick}
       suppressPanOnPiecePress={suppressPanOnPiecePress}
     />

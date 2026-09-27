@@ -7,12 +7,12 @@ import type { SlotCoord } from "../../../types/tacticalMap";
 import MapHandlesLayer from "../MapHandlesLayer";
 import WallsLayer from "../WallsLayer";
 import FogLayer from "../FogLayer";
-import { worldToSlot, isSlotInBounds, slotCorners } from "../utils/coords";
+import { worldToSlot, isSlotInBounds, slotCorners, gridLocalBounds, applyTransform } from "../utils/coords";
 import type { TacticalMapStageProps } from "./stageProps";
 import BgLayer from "./BgLayer";
 import GridLayer from "./GridLayer";
 import PiecesLayer from "./PiecesLayer";
-import GhostLayer from "../GhostLayer";
+import IntentLayer from "../IntentLayer";
 
 type BgDragState = {
   startWorldX: number;
@@ -48,7 +48,11 @@ export default function ViewportInner({
   inspectedPieceId,
   targetPieceIds,
   onPieceMove,
-  ghosts,
+  intentPreview,
+  intentGhosts,
+  activePieceId,
+  highlightHoverSlot,
+  fitRequest,
   onPieceDragToRoster,
   onPieceDragStart,
   onPieceDragEnd,
@@ -86,14 +90,22 @@ export default function ViewportInner({
   const [vpScale, setVpScale] = useState(1);
   const [placementHoverSlot, setPlacementHoverSlot] = useState<SlotCoord | null>(null);
 
+  // The viewport only mounts once the renderer is up; the fit effect below waits on this.
+  const [vpReady, setVpReady] = useState(false);
+  // Set by any hand pan/zoom: the automatic framing stops following resizes after that.
+  const userMovedRef = useRef(false);
   const vpCallback = useCallback((vp: Viewport | null) => {
     vpRef.current = vp;
+    setVpReady(!!vp);
     if (!vp) return;
     // No decelerate(): panning is driven by our own window pointer handlers, and
     // the momentum plugin would keep the map gliding after release — a UX the
     // user explicitly does not want. The map moves only while held.
     vp.pinch().wheel();
-    vp.on("zoomed", () => setVpScale(vp.scale.x));
+    vp.on("zoomed", () => {
+      userMovedRef.current = true;
+      setVpScale(vp.scale.x);
+    });
   }, []);
 
   // Report zoom changes up so the DOM drag ghost can match on-screen token size.
@@ -118,6 +130,35 @@ export default function ViewportInner({
     app.renderer.resize(width, height);
     vpRef.current?.resize(width, height);
   }, [app, width, height]);
+
+  // Game only: frame the whole grid, centered — on every new `fitRequest` (mount, or the
+  // "enquadrar" button), and again when the canvas changes size (a panel opening on the
+  // phone) as long as the viewer has not panned or zoomed by hand since the last framing.
+  // Without it the map opened at 1:1 from the top-left corner and a grid wider than the
+  // screen was simply cut off.
+  const fittedRequestRef = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    const vp = vpRef.current;
+    if (fitRequest === undefined || !vp || !vpReady || width <= 0 || height <= 0) return;
+    const newRequest = fittedRequestRef.current !== fitRequest;
+    if (!newRequest && userMovedRef.current) return;
+    fittedRequestRef.current = fitRequest;
+    userMovedRef.current = false;
+    const b = gridLocalBounds(map.grid);
+    const corners = [
+      { x: b.minX, y: b.minY }, { x: b.maxX, y: b.minY },
+      { x: b.maxX, y: b.maxY }, { x: b.minX, y: b.maxY },
+    ].map((p) => applyTransform(p, map.grid));
+    const xs = corners.map((p) => p.x);
+    const ys = corners.map((p) => p.y);
+    const w = Math.max(...xs) - Math.min(...xs);
+    const h = Math.max(...ys) - Math.min(...ys);
+    if (w <= 0 || h <= 0) return;
+    const scale = Math.min(Math.max(Math.min(width / w, height / h) * 0.94, 0.25), 1.75);
+    vp.setZoom(scale, true);
+    vp.moveCenter((Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...ys) + Math.max(...ys)) / 2);
+    setVpScale(scale);
+  }, [fitRequest, vpReady, width, height, map.grid]);
 
   // ─── Viewport pan via DOM events ─────────────────────────────────────────
   //
@@ -180,6 +221,7 @@ export default function ViewportInner({
       if (!isPanningRef.current) return;
       const vp = vpRef.current;
       if (!vp) return;
+      userMovedRef.current = true;
       vp.x = panStartVpRef.current.x + (e.clientX - panStartClientRef.current.x);
       vp.y = panStartVpRef.current.y + (e.clientY - panStartClientRef.current.y);
     };
@@ -319,6 +361,8 @@ export default function ViewportInner({
         selectedPieceId={selectedPieceId}
         inspectedPieceId={inspectedPieceId}
         targetPieceIds={targetPieceIds}
+        activePieceId={activePieceId}
+        highlightHoverSlot={highlightHoverSlot}
         onPieceMove={onPieceMove}
         onPieceDragToRoster={onPieceDragToRoster}
         onPieceDragStart={onPieceDragStart}
@@ -326,8 +370,6 @@ export default function ViewportInner({
         onStageDeselect={onStageDeselect}
         onEmptySlotClick={onEmptySlotClick}
       />
-      {/* Mounted after PiecesLayer so the ghost draws on top of the real pieces (§8). */}
-      <GhostLayer ghosts={ghosts ?? []} grid={map.grid} />
       {fog && !fogDisabled && (
         <FogLayer
           fog={fog}
@@ -356,6 +398,10 @@ export default function ViewportInner({
         onWallClick={onWallClick}
         losPolygons={fog && !fogDisabled ? fog.visiblePolygons : undefined}
       />
+      {/* Above fog and walls: it is the viewer's own intention, always legible. */}
+      {(intentPreview || (intentGhosts && intentGhosts.length > 0)) && (
+        <IntentLayer preview={intentPreview} ghosts={intentGhosts ?? []} grid={map.grid} />
+      )}
       <pixiContainer label="overlay-layer">
         {activeTool && onBgChange && onGridChange && (
           <MapHandlesLayer

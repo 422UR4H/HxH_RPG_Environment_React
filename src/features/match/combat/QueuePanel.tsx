@@ -1,102 +1,132 @@
 import styled from "styled-components";
 import { colors, fonts } from "../../../styles/tokens";
-import type { Bar, QueuedAction } from "./combatMessages";
+import type { QueuedAction } from "./combatMessages";
+import { BAR_ICONS, BAR_LABELS } from "./combatText";
 
-const BAR_LABELS: Record<Bar, string> = {
-  action: "Ação",
-  move: "Movimento",
-};
-
-/** A fila é secreta — só o mestre vê este painel (zona `panel`). */
+/**
+ * A fila secreta — só o mestre recebe. Em ordem de chegada (a ordem de EXECUÇÃO é a barra
+ * geral). O conteúdo de uma ação de jogador nunca chega ao mestre antes de abrir; o das
+ * ações que o próprio mestre declarou por NPC vem de `describe`.
+ */
 export default function QueuePanel({
   queue,
   nameOf,
+  describe,
   onPull,
-  onOpenNext,
-  onCloseTurn,
-  canCloseTurn,
 }: {
   queue: QueuedAction[];
   nameOf: (characterId: string) => string;
+  /** Detalhe de uma ação declarada neste navegador, quando houver. */
+  describe?: (actionId: string) => string | undefined;
   onPull: (actionId: string) => void;
-  onOpenNext: () => void;
-  onCloseTurn: () => void;
-  canCloseTurn: boolean;
 }) {
   return (
-    <Panel>
-      <List>
-        {queue.map((action) => (
-          <Row key={action.actionId} data-testid="queue-row">
-            <span>
-              {nameOf(action.actorId)} — {action.bars.map((b) => BAR_LABELS[b]).join(", ")}
-            </span>
-            <PullButton onClick={() => onPull(action.actionId)}>Antecipar</PullButton>
-          </Row>
-        ))}
-      </List>
-      <Actions>
-        <ActionButton onClick={onOpenNext}>Abrir próxima</ActionButton>
-        <ActionButton onClick={onCloseTurn} disabled={!canCloseTurn}>
-          Fechar turno
-        </ActionButton>
-      </Actions>
+    <Panel aria-label="Fila">
+      <Title>Fila de ações</Title>
+      {queue.length === 0 ? (
+        <Empty>Ninguém declarou nada ainda. O que for declarado aparece aqui.</Empty>
+      ) : (
+        <List>
+          {queue.map((action) => {
+            const detail = describe?.(action.actionId);
+            return (
+              <Row key={action.actionId} data-testid="queue-row">
+                <Info>
+                  <Name>
+                    {nameOf(action.actorId)}{" "}
+                    <Bars title={action.bars.map((b) => BAR_LABELS[b]).join(" + ")}>
+                      {action.bars.map((b) => BAR_ICONS[b]).join("")}
+                    </Bars>
+                  </Name>
+                  {detail && <Detail>{detail}</Detail>}
+                </Info>
+                <PullButton type="button" onClick={() => onPull(action.actionId)} title="Abrir esta ação agora, fora da ordem">
+                  Abrir agora
+                </PullButton>
+              </Row>
+            );
+          })}
+        </List>
+      )}
     </Panel>
   );
 }
 
-const Panel = styled.div`
+const Panel = styled.section`
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  height: 100%;
-  padding: 10px;
-  background: ${colors.surfaceSidebar};
+  gap: 8px;
+  padding: 12px;
   color: ${colors.textPrimary};
   font-family: ${fonts.sans};
   font-size: 13px;
 `;
 
-const List = styled.div`
+const Title = styled.h3`
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: ${colors.textPlaceholderStrong};
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+`;
+
+const Empty = styled.p`
+  margin: 0;
+  color: ${colors.textPlaceholderStrong};
+  font-size: 12px;
+  font-style: italic;
+`;
+
+const List = styled.ol`
+  list-style: none;
+  margin: 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  overflow-y: auto;
 `;
 
-const Row = styled.div`
+const Row = styled.li`
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
-  padding: 4px 0;
-  border-bottom: 1px solid ${colors.borderDivider};
+  padding: 8px;
+  border-radius: 6px;
+  background: ${colors.surfaceInputHover};
 `;
 
-const ButtonBase = styled.button`
-  font-family: ${fonts.sans};
-  font-size: 13px;
-  font-weight: 600;
-  padding: 6px 12px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  background: ${colors.brandAccent};
-  color: ${colors.textPrimary};
-
-  &:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-`;
-
-const PullButton = styled(ButtonBase)``;
-
-const Actions = styled.div`
-  display: flex;
-  gap: 8px;
-`;
-
-const ActionButton = styled(ButtonBase)`
+const Info = styled.div`
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+`;
+
+const Name = styled.span`
+  font-weight: 600;
+`;
+
+const Bars = styled.span`
+  font-weight: 400;
+  color: ${colors.textPlaceholderStrong};
+`;
+
+const Detail = styled.span`
+  font-size: 12px;
+  color: ${colors.textMuted};
+`;
+
+const PullButton = styled.button`
+  flex-shrink: 0;
+  font-family: ${fonts.sans};
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 10px;
+  border: 1px solid ${colors.brandAccent};
+  border-radius: 6px;
+  cursor: pointer;
+  background: transparent;
+  color: ${colors.textPrimary};
 `;

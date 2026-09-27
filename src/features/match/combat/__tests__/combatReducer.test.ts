@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { combatReducer, initialCombatState } from "../combatReducer";
+import { combatReducer, initialCombatState, pendingMoves } from "../combatReducer";
+import type { CombatAction, CombatState, DeclaredAction } from "../combatReducer";
 import type { BarsPayload } from "../combatMessages";
 
 const bars = (seq: number): BarsPayload => ({
@@ -11,251 +12,184 @@ const bars = (seq: number): BarsPayload => ({
   order: [],
 });
 
+const run = (actions: CombatAction[], from: CombatState = initialCombatState) =>
+  actions.reduce(combatReducer, from);
+
+const sent = (id: string, extra: Partial<DeclaredAction> = {}): CombatAction => ({
+  type: "ACTION_SENT",
+  payload: { id, actorId: "c1", status: "sending", fromComposer: true, at: 0, ...extra },
+});
+const moveTo = { move: { category: "Dash" as const, from: [1, 1, 0] as [number, number, number], to: [3, 1, 0] as [number, number, number] } };
+const acked = (actionId: string): CombatAction => ({ type: "action_enqueued", payload: { actionId } });
+const opened = (turnId: string, actionId: string, actorId = "c1"): CombatAction => ({
+  type: "turn_opened",
+  payload: { turnId, actorId, actionId, actionType: "" },
+});
+const closed = (turnId: string): CombatAction => ({ type: "turn_closed", payload: { turnId } });
+
 describe("combatReducer — guarda de seq", () => {
   it("aplica um snapshot mais novo", () => {
-    let s = combatReducer(initialCombatState, { type: "bars_updated", payload: bars(1) });
-    s = combatReducer(s, { type: "bars_updated", payload: bars(3) });
+    const s = run([{ type: "bars_updated", payload: bars(1) }, { type: "bars_updated", payload: bars(3) }]);
     expect(s.bars?.seq).toBe(3);
   });
 
   it("descarta um snapshot atrasado", () => {
-    let s = combatReducer(initialCombatState, { type: "bars_updated", payload: bars(5) });
-    s = combatReducer(s, { type: "bars_updated", payload: bars(2) });
+    const s = run([{ type: "bars_updated", payload: bars(5) }, { type: "bars_updated", payload: bars(2) }]);
     expect(s.bars?.seq).toBe(5);
   });
 
   it("não reinicia o contador ao reconectar", () => {
-    let s = combatReducer(initialCombatState, { type: "bars_updated", payload: bars(9) });
-    s = combatReducer(s, {
-      type: "match_full_state",
-      payload: { roundMode: "Race", bars: bars(4) },
-    });
+    const s = run([
+      { type: "bars_updated", payload: bars(9) },
+      { type: "match_full_state", payload: { roundMode: "Race", bars: bars(4) } },
+    ]);
     expect(s.bars?.seq).toBe(9);
   });
 });
 
-describe("combatReducer — fantasma", () => {
-  // Final review, Important 2/M3 (R28): pendingSends agora carrega {localId, actorId,
-  // clearsDraft} — não só o localId — para o hook saber, no ack, QUEM enviou e se era um
-  // envio do composer (limpa rascunho) ou de um menu de parede (não limpa, R29).
-  const ghostAction = {
-    type: "ACTION_SENT" as const,
-    payload: {
-      localId: "local-1",
-      actorId: "c1",
-      clearsDraft: true,
-      ghost: {
-        actorId: "c1",
-        from: [1, 1, 0] as [number, number, number],
-        to: [3, 1, 0] as [number, number, number],
-      },
-    },
-  };
-
-  it("nasce no envio e ganha o actionId no ack", () => {
-    let s = combatReducer(initialCombatState, ghostAction);
-    expect(Object.keys(s.ghosts)).toEqual(["local-1"]);
-    s = combatReducer(s, { type: "action_enqueued", payload: { actionId: "a1" } });
-    expect(Object.keys(s.ghosts)).toEqual(["a1"]);
+describe("combatReducer — ações declaradas", () => {
+  it("nasce no envio, ganha o actionId no ack e abre com o turno", () => {
+    let s = run([sent("local-1", moveTo)]);
+    expect(s.declared.map((d) => [d.id, d.status])).toEqual([["local-1", "sending"]]);
+    s = run([acked("a1")], s);
+    expect(s.declared.map((d) => [d.id, d.status])).toEqual([["a1", "queued"]]);
+    s = run([opened("t1", "a1")], s);
+    expect(s.declared.map((d) => [d.id, d.status, d.turnId])).toEqual([["a1", "open", "t1"]]);
+    s = run([closed("t1")], s);
+    expect(s.declared).toEqual([]);
   });
 
-  it("morre quando o turno daquela ação abre", () => {
-    let s = combatReducer(initialCombatState, ghostAction);
-    s = combatReducer(s, { type: "action_enqueued", payload: { actionId: "a1" } });
-    s = combatReducer(s, {
-      type: "turn_opened",
-      payload: { turnId: "t1", actorId: "c1", actionId: "a1", actionType: "" },
-    });
-    expect(s.ghosts).toEqual({});
+  it("acks chegam na ordem dos envios", () => {
+    const s = run([sent("local-1"), sent("local-2", moveTo), acked("a1"), acked("a2")]);
+    expect(s.declared.map((d) => d.id)).toEqual(["a1", "a2"]);
+    expect(s.declared[1].move).toEqual(moveTo.move);
+  });
+
+  it("um envio recusado some — e só ele", () => {
+    const s = run([
+      sent("local-1", moveTo),
+      acked("a1"),
+      sent("local-2"),
+      { type: "WS_ERROR", payload: { code: "move_blocked", message: "", sentType: "enqueue_action", at: 1 } },
+    ]);
+    expect(s.declared.map((d) => d.id)).toEqual(["a1"]);
+    expect(s.lastError?.code).toBe("move_blocked");
+  });
+
+  it("erro de outro verbo não mexe nas ações declaradas", () => {
+    const s = run([
+      sent("local-1"),
+      { type: "WS_ERROR", payload: { code: "game_error", message: "x", sentType: "open_next_action", at: 1 } },
+    ]);
+    expect(s.declared).toHaveLength(1);
+  });
+
+  it("sobrevive ao fim do round e à troca de cena — a fila do servidor também sobrevive", () => {
+    const s = run([
+      sent("local-1", moveTo),
+      acked("a1"),
+      { type: "round_closed", payload: { roundMode: "Race" } },
+      { type: "scene_changed", payload: { sceneId: "s2", category: "battle", briefInitialDescription: "" } },
+    ]);
+    expect(s.declared.map((d) => d.id)).toEqual(["a1"]);
+    expect(pendingMoves(s.declared)).toHaveLength(1);
+  });
+
+  it("reconexão: descarta envios sem ack e turnos meus que fecharam fora", () => {
+    const s = run([
+      sent("local-1"), acked("a1"), opened("t1", "a1"), // aberto — vai fechar enquanto estou fora
+      sent("local-2"), acked("a2"),                        // ainda na fila
+      sent("local-3"),                                     // sem ack, socket morreu
+      { type: "match_full_state", payload: { roundMode: "Race", openTurn: { turnId: "t9", actorId: "c2" } } },
+    ]);
+    expect(s.declared.map((d) => [d.id, d.status])).toEqual([["a2", "queued"]]);
+  });
+
+  it("reconexão com o meu turno ainda aberto mantém a ação em curso", () => {
+    const s = run([
+      sent("local-1"), acked("a1"), opened("t1", "a1"),
+      { type: "match_full_state", payload: { roundMode: "Race", openTurn: { turnId: "t1", actorId: "c1" } } },
+    ]);
+    expect(s.declared.map((d) => [d.id, d.status])).toEqual([["a1", "open"]]);
+  });
+
+  it("dispensar tira da lista", () => {
+    const s = run([sent("local-1"), acked("a1"), { type: "DECLARED_DISMISSED", payload: { ids: ["a1"] } }]);
+    expect(s.declared).toEqual([]);
+  });
+
+  it("fantasma é só o movimento que ainda não aconteceu", () => {
+    const s = run([sent("local-1", moveTo), acked("a1"), sent("local-2"), acked("a2"), opened("t1", "a1")]);
+    expect(pendingMoves(s.declared)).toHaveLength(0); // a1 abriu: a peça já anda por piece_moved
+    const s2 = run([sent("local-1", moveTo)]);
+    expect(pendingMoves(s2.declared).map((d) => d.id)).toEqual(["local-1"]);
+  });
+});
+
+describe("combatReducer — turno aberto e fila", () => {
+  it("turn_opened tira a ação da fila do mestre e marca o turno", () => {
+    const s = run([
+      { type: "action_queued", payload: { actionId: "a1", actorId: "c1", bars: ["action"] } },
+      { type: "action_queued", payload: { actionId: "a2", actorId: "c2", bars: ["move"] } },
+      opened("t1", "a1"),
+    ]);
+    expect(s.queue.map((q) => q.actionId)).toEqual(["a2"]);
     expect(s.openTurn).toEqual({ turnId: "t1", actorId: "c1", actionId: "a1", actionType: "" });
   });
 
-  it("some numa reconexão em que o turno do ator já está aberto", () => {
-    let s = combatReducer(initialCombatState, ghostAction);
-    s = combatReducer(s, { type: "action_enqueued", payload: { actionId: "a1" } });
-    s = combatReducer(s, {
-      type: "match_full_state",
-      payload: { roundMode: "Race", openTurn: { turnId: "t9", actorId: "c1" } },
-    });
-    expect(s.ghosts).toEqual({});
+  it("turn_closed só limpa o turno que fechou", () => {
+    const s = run([opened("t1", "a1"), closed("t0")]);
+    expect(s.openTurn?.turnId).toBe("t1");
+    expect(run([closed("t1")], s).openTurn).toBeNull();
   });
 
-  it("é varrido no fim do round", () => {
-    let s = combatReducer(initialCombatState, ghostAction);
-    s = combatReducer(s, { type: "round_closed", payload: { roundMode: "Race" } });
-    expect(s.ghosts).toEqual({});
+  it("a fila é substituída inteira no snapshot", () => {
+    const s = run([
+      { type: "action_queued", payload: { actionId: "a1", actorId: "c1", bars: ["action"] } },
+      { type: "match_full_state", payload: { roundMode: "Race" } },
+    ]);
+    expect(s.queue).toEqual([]);
   });
 
-  it("FIFO: um envio sem movimento seguido de um com movimento", () => {
-    let s = combatReducer(initialCombatState, {
-      type: "ACTION_SENT",
-      payload: { localId: "local-1", actorId: "c1", clearsDraft: true },
-    });
-    s = combatReducer(s, {
-      type: "ACTION_SENT",
-      payload: {
-        localId: "local-2",
-        actorId: "c1",
-        clearsDraft: true,
-        ghost: {
-          actorId: "c1",
-          from: [1, 1, 0] as [number, number, number],
-          to: [3, 1, 0] as [number, number, number],
-        },
-      },
-    });
-    expect(s.pendingSends.map((p) => p.localId)).toEqual(["local-1", "local-2"]);
-    expect(Object.keys(s.ghosts)).toEqual(["local-2"]);
-
-    s = combatReducer(s, { type: "action_enqueued", payload: { actionId: "a1" } });
-    expect(s.pendingSends.map((p) => p.localId)).toEqual(["local-2"]);
-    expect(Object.keys(s.ghosts)).toEqual(["local-2"]);
-
-    s = combatReducer(s, { type: "action_enqueued", payload: { actionId: "a2" } });
-    expect(s.pendingSends).toEqual([]);
-    expect(Object.keys(s.ghosts)).toEqual(["a2"]);
-  });
-
-  it("o fantasma morre quando o envio é recusado", () => {
-    let s = combatReducer(initialCombatState, ghostAction);
-    expect(s.pendingSends.map((p) => p.localId)).toEqual(["local-1"]);
-    s = combatReducer(s, {
-      type: "WS_ERROR",
-      payload: { code: "invalid_action", message: "x", sentType: "enqueue_action", at: 1 },
-    });
-    expect(s.ghosts).toEqual({});
-    expect(s.pendingSends).toEqual([]);
-    expect(s.lastError).toEqual({
-      code: "invalid_action",
-      message: "x",
-      sentType: "enqueue_action",
-      at: 1,
-    });
-  });
-
-  it("erro de outro verbo não mexe no fantasma", () => {
-    let s = combatReducer(initialCombatState, ghostAction);
-    s = combatReducer(s, {
-      type: "WS_ERROR",
-      payload: { code: "invalid_action", message: "x", sentType: "open_next_action", at: 1 },
-    });
-    expect(Object.keys(s.ghosts)).toEqual(["local-1"]);
-    expect(s.pendingSends.map((p) => p.localId)).toEqual(["local-1"]);
-  });
-
-  // Final review, Important 2(d): um match_full_state é sempre um registro novo (socket
-  // novo) — um envio ainda pendente na hora da queda pertencia ao socket antigo e nunca
-  // vai ganhar ack nem erro daquele. Sem isto o fantasma provisório (local-*) e a entrada
-  // em pendingSends ficavam presos para sempre.
-  it("match_full_state limpa pendingSends e descarta todo fantasma provisório (local-*)", () => {
-    let s = combatReducer(initialCombatState, ghostAction); // local-1, sem turno aberto
-    s = combatReducer(s, {
-      type: "ACTION_SENT",
-      payload: {
-        localId: "local-2",
-        actorId: "c2",
-        clearsDraft: true,
-        ghost: { actorId: "c2", from: [0, 0, 0], to: [1, 0, 0] },
-      },
-    });
-    expect(s.pendingSends).toHaveLength(2);
-    expect(Object.keys(s.ghosts)).toEqual(["local-1", "local-2"]);
-
-    s = combatReducer(s, { type: "match_full_state", payload: { roundMode: "Race" } });
-    expect(s.pendingSends).toEqual([]);
-    expect(s.ghosts).toEqual({});
-  });
-
-  it("match_full_state preserva um fantasma já confirmado (actionId, sem prefixo local-)", () => {
-    let s = combatReducer(initialCombatState, ghostAction);
-    s = combatReducer(s, { type: "action_enqueued", payload: { actionId: "a1" } });
-    expect(Object.keys(s.ghosts)).toEqual(["a1"]);
-
-    s = combatReducer(s, { type: "match_full_state", payload: { roundMode: "Race" } });
-    expect(Object.keys(s.ghosts)).toEqual(["a1"]);
+  it("troca de cena preserva fila e turno aberto", () => {
+    const s = run([
+      { type: "action_queued", payload: { actionId: "a2", actorId: "c2", bars: ["action"] } },
+      opened("t1", "a1"),
+      { type: "scene_changed", payload: { sceneId: "s2", category: "battle", briefInitialDescription: "Arena" } },
+    ]);
+    expect(s.scene?.briefInitialDescription).toBe("Arena");
+    expect(s.queue).toHaveLength(1);
+    expect(s.openTurn?.turnId).toBe("t1");
   });
 });
 
 describe("combatReducer — histórico", () => {
-  it("junta turn_closed e a resolução liquidada na MESMA linha, em qualquer ordem", () => {
-    let s = combatReducer(initialCombatState, {
-      type: "resolution_updated",
-      payload: { turnId: "t1", isSettled: true, targets: [] },
-    });
-    s = combatReducer(s, { type: "turn_closed", payload: { turnId: "t1" } });
-    const closed = s.events.filter((e) => e.kind === "turn_closed");
-    expect(closed).toHaveLength(1);
-    expect(closed[0].resolution).toBeDefined();
+  it("o turno aberto de uma ação minha leva o que eu declarei", () => {
+    const s = run([sent("local-1", { ...moveTo, attack: { targets: ["c2"] } }), acked("a1"), opened("t1", "a1")]);
+    const ev = s.events.find((e) => e.kind === "turn_opened");
+    expect(ev?.kind === "turn_opened" && ev.mine?.attack?.targets).toEqual(["c2"]);
   });
 
-  it("ignora uma resolução de turno aberto no histórico", () => {
-    const s = combatReducer(initialCombatState, {
-      type: "resolution_updated",
-      payload: { turnId: "t1", isSettled: false, targets: [] },
-    });
+  it("junta turn_closed e a resolução liquidada na MESMA linha, em qualquer ordem, com o ator", () => {
+    const s = run([
+      opened("t1", "a1", "c7"),
+      { type: "resolution_updated", payload: { turnId: "t1", isSettled: true, targets: [] } },
+      closed("t1"),
+    ]);
+    const rows = s.events.filter((e) => e.kind === "turn_closed");
+    expect(rows).toHaveLength(1);
+    expect(rows[0].kind === "turn_closed" && rows[0].resolution).toBeDefined();
+    expect(rows[0].kind === "turn_closed" && rows[0].actorId).toBe("c7");
+  });
+
+  it("ignora uma resolução de turno aberto", () => {
+    const s = run([{ type: "resolution_updated", payload: { turnId: "t1", isSettled: false, targets: [] } }]);
     expect(s.events).toHaveLength(0);
   });
-});
 
-describe("combatReducer — scene_changed (R30)", () => {
-  // R30: o spec §5 e o contrato só pedem que scene_changed troque a cena e varra os
-  // fantasmas; queue/openTurn nunca fizeram parte disso (nem é alcançável na Fase 6 — o
-  // servidor não muda de cena com turno aberto), mas o reducer original zerava os dois.
-  it("troca a cena e varre fantasmas, mas preserva queue e openTurn", () => {
-    // a2 fica na fila (não é o que abriu turno) — turn_opened(a1) só tira a1 da fila.
-    let s = combatReducer(initialCombatState, {
-      type: "action_queued",
-      payload: { actionId: "a1", actorId: "c1", bars: ["action"] },
-    });
-    s = combatReducer(s, {
-      type: "action_queued",
-      payload: { actionId: "a2", actorId: "c2", bars: ["action"] },
-    });
-    s = combatReducer(s, {
-      type: "turn_opened",
-      payload: { turnId: "t1", actorId: "c1", actionId: "a1", actionType: "" },
-    });
-    s = combatReducer(s, {
-      type: "ACTION_SENT",
-      payload: {
-        localId: "local-9",
-        actorId: "c2",
-        clearsDraft: true,
-        ghost: { actorId: "c2", from: [0, 0, 0], to: [1, 0, 0] },
-      },
-    });
-
-    s = combatReducer(s, {
-      type: "scene_changed",
-      payload: { sceneId: "s2", category: "battle", briefInitialDescription: "" },
-    });
-
-    expect(s.scene).toEqual({ sceneId: "s2", category: "battle", briefInitialDescription: "" });
-    expect(s.ghosts).toEqual({});
-    expect(s.queue).toEqual([{ actionId: "a2", actorId: "c2", bars: ["action"] }]);
-    expect(s.openTurn).toEqual({ turnId: "t1", actorId: "c1", actionId: "a1", actionType: "" });
-  });
-});
-
-describe("combatReducer — HP e fila", () => {
   it("guarda o HP aplicado", () => {
-    const s = combatReducer(initialCombatState, {
-      type: "character_hp_changed",
-      payload: { characterId: "c2", hp: 84, maxHp: 100, damage: 16 },
-    });
+    const s = run([{ type: "character_hp_changed", payload: { characterId: "c2", hp: 84, maxHp: 100, damage: 16 } }]);
     expect(s.hp["c2"]).toEqual({ hp: 84, maxHp: 100 });
-  });
-
-  it("empilha a fila e a substitui inteira no snapshot", () => {
-    let s = combatReducer(initialCombatState, {
-      type: "action_queued",
-      payload: { actionId: "a1", actorId: "c1", bars: ["action"] },
-    });
-    expect(s.queue).toHaveLength(1);
-    s = combatReducer(s, {
-      type: "match_full_state",
-      payload: { roundMode: "Race", queue: [] },
-    });
-    expect(s.queue).toHaveLength(0);
+    expect(s.events[0]).toMatchObject({ kind: "hp_changed", hp: 84, maxHp: 100, damage: 16 });
   });
 });

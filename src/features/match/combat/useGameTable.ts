@@ -1,0 +1,165 @@
+// Tudo o que as duas telas da partida têm em comum: os dados REST, o mapa ao vivo, o socket
+// de combate e o rascunho de ação do ator escolhido. A página decide só o que difere entre
+// os papéis — quem é o ator e o que um toque no mapa significa.
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import useUser from "../../../hooks/useUser";
+import { useMatchMap } from "../../../hooks/useMatchMap";
+import { useMap } from "../../../hooks/useMap";
+import { useMatchParticipants } from "../../../hooks/useMatchParticipants";
+import { useCampaignDetails } from "../../../hooks/useCampaignDetails";
+import type { MatchBoardSync } from "../../../hooks/useMatchWs";
+import { visibleBoardPieces } from "../../tactical-map/utils/boardSource";
+import { isSameSlot, slotToTriple, tripleToSlot } from "../../tactical-map/utils/coords";
+import type { SlotTriple } from "../../tactical-map/utils/coords";
+import { useLiveMapSync } from "./useLiveMapSync";
+import { useMatchCombat } from "./useMatchCombat";
+import { useActionComposerState } from "./useActionComposerState";
+import { defaultMoveCategory } from "./defaultMoveCategory";
+import { pendingMoves } from "./combatReducer";
+
+export function useGameTable({
+  token,
+  campaignId,
+  matchId,
+  isMaster,
+  actorId,
+}: {
+  token: string;
+  campaignId?: string;
+  matchId?: string;
+  isMaster: boolean;
+  actorId: string | undefined;
+}) {
+  const { user } = useUser();
+  const { data: matchMap, isPending: matchMapPending } = useMatchMap(token, matchId);
+  const { data: map, isPending: mapPending } = useMap(token, matchMap?.mapUuid);
+  const { data: participants = [] } = useMatchParticipants(token, matchId, true);
+  const { data: campaign } = useCampaignDetails(token, campaignId);
+
+  // O mestre é dono do tabuleiro inteiro e semeia do REST; o jogador só enxerga o que o
+  // servidor projeta pelo WS (ver `visibleBoardPieces`).
+  const live = useLiveMapSync({ map, campaign, seedFromRest: isMaster });
+
+  // O tabuleiro que o mestre semeia no servidor — sempre do REST, nunca do que o próprio
+  // servidor acabou de mandar (viraria loop).
+  const board = useMemo<MatchBoardSync | null>(
+    () => (isMaster && map ? { pieces: map.pieces ?? [], walls: map.walls ?? [], grid: map.grid } : null),
+    [isMaster, map],
+  );
+  const boardPieces = visibleBoardPieces(live.livePieces, map?.pieces, isMaster);
+
+  // O ack de um envio precisa limpar o rascunho, que só existe depois do socket: um ref
+  // quebra o ciclo, atribuído no corpo do render antes de qualquer ack poder chegar.
+  const clearDraftForRef = useRef<(actorId: string) => void>(() => {});
+  const combat = useMatchCombat({
+    matchUuid: matchId,
+    userUuid: user?.uuid,
+    token,
+    isMaster,
+    board,
+    onWallStateChanged: live.handleWallStateChanged,
+    onWallHpChanged: live.handleWallHpChanged,
+    onMapFullState: live.handleMapFullState,
+    onVisibilityUpdated: live.handleVisibilityUpdated,
+    onWallRevealed: live.handleWallRevealed,
+    onPieceMoved: live.handlePieceMoved,
+    onPieceRemoved: live.handlePieceRemoved,
+    onComposerSendAccepted: (a) => clearDraftForRef.current(a),
+  });
+  const { state } = combat;
+
+  const composer = useActionComposerState({
+    matchId,
+    actorId,
+    boardPieces,
+    grid: map?.grid,
+    defaultCategory: defaultMoveCategory(state),
+  });
+  clearDraftForRef.current = composer.clearDraftFor;
+  const { pieceByCharacter } = composer;
+
+  // ─── Movimentos declarados ainda por acontecer (o fantasma) ───────────────
+  // A seta sai de onde a peça ESTÁ, não de onde estava ao declarar: se outra ação do mesmo
+  // ator a moveu antes, o pedido continua valendo e o servidor aplica o destino pedido.
+  // A peça que já chegou ao destino cumpriu o pedido — inclusive quando o `turn_opened`
+  // daquela ação se perdeu numa queda de conexão.
+  const moves = pendingMoves(state.declared);
+  const arrivedIds = moves
+    .filter((d) => d.status === "queued")
+    .filter((d) => {
+      const piece = pieceByCharacter.get(d.actorId);
+      return !!piece && !!map && isSameSlot(piece.coord.slot, tripleToSlot(d.move.to, map.grid.kind));
+    })
+    .map((d) => d.id);
+  const arrivedKey = arrivedIds.join(",");
+  const { dismissDeclared } = combat;
+  useEffect(() => {
+    if (arrivedKey) dismissDeclared(arrivedKey.split(","));
+  }, [arrivedKey, dismissDeclared]);
+
+  const ghosts = useMemo<Array<{ from?: SlotTriple; to: SlotTriple }>>(
+    () =>
+      moves
+        .filter((d) => !arrivedIds.includes(d.id))
+        .map((d) => {
+          const piece = pieceByCharacter.get(d.actorId);
+          return {
+            from: piece ? slotToTriple(piece.coord.slot, piece.coord.z) : d.move.from,
+            to: d.move.to,
+          };
+        }),
+    // `moves`/`arrivedIds` are rebuilt every render; their content is what matters.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [state.declared, pieceByCharacter, arrivedKey],
+  );
+
+  const nameOf = useCallback(
+    (id: string) => {
+      const p = participants.find((x) => x.characterSheet.uuid === id);
+      if (p) return p.characterSheet.nickName;
+      return live.npcMap.get(id)?.nickName ?? "?";
+    },
+    [participants, live.npcMap],
+  );
+
+  const sendingForActor = !!actorId && state.declared.some(
+    (d) => d.status === "sending" && d.actorId === actorId && d.fromComposer,
+  );
+  const canDeclare = combat.status === "connected" && !sendingForActor;
+  const blockedReason =
+    combat.status !== "connected"
+      ? "Sem conexão com a mesa — a ação não pode ser enviada agora."
+      : sendingForActor
+        ? "Enviando a ação anterior…"
+        : undefined;
+
+  const declare = useCallback(() => {
+    if (composer.payload) combat.send.enqueueAction(composer.payload);
+  }, [composer.payload, combat.send]);
+
+  // Enquadra o mapa ao montar e sempre que alguém pedir.
+  const [fitRequest, setFitRequest] = useState(1);
+  const refit = useCallback(() => setFitRequest((n) => n + 1), []);
+
+  const openTurnPieceId = state.openTurn ? pieceByCharacter.get(state.openTurn.actorId)?.id : undefined;
+
+  return {
+    user,
+    map,
+    isLoading: matchMapPending || (!!matchMap && mapPending),
+    participants,
+    campaign,
+    live,
+    boardPieces,
+    combat,
+    composer,
+    ghosts,
+    nameOf,
+    canDeclare,
+    blockedReason,
+    declare,
+    fitRequest,
+    refit,
+    openTurnPieceId,
+  };
+}

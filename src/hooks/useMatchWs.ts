@@ -1,9 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { GridShape, Piece, SlotCoord, WallSegment } from "../types/tacticalMap";
-import type { CombatServerMessage, EnqueueActionPayload, RoundMode } from "../features/match/combat/combatMessages";
+import type { CombatServerMessage, EnqueueActionPayload, MasterActionPayload, RoundMode } from "../features/match/combat/combatMessages";
 import { normalizeCombatMessage } from "../features/match/combat/normalizeWire";
 
-export type MatchWsStatus = "connecting" | "connected" | "disconnected";
+/**
+ * `waiting`: the room is not open (`lobby_not_open`) — only the master's connection
+ * creates it, so a player who arrives first waits for them instead of giving up.
+ */
+export type MatchWsStatus = "connecting" | "connected" | "waiting" | "disconnected";
 
 /**
  * Board the master seeds the game server with on connect. The server has no DB access
@@ -91,6 +95,18 @@ function parsePolys(
 
 const MAX_RECONNECTS = 5;
 const BASE_DELAY_MS = 1000;
+/** Retry cadence while the room is not open yet (the master has not connected). */
+const WAITING_RETRY_MS = 5000;
+/**
+ * The server always answers a register with `room_state`. A socket that opened and stays
+ * silent past this is a dead registration (the room closed while it was being joined —
+ * `Register` blocks forever on a room whose loop already returned) and is recycled.
+ */
+const SILENT_SOCKET_MS = 5000;
+/** Close code this hook uses to recycle a silent socket. */
+const SILENT_CLOSE_CODE = 4000;
+/** Close code the server sends right after `lobby_not_open`. */
+const LOBBY_NOT_OPEN_CODE = 4001;
 
 const COMBAT_TYPES = new Set([
   "match_full_state", "bars_updated", "action_enqueued", "action_queued",
@@ -182,7 +198,9 @@ export function useMatchWs({
   onCombatMessage,
   board,
 }: UseMatchWsOptions) {
-  const [status, setStatus] = useState<MatchWsStatus>("disconnected");
+  const [status, setStatus] = useState<MatchWsStatus>("connecting");
+  // Bumped by `reconnect()` — a new value re-runs the connection effect from scratch.
+  const [connectNonce, setConnectNonce] = useState(0);
   const wsRef = useRef<WebSocket | null>(null);
   const onWallStateChangedRef = useRef(onWallStateChanged);
   onWallStateChangedRef.current = onWallStateChanged;
@@ -317,18 +335,34 @@ export function useMatchWs({
     let active = true;
     let attempts = 0;
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let silenceTimer: ReturnType<typeof setTimeout> | null = null;
+    // Set by `lobby_not_open`; read by the close that follows it. The server closes with
+    // 4001, but a browser that sees the TCP drop first reports 1006 — the message is the
+    // reliable signal, the code is not.
+    let roomNotOpen = false;
+
+    const clearSilence = () => {
+      if (silenceTimer) clearTimeout(silenceTimer);
+      silenceTimer = null;
+    };
 
     const connect = () => {
       if (!active) return;
       const wsUrl = `${import.meta.env.VITE_WS_URL}/ws?match_uuid=${matchUuid}&token=${token}`;
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
-      setStatus("connecting");
+      roomNotOpen = false;
+      setStatus((s) => (s === "waiting" ? s : "connecting"));
 
       ws.onopen = () => {
         if (!active) { ws.close(); return; }
-        attempts = 0;
-        setStatus("connected");
+        // While waiting for the master, an open socket is not news yet: the server
+        // upgrades before it can tell `lobby_not_open` — the first real message decides.
+        setStatus((s) => (s === "waiting" ? s : "connected"));
+        clearSilence();
+        silenceTimer = setTimeout(() => {
+          if (wsRef.current === ws) ws.close(SILENT_CLOSE_CODE, "silent socket");
+        }, SILENT_SOCKET_MS);
         // Batch 3: fresh per-connection state — this register's own map_full_state/
         // match_full_state haven't arrived yet, and whatever this connection decides
         // about the board sync hasn't happened yet either.
@@ -342,8 +376,17 @@ export function useMatchWs({
       };
 
       ws.onmessage = (event: MessageEvent) => {
+        // Anything at all proves the registration is alive; only then does the
+        // connection count as a success for the reconnect budget.
+        clearSilence();
+        attempts = 0;
         try {
           const msg = JSON.parse(event.data as string) as { type: string; payload: unknown };
+          if (msg.type === "lobby_not_open") {
+            roomNotOpen = true;
+            return;
+          }
+          setStatus("connected");
           if (msg.type === "wall_state_changed") {
             const p = msg.payload as WallStateChangedPayload;
             onWallStateChangedRef.current?.(p.wallId, p.open, p.locked);
@@ -427,10 +470,16 @@ export function useMatchWs({
       };
 
       ws.onclose = (ev) => {
+        clearSilence();
         if (!active) return;
-        wsRef.current = null;
-        // 4001 = lobby_not_open: master hasn't created the room yet — retry
-        // Normal close (1000/1001) or max retries: give up
+        if (wsRef.current === ws) wsRef.current = null;
+        // The master has not opened the room yet: keep knocking, without spending the
+        // reconnect budget — the player is waiting for someone, not fighting a failure.
+        if (roomNotOpen || ev.code === LOBBY_NOT_OPEN_CODE) {
+          setStatus("waiting");
+          retryTimer = setTimeout(connect, WAITING_RETRY_MS);
+          return;
+        }
         if (ev.code === 1000 || ev.code === 1001 || attempts >= MAX_RECONNECTS) {
           setStatus("disconnected");
           return;
@@ -446,10 +495,15 @@ export function useMatchWs({
       };
     };
 
-    connect();
+    // Deferred one tick: React StrictMode mounts, unmounts and remounts synchronously, and
+    // an immediate connect would open a socket only to drop it half-registered. The server
+    // closes a room the instant its last client leaves, so that throwaway socket could take
+    // the room down under the real one (which then registers into a dead room and hangs).
+    retryTimer = setTimeout(connect, 0);
 
     return () => {
       active = false;
+      clearSilence();
       if (retryTimer) clearTimeout(retryTimer);
       wsRef.current?.close();
       wsRef.current = null;
@@ -458,7 +512,9 @@ export function useMatchWs({
     // deps chain, sendBoardSync → sendRaw, bottoms out at `[]`), listed so
     // exhaustive-deps doesn't flag it; it never actually changes identity, so this
     // never causes an extra reconnect.
-  }, [matchUuid, token, maybeSyncBoard]);
+  }, [matchUuid, token, maybeSyncBoard, connectNonce]);
+
+  const reconnect = useCallback(() => setConnectNonce((n) => n + 1), []);
 
   // Batch 3 (amends batch 2): catches `board` arriving AFTER the match_full_state marker
   // (the REST map fetch racing the WS round-trip) — the marker's own call to
@@ -486,13 +542,7 @@ export function useMatchWs({
 
   /** Send a master action (enqueue_master_action). */
   const sendMasterAction = useCallback(
-    (payload: {
-      targetIds: string[];
-      interact?: { kind: string };
-      attack?: { weapon?: string };
-    }) => {
-      return sendRaw("enqueue_master_action", payload);
-    },
+    (payload: MasterActionPayload) => sendRaw("enqueue_master_action", payload),
     [sendRaw],
   );
 
@@ -516,6 +566,7 @@ export function useMatchWs({
 
   return {
     status,
+    reconnect,
     sendAction,
     sendMasterAction,
     sendEnqueueAction,

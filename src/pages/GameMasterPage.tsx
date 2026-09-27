@@ -1,31 +1,17 @@
-// src/pages/GameMasterPage.tsx
-//
-// A tela do mestre (Fase 6, Tarefa 13). Mesma casca da tela do jogador — reusa
-// `useActionComposerState` (extraído da Tarefa 12) para o rascunho e os mapas
-// peça↔personagem — com quatro diferenças: rail Fila/Fichas, regência na topbar, o
-// diálogo de `close_turn_refused`, e ator selecionável no mapa (NPC vira ator; peça de
-// jogador sem ator selecionado vira inspecionada, §7.3). Nenhum componente abaixo desta
-// página recebe `isMaster`, exceto as exceções já declaradas na Tarefa 12
-// (`WallActionSheet`, `TacticalMapStage.fogDisabled`, `MatchCharactersSidebar` — R25).
+// A tela do mestre. Mesma mesa do jogador (`useGameTable`), com o que é do mestre: a fila,
+// a regência (abrir, fechar, regime) e agir por um NPC — que ele escolhe tocando no NPC ou
+// na lista do painel "Agir".
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import styled from "styled-components";
-import useUser from "../hooks/useUser";
-import { useMatchMap } from "../hooks/useMatchMap";
-import { useMap } from "../hooks/useMap";
-import { useMatchParticipants } from "../hooks/useMatchParticipants";
-import { useCampaignDetails } from "../hooks/useCampaignDetails";
-import { useCombatCatalogue } from "../hooks/useCombatCatalogue";
 import { useResizeObserver } from "../hooks/useResizeObserver";
-import { useMatchCombat } from "../features/match/combat/useMatchCombat";
-import type { ActionEnqueuedMeta } from "../features/match/combat/useMatchCombat";
-import type { MatchBoardSync } from "../hooks/useMatchWs";
-import { useActionComposerState } from "../features/match/combat/useActionComposerState";
-import { useLiveMapSync } from "../features/match/combat/useLiveMapSync";
+import { useCombatCatalogue } from "../hooks/useCombatCatalogue";
+import { useGameTable } from "../features/match/combat/useGameTable";
 import { defaultMoveCategory } from "../features/match/combat/defaultMoveCategory";
-import type { RoundMode } from "../features/match/combat/combatMessages";
+import { describeDeclared } from "../features/match/combat/combatText";
 import MatchStageTemplate from "../components/templates/MatchStageTemplate";
 import MatchTopBar from "../features/match/combat/MatchTopBar";
+import { NpcPicker, PanelSection, RegencyControls, RoundModeSwitch } from "../features/match/combat/MasterControls";
+import { PanelMessage, PanelTitle } from "../features/match/combat/panelStyles";
 import RailNav from "../features/match/combat/RailNav";
 import AsideTabs from "../features/match/combat/AsideTabs";
 import type { AsideTab } from "../features/match/combat/AsideTabs";
@@ -33,16 +19,17 @@ import GeneralBar from "../features/match/combat/GeneralBar";
 import OwnBars from "../features/match/combat/OwnBars";
 import EventStream from "../features/match/combat/EventStream";
 import ActionComposer from "../features/match/combat/ActionComposer";
+import DeclaredActions from "../features/match/combat/DeclaredActions";
 import QueuePanel from "../features/match/combat/QueuePanel";
 import CloseTurnRefusedDialog from "../features/match/combat/CloseTurnRefusedDialog";
 import MatchErrorBanner from "../features/match/combat/MatchErrorBanner";
 import MatchCharactersSidebar from "../features/match/MatchCharactersSidebar";
 import WallActionSheet from "../features/match/WallActionSheet";
 import TacticalMapViewer from "../features/tactical-map/TacticalMapViewer";
-import { visibleBoardPieces } from "../features/tactical-map/utils/boardSource";
-import { CanvasWrapper, MapLoadingMessage, NoMapMessage } from "../features/match/combat/mapCanvasStyles";
-import { colors, fonts } from "../styles/tokens";
-import type { WallSegment } from "../types/tacticalMap";
+import {
+  CanvasWrapper, MapCornerButton, MapHint, MapLoadingMessage, NoMapMessage,
+} from "../features/match/combat/mapCanvasStyles";
+import type { SlotCoord, WallSegment } from "../types/tacticalMap";
 import type { Participant } from "../types/match";
 
 type Props = {
@@ -51,133 +38,41 @@ type Props = {
   matchId?: string;
 };
 
-type RailTab = "fila" | "fichas";
+type RailTab = "fila" | "agir";
 
-// Final review, Important 1 (mirrors GamePlayerPage.tsx): draggablePieceIds === undefined
-// reads to PiecesLayer as "every piece is draggable" — the map-editor meaning, not the
-// game's. Module-level so the Set identity never invalidates PiecesLayer's memos.
-const EMPTY_SET = new Set<string>();
+// No jogo nenhuma peça é arrastável: quem decide onde a peça para é o servidor.
+const NO_DRAG = new Set<string>();
+
+const initialAsideOpen = () =>
+  typeof window !== "undefined" && window.matchMedia?.("(min-width: 1280px)").matches === true;
 
 export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const { width, height } = useResizeObserver(canvasRef);
   const navigate = useNavigate();
 
-  const { user } = useUser();
-  const { data: matchMap, isPending: matchMapPending } = useMatchMap(token, matchId);
-  const { data: map, isPending: mapPending } = useMap(token, matchMap?.mapUuid);
-  const { data: participants = [] } = useMatchParticipants(token, matchId, true);
-  const { data: campaign } = useCampaignDetails(token, campaignId);
-
-  // ─── Mapa: o mestre é dono de todo o tabuleiro (visibleBoardPieces já entende
-  // isso), então semeia direto do REST enquanto o WS não manda nada mais novo — sem
-  // isso o mestre veria o mapa vazio até o primeiro map_full_state (R11: preserva o
-  // que o GamePage pré-Tarefa-12 fazia só para o papel de mestre). Os handlers e o
-  // liveWalls/livePieces/fog que eles atualizam moram em useLiveMapSync, compartilhado
-  // com GamePlayerPage — só `seedFromRest` muda entre os dois papéis. ────────────────
-  const {
-    liveWalls,
-    livePieces,
-    fog,
-    npcMap,
-    handleWallStateChanged,
-    handleWallHpChanged,
-    handleMapFullState,
-    handleVisibilityUpdated,
-    handleWallRevealed,
-    handlePieceMoved,
-    handlePieceRemoved,
-  } = useLiveMapSync({ map, campaign, seedFromRest: true });
-  const [wallPicker, setWallPicker] = useState<WallSegment | null>(null);
-
-  // Board que o mestre semeia no servidor de jogo (sempre a partir do REST — nunca do
-  // que o próprio servidor acabou de mandar, senão vira loop).
-  const board = useMemo<MatchBoardSync | null>(
-    () => (map ? { pieces: map.pieces ?? [], walls: map.walls ?? [], grid: map.grid } : null),
-    [map],
-  );
-
-  const boardPieces = visibleBoardPieces(livePieces, map?.pieces, true);
-
-  // ─── Ator: só um NPC (player_uuid null) pode virar ator do mestre. ────────────────
-  const npcCharacterIds = useMemo(
-    () => new Set(participants.filter((p) => !p.characterSheet.playerUuid).map((p) => p.characterSheet.uuid)),
-    [participants],
-  );
-
   const [actorId, setActorId] = useState<string | undefined>(undefined);
   const [inspectedId, setInspectedId] = useState<string | undefined>(undefined);
 
+  const game = useGameTable({ token, campaignId, matchId, isMaster: true, actorId });
+  const { combat, composer, live, map, nameOf, participants } = game;
+  const { state } = combat;
+  const gridKind = map?.grid.kind ?? "square";
+
   const { data: catalogue } = useCombatCatalogue(token, actorId);
 
-  // ─── Combate ──────────────────────────────────────────────────────────────
-  // Mesmo indireto por ref de GamePlayerPage: `useActionComposerState` precisa de
-  // `state` (só existe depois de `useMatchCombat`), e `useMatchCombat` precisa do
-  // callback de limpeza do rascunho já na chamada.
-  const onActionEnqueuedRef = useRef<(meta: ActionEnqueuedMeta) => void>(() => {});
-  const onActionRefusedRef = useRef<(actorId: string) => void>(() => {});
-
-  const { state, status, send, dismissError, dismissCloseTurnDialog } = useMatchCombat({
-    matchUuid: matchId,
-    userUuid: user?.uuid,
-    token,
-    isMaster: true,
-    board,
-    onWallStateChanged: handleWallStateChanged,
-    onWallHpChanged: handleWallHpChanged,
-    onMapFullState: handleMapFullState,
-    onVisibilityUpdated: handleVisibilityUpdated,
-    onWallRevealed: handleWallRevealed,
-    onPieceMoved: handlePieceMoved,
-    onPieceRemoved: handlePieceRemoved,
-    onActionEnqueued: (_actionId, meta) => onActionEnqueuedRef.current(meta),
-    onActionRefused: (actorId) => onActionRefusedRef.current(actorId),
-  });
-
-  const {
-    draft,
-    updateDraft,
-    characterIdByPieceId,
-    pieceIdsByCharacterId,
-    targetPieceIds,
-    actorPiece,
-    actorSlot,
-    replaceTarget,
-    toggleTarget,
-    setDestination,
-    clearDraftFor,
-    dropDraftMoveFor,
-  } = useActionComposerState({ matchId, actorId, boardPieces, state });
-
-  // R28: idem GamePlayerPage.tsx — só limpa no ack de um envio do composer.
-  onActionEnqueuedRef.current = (meta) => {
-    if (!meta.clearsDraft) return;
-    clearDraftFor(meta.actorId);
-  };
-
-  // F2: idem GamePlayerPage.tsx — recusa do servidor derruba só o `move` do rascunho
-  // do NPC-ator que enviou.
-  onActionRefusedRef.current = (actorId) => dropDraftMoveFor(actorId);
-
-  // M4: Declarar fica desabilitado enquanto há um envio do composer ainda sem ack para o
-  // NPC-ator selecionado — evita reenfileirar em duplicidade num link lento.
-  const hasPendingComposerSend = state.pendingSends.some(
-    (p) => p.actorId === actorId && p.clearsDraft,
-  );
-  const canSubmit = status === "connected" && !hasPendingComposerSend;
-
-  const nameOf = useCallback(
-    (id: string) =>
-      participants.find((p) => p.characterSheet.uuid === id)?.characterSheet.nickName ?? id,
+  // Só NPC (sem jogador) na partida pode ser ator do mestre — o servidor recusa o resto.
+  const npcs = useMemo(
+    () => participants.filter((p) => !p.characterSheet.playerUuid),
     [participants],
   );
+  const npcIds = useMemo(() => new Set(npcs.map((p) => p.characterSheet.uuid)), [npcs]);
 
-  // ─── Layout: painel aberto na Fila (o que precisa de decisão do mestre primeiro),
-  // gaveta fechada no primeiro render — R24. ────────────────────────────────────────
   const [railActive, setRailActive] = useState<RailTab>("fila");
   const [panelOpen, setPanelOpen] = useState(true);
-  const [asideOpen, setAsideOpen] = useState(false);
+  const [asideOpen, setAsideOpen] = useState(initialAsideOpen);
   const [asideTab, setAsideTab] = useState<AsideTab>("historico");
+  const [wallPicker, setWallPicker] = useState<WallSegment | null>(null);
 
   const handleRailSelect = useCallback(
     (id: string) => {
@@ -191,54 +86,61 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     [railActive],
   );
 
-  // §7.3: sem ator selecionado, clicar numa peça que o mestre controla (NPC) a vira
-  // ator; clicar numa que ele NÃO controla (jogador) a vira inspecionada — foco no
-  // mapa e a aba Personagens abre nela. Com ator já selecionado, qualquer clique
-  // (inclusive na própria peça do ator) marca alvo (R4/spec §6).
-  const handlePieceSelect = useCallback(
+  const chooseActor = useCallback((id: string | undefined) => {
+    setActorId(id);
+    setInspectedId(undefined);
+    if (id) {
+      setRailActive("agir");
+      setPanelOpen(true);
+    }
+  }, []);
+
+  const pieceCharacter = useCallback(
+    (pieceId: string) => game.boardPieces.find((p) => p.id === pieceId)?.characterId,
+    [game.boardPieces],
+  );
+
+  // Sem ator: tocar num NPC da partida o escolhe; tocar em outro personagem o inspeciona
+  // (a aba Personagens abre nele). Com ator: tocar em alguém marca o alvo — inclusive o
+  // próprio ator, que é um alvo legítimo; soltar o ator é o × do painel.
+  const handlePieceTap = useCallback(
     (pieceId: string) => {
-      const charId = characterIdByPieceId.get(pieceId);
+      const charId = pieceCharacter(pieceId);
       if (!charId) return;
       if (actorId) {
-        replaceTarget(charId);
+        composer.onCharacterTap(charId);
         return;
       }
-      if (npcCharacterIds.has(charId)) {
-        setActorId(charId);
-        setInspectedId(undefined);
-        setRailActive("fichas");
-        setPanelOpen(true);
-      } else {
-        setInspectedId(charId);
-        setAsideTab("personagens");
-        setAsideOpen(true);
+      if (npcIds.has(charId)) {
+        chooseActor(charId);
+        return;
       }
+      setInspectedId(charId);
+      setAsideTab("personagens");
+      setAsideOpen(true);
     },
-    [characterIdByPieceId, actorId, replaceTarget, npcCharacterIds],
+    [pieceCharacter, actorId, composer, npcIds, chooseActor],
   );
-
-  const handlePieceLongPress = useCallback(
+  const handlePieceHold = useCallback(
     (pieceId: string) => {
-      if (!actorId) return;
-      const charId = characterIdByPieceId.get(pieceId);
-      if (!charId) return;
-      toggleTarget(charId);
+      const charId = pieceCharacter(pieceId);
+      if (charId && actorId) composer.onCharacterHold(charId);
     },
-    [actorId, characterIdByPieceId, toggleTarget],
+    [pieceCharacter, actorId, composer],
+  );
+  const handleSlotTap = useCallback(
+    (slot: SlotCoord) => {
+      if (actorId) composer.onSlotTap(slot);
+    },
+    [actorId, composer],
   );
 
-  // jsdom não tem layout real (scrollIntoView pode nem existir) — guarda opcional,
-  // igual ao padrão já usado em EventStream.
   useEffect(() => {
     if (!inspectedId) return;
-    document.querySelector(`[data-testid="character-row-${inspectedId}"]`)?.scrollIntoView?.();
+    document.querySelector(`[data-testid="character-row-${inspectedId}"]`)?.scrollIntoView?.({ block: "nearest" });
   }, [inspectedId]);
 
-  const handleWallClick = useCallback((wall: WallSegment) => setWallPicker(wall), []);
-
-  // HP de todo mundo no aside — não precisa de isMaster (o servidor já só manda
-  // character_hp_changed pra quem tem direito); aqui sobrepomos o HP ao vivo por
-  // cima do que o REST trouxe no carregamento (R7).
+  // HP de todo mundo: o REST do carregamento, sobreposto pelo HP ao vivo.
   const participantsWithLiveHp = useMemo(
     () =>
       participants.map((p) => {
@@ -256,54 +158,43 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     [participants, state.hp],
   );
 
-  // F6 (B4): the master's Personagens list is every match participant PLUS every
-  // character that has a piece on the map, even one that never enrolled (a campaign NPC
-  // the master drags in ad hoc) — boardPieces is already every piece on the board,
-  // unfiltered, because the master's fog/REST projection never hides anything from
-  // them. No isMaster prop needed anywhere below: this page derives the list from the
-  // pieces it already renders. Map-only entries carry no `.private` (npcMap's
-  // CharacterPrivateSummary is flat, not nested), so MatchCharactersSidebar's own
-  // fallback branch renders just the name — no HP is invented for them (R7 unchanged).
-  const visibleParticipants = useMemo(() => {
+  // Personagens: todo participante, mais quem está no mapa sem estar inscrito na partida (um
+  // NPC da campanha posto no tabuleiro) — esse aparece só com o nome.
+  const everyone = useMemo(() => {
     const known = new Set(participantsWithLiveHp.map((p) => p.characterSheet.uuid));
     const extra: Participant[] = [];
-    const seen = new Set<string>();
-    boardPieces.forEach((p) => {
-      if (!p.characterId || known.has(p.characterId) || seen.has(p.characterId)) return;
-      const npc = npcMap.get(p.characterId);
+    game.boardPieces.forEach((piece) => {
+      if (!piece.characterId || known.has(piece.characterId)) return;
+      const npc = live.npcMap.get(piece.characterId);
       if (!npc) return;
-      seen.add(p.characterId);
-      extra.push({ uuid: `map-npc:${p.characterId}`, joinedAt: "", characterSheet: npc });
+      known.add(piece.characterId);
+      extra.push({ uuid: `map-npc:${piece.characterId}`, joinedAt: "", characterSheet: npc });
     });
     return [...participantsWithLiveHp, ...extra];
-  }, [participantsWithLiveHp, boardPieces, npcMap]);
+  }, [participantsWithLiveHp, game.boardPieces, live.npcMap]);
 
-  const actorParticipant = actorId
-    ? participants.find((p) => p.characterSheet.uuid === actorId)
-    : undefined;
-  const actorName = actorParticipant?.characterSheet.nickName ?? "NPC";
-  const actorRestHealth = actorParticipant?.characterSheet.private?.health;
+  const actorSheet = participants.find((p) => p.characterSheet.uuid === actorId)?.characterSheet;
+  const actorRestHealth = actorSheet?.private?.health;
   const actorHp = actorId
-    ? (state.hp[actorId] ??
-        (actorRestHealth ? { hp: actorRestHealth.current, maxHp: actorRestHealth.max } : undefined))
+    ? (state.hp[actorId] ?? (actorRestHealth ? { hp: actorRestHealth.current, maxHp: actorRestHealth.max } : undefined))
     : undefined;
 
-  const isLoading = matchMapPending || (!!matchMap && mapPending);
-  const canCloseTurn = state.openTurn != null;
-
-  // F7 (M1): selectedPieceId is ONLY the actor's own ring (gold) — an inspected piece
-  // (no actor controlled by the master, or a third party's piece with an actor already
-  // set) gets its own distinct inspectedPieceId ring instead, so looking at a sheet
-  // never reads as "I selected this as my actor".
-  const selectedPieceId = actorId ? actorPiece?.id : undefined;
-  const inspectedPieceId = inspectedId ? pieceIdsByCharacterId.get(inspectedId)?.[0] : undefined;
-
-  // F7 (M1): a map NPC that is NOT a match participant (a campaign NPC the master
-  // dragged onto the board ad hoc, never enrolled) is inspected like any other
-  // third-party piece — but the Personagens panel needs to say why it has no HP/sheet
-  // actions there instead of leaving it looking like a broken row.
   const inspectedIsNotInMatch =
     !!inspectedId && !participants.some((p) => p.characterSheet.uuid === inspectedId);
+  const inspectedPieceId = inspectedId
+    ? game.boardPieces.find((p) => p.characterId === inspectedId)?.id
+    : undefined;
+
+  const describeQueued = useCallback(
+    (actionId: string) => {
+      const mine = state.declared.find((d) => d.id === actionId);
+      return mine ? describeDeclared(mine, nameOf, gridKind) : undefined;
+    },
+    [state.declared, nameOf, gridKind],
+  );
+
+  const canCloseTurn = state.openTurn != null;
+  const mapHint = !actorId && map ? "Toque num NPC para agir por ele." : undefined;
 
   return (
     <>
@@ -314,123 +205,121 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
           <MatchTopBar
             scene={state.scene}
             roundMode={state.roundMode}
-            status={status}
+            status={combat.status}
+            onReconnect={combat.reconnect}
             asideOpen={asideOpen}
             onToggleAside={() => setAsideOpen((o) => !o)}
             actions={
-              <RegencyActions>
-                <RegencyButton type="button" onClick={send.openNextAction}>
-                  Abrir próxima
-                </RegencyButton>
-                <RegencyButton type="button" onClick={() => send.closeTurn()} disabled={!canCloseTurn}>
-                  Fechar turno
-                </RegencyButton>
-                <RoundModeGroup>
-                  {(["Free", "Race"] as RoundMode[]).map((mode) => (
-                    <RoundModeButton
-                      key={mode}
-                      type="button"
-                      aria-pressed={state.roundMode === mode}
-                      onClick={() => send.changeRoundMode(mode)}
-                    >
-                      {mode}
-                    </RoundModeButton>
-                  ))}
-                </RoundModeGroup>
-              </RegencyActions>
+              <RegencyControls
+                mode={state.roundMode}
+                onModeChange={combat.send.changeRoundMode}
+                onOpenNext={combat.send.openNextAction}
+                onCloseTurn={() => combat.send.closeTurn()}
+                canCloseTurn={canCloseTurn}
+              />
             }
           />
         }
         rail={
           <RailNav
             items={[
-              { id: "fila", label: "Fila" },
-              { id: "fichas", label: "Fichas" },
+              { id: "fila", label: "Fila", icon: "☰", badge: state.queue.length },
+              { id: "agir", label: "Agir", icon: "⚔" },
             ]}
             active={railActive}
+            panelOpen={panelOpen}
             onSelect={handleRailSelect}
           />
         }
         panel={
           railActive === "fila" ? (
-            <QueuePanel
-              queue={state.queue}
-              nameOf={nameOf}
-              onPull={send.pullAction}
-              onOpenNext={send.openNextAction}
-              onCloseTurn={() => send.closeTurn()}
-              canCloseTurn={canCloseTurn}
-            />
+            <>
+              <PanelSection>
+                <PanelTitle>Regime</PanelTitle>
+                <RoundModeSwitch mode={state.roundMode} onChange={combat.send.changeRoundMode} placement="panel" />
+              </PanelSection>
+              <QueuePanel
+                queue={state.queue}
+                nameOf={nameOf}
+                describe={describeQueued}
+                onPull={combat.send.pullAction}
+              />
+            </>
           ) : (
             <>
-              {actorId ? (
+              <NpcPicker npcs={npcs} actorId={actorId} onChoose={chooseActor} />
+              {actorId && (
                 <>
                   <OwnBars bars={state.bars} characterId={actorId} hp={actorHp} />
-                  {catalogue && (
-                    <ActionComposer
-                      actorId={actorId}
-                      actorName={actorName}
-                      actorSlot={actorSlot}
-                      draft={draft}
-                      catalogue={catalogue}
-                      defaultCategory={defaultMoveCategory(state)}
-                      nameOf={nameOf}
-                      onDraftChange={updateDraft}
-                      onSubmit={send.enqueueAction}
-                      onClearActor={() => setActorId(undefined)}
-                      canSubmit={canSubmit}
-                    />
-                  )}
+                  <ActionComposer
+                    actorName={actorSheet?.nickName ?? nameOf(actorId)}
+                    onClearActor={() => chooseActor(undefined)}
+                    draft={composer.draft}
+                    resolved={composer.resolved}
+                    verdict={composer.verdict}
+                    catalogue={catalogue}
+                    gridKind={gridKind}
+                    defaultCategory={defaultMoveCategory(state)}
+                    nameOf={nameOf}
+                    onDraftChange={composer.updateDraft}
+                    onDeclare={game.declare}
+                    canDeclare={game.canDeclare}
+                    blockedReason={game.blockedReason}
+                  />
                 </>
-              ) : (
-                <NoActorHint>
-                  {npcCharacterIds.size === 0
-                    ? "Nenhum NPC nesta partida — adicione NPCs à partida para agir por eles."
-                    : "Clique num NPC no mapa para agir por ele."}
-                </NoActorHint>
               )}
+              <DeclaredActions
+                declared={state.declared}
+                nameOf={nameOf}
+                gridKind={gridKind}
+                showActor
+                onHide={(id) => combat.dismissDeclared([id])}
+              />
             </>
           )
         }
         stage={
           <>
             <CanvasWrapper ref={canvasRef}>
-              {isLoading ? (
+              {game.isLoading ? (
                 <MapLoadingMessage>Carregando mapa...</MapLoadingMessage>
               ) : map && width > 0 && height > 0 ? (
                 <TacticalMapViewer
-                  map={{ ...map, walls: liveWalls, pieces: boardPieces }}
-                  fog={fog}
+                  map={{ ...map, walls: live.liveWalls, pieces: game.boardPieces }}
+                  fog={live.fog}
                   isMaster
                   width={width}
                   height={height}
-                  npcMap={npcMap}
-                  onWallClick={handleWallClick}
+                  npcMap={live.npcMap}
+                  onWallClick={setWallPicker}
                   piecesInteractive
-                  draggablePieceIds={EMPTY_SET}
-                  // F1 batch 2: explicit game-only opt-in — see stageProps.ts's doc
-                  // comment for why this can't be inferred from onPieceLongPress/
-                  // onPieceSelect (both wired in the lobby too, for different reasons).
+                  draggablePieceIds={NO_DRAG}
                   suppressPanOnPiecePress
-                  onPieceSelect={handlePieceSelect}
-                  // F7 (M1): only wired once an actor exists — without an actor there is
-                  // nothing for a hold to mark as a target, so the hold-progress ring
-                  // would just be a useless affordance on every piece press.
-                  onPieceLongPress={actorId ? handlePieceLongPress : undefined}
-                  selectedPieceId={selectedPieceId}
+                  onPieceSelect={handlePieceTap}
+                  onPieceLongPress={actorId ? handlePieceHold : undefined}
+                  selectedPieceId={actorId ? composer.actorPiece?.id : undefined}
                   inspectedPieceId={inspectedPieceId}
-                  targetPieceIds={targetPieceIds}
-                  ghosts={Object.values(state.ghosts)}
-                  // F7 (M1): only wired once an actor exists — setDestination with no
-                  // actor had no actorSlot to draw a ghost's origin from (a known minor).
-                  onEmptySlotClick={actorId ? setDestination : undefined}
+                  targetPieceIds={composer.targetPieceIds}
+                  activePieceId={game.openTurnPieceId}
+                  intentPreview={composer.preview}
+                  intentGhosts={game.ghosts}
+                  highlightHoverSlot={!!actorId}
+                  fitRequest={game.fitRequest}
+                  onEmptySlotClick={actorId ? handleSlotTap : undefined}
                 />
               ) : !map ? (
                 <NoMapMessage>Nenhum mapa anexado a esta partida.</NoMapMessage>
               ) : null}
             </CanvasWrapper>
-            <GeneralBar bars={state.bars} nameOf={nameOf} highlightActorId={state.openTurn?.actorId} />
-            <MatchErrorBanner error={state.lastError} onDismiss={dismissError} />
+            <GeneralBar
+              bars={state.bars}
+              openTurnActorId={state.openTurn?.actorId}
+              nameOf={nameOf}
+              highlightActorIds={npcIds}
+            />
+            <MatchErrorBanner error={state.lastError} onDismiss={combat.dismissError} />
+            {mapHint && <MapHint>{mapHint}</MapHint>}
+            {map && <MapCornerButton type="button" onClick={game.refit}>Enquadrar</MapCornerButton>}
           </>
         }
         aside={
@@ -438,18 +327,18 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
             defaultTab="historico"
             tab={asideTab}
             onTabChange={setAsideTab}
-            historico={<EventStream events={state.events} nameOf={nameOf} />}
+            historico={<EventStream events={state.events} nameOf={nameOf} gridKind={gridKind} />}
             personagens={
               <>
                 {inspectedIsNotInMatch && (
-                  <NotInMatchHint>
-                    Este personagem não está inscrito na partida — é um NPC do mapa.
-                  </NotInMatchHint>
+                  <PanelMessage>
+                    Este personagem não está inscrito na partida — é um NPC do mapa, e não age.
+                  </PanelMessage>
                 )}
                 <MatchCharactersSidebar
                   gameStarted
                   enrollments={[]}
-                  participants={visibleParticipants}
+                  participants={everyone}
                   isMaster
                   actionLoading={{}}
                   onAccept={() => {}}
@@ -465,10 +354,10 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
         payload={state.pendingCloseTurn}
         nameOf={nameOf}
         onConfirm={() => {
-          send.closeTurn(true);
-          dismissCloseTurnDialog();
+          combat.send.closeTurn(true);
+          combat.dismissCloseTurnDialog();
         }}
-        onCancel={dismissCloseTurnDialog}
+        onCancel={combat.dismissCloseTurnDialog}
       />
       {wallPicker && (
         <WallActionSheet
@@ -476,78 +365,25 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
           isMaster
           onClose={() => setWallPicker(null)}
           onInteract={(kind) => {
-            send.masterAction({ targetIds: [wallPicker.id], interact: { kind } });
+            combat.send.masterAction({ targetIds: [wallPicker.id], interact: { kind } });
             setWallPicker(null);
           }}
-          onAttack={() => {
-            send.masterAction({ targetIds: [wallPicker.id], attack: {} });
-            setWallPicker(null);
-          }}
+          // O mestre ataca uma parede POR um NPC: `enqueue_master_action` ainda não mapeia
+          // `attack` (seria no-op no servidor).
+          onAttack={
+            actorId
+              ? () => {
+                  combat.send.enqueueAction(
+                    { actorId, targetId: [wallPicker.id], attack: {} },
+                    { fromComposer: false },
+                  );
+                  setWallPicker(null);
+                }
+              : undefined
+          }
         />
       )}
     </>
   );
 }
 
-const NoActorHint = styled.p`
-  color: ${colors.textPlaceholderStrong};
-  font-family: ${fonts.sans};
-  font-size: 13px;
-  font-style: italic;
-  padding: 12px;
-`;
-
-// F7 (M1): explains why an inspected map NPC has no sheet actions/HP in the list below —
-// it was never enrolled in the match, just placed on the board.
-const NotInMatchHint = styled.p`
-  color: ${colors.textPlaceholderStrong};
-  font-family: ${fonts.sans};
-  font-size: 12px;
-  font-style: italic;
-  padding: 8px 12px 0;
-  margin: 0;
-`;
-
-const RegencyActions = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-`;
-
-const RegencyButton = styled.button`
-  font-family: ${fonts.sans};
-  font-size: 12px;
-  font-weight: 600;
-  border: none;
-  border-radius: 4px;
-  padding: 6px 10px;
-  cursor: pointer;
-  background: ${colors.brandAccent};
-  color: ${colors.textPrimary};
-
-  &:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-`;
-
-const RoundModeGroup = styled.div`
-  display: flex;
-  gap: 4px;
-`;
-
-const RoundModeButton = styled.button`
-  font-family: ${fonts.sans};
-  font-size: 12px;
-  border: none;
-  border-radius: 4px;
-  padding: 6px 10px;
-  cursor: pointer;
-  background: ${colors.surfaceInput};
-  color: ${colors.textPlaceholderStrong};
-
-  &[aria-pressed="true"] {
-    background: ${colors.brandAccent};
-    color: ${colors.textPrimary};
-  }
-`;

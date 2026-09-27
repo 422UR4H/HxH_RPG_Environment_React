@@ -10,6 +10,8 @@ import {
   slotInradius,
   isSameSlot,
   offsetToAxial,
+  slotToTriple,
+  tripleToSlot,
 } from "../coords";
 import type { GridShape } from "../../../../types/tacticalMap";
 import { hexToPixel } from "../hex";
@@ -277,5 +279,14 @@ describe("isSameSlot", () => {
 
   it("slots de tipos diferentes nunca são iguais", () => {
     expect(isSameSlot({ kind: "square", col: 0, row: 0 }, { kind: "hex", q: 0, r: 0 })).toBe(false);
+  });
+});
+
+describe("slot ↔ wire triple", () => {
+  it("round-trips square and hex slots", () => {
+    expect(slotToTriple({ kind: "square", col: 3, row: 4 }, 0)).toEqual([3, 4, 0]);
+    expect(tripleToSlot([3, 4, 0], "square")).toEqual({ kind: "square", col: 3, row: 4 });
+    expect(slotToTriple({ kind: "hex", q: 2, r: -1 }, 5)).toEqual([2, -1, 5]);
+    expect(tripleToSlot([2, -1, 5], "hex")).toEqual({ kind: "hex", q: 2, r: -1 });
   });
 });

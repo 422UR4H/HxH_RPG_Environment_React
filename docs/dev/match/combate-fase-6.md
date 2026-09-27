@@ -4,6 +4,10 @@
 > Ledger de implementação (rulings que corrigem o spec): `.superpowers/sdd/2026-09-22-front-combat-phase-6/progress.md`.
 > Contrato: `System_X_System/docs/dev/api/match-combat-ws.md`.
 
+> **Leia primeiro a seção "Revisão da Fase 6" no fim deste arquivo.** Ela substitui o
+> modelo de rascunho, a vida do fantasma, o layout das páginas e a verificação no browser
+> descritos nas seções intermediárias — que ficam aqui como histórico das decisões.
+
 ## O que esta fase entrega
 
 Um turno inteiro jogável, sem reações, nas duas telas (jogador e mestre) e nos quatro
@@ -69,7 +73,7 @@ mais abaixo.
 | `src/features/match/WallActionSheet.tsx` | o menu de parede, extraído do `GamePage` antigo |
 | `src/features/tactical-map/hooks/useHoldGesture.ts` | o gesto de segurar + o atalho de botão direito |
 | `src/features/tactical-map/utils/stacking.ts` | a cascata de empilhamento |
-| `src/features/tactical-map/GhostLayer.tsx` | desenha o fantasma no Pixi |
+| `src/features/tactical-map/IntentLayer.tsx` | desenha a intenção (rascunho) e as ações declaradas no Pixi — substituiu `GhostLayer.tsx` (ver "Revisão") |
 | `src/pages/GamePage.tsx` | a rota — lê o papel, monta a página certa |
 | `src/pages/GamePlayerPage.tsx` · `GameMasterPage.tsx` | os dois orquestradores |
 | `src/services/characterSheetsService.ts` (+) | `getCombatCatalogue(token, uuid)` |
@@ -417,7 +421,7 @@ fora do token — nunca dentro dele —, e `suppressPanOnPiecePress` (acima) é 
 as duas páginas de jogo passam, então o pan-ao-pressionar do lobby/editor é bit-a-bit o
 mesmo de antes desta fase inteira.
 
-## Verificação no browser
+## Verificação no browser (histórico — ver "Revisão da Fase 6")
 
 A verificação manual descrita no spec §12 e no brief da Tarefa 14 (seleção, long-press,
 botão direito, fantasma, cascata, fechamento de turno em duas telas, ação por NPC, recusa
@@ -426,3 +430,138 @@ de login interativo e de uma mesa com mapa + NPC já montados, que exigem um hum
 frente do browser. A suíte automatizada (vitest, incluindo os testes de integração das
 páginas com MSW + socket falso) cobre tudo que não é puramente Pixi; os itens acima ficam
 como pendência de validação manual explícita (ruling R26 do ledger).
+
+## Revisão da Fase 6
+
+Depois do PR 67, o uso real mostrou que a ação estava presa a um formato só: todo Declarar
+mandava movimento (o jogador era obrigado a se mover), não havia como declarar só um
+movimento ou só um ataque, o mapa não mostrava para onde o toque ia levar a peça, e o
+tabuleiro do jogador às vezes nascia escuro e sem peças. As regras (`barra-de-acao.md`)
+dizem o contrário: mover e atacar são metades independentes — cada uma cobra a sua barra,
+e as duas juntas são uma ação composta (`Action.Bars()` no back). Esta revisão reorganiza a
+interação em cima disso, sem mudar o contrato.
+
+### O modelo de interação
+
+O padrão é **não fazer nada**: o rascunho nasce vazio e o painel diz como começar.
+
+| Gesto | Efeito no rascunho |
+|---|---|
+| tocar num slot vazio | liga **Mover** com aquele destino (`chooseDestination`) |
+| tocar em alguém | liga **Atacar** com ele de alvo (`chooseTarget`); se ele está longe, liga também **Mover** com destino automático ao lado dele |
+| segurar alguém (ou botão direito) | adiciona/remove alvo (vários alvos) |
+| botão **Mover** | liga/desliga o movimento. Desligar com alvo = "ataco de onde estou" (ataque à distância) — o destino automático não volta sozinho |
+| botão **Atacar** | liga/desliga o ataque |
+| Dash / Shift | categoria do movimento (padrão `defaultMoveCategory`) |
+| **Limpar** | volta ao rascunho vazio |
+
+O botão de envio diz o que vai sair — "Declarar movimento", "Declarar ataque",
+"Declarar movimento + ataque" — e fica travado enquanto uma metade ligada está incompleta
+(Mover sem destino, Atacar sem alvo): uma metade ligada nunca é descartada em silêncio.
+
+`actionDraft.ts` é todo puro: `ActionDraft { moveMode: "none" | "manual" | "approach" |
+"stay"; to?; category?; attack? }`, transições (`chooseDestination`, `chooseTarget`,
+`toggleTarget`, `removeTarget`, `toggleMove`, `toggleAttack`, `setMoveCategory`,
+`setWeapon`), `resolveDraft(draft, ctx, defaultCategory)` — que deriva o destino da
+aproximação contra o tabuleiro (`ReachContext`: slot do ator, slot de cada personagem,
+slots livres) —, `draftVerdict` e `buildEnqueuePayload`. O destino automático vem de
+`tactical-map/utils/reach.ts` (`slotDistance` Chebyshev/hex, `approachSlot`: o vizinho
+livre do alvo mais perto do ator, ou `no_room`). "Longe" = mais de 1 passo. Nada disso
+calcula onde a peça **para** (I1): é só a proposta que o jogador vê e pode trocar.
+
+Persistência: chave `match-draft:v2:{matchUuid}:{actorId}`; as chaves v1 (`match-draft:`
+sem versão e `match-ghosts:`) são apagadas por `purgeLegacyMatchStorage`.
+
+### Declaradas em vez de fantasmas
+
+`combatReducer` trocou `ghosts` + `pendingSends` por uma lista só, `declared:
+DeclaredAction[]` (`status: "sending" | "queued" | "open"`, `move?`, `attack?`,
+`interact?`, `fromComposer`). O FIFO de acks continua (o ack mais antigo casa com o envio
+mais antigo), mas agora vale para qualquer declaração — com ou sem movimento — e o jogador
+vê a lista ("Suas ações declaradas", com o status) em vez de só um fantasma quando havia
+movimento.
+
+- `action_enqueued` → `queued` com o `actionId`; o rascunho daquele ator é limpo
+  (`onComposerSendAccepted`, só para envios do composer).
+- `error` sobre `enqueue_action` → a declaração `sending` mais antiga some e **o rascunho
+  fica inteiro** — o jogador corrige o que o servidor recusou (ex.: `move_blocked`) e
+  declara de novo. (Substitui a F2, que derrubava o destino.)
+- `turn_opened` → `open`; o evento do histórico carrega o detalhe da própria declaração.
+- `turn_closed` → sai da lista.
+- `round_closed` e `scene_changed` **não** varrem mais — a fila sobrevive aos dois no
+  servidor, então a declaração também. `match_full_state` mantém as `queued` que ainda
+  estão na fila e a `open` do turno aberto.
+- Persistência por partida e usuário: `declaredStorage.ts`, chave
+  `match-declared:v1:{matchUuid}:{userUuid}`.
+
+No mapa, `IntentLayer` desenha as duas coisas: o **rascunho** (slot de destino destacado,
+seta tracejada da peça até ele, anel nos alvos) e as **declaradas** com movimento (seta
+contínua da posição atual da peça até o destino pedido, marcador no destino). Uma
+declarada cujo destino já foi alcançado some do mapa.
+
+### O mapa responde ao toque
+
+- Slot sob o ponteiro destacado quando há ator (`highlightHoverSlot`).
+- Anel verde na peça de quem está com o turno aberto (`activePieceId`).
+- Enquadramento automático: `ViewportInner` encaixa o mapa inteiro na área visível
+  (escala `min(w/gw, h/gh) × 0.94`, entre 0.25 e 1.75) e reencaixa no resize até o usuário
+  mexer na câmera; o botão **Enquadrar** reencaixa na hora (`fitRequest`).
+- **Correção crítica — tabuleiro escuro/sem peças.** `@pixi/react` monta o `<Application>`
+  de forma assíncrona e comitava os filhos de antes do `app.init()` terminar; tudo que
+  mudava nesse meio-tempo (peças do `map_full_state`, fog) só aparecia no próximo render
+  qualquer — às vezes nunca. `TacticalMapStage` agora força um render no `onInit`.
+
+### Conexão
+
+- Um socket só por partida: o connect é adiado um tick (o double-mount do StrictMode
+  abria dois, e o back fechava a sala quando o segundo caía), e as duas páginas
+  compartilham um único `useGameTable`.
+- Watchdog: socket aberto que não recebe nada em 5 s é fechado e reaberto (o back às vezes
+  registra o socket numa sala fechada e ele fica mudo).
+- `lobby_not_open` → status **"Aguardando o mestre"**, tentando a cada 5 s sem gastar o
+  orçamento de reconexão. Botão **Reconectar** na topbar quando a conexão cai de vez.
+
+### Páginas
+
+`useGameTable` concentra o que as duas páginas dividem (REST, mapa ao vivo, combate,
+composer, declaradas, fantasmas, enquadramento). As páginas ficaram orquestradoras sem
+styled-components próprios:
+
+- **Jogador:** rail com **Ação**; painel com vida/saldos, composer (seletor de personagem
+  se tiver mais de um na partida) e as declaradas. Vida própria vem da ficha
+  (`useCharacterSheet`) até chegar `character_hp_changed`.
+- **Mestre:** topbar com regime (Livre/Disputado), **Abrir próxima** e **Fechar turno**
+  (no celular o regime vai para o painel da fila); rail **Fila** (com contador) e **Agir**
+  (escolher o NPC em `NpcPicker` e compor por ele). Na fila, **Abrir agora** antecipa uma
+  ação. Tocar numa peça que o mestre não controla continua inspecionando (F7).
+- `MatchStageTemplate` virou uma grade sem `position: fixed` (palco / painel / rail
+  empilhados abaixo de `railUp`, colunas acima), e força a fonte sans em tudo (o reset
+  global pede `Lato`, que não é carregada).
+
+### Pendências para o back (anotadas, não resolvidas aqui)
+
+1. **Posições só em memória.** A posição das peças na sala não é persistida: quando a sala
+   esvazia (ou o serviço reinicia), tudo volta ao REST — e o REST não é atualizado pelos
+   movimentos do jogo. O mestre ressincroniza o tabuleiro ao entrar, mas com o REST velho.
+2. **Mesmo usuário conectado duas vezes** deixa um socket mudo; fechar esse socket fecha a
+   sala para todos.
+3. **`Register` numa sala fechada** bloqueia para sempre (socket zumbi) — o watchdog do
+   front contorna, mas o back deveria recusar.
+4. **Participantes:** `private` só vem para o mestre — o dono do personagem não recebe a
+   própria vida por esse endpoint (o front busca a ficha à parte).
+5. **Checagem de parede** usa os cantos dos slots (`from × gridSize`), não os centros —
+   um movimento rente a uma parede pode ser bloqueado/liberado errado.
+6. **`move.from = [0,0,0]`** é tratado como sentinela de "sem origem" e colide com o slot
+   (0,0) de verdade.
+7. **`enqueue_master_action` com `attack`** não é mapeado — o mestre ataca parede por um
+   NPC via `enqueue_action`.
+8. **Grade hexagonal:** confirmar a convenção das triplas `[col,row,z]` em hex.
+
+### Verificação no browser (feita)
+
+Contra o back real (Postgres + `api` + `game` locais) com Playwright, jogador e mestre em
+paralelo: só movimento; só ataque em alvo colado; ataque em alvo longe com aproximação
+automática; desligar Mover e atacar à distância; destino manual + ataque; ação pelo NPC do
+mestre; abrir/antecipar/fechar turno com a peça andando nas duas telas e o fog
+acompanhando; recusa `move_blocked` com o rascunho preservado; celular, tablet
+em pé/deitado e desktop.

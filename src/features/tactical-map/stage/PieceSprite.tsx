@@ -17,6 +17,7 @@ const SELECTION_RING_COLOR = toPixiColor(colors.pieceSelectionRing);
 const TARGET_RING_COLOR = toPixiColor(colors.pieceTargetRing);
 const INSPECT_RING_COLOR = toPixiColor(colors.pieceInspectRing);
 const STACK_BADGE_BG = toPixiColor(colors.pieceStackBadge);
+const ACTIVE_TURN_COLOR = toPixiColor(colors.pieceActiveTurn);
 
 type PieceSpriteProps = {
   piece: Piece;
@@ -24,6 +25,8 @@ type PieceSpriteProps = {
   npc?: CharacterPrivateSummary;
   isSelected: boolean;
   isTarget?: boolean;
+  /** Whose turn is open — the outermost ring, so it reads even over a target ring. */
+  isActiveTurn?: boolean;
   // F7 (M1): a piece the master (or player) is just looking at, not controlling as an
   // actor — a distinct ring so inspect never reads as "this is my actor now". Mutually
   // exclusive with isSelected in practice (callers never set both for the same piece),
@@ -42,7 +45,7 @@ type PieceSpriteProps = {
 };
 
 export default function PieceSprite({
-  piece, grid, npc, isSelected, isTarget, isInspected, piecesInteractive, onPointerDown,
+  piece, grid, npc, isSelected, isTarget, isActiveTurn, isInspected, piecesInteractive, onPointerDown,
   offset, stackCount, isTopOfStack,
 }: PieceSpriteProps) {
   const center = useMemo(() => slotToWorld(piece.coord.slot, grid), [piece.coord.slot, grid]);
@@ -218,6 +221,20 @@ export default function PieceSprite({
     [isTarget, tokenRadius, zOffsetPx],
   );
 
+  const drawActiveTurn = useCallback(
+    (g: PixiGraphics) => {
+      g.clear();
+      if (!isActiveTurn) return;
+      g.setStrokeStyle({ color: ACTIVE_TURN_COLOR, width: 3, alpha: 0.95 });
+      g.circle(0, -zOffsetPx, tokenRadius + 16);
+      g.stroke();
+      g.setStrokeStyle({ color: ACTIVE_TURN_COLOR, width: 6, alpha: 0.25 });
+      g.circle(0, -zOffsetPx, tokenRadius + 16);
+      g.stroke();
+    },
+    [isActiveTurn, tokenRadius, zOffsetPx],
+  );
+
   return (
     <pixiContainer
       label={`piece-${piece.id}`}
@@ -272,6 +289,7 @@ export default function PieceSprite({
       <pixiGraphics draw={drawSelection} />
       <pixiGraphics draw={drawInspect} />
       <pixiGraphics draw={drawTarget} />
+      <pixiGraphics draw={drawActiveTurn} />
 
       {showStackBadge && (
         <>

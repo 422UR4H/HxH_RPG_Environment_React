@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import styled from "styled-components";
 import { media } from "../../styles/breakpoints";
-import { colors } from "../../styles/tokens";
+import { colors, fonts } from "../../styles/tokens";
 
 type Props = {
   topbar: ReactNode;
@@ -9,20 +9,25 @@ type Props = {
   stage: ReactNode;
   panel?: ReactNode;
   aside?: ReactNode;
-  /** R24: abaixo de `railUp` um painel fechado some por CSS; a partir dali sempre aparece. */
   panelOpen?: boolean;
-  /** R24: abaixo de `asideUp` uma gaveta fechada some por CSS; a partir dali sempre aparece. */
   asideOpen?: boolean;
 };
+
+/** Altura do rail quando ele deita e vira rodapé (abaixo de `railUp`). */
+export const RAIL_BAR_HEIGHT = 56;
 
 /**
  * As cinco zonas da partida. O template decide ONDE cada zona aparece em cada largura; a
  * página decide O QUE vai dentro.
  *
- * O rail e o rodapé são o MESMO componente: quem deita o rail é o CSS, não um ramo de
- * JavaScript. Dois componentes divergiriam para sempre.
+ * - Abaixo de `railUp` (celular, tablet em pé) é uma coluna: mapa, painel (quando aberto)
+ *   e o rail deitado no rodapé. O painel EMPURRA o mapa em vez de cobri-lo — quem compõe
+ *   uma ação precisa tocar no mapa com o painel aberto.
+ * - A partir de `railUp` o rail fica em pé à esquerda e o painel vira coluna ao lado dele.
+ * - O `aside` é gaveta sobre o mapa até `asideUp`, e coluna a partir dali.
  *
- * O `stage` nunca colapsa — é a única faixa 1fr do grid.
+ * O rail e o rodapé são o MESMO componente: quem deita o rail é o CSS, não um ramo de
+ * JavaScript. O `stage` nunca colapsa — é a única faixa flexível.
  */
 export default function MatchStageTemplate({
   topbar,
@@ -37,13 +42,13 @@ export default function MatchStageTemplate({
     <Shell>
       <TopBarZone>{topbar}</TopBarZone>
       <Middle>
-        <RailZone>{rail}</RailZone>
+        <StageZone>{stage}</StageZone>
         {panel && (
           <PanelZone data-testid="match-panel" data-open={panelOpen} $open={panelOpen}>
             {panel}
           </PanelZone>
         )}
-        <StageZone>{stage}</StageZone>
+        <RailZone>{rail}</RailZone>
         {aside && (
           <AsideZone data-testid="match-aside" data-open={asideOpen} $open={asideOpen}>
             {aside}
@@ -54,128 +59,117 @@ export default function MatchStageTemplate({
   );
 }
 
+// O reset global põe `font-family: 'Lato'` em TODO elemento, e Lato não é carregada (o
+// index.html só traz Roboto): qualquer <span> sem fonte própria cairia na serifada padrão.
+// Aqui a tela inteira herda uma fonte só.
 const Shell = styled.div`
   display: grid;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto minmax(0, 1fr);
   height: 100dvh;
   overflow: hidden;
   background: ${colors.surfaceSidebar};
+  color: ${colors.textPrimary};
+  font-family: ${fonts.sans};
+
+  & * {
+    font-family: inherit;
+  }
 `;
 
 const TopBarZone = styled.header`
   min-height: 44px;
+  border-bottom: 1px solid ${colors.surfaceInput};
 `;
 
 const Middle = styled.div`
   position: relative;
   display: grid;
   min-height: 0;
-  grid-template-areas: "stage";
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto ${RAIL_BAR_HEIGHT}px;
+  grid-template-areas:
+    "stage"
+    "panel"
+    "rail";
 
   ${media.railUp} {
+    grid-template-columns: 72px auto minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
     grid-template-areas: "rail panel stage";
-    grid-template-columns: auto auto 1fr;
   }
   ${media.asideUp} {
+    grid-template-columns: 72px auto minmax(0, 1fr) auto;
     grid-template-areas: "rail panel stage aside";
-    grid-template-columns: auto auto 1fr 320px;
   }
 `;
 
-/**
- * Final review, Important 4: abaixo de `railUp` o rail é uma barra fixa no rodapé (ver
- * `RailZone`) — esta é a altura dela, definida uma vez só, para o `PanelZone` poder ficar
- * ACIMA dela (`bottom: RAIL_BAR_HEIGHT`) e o `StageZone` reservar a mesma faixa no próprio
- * rodapé, senão o mapa fica embaixo do rail. Antes os dois eram `fixed; bottom: 0`
- * empilhados no mesmo canto — o painel aberto cobria o rail (único controle pra fechá-lo)
- * e não havia como fechar. Acima de `railUp` o rail entra na grade como coluna estática e
- * nada disto se aplica.
- */
-const RAIL_BAR_HEIGHT = "56px";
-
+/* O mapa ocupa o palco inteiro; tudo o mais flutua sobre ele (posição absoluta). */
 const StageZone = styled.main`
   grid-area: stage;
   position: relative;
   min-width: 0;
   min-height: 0;
-  padding-bottom: ${RAIL_BAR_HEIGHT};
-
-  ${media.railUp} {
-    padding-bottom: 0;
-  }
+  overflow: hidden;
 `;
 
-/* Rodapé abaixo de railUp; coluna em pé a partir dele. Um componente, duas formas. */
+/* Rodapé deitado abaixo de railUp; coluna em pé a partir dele. Um componente, duas formas. */
 const RailZone = styled.nav`
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 20;
-  height: ${RAIL_BAR_HEIGHT};
+  grid-area: rail;
   display: flex;
   flex-direction: row;
   justify-content: space-around;
   background: ${colors.surfaceSidebar};
+  border-top: 1px solid ${colors.surfaceInput};
 
   ${media.railUp} {
-    position: static;
-    grid-area: rail;
-    height: auto;
     flex-direction: column;
     justify-content: flex-start;
-    width: 72px;
+    border-top: none;
+    border-right: 1px solid ${colors.surfaceInput};
   }
 `;
 
-/* Bottom sheet no celular e no tablet em pé; coluna a partir de railUp. Fechado (R24) some
-   por CSS abaixo de railUp — dali em diante é coluna fixa e sempre aparece. Important 4:
-   abaixo de railUp fica ACIMA do rail (bottom: RAIL_BAR_HEIGHT), não empilhado nele. */
 const PanelZone = styled.section<{ $open: boolean }>`
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: ${RAIL_BAR_HEIGHT};
-  z-index: 30;
-  max-height: 70dvh;
-  overflow-y: auto;
-  background: ${colors.surfaceSidebar};
-  border-top-left-radius: 12px;
-  border-top-right-radius: 12px;
+  grid-area: panel;
   display: ${({ $open }) => ($open ? "block" : "none")};
+  max-height: 46dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: ${colors.surfaceSidebar};
+  border-top: 1px solid ${colors.surfaceInput};
 
   ${media.tabletUp} {
-    max-height: 80dvh;
+    max-height: 42dvh;
   }
   ${media.railUp} {
-    display: block;
-    position: static;
-    bottom: auto;
-    grid-area: panel;
-    width: 320px;
+    width: 340px;
     max-height: none;
-    border-radius: 0;
+    border-top: none;
+    border-right: 1px solid ${colors.surfaceInput};
   }
 `;
 
-/* Gaveta sobre o stage; fixa a partir de asideUp. Fechada (R24) some por CSS abaixo de
-   asideUp — dali em diante é coluna fixa e sempre aparece. */
+/* Gaveta sobre o mapa abaixo de asideUp; coluna a partir dele. */
 const AsideZone = styled.aside<{ $open: boolean }>`
   position: absolute;
   top: 0;
   right: 0;
-  bottom: 0;
+  bottom: ${RAIL_BAR_HEIGHT}px;
   width: min(86%, 360px);
   z-index: 25;
+  display: ${({ $open }) => ($open ? "block" : "none")};
   overflow-y: auto;
   background: ${colors.surfaceSidebar};
-  display: ${({ $open }) => ($open ? "block" : "none")};
+  border-left: 1px solid ${colors.surfaceInput};
+  box-shadow: -8px 0 24px ${colors.shadowStrong};
 
+  ${media.railUp} {
+    bottom: 0;
+  }
   ${media.asideUp} {
-    display: block;
     position: static;
     grid-area: aside;
-    width: auto;
+    width: 320px;
+    box-shadow: none;
   }
 `;

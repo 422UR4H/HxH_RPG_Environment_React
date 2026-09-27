@@ -263,3 +263,18 @@ export function isSameSlot(a: SlotCoord, b: SlotCoord): boolean {
     ? a.col === (b as typeof a).col && a.row === (b as typeof a).row
     : a.q === (b as typeof a).q && a.r === (b as typeof a).r;
 }
+
+/**
+ * Tripla do wire de combate (`move.from`/`move.position`): `[col, row, z]` no quadrado e
+ * `[q, r, z]` no hex — o contrato ainda não tem forma hexagonal própria, e o servidor
+ * preserva o `kind` da peça ao aplicar o movimento.
+ */
+export type SlotTriple = [number, number, number];
+
+export function slotToTriple(slot: SlotCoord, z: number): SlotTriple {
+  return slot.kind === "square" ? [slot.col, slot.row, z] : [slot.q, slot.r, z];
+}
+
+export function tripleToSlot(t: SlotTriple, kind: GridShape["kind"]): SlotCoord {
+  return kind === "square" ? { kind: "square", col: t[0], row: t[1] } : { kind: "hex", q: t[0], r: t[1] };
+}
