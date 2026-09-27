@@ -136,19 +136,25 @@ describe("EventStream", () => {
 
   it("conta o que aconteceu, o mais recente por último, com o detalhe do que EU declarei", () => {
     const events: TableEvent[] = [
-      { kind: "turn_opened", at: 1, turnId: "t1", actorId: "c1", mine: declared },
+      { kind: "turn_opened", at: 1, receivedAt: 1, turnId: "t1", actorId: "c1", mine: declared },
       {
-        kind: "turn_closed", at: 2, turnId: "t1", actorId: "c1",
+        kind: "turn_closed", at: 2, receivedAt: 2, turnId: "t1", actorId: "c1",
         resolution: {
           turnId: "t1", isSettled: true,
           targets: [
-            { targetId: "n1", avoided: false, defended: false, rawDamage: 9, projectedDamage: 7 },
-            { targetId: "c2", avoided: true, defended: false, rawDamage: 0, projectedDamage: 0 },
+            {
+              targetId: "n1", avoided: false, defended: false, dodgeTotal: 0, defenseTotal: 0,
+              rawDamage: 9, defenseApplied: 0, projectedDamage: 7,
+            },
+            {
+              targetId: "c2", avoided: true, defended: false, dodgeTotal: 0, defenseTotal: 0,
+              rawDamage: 0, defenseApplied: 0, projectedDamage: 0,
+            },
           ],
         },
       },
-      { kind: "hp_changed", at: 3, characterId: "n1", hp: 13, maxHp: 20, damage: 7 },
-      { kind: "round_mode_changed", at: 4, mode: "Race" },
+      { kind: "hp_changed", at: 3, receivedAt: 3, characterId: "n1", hp: 13, maxHp: 20, damage: 7 },
+      { kind: "round_mode_changed", at: 4, receivedAt: 4, mode: "Race" },
     ];
     render(<EventStream events={events} nameOf={nameOf} gridKind="square" />);
     const rows = screen.getAllByTestId("event-row");

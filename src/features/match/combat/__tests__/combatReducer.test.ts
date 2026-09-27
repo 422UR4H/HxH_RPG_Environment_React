@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { combatReducer, initialCombatState, pendingMoves } from "../combatReducer";
 import type { CombatAction, CombatState, DeclaredAction } from "../combatReducer";
 import type { BarsPayload } from "../combatMessages";
+import type { ResolutionPayload } from "../combatMessages";
 
 const bars = (seq: number): BarsPayload => ({
   seq,
@@ -191,5 +192,73 @@ describe("combatReducer — histórico", () => {
     const s = run([{ type: "character_hp_changed", payload: { characterId: "c2", hp: 84, maxHp: 100, damage: 16 } }]);
     expect(s.hp["c2"]).toEqual({ hp: 84, maxHp: 100 });
     expect(s.events[0]).toMatchObject({ kind: "hp_changed", hp: 84, maxHp: 100, damage: 16 });
+  });
+});
+
+const unsettled = (turnId: string): ResolutionPayload => ({
+  turnId, isSettled: false, targets: [],
+  action: { skillName: "Accuracy", skillValue: 14, diceRolled: [6, 8], total: 20, isCritical: false, isCriticalFailure: false },
+});
+
+describe("combatReducer — hora dos eventos", () => {
+  it("usa a hora do servidor em `at` e a local em `receivedAt`", () => {
+    const s = run([{ type: "round_closed", payload: { roundMode: "Race" }, at: 1000, receivedAt: 5000 }]);
+    expect(s.events[0]).toMatchObject({ kind: "round_closed", at: 1000, receivedAt: 5000 });
+  });
+});
+
+describe("combatReducer — resolução do turno aberto (F7)", () => {
+  it("guarda a resolução não liquidada do turno aberto", () => {
+    const s = run([opened("t1", "a1"), { type: "resolution_updated", payload: unsettled("t1") }]);
+    expect(s.openResolution?.turnId).toBe("t1");
+  });
+
+  it("ignora resolução não liquidada de outro turno", () => {
+    const s = run([opened("t1", "a1"), { type: "resolution_updated", payload: unsettled("t0") }]);
+    expect(s.openResolution).toBeNull();
+  });
+
+  it("limpa no turn_closed do mesmo turno e no round_closed", () => {
+    const a = run([opened("t1", "a1"), { type: "resolution_updated", payload: unsettled("t1") }, closed("t1")]);
+    expect(a.openResolution).toBeNull();
+    const b = run([opened("t1", "a1"), { type: "resolution_updated", payload: unsettled("t1") }, { type: "round_closed", payload: { roundMode: "Race" } }]);
+    expect(b.openResolution).toBeNull();
+  });
+
+  it("match_full_state traz a resolução — ou a limpa quando ausente", () => {
+    const withRes = run([{ type: "match_full_state", payload: { roundMode: "Race", openTurn: { turnId: "t1", actorId: "c1" }, resolution: unsettled("t1") } }]);
+    expect(withRes.openResolution?.turnId).toBe("t1");
+    const without = run([{ type: "match_full_state", payload: { roundMode: "Race" } }], withRes);
+    expect(without.openResolution).toBeNull();
+  });
+});
+
+describe("combatReducer — a ação em andamento continua na Fila (F7)", () => {
+  const queued = (actionId: string): CombatAction => ({ type: "action_queued", payload: { actionId, actorId: "c1", bars: ["action"] } });
+
+  it("turn_opened guarda a linha que saiu da fila", () => {
+    const s = run([queued("a1"), opened("t1", "a1")]);
+    expect(s.queue).toHaveLength(0);
+    expect(s.openQueued).toMatchObject({ actionId: "a1", actorId: "c1" });
+  });
+
+  it("limpa no turn_closed do turno, no round_closed e no match_full_state", () => {
+    expect(run([queued("a1"), opened("t1", "a1"), closed("t1")]).openQueued).toBeNull();
+    expect(run([queued("a1"), opened("t1", "a1"), { type: "round_closed", payload: { roundMode: "Race" } }]).openQueued).toBeNull();
+    expect(run([queued("a1"), opened("t1", "a1"), { type: "match_full_state", payload: { roundMode: "Race" } }]).openQueued).toBeNull();
+  });
+
+  it("turn_opened de ação que não estava na fila deixa openQueued nulo", () => {
+    expect(run([opened("t1", "a9")]).openQueued).toBeNull();
+  });
+});
+
+describe("combatReducer — HP na reconexão", () => {
+  it("match_full_state zera o HP ao vivo (o REST rebuscado vira a base)", () => {
+    const s = run([
+      { type: "character_hp_changed", payload: { characterId: "c1", hp: 80, maxHp: 100, damage: 20 } },
+      { type: "match_full_state", payload: { roundMode: "Race" } },
+    ]);
+    expect(s.hp).toEqual({});
   });
 });

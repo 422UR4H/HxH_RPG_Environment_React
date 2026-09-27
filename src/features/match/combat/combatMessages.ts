@@ -51,7 +51,45 @@ export type HpChangedPayload = {
 
 export type PendingReaction = { reactionId: string; actorId: string; kind: string };
 
-/** Só o que a Fase 6 lê. A cadeia de reação inteira é da Fase 7. */
+export type ReactionResult = {
+  kind: string;
+  total: number;
+  reactionId: string;
+  /** Só num aparo. snake_case: valor de enum do domínio. */
+  rung?: "great_success" | "success" | "near_miss" | "failure";
+  margin: number;
+  difference: number;
+  stopsAttack: boolean;
+};
+
+export type Payout = {
+  amount: number;
+  bias: number;
+  applies: string;
+  source: string;
+  againstKind: string;
+  againstId: string;
+  expiresAt: string;
+  /** Texto para humano. Não parseie. */
+  reason: string;
+};
+
+/** Falta do MOTOR ao calcular — não é erro da operação. Master-only. */
+export type ResolutionError = { subject: string; kind: string; detail: string };
+
+export type ResolutionTarget = {
+  targetId: string;
+  avoided: boolean;
+  defended: boolean;
+  dodgeTotal: number;
+  defenseTotal: number;
+  rawDamage: number;
+  defenseApplied: number;
+  projectedDamage: number;
+  reaction?: ReactionResult;
+  payouts?: Payout[];
+};
+
 export type ResolutionPayload = {
   turnId: string;
   isSettled: boolean;
@@ -64,14 +102,9 @@ export type ResolutionPayload = {
     isCriticalFailure: boolean;
     margin?: number;
   };
-  targets: Array<{
-    targetId: string;
-    avoided: boolean;
-    defended: boolean;
-    rawDamage: number;
-    projectedDamage: number;
-  }>;
+  targets: ResolutionTarget[];
   pendingReactions?: PendingReaction[];
+  errors?: ResolutionError[];
 };
 
 export type CloseTurnRefusedPayload = {

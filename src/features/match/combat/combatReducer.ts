@@ -29,12 +29,12 @@ export type DeclaredAction = {
 };
 
 export type TableEvent =
-  | { kind: "turn_opened"; at: number; turnId: string; actorId: string; mine?: DeclaredAction }
-  | { kind: "turn_closed"; at: number; turnId: string; actorId?: string; resolution?: ResolutionPayload }
-  | { kind: "round_closed"; at: number; roundMode: RoundMode }
-  | { kind: "round_mode_changed"; at: number; mode: RoundMode }
-  | { kind: "scene_changed"; at: number; scene: ScenePayload }
-  | { kind: "hp_changed"; at: number; characterId: string; hp: number; maxHp: number; damage: number };
+  | { kind: "turn_opened"; at: number; receivedAt: number; turnId: string; actorId: string; mine?: DeclaredAction }
+  | { kind: "turn_closed"; at: number; receivedAt: number; turnId: string; actorId?: string; resolution?: ResolutionPayload }
+  | { kind: "round_closed"; at: number; receivedAt: number; roundMode: RoundMode }
+  | { kind: "round_mode_changed"; at: number; receivedAt: number; mode: RoundMode }
+  | { kind: "scene_changed"; at: number; receivedAt: number; scene: ScenePayload }
+  | { kind: "hp_changed"; at: number; receivedAt: number; characterId: string; hp: number; maxHp: number; damage: number };
 
 export type CombatState = {
   scene?: ScenePayload;
@@ -48,6 +48,10 @@ export type CombatState = {
   events: TableEvent[];
   pendingCloseTurn: CloseTurnRefusedPayload | null;
   lastError: WsError | null;
+  /** Cálculo provisório do turno aberto — master-only, some ao fechar/round_closed/reconexão. */
+  openResolution: ResolutionPayload | null;
+  /** A linha da fila que o `turn_opened` tirou — a ação em andamento continua na Fila (F7). */
+  openQueued: QueuedAction | null;
 };
 
 export const initialCombatState: CombatState = {
@@ -60,21 +64,26 @@ export const initialCombatState: CombatState = {
   events: [],
   pendingCloseTurn: null,
   lastError: null,
+  openResolution: null,
+  openQueued: null,
 };
 
+/** Carimbo de chegada: `at` é a hora do SERVIDOR (envelope), `receivedAt` a local. */
+type Stamp = { at?: number; receivedAt?: number };
+
 export type CombatAction =
-  | { type: "match_full_state"; payload: MatchFullStatePayload }
-  | { type: "bars_updated"; payload: BarsPayload }
-  | { type: "action_enqueued"; payload: ActionEnqueuedPayload }
-  | { type: "action_queued"; payload: QueuedAction }
-  | { type: "turn_opened"; payload: TurnOpenedPayload }
-  | { type: "turn_closed"; payload: TurnClosedPayload }
-  | { type: "resolution_updated"; payload: ResolutionPayload }
-  | { type: "character_hp_changed"; payload: HpChangedPayload }
-  | { type: "round_closed"; payload: RoundClosedPayload }
-  | { type: "round_mode_changed"; payload: RoundModeChangedPayload }
-  | { type: "scene_changed"; payload: ScenePayload }
-  | { type: "close_turn_refused"; payload: CloseTurnRefusedPayload }
+  | ({ type: "match_full_state"; payload: MatchFullStatePayload } & Stamp)
+  | ({ type: "bars_updated"; payload: BarsPayload } & Stamp)
+  | ({ type: "action_enqueued"; payload: ActionEnqueuedPayload } & Stamp)
+  | ({ type: "action_queued"; payload: QueuedAction } & Stamp)
+  | ({ type: "turn_opened"; payload: TurnOpenedPayload } & Stamp)
+  | ({ type: "turn_closed"; payload: TurnClosedPayload } & Stamp)
+  | ({ type: "resolution_updated"; payload: ResolutionPayload } & Stamp)
+  | ({ type: "character_hp_changed"; payload: HpChangedPayload } & Stamp)
+  | ({ type: "round_closed"; payload: RoundClosedPayload } & Stamp)
+  | ({ type: "round_mode_changed"; payload: RoundModeChangedPayload } & Stamp)
+  | ({ type: "scene_changed"; payload: ScenePayload } & Stamp)
+  | ({ type: "close_turn_refused"; payload: CloseTurnRefusedPayload } & Stamp)
   | { type: "ACTION_SENT"; payload: DeclaredAction }
   | { type: "DECLARED_DISMISSED"; payload: { ids: string[] } }
   | { type: "WS_ERROR"; payload: WsError }
@@ -86,6 +95,11 @@ const MAX_EVENTS = 200;
 function push(events: TableEvent[], e: TableEvent): TableEvent[] {
   const next = [...events, e];
   return next.length > MAX_EVENTS ? next.slice(next.length - MAX_EVENTS) : next;
+}
+
+function stampOf(action: Stamp): { at: number; receivedAt: number } {
+  const receivedAt = action.receivedAt ?? Date.now();
+  return { at: action.at ?? receivedAt, receivedAt };
 }
 
 /** Só aceita um snapshot de barras mais novo. O contador NUNCA reinicia (contrato). */
@@ -118,6 +132,11 @@ export function combatReducer(state: CombatState, action: CombatAction): CombatS
         openTurn,
         queue: p.queue ?? [],
         declared,
+        openResolution: p.resolution && !p.resolution.isSettled ? p.resolution : null,
+        // A linha não volta na reconexão: o card em andamento usa o `openTurn`.
+        openQueued: null,
+        // Um character_hp_changed perdido na queda não volta: o REST rebuscado é a base.
+        hp: {},
       };
     }
 
@@ -149,11 +168,12 @@ export function combatReducer(state: CombatState, action: CombatAction): CombatS
       return {
         ...state,
         openTurn: action.payload,
+        openQueued: state.queue.find((q) => q.actionId === actionId) ?? null,
         declared: state.declared.map((d) =>
           d.id === actionId ? { ...d, status: "open" as const, turnId } : d,
         ),
         queue: state.queue.filter((q) => q.actionId !== actionId),
-        events: push(state.events, { kind: "turn_opened", at: Date.now(), turnId, actorId, mine }),
+        events: push(state.events, { kind: "turn_opened", ...stampOf(action), turnId, actorId, mine }),
       };
     }
 
@@ -164,20 +184,26 @@ export function combatReducer(state: CombatState, action: CombatAction): CombatS
       return {
         ...state,
         openTurn: state.openTurn?.turnId === turnId ? null : state.openTurn,
+        openResolution: state.openResolution?.turnId === turnId ? null : state.openResolution,
+        openQueued: state.openTurn?.turnId === turnId ? null : state.openQueued,
         pendingCloseTurn: null,
         declared: state.declared.filter((d) => d.turnId !== turnId),
         events: existing
           ? state.events.map((e) =>
               e.kind === "turn_closed" && e.turnId === turnId && !e.actorId ? { ...e, actorId } : e,
             )
-          : push(state.events, { kind: "turn_closed", at: Date.now(), turnId, actorId }),
+          : push(state.events, { kind: "turn_closed", ...stampOf(action), turnId, actorId }),
       };
     }
 
     case "resolution_updated": {
-      // Só a resolução LIQUIDADA vira linha de histórico: a de turno aberto é o cálculo
-      // provisório do mestre, e o histórico conta o que aconteceu.
-      if (!action.payload.isSettled) return state;
+      // A resolução do turno aberto é o cálculo provisório do mestre — guardada à parte até
+      // liquidar. Só a LIQUIDADA vira linha de histórico; o histórico conta o que aconteceu.
+      if (!action.payload.isSettled) {
+        return state.openTurn?.turnId === action.payload.turnId
+          ? { ...state, openResolution: action.payload }
+          : state;
+      }
       const turnId = action.payload.turnId;
       const idx = state.events.findIndex((e) => e.kind === "turn_closed" && e.turnId === turnId);
       if (idx >= 0) {
@@ -190,7 +216,7 @@ export function combatReducer(state: CombatState, action: CombatAction): CombatS
       return {
         ...state,
         events: push(state.events, {
-          kind: "turn_closed", at: Date.now(), turnId, actorId, resolution: action.payload,
+          kind: "turn_closed", ...stampOf(action), turnId, actorId, resolution: action.payload,
         }),
       };
     }
@@ -201,7 +227,7 @@ export function combatReducer(state: CombatState, action: CombatAction): CombatS
         ...state,
         hp: { ...state.hp, [p.characterId]: { hp: p.hp, maxHp: p.maxHp } },
         events: push(state.events, {
-          kind: "hp_changed", at: Date.now(), characterId: p.characterId,
+          kind: "hp_changed", ...stampOf(action), characterId: p.characterId,
           hp: p.hp, maxHp: p.maxHp, damage: p.damage,
         }),
       };
@@ -214,21 +240,23 @@ export function combatReducer(state: CombatState, action: CombatAction): CombatS
       return {
         ...state,
         openTurn: null,
-        events: push(state.events, { kind: "round_closed", at: Date.now(), roundMode: action.payload.roundMode }),
+        openResolution: null,
+        openQueued: null,
+        events: push(state.events, { kind: "round_closed", ...stampOf(action), roundMode: action.payload.roundMode }),
       };
 
     case "round_mode_changed":
       return {
         ...state,
         roundMode: action.payload.mode,
-        events: push(state.events, { kind: "round_mode_changed", at: Date.now(), mode: action.payload.mode }),
+        events: push(state.events, { kind: "round_mode_changed", ...stampOf(action), mode: action.payload.mode }),
       };
 
     case "scene_changed":
       return {
         ...state,
         scene: action.payload,
-        events: push(state.events, { kind: "scene_changed", at: Date.now(), scene: action.payload }),
+        events: push(state.events, { kind: "scene_changed", ...stampOf(action), scene: action.payload }),
       };
 
     case "close_turn_refused":
