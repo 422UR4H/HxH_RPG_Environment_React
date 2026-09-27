@@ -2,6 +2,7 @@
 // de combate e o rascunho de ação do ator escolhido. A página decide só o que difere entre
 // os papéis — quem é o ator e o que um toque no mapa significa.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import useUser from "../../../hooks/useUser";
 import { useMatchMap } from "../../../hooks/useMatchMap";
 import { useMap } from "../../../hooks/useMap";
@@ -36,6 +37,12 @@ export function useGameTable({
   const { data: participants = [] } = useMatchParticipants(token, matchId, true);
   const { data: campaign } = useCampaignDetails(token, campaignId);
 
+  const queryClient = useQueryClient();
+  const refetchParticipants = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: ["matchParticipants", token, matchId] }),
+    [queryClient, token, matchId],
+  );
+
   // O mestre é dono do tabuleiro inteiro e semeia do REST; o jogador só enxerga o que o
   // servidor projeta pelo WS (ver `visibleBoardPieces`).
   const live = useLiveMapSync({ map, campaign, seedFromRest: isMaster });
@@ -65,6 +72,14 @@ export function useGameTable({
     onPieceMoved: live.handlePieceMoved,
     onPieceRemoved: live.handlePieceRemoved,
     onComposerSendAccepted: (a) => clearDraftForRef.current(a),
+    onTurnClosed: () => queryClient.invalidateQueries({ queryKey: ["matchHistory", token, matchId] }),
+    onNpcAdded: () => { void refetchParticipants(); },
+    // Toda (re)conexão: o que mudou enquanto a conexão estava caída só volta pelo REST.
+    onFullState: () => {
+      void refetchParticipants();
+      void queryClient.invalidateQueries({ queryKey: ["matchHistory", token, matchId] });
+      void queryClient.invalidateQueries({ queryKey: ["characterSheet", token] });
+    },
   });
   const { state } = combat;
 
@@ -148,6 +163,7 @@ export function useGameTable({
     map,
     isLoading: matchMapPending || (!!matchMap && mapPending),
     participants,
+    refetchParticipants,
     campaign,
     live,
     boardPieces,

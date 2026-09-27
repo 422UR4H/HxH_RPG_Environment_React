@@ -133,3 +133,40 @@ describe("useMatchCombat", () => {
     spy.mockRestore();
   });
 });
+
+describe("useMatchCombat — avisos para o REST", () => {
+  it("carimba a hora do servidor e a local nos eventos", () => {
+    vi.setSystemTime(new Date("2026-09-27T10:00:00Z"));
+    const { result, ws } = mount();
+    act(() => { ws.emit("round_closed", { roundMode: "Race" }, { timestamp: "2026-09-27T09:59:58Z" }); });
+    expect(result.current.state.events[0]).toMatchObject({
+      at: Date.parse("2026-09-27T09:59:58Z"),
+      receivedAt: Date.parse("2026-09-27T10:00:00Z"),
+    });
+  });
+
+  it("chama onTurnClosed, onFullState e onNpcAdded", () => {
+    const onTurnClosed = vi.fn();
+    const onFullState = vi.fn();
+    const onNpcAdded = vi.fn();
+    const { ws } = mount({ onTurnClosed, onFullState, onNpcAdded });
+    act(() => {
+      ws.emit("turn_closed", { turnId: "t1" });
+      ws.emit("match_full_state", { roundMode: "Race", bars: { seq: 1, prices: {}, characters: [], order: [] } });
+      ws.emit("npc_added", { characterId: "npc-1" });
+    });
+    expect(onTurnClosed).toHaveBeenCalledTimes(1);
+    expect(onFullState).toHaveBeenCalledTimes(1);
+    expect(onNpcAdded).toHaveBeenCalledWith("npc-1");
+  });
+
+  it("expõe addNpc e changeScene", () => {
+    const { result, ws } = mount({ isMaster: true });
+    act(() => {
+      result.current.send.addNpc("npc-2");
+      result.current.send.changeScene({ category: "roleplay", briefInitialDescription: "" });
+    });
+    expect(ws.sent("add_npc")).toEqual([{ characterSheetUuid: "npc-2" }]);
+    expect(ws.sent("change_scene")).toEqual([{ category: "roleplay", briefInitialDescription: "" }]);
+  });
+});

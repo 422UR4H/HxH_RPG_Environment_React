@@ -44,6 +44,7 @@ export const defaultHandlers = [
   http.get(`${baseUrl}/matches/:id/participants`, () =>
     HttpResponse.json({ participants: [] }),
   ),
+  http.get(`${baseUrl}/matches/:id/history`, () => HttpResponse.json({ scenes: [] })),
   // Go: ListCharacterSheetsBody.CharacterSheets now tags `json:"characterSheets"`
   // (camelCase) — matches both the real backend and the literal key
   // characterSheetsService.listCharacterSheets already reads, no deferral needed.
