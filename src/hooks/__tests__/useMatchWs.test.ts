@@ -695,6 +695,62 @@ describe("useMatchWs combat", () => {
   });
 });
 
+// ─── Server time, npc_added, add_npc, change_scene (Task 1) ─────────────────
+
+describe("useMatchWs — fechamento da Fase 6", () => {
+  it("repassa a hora do servidor do envelope junto com a mensagem de combate", () => {
+    const onCombatMessage = vi.fn();
+    renderHook(() =>
+      useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onCombatMessage }),
+    );
+    const ws = flushConnect();
+    ws.onopen?.();
+    act(() => {
+      ws.emit("turn_closed", { turnId: "t1" }, { timestamp: "2026-09-20T16:44:00Z" });
+    });
+    expect(onCombatMessage).toHaveBeenCalledWith(
+      { type: "turn_closed", payload: { turnId: "t1" } },
+      Date.parse("2026-09-20T16:44:00Z"),
+    );
+  });
+
+  it("sem timestamp no envelope, serverAt é undefined", () => {
+    const onCombatMessage = vi.fn();
+    renderHook(() =>
+      useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onCombatMessage }),
+    );
+    const ws = flushConnect();
+    ws.onopen?.();
+    act(() => { ws.emit("turn_closed", { turnId: "t1" }); });
+    expect(onCombatMessage).toHaveBeenCalledWith({ type: "turn_closed", payload: { turnId: "t1" } }, undefined);
+  });
+
+  it("npc_added chama onNpcAdded com o characterId", () => {
+    const onNpcAdded = vi.fn();
+    renderHook(() =>
+      useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onNpcAdded }),
+    );
+    const ws = flushConnect();
+    ws.onopen?.();
+    act(() => { ws.emit("npc_added", { characterId: "npc-1" }); });
+    expect(onNpcAdded).toHaveBeenCalledWith("npc-1");
+  });
+
+  it("sendAddNpc e sendChangeScene mandam o formato do contrato", () => {
+    const { result } = renderHook(() =>
+      useMatchWs({ matchUuid: "m1", token: "t", isMaster: true }),
+    );
+    const ws = flushConnect();
+    ws.onopen?.();
+    act(() => {
+      result.current.sendAddNpc("npc-9");
+      result.current.sendChangeScene({ category: "battle", briefInitialDescription: "Arena" });
+    });
+    expect(ws.sent("add_npc")).toEqual([{ characterSheetUuid: "npc-9" }]);
+    expect(ws.sent("change_scene")).toEqual([{ category: "battle", briefInitialDescription: "Arena" }]);
+  });
+});
+
 // ─── Connection lifecycle ──────────────────────────────────────────────────
 
 describe("useMatchWs connection lifecycle", () => {

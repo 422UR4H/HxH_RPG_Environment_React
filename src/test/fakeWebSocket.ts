@@ -20,8 +20,8 @@ export class FakeWS {
   }
   send = vi.fn();
   close = vi.fn();
-  emit(type: string, payload: unknown) {
-    this.onmessage?.({ data: JSON.stringify({ type, payload }) } as MessageEvent);
+  emit(type: string, payload: unknown, envelope: Record<string, unknown> = {}) {
+    this.onmessage?.({ data: JSON.stringify({ type, payload, ...envelope }) } as MessageEvent);
   }
   /** Os `payload`s já enviados de um `type`. */
   sent(type: string): unknown[] {

@@ -9,6 +9,9 @@ export type ScenePayload = {
   briefInitialDescription: string;
 };
 
+/** `change_scene` (c→s). `category` minúscula, validada no servidor (contrato). */
+export type ChangeScenePayload = { category: SceneCategory; briefInitialDescription: string };
+
 export type BarsPayload = {
   seq: number;
   /** Uma barra que ainda não precificou está AUSENTE do mapa. */

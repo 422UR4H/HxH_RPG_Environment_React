@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { GridShape, Piece, SlotCoord, WallSegment } from "../types/tacticalMap";
-import type { CombatServerMessage, EnqueueActionPayload, MasterActionPayload, RoundMode } from "../features/match/combat/combatMessages";
+import type { ChangeScenePayload, CombatServerMessage, EnqueueActionPayload, MasterActionPayload, RoundMode } from "../features/match/combat/combatMessages";
 import { normalizeCombatMessage } from "../features/match/combat/normalizeWire";
 
 /**
@@ -173,8 +173,14 @@ type UseMatchWsOptions = {
   onPieceRemoved?: (pieceId: string) => void;
   /** Server refusal (`error`). Never broadcast: it is always about our own last send. */
   onWsError?: (e: { code: string; message: string; sentType?: string }) => void;
-  /** Called when a combat message is received from the server. */
-  onCombatMessage?: (msg: CombatServerMessage) => void;
+  /**
+   * Called when a combat message is received from the server. `serverAt` is the
+   * envelope's own `timestamp` (`Date.parse`d), when the server sent one — `undefined`
+   * otherwise. Server time, not `Date.now()`, so a client clock skew never leaks in.
+   */
+  onCombatMessage?: (msg: CombatServerMessage, serverAt?: number) => void;
+  /** `npc_added` (s→c, mesa inteira): o WS avisa, quem tem permissão rebusca por REST. */
+  onNpcAdded?: (characterId: string) => void;
   /**
    * Pieces, walls and grid used to seed the game server once connected (master only).
    * Pass `null`/`undefined` while the REST map is still loading — syncing early would
@@ -196,6 +202,7 @@ export function useMatchWs({
   onPieceRemoved,
   onWsError,
   onCombatMessage,
+  onNpcAdded,
   board,
 }: UseMatchWsOptions) {
   const [status, setStatus] = useState<MatchWsStatus>("connecting");
@@ -220,6 +227,8 @@ export function useMatchWs({
   onWsErrorRef.current = onWsError;
   const onCombatMessageRef = useRef(onCombatMessage);
   onCombatMessageRef.current = onCombatMessage;
+  const onNpcAddedRef = useRef(onNpcAdded);
+  onNpcAddedRef.current = onNpcAdded;
   const lastSentTypeRef = useRef<string | undefined>(undefined);
   const boardRef = useRef(board);
   boardRef.current = board;
@@ -381,12 +390,16 @@ export function useMatchWs({
         clearSilence();
         attempts = 0;
         try {
-          const msg = JSON.parse(event.data as string) as { type: string; payload: unknown };
+          const msg = JSON.parse(event.data as string) as { type: string; payload: unknown; timestamp?: string };
           if (msg.type === "lobby_not_open") {
             roomNotOpen = true;
             return;
           }
           setStatus("connected");
+          // Server time, not `Date.now()`: an envelope without a valid `timestamp`
+          // (or none at all) yields `undefined` rather than a client-clock guess.
+          const parsedAt = msg.timestamp ? Date.parse(msg.timestamp) : NaN;
+          const serverAt = Number.isNaN(parsedAt) ? undefined : parsedAt;
           if (msg.type === "wall_state_changed") {
             const p = msg.payload as WallStateChangedPayload;
             onWallStateChangedRef.current?.(p.wallId, p.open, p.locked);
@@ -440,6 +453,9 @@ export function useMatchWs({
           } else if (msg.type === "piece_removed") {
             const p = msg.payload as { pieceId?: string };
             if (p.pieceId) onPieceRemovedRef.current?.(p.pieceId);
+          } else if (msg.type === "npc_added") {
+            const p = msg.payload as { characterId?: string };
+            if (p.characterId) onNpcAddedRef.current?.(p.characterId);
           } else if (msg.type === "error") {
             const p = msg.payload as { code?: string; message?: string };
             onWsErrorRef.current?.({
@@ -451,7 +467,15 @@ export function useMatchWs({
             // R33: normalize nil-able Go slices/maps (serialized as JSON `null`) into the
             // empty arrays/objects combatMessages.ts's types promise, once, here — before
             // the reducer or any combat component ever sees this message.
-            onCombatMessageRef.current?.(normalizeCombatMessage(msg));
+            // `{ type, payload }` only (not `msg` itself): the default branch of
+            // normalizeCombatMessage returns its argument as-is, so handing it the raw
+            // envelope would leak `timestamp` into the message every combat type but the
+            // five normalized ones receives — the brief's "the extra field is ignored"
+            // only holds for the normalized cases, which rebuild the object from scratch.
+            onCombatMessageRef.current?.(
+              normalizeCombatMessage({ type: msg.type, payload: msg.payload }),
+              serverAt,
+            );
             if (msg.type === "match_full_state") {
               // Batch 3: the "register finished, decide now" marker — see
               // maybeSyncBoard's own doc comment for why this message and not a timer.
@@ -563,6 +587,14 @@ export function useMatchWs({
     (mode: RoundMode) => sendRaw("change_round_mode", { mode }),
     [sendRaw],
   );
+  const sendAddNpc = useCallback(
+    (characterSheetUuid: string) => sendRaw("add_npc", { characterSheetUuid }),
+    [sendRaw],
+  );
+  const sendChangeScene = useCallback(
+    (payload: ChangeScenePayload) => sendRaw("change_scene", payload),
+    [sendRaw],
+  );
 
   return {
     status,
@@ -574,5 +606,7 @@ export function useMatchWs({
     sendPullAction,
     sendCloseTurn,
     sendChangeRoundMode,
+    sendAddNpc,
+    sendChangeScene,
   };
 }
