@@ -17,7 +17,7 @@ Query, vitest + Testing Library + MSW, Pixi (sem teste — só browser).
 
 **Spec:** `docs/superpowers/specs/2026-09-27-front-combat-phase-6-closure-design.md` — leia
 antes de qualquer tarefa. Documento mestre: `System_X_System/docs/superpowers/specs/2026-09-20-front-combat-phases.md`
-(§6A), versão do PR #80.
+(§6A), versão do PR #80 + PR #81.
 
 ## Global Constraints
 
@@ -2188,13 +2188,16 @@ reporte** (§0 item 3 do spec).
   fila vazia.
 - [ ] **Step 7: commit** `feat(combate): a lista de declaradas segue o servidor (F10)`.
 
-### Task 15: F4 (parte 2) — cena, regime e round do REST; o `move` no histórico (espera B15)
+### Task 15: F4 (parte 2) — cena, regime, round e master actions do REST; o `move` no histórico (espera B15 e B14)
 
-**Files:** `src/types/matchHistory.ts`, `historyRows.ts`, `EventStream.tsx`, testes.
+**Files:** `src/types/matchHistory.ts`, `historyRows.ts`, `EventStream.tsx`,
+`useMatchCombat.ts`/`useGameTable.ts` (invalidações), `useMatchWs.ts` (`master_action_enqueued`), testes.
 
 - [ ] **Step 1: ler o contrato** `match-history.md`: onde B15 põe troca de regime, troca de cena
-  e round fechado na árvore (nomes, forma, hora), os valores de `category`/`mode` corrigidos, e o
-  formato de `move`.
+  e round fechado na árvore (nomes, forma, hora), os valores de `category`/`mode` corrigidos, o
+  formato de `move`, e **onde e como as master actions aparecem** (B14, PR #81: dentro do turno
+  quando têm turno, evento fora de turno quando não têm; tipo + conteúdo — `move`, `interact`, …).
+  E, em `match-combat-ws.md`, o formato de `master_action_enqueued` depois de B9/B14.
 - [ ] **Step 2: tipos.** Acrescentar os eventos persistidos a `matchHistory.ts` como o contrato
   disser; `HistoryAction.move` com o formato documentado (se a T13 já fez, reusar).
 - [ ] **Step 3: `historyRows` (teste primeiro).** Os eventos persistidos viram linhas `rest`, com
@@ -2203,11 +2206,24 @@ reporte** (§0 item 3 do spec).
   contrato que o servidor persiste **antes** de emitir; se não, pare). Uma cena sem turno aparece.
   Testes: os três eventos vindos do REST; o ao vivo correspondente sai com fetch posterior e fica
   com fetch anterior.
+- [ ] **Step 3b: master actions (teste primeiro).** As de fora de turno viram linhas `rest`
+  próprias (`kind: "master_action"`) na ordem do tempo; as de dentro de um turno vão junto da
+  linha do turno. Texto: "Mestre moveu {nome} para {slot}", "Mestre pôs {nome} em {slot}",
+  "Mestre tirou {nome} do mapa", "Mestre: {interação} na passagem" — conforme o tipo que o
+  contrato definir; tipo desconhecido → "Ação do mestre". Não filtre nada: o REST já vem
+  projetado por leitor.
+- [ ] **Step 3c: invalidações (teste primeiro, em `useMatchCombat.test.ts`).** `scene_changed`,
+  `round_mode_changed`, `round_closed` e `master_action_enqueued` passam a chamar um aviso
+  `onHistoryChanged` (renomeie `onTurnClosed` para ele e chame-o também no `turn_closed`);
+  `useGameTable` invalida `["matchHistory", token, matchId]` nele. `master_action_enqueued` vai à
+  mesa inteira: `useMatchWs` o trata num ramo próprio (`onMasterActionEnqueued`) que só avisa —
+  nenhum estado.
 - [ ] **Step 4: `EventStream`** desenha as linhas novas com os textos que o ao vivo já usa
-  (`Fim do round`, `Regime: …`, `Cena: …`) e `turnLine` descreve o movimento com destino
-  (`mover para ${formatSlot(to, gridKind)} (${category})`).
-- [ ] **Step 5:** `npm run test` → PASS; **browser**: trocar regime, cena, fechar round; recarregar
-  — as três linhas voltam.
+  (`Fim do round`, `Regime: …`, `Cena: …`), as linhas de master action, e `turnLine` descreve o
+  movimento com destino (`mover para ${formatSlot(to, gridKind)} (${category})`).
+- [ ] **Step 5:** `npm run test` → PASS; **browser**: trocar regime, cena, fechar round, arrastar
+  uma peça entre turnos (depois da T17); recarregar — as linhas voltam, nas três telas; o jogador
+  não vê a master action sobre uma peça que o fog escondia dele.
 - [ ] **Step 6: commit** `feat(combate): o histórico guarda cena, regime e round (F4)`.
 
 ### Task 16: F13 + F16 — o tabuleiro é do servidor (espera B14)
@@ -2231,8 +2247,8 @@ reporte** (§0 item 3 do spec).
 - [ ] **Step 3: F16 (teste primeiro).** Teste em `LobbyPage.test.tsx`: iniciar a partida **não**
   chama `PATCH/PUT` do mapa (conte chamadas no handler MSW do mapa). Remover a chamada
   `mapsService.updateMap(... { pieces: lobbyPieces })` e o que só existia para ela.
-- [ ] **Step 4: `MatchMapsPanel`.** Com a partida iniciada (`match.gameStartAt`), esconder a troca
-  de mapa; se a recusa vier mesmo assim, mostrar `getApiErrorDetail(err)` mapeado para
+- [ ] **Step 4: `MatchMapsPanel`.** O back já recusa (`ErrMatchAlreadyStarted`, PR #81). Com a
+  partida iniciada (`match.gameStartAt`), esconder a troca de mapa; se a recusa vier mesmo assim, mostrar `getApiErrorDetail(err)` mapeado para
   "O mapa não pode ser trocado depois que a partida começou." Teste de página em
   `MatchPage.test.tsx`.
 - [ ] **Step 5:** `npm run test` → PASS; **browser**: mestre recarrega no meio da partida e o
@@ -2279,7 +2295,8 @@ repassar alguma dessas props ao `TacticalMapStage`, acrescente o repasse (só o 
 - [ ] **Step 7:** `npm run test` → PASS; **browser (a única evidência — Pixi sem teste)**: arrastar
   com e sem turno aberto, pôr o NPC que entrou por `add_npc`, tirar a peça de um jogador; em todos,
   nada muda antes de confirmar, e depois de confirmar a peça muda nas **três** telas (com fog); no
-  celular, o modo não briga com o segurar (fora do modo o segurar marca alvos como antes).
+  celular, o modo não briga com o segurar (fora do modo o segurar marca alvos como antes). O arrastar
+  entre turnos aparece no Histórico das três telas (T15), e continua lá depois de recarregar.
 - [ ] **Step 8: commit** `feat(combate): o mestre arrasta, põe e tira peças com confirmação (F12)`.
 
 ### Task 18: F14 — o mestre escolhe onde cai o escape que falhou (espera B13)

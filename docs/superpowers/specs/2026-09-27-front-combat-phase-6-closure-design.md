@@ -5,9 +5,10 @@
 > **Fontes, nesta ordem de autoridade:**
 > 1. `System_X_System/docs/superpowers/specs/2026-09-20-front-combat-phases.md` — o documento
 >    mestre. O escopo desta sessão é o **§6A.6** (F1–F8, F10–F16; o F9 saiu). A versão que este
->    spec segue é a do **PR #80** (branch `docs/front-combat-closure-gaps-2`, commit `e5fc3dd`),
->    que fecha as duas rodadas de lacunas devolvidas pelas sessões deste fechamento. O dono do
->    produto mergeia o PR #80 quando back e front começarem a implementar.
+>    spec segue é a do **PR #80** (mergeado) **mais o PR #81** (branch
+>    `docs/master-actions-persisted`, commit `5f824fc`): master actions persistidas e no
+>    histórico (B14), `attack` fora da master action (B9), e o desenho do dono do produto para
+>    F3 (ficha no painel alargado) e F7 (cálculo no card da ação, na fila).
 > 2. `System_X_System/docs/dev/api/match-combat-ws.md` e `match-history.md` — os contratos.
 > 3. `docs/dev/match/combate-fase-6.md` (este repo) — como a Fase 6 ficou de verdade.
 >
@@ -78,7 +79,7 @@ O documento mestre separa o que começa já do que espera o back (§6A.6):
 | F11, F5, F2, F8, F3, F7, F4 (parte 1), F6 (parte 1) | nada (F2 funciona inteiro só depois de B11) | Parte A — tarefas T1–T12 |
 | F1 + F6 (parte 2) + fantasma do mestre | B1 | Parte B — T13 |
 | F10 | B12 | T14 |
-| F4 (parte 2) — linhas de cena, regime e round, e o `move` no histórico | B15 (+ o conserto do `match-history.md`) | T15 |
+| F4 (parte 2) — linhas de cena, regime e round, master actions, e o `move` no histórico | B15, B14 (+ o conserto do `match-history.md`) | T15 |
 | F13, F16 | B14 | T16 |
 | F12 | B14 + o `move` de B9 | T17 |
 | F14 | B13 | T18 |
@@ -271,9 +272,12 @@ open`); a recusa, se vier, aparece no banner com o prefixo de `change_scene`.
   (mestre e dono) e some quando o turno correspondente chega do REST; o turno do REST já diz
   o dano (projetado liquidado).
 
-**Parte 2 (espera B15).** As três linhas que hoje só vivem ao vivo passam a vir do REST, na
-posição que o contrato disser; os eventos ao vivo de cena/regime/round passam a ser derrubados
-pela mesma regra de fetch posterior. E o `move` do histórico, cujo formato o PR de back documenta
+**Parte 2 (espera B15 e B14).** As três linhas que hoje só vivem ao vivo passam a vir do REST,
+na posição que o contrato disser; os eventos ao vivo de cena/regime/round passam a ser derrubados
+pela mesma regra de fetch posterior, e `scene_changed`, `round_mode_changed`, `round_closed` e
+`master_action_enqueued` passam a invalidar o histórico também. As **master actions** persistidas
+(B14, PR #81) entram no histórico: dentro do turno quando têm turno, como evento fora de turno
+quando não têm — cada leitor recebe já projetado (o que o fog escondeu dele não vem). E o `move` do histórico, cujo formato o PR de back documenta
 junto, passa a ser descrito com destino ("moveu para (3, 4)") — na parte 1 a linha diz só
 "moveu", porque o formato não está no disco.
 
@@ -373,9 +377,9 @@ mudo continua (é outra coisa).
 
 ### F16 — Iniciar a partida não grava mais no mapa da campanha (espera B14)
 
-Sai o `mapsService.updateMap(... { pieces: lobbyPieces })` de `LobbyPage.tsx`. E, como o back
-passa a recusar trocar o mapa anexado depois do `start_match` (B3), `MatchMapsPanel` esconde a
-troca de mapa numa partida iniciada e, se a recusa vier mesmo assim, mostra o `detail` (padrão
+Sai o `mapsService.updateMap(... { pieces: lobbyPieces })` de `LobbyPage.tsx`. O back já recusa
+trocar o mapa anexado depois do `start_match` (`ErrMatchAlreadyStarted`, PR #81): `MatchMapsPanel`
+esconde a troca numa partida iniciada e, se a recusa vier mesmo assim, mostra o `detail` (padrão
 `getApiErrorDetail`).
 
 ### F14 — O mestre escolhe onde cai o escape que falhou (espera B13)
