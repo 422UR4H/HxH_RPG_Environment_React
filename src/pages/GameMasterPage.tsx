@@ -14,7 +14,6 @@ import { NpcPicker, PanelSection, RegencyControls, RoundModeSwitch } from "../fe
 import { PanelMessage, PanelTitle } from "../features/match/combat/panelStyles";
 import RailNav from "../features/match/combat/RailNav";
 import AsideTabs from "../features/match/combat/AsideTabs";
-import type { AsideTab } from "../features/match/combat/AsideTabs";
 import GeneralBar from "../features/match/combat/GeneralBar";
 import OwnBars from "../features/match/combat/OwnBars";
 import EventStream from "../features/match/combat/EventStream";
@@ -71,7 +70,6 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   const [railActive, setRailActive] = useState<RailTab>("fila");
   const [panelOpen, setPanelOpen] = useState(true);
   const [asideOpen, setAsideOpen] = useState(initialAsideOpen);
-  const [asideTab, setAsideTab] = useState<AsideTab>("historico");
   const [wallPicker, setWallPicker] = useState<WallSegment | null>(null);
 
   const handleRailSelect = useCallback(
@@ -116,8 +114,6 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
         return;
       }
       setInspectedId(charId);
-      setAsideTab("personagens");
-      setAsideOpen(true);
     },
     [pieceCharacter, actorId, composer, npcIds, chooseActor],
   );
@@ -325,8 +321,6 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
         aside={
           <AsideTabs
             defaultTab="historico"
-            tab={asideTab}
-            onTabChange={setAsideTab}
             historico={<EventStream events={state.events} nameOf={nameOf} gridKind={gridKind} />}
             personagens={
               <>

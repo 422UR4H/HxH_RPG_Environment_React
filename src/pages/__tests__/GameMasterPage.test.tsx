@@ -277,7 +277,9 @@ describe("GameMasterPage", () => {
     expect(screen.getByText("Gon")).toBeInTheDocument();
   });
 
-  it("inspeciona (não vira ator) quem o mestre não controla e nada envia", async () => {
+  it("F11: inspecionar uma peça que o mestre não controla não troca a aba da direita", async () => {
+    // mesmo arranjo do teste de inspeção existente (mestre, sem ator, clica na peça de um
+    // jogador) — invertido: a aba da direita continua em Histórico, não pula para Personagens.
     renderMasterPage();
     const ws = await waitForSocket();
     act(() => ws.onopen?.());
@@ -288,9 +290,11 @@ describe("GameMasterPage", () => {
 
     // Nada de novo é enviado pelo clique (o board sync do mestre já rodou ao conectar).
     expect(ws.send.mock.calls.length).toBe(sentBefore);
-    const personagensTab = screen.getByRole("button", { name: "Personagens" });
-    expect(personagensTab).toHaveAttribute("aria-pressed", "true");
-    expect(await screen.findByText("Gon")).toBeInTheDocument();
+    // A gaveta começa fechada nesta viewport de teste (sem setAsideOpen no tap agora) — abrir
+    // pra inspecionar em qual aba ela ficou.
+    act(() => screen.getByRole("button", { name: "Ver histórico" }).click());
+    expect(screen.getByRole("button", { name: "Histórico" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Personagens" })).toHaveAttribute("aria-pressed", "false");
     // não virou ator: a bottom sheet de compor ação não aparece
     expect(screen.queryByRole("button", { name: /declarar/i })).not.toBeInTheDocument();
 
@@ -381,6 +385,11 @@ describe("GameMasterPage", () => {
     expect(mapStub).toHaveAttribute("data-selected-piece-id", "");
     // não virou ator
     expect(screen.queryByRole("button", { name: /declarar/i })).not.toBeInTheDocument();
+
+    // F11: inspecionar não abre a gaveta nem troca a aba mais — abrir e trocar à mão pra ver
+    // o aviso na aba Personagens.
+    act(() => screen.getByRole("button", { name: "Ver histórico" }).click());
+    act(() => screen.getByRole("button", { name: "Personagens" }).click());
     expect(
       await screen.findByText(/não está inscrito na partida/i),
     ).toBeInTheDocument();

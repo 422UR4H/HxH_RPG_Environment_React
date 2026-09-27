@@ -9,30 +9,22 @@ export type AsideTab = "historico" | "personagens";
  * Burro (R6/I2): duas abas fixas — Histórico (padrão, §5.3/§10 do spec) e Personagens.
  * Nenhum `isMaster` aqui: a página escolhe o que renderizar em cada slot.
  *
- * Modo controlado opcional (`tab`/`onTabChange`): o mestre usa para forçar a aba para
- * Personagens quando o jogador clica numa peça de terceiro para inspecionar (§7.3) —
- * sem isso a única forma de trocar de aba seria o próprio clique nela. Sem os dois
- * props a aba continua não-controlada, como na Tarefa 12.
+ * Não-controlado: a única forma de trocar de aba é o próprio clique nela (F11) — selecionar
+ * uma peça no mapa não deve mexer nessa navegação.
  */
 export default function AsideTabs({
   defaultTab,
-  tab: controlledTab,
-  onTabChange,
   historico,
   personagens,
 }: {
   defaultTab: AsideTab;
-  tab?: AsideTab;
-  onTabChange?: (tab: AsideTab) => void;
   historico: ReactNode;
   personagens: ReactNode;
 }) {
-  const [internalTab, setInternalTab] = useState<AsideTab>(defaultTab);
-  const tab = controlledTab ?? internalTab;
+  const [tab, setInternalTab] = useState<AsideTab>(defaultTab);
 
   function selectTab(next: AsideTab) {
-    if (onTabChange) onTabChange(next);
-    else setInternalTab(next);
+    setInternalTab(next);
   }
 
   return (
