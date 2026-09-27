@@ -1,37 +1,17 @@
+import { StrictMode } from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 import { useMatchWs } from "../useMatchWs";
 import type { MatchBoardSync } from "../useMatchWs";
 import type { GridShape, Piece } from "../../types/tacticalMap";
-
-class FakeWS {
-  static instances: FakeWS[] = [];
-  // The hook gates sends on `ws.readyState === WebSocket.OPEN`; without this the
-  // comparison is `1 === undefined` and every send is silently dropped.
-  static OPEN = 1;
-  onopen?: () => void;
-  onmessage?: (e: MessageEvent) => void;
-  onclose?: (e: CloseEvent) => void;
-  onerror?: () => void;
-  readyState = 1;
-  url: string;
-  constructor(url: string) {
-    this.url = url;
-    FakeWS.instances.push(this);
-  }
-  send = vi.fn();
-  close = vi.fn();
-  emit(type: string, payload: unknown) {
-    this.onmessage?.({ data: JSON.stringify({ type, payload }) } as MessageEvent);
-  }
-}
+import { FakeWS, flushConnect, installFakeWebSocket } from "../../test/fakeWebSocket";
 
 beforeEach(() => {
-  FakeWS.instances = [];
-  vi.stubGlobal("WebSocket", FakeWS as unknown as typeof WebSocket);
-  vi.stubEnv("VITE_WS_URL", "ws://test");
+  installFakeWebSocket();
+  vi.useFakeTimers();
 });
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
 });
@@ -42,7 +22,7 @@ describe("useMatchWs fog events", () => {
     renderHook(() =>
       useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onMapFullState }),
     );
-    const ws = FakeWS.instances[0];
+    const ws = flushConnect();
     ws.onopen?.();
     ws.emit("map_full_state", {
       pieces: [],
@@ -62,7 +42,7 @@ describe("useMatchWs fog events", () => {
     renderHook(() =>
       useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onVisibilityUpdated }),
     );
-    const ws = FakeWS.instances[0];
+    const ws = flushConnect();
     ws.onopen?.();
     ws.emit("visibility_updated", {
       visiblePolygons: [[{ x: 1, y: 1 }, { x: 2, y: 1 }, { x: 2, y: 2 }]],
@@ -79,7 +59,7 @@ describe("useMatchWs fog events", () => {
     renderHook(() =>
       useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onMapFullState }),
     );
-    const ws = FakeWS.instances[0];
+    const ws = flushConnect();
     act(() => { ws.onopen?.(); });
     act(() => {
       ws.emit("map_full_state", {
@@ -112,7 +92,7 @@ describe("useMatchWs fog events", () => {
     renderHook(() =>
       useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onMapFullState }),
     );
-    const ws = FakeWS.instances[0];
+    const ws = flushConnect();
     act(() => { ws.onopen?.(); });
     act(() => {
       ws.emit("map_full_state", {
@@ -130,7 +110,7 @@ describe("useMatchWs fog events", () => {
     renderHook(() =>
       useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onMapFullState }),
     );
-    const ws = FakeWS.instances[0];
+    const ws = flushConnect();
     act(() => { ws.onopen?.(); });
     act(() => {
       ws.emit("map_full_state", {
@@ -207,7 +187,7 @@ describe("useMatchWs board sync", () => {
         useMatchWs({ matchUuid: "m1", token: "t", isMaster: true, board: props.board }),
       { initialProps: { board } },
     );
-    const ws = FakeWS.instances[0];
+    const ws = flushConnect();
     act(() => { ws.onopen?.(); });
     rerender({ board });
     expect(syncPayloads(ws)).toHaveLength(0); // not yet — marker hasn't arrived
@@ -235,7 +215,7 @@ describe("useMatchWs board sync", () => {
         useMatchWs({ matchUuid: "m1", token: "t", isMaster: true, board: props.board }),
       { initialProps: { board: null as MatchBoardSync | null } },
     );
-    const ws = FakeWS.instances[0];
+    const ws = flushConnect();
     act(() => { ws.onopen?.(); });
     rerender({ board: null });
 
@@ -256,7 +236,7 @@ describe("useMatchWs board sync", () => {
         useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, board: props.board }),
       { initialProps: { board } },
     );
-    const ws = FakeWS.instances[0];
+    const ws = flushConnect();
     act(() => { ws.onopen?.(); });
     rerender({ board });
     emitMatchFullState(ws);
@@ -272,7 +252,7 @@ describe("useMatchWs board sync", () => {
         useMatchWs({ matchUuid: "m1", token: "t", isMaster: true, board: props.board }),
       { initialProps: { board } },
     );
-    const ws = FakeWS.instances[0];
+    const ws = flushConnect();
     act(() => { ws.onopen?.(); });
     rerender({ board });
     emitMatchFullState(ws);
@@ -298,7 +278,7 @@ describe("useMatchWs board sync", () => {
         useMatchWs({ matchUuid: "m1", token: "t", isMaster: true, board: props.board }),
       { initialProps: { board: elevated } },
     );
-    const ws = FakeWS.instances[0];
+    const ws = flushConnect();
     act(() => { ws.onopen?.(); });
     rerender({ board: elevated });
     emitMatchFullState(ws);
@@ -334,7 +314,7 @@ describe("useMatchWs board sync", () => {
             useMatchWs({ matchUuid: "m1", token: "t", isMaster: true, board: props.board }),
           { initialProps: { board } },
         );
-        const firstWs = FakeWS.instances[0];
+        const firstWs = flushConnect();
         act(() => { firstWs.onopen?.(); });
         rerender({ board });
         emitMatchFullState(firstWs);
@@ -363,7 +343,7 @@ describe("useMatchWs board sync", () => {
             useMatchWs({ matchUuid: "m1", token: "t", isMaster: true, board: props.board }),
           { initialProps: { board } },
         );
-        const firstWs = FakeWS.instances[0];
+        const firstWs = flushConnect();
         act(() => { firstWs.onopen?.(); });
         rerender({ board });
         emitMatchFullState(firstWs);
@@ -393,7 +373,7 @@ describe("useMatchWs wall events", () => {
     renderHook(() =>
       useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onWallStateChanged }),
     );
-    const ws = FakeWS.instances[0];
+    const ws = flushConnect();
     act(() => { ws.onopen?.(); });
     act(() => {
       ws.emit("wall_state_changed", { wallId: "wall-7", open: true, locked: false });
@@ -406,7 +386,7 @@ describe("useMatchWs wall events", () => {
     renderHook(() =>
       useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onWallHpChanged }),
     );
-    const ws = FakeWS.instances[0];
+    const ws = flushConnect();
     act(() => { ws.onopen?.(); });
     act(() => {
       ws.emit("wall_hp_changed", { wallId: "wall-9", hp: 40, maxHp: 100, destroyed: false });
@@ -419,7 +399,7 @@ describe("useMatchWs wall events", () => {
     renderHook(() =>
       useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onWallHpChanged }),
     );
-    const ws = FakeWS.instances[0];
+    const ws = flushConnect();
     act(() => { ws.onopen?.(); });
     act(() => {
       ws.emit("wall_hp_changed", { wallId: "wall-10", hp: 0, maxHp: 50, destroyed: true });
@@ -432,7 +412,7 @@ describe("useMatchWs wall events", () => {
     renderHook(() =>
       useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onWallRevealed }),
     );
-    const ws = FakeWS.instances[0];
+    const ws = flushConnect();
     act(() => { ws.onopen?.(); });
     act(() => {
       ws.emit("wall_revealed", {
@@ -474,7 +454,7 @@ describe("useMatchWs piece events", () => {
     renderHook(() =>
       useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onPieceMoved }),
     );
-    const ws = FakeWS.instances[0];
+    const ws = flushConnect();
     act(() => { ws.onopen?.(); });
     act(() => {
       ws.emit("piece_moved", {
@@ -502,7 +482,7 @@ describe("useMatchWs piece events", () => {
     renderHook(() =>
       useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onPieceMoved }),
     );
-    const ws = FakeWS.instances[0];
+    const ws = flushConnect();
     act(() => { ws.onopen?.(); });
     act(() => {
       ws.emit("piece_moved", { pieceId: "p2", slot: { kind: "square", col: 0, row: 0 } });
@@ -521,7 +501,7 @@ describe("useMatchWs piece events", () => {
     renderHook(() =>
       useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onPieceMoved }),
     );
-    const ws = FakeWS.instances[0];
+    const ws = flushConnect();
     act(() => { ws.onopen?.(); });
     act(() => {
       ws.emit("piece_moved", { pieceId: "hex1", slot: { kind: "hex", q: 2, r: -3 } });
@@ -546,7 +526,7 @@ describe("useMatchWs piece events", () => {
     renderHook(() =>
       useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onPieceRemoved }),
     );
-    const ws = FakeWS.instances[0];
+    const ws = flushConnect();
     act(() => { ws.onopen?.(); });
     act(() => { ws.emit("piece_removed", { pieceId: "p1" }); });
     expect(onPieceRemoved).toHaveBeenCalledWith("p1");
@@ -563,7 +543,7 @@ describe("useMatchWs lobby message types", () => {
   it("does not warn on legitimate lobby broadcasts reused by the match socket", () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     renderHook(() => useMatchWs({ matchUuid: "m1", token: "t", isMaster: false }));
-    const ws = FakeWS.instances[0];
+    const ws = flushConnect();
     act(() => { ws.onopen?.(); });
     const ignored = [
       "room_state", "player_joined", "master_joined", "player_left",
@@ -577,7 +557,7 @@ describe("useMatchWs lobby message types", () => {
   it("still warns on a genuinely unknown type", () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     renderHook(() => useMatchWs({ matchUuid: "m1", token: "t", isMaster: false }));
-    const ws = FakeWS.instances[0];
+    const ws = flushConnect();
     act(() => { ws.onopen?.(); });
     act(() => { ws.emit("something_new", {}); });
     expect(warnSpy).toHaveBeenCalled();
@@ -592,7 +572,7 @@ describe("useMatchWs outgoing actions", () => {
     const { result } = renderHook(() =>
       useMatchWs({ matchUuid: "m1", token: "t", isMaster: false }),
     );
-    const ws = FakeWS.instances[0];
+    const ws = flushConnect();
     act(() => { ws.onopen?.(); });
     const payload = {
       targetId: ["char-1"],
@@ -615,7 +595,7 @@ describe("useMatchWs outgoing actions", () => {
     const { result } = renderHook(() =>
       useMatchWs({ matchUuid: "m1", token: "t", isMaster: false }),
     );
-    const ws = FakeWS.instances[0];
+    const ws = flushConnect();
     // Not open yet (still "connecting" in the fake — readyState defaults to OPEN=1 in
     // this fake, so force it closed to simulate a dropped/reconnecting socket).
     ws.readyState = 0;
@@ -634,7 +614,7 @@ describe("useMatchWs outgoing actions", () => {
     const { result } = renderHook(() =>
       useMatchWs({ matchUuid: "m1", token: "t", isMaster: true }),
     );
-    const ws = FakeWS.instances[0];
+    const ws = flushConnect();
     act(() => { ws.onopen?.(); });
     const payload = {
       targetIds: ["char-1", "char-2"],
@@ -655,7 +635,7 @@ describe("useMatchWs error handling", () => {
     const { result } = renderHook(() =>
       useMatchWs({ matchUuid: "m1", token: "t", isMaster: true, onWsError }),
     );
-    const ws = FakeWS.instances[0];
+    const ws = flushConnect();
     ws.onopen?.();
     act(() => { result.current.sendAction({ targetId: ["w1"] }); });
     ws.emit("error", { code: "invalid_action", message: "actorId is required" });
@@ -668,7 +648,7 @@ describe("useMatchWs error handling", () => {
 
   it("does not throw on an unknown message type", () => {
     renderHook(() => useMatchWs({ matchUuid: "m1", token: "t", isMaster: false }));
-    const ws = FakeWS.instances[0];
+    const ws = flushConnect();
     ws.onopen?.();
     expect(() => ws.emit("something_new", {})).not.toThrow();
   });
@@ -682,7 +662,7 @@ describe("useMatchWs combat", () => {
     renderHook(() =>
       useMatchWs({ matchUuid: "m1", token: "t", isMaster: true, onCombatMessage }),
     );
-    const ws = FakeWS.instances[0];
+    const ws = flushConnect();
     ws.onopen?.();
     ws.emit("bars_updated", { seq: 2, prices: {}, characters: [], order: [] });
     ws.emit("turn_opened", { turnId: "t1", actorId: "c1", actionId: "a1", actionType: "" });
@@ -697,7 +677,7 @@ describe("useMatchWs combat", () => {
     const { result } = renderHook(() =>
       useMatchWs({ matchUuid: "m1", token: "t", isMaster: true }),
     );
-    const ws = FakeWS.instances[0];
+    const ws = flushConnect();
     ws.onopen?.();
     act(() => {
       result.current.sendOpenNextAction();
@@ -712,5 +692,74 @@ describe("useMatchWs combat", () => {
     expect(sent[1].payload).toEqual({ actionId: "a1" });
     expect(sent[2].payload).toEqual({ confirm: true });
     expect(sent[3].payload).toEqual({ mode: "Race" });
+  });
+});
+
+// ─── Connection lifecycle ──────────────────────────────────────────────────
+
+describe("useMatchWs connection lifecycle", () => {
+  it("opens a single socket under StrictMode's mount → unmount → mount", () => {
+    renderHook(() => useMatchWs({ matchUuid: "m1", token: "t", isMaster: true }), {
+      wrapper: StrictMode,
+    });
+    flushConnect();
+    expect(FakeWS.instances).toHaveLength(1);
+  });
+
+  it("recycles a socket that opened but never received anything", () => {
+    const { result } = renderHook(() => useMatchWs({ matchUuid: "m1", token: "t", isMaster: true }));
+    const ws = flushConnect();
+    act(() => { ws.onopen?.(); });
+    act(() => { vi.advanceTimersByTime(4999); });
+    expect(ws.close).not.toHaveBeenCalled();
+    act(() => { vi.advanceTimersByTime(1); });
+    expect(ws.close).toHaveBeenCalledWith(4000, expect.any(String));
+
+    act(() => { ws.onclose?.({ code: 4000 } as CloseEvent); });
+    expect(result.current.status).toBe("connecting");
+    act(() => { vi.advanceTimersByTime(1000); });
+    expect(FakeWS.instances).toHaveLength(2);
+  });
+
+  it("keeps a live socket once any message arrives", () => {
+    renderHook(() => useMatchWs({ matchUuid: "m1", token: "t", isMaster: true }));
+    const ws = flushConnect();
+    act(() => { ws.onopen?.(); });
+    act(() => { ws.emit("room_state", {}); });
+    act(() => { vi.advanceTimersByTime(10_000); });
+    expect(ws.close).not.toHaveBeenCalled();
+  });
+
+  it("waits for the master while the room is not open, without giving up", () => {
+    const { result } = renderHook(() => useMatchWs({ matchUuid: "m1", token: "t", isMaster: false }));
+    for (let i = 0; i < 8; i++) {
+      const ws = i === 0 ? flushConnect() : FakeWS.instances[i];
+      act(() => { ws.onopen?.(); });
+      act(() => { ws.emit("lobby_not_open", {}); });
+      // The browser may report the TCP drop (1006) instead of the server's 4001.
+      act(() => { ws.onclose?.({ code: i % 2 ? 4001 : 1006 } as CloseEvent); });
+      expect(result.current.status).toBe("waiting");
+      act(() => { vi.advanceTimersByTime(5000); });
+    }
+    expect(FakeWS.instances).toHaveLength(9);
+
+    const ws = FakeWS.instances[8];
+    act(() => { ws.onopen?.(); });
+    expect(result.current.status).toBe("waiting");
+    act(() => { ws.emit("room_state", {}); });
+    expect(result.current.status).toBe("connected");
+  });
+
+  it("reconnect() opens a fresh socket after giving up", () => {
+    const { result } = renderHook(() => useMatchWs({ matchUuid: "m1", token: "t", isMaster: true }));
+    const ws = flushConnect();
+    act(() => { ws.onopen?.(); });
+    act(() => { ws.onclose?.({ code: 1000 } as CloseEvent); });
+    expect(result.current.status).toBe("disconnected");
+
+    act(() => { result.current.reconnect(); });
+    flushConnect(1);
+    expect(FakeWS.instances).toHaveLength(2);
+    expect(result.current.status).toBe("connecting");
   });
 });

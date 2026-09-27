@@ -2,36 +2,18 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 import { useMatchCombat } from "../useMatchCombat";
 import { loadGhosts } from "../actionDraft";
+import { flushConnect, installFakeWebSocket } from "../../../../test/fakeWebSocket";
 
 // Same fake socket used by useMatchWs.test.ts — the hook gates sends on
 // `ws.readyState === WebSocket.OPEN`.
-class FakeWS {
-  static instances: FakeWS[] = [];
-  static OPEN = 1;
-  onopen?: () => void;
-  onmessage?: (e: MessageEvent) => void;
-  onclose?: (e: CloseEvent) => void;
-  onerror?: () => void;
-  readyState = 1;
-  url: string;
-  constructor(url: string) {
-    this.url = url;
-    FakeWS.instances.push(this);
-  }
-  send = vi.fn();
-  close = vi.fn();
-  emit(type: string, payload: unknown) {
-    this.onmessage?.({ data: JSON.stringify({ type, payload }) } as MessageEvent);
-  }
-}
 
 beforeEach(() => {
-  FakeWS.instances = [];
   localStorage.clear();
-  vi.stubGlobal("WebSocket", FakeWS as unknown as typeof WebSocket);
-  vi.stubEnv("VITE_WS_URL", "ws://test");
+  installFakeWebSocket();
+  vi.useFakeTimers();
 });
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
 });
@@ -44,7 +26,7 @@ describe("useMatchCombat", () => {
         matchUuid: "m1", userUuid: "u1", token: "t", isMaster: false, onActionEnqueued,
       }),
     );
-    const ws = FakeWS.instances[0];
+    const ws = flushConnect();
     act(() => { ws.onopen?.(); });
 
     act(() => {
@@ -109,7 +91,7 @@ describe("useMatchCombat", () => {
     const { result } = renderHook(() =>
       useMatchCombat({ matchUuid: "m1", userUuid: "u1", token: "t", isMaster: false }),
     );
-    const ws = FakeWS.instances[0];
+    const ws = flushConnect();
     ws.readyState = 0; // reconectando — nunca chegou a abrir
     act(() => {
       result.current.send.enqueueAction({
@@ -132,7 +114,7 @@ describe("useMatchCombat", () => {
         matchUuid: "m1", userUuid: "u1", token: "t", isMaster: false, onActionEnqueued,
       }),
     );
-    const ws = FakeWS.instances[0];
+    const ws = flushConnect();
     act(() => { ws.onopen?.(); });
     act(() => {
       result.current.send.enqueueAction(
@@ -160,7 +142,7 @@ describe("useMatchCombat", () => {
         matchUuid: "m1", userUuid: "master-1", token: "t", isMaster: true, onActionEnqueued,
       }),
     );
-    const ws = FakeWS.instances[0];
+    const ws = flushConnect();
     act(() => { ws.onopen?.(); });
 
     act(() => {
@@ -199,7 +181,7 @@ describe("useMatchCombat", () => {
         onActionEnqueued, onActionRefused,
       }),
     );
-    const ws = FakeWS.instances[0];
+    const ws = flushConnect();
     act(() => { ws.onopen?.(); });
 
     act(() => {

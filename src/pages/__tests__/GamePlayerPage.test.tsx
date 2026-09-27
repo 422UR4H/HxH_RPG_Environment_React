@@ -1,12 +1,13 @@
 // src/pages/__tests__/GamePlayerPage.test.tsx
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { http, HttpResponse } from "msw";
-import { act, screen, waitFor } from "@testing-library/react";
+import { act, screen, waitFor, within } from "@testing-library/react";
 import { server } from "../../test/server";
 import { renderWithProviders } from "../../test/render";
 import { matchApiFixture } from "../../test/fixtures/match";
 import { mapApiFixture } from "../../test/fixtures/map";
 import GamePlayerPage from "../GamePlayerPage";
+import { installFakeWebSocket, waitForSocket } from "../../test/fakeWebSocket";
 
 const baseUrl = "http://localhost:5000";
 
@@ -66,25 +67,6 @@ vi.mock("../../hooks/useResizeObserver", () => ({
 
 // Same fake socket as useMatchCombat.test.ts/useMatchWs.test.ts — the hook gates sends on
 // `ws.readyState === WebSocket.OPEN`.
-class FakeWS {
-  static instances: FakeWS[] = [];
-  static OPEN = 1;
-  onopen?: () => void;
-  onmessage?: (e: MessageEvent) => void;
-  onclose?: (e: CloseEvent) => void;
-  onerror?: () => void;
-  readyState = 1;
-  url: string;
-  constructor(url: string) {
-    this.url = url;
-    FakeWS.instances.push(this);
-  }
-  send = vi.fn();
-  close = vi.fn();
-  emit(type: string, payload: unknown) {
-    this.onmessage?.({ data: JSON.stringify({ type, payload }) } as MessageEvent);
-  }
-}
 
 const participantsFixture = [
   {
@@ -139,9 +121,7 @@ function renderPlayerPage() {
 }
 
 beforeEach(() => {
-  FakeWS.instances = [];
-  vi.stubGlobal("WebSocket", FakeWS as unknown as typeof WebSocket);
-  vi.stubEnv("VITE_WS_URL", "ws://test");
+  installFakeWebSocket();
 
   server.use(
     http.get(`${baseUrl}/matches/:id`, () => HttpResponse.json({ match: matchApiFixture })),
@@ -171,7 +151,7 @@ afterEach(() => {
 describe("GamePlayerPage", () => {
   it("mostra o erro do servidor em vez de engoli-lo", async () => {
     renderPlayerPage();
-    const ws = FakeWS.instances[0];
+    const ws = await waitForSocket();
     act(() => ws.onopen?.());
     act(() => ws.emit("error", { code: "forbidden", message: "only the master can perform this action" }));
     expect(await screen.findByRole("alert")).toHaveTextContent(/só o mestre/i);
@@ -182,7 +162,7 @@ describe("GamePlayerPage", () => {
     // Espera participants (React Query) resolver, para nameOf("c1") já enxergar "Gon" —
     // senão o primeiro bars_updated chega antes do fetch, e a linha nasce com o id cru.
     await screen.findByText("Gon");
-    const ws = FakeWS.instances[0];
+    const ws = await waitForSocket();
     act(() => ws.onopen?.());
     act(() =>
       ws.emit("bars_updated", {
@@ -205,7 +185,7 @@ describe("GamePlayerPage", () => {
   it("bars_updated com order/characters/prices null não derruba a página (R33)", async () => {
     renderPlayerPage();
     await screen.findByText("Gon");
-    const ws = FakeWS.instances[0];
+    const ws = await waitForSocket();
     act(() => ws.onopen?.());
     act(() =>
       ws.emit("bars_updated", {
@@ -224,7 +204,7 @@ describe("GamePlayerPage", () => {
 
   it("clica numa peça e Declarar manda enqueue_action com meu ator e o alvo clicado", async () => {
     renderPlayerPage();
-    const ws = FakeWS.instances[0];
+    const ws = await waitForSocket();
     act(() => ws.onopen?.());
     act(() =>
       ws.emit("map_full_state", {
@@ -258,7 +238,7 @@ describe("GamePlayerPage", () => {
   // warn em DEV e o tabuleiro nunca se mexia sozinho.
   it("piece_moved move a peça renderizada; um pieceId novo entra no tabuleiro (F3)", async () => {
     renderPlayerPage();
-    const ws = FakeWS.instances[0];
+    const ws = await waitForSocket();
     act(() => ws.onopen?.());
     act(() =>
       ws.emit("map_full_state", {
@@ -318,7 +298,7 @@ describe("GamePlayerPage", () => {
   // exercitar o FIFO de pendingSends que carrega essa metadata.
   it("rascunho persiste no localStorage e some quando o PRÓPRIO envio é confirmado (action_enqueued)", async () => {
     renderPlayerPage();
-    const ws = FakeWS.instances[0];
+    const ws = await waitForSocket();
     act(() => ws.onopen?.());
     act(() =>
       ws.emit("map_full_state", {
@@ -354,7 +334,7 @@ describe("GamePlayerPage", () => {
   // e preserva alvo/arma, que continuam válidos.
   it("recusa do servidor ao Declarar derruba só o destino do rascunho, mantém o alvo (F2)", async () => {
     renderPlayerPage();
-    const ws = FakeWS.instances[0];
+    const ws = await waitForSocket();
     act(() => ws.onopen?.());
     act(() =>
       ws.emit("map_full_state", {
@@ -398,7 +378,7 @@ describe("GamePlayerPage", () => {
   // jogador, e clearsDraft: false (não deve apagar um rascunho do composer em voo, R28).
   it("clica numa parede e Abrir manda enqueue_action com meu actorId, sem apagar o rascunho do composer", async () => {
     renderPlayerPage();
-    const ws = FakeWS.instances[0];
+    const ws = await waitForSocket();
     act(() => ws.onopen?.());
     act(() =>
       ws.emit("map_full_state", {
@@ -451,7 +431,7 @@ describe("GamePlayerPage", () => {
   // não está "connected" — enfileirar ali seria descartado em silêncio por sendRaw.
   it("Declarar fica desabilitado enquanto o socket não está conectado", async () => {
     renderPlayerPage();
-    const ws = FakeWS.instances[0];
+    const ws = await waitForSocket();
     // Sem chamar ws.onopen(): status continua "connecting", nunca "connected".
     act(() =>
       ws.emit("map_full_state", {
@@ -466,6 +446,8 @@ describe("GamePlayerPage", () => {
     );
     const targetButton = await screen.findByTestId("select-actor-c2");
     act(() => targetButton.click());
+    // O socket caiu de vez (fechamento normal): nada de reconexão, Declarar trava.
+    act(() => ws.onclose?.({ code: 1000 } as CloseEvent));
 
     const declareButton = await screen.findByRole("button", { name: /declarar/i });
     expect(declareButton).toBeDisabled();
@@ -475,7 +457,7 @@ describe("GamePlayerPage", () => {
   // do primeiro envio, enfileirando a mesma ação duas vezes.
   it("Declarar fica desabilitado enquanto o meu próprio envio ainda não teve ack", async () => {
     renderPlayerPage();
-    const ws = FakeWS.instances[0];
+    const ws = await waitForSocket();
     act(() => ws.onopen?.());
     act(() =>
       ws.emit("map_full_state", {
@@ -519,7 +501,7 @@ describe("GamePlayerPage", () => {
   // no canvas dele (após o fog do servidor) mais o próprio personagem, mesmo sem peça.
   it("Personagens do jogador esconde quem o fog não mostra (F6)", async () => {
     renderPlayerPage();
-    const ws = FakeWS.instances[0];
+    const ws = await waitForSocket();
     act(() => ws.onopen?.());
     // Só a peça do próprio personagem (c1/Gon) chega — c2/Killua nunca teve peça
     // projetada para este jogador (fog escondeu).
@@ -538,8 +520,9 @@ describe("GamePlayerPage", () => {
     act(() => toggle.click());
     act(() => screen.getByRole("button", { name: "Personagens" }).click());
 
-    expect(await screen.findByText("Gon")).toBeInTheDocument();
-    expect(screen.queryByText("Killua")).not.toBeInTheDocument();
+    const aside = screen.getByTestId("match-aside");
+    expect(await within(aside).findByText("Gon")).toBeInTheDocument();
+    expect(within(aside).queryByText("Killua")).not.toBeInTheDocument();
 
     // Assim que a peça de Killua entra em campo de visão (piece_moved, F3), ele passa a
     // aparecer — a lista segue o que o mapa realmente projeta, não um snapshot.
@@ -552,7 +535,7 @@ describe("GamePlayerPage", () => {
         z: 0,
       }),
     );
-    expect(await screen.findByText("Killua")).toBeInTheDocument();
+    expect(await within(aside).findByText("Killua")).toBeInTheDocument();
   });
 
   it("o aside abre em Histórico (padrão) e o rail só tem Ação", async () => {

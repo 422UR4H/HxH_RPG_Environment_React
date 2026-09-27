@@ -7,6 +7,7 @@ import type { RoundMode, ScenePayload } from "./combatMessages";
 const STATUS_LABELS: Record<MatchWsStatus, string> = {
   connecting: "Conectando…",
   connected: "Conectado",
+  waiting: "Aguardando o mestre abrir a sala…",
   disconnected: "Desconectado",
 };
 

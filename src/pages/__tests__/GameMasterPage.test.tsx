@@ -8,6 +8,7 @@ import { matchApiFixture } from "../../test/fixtures/match";
 import { mapWithPiecesApi } from "../../test/fixtures/map";
 import { campaignWithNpcsApi, npcFixture } from "../../test/fixtures/campaign";
 import GameMasterPage from "../GameMasterPage";
+import { installFakeWebSocket, waitForSocket } from "../../test/fakeWebSocket";
 
 const baseUrl = "http://localhost:5000";
 
@@ -56,25 +57,6 @@ vi.mock("../../hooks/useResizeObserver", () => ({
 }));
 
 // Mesmo socket falso de GamePlayerPage.test.tsx/useMatchCombat.test.ts.
-class FakeWS {
-  static instances: FakeWS[] = [];
-  static OPEN = 1;
-  onopen?: () => void;
-  onmessage?: (e: MessageEvent) => void;
-  onclose?: (e: CloseEvent) => void;
-  onerror?: () => void;
-  readyState = 1;
-  url: string;
-  constructor(url: string) {
-    this.url = url;
-    FakeWS.instances.push(this);
-  }
-  send = vi.fn();
-  close = vi.fn();
-  emit(type: string, payload: unknown) {
-    this.onmessage?.({ data: JSON.stringify({ type, payload }) } as MessageEvent);
-  }
-}
 
 const participantsFixture = [
   {
@@ -151,9 +133,7 @@ function renderMasterPage() {
 }
 
 beforeEach(() => {
-  FakeWS.instances = [];
-  vi.stubGlobal("WebSocket", FakeWS as unknown as typeof WebSocket);
-  vi.stubEnv("VITE_WS_URL", "ws://test");
+  installFakeWebSocket();
 
   server.use(
     http.get(`${baseUrl}/matches/:id`, () => HttpResponse.json({ match: matchApiFixture })),
@@ -183,7 +163,7 @@ afterEach(() => {
 describe("GameMasterPage", () => {
   it("abre a próxima ação e antecipa uma da fila", async () => {
     renderMasterPage();
-    const ws = FakeWS.instances[0];
+    const ws = await waitForSocket();
     act(() => ws.onopen?.());
     act(() => ws.emit("action_queued", { actionId: "a1", actorId: "c1", bars: ["action"] }));
     act(() => screen.getByRole("button", { name: /antecipar/i }).click());
@@ -194,7 +174,7 @@ describe("GameMasterPage", () => {
 
   it("mostra o diálogo que o servidor computou e reenvia com confirm", async () => {
     renderMasterPage();
-    const ws = FakeWS.instances[0];
+    const ws = await waitForSocket();
     act(() => ws.onopen?.());
     act(() =>
       ws.emit("close_turn_refused", {
@@ -210,7 +190,7 @@ describe("GameMasterPage", () => {
 
   it("compõe ação por um NPC com enqueue_action, não com enqueue_master_action", async () => {
     renderMasterPage();
-    const ws = FakeWS.instances[0];
+    const ws = await waitForSocket();
     act(() => ws.onopen?.());
 
     const actorButton = await screen.findByTestId("select-actor-npc1");
@@ -264,7 +244,7 @@ describe("GameMasterPage", () => {
     renderWithProviders(
       <GameMasterPage token="fake-jwt-token" matchId="match-1" campaignId="campaign-1" />,
     );
-    const ws = FakeWS.instances[FakeWS.instances.length - 1];
+    const ws = await waitForSocket();
     act(() => ws.onopen?.());
 
     const toggle = await screen.findByRole("button", { name: "Ver histórico" });
@@ -278,7 +258,7 @@ describe("GameMasterPage", () => {
 
   it("inspeciona (não vira ator) quem o mestre não controla e nada envia", async () => {
     renderMasterPage();
-    const ws = FakeWS.instances[0];
+    const ws = await waitForSocket();
     act(() => ws.onopen?.());
 
     const pcButton = await screen.findByTestId("select-actor-c1");
@@ -305,7 +285,7 @@ describe("GameMasterPage", () => {
   // virar ator; depois de virar, o anel de seleção (não mais inspeção) segue a peça dele.
   it("sem ator: onPieceLongPress/onEmptySlotClick não vão pro viewer; com ator, o anel de seleção segue a peça (F7)", async () => {
     renderMasterPage();
-    const ws = FakeWS.instances[0];
+    const ws = await waitForSocket();
     act(() => ws.onopen?.());
 
     let mapStub = await screen.findByTestId("map-stub");
@@ -333,7 +313,7 @@ describe("GameMasterPage", () => {
       ),
     );
     renderMasterPage();
-    const ws = FakeWS.instances[0];
+    const ws = await waitForSocket();
     act(() => ws.onopen?.());
 
     act(() => screen.getByRole("button", { name: "Fichas" }).click());
@@ -369,7 +349,7 @@ describe("GameMasterPage", () => {
     renderWithProviders(
       <GameMasterPage token="fake-jwt-token" matchId="match-1" campaignId="campaign-1" />,
     );
-    const ws = FakeWS.instances[FakeWS.instances.length - 1];
+    const ws = await waitForSocket();
     act(() => ws.onopen?.());
 
     const mapNpcButton = await screen.findByTestId("select-actor-map-npc-1");
