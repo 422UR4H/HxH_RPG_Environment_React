@@ -47,7 +47,11 @@ function FogLayerInner({ fog, worldWidth, worldHeight }: InnerProps) {
   });
 
   return (
-    <pixiContainer label="fog-layer" ref={containerRef}>
+    // F1: eventMode="none" — without it, Pixi 8 hit-tests this full-world Graphics
+    // through the viewport's own eventMode="static", and it wins the hit inside the lit
+    // area (the inverse stencil mask only affects drawing, never containsPoint), eating
+    // every click on a piece or empty slot that lands within line of sight.
+    <pixiContainer label="fog-layer" ref={containerRef} eventMode="none">
       <pixiGraphics draw={draw} />
       <pixiGraphics draw={drawMask} label="fog-los-mask" ref={maskRef} />
     </pixiContainer>

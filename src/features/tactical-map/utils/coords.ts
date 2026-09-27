@@ -142,6 +142,19 @@ export function slotInradius(grid: GridShape): number {
   return grid.kind === "square" ? grid.cellSize / 2 : (grid.cellSize * Math.sqrt(3)) / 2;
 }
 
+// Converts a stack-cascade offset (§7.2 — dx/dy as a FRACTION of the inradius,
+// from `stackOffsets`) to px, scaled to this grid's cell size. `PieceSprite`
+// (its container position) and `PiecesLayer`'s hold-progress ring both call
+// this — one conversion, so the ring drawn over a stacked piece can never
+// drift from the token itself.
+export function stackOffsetToPx(
+  offset: { dx: number; dy: number } | undefined,
+  grid: GridShape,
+): XY {
+  const inradius = slotInradius(grid);
+  return { x: (offset?.dx ?? 0) * inradius, y: (offset?.dy ?? 0) * inradius };
+}
+
 // Local-space anchor point for an edit handle, derived from the grid bounds.
 // Shared by the handle rendering and the drag math so they always agree.
 export function gridHandleLocal(handle: string, grid: GridShape): XY {

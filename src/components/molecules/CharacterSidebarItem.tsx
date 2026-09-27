@@ -62,6 +62,7 @@ export default function CharacterSidebarItem({
 
   return (
     <ItemContainer
+      data-testid={`character-row-${character.uuid}`}
       $isDead={isDead}
       $isPending={isPending}
       $isNpc={isNpc}

@@ -8,6 +8,19 @@ import type { CharacterClass } from "../types/characterClass";
 import config from "./config";
 import { lowercaseFirstKeys } from "../utils/lowercaseFirstKeys";
 
+export type CatalogueWeapon = {
+  name: string;
+  dice: number[];
+  flatDamage: number;
+  defenseBonus: number;
+  proficiencyLevel: number;
+};
+
+export type CombatCatalogue = {
+  weapons: CatalogueWeapon[];
+  skills: string[];
+};
+
 // CharacterSheet fields whose map KEYS are Go enum String() values
 // (PascalCase, e.g. "Resistance") rather than struct field names — the
 // backend's camelCase migration never touched them. See
@@ -28,6 +41,14 @@ function normalizeSheetEnumKeyedMaps(sheet: CharacterSheet): CharacterSheet {
     categories: lowercaseFirstKeys(sheet.categories),
     commonProficiencies: lowercaseFirstKeys(sheet.commonProficiencies),
   };
+}
+
+export async function getCombatCatalogue(token: string, uuid: string): Promise<CombatCatalogue> {
+  const { data } = await httpClient.get<CombatCatalogue>(
+    `/charactersheets/${uuid}/combat-catalogue`,
+    config(token)
+  );
+  return data;
 }
 
 export const characterSheetsService = {

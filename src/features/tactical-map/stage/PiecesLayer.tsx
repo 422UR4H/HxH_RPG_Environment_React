@@ -7,31 +7,57 @@ import type { Viewport } from "pixi-viewport";
 import type { TacticalMap, SlotCoord } from "../../../types/tacticalMap";
 import type { CharacterPrivateSummary } from "../../../types/characterSheet";
 import type { Selection } from "../store/editorStore";
-import { worldToSlot, isSlotInBounds, slotCorners, isSameSlot } from "../utils/coords";
+import { worldToSlot, isSlotInBounds, slotCorners, isSameSlot, slotToWorld, slotInradius, stackOffsetToPx } from "../utils/coords";
+import { createHoldTracker, createRightPressTracker, shouldSelectOnRelease, HOLD_MS } from "../hooks/useHoldGesture";
+import { stackOffsets } from "../utils/stacking";
+import { colors } from "../../../styles/tokens";
 import PieceSprite from "./PieceSprite";
+
+const HOLD_PROGRESS_COLOR = parseInt(colors.warningText.replace("#", ""), 16);
 
 // No containerRef: piece position is driven by React state (dragWorldPos) to
 // avoid @pixi/react reconciler overwriting imperative position.set() calls.
+//
+// `draggable`: false when the piece isn't in `draggablePieceIds` (game mode —
+// the server moves the piece, not the client) or when the press started with a
+// non-primary button (right-click shortcut). handleMoveDOM only enters the drag
+// branch when this is true, so the piece still resolves click/hold while staying
+// visually still.
+//
+// `rightClick`: true when the pointerdown that started this gesture was a
+// non-primary button. A right-button release NEVER produces a click (R20) —
+// handleUp/handleWindowUp check this flag and return before onPieceSelect,
+// regardless of event ordering between pointerup and contextmenu.
 type PieceLocalDragState = {
   pieceId: string;
   startScreen: { x: number; y: number };
   isDragging: boolean;
   currentSlot: SlotCoord | null;
+  draggable: boolean;
+  rightClick: boolean;
 } | null;
 
 export default function PiecesLayer({
-  map, vpRef, piecesInteractive, draggablePieceIds, selection, npcMap, pieceDragActiveRef,
-  onPieceSelect, onPieceMove, onPieceDragToRoster, onPieceDragStart, onPieceDragEnd, onStageDeselect,
+  map, vpRef, piecesInteractive, draggablePieceIds, suppressPanOnPiecePress, selection,
+  npcMap, pieceDragActiveRef,
+  onPieceSelect, onPieceLongPress, selectedPieceId, inspectedPieceId, targetPieceIds,
+  onPieceMove, onPieceDragToRoster, onPieceDragStart, onPieceDragEnd, onStageDeselect,
   onEmptySlotClick,
 }: {
   map: TacticalMap;
   vpRef: React.MutableRefObject<Viewport | null>;
   piecesInteractive?: boolean;
   draggablePieceIds?: Set<string>;
+  // See stageProps.ts's doc comment — game-only, explicit opt-in.
+  suppressPanOnPiecePress?: boolean;
   selection?: Selection;
   npcMap?: Map<string, CharacterPrivateSummary>;
   pieceDragActiveRef: React.MutableRefObject<boolean>;
   onPieceSelect?: (pieceId: string) => void;
+  onPieceLongPress?: (pieceId: string) => void;
+  selectedPieceId?: string | null;
+  inspectedPieceId?: string | null;
+  targetPieceIds?: Set<string>;
   onPieceMove?: (pieceId: string, slot: SlotCoord) => void;
   onPieceDragToRoster?: (pieceId: string) => void;
   onPieceDragStart?: (pieceId: string, npc: CharacterPrivateSummary | undefined) => void;
@@ -43,6 +69,52 @@ export default function PiecesLayer({
   const localDrag = useRef<PieceLocalDragState>(null);
   const [draggingPieceId, setDraggingPieceId] = useState<string | null>(null);
   const [hoverSlot, setHoverSlot] = useState<SlotCoord | null>(null);
+
+  // Kept in a ref like the rest of this file's callbacks (see handleMoveDOM/
+  // handleUp closures below) — the effect that owns the window listeners
+  // doesn't need to re-subscribe when the consumer passes a new function
+  // identity each render.
+  const onPieceLongPressRef = useRef(onPieceLongPress);
+  useEffect(() => { onPieceLongPressRef.current = onPieceLongPress; }, [onPieceLongPress]);
+
+  // R19: only start the tracker when onPieceLongPress is provided. The lobby/map
+  // editor (TacticalMapEditor, TacticalMapPlacer) never passes it — a 450ms
+  // press-and-release there must stay a plain click, not get swallowed by hold
+  // bookkeeping.
+  const holdRef = useRef(createHoldTracker({ onHold: (id) => onPieceLongPressRef.current?.(id) }));
+
+  // R20: the right-click shortcut's own bookkeeping, independent from holdRef.
+  // See useHoldGesture.ts's doc comment on createRightPressTracker for why this
+  // exists (contextmenu vs pointerup ordering differs Windows vs Linux/macOS).
+  const rightPressTrackerRef = useRef(createRightPressTracker());
+
+  // Hold-progress ring: the arc grows from 120ms to HOLD_MS around the piece
+  // currently in localDrag. Without this the gesture reads as a stall.
+  const [holdProgress, setHoldProgress] = useState<{ pieceId: string; ratio: number } | null>(null);
+  const holdRafRef = useRef<number | null>(null);
+  const stopHoldProgress = useCallback(() => {
+    if (holdRafRef.current != null) cancelAnimationFrame(holdRafRef.current);
+    holdRafRef.current = null;
+    setHoldProgress(null);
+  }, []);
+  const startHoldProgress = useCallback((pieceId: string) => {
+    const startedAt = performance.now();
+    const HOLD_PROGRESS_START_MS = 120;
+    const tick = () => {
+      const drag = localDrag.current;
+      if (!drag || drag.pieceId !== pieceId) { stopHoldProgress(); return; }
+      const elapsed = performance.now() - startedAt;
+      if (elapsed < HOLD_PROGRESS_START_MS) {
+        holdRafRef.current = requestAnimationFrame(tick);
+        return;
+      }
+      const ratio = Math.min(1, (elapsed - HOLD_PROGRESS_START_MS) / (HOLD_MS - HOLD_PROGRESS_START_MS));
+      setHoldProgress({ pieceId, ratio });
+      if (ratio < 1) holdRafRef.current = requestAnimationFrame(tick);
+      else holdRafRef.current = null;
+    };
+    holdRafRef.current = requestAnimationFrame(tick);
+  }, [stopHoldProgress]);
 
   // Tracks a pending empty-slot click for click-vs-drag discrimination.
   // Set on pointerdown; resolved on pointerup only if movement < threshold.
@@ -67,10 +139,19 @@ export default function PiecesLayer({
       if (!rect) return;
       const stageX = e.clientX - rect.left;
       const stageY = e.clientY - rect.top;
+      holdRef.current.move(stageX, stageY);
+      // Game mode (draggable: false): the piece never moves locally — the
+      // server is the only one that decides where it ends up (I1). Click and
+      // hold still resolve on pointerup below; only the drag branch is gated.
+      if (!drag.draggable) return;
       const dx = stageX - drag.startScreen.x;
       const dy = stageY - drag.startScreen.y;
       if (!drag.isDragging && Math.hypot(dx, dy) > 4) {
         drag.isDragging = true;
+        // A real drag and a hold are mutually exclusive — once the piece is
+        // actually moving, cancel the timer so it can't fire mid-drag.
+        holdRef.current.cancel();
+        stopHoldProgress();
         setDraggingPieceId(drag.pieceId);
         const pieceData = map.pieces.find((p) => p.id === drag.pieceId);
         const npc = pieceData ? npcMap?.get(pieceData.characterId) : undefined;
@@ -91,8 +172,23 @@ export default function PiecesLayer({
       setDraggingPieceId(null);
       onPieceDragEnd?.();
       setHoverSlot(null);
+      stopHoldProgress();
+      // R20: a right-button release is never a click — its outcome is resolved
+      // by handleContextMenu's `contextmenu()` call, whichever order the browser
+      // delivers pointerup/contextmenu in.
+      if (drag.rightClick) {
+        rightPressTrackerRef.current.release();
+        return;
+      }
       if (!drag.isDragging) {
-        onPieceSelect?.(drag.pieceId);
+        const outcome = holdRef.current.end();
+        // Final review, Important 1: com onPieceLongPress (jogo), "none" (o hold foi
+        // cancelado por movimento > 6px, um pan de raspão) não é mais tratado como
+        // clique — ver shouldSelectOnRelease. Sem onPieceLongPress (lobby, R19) o
+        // tracker nunca arma e isto sempre seleciona, como antes.
+        if (shouldSelectOnRelease(outcome, !!onPieceLongPressRef.current)) {
+          onPieceSelect?.(drag.pieceId);
+        }
         return;
       }
       const { width: cw, height: ch } = app.screen;
@@ -120,14 +216,28 @@ export default function PiecesLayer({
       setDraggingPieceId(null);
       onPieceDragEnd?.();
       setHoverSlot(null);
-      if (e.type === "pointercancel") return;
+      stopHoldProgress();
+      if (e.type === "pointercancel") {
+        holdRef.current.cancel();
+        rightPressTrackerRef.current.reset();
+        return;
+      }
+      // R20: a right-button release is never a click — see handleUp above.
+      if (drag.rightClick) {
+        rightPressTrackerRef.current.release();
+        return;
+      }
       const rect = (app?.renderer ? app.canvas : null)?.getBoundingClientRect();
       const overCanvas =
         !!rect &&
         e.clientX >= rect.left && e.clientX <= rect.right &&
         e.clientY >= rect.top  && e.clientY <= rect.bottom;
       if (!drag.isDragging) {
-        if (overCanvas) onPieceSelect?.(drag.pieceId);
+        const outcome = holdRef.current.end();
+        // Final review, Important 1 (mirrors handleUp above).
+        if (overCanvas && shouldSelectOnRelease(outcome, !!onPieceLongPressRef.current)) {
+          onPieceSelect?.(drag.pieceId);
+        }
         return;
       }
       if (!overCanvas) {
@@ -145,11 +255,44 @@ export default function PiecesLayer({
       }
     };
 
+    // Right-click shortcut for the hold gesture (§7.1): suppresses the browser's
+    // native context menu over the canvas. R20 (supersedes R5's fireNow use here):
+    // the outcome is resolved through rightPressTrackerRef, not the hold tracker —
+    // fireNow/end()==="hold" assumed contextmenu always fires before pointerup,
+    // which is false on Windows (contextmenu fires after). rightPressTrackerRef
+    // resolves correctly regardless of that order; see its doc comment.
+    // R19: gated on onPieceLongPress being provided at all — the lobby/map
+    // editor never passes it, so its right-click behavior (whatever it was)
+    // stays untouched.
+    const handleContextMenu = (e: MouseEvent) => {
+      if (!onPieceLongPressRef.current) return;
+      e.preventDefault();
+      const id = rightPressTrackerRef.current.contextmenu();
+      if (id) onPieceLongPressRef.current(id);
+    };
+    const canvas = app?.renderer ? app.canvas : null;
+
+    // M7 (spec §7.1): losing window focus mid-gesture (alt-tab, a native dialog, DevTools
+    // grabbing focus) never delivers pointerup/pointercancel for the press in progress —
+    // without this, the hold ring and localDrag state get stuck forever, and a stale
+    // rightPressTracker id could resolve a much later, unrelated contextmenu.
+    const handleBlur = () => {
+      localDrag.current = null;
+      setDraggingPieceId(null);
+      onPieceDragEnd?.();
+      setHoverSlot(null);
+      stopHoldProgress();
+      holdRef.current.cancel();
+      rightPressTrackerRef.current.reset();
+    };
+
     stage.on("pointerup", handleUp);
     stage.on("pointerupoutside", handleUp);
     window.addEventListener("pointermove", handleMoveDOM);
     window.addEventListener("pointerup", handleWindowUp);
     window.addEventListener("pointercancel", handleWindowUp);
+    window.addEventListener("blur", handleBlur);
+    canvas?.addEventListener("contextmenu", handleContextMenu);
 
     return () => {
       stage.off("pointerup", handleUp);
@@ -157,8 +300,10 @@ export default function PiecesLayer({
       window.removeEventListener("pointermove", handleMoveDOM);
       window.removeEventListener("pointerup", handleWindowUp);
       window.removeEventListener("pointercancel", handleWindowUp);
+      window.removeEventListener("blur", handleBlur);
+      canvas?.removeEventListener("contextmenu", handleContextMenu);
     };
-  }, [app, vpRef, map.grid, map.pieces, piecesInteractive, onPieceSelect, onPieceMove, onPieceDragToRoster, onPieceDragStart, onPieceDragEnd]);
+  }, [app, vpRef, map.grid, map.pieces, piecesInteractive, onPieceSelect, onPieceMove, onPieceDragToRoster, onPieceDragStart, onPieceDragEnd, stopHoldProgress]);
 
   // Resolve empty-slot click on pointerup: fires onEmptySlotClick only if the
   // pointer moved less than CLICK_THRESHOLD pixels since pointerdown (i.e. it was
@@ -220,6 +365,51 @@ export default function PiecesLayer({
     [map.pieces, draggingPieceId],
   );
 
+  // Cascade (§7.2): pieces sharing a slot are drawn offset and, past the first,
+  // carry a ×N badge on the top one. topPieceId is the selected piece — the one
+  // the player is aiming with needs to be visible, on top of its stack.
+  const stacks = useMemo(
+    () => stackOffsets(visiblePieces, selectedPieceId ?? undefined),
+    [visiblePieces, selectedPieceId],
+  );
+
+  // Render in index order within each group so the top piece (highest index)
+  // paints last and sits visually above its stack-mates. Sorting globally by
+  // index is enough: groups never overlap each other, only within themselves.
+  const orderedPieces = useMemo(
+    () => [...visiblePieces].sort((a, b) => (stacks.get(a.id)?.index ?? 0) - (stacks.get(b.id)?.index ?? 0)),
+    [visiblePieces, stacks],
+  );
+
+  // Hold-progress arc: closes clockwise from 0 to 2π as holdProgress.ratio goes
+  // 0→1 (i.e. from 120ms to HOLD_MS after pointerdown). Drawn as one shared
+  // graphics rather than per-PieceSprite, since at most one piece is ever mid-hold.
+  //
+  // The arc must be centered on the same point PieceSprite actually draws the
+  // token at — slot center PLUS the stack-cascade offset (§7.2) PLUS the z
+  // "height" offset — or it floats away from a stacked piece's real position.
+  // stackOffsetToPx is the shared conversion PieceSprite's own container
+  // position uses, so the two can't drift apart.
+  const drawHoldProgress = useCallback(
+    (g: PixiGraphics) => {
+      g.clear();
+      if (!holdProgress) return;
+      const piece = map.pieces.find((p) => p.id === holdProgress.pieceId);
+      if (!piece) return;
+      const center = slotToWorld(piece.coord.slot, map.grid);
+      const stackPx = stackOffsetToPx(stacks.get(piece.id), map.grid);
+      const tokenRadius = slotInradius(map.grid) * 0.9;
+      const zOffsetPx = piece.coord.z * 10;
+      const radius = tokenRadius + 16;
+      const startAngle = -Math.PI / 2;
+      const endAngle = startAngle + Math.PI * 2 * holdProgress.ratio;
+      g.setStrokeStyle({ color: HOLD_PROGRESS_COLOR, width: 3, alpha: 0.9 });
+      g.arc(center.x + stackPx.x, center.y + stackPx.y - zOffsetPx, radius, startAngle, endAngle);
+      g.stroke();
+    },
+    [holdProgress, map.pieces, map.grid, stacks],
+  );
+
   return (
     <pixiContainer
       label="pieces-layer"
@@ -245,28 +435,77 @@ export default function PiecesLayer({
       }}
     >
       <pixiGraphics draw={drawHoverSlot} />
-      {visiblePieces.map((p) => (
+      {/* F1 batch 2 (minor): the hold-progress ring reaches tokenRadius+16 — same class of
+          bug as the per-piece selection/target rings (now hitArea-clamped in PieceSprite),
+          just drawn at the layer level instead. eventMode="none" so it never steals a hit
+          from a piece or wall underneath its arc. */}
+      <pixiGraphics draw={drawHoldProgress} eventMode="none" />
+      {orderedPieces.map((p) => {
+        const stack = stacks.get(p.id);
+        return (
         <PieceSprite
           key={p.id}
           piece={p}
           grid={map.grid}
           npc={npcMap?.get(p.characterId)}
-          isSelected={selection?.kind === "piece" && selection.id === p.id}
+          isSelected={(selection?.kind === "piece" && selection.id === p.id) || selectedPieceId === p.id}
+          isInspected={inspectedPieceId === p.id}
+          isTarget={!!targetPieceIds?.has(p.id)}
+          offset={stack ? { dx: stack.dx, dy: stack.dy } : undefined}
+          stackCount={stack?.count}
+          isTopOfStack={stack ? stack.index === stack.count - 1 : undefined}
           piecesInteractive={piecesInteractive}
           onPointerDown={(_piece, e) => {
             if (!piecesInteractive || localDrag.current) return;
-            if (draggablePieceIds !== undefined && !draggablePieceIds.has(p.id)) return;
-            pieceDragActiveRef.current = true;
+            // R20: every pointerdown (any button) clears whatever right-press
+            // bookkeeping is left over — a right-press that never got a matching
+            // contextmenu must not leak its id into a later, unrelated one.
+            rightPressTrackerRef.current.reset();
+            // Right-click never starts a drag (R19) — its outcome is resolved by
+            // rightPressTrackerRef via the `contextmenu` event below, independent
+            // of whether contextmenu or pointerup arrives first (R20). localDrag
+            // is still recorded (draggable: false) so handleUp/handleWindowUp
+            // know to skip onPieceSelect for this press.
+            const rightClick = e.button !== 0;
+            const draggable = !rightClick && (draggablePieceIds === undefined || draggablePieceIds.has(p.id));
+            // R19: only arm the tracker when the caller opted into the gesture.
+            // Starting it unconditionally would mean a plain, slightly slow
+            // click in the lobby (no onPieceLongPress) crosses HOLD_MS, marks
+            // `fired`, and gets silently swallowed by the "hold" outcome below.
+            if (onPieceLongPress) {
+              if (rightClick) {
+                rightPressTrackerRef.current.press(p.id);
+              } else {
+                holdRef.current.start(p.id, e.global.x, e.global.y);
+                startHoldProgress(p.id);
+              }
+            }
+            // F1 secondary (amended, browser batch 2): in game mode every piece has
+            // draggable:false (the server decides where it lands, I1), so this used to
+            // fall through to `draggable` (false) and let ViewportInner's window
+            // pointerdown start a pan on top of the press — the drift then cancelled the
+            // hold gesture. `suppressPanOnPiecePress` is an explicit, game-only prop
+            // (only GamePlayerPage/GameMasterPage pass it) — NOT inferred from
+            // onPieceLongPress/onPieceSelect. The lobby editor DOES wire onPieceSelect,
+            // and a lobby player's draggablePieceIds holds only their own pieces, so
+            // inferring this from either prop suppressed drag-to-pan when a player
+            // pressed someone ELSE's (non-draggable) piece there — the lobby must stay
+            // unchanged. F7 also made onPieceLongPress conditional on the master having
+            // an actor selected, so it can't double as this signal either.
+            pieceDragActiveRef.current = draggable || !!suppressPanOnPiecePress;
             localDrag.current = {
               pieceId: p.id,
               startScreen: { x: e.global.x, y: e.global.y },
               isDragging: false,
               currentSlot: null,
+              draggable,
+              rightClick,
             };
             e.stopPropagation();
           }}
         />
-      ))}
+        );
+      })}
     </pixiContainer>
   );
 }
