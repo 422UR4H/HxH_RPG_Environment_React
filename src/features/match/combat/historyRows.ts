@@ -7,9 +7,10 @@ export type HistoryRow =
 
 /**
  * Eventos ao vivo que o REST cobre quando traz o turno: o servidor persiste o turno ANTES de
- * emitir qualquer mensagem do fechamento, então um fetch que COMEÇOU depois de a mensagem
- * chegar sempre o contém. Cena, regime e round fechado não estão aqui: o REST de hoje não os
- * guarda (B15) — ficam ao vivo, e recarregar os perde (perder, não divergir: §0.2).
+ * emitir qualquer mensagem do fechamento, então um fetch que começou depois do carimbo de
+ * chegada da mensagem (no mesmo milissegundo, inclusive — ver a regra abaixo) sempre o
+ * contém. Cena, regime e round fechado não estão aqui: o REST de hoje não os guarda (B15) —
+ * ficam ao vivo, e recarregar os perde (perder, não divergir: §0.2).
  * A resolução liquidada não tem `kind` próprio: o reducer a pendura no `turn_closed`.
  */
 const TURN_DERIVED = new Set<TableEvent["kind"]>(["turn_closed", "hp_changed"]);
@@ -32,9 +33,12 @@ export function historyRows(
   const live: HistoryRow[] = [];
   events.forEach((event, i) => {
     if (event.kind === "turn_opened" && event.turnId !== openTurnId) return;
-    // Estrito: um fetch no MESMO milissegundo pode ter saído antes da mensagem — manter a
-    // linha (duplicar até o próximo fetch) é melhor que sumir com o turno.
-    if (TURN_DERIVED.has(event.kind) && fetchStartedAt !== undefined && fetchStartedAt > event.receivedAt) return;
+    // `>=`, não `>`: o refetch que o turn_closed dispara roda no MESMO stack síncrono que
+    // carimbou o receivedAt (dispatch → invalidateQueries → queryFn), quase sempre no mesmo
+    // milissegundo, e começa depois do carimbo na ordem do programa. Um fetch que já estava em
+    // voo é cancelado pela invalidação (cancelRefetch) — os dados dele nunca aparecem. Com `>`
+    // o turno fechado sairia duplicado (e a linha ♥, que chega antes do turn_closed, ficaria).
+    if (TURN_DERIVED.has(event.kind) && fetchStartedAt !== undefined && fetchStartedAt >= event.receivedAt) return;
     live.push({ source: "live", key: `live:${event.kind}:${event.at}:${i}`, at: event.at, event });
   });
 

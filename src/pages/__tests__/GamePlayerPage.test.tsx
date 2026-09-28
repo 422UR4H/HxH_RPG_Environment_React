@@ -680,6 +680,57 @@ describe("GamePlayerPage", () => {
     await vi.waitFor(() => expect(calls).toBe(2));
   });
 
+  // F4, fix round 1: o refetch do turn_closed roda no MESMO stack síncrono que carimba o
+  // receivedAt — o relógio parado reproduz o caso comum (mesmo milissegundo). O turno fechado
+  // aparece uma vez só (pelo REST), e a linha ♥ que o servidor manda antes do turn_closed sai.
+  it("F4: turno fechado no mesmo milissegundo do refetch aparece uma vez, sem a linha ♥", async () => {
+    let calls = 0;
+    const closed = {
+      uuid: "t1", createdAt: "2026-06-01T00:01:00Z", finishedAt: "2026-06-01T00:01:00Z",
+      action: { uuid: "a1", actorId: "c1", reactionKind: "", targetId: ["c2"], attack: {} },
+      resolution: {
+        isSettled: true,
+        targets: [{
+          targetId: "c2", avoided: false, defended: false, dodgeTotal: 0, defenseTotal: 0,
+          rawDamage: 3, defenseApplied: 0, projectedDamage: 3,
+        }],
+      },
+    };
+    server.use(
+      http.get(`${baseUrl}/matches/:id/history`, () => {
+        calls++;
+        return HttpResponse.json({
+          scenes: [{
+            uuid: "s1", category: "battle", briefDesc: "", createdAt: "2026-06-01T00:00:00Z",
+            rounds: [{ uuid: "r1", mode: "Race", createdAt: "2026-06-01T00:00:00Z", turns: calls >= 2 ? [closed] : [] }],
+          }],
+        });
+      }),
+    );
+    renderPlayerPage();
+    const ws = await waitForSocket();
+    act(() => ws.onopen?.());
+    const toggle = await screen.findByRole("button", { name: "Ver histórico" });
+    act(() => toggle.click());
+    await vi.waitFor(() => expect(calls).toBe(1));
+    await screen.findByText(/Nada aconteceu ainda/);
+
+    const now = vi.spyOn(Date, "now").mockReturnValue(Date.parse("2026-06-01T00:01:00Z"));
+    try {
+      act(() => {
+        ws.emit("character_hp_changed", { characterId: "c2", hp: 7, maxHp: 10, damage: 3 });
+        ws.emit("turn_closed", { turnId: "t1" });
+      });
+      await vi.waitFor(() => expect(calls).toBe(2));
+      expect(await screen.findByText(`Turno de Gon — atacou Killua · Killua −3`)).toBeInTheDocument();
+      const rows = screen.getAllByTestId("event-row");
+      expect(rows).toHaveLength(1);
+      expect(screen.queryByText(/♥/)).toBeNull();
+    } finally {
+      now.mockRestore();
+    }
+  });
+
   // F5: MatchCharactersSidebar sempre renderiza CharacterSidebarItem — um participante sem
   // `private` (um NPC, aqui) usa só o dado público (toSidebarCharacter) e ganha o selo NPC.
   it("Personagens do jogador: um NPC sem private mostra o card com o selo NPC (F5)", async () => {

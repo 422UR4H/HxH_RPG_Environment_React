@@ -255,7 +255,10 @@ open`); a recusa, se vier, aparece no banner com o prefixo de `change_scene`.
   - cada evento ao vivo vira linha, com hora = `at` (hora do servidor);
   - **sobreposição:** um evento ao vivo **derivado de turno** (`turn_closed`,
     `resolution_updated` liquidada, `character_hp_changed`) sai quando existe um fetch do REST
-    **iniciado depois de ele chegar** (`fetchStartedAt > receivedAt`). É exato: o servidor
+    **iniciado no instante em que ele chegou ou depois** (`fetchStartedAt >= receivedAt`; `>=` porque
+    o refetch que a mensagem dispara roda no mesmo stack síncrono do carimbo — quase sempre no mesmo
+    milissegundo, e depois dele na ordem do programa —, e um fetch já em voo é cancelado pela
+    invalidação, `cancelRefetch`, então os dados dele nunca aparecem). É exato: o servidor
     persiste o turno antes de emitir qualquer mensagem do fechamento (contrato:
     `character_hp_changed` "sai depois da persistência", e `turn_closed` é do mesmo ponto), então
     um fetch que começa depois da mensagem sempre contém o turno. Um fetch que começou antes não

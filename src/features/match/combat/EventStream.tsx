@@ -3,7 +3,7 @@ import styled from "styled-components";
 import { colors, fonts } from "../../../styles/tokens";
 import type { GridKind } from "../../../types/tacticalMap";
 import type { TableEvent } from "./combatReducer";
-import type { ScenePayload } from "./combatMessages";
+import type { ResolutionTarget, ScenePayload } from "./combatMessages";
 import type { HistoryTurn } from "../../../types/matchHistory";
 import type { HistoryRow } from "./historyRows";
 import { describeDeclared, humanWeapon, ROUND_MODE_LABELS } from "./combatText";
@@ -18,6 +18,15 @@ const sceneLabel = (s: ScenePayload) =>
 
 type Line = { icon: string; text: string; tone?: "turn" | "hp" | "muted" };
 
+/** O desfecho de um alvo — o mesmo texto no ao vivo e no REST ("evitou", como ResolutionDetails). */
+function outcomeText(
+  t: Pick<ResolutionTarget, "targetId" | "avoided" | "projectedDamage">,
+  nameOf: (id: string) => string,
+): string {
+  if (t.avoided) return `${nameOf(t.targetId)} evitou`;
+  return t.projectedDamage > 0 ? `${nameOf(t.targetId)} ${MINUS}${t.projectedDamage}` : `${nameOf(t.targetId)} sem dano`;
+}
+
 function eventLine(event: TableEvent, nameOf: (id: string) => string, gridKind: GridKind): Line {
   switch (event.kind) {
     case "turn_opened":
@@ -30,13 +39,7 @@ function eventLine(event: TableEvent, nameOf: (id: string) => string, gridKind: 
       };
     case "turn_closed": {
       const who = event.actorId ? ` de ${nameOf(event.actorId)}` : "";
-      const outcomes = (event.resolution?.targets ?? []).map((t) =>
-        t.avoided
-          ? `${nameOf(t.targetId)} esquivou`
-          : t.projectedDamage > 0
-            ? `${nameOf(t.targetId)} ${MINUS}${t.projectedDamage}`
-            : `${nameOf(t.targetId)} sem dano`,
-      );
+      const outcomes = (event.resolution?.targets ?? []).map((t) => outcomeText(t, nameOf));
       return { icon: "■", text: `Fim do turno${who}${outcomes.length ? ` — ${outcomes.join(", ")}` : ""}` };
     }
     case "hp_changed":
@@ -65,13 +68,7 @@ function turnLine(turn: HistoryTurn, nameOf: (id: string) => string): Line {
     parts.push(`atacou ${who}${a.attack.weapon ? ` com ${humanWeapon(a.attack.weapon)}` : ""}`);
   }
   if (a.interact) parts.push(`interagiu (${a.interact.kind})`);
-  const outcomes = (turn.resolution?.targets ?? []).map((t) =>
-    t.avoided
-      ? `${nameOf(t.targetId)} evitou`
-      : t.projectedDamage > 0
-        ? `${nameOf(t.targetId)} ${MINUS}${t.projectedDamage}`
-        : `${nameOf(t.targetId)} sem dano`,
-  );
+  const outcomes = (turn.resolution?.targets ?? []).map((t) => outcomeText(t, nameOf));
   const what = parts.length ? ` — ${parts.join(" e ")}` : "";
   return { icon: "■", text: `Turno de ${nameOf(a.actorId)}${what}${outcomes.length ? ` · ${outcomes.join(", ")}` : ""}` };
 }

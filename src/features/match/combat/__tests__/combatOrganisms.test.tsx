@@ -224,7 +224,7 @@ describe("EventStream", () => {
     expect(rows[0]).toHaveTextContent(
       "Turno de Gon — mover para coluna 5, linha 8 (Dash) e atacar Hisoka com Throwing Dagger",
     );
-    expect(rows[1]).toHaveTextContent(`Fim do turno de Gon — Hisoka ${MINUS}7, Killua esquivou`);
+    expect(rows[1]).toHaveTextContent(`Fim do turno de Gon — Hisoka ${MINUS}7, Killua evitou`);
     expect(rows[2]).toHaveTextContent(`Hisoka: 13/20 (${MINUS}7)`);
     expect(rows[3]).toHaveTextContent("Regime: Disputado");
   });
