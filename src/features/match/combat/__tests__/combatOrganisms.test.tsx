@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import GeneralBar from "../GeneralBar";
 import OwnBars from "../OwnBars";
 import QueuePanel from "../QueuePanel";
@@ -7,10 +7,28 @@ import CloseTurnRefusedDialog from "../CloseTurnRefusedDialog";
 import EventStream from "../EventStream";
 import DeclaredActions from "../DeclaredActions";
 import MatchTopBar from "../MatchTopBar";
-import type { BarsPayload } from "../combatMessages";
+import ResolutionDetails from "../ResolutionDetails";
+import type { BarsPayload, ResolutionPayload } from "../combatMessages";
 import type { DeclaredAction, TableEvent } from "../combatReducer";
 
 const nameOf = (id: string) => ({ c1: "Gon", c2: "Killua", n1: "Hisoka" }[id] ?? id);
+
+// Nomes distintos do `nameOf` acima (c2/c3 têm outro sentido aqui) — usados pelos dois
+// describes abaixo que compartilham a mesma resolução de exemplo (brief T9).
+const res: ResolutionPayload = {
+  turnId: "t1",
+  isSettled: false,
+  action: { skillName: "Accuracy", skillValue: 14, diceRolled: [6, 8], total: 20, isCritical: false, isCriticalFailure: false, margin: 3 },
+  targets: [{
+    targetId: "c2", avoided: false, defended: true, dodgeTotal: 12, defenseTotal: 15,
+    rawDamage: 10, defenseApplied: 3, projectedDamage: 7,
+    reaction: { kind: "repel", total: 17, reactionId: "r1", rung: "near_miss", margin: -3, difference: 3, stopsAttack: false },
+    payouts: [{ amount: -3, bias: 0, applies: "action_speed", source: "system", againstKind: "anyone", againstId: "0", expiresAt: "next_turn", reason: "repel: near miss penalty" }],
+  }],
+  pendingReactions: [{ reactionId: "r2", actorId: "c3", kind: "dodge" }],
+  errors: [{ subject: "c9", kind: "missing_sheet", detail: "x" }],
+};
+const resolutionNameOf = (id: string) => ({ c2: "Hisoka", c3: "Killua", c9: "Fantasma" }[id] ?? id);
 
 /** U+2212 MINUS SIGN — o mesmo caractere que EventStream usa, não um hífen. */
 const MINUS = "−";
@@ -100,6 +118,48 @@ describe("QueuePanel", () => {
   it("fila vazia diz o que vai aparecer ali", () => {
     render(<QueuePanel nameOf={nameOf} queue={[]} onPull={() => {}} />);
     expect(screen.getByText(/Ninguém declarou nada ainda/)).toBeInTheDocument();
+  });
+});
+
+describe("ResolutionDetails", () => {
+  it("mostra acerto, alvo, reação, dano, reações pendentes e falta do motor", () => {
+    render(<ResolutionDetails resolution={res} nameOf={resolutionNameOf} />);
+    expect(screen.getByText(/Accuracy/)).toBeInTheDocument();
+    expect(screen.getByText(/6 \+ 8/)).toBeInTheDocument();
+    expect(screen.getByText("Hisoka")).toBeInTheDocument();
+    expect(screen.getByText(/quase/i)).toBeInTheDocument(); // near_miss
+    expect(screen.getByText(/10 → 7/)).toBeInTheDocument();
+    expect(screen.getByText(/Killua/)).toBeInTheDocument();
+    expect(screen.getByText(/incompleto/i)).toBeInTheDocument();
+  });
+
+  it("não tem botão nenhum (nasce só leitura)", () => {
+    render(<ResolutionDetails resolution={res} nameOf={resolutionNameOf} />);
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+});
+
+describe("QueuePanel — ação em andamento", () => {
+  it("mostra no topo o card da ação aberta, marcado, com o cálculo anexado", () => {
+    render(
+      <QueuePanel
+        queue={[{ actionId: "a2", actorId: "c3", bars: ["move"] }]}
+        open={{ actorId: "c1", bars: ["action"], resolution: res }}
+        nameOf={resolutionNameOf}
+        onPull={() => {}}
+      />,
+    );
+    const rows = screen.getAllByTestId(/queue-row|queue-open/);
+    expect(rows[0]).toHaveAttribute("data-testid", "queue-open");
+    expect(within(rows[0]).getByText(/em andamento/i)).toBeInTheDocument();
+    expect(within(rows[0]).getByText("Hisoka")).toBeInTheDocument();
+    expect(within(rows[0]).queryByRole("button")).not.toBeInTheDocument(); // sem "Abrir agora"
+  });
+
+  it("turno aberto ainda sem cálculo: o card aparece sem os números", () => {
+    render(<QueuePanel queue={[]} open={{ actorId: "c1", resolution: null }} nameOf={resolutionNameOf} onPull={() => {}} />);
+    expect(screen.getByTestId("queue-open")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Cálculo do turno")).not.toBeInTheDocument();
   });
 });
 

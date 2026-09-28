@@ -1,7 +1,7 @@
 // src/pages/__tests__/GameMasterPage.test.tsx
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { http, HttpResponse } from "msw";
-import { act, screen } from "@testing-library/react";
+import { act, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { server } from "../../test/server";
 import { renderWithProviders } from "../../test/render";
@@ -178,6 +178,36 @@ describe("GameMasterPage", () => {
     act(() => screen.getByRole("button", { name: "Abrir próxima" }).click());
     sent = ws.send.mock.calls.map((c) => JSON.parse(c[0] as string));
     expect(sent[sent.length - 1]?.type).toBe("open_next_action");
+  });
+
+  it("F7: turno aberto mostra o card em andamento na Fila, com o cálculo anexado", async () => {
+    renderMasterPage();
+    const ws = await waitForSocket();
+    act(() => ws.onopen?.());
+    act(() => ws.emit("action_queued", { actionId: "a1", actorId: "c1", bars: ["action"] }));
+    act(() => ws.emit("turn_opened", { turnId: "t1", actorId: "c1", actionId: "a1", actionType: "" }));
+    act(() =>
+      ws.emit("resolution_updated", {
+        turnId: "t1",
+        isSettled: false,
+        targets: [
+          {
+            targetId: "npc1",
+            avoided: false,
+            defended: false,
+            dodgeTotal: 10,
+            defenseTotal: 5,
+            rawDamage: 8,
+            defenseApplied: 0,
+            projectedDamage: 8,
+          },
+        ],
+      }),
+    );
+
+    const openRow = screen.getByTestId("queue-open");
+    expect(within(openRow).getByText(/em andamento/i)).toBeInTheDocument();
+    expect(within(openRow).getByText("Capanga")).toBeInTheDocument();
   });
 
   it("mostra o diálogo que o servidor computou e reenvia com confirm", async () => {

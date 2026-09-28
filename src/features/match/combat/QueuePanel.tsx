@@ -1,20 +1,26 @@
 import styled from "styled-components";
 import { colors, fonts } from "../../../styles/tokens";
-import type { QueuedAction } from "./combatMessages";
+import type { Bar, QueuedAction, ResolutionPayload } from "./combatMessages";
 import { BAR_ICONS, BAR_LABELS } from "./combatText";
+import ResolutionDetails from "./ResolutionDetails";
 
 /**
  * A fila secreta — só o mestre recebe. Em ordem de chegada (a ordem de EXECUÇÃO é a barra
  * geral). O conteúdo de uma ação de jogador nunca chega ao mestre antes de abrir; o das
- * ações que o próprio mestre declarou por NPC vem de `describe`.
+ * ações que o próprio mestre declarou por NPC vem de `describe`. Mostra também, no topo, a
+ * ação em andamento (`open`) — o turno aberto tirou essa linha da fila de verdade, mas o
+ * mestre ainda precisa vê-la, com o cálculo que só ele recebe (F7).
  */
 export default function QueuePanel({
   queue,
+  open,
   nameOf,
   describe,
   onPull,
 }: {
   queue: QueuedAction[];
+  /** A ação do turno aberto — já não está em `queue`, mas continua na tela, marcada. */
+  open?: { actorId: string; bars?: Bar[]; resolution: ResolutionPayload | null };
   nameOf: (characterId: string) => string;
   /** Detalhe de uma ação declarada neste navegador, quando houver. */
   describe?: (actionId: string) => string | undefined;
@@ -23,10 +29,26 @@ export default function QueuePanel({
   return (
     <Panel aria-label="Fila">
       <Title>Fila de ações</Title>
-      {queue.length === 0 ? (
+      {queue.length === 0 && !open ? (
         <Empty>Ninguém declarou nada ainda. O que for declarado aparece aqui.</Empty>
       ) : (
         <List>
+          {open && (
+            <OpenRow data-testid="queue-open">
+              <Info>
+                <Name>
+                  {nameOf(open.actorId)}{" "}
+                  {!!open.bars?.length && (
+                    <Bars title={open.bars.map((b) => BAR_LABELS[b]).join(" + ")}>
+                      {open.bars.map((b) => BAR_ICONS[b]).join("")}
+                    </Bars>
+                  )}
+                  <OpenBadge>em andamento</OpenBadge>
+                </Name>
+              </Info>
+              {open.resolution && <ResolutionDetails resolution={open.resolution} nameOf={nameOf} />}
+            </OpenRow>
+          )}
           {queue.map((action) => {
             const detail = describe?.(action.actionId);
             return (
@@ -94,6 +116,24 @@ const Row = styled.li`
   padding: 8px;
   border-radius: 6px;
   background: ${colors.surfaceInputHover};
+`;
+
+const OpenRow = styled.li`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid ${colors.pieceActiveTurn};
+  background: ${colors.surfaceInputHover};
+`;
+
+const OpenBadge = styled.span`
+  margin-left: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: ${colors.pieceActiveTurn};
 `;
 
 const Info = styled.div`

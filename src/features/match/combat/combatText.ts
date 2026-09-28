@@ -10,6 +10,24 @@ export const ROUND_MODE_LABELS: Record<RoundMode, string> = { Free: "Livre", Rac
 export const BAR_ICONS: Record<Bar, string> = { action: "⚔", move: "➜" };
 export const BAR_LABELS: Record<Bar, string> = { action: "ação", move: "movimento" };
 
+/** `reaction.rung` do repelir — snake_case do domínio, rótulo PT na tela. */
+export const RUNG_LABELS: Record<string, string> = {
+  great_success: "sucesso total",
+  success: "sucesso",
+  near_miss: "quase",
+  failure: "falha",
+};
+
+export const REACTION_KIND_LABELS: Record<string, string> = {
+  nothing: "nada",
+  dodge: "esquiva",
+  closedDodge: "esquiva fechada",
+  escape: "fuga",
+  escapeGuard: "fuga defensiva",
+  closedEscape: "fuga fechada",
+  repel: "repelir",
+};
+
 const INTERACT_LABELS: Record<string, string> = {
   open: "abrir",
   close: "fechar",

@@ -273,6 +273,15 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
               </PanelSection>
               <QueuePanel
                 queue={state.queue}
+                open={
+                  state.openTurn
+                    ? {
+                        actorId: state.openTurn.actorId,
+                        bars: state.openQueued?.bars,
+                        resolution: state.openResolution,
+                      }
+                    : undefined
+                }
                 nameOf={nameOf}
                 describe={describeQueued}
                 onPull={combat.send.pullAction}
