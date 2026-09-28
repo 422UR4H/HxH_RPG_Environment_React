@@ -20,7 +20,7 @@ export type HistoryAction = {
   speed?: { bar: number; rollCheck: RollCheck };
   /** O formato não está documentado em match-history.md até B15 — só a presença é lida. */
   move?: unknown;
-  attack?: { weapon: string; hit?: RollCheck; damage?: RollCheck; relativeVelocity?: number };
+  attack?: { weapon?: string; hit?: RollCheck; damage?: RollCheck; relativeVelocity?: number };
   defense?: unknown;
   dodge?: { rollCheck: RollCheck };
   repel?: unknown;
@@ -29,13 +29,20 @@ export type HistoryAction = {
   trigger?: Record<string, never>;
 };
 
+/**
+ * O resolution do REST não tem `turnId` — a identidade do turno já é `HistoryTurn.uuid`;
+ * `turnId` só existe em `ResolutionPayload` porque o WS não tem outro jeito de amarrar a
+ * mensagem ao turno (ver `TurnResolutionResponse` em `get_match_history.go:180-206`).
+ */
+export type HistoryResolution = Omit<ResolutionPayload, "turnId">;
+
 export type HistoryTurn = {
   uuid: string;
   createdAt: string;
   finishedAt?: string;
   action: HistoryAction;
   reactions?: HistoryAction[];
-  resolution?: ResolutionPayload & { isSettled: boolean };
+  resolution?: HistoryResolution;
 };
 
 export type HistoryRound = {
