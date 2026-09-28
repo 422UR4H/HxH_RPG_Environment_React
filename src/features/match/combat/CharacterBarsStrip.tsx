@@ -11,7 +11,14 @@ export function mean(xs: number[]): number | undefined {
   return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : undefined;
 }
 
-const fmt = (n: number) => `${n < 0 ? MINUS : ""}${Math.abs(Math.round(n * 10) / 10)}`;
+/**
+ * O sinal vem do valor JÁ arredondado, não do original: -0.04 arredonda para 0, e "−0"
+ * pareceria débito quando não é nem crédito nem débito de verdade.
+ */
+export const fmt = (n: number) => {
+  const r = Math.round(Math.abs(n) * 10) / 10;
+  return r === 0 ? "0" : `${n < 0 ? MINUS : ""}${r}`;
+};
 
 /**
  * Uma linha por personagem, só com o que `bars_updated` traz (I8): o jogador não vê a
@@ -77,6 +84,8 @@ const Strip = styled.div`
   flex-direction: column;
   gap: 4px;
   margin-top: 6px;
+  min-width: 0;
+  overflow-x: auto;
   font-family: ${fonts.sans};
   font-size: 11px;
 `;

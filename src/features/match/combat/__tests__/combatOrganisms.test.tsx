@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, within } from "@testing-library/react";
 import GeneralBar from "../GeneralBar";
-import CharacterBarsStrip from "../CharacterBarsStrip";
+import CharacterBarsStrip, { fmt } from "../CharacterBarsStrip";
 import OwnBars from "../OwnBars";
 import QueuePanel from "../QueuePanel";
 import CloseTurnRefusedDialog from "../CloseTurnRefusedDialog";
@@ -110,6 +110,25 @@ describe("CharacterBarsStrip", () => {
   it("barra sem preço não é desenhada", () => {
     render(<CharacterBarsStrip bars={{ ...raceBars, prices: { action: 14 } }} roundMode="Race" nameOf={nameOf} />);
     expect(screen.getAllByRole("meter")).toHaveLength(1);
+  });
+});
+
+describe("fmt (CharacterBarsStrip)", () => {
+  it("negativo que arredonda para zero perde o sinal — não existe \"−0\"", () => {
+    expect(fmt(-0.04)).toBe("0");
+    expect(fmt(-0.049)).toBe("0");
+  });
+
+  it("zero é \"0\", sem sinal", () => {
+    expect(fmt(0)).toBe("0");
+  });
+
+  it("inteiro não ganha \".0\"", () => {
+    expect(fmt(3)).toBe("3");
+  });
+
+  it("negativo de verdade mantém o sinal e a casa decimal", () => {
+    expect(fmt(-2.5)).toBe(`${MINUS}2.5`);
   });
 });
 
