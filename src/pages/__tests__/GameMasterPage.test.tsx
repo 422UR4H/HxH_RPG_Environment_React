@@ -540,4 +540,41 @@ describe("GameMasterPage", () => {
     await user.click(screen.getByRole("button", { name: /Fila/ }));
     expect(screen.getByTestId("match-panel")).toHaveAttribute("data-wide", "false");
   });
+  // F4: o mestre também lê o Histórico do REST — com o ao vivo que o REST não guarda por cima.
+  it("F4: o Histórico do mestre junta o turno do REST e o regime ao vivo", async () => {
+    server.use(
+      http.get(`${baseUrl}/matches/:id/history`, () =>
+        HttpResponse.json({
+          scenes: [{
+            uuid: "s1", category: "battle", briefDesc: "", createdAt: "2026-06-01T00:00:00Z",
+            rounds: [{
+              uuid: "r1", mode: "Race", createdAt: "2026-06-01T00:00:00Z",
+              turns: [{
+                uuid: "t1", createdAt: "2026-06-01T00:01:00Z", finishedAt: "2026-06-01T00:01:00Z",
+                action: { uuid: "a1", actorId: "npc1", reactionKind: "", targetId: ["c1"], attack: { weapon: "Sword" } },
+                resolution: {
+                  isSettled: true,
+                  targets: [{
+                    targetId: "c1", avoided: false, defended: false, dodgeTotal: 0, defenseTotal: 0,
+                    rawDamage: 4, defenseApplied: 0, projectedDamage: 4,
+                  }],
+                },
+              }],
+            }],
+          }],
+        }),
+      ),
+    );
+    renderMasterPage();
+    const ws = await waitForSocket();
+    act(() => ws.onopen?.());
+    await user.click(await screen.findByRole("button", { name: "Ver histórico" }));
+
+    expect(await screen.findByText("Turno de Capanga — atacou Gon com Sword · Gon −4")).toBeInTheDocument();
+    act(() => ws.emit("round_mode_changed", { mode: "Free" }));
+    await vi.waitFor(() => expect(screen.getAllByTestId("event-row")).toHaveLength(2));
+    const rows = screen.getAllByTestId("event-row");
+    expect(rows[0]).toHaveTextContent("Turno de Capanga");
+    expect(rows[1]).toHaveTextContent("Regime: Livre");
+  });
 });

@@ -647,6 +647,39 @@ describe("GamePlayerPage", () => {
     expect(await within(sheet).findByText(/7\/30/)).toBeInTheDocument();
   });
 
+  // F4: a aba Histórico vem do REST; cada turn_closed invalida e rebusca a mesma query.
+  it("F4: o Histórico mostra os turnos do REST e rebusca a cada turn_closed", async () => {
+    let calls = 0;
+    server.use(
+      http.get(`${baseUrl}/matches/:id/history`, () => {
+        calls++;
+        return HttpResponse.json({
+          scenes: [{
+            uuid: "s1", category: "battle", briefDesc: "", createdAt: "2026-06-01T00:00:00Z",
+            rounds: [{
+              uuid: "r1", mode: "Race", createdAt: "2026-06-01T00:00:00Z",
+              turns: [{
+                uuid: "t1", createdAt: "2026-06-01T00:01:00Z", finishedAt: "2026-06-01T00:01:00Z",
+                action: { uuid: "a1", actorId: "c1", reactionKind: "", targetId: ["c2"], attack: {} },
+              }],
+            }],
+          }],
+        });
+      }),
+    );
+    renderPlayerPage();
+    const ws = await waitForSocket();
+    act(() => ws.onopen?.());
+
+    const toggle = await screen.findByRole("button", { name: "Ver histórico" });
+    act(() => toggle.click());
+    expect(await screen.findByText("Turno de Gon — atacou Killua")).toBeInTheDocument();
+    expect(calls).toBe(1);
+
+    act(() => ws.emit("turn_closed", { turnId: "t2" }));
+    await vi.waitFor(() => expect(calls).toBe(2));
+  });
+
   // F5: MatchCharactersSidebar sempre renderiza CharacterSidebarItem — um participante sem
   // `private` (um NPC, aqui) usa só o dado público (toSidebarCharacter) e ganha o selo NPC.
   it("Personagens do jogador: um NPC sem private mostra o card com o selo NPC (F5)", async () => {

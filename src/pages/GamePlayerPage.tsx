@@ -5,6 +5,7 @@ import useUser from "../hooks/useUser";
 import { useMatchParticipants } from "../hooks/useMatchParticipants";
 import { useResizeObserver } from "../hooks/useResizeObserver";
 import { useCombatCatalogue } from "../hooks/useCombatCatalogue";
+import { useMatchHistory } from "../hooks/useMatchHistory";
 import { useCharacterSheet } from "../hooks/useCharacterSheet";
 import { useGameTable } from "../features/match/combat/useGameTable";
 import { defaultMoveCategory } from "../features/match/combat/defaultMoveCategory";
@@ -15,6 +16,7 @@ import AsideTabs from "../features/match/combat/AsideTabs";
 import GeneralBar from "../features/match/combat/GeneralBar";
 import OwnBars from "../features/match/combat/OwnBars";
 import EventStream from "../features/match/combat/EventStream";
+import { historyRows } from "../features/match/combat/historyRows";
 import ActionComposer from "../features/match/combat/ActionComposer";
 import DeclaredActions from "../features/match/combat/DeclaredActions";
 import MatchErrorBanner from "../features/match/combat/MatchErrorBanner";
@@ -67,6 +69,14 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
 
   const { data: catalogue } = useCombatCatalogue(token, actorId);
   const { data: ownSheet } = useCharacterSheet(token, actorId);
+
+  // A aba Histórico: o REST (mesma query que useGameTable invalida em turn_closed e
+  // match_full_state), com os eventos ao vivo que ele ainda não cobre por cima.
+  const { data: historyData } = useMatchHistory(token, matchId);
+  const rows = useMemo(
+    () => historyRows(historyData?.history, state.events, historyData?.fetchStartedAt, state.openTurn?.turnId),
+    [historyData, state.events, state.openTurn],
+  );
   const actorName = myCharacters.find((p) => p.characterSheet.uuid === actorId)?.characterSheet.nickName ?? "Você";
 
   const [wallPicker, setWallPicker] = useState<WallSegment | null>(null);
@@ -249,7 +259,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
           <AsideTabs
             defaultTab="historico"
             historico={
-              <EventStream events={state.events} nameOf={nameOf} gridKind={map?.grid.kind ?? "square"} />
+              <EventStream rows={rows} nameOf={nameOf} gridKind={map?.grid.kind ?? "square"} />
             }
             personagens={
               <MatchCharactersSidebar

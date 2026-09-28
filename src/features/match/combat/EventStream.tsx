@@ -4,7 +4,9 @@ import { colors, fonts } from "../../../styles/tokens";
 import type { GridKind } from "../../../types/tacticalMap";
 import type { TableEvent } from "./combatReducer";
 import type { ScenePayload } from "./combatMessages";
-import { describeDeclared, ROUND_MODE_LABELS } from "./combatText";
+import type { HistoryTurn } from "../../../types/matchHistory";
+import type { HistoryRow } from "./historyRows";
+import { describeDeclared, humanWeapon, ROUND_MODE_LABELS } from "./combatText";
 
 /** U+2212 MINUS SIGN — não é hífen. */
 const MINUS = "−";
@@ -52,17 +54,40 @@ function eventLine(event: TableEvent, nameOf: (id: string) => string, gridKind: 
   }
 }
 
+/** Um turno fechado como o REST o guarda (já projetado para quem pede). */
+function turnLine(turn: HistoryTurn, nameOf: (id: string) => string): Line {
+  const a = turn.action;
+  const parts: string[] = [];
+  // Parte 1: o formato do `move` não está no contrato até B15 — só a presença é lida.
+  if (a.move !== undefined) parts.push("moveu");
+  if (a.attack) {
+    const who = (a.targetId ?? []).map(nameOf).join(", ");
+    parts.push(`atacou ${who}${a.attack.weapon ? ` com ${humanWeapon(a.attack.weapon)}` : ""}`);
+  }
+  if (a.interact) parts.push(`interagiu (${a.interact.kind})`);
+  const outcomes = (turn.resolution?.targets ?? []).map((t) =>
+    t.avoided
+      ? `${nameOf(t.targetId)} evitou`
+      : t.projectedDamage > 0
+        ? `${nameOf(t.targetId)} ${MINUS}${t.projectedDamage}`
+        : `${nameOf(t.targetId)} sem dano`,
+  );
+  const what = parts.length ? ` — ${parts.join(" e ")}` : "";
+  return { icon: "■", text: `Turno de ${nameOf(a.actorId)}${what}${outcomes.length ? ` · ${outcomes.join(", ")}` : ""}` };
+}
+
 /**
- * A aba Histórico da Fase 6: os eventos que o servidor emite, o mais recente embaixo (a
- * rolagem fica presa ao fim). O que ESTE navegador declarou aparece com detalhe; o dos
- * outros, não — a declaração de um jogador nunca é projetada para a mesa.
+ * A aba Histórico: os turnos que o servidor guardou (REST), com os eventos ao vivo por cima
+ * — `historyRows` já decidiu o que o REST cobre. O mais recente embaixo (a rolagem fica presa
+ * ao fim). O que ESTE navegador declarou aparece com detalhe; o dos outros, não — a
+ * declaração de um jogador nunca é projetada para a mesa.
  */
 export default function EventStream({
-  events,
+  rows,
   nameOf,
   gridKind,
 }: {
-  events: TableEvent[];
+  rows: HistoryRow[];
   nameOf: (characterId: string) => string;
   gridKind: GridKind;
 }) {
@@ -71,18 +96,18 @@ export default function EventStream({
   useEffect(() => {
     // jsdom não tem layout (scrollTo pode nem existir) — o pin-ao-fim só se verifica no browser.
     containerRef.current?.scrollTo?.({ top: containerRef.current?.scrollHeight ?? 0 });
-  }, [events]);
+  }, [rows]);
 
-  if (events.length === 0) {
+  if (rows.length === 0) {
     return <Empty>Nada aconteceu ainda. Turnos, dano e trocas de regime aparecem aqui.</Empty>;
   }
 
   return (
     <Container ref={containerRef}>
-      {events.map((event, i) => {
-        const line = eventLine(event, nameOf, gridKind);
+      {rows.map((row) => {
+        const line = row.source === "rest" ? turnLine(row.turn, nameOf) : eventLine(row.event, nameOf, gridKind);
         return (
-          <Row key={`${event.kind}-${event.at}-${i}`} data-testid="event-row" $tone={line.tone}>
+          <Row key={row.key} data-testid="event-row" $tone={line.tone}>
             <Icon aria-hidden>{line.icon}</Icon>
             <span>{line.text}</span>
           </Row>

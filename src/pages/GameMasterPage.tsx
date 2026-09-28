@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useResizeObserver } from "../hooks/useResizeObserver";
 import { useCombatCatalogue } from "../hooks/useCombatCatalogue";
+import { useMatchHistory } from "../hooks/useMatchHistory";
 import { useGameTable } from "../features/match/combat/useGameTable";
 import { defaultMoveCategory } from "../features/match/combat/defaultMoveCategory";
 import { describeDeclared } from "../features/match/combat/combatText";
@@ -18,6 +19,7 @@ import AsideTabs from "../features/match/combat/AsideTabs";
 import GeneralBar from "../features/match/combat/GeneralBar";
 import OwnBars from "../features/match/combat/OwnBars";
 import EventStream from "../features/match/combat/EventStream";
+import { historyRows } from "../features/match/combat/historyRows";
 import ActionComposer from "../features/match/combat/ActionComposer";
 import DeclaredActions from "../features/match/combat/DeclaredActions";
 import QueuePanel from "../features/match/combat/QueuePanel";
@@ -62,6 +64,14 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   const gridKind = map?.grid.kind ?? "square";
 
   const { data: catalogue } = useCombatCatalogue(token, actorId);
+
+  // A aba Histórico: o REST (mesma query que useGameTable invalida em turn_closed e
+  // match_full_state), com os eventos ao vivo que ele ainda não cobre por cima.
+  const { data: historyData } = useMatchHistory(token, matchId);
+  const rows = useMemo(
+    () => historyRows(historyData?.history, state.events, historyData?.fetchStartedAt, state.openTurn?.turnId),
+    [historyData, state.events, state.openTurn],
+  );
 
   // Só NPC (sem jogador) na partida pode ser ator do mestre — o servidor recusa o resto.
   const npcs = useMemo(
@@ -371,7 +381,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
         aside={
           <AsideTabs
             defaultTab="historico"
-            historico={<EventStream events={state.events} nameOf={nameOf} gridKind={gridKind} />}
+            historico={<EventStream rows={rows} nameOf={nameOf} gridKind={gridKind} />}
             personagens={
               <MatchCharactersSidebar
                 gameStarted

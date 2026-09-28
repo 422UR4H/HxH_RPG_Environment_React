@@ -10,6 +10,8 @@ import MatchTopBar from "../MatchTopBar";
 import ResolutionDetails from "../ResolutionDetails";
 import type { BarsPayload, ResolutionPayload } from "../combatMessages";
 import type { DeclaredAction, TableEvent } from "../combatReducer";
+import { historyRows } from "../historyRows";
+import type { HistoryTurn } from "../../../../types/matchHistory";
 
 const nameOf = (id: string) => ({ c1: "Gon", c2: "Killua", n1: "Hisoka" }[id] ?? id);
 
@@ -216,7 +218,8 @@ describe("EventStream", () => {
       { kind: "hp_changed", at: 3, receivedAt: 3, characterId: "n1", hp: 13, maxHp: 20, damage: 7 },
       { kind: "round_mode_changed", at: 4, receivedAt: 4, mode: "Race" },
     ];
-    render(<EventStream events={events} nameOf={nameOf} gridKind="square" />);
+    // t1 continua aberto para o turn_opened aparecer; sem REST, tudo é ao vivo.
+    render(<EventStream rows={historyRows(undefined, events, undefined, "t1")} nameOf={nameOf} gridKind="square" />);
     const rows = screen.getAllByTestId("event-row");
     expect(rows[0]).toHaveTextContent(
       "Turno de Gon — mover para coluna 5, linha 8 (Dash) e atacar Hisoka com Throwing Dagger",
@@ -227,8 +230,37 @@ describe("EventStream", () => {
   });
 
   it("sem eventos, explica o que vai aparecer", () => {
-    render(<EventStream events={[]} nameOf={nameOf} gridKind="square" />);
+    render(<EventStream rows={[]} nameOf={nameOf} gridKind="square" />);
     expect(screen.getByText(/Nada aconteceu ainda/)).toBeInTheDocument();
+  });
+
+  it("um turno do REST diz ator, alvos, arma, movimento e o desfecho por alvo (F4)", () => {
+    const target = (targetId: string, avoided: boolean, projectedDamage: number) => ({
+      targetId, avoided, defended: false, dodgeTotal: 0, defenseTotal: 0,
+      rawDamage: projectedDamage, defenseApplied: 0, projectedDamage,
+    });
+    const armed: HistoryTurn = {
+      uuid: "t1", createdAt: "2026-01-01T00:01:00Z", finishedAt: "2026-01-01T00:01:00Z",
+      action: { uuid: "a1", actorId: "c1", reactionKind: "", move: {}, targetId: ["n1", "c2"], attack: { weapon: "ThrowingDagger" } },
+      resolution: { isSettled: true, targets: [target("n1", false, 7), target("c2", true, 0)] },
+    };
+    const unarmed: HistoryTurn = {
+      uuid: "t2", createdAt: "2026-01-01T00:02:00Z", finishedAt: "2026-01-01T00:02:00Z",
+      action: { uuid: "a2", actorId: "c2", reactionKind: "", targetId: ["n1"], attack: {} },
+      resolution: { isSettled: true, targets: [target("n1", false, 0)] },
+    };
+    const bare: HistoryTurn = {
+      uuid: "t3", createdAt: "2026-01-01T00:03:00Z",
+      action: { uuid: "a3", actorId: "n1", reactionKind: "", interact: { kind: "open" } },
+    };
+    const history = { scenes: [{ uuid: "s1", category: "battle", briefDesc: "", createdAt: "", rounds: [{ uuid: "r1", mode: "Race", createdAt: "", turns: [armed, unarmed, bare] }] }] };
+    render(<EventStream rows={historyRows(history, [], 0, undefined)} nameOf={nameOf} gridKind="square" />);
+    const rows = screen.getAllByTestId("event-row");
+    expect(rows[0]).toHaveTextContent(
+      `Turno de Gon — moveu e atacou Hisoka, Killua com Throwing Dagger · Hisoka ${MINUS}7, Killua evitou`,
+    );
+    expect(rows[1]).toHaveTextContent("Turno de Killua — atacou Hisoka · Hisoka sem dano");
+    expect(rows[2]).toHaveTextContent("Turno de Hisoka — interagiu (open)");
   });
 });
 
