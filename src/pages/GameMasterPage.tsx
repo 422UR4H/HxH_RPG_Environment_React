@@ -23,6 +23,8 @@ import ActionComposer from "../features/match/combat/ActionComposer";
 import DeclaredActions from "../features/match/combat/DeclaredActions";
 import QueuePanel from "../features/match/combat/QueuePanel";
 import CloseTurnRefusedDialog from "../features/match/combat/CloseTurnRefusedDialog";
+import SceneChangeDialog from "../features/match/combat/SceneChangeDialog";
+import { SmallButton } from "../features/match/combat/MatchTopBar";
 import MatchErrorBanner from "../features/match/combat/MatchErrorBanner";
 import MatchCharactersSidebar from "../features/match/MatchCharactersSidebar";
 import WallActionSheet from "../features/match/WallActionSheet";
@@ -72,6 +74,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   const [panelOpen, setPanelOpen] = useState(true);
   const [asideOpen, setAsideOpen] = useState(initialAsideOpen);
   const [wallPicker, setWallPicker] = useState<WallSegment | null>(null);
+  const [sceneDialog, setSceneDialog] = useState(false);
 
   const handleRailSelect = useCallback(
     (id: string) => {
@@ -227,6 +230,8 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                 onOpenNext={combat.send.openNextAction}
                 onCloseTurn={() => combat.send.closeTurn()}
                 canCloseTurn={canCloseTurn}
+                onNewScene={() => setSceneDialog(true)}
+                canChangeScene={state.openTurn == null}
               />
             }
           />
@@ -248,6 +253,14 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
               <PanelSection>
                 <PanelTitle>Regime</PanelTitle>
                 <RoundModeSwitch mode={state.roundMode} onChange={combat.send.changeRoundMode} placement="panel" />
+                <SmallButton
+                  type="button"
+                  onClick={() => setSceneDialog(true)}
+                  disabled={state.openTurn != null}
+                  title={state.openTurn == null ? undefined : "Feche o turno antes de trocar de cena"}
+                >
+                  Nova cena
+                </SmallButton>
               </PanelSection>
               <QueuePanel
                 queue={state.queue}
@@ -364,6 +377,11 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
           combat.dismissCloseTurnDialog();
         }}
         onCancel={combat.dismissCloseTurnDialog}
+      />
+      <SceneChangeDialog
+        open={sceneDialog}
+        onCancel={() => setSceneDialog(false)}
+        onConfirm={(p) => { combat.send.changeScene(p); setSceneDialog(false); }}
       />
       {wallPicker && (
         <WallActionSheet

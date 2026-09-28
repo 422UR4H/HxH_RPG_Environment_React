@@ -474,4 +474,24 @@ describe("GameMasterPage", () => {
     act(() => { ws.emit("error", { code: "npc_already_in_match", message: "npc already in match" }); });
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
+
+  it("F8: nova cena manda change_scene com a categoria minúscula", async () => {
+    renderMasterPage();
+    const ws = await waitForSocket();
+    act(() => ws.onopen?.());
+
+    await user.click(screen.getAllByRole("button", { name: "Nova cena" })[0]);
+    await user.click(screen.getByRole("radio", { name: "Interpretação" }));
+    await user.type(screen.getByLabelText("Descrição inicial"), "Taverna");
+    await user.click(screen.getByRole("button", { name: "Trocar de cena" }));
+    expect(ws.sent("change_scene")).toEqual([{ category: "roleplay", briefInitialDescription: "Taverna" }]);
+  });
+
+  it("F8: com turno aberto, Nova cena fica desabilitado", async () => {
+    renderMasterPage();
+    const ws = await waitForSocket();
+    act(() => ws.onopen?.());
+    act(() => { ws.emit("turn_opened", { turnId: "t1", actorId: "c1", actionId: "a1", actionType: "" }); });
+    for (const b of screen.getAllByRole("button", { name: "Nova cena" })) expect(b).toBeDisabled();
+  });
 });

@@ -41,16 +41,28 @@ export function RegencyControls({
   onOpenNext,
   onCloseTurn,
   canCloseTurn,
+  onNewScene,
+  canChangeScene,
 }: {
   mode: RoundMode | "";
   onModeChange: (mode: RoundMode) => void;
   onOpenNext: () => void;
   onCloseTurn: () => void;
   canCloseTurn: boolean;
+  onNewScene: () => void;
+  canChangeScene: boolean;
 }) {
   return (
     <Regency>
       <RoundModeSwitch mode={mode} onChange={onModeChange} placement="topbar" />
+      <SmallButton
+        type="button"
+        onClick={onNewScene}
+        disabled={!canChangeScene}
+        title={canChangeScene ? undefined : "Feche o turno antes de trocar de cena"}
+      >
+        Nova cena
+      </SmallButton>
       <PrimaryButton type="button" onClick={onOpenNext}>
         Abrir próxima
       </PrimaryButton>
