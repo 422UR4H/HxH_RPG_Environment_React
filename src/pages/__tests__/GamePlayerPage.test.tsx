@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { http, HttpResponse } from "msw";
 import { act, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { server } from "../../test/server";
 import { renderWithProviders } from "../../test/render";
 import { matchApiFixture } from "../../test/fixtures/match";
@@ -10,6 +11,7 @@ import GamePlayerPage from "../GamePlayerPage";
 import { installFakeWebSocket, waitForSocket } from "../../test/fakeWebSocket";
 
 const baseUrl = "http://localhost:5000";
+const user = userEvent.setup();
 
 // Pixi não é coberto por teste (src/test/setup.ts mocka @pixi/react); o único jeito de
 // disparar cliques de peça/slot em vitest é substituir o componente inteiro por um stub
@@ -604,7 +606,7 @@ describe("GamePlayerPage", () => {
     expect(await within(aside).findByText("Killua")).toBeInTheDocument();
   });
 
-  it("o aside abre em Histórico (padrão) e o rail só tem Ação", async () => {
+  it("o aside abre em Histórico (padrão) e o rail tem Ação e Ficha (F3)", async () => {
     renderPlayerPage();
 
     // A gaveta começa fechada por CSS (R24: o mapa precisa estar visível no celular no
@@ -614,9 +616,35 @@ describe("GamePlayerPage", () => {
 
     const historicoTab = await screen.findByRole("button", { name: "Histórico" });
     expect(historicoTab).toHaveAttribute("aria-pressed", "true");
+    // F3: o rail ganhou o item Ficha, ao lado de Ação.
     expect(
       screen.getAllByRole("button", { name: /^(ação|ficha|inventário|nen)$/i }),
-    ).toHaveLength(1);
+    ).toHaveLength(2);
+  });
+
+  // F3: a ficha do próprio personagem abre dentro da partida, no painel — nunca navega
+  // para fora dela.
+  it("F3: Ficha no rail abre a ficha do próprio personagem dentro da partida", async () => {
+    renderPlayerPage();
+    const ws = await waitForSocket();
+    act(() => ws.onopen?.());
+
+    await user.click(screen.getByRole("button", { name: /Ficha/ }));
+    expect(await screen.findByTestId("match-sheet")).toBeInTheDocument();
+  });
+
+  it("F3: a ficha mostra o HP ao vivo", async () => {
+    renderPlayerPage();
+    const ws = await waitForSocket();
+    act(() => ws.onopen?.());
+
+    await user.click(screen.getByRole("button", { name: /Ficha/ }));
+    await screen.findByTestId("match-sheet");
+    act(() => {
+      ws.emit("character_hp_changed", { characterId: "c1", hp: 7, maxHp: 30, damage: 3 });
+    });
+    const sheet = screen.getByTestId("match-sheet");
+    expect(await within(sheet).findByText(/7\/30/)).toBeInTheDocument();
   });
 
   // F5: MatchCharactersSidebar sempre renderiza CharacterSidebarItem — um participante sem

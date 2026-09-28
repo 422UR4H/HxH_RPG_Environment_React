@@ -2,7 +2,6 @@
 // a regência (abrir, fechar, regime) e agir por um NPC — que ele escolhe tocando no NPC ou
 // na lista do painel "Agir".
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useResizeObserver } from "../hooks/useResizeObserver";
 import { useCombatCatalogue } from "../hooks/useCombatCatalogue";
 import { useGameTable } from "../features/match/combat/useGameTable";
@@ -26,6 +25,7 @@ import CloseTurnRefusedDialog from "../features/match/combat/CloseTurnRefusedDia
 import SceneChangeDialog from "../features/match/combat/SceneChangeDialog";
 import { SmallButton } from "../features/match/combat/MatchTopBar";
 import MatchErrorBanner from "../features/match/combat/MatchErrorBanner";
+import MatchSheetPanel from "../features/match/combat/MatchSheetPanel";
 import MatchCharactersSidebar from "../features/match/MatchCharactersSidebar";
 import WallActionSheet from "../features/match/WallActionSheet";
 import TacticalMapViewer from "../features/tactical-map/TacticalMapViewer";
@@ -40,7 +40,7 @@ type Props = {
   matchId?: string;
 };
 
-type RailTab = "fila" | "agir";
+type RailTab = "fila" | "agir" | "ficha";
 
 // No jogo nenhuma peça é arrastável: quem decide onde a peça para é o servidor.
 const NO_DRAG = new Set<string>();
@@ -51,10 +51,10 @@ const initialAsideOpen = () =>
 export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const { width, height } = useResizeObserver(canvasRef);
-  const navigate = useNavigate();
 
   const [actorId, setActorId] = useState<string | undefined>(undefined);
   const [inspectedId, setInspectedId] = useState<string | undefined>(undefined);
+  const [sheetId, setSheetId] = useState<string | undefined>(undefined);
 
   const game = useGameTable({ token, campaignId, matchId, isMaster: true, actorId });
   const { combat, composer, live, map, nameOf, participants } = game;
@@ -215,6 +215,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
       <MatchStageTemplate
         panelOpen={panelOpen}
         asideOpen={asideOpen}
+        panelWide={railActive === "ficha"}
         topbar={
           <MatchTopBar
             scene={state.scene}
@@ -241,6 +242,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
             items={[
               { id: "fila", label: "Fila", icon: "☰", badge: state.queue.length },
               { id: "agir", label: "Agir", icon: "⚔" },
+              { id: "ficha", label: "Ficha", icon: "📜" },
             ]}
             active={railActive}
             panelOpen={panelOpen}
@@ -248,7 +250,14 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
           />
         }
         panel={
-          railActive === "fila" ? (
+          railActive === "ficha" ? (
+            <MatchSheetPanel
+              token={token}
+              sheetUuid={sheetId}
+              liveHp={sheetId ? state.hp[sheetId] : undefined}
+              onClose={() => setSheetId(undefined)}
+            />
+          ) : railActive === "fila" ? (
             <>
               <PanelSection>
                 <PanelTitle>Regime</PanelTitle>
@@ -363,7 +372,11 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                 actionLoading={{}}
                 onAccept={() => {}}
                 onReject={() => {}}
-                onSelectCharacterSheet={(sheetUuid) => navigate(`/charactersheet/${sheetUuid}`)}
+                onSelectCharacterSheet={(sheetUuid) => {
+                  setSheetId(sheetUuid);
+                  setRailActive("ficha");
+                  setPanelOpen(true);
+                }}
               />
             }
           />

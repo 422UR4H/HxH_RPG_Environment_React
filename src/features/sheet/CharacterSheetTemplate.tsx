@@ -102,9 +102,12 @@ function CharacterSheetTemplate({
     return <ErrorContainer>Falha ao carregar classes</ErrorContainer>;
   }
 
+  // Embutida na partida (F3): sem voltar (navegaria para fora dela) e sem ações de rodapé.
+  const embedded = !!sheetMode.embedded;
+
   return (
     <SheetContainer>
-      <BackButton />
+      {!embedded && <BackButton />}
 
       <CharacterSheetHeader
         mode={sheetMode.headerMode}
@@ -125,6 +128,7 @@ function CharacterSheetTemplate({
 
       <MainContent
         $hasBottomActions={
+          !embedded &&
           sheetMode.headerMode === "view" &&
           !!(
             onCampaignClick ||
@@ -208,7 +212,7 @@ function CharacterSheetTemplate({
           />
         </ProficienciesSection>
 
-        {sheetMode.headerMode === "view" && (onCampaignClick || manage) && (
+        {!embedded && sheetMode.headerMode === "view" && (onCampaignClick || manage) && (
           <SheetBottomActions
             onCampaignClick={onCampaignClick}
             campaignLabel={hasCampaign ? "Ver Campanha" : "Procurar Campanhas"}
@@ -216,7 +220,8 @@ function CharacterSheetTemplate({
           />
         )}
 
-        {sheetMode.headerMode === "view" &&
+        {!embedded &&
+          sheetMode.headerMode === "view" &&
           (onAcceptSubmission || onRejectSubmission) && (
             <SubmissionActionsWrapper>
               {onRejectSubmission && (
@@ -232,8 +237,9 @@ function CharacterSheetTemplate({
             </SubmissionActionsWrapper>
           )}
 
-        {(sheetMode.headerMode === "create" ||
-          sheetMode.headerMode === "edit-profile") && (
+        {!embedded &&
+          (sheetMode.headerMode === "create" ||
+            sheetMode.headerMode === "edit-profile") && (
           <CreateSheetArea>
             {submitError && <SubmitErrorText>{submitError}</SubmitErrorText>}
             <SheetButtonsRow>

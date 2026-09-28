@@ -1,7 +1,6 @@
 // A tela do jogador. Orquestra: dados e socket vêm de `useGameTable`; aqui fica só o que é
 // do jogador — o ator é o próprio personagem, e um toque no mapa compõe a ação dele.
 import { useCallback, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import useUser from "../hooks/useUser";
 import { useMatchParticipants } from "../hooks/useMatchParticipants";
 import { useResizeObserver } from "../hooks/useResizeObserver";
@@ -19,6 +18,7 @@ import EventStream from "../features/match/combat/EventStream";
 import ActionComposer from "../features/match/combat/ActionComposer";
 import DeclaredActions from "../features/match/combat/DeclaredActions";
 import MatchErrorBanner from "../features/match/combat/MatchErrorBanner";
+import MatchSheetPanel from "../features/match/combat/MatchSheetPanel";
 import MatchCharactersSidebar from "../features/match/MatchCharactersSidebar";
 import { PanelMessage } from "../features/match/combat/panelStyles";
 import WallActionSheet from "../features/match/WallActionSheet";
@@ -41,10 +41,11 @@ const NO_DRAG = new Set<string>();
 const initialAsideOpen = () =>
   typeof window !== "undefined" && window.matchMedia?.("(min-width: 1280px)").matches === true;
 
+type RailTab = "acao" | "ficha";
+
 export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const { width, height } = useResizeObserver(canvasRef);
-  const navigate = useNavigate();
 
   // O ator: um dos personagens do jogador nesta partida (o primeiro, até ele trocar). A
   // query de participantes é a mesma que `useGameTable` usa — o React Query a compartilha.
@@ -69,8 +70,21 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
   const actorName = myCharacters.find((p) => p.characterSheet.uuid === actorId)?.characterSheet.nickName ?? "Você";
 
   const [wallPicker, setWallPicker] = useState<WallSegment | null>(null);
+  const [railActive, setRailActive] = useState<RailTab>("acao");
   const [panelOpen, setPanelOpen] = useState(true);
   const [asideOpen, setAsideOpen] = useState(initialAsideOpen);
+
+  const handleRailSelect = useCallback(
+    (id: string) => {
+      if (id === railActive) {
+        setPanelOpen((o) => !o);
+        return;
+      }
+      setRailActive(id as RailTab);
+      setPanelOpen(true);
+    },
+    [railActive],
+  );
 
   const pieceCharacter = useCallback(
     (pieceId: string) => game.boardPieces.find((p) => p.id === pieceId)?.characterId,
@@ -82,6 +96,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
       const charId = pieceCharacter(pieceId);
       if (!charId || !actorId) return;
       composer.onCharacterTap(charId);
+      setRailActive("acao");
       setPanelOpen(true);
     },
     [pieceCharacter, actorId, composer],
@@ -91,6 +106,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
       const charId = pieceCharacter(pieceId);
       if (!charId || !actorId) return;
       composer.onCharacterHold(charId);
+      setRailActive("acao");
       setPanelOpen(true);
     },
     [pieceCharacter, actorId, composer],
@@ -99,6 +115,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
     (slot: SlotCoord) => {
       if (!actorId) return;
       composer.onSlotTap(slot);
+      setRailActive("acao");
       setPanelOpen(true);
     },
     [actorId, composer],
@@ -130,6 +147,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
       <MatchStageTemplate
         panelOpen={panelOpen}
         asideOpen={asideOpen}
+        panelWide={railActive === "ficha"}
         topbar={
           <MatchTopBar
             scene={state.scene}
@@ -142,14 +160,19 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
         }
         rail={
           <RailNav
-            items={[{ id: "acao", label: "Ação", icon: "⚔" }]}
-            active="acao"
+            items={[
+              { id: "acao", label: "Ação", icon: "⚔" },
+              { id: "ficha", label: "Ficha", icon: "📜" },
+            ]}
+            active={railActive}
             panelOpen={panelOpen}
-            onSelect={() => setPanelOpen((o) => !o)}
+            onSelect={handleRailSelect}
           />
         }
         panel={
-          actorId ? (
+          railActive === "ficha" ? (
+            <MatchSheetPanel token={token} sheetUuid={actorId} liveHp={actorId ? state.hp[actorId] : undefined} />
+          ) : actorId ? (
             <>
               <OwnBars bars={state.bars} characterId={actorId} hp={ownHp} />
               <ActionComposer
@@ -237,7 +260,12 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
                 actionLoading={{}}
                 onAccept={() => {}}
                 onReject={() => {}}
-                onSelectCharacterSheet={(sheetUuid) => navigate(`/charactersheet/${sheetUuid}`)}
+                ownPlayerUuid={user?.uuid}
+                onSelectCharacterSheet={(sheetUuid) => {
+                  setChosenActor(sheetUuid);
+                  setRailActive("ficha");
+                  setPanelOpen(true);
+                }}
               />
             }
           />

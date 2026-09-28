@@ -11,6 +11,8 @@ type Props = {
   aside?: ReactNode;
   panelOpen?: boolean;
   asideOpen?: boolean;
+  /** O painel mostra algo largo (a ficha): a coluna alarga a partir de `railUp`. */
+  panelWide?: boolean;
 };
 
 /** Altura do rail quando ele deita e vira rodapé (abaixo de `railUp`). */
@@ -37,6 +39,7 @@ export default function MatchStageTemplate({
   aside,
   panelOpen = true,
   asideOpen = true,
+  panelWide = false,
 }: Props) {
   return (
     <Shell>
@@ -44,7 +47,13 @@ export default function MatchStageTemplate({
       <Middle>
         <StageZone>{stage}</StageZone>
         {panel && (
-          <PanelZone data-testid="match-panel" data-open={panelOpen} $open={panelOpen}>
+          <PanelZone
+            data-testid="match-panel"
+            data-open={panelOpen}
+            data-wide={!!panelWide}
+            $open={panelOpen}
+            $wide={panelWide}
+          >
             {panel}
           </PanelZone>
         )}
@@ -129,7 +138,7 @@ const RailZone = styled.nav`
   }
 `;
 
-const PanelZone = styled.section<{ $open: boolean }>`
+const PanelZone = styled.section<{ $open: boolean; $wide?: boolean }>`
   grid-area: panel;
   display: ${({ $open }) => ($open ? "block" : "none")};
   max-height: 46dvh;
@@ -142,7 +151,7 @@ const PanelZone = styled.section<{ $open: boolean }>`
     max-height: 42dvh;
   }
   ${media.railUp} {
-    width: 340px;
+    width: ${({ $wide }) => ($wide ? "clamp(340px, 46vw, 640px)" : "340px")};
     max-height: none;
     border-top: none;
     border-right: 1px solid ${colors.surfaceInput};

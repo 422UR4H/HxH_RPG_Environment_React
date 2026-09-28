@@ -494,4 +494,20 @@ describe("GameMasterPage", () => {
     act(() => { ws.emit("turn_opened", { turnId: "t1", actorId: "c1", actionId: "a1", actionType: "" }); });
     for (const b of screen.getAllByRole("button", { name: "Nova cena" })) expect(b).toBeDisabled();
   });
+
+  it("F3: tocar num card abre a ficha no painel, sem navegar", async () => {
+    renderMasterPage();
+    const ws = await waitForSocket();
+    act(() => ws.onopen?.());
+
+    await user.click(await screen.findByRole("button", { name: "Ver histórico" }));
+    await user.click(screen.getByRole("button", { name: "Personagens" }));
+    await user.click(await screen.findByTestId("character-row-c1"));
+    expect(await screen.findByTestId("match-sheet")).toBeInTheDocument();
+    // o painel alarga só para a ficha, e a aba da direita continua em Personagens
+    expect(screen.getByTestId("match-panel")).toHaveAttribute("data-wide", "true");
+    expect(screen.getByRole("button", { name: "Personagens", pressed: true })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Fila/ }));
+    expect(screen.getByTestId("match-panel")).toHaveAttribute("data-wide", "false");
+  });
 });
