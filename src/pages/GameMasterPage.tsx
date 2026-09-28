@@ -366,6 +366,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
             </CanvasWrapper>
             <GeneralBar
               bars={state.bars}
+              roundMode={state.roundMode}
               openTurnActorId={state.openTurn?.actorId}
               nameOf={nameOf}
               highlightActorIds={npcIds}

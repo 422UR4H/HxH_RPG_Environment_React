@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, within } from "@testing-library/react";
 import GeneralBar from "../GeneralBar";
+import CharacterBarsStrip from "../CharacterBarsStrip";
 import OwnBars from "../OwnBars";
 import QueuePanel from "../QueuePanel";
 import CloseTurnRefusedDialog from "../CloseTurnRefusedDialog";
@@ -39,11 +40,21 @@ const bars = (over: Partial<BarsPayload> = {}): BarsPayload => ({
   seq: 1, prices: {}, characters: [], order: [], ...over,
 });
 
+// Fixture do brief (T12): um personagem em Disputado, com as duas velocidades que agiram e
+// uma chave de ordem. Nome `raceBars` — evita colidir com a factory `bars(...)` acima.
+const raceBars: BarsPayload = {
+  seq: 1,
+  prices: { action: 14, move: 12 },
+  characters: [{ characterId: "c1", actionBalance: -2.5, moveBalance: 3, actionSpeeds: [16, 14], moveSpeeds: [] }],
+  order: [{ actorId: "c1", bars: ["action"], key: 18 }],
+};
+
 describe("GeneralBar", () => {
   it("mostra de quem é a vez e a ordem projetada, maior key primeiro", () => {
     render(
       <GeneralBar
         nameOf={nameOf}
+        roundMode=""
         openTurnActorId="n1"
         highlightActorIds={new Set(["c1"])}
         bars={bars({
@@ -61,16 +72,44 @@ describe("GeneralBar", () => {
   });
 
   it("só mostra preço de barra que já precificou — ausente não é zero", () => {
-    render(<GeneralBar nameOf={nameOf} bars={bars({ prices: { action: 14 } })} />);
+    render(<GeneralBar nameOf={nameOf} roundMode="" bars={bars({ prices: { action: 14 } })} />);
     expect(screen.getByTestId("prices")).toHaveTextContent("⚔ 14");
     expect(screen.getByTestId("prices")).not.toHaveTextContent("➜");
   });
 
   it("sem turno e sem ordem, diz isso em vez de sumir", () => {
-    render(<GeneralBar nameOf={nameOf} bars={null} />);
+    render(<GeneralBar nameOf={nameOf} roundMode="" bars={null} />);
     expect(screen.getByText("Nenhum turno aberto")).toBeInTheDocument();
     expect(screen.getByText("ordem vazia")).toBeInTheDocument();
     expect(screen.queryByTestId("prices")).toBeNull();
+  });
+
+  it("mostra a key de cada slot", () => {
+    render(<GeneralBar bars={raceBars} roundMode="Race" nameOf={() => "Gon"} />);
+    expect(screen.getByTestId("order-row")).toHaveTextContent("18");
+  });
+});
+
+describe("CharacterBarsStrip", () => {
+  it("Disputado: saldo com uma casa, velocidades e média", () => {
+    render(<CharacterBarsStrip bars={raceBars} roundMode="Race" nameOf={nameOf} />);
+    expect(screen.getByText("Gon")).toBeInTheDocument();
+    expect(screen.getByText(`${MINUS}2.5`)).toBeInTheDocument();
+    expect(screen.getByText("16 · 14")).toBeInTheDocument();
+    expect(screen.getByText("x̄ 15")).toBeInTheDocument();
+    expect(screen.getAllByRole("meter")).toHaveLength(2);
+  });
+
+  it("Livre: sem barras nem média, só as velocidades", () => {
+    render(<CharacterBarsStrip bars={{ ...raceBars, prices: {} }} roundMode="Free" nameOf={nameOf} />);
+    expect(screen.queryAllByRole("meter")).toHaveLength(0);
+    expect(screen.queryByText(/x̄/)).not.toBeInTheDocument();
+    expect(screen.getByText("16 · 14")).toBeInTheDocument();
+  });
+
+  it("barra sem preço não é desenhada", () => {
+    render(<CharacterBarsStrip bars={{ ...raceBars, prices: { action: 14 } }} roundMode="Race" nameOf={nameOf} />);
+    expect(screen.getAllByRole("meter")).toHaveLength(1);
   });
 });
 
