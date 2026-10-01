@@ -86,6 +86,10 @@ const Strip = styled.div`
   margin-top: 6px;
   min-width: 0;
   overflow-x: auto;
+  /* BF2: só overflow-x setado faz o par overflow-x/overflow-y resolver overflow-y para
+     "auto" também (CSS Overflow Module) — daí o ▲▼ vertical indesejado. A tira só rola
+     na horizontal; na vertical ela cresce com as linhas (sem limite de altura aqui). */
+  overflow-y: hidden;
   font-family: ${fonts.sans};
   font-size: 11px;
 `;
