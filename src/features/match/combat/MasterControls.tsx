@@ -55,14 +55,17 @@ export function RegencyControls({
   return (
     <Regency>
       <RoundModeSwitch mode={mode} onChange={onModeChange} placement="topbar" />
-      <SmallButton
+      {/* BF5: abaixo de tabletUp o botão vive no painel da Fila (PanelSection acima) — na
+          topbar ele era um dos itens que, somados a "Abrir próxima"/"Fechar turno"/
+          "Histórico", estourava a largura em 390px e deixava os dois últimos inalcançáveis. */}
+      <NewSceneButton
         type="button"
         onClick={onNewScene}
         disabled={!canChangeScene}
         title={canChangeScene ? undefined : "Feche o turno antes de trocar de cena"}
       >
         Nova cena
-      </SmallButton>
+      </NewSceneButton>
       <PrimaryButton type="button" onClick={onOpenNext}>
         Abrir próxima
       </PrimaryButton>
@@ -172,11 +175,18 @@ export const PanelSection = styled.div`
   }
 `;
 
+// BF5: sem isso a Regência nunca cedia espaço (flex-shrink: 0) e empurrava a barra toda
+// além da viewport em 390px, deixando "Fechar turno" e "Histórico" inalcançáveis. Agora ela
+// pode encolher até 0 e, se ainda não couber (telas bem estreitas), rola na horizontal POR
+// DENTRO de si mesma — nunca a página.
 const Regency = styled.div`
   display: flex;
   align-items: center;
   gap: 6px;
-  flex-shrink: 0;
+  flex-shrink: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
 `;
 
 const ModeGroup = styled.div<{ $placement: "topbar" | "panel" }>`
@@ -213,6 +223,13 @@ const ModeButton = styled.button`
 const PrimaryButton = styled(SmallButton)`
   border-color: ${colors.brandAccentBright};
   background: ${colors.brandAccent};
+`;
+
+/* BF5: some da topbar abaixo de tabletUp — o painel da Fila (PanelSection) já tem o dela. */
+const NewSceneButton = styled(SmallButton)`
+  ${media.phone} {
+    display: none;
+  }
 `;
 
 const Picker = styled.section`
