@@ -9,6 +9,7 @@ import EventStream from "../EventStream";
 import DeclaredActions from "../DeclaredActions";
 import MatchTopBar from "../MatchTopBar";
 import ResolutionDetails from "../ResolutionDetails";
+import { avoidedVerb } from "../combatText";
 import type { BarsPayload, ResolutionPayload } from "../combatMessages";
 import type { DeclaredAction, TableEvent } from "../combatReducer";
 import { historyRows } from "../historyRows";
@@ -181,6 +182,30 @@ describe("QueuePanel", () => {
   });
 });
 
+// W1: "esquivou" é a palavra familiar de RPG; "evitou" saiu. `avoided` é por QUALQUER meio
+// (contrato) — o verbo depende de `reaction.kind`; sem reação, foi o reflexo passivo.
+describe("avoidedVerb (W1)", () => {
+  it("sem reação ou dodge/closedDodge: esquivou", () => {
+    expect(avoidedVerb(undefined)).toBe("esquivou");
+    expect(avoidedVerb({ kind: "dodge" })).toBe("esquivou");
+    expect(avoidedVerb({ kind: "closedDodge" })).toBe("esquivou");
+  });
+
+  it("escape/escapeGuard/closedEscape: fugiu", () => {
+    expect(avoidedVerb({ kind: "escape" })).toBe("fugiu");
+    expect(avoidedVerb({ kind: "escapeGuard" })).toBe("fugiu");
+    expect(avoidedVerb({ kind: "closedEscape" })).toBe("fugiu");
+  });
+
+  it("repel: aparou", () => {
+    expect(avoidedVerb({ kind: "repel" })).toBe("aparou");
+  });
+
+  it("kind desconhecido cai no padrão: esquivou", () => {
+    expect(avoidedVerb({ kind: "nothing" })).toBe("esquivou");
+  });
+});
+
 describe("ResolutionDetails", () => {
   it("mostra acerto, alvo, reação, dano, reações pendentes e falta do motor", () => {
     render(<ResolutionDetails resolution={res} nameOf={resolutionNameOf} />);
@@ -196,6 +221,21 @@ describe("ResolutionDetails", () => {
   it("não tem botão nenhum (nasce só leitura)", () => {
     render(<ResolutionDetails resolution={res} nameOf={resolutionNameOf} />);
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  it("W1: alvo que evitou mostra o verbo sozinho, sem \"o golpe\"", () => {
+    const avoided: ResolutionPayload = {
+      turnId: "t1", isSettled: true,
+      targets: [{
+        targetId: "c2", avoided: true, defended: false, dodgeTotal: 9, defenseTotal: 0,
+        rawDamage: 0, defenseApplied: 0, projectedDamage: 0,
+        reaction: { kind: "repel", total: 17, reactionId: "r1", margin: 2, difference: 2, stopsAttack: true },
+      }],
+    };
+    render(<ResolutionDetails resolution={avoided} nameOf={resolutionNameOf} />);
+    expect(screen.getByText("Hisoka")).toBeInTheDocument();
+    expect(screen.getByText(/^aparou ·/)).toBeInTheDocument();
+    expect(screen.queryByText(/evitou/)).not.toBeInTheDocument();
   });
 });
 
@@ -282,7 +322,8 @@ describe("EventStream", () => {
     expect(rows[0]).toHaveTextContent(
       "Turno de Gon — mover para coluna 5, linha 8 (Dash) e atacar Hisoka com Throwing Dagger",
     );
-    expect(rows[1]).toHaveTextContent(`Fim do turno de Gon — Hisoka ${MINUS}7, Killua evitou`);
+    // W1: sem reação, "esquivou" é o reflexo passivo de esquiva (nunca mais "evitou").
+    expect(rows[1]).toHaveTextContent(`Fim do turno de Gon — Hisoka ${MINUS}7, Killua esquivou`);
     expect(rows[2]).toHaveTextContent(`Hisoka: 13/20 (${MINUS}7)`);
     expect(rows[3]).toHaveTextContent("Regime: Disputado");
   });
@@ -315,7 +356,7 @@ describe("EventStream", () => {
     render(<EventStream rows={historyRows(history, [], 0, undefined)} nameOf={nameOf} gridKind="square" />);
     const rows = screen.getAllByTestId("event-row");
     expect(rows[0]).toHaveTextContent(
-      `Turno de Gon — moveu e atacou Hisoka, Killua com Throwing Dagger · Hisoka ${MINUS}7, Killua evitou`,
+      `Turno de Gon — moveu e atacou Hisoka, Killua com Throwing Dagger · Hisoka ${MINUS}7, Killua esquivou`,
     );
     expect(rows[1]).toHaveTextContent("Turno de Killua — atacou Hisoka · Hisoka sem dano");
     expect(rows[2]).toHaveTextContent("Turno de Hisoka — interagiu (open)");

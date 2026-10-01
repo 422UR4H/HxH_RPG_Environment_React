@@ -1,7 +1,7 @@
 import styled from "styled-components";
 import { colors, fonts } from "../../../styles/tokens";
 import type { ResolutionPayload } from "./combatMessages";
-import { REACTION_KIND_LABELS, RUNG_LABELS } from "./combatText";
+import { avoidedVerb, REACTION_KIND_LABELS, RUNG_LABELS } from "./combatText";
 
 /**
  * O cálculo do turno aberto, que só o mestre recebe (F7). Nasce só leitura: dar a palavra a
@@ -33,7 +33,8 @@ export default function ResolutionDetails({
         <Target key={t.targetId}>
           <strong>{nameOf(t.targetId)}</strong>
           <Line>
-            {t.avoided ? "evitou o golpe" : t.defended ? "defendeu" : "acertado"} · esquiva {t.dodgeTotal} · defesa {t.defenseTotal}
+            {/* W1: "esquivou"/"fugiu"/"aparou" sozinho — "evitou do golpe" soava estranho. */}
+            {t.avoided ? avoidedVerb(t.reaction) : t.defended ? "defendeu" : "acertado"} · esquiva {t.dodgeTotal} · defesa {t.defenseTotal}
           </Line>
           {t.reaction && (
             <Line>

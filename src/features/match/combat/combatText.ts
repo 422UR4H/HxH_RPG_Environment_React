@@ -36,6 +36,24 @@ const INTERACT_LABELS: Record<string, string> = {
   examine: "examinar",
 };
 
+/**
+ * W1: o verbo de "evitou" depende de COMO o alvo evitou, não de um texto fixo — o contrato
+ * (`targets[].avoided`) diz que `avoided` vale por qualquer meio; pergunte a `reaction.kind`.
+ * Sem reação, o alvo usou o reflexo passivo de esquiva.
+ */
+export function avoidedVerb(reaction?: { kind: string }): string {
+  switch (reaction?.kind) {
+    case "escape":
+    case "escapeGuard":
+    case "closedEscape":
+      return "fugiu";
+    case "repel":
+      return "aparou";
+    default:
+      return "esquivou";
+  }
+}
+
 /** Coordenada legível de um slot — contada a partir de 1 no quadrado. */
 export function formatSlot(t: SlotTriple, kind: GridKind): string {
   return kind === "square" ? `coluna ${t[0] + 1}, linha ${t[1] + 1}` : `q ${t[0]}, r ${t[1]}`;

@@ -6,7 +6,7 @@ import type { TableEvent } from "./combatReducer";
 import type { ResolutionTarget, ScenePayload } from "./combatMessages";
 import type { HistoryTurn } from "../../../types/matchHistory";
 import type { HistoryRow } from "./historyRows";
-import { describeDeclared, humanWeapon, ROUND_MODE_LABELS } from "./combatText";
+import { avoidedVerb, describeDeclared, humanWeapon, ROUND_MODE_LABELS } from "./combatText";
 
 /** U+2212 MINUS SIGN — não é hífen. */
 const MINUS = "−";
@@ -18,12 +18,13 @@ const sceneLabel = (s: ScenePayload) =>
 
 type Line = { icon: string; text: string; tone?: "turn" | "hp" | "muted" };
 
-/** O desfecho de um alvo — o mesmo texto no ao vivo e no REST ("evitou", como ResolutionDetails). */
+/** O desfecho de um alvo — o mesmo texto no ao vivo e no REST (W1: verbo por `reaction.kind`,
+ * igual a ResolutionDetails via `avoidedVerb`). */
 function outcomeText(
-  t: Pick<ResolutionTarget, "targetId" | "avoided" | "projectedDamage">,
+  t: Pick<ResolutionTarget, "targetId" | "avoided" | "projectedDamage" | "reaction">,
   nameOf: (id: string) => string,
 ): string {
-  if (t.avoided) return `${nameOf(t.targetId)} evitou`;
+  if (t.avoided) return `${nameOf(t.targetId)} ${avoidedVerb(t.reaction)}`;
   return t.projectedDamage > 0 ? `${nameOf(t.targetId)} ${MINUS}${t.projectedDamage}` : `${nameOf(t.targetId)} sem dano`;
 }
 
