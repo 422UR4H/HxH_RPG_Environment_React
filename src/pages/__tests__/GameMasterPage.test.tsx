@@ -550,6 +550,23 @@ describe("GameMasterPage", () => {
     expect(ws.sent("change_scene")).toEqual([{ category: "roleplay", briefInitialDescription: "Taverna" }]);
   });
 
+  // D1 (deferred do Task 7): o diálogo fica sempre montado, então category/description
+  // sobreviviam ao Cancelar — reabrir mostrava o que foi digitado da vez anterior.
+  it("D1: cancelar e reabrir reseta a categoria e a descrição para os padrões", async () => {
+    renderMasterPage();
+    const ws = await waitForSocket();
+    act(() => ws.onopen?.());
+
+    await user.click(screen.getAllByRole("button", { name: "Nova cena" })[0]);
+    await user.click(screen.getByRole("radio", { name: "Interpretação" }));
+    await user.type(screen.getByLabelText("Descrição inicial"), "Taverna");
+    await user.click(screen.getByRole("button", { name: "Cancelar" }));
+
+    await user.click(screen.getAllByRole("button", { name: "Nova cena" })[0]);
+    expect(screen.getByLabelText("Descrição inicial")).toHaveValue("");
+    expect(screen.getByRole("radio", { name: "Batalha" })).toBeChecked();
+  });
+
   it("F8: com turno aberto, Nova cena fica desabilitado", async () => {
     renderMasterPage();
     const ws = await waitForSocket();

@@ -17,6 +17,18 @@ export default function SceneChangeDialog({
 }) {
   const [category, setCategory] = useState<SceneCategory>("battle");
   const [description, setDescription] = useState("");
+  // D1: o diálogo fica sempre montado (`!open` só esconde) — sem isso, category/description
+  // sobrevivem a Cancelar/confirmar e o próximo open reabre com o que foi digitado antes.
+  // Ajuste de estado durante a renderização (padrão do React para resetar ao mudar uma prop,
+  // sem o flash de um useEffect): só dispara na transição PARA aberto.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) {
+      setCategory("battle");
+      setDescription("");
+    }
+  }
   if (!open) return null;
   return (
     <Overlay onClick={onCancel}>
