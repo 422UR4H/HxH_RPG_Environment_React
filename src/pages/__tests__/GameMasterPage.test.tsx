@@ -210,6 +210,39 @@ describe("GameMasterPage", () => {
     expect(within(openRow).getByText("Capanga")).toBeInTheDocument();
   });
 
+  // BF3: a ordem real no socket do mestre em open_next_action é resolution_updated(settled=
+  // false) ANTES de turn_opened — o teste acima cobre a ordem antiga (turn_opened primeiro),
+  // este cobre a real: sem o fix o card em andamento não mostra o cálculo.
+  it("BF3: resolução chega antes do turn_opened (ordem real) e mesmo assim aparece no card em andamento", async () => {
+    renderMasterPage();
+    const ws = await waitForSocket();
+    act(() => ws.onopen?.());
+    act(() => ws.emit("action_queued", { actionId: "a1", actorId: "c1", bars: ["action"] }));
+    act(() =>
+      ws.emit("resolution_updated", {
+        turnId: "t1",
+        isSettled: false,
+        targets: [
+          {
+            targetId: "npc1",
+            avoided: false,
+            defended: false,
+            dodgeTotal: 10,
+            defenseTotal: 5,
+            rawDamage: 8,
+            defenseApplied: 0,
+            projectedDamage: 8,
+          },
+        ],
+      }),
+    );
+    act(() => ws.emit("turn_opened", { turnId: "t1", actorId: "c1", actionId: "a1", actionType: "" }));
+
+    const openRow = screen.getByTestId("queue-open");
+    expect(within(openRow).getByText(/em andamento/i)).toBeInTheDocument();
+    expect(within(openRow).getByText("Capanga")).toBeInTheDocument();
+  });
+
   it("mostra o diálogo que o servidor computou e reenvia com confirm", async () => {
     renderMasterPage();
     const ws = await waitForSocket();

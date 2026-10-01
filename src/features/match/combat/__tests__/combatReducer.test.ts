@@ -218,6 +218,20 @@ describe("combatReducer — resolução do turno aberto (F7)", () => {
     expect(s.openResolution).toBeNull();
   });
 
+  // BF3: ordem real no socket do mestre em open_next_action é piece_moved, resolution_updated
+  // (isSettled=false), turn_opened, bars_updated — a resolução chega ANTES de existir turno
+  // aberto. Antes só era guardada quando `state.openTurn?.turnId === payload.turnId`, o que
+  // descartava exatamente essa ordem (openTurn ainda era o anterior/null).
+  it("guarda a resolução que chega antes do turn_opened (ordem real) e mantém ao abrir o mesmo turno", () => {
+    const s = run([{ type: "resolution_updated", payload: unsettled("t1") }, opened("t1", "a1")]);
+    expect(s.openResolution?.turnId).toBe("t1");
+  });
+
+  it("uma resolução de um turno que já fechou não sobrevive à abertura de outro turno", () => {
+    const s = run([{ type: "resolution_updated", payload: unsettled("t0") }, opened("t1", "a1")]);
+    expect(s.openResolution).toBeNull();
+  });
+
   it("limpa no turn_closed do mesmo turno e no round_closed", () => {
     const a = run([opened("t1", "a1"), { type: "resolution_updated", payload: unsettled("t1") }, closed("t1")]);
     expect(a.openResolution).toBeNull();

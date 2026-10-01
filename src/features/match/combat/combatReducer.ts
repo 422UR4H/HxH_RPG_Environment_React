@@ -168,6 +168,9 @@ export function combatReducer(state: CombatState, action: CombatAction): CombatS
       return {
         ...state,
         openTurn: action.payload,
+        // BF3: a resolução não liquidada pode ter chegado ANTES deste turn_opened (ordem real
+        // do servidor em open_next_action) — só sobrevive se for do turno que está abrindo.
+        openResolution: state.openResolution?.turnId === turnId ? state.openResolution : null,
         openQueued: state.queue.find((q) => q.actionId === actionId) ?? null,
         declared: state.declared.map((d) =>
           d.id === actionId ? { ...d, status: "open" as const, turnId } : d,
@@ -200,7 +203,10 @@ export function combatReducer(state: CombatState, action: CombatAction): CombatS
       // A resolução do turno aberto é o cálculo provisório do mestre — guardada à parte até
       // liquidar. Só a LIQUIDADA vira linha de histórico; o histórico conta o que aconteceu.
       if (!action.payload.isSettled) {
-        return state.openTurn?.turnId === action.payload.turnId
+        // BF3: no servidor, resolution_updated(isSettled=false) chega ANTES do turn_opened
+        // correspondente — quando ainda não há turno aberto, guarda do mesmo jeito; o
+        // turn_opened descarta se o turnId não bater com o turno que está abrindo.
+        return state.openTurn == null || state.openTurn.turnId === action.payload.turnId
           ? { ...state, openResolution: action.payload }
           : state;
       }
