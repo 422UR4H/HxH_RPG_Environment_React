@@ -216,6 +216,44 @@ describe("GameMasterPage", () => {
     expect(JSON.parse(mapStub.getAttribute("data-ghosts") ?? "[]")).toEqual([]);
   });
 
+  // Fix round 1 (Important 2): uma ação que o PRÓPRIO mestre declarou por um NPC chega a
+  // `state.declared` (pelo ack `action_enqueued`) E a `state.queue` (`action_queued` é
+  // master-only, sempre, mesmo para quem declarou) com o MESMO actionId — sem a exclusão em
+  // `useGameTable`, o fantasma apareceria duplicado sobre a mesma peça.
+  it("T13: o fantasma de uma ação que o próprio mestre declarou por um NPC não duplica", async () => {
+    renderMasterPage();
+    const ws = await waitForSocket();
+    act(() => ws.onopen?.());
+
+    const npcButton = await screen.findByTestId("select-actor-npc1");
+    act(() => npcButton.click());
+    act(() => screen.getByTestId("empty-slot").click());
+    const declareButton = await screen.findByRole("button", { name: /declarar/i });
+    act(() => declareButton.click());
+
+    // O ack estampa o actionId real em `state.declared`.
+    act(() => ws.emit("action_enqueued", { actionId: "a1" }));
+    // `action_queued` chega para o mestre com o MESMO actionId, como sempre (master-only).
+    act(() =>
+      ws.emit("action_queued", {
+        actionId: "a1",
+        actorId: "npc1",
+        bars: ["move"],
+        action: {
+          uuid: "a1",
+          actorId: "npc1",
+          reactionKind: "",
+          move: { category: "Dash", from: [4, 4, 0], position: [9, 9, 0], finalSpeed: 10 },
+        },
+      }),
+    );
+
+    const mapStub = screen.getByTestId("map-stub");
+    const ghosts = JSON.parse(mapStub.getAttribute("data-ghosts") ?? "[]");
+    expect(ghosts).toHaveLength(1);
+    expect(ghosts[0]).toEqual({ from: [4, 4, 0], to: [9, 9, 0] });
+  });
+
   it("F7: turno aberto mostra o card em andamento na Fila, com o cálculo anexado", async () => {
     renderMasterPage();
     const ws = await waitForSocket();

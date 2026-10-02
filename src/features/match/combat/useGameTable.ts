@@ -12,11 +12,17 @@ import type { MatchBoardSync } from "../../../hooks/useMatchWs";
 import { visibleBoardPieces } from "../../tactical-map/utils/boardSource";
 import { isSameSlot, slotToTriple, tripleToSlot } from "../../tactical-map/utils/coords";
 import type { SlotTriple } from "../../tactical-map/utils/coords";
+import type { QueuedAction } from "./combatMessages";
 import { useLiveMapSync } from "./useLiveMapSync";
 import { useMatchCombat } from "./useMatchCombat";
 import { useActionComposerState } from "./useActionComposerState";
 import { defaultMoveCategory } from "./defaultMoveCategory";
 import { pendingMoves } from "./combatReducer";
+
+/** O destino do `move` de uma ação da fila, quando há um — `undefined` se a ação não move. */
+function queuedMoveTo(q: QueuedAction): SlotTriple | undefined {
+  return q.action?.move?.position;
+}
 
 export function useGameTable({
   token,
@@ -129,14 +135,12 @@ export function useGameTable({
       });
     const declaredIds = new Set(state.declared.map((d) => d.id));
     const queueGhosts = state.queue
-      .filter((q): q is typeof q & { action: { move: { position: SlotTriple } } } =>
-        !!q.action?.move?.position && !declaredIds.has(q.actionId),
-      )
+      .filter((q) => queuedMoveTo(q) !== undefined && !declaredIds.has(q.actionId))
       .map((q) => {
         const piece = pieceByCharacter.get(q.actorId);
         return {
-          from: piece ? slotToTriple(piece.coord.slot, piece.coord.z) : q.action.move.from,
-          to: q.action.move.position,
+          from: piece ? slotToTriple(piece.coord.slot, piece.coord.z) : q.action?.move?.from,
+          to: queuedMoveTo(q)!,
         };
       });
     return [...ownGhosts, ...queueGhosts];

@@ -204,7 +204,7 @@ describe("QueuePanel", () => {
     expect(screen.getByText(/Ninguém declarou nada ainda/)).toBeInTheDocument();
   });
 
-  it("sem `action` (servidor antigo), a linha não ganha botão Detalhes nem aria-expanded", () => {
+  it("sem `action` (servidor antigo), a linha não ganha botão Detalhes", () => {
     render(
       <QueuePanel
         nameOf={nameOf}
@@ -214,11 +214,12 @@ describe("QueuePanel", () => {
         onPull={() => {}}
       />,
     );
-    const row = screen.getByTestId("queue-row");
-    expect(row).not.toHaveAttribute("aria-expanded");
     expect(screen.queryByRole("button", { name: "Detalhes" })).not.toBeInTheDocument();
   });
 
+  // Fix round 1: `aria-expanded` mora no BOTÃO "Detalhes", não na `<li>` — `role="listitem"`
+  // não aceita esse atributo (Important 1 da revisão). `aria-controls` liga o botão ao bloco
+  // expandido pelo id.
   it("com `action`: Detalhes expande e mostra arma, destino e o total da velocidade", () => {
     render(
       <QueuePanel
@@ -230,12 +231,16 @@ describe("QueuePanel", () => {
       />,
     );
     const row = screen.getByTestId("queue-row");
-    expect(row).toHaveAttribute("aria-expanded", "false");
+    const detailsButton = screen.getByRole("button", { name: "Detalhes" });
+    expect(detailsButton).toHaveAttribute("aria-expanded", "false");
     expect(screen.queryByText(/Arma:/)).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Detalhes" }));
+    fireEvent.click(detailsButton);
 
-    expect(row).toHaveAttribute("aria-expanded", "true");
+    expect(detailsButton).toHaveAttribute("aria-expanded", "true");
+    const detailsId = detailsButton.getAttribute("aria-controls");
+    expect(detailsId).toBeTruthy();
+    expect(document.getElementById(detailsId!)).toHaveAttribute("aria-label", "Detalhes da ação");
     expect(within(row).getByText(/Arma: Throwing Dagger/)).toBeInTheDocument();
     expect(within(row).getByText(/Movimento: Dash.*coluna 3, linha 1/)).toBeInTheDocument();
     expect(within(row).getByText(/Velocidade de movimento: Accelerate.*= 12/)).toBeInTheDocument();
@@ -243,8 +248,8 @@ describe("QueuePanel", () => {
     expect(within(row).getByText(/Ordem geral: chave 9/)).toBeInTheDocument();
     expect(within(row).getByText(/Alvos: Gon/)).toBeInTheDocument(); // alvo, por nome
 
-    fireEvent.click(screen.getByRole("button", { name: "Detalhes" }));
-    expect(row).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(detailsButton);
+    expect(detailsButton).toHaveAttribute("aria-expanded", "false");
     expect(screen.queryByText(/Arma:/)).not.toBeInTheDocument();
   });
 });

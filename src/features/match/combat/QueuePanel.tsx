@@ -23,12 +23,14 @@ function orderKeyFor(action: Pick<QueuedAction, "actorId" | "bars">, order: Bars
  * este componente.
  */
 function QueueRowDetails({
+  id,
   action,
   detail,
   order,
   gridKind,
   nameOf,
 }: {
+  id: string;
   action: QueuedAction;
   detail: QueuedActionDetail;
   order: BarsPayload["order"];
@@ -37,7 +39,7 @@ function QueueRowDetails({
 }) {
   const key = orderKeyFor(action, order);
   return (
-    <Details aria-label="Detalhes da ação">
+    <Details id={id} aria-label="Detalhes da ação">
       {!!detail.targetId?.length && <DetailLine>Alvos: {detail.targetId.map(nameOf).join(", ")}</DetailLine>}
       {detail.attack?.weapon && <DetailLine>Arma: {humanWeapon(detail.attack.weapon)}</DetailLine>}
       {detail.move && (
@@ -126,8 +128,9 @@ export default function QueuePanel({
           {queue.map((action) => {
             const detail = action.action;
             const isExpanded = expanded.has(action.actionId);
+            const detailsId = `queue-details-${action.actionId}`;
             return (
-              <Row key={action.actionId} data-testid="queue-row" {...(detail ? { "aria-expanded": isExpanded } : {})}>
+              <Row key={action.actionId} data-testid="queue-row">
                 <RowHeader>
                   <Info>
                     <Name>
@@ -138,7 +141,12 @@ export default function QueuePanel({
                     </Name>
                   </Info>
                   {detail && (
-                    <DetailsButton type="button" onClick={() => toggle(action.actionId)}>
+                    <DetailsButton
+                      type="button"
+                      aria-expanded={isExpanded}
+                      aria-controls={detailsId}
+                      onClick={() => toggle(action.actionId)}
+                    >
                       Detalhes
                     </DetailsButton>
                   )}
@@ -147,7 +155,14 @@ export default function QueuePanel({
                   </PullButton>
                 </RowHeader>
                 {isExpanded && detail && (
-                  <QueueRowDetails action={action} detail={detail} order={order} gridKind={gridKind} nameOf={nameOf} />
+                  <QueueRowDetails
+                    id={detailsId}
+                    action={action}
+                    detail={detail}
+                    order={order}
+                    gridKind={gridKind}
+                    nameOf={nameOf}
+                  />
                 )}
               </Row>
             );
