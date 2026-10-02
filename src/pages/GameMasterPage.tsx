@@ -7,7 +7,6 @@ import { useCombatCatalogue } from "../hooks/useCombatCatalogue";
 import { useMatchHistory } from "../hooks/useMatchHistory";
 import { useGameTable } from "../features/match/combat/useGameTable";
 import { defaultMoveCategory } from "../features/match/combat/defaultMoveCategory";
-import { describeDeclared } from "../features/match/combat/combatText";
 import MatchStageTemplate from "../components/templates/MatchStageTemplate";
 import MatchTopBar from "../features/match/combat/MatchTopBar";
 import {
@@ -209,14 +208,6 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     ? game.boardPieces.find((p) => p.characterId === inspectedId)?.id
     : undefined;
 
-  const describeQueued = useCallback(
-    (actionId: string) => {
-      const mine = state.declared.find((d) => d.id === actionId);
-      return mine ? describeDeclared(mine, nameOf, gridKind) : undefined;
-    },
-    [state.declared, nameOf, gridKind],
-  );
-
   const canCloseTurn = state.openTurn != null;
   const mapHint = !actorId && map ? "Toque num NPC para agir por ele." : undefined;
 
@@ -292,8 +283,9 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                       }
                     : undefined
                 }
+                order={state.bars?.order ?? []}
+                gridKind={gridKind}
                 nameOf={nameOf}
-                describe={describeQueued}
                 onPull={combat.send.pullAction}
               />
             </>

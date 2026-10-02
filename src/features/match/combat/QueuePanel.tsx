@@ -1,31 +1,105 @@
+import { useState } from "react";
 import styled from "styled-components";
 import { colors, fonts } from "../../../styles/tokens";
-import type { Bar, QueuedAction, ResolutionPayload } from "./combatMessages";
-import { BAR_ICONS, BAR_LABELS } from "./combatText";
+import type { GridKind } from "../../../types/tacticalMap";
+import type { Bar, BarsPayload, QueuedAction, QueuedActionDetail, ResolutionPayload } from "./combatMessages";
+import { BAR_ICONS, BAR_LABELS, formatSlot, humanWeapon } from "./combatText";
 import ResolutionDetails from "./ResolutionDetails";
+
+const sameBars = (a: readonly Bar[], b: readonly Bar[]) => [...a].sort().join(",") === [...b].sort().join(",");
+
+/**
+ * A primeira entrada da ordem geral com o mesmo ator E as mesmas barras desta ação (T13) —
+ * `bars_updated.order` não carrega identidade de ação, então é assim que o card acha "a
+ * chave desta ação" sem o servidor precisar mandar mais nada.
+ */
+function orderKeyFor(action: Pick<QueuedAction, "actorId" | "bars">, order: BarsPayload["order"]): number | undefined {
+  return order.find((o) => o.actorId === action.actorId && sameBars(o.bars, action.bars))?.key;
+}
+
+/**
+ * O detalhe expandido de uma linha da fila (T13/F1) — tudo que `action.action` carrega, no
+ * nível Full que só o mestre recebe. Sem `action` (servidor antigo), quem chama nem monta
+ * este componente.
+ */
+function QueueRowDetails({
+  action,
+  detail,
+  order,
+  gridKind,
+  nameOf,
+}: {
+  action: QueuedAction;
+  detail: QueuedActionDetail;
+  order: BarsPayload["order"];
+  gridKind: GridKind;
+  nameOf: (characterId: string) => string;
+}) {
+  const key = orderKeyFor(action, order);
+  return (
+    <Details aria-label="Detalhes da ação">
+      {!!detail.targetId?.length && <DetailLine>Alvos: {detail.targetId.map(nameOf).join(", ")}</DetailLine>}
+      {detail.attack?.weapon && <DetailLine>Arma: {humanWeapon(detail.attack.weapon)}</DetailLine>}
+      {detail.move && (
+        <DetailLine>
+          Movimento: {detail.move.category}
+          {detail.move.position && ` → ${formatSlot(detail.move.position, gridKind)}`}
+        </DetailLine>
+      )}
+      {!!detail.skills?.length && <DetailLine>Perícias: {detail.skills.map((s) => s.skillName).join(", ")}</DetailLine>}
+      {detail.speed?.rollCheck && (
+        <DetailLine>
+          Velocidade de ação: {detail.speed.rollCheck.skillName}
+          {detail.speed.rollCheck.attempts?.primary && ` ${detail.speed.rollCheck.attempts.primary.join(" + ")}`}
+          {detail.speed.rollCheck.result !== undefined && ` = ${detail.speed.rollCheck.result}`}
+        </DetailLine>
+      )}
+      {detail.move?.speed && (
+        <DetailLine>
+          Velocidade de movimento: {detail.move.speed.skillName}
+          {detail.move.speed.attempts?.primary && ` ${detail.move.speed.attempts.primary.join(" + ")}`}
+          {detail.move.speed.result !== undefined && ` = ${detail.move.speed.result}`}
+        </DetailLine>
+      )}
+      {key !== undefined && <DetailLine>Ordem geral: chave {key}</DetailLine>}
+      <DetailLine>Cobra: {action.bars.map((b) => BAR_LABELS[b]).join(" + ")}</DetailLine>
+    </Details>
+  );
+}
 
 /**
  * A fila secreta — só o mestre recebe. Em ordem de chegada (a ordem de EXECUÇÃO é a barra
- * geral). O conteúdo de uma ação de jogador nunca chega ao mestre antes de abrir; o das
- * ações que o próprio mestre declarou por NPC vem de `describe`. Mostra também, no topo, a
- * ação em andamento (`open`) — o turno aberto tirou essa linha da fila de verdade, mas o
- * mestre ainda precisa vê-la, com o cálculo que só ele recebe (F7).
+ * geral). Mostra também, no topo, a ação em andamento (`open`) — o turno aberto tirou essa
+ * linha da fila de verdade, mas o mestre ainda precisa vê-la, com o cálculo que só ele
+ * recebe (F7). Cada linha da fila é expansível (T13/F1): com `action.action` (B1), "Detalhes"
+ * mostra a declaração inteira; sem ele (servidor antigo), a linha fica como sempre foi.
  */
 export default function QueuePanel({
   queue,
   open,
+  order,
+  gridKind,
   nameOf,
-  describe,
   onPull,
 }: {
   queue: QueuedAction[];
   /** A ação do turno aberto — já não está em `queue`, mas continua na tela, marcada. */
   open?: { actorId: string; bars?: Bar[]; resolution: ResolutionPayload | null };
+  /** `bars_updated.order` — para achar a chave desta ação na ordem geral (ver `orderKeyFor`). */
+  order: BarsPayload["order"];
+  gridKind: GridKind;
   nameOf: (characterId: string) => string;
-  /** Detalhe de uma ação declarada neste navegador, quando houver. */
-  describe?: (actionId: string) => string | undefined;
   onPull: (actionId: string) => void;
 }) {
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
+  const toggle = (actionId: string) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(actionId)) next.delete(actionId);
+      else next.add(actionId);
+      return next;
+    });
+
   return (
     <Panel aria-label="Fila">
       <Title>Fila de ações</Title>
@@ -50,21 +124,31 @@ export default function QueuePanel({
             </OpenRow>
           )}
           {queue.map((action) => {
-            const detail = describe?.(action.actionId);
+            const detail = action.action;
+            const isExpanded = expanded.has(action.actionId);
             return (
-              <Row key={action.actionId} data-testid="queue-row">
-                <Info>
-                  <Name>
-                    {nameOf(action.actorId)}{" "}
-                    <Bars title={action.bars.map((b) => BAR_LABELS[b]).join(" + ")}>
-                      {action.bars.map((b) => BAR_ICONS[b]).join("")}
-                    </Bars>
-                  </Name>
-                  {detail && <Detail>{detail}</Detail>}
-                </Info>
-                <PullButton type="button" onClick={() => onPull(action.actionId)} title="Abrir esta ação agora, fora da ordem">
-                  Abrir agora
-                </PullButton>
+              <Row key={action.actionId} data-testid="queue-row" {...(detail ? { "aria-expanded": isExpanded } : {})}>
+                <RowHeader>
+                  <Info>
+                    <Name>
+                      {nameOf(action.actorId)}{" "}
+                      <Bars title={action.bars.map((b) => BAR_LABELS[b]).join(" + ")}>
+                        {action.bars.map((b) => BAR_ICONS[b]).join("")}
+                      </Bars>
+                    </Name>
+                  </Info>
+                  {detail && (
+                    <DetailsButton type="button" onClick={() => toggle(action.actionId)}>
+                      Detalhes
+                    </DetailsButton>
+                  )}
+                  <PullButton type="button" onClick={() => onPull(action.actionId)} title="Abrir esta ação agora, fora da ordem">
+                    Abrir agora
+                  </PullButton>
+                </RowHeader>
+                {isExpanded && detail && (
+                  <QueueRowDetails action={action} detail={detail} order={order} gridKind={gridKind} nameOf={nameOf} />
+                )}
               </Row>
             );
           })}
@@ -111,11 +195,17 @@ const List = styled.ol`
 
 const Row = styled.li`
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  gap: 6px;
   padding: 8px;
   border-radius: 6px;
   background: ${colors.surfaceInputHover};
+`;
+
+const RowHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
 `;
 
 const OpenRow = styled.li`
@@ -153,11 +243,6 @@ const Bars = styled.span`
   color: ${colors.textPlaceholderStrong};
 `;
 
-const Detail = styled.span`
-  font-size: 12px;
-  color: ${colors.textMuted};
-`;
-
 const PullButton = styled.button`
   flex-shrink: 0;
   font-family: ${fonts.sans};
@@ -170,3 +255,28 @@ const PullButton = styled.button`
   background: transparent;
   color: ${colors.textPrimary};
 `;
+
+const DetailsButton = styled.button`
+  flex-shrink: 0;
+  font-family: ${fonts.sans};
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 10px;
+  border: 1px solid ${colors.textPlaceholderStrong};
+  border-radius: 6px;
+  cursor: pointer;
+  background: transparent;
+  color: ${colors.textPrimary};
+`;
+
+const Details = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 4px;
+  border-top: 1px solid ${colors.surfaceInput};
+  font-size: 12px;
+  color: ${colors.textMuted};
+`;
+
+const DetailLine = styled.span``;

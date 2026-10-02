@@ -107,6 +107,11 @@ type WireQueuedAction = Omit<QueuedAction, "bars"> & { bars: QueuedAction["bars"
  * ActionQueuedPayload, reused whole per message.go's comment on MatchFullStatePayload.Queue).
  * `Bars []string` lacks `omitempty`; normalized defensively (both known constructors
  * `make` it non-nil today).
+ *
+ * `action` (`actionwire.Action`, T13/B1) needs no normalization here: every slice inside it
+ * (`TargetID`, `Skills`, `RollAttempts.Primary/Secondary`) has `omitempty` in the Go struct,
+ * and every nilable sub-object (`Move`, `Attack`, …) is a pointer with `omitempty` too — none
+ * of them can come back as JSON `null`, only absent. It passes through byte-identical.
  */
 export function normalizeQueuedAction(raw: WireQueuedAction): QueuedAction {
   return { ...raw, bars: raw.bars ?? [] };

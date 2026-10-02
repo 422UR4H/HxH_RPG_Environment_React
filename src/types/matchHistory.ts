@@ -9,6 +9,21 @@ export type RollCheck = {
   result: number;
 };
 
+/**
+ * `actionwire.Move` (match-combat-ws.md `action_queued`; mesmo formato em match-history.md).
+ * `category` sempre viaja; o resto é omitido (não `null`) quando o nível/fog corta —
+ * `from`/`position` ausentes quando a fog esconde a casa (ou o ator não tinha peça),
+ * `speed`/`charge`/`finalSpeed` ausentes em `Declaration`.
+ */
+export type HistoryMove = {
+  category: string;
+  from?: [number, number, number];
+  position?: [number, number, number];
+  speed?: RollCheck;
+  charge?: RollCheck;
+  finalSpeed?: number;
+};
+
 export type HistoryAction = {
   uuid: string;
   actorId: string;
@@ -18,8 +33,7 @@ export type HistoryAction = {
   systemBias?: number;
   skills?: Array<{ skillName: string; rollCheck: RollCheck }>;
   speed?: { bar: number; rollCheck: RollCheck };
-  /** O formato não está documentado em match-history.md até B15 — só a presença é lida. */
-  move?: unknown;
+  move?: HistoryMove;
   attack?: { weapon?: string; hit?: RollCheck; damage?: RollCheck; relativeVelocity?: number };
   defense?: unknown;
   dodge?: { rollCheck: RollCheck };

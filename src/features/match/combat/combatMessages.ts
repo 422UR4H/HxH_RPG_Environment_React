@@ -1,3 +1,5 @@
+import type { HistoryAction } from "../../../types/matchHistory";
+
 export type Bar = "action" | "move";
 export type RoundMode = "Free" | "Race";
 export type MoveCategory = "Dash" | "Shift";
@@ -27,7 +29,15 @@ export type BarsPayload = {
   order: Array<{ actorId: string; bars: Bar[]; key: number }>;
 };
 
-export type QueuedAction = { actionId: string; actorId: string; bars: Bar[] };
+/**
+ * `action_queued`/`match_full_state.queue` (contrato, B1). `action` reusa o formato do
+ * histórico (`actionwire.Full` — nunca projetado, a superfície já é master-only) e vem
+ * SEMPRE presente no wire (`actionwire.Action` não é ponteiro, sem `omitempty`); opcional
+ * aqui só para um servidor antigo que ainda não manda o campo.
+ */
+export type QueuedActionDetail = HistoryAction;
+
+export type QueuedAction = { actionId: string; actorId: string; bars: Bar[]; action?: QueuedActionDetail };
 
 /** `actionId` liga action_enqueued → action_queued → turn_opened (B1). */
 export type TurnOpenedPayload = {

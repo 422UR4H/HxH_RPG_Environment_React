@@ -155,30 +155,97 @@ describe("OwnBars", () => {
   });
 });
 
+// T13/F1: a declaração inteira de uma ação na fila do mestre (actionwire.Full, B1) — o mesmo
+// formato do histórico, reusado em action_queued/match_full_state.queue.
+const fullAction = {
+  uuid: "a2",
+  actorId: "n1",
+  reactionKind: "",
+  targetId: ["c1"],
+  speed: { bar: 0, rollCheck: { skillName: "Legerity", skillValue: 0, attempts: { primary: [6, 8] }, result: 14 } },
+  move: {
+    category: "Dash",
+    from: [1, 1, 0] as [number, number, number],
+    position: [2, 0, 0] as [number, number, number],
+    speed: { skillName: "Accelerate", skillValue: 0, attempts: { primary: [5, 7] }, result: 12 },
+    finalSpeed: 12,
+  },
+  attack: {
+    weapon: "ThrowingDagger",
+    hit: { skillName: "Accuracy", skillValue: 0, attempts: { primary: [6, 8] }, result: 14 },
+    damage: { skillName: "Push", skillValue: 0, attempts: { primary: [4] }, result: 4 },
+    relativeVelocity: 0,
+  },
+};
+
 describe("QueuePanel", () => {
-  it("abre uma ação fora de ordem pelo actionId e mostra o detalhe do que o mestre declarou", () => {
+  it("abre uma ação fora de ordem pelo actionId", () => {
     const onPull = vi.fn();
     render(
       <QueuePanel
         nameOf={nameOf}
+        order={[]}
+        gridKind="square"
         queue={[
           { actionId: "a1", actorId: "c1", bars: ["action"] },
           { actionId: "a2", actorId: "n1", bars: ["move"] },
         ]}
-        describe={(id) => (id === "a2" ? "Mover para coluna 3, linha 1 (Dash)" : undefined)}
         onPull={onPull}
       />,
     );
     const rows = screen.getAllByTestId("queue-row");
     expect(rows[0]).toHaveTextContent("Gon");
-    expect(rows[1]).toHaveTextContent("Mover para coluna 3, linha 1 (Dash)");
     fireEvent.click(screen.getAllByRole("button", { name: "Abrir agora" })[1]);
     expect(onPull).toHaveBeenCalledWith("a2");
   });
 
   it("fila vazia diz o que vai aparecer ali", () => {
-    render(<QueuePanel nameOf={nameOf} queue={[]} onPull={() => {}} />);
+    render(<QueuePanel nameOf={nameOf} queue={[]} order={[]} gridKind="square" onPull={() => {}} />);
     expect(screen.getByText(/Ninguém declarou nada ainda/)).toBeInTheDocument();
+  });
+
+  it("sem `action` (servidor antigo), a linha não ganha botão Detalhes nem aria-expanded", () => {
+    render(
+      <QueuePanel
+        nameOf={nameOf}
+        order={[]}
+        gridKind="square"
+        queue={[{ actionId: "a1", actorId: "c1", bars: ["action"] }]}
+        onPull={() => {}}
+      />,
+    );
+    const row = screen.getByTestId("queue-row");
+    expect(row).not.toHaveAttribute("aria-expanded");
+    expect(screen.queryByRole("button", { name: "Detalhes" })).not.toBeInTheDocument();
+  });
+
+  it("com `action`: Detalhes expande e mostra arma, destino e o total da velocidade", () => {
+    render(
+      <QueuePanel
+        nameOf={nameOf}
+        gridKind="square"
+        order={[{ actorId: "n1", bars: ["move"], key: 9 }]}
+        queue={[{ actionId: "a2", actorId: "n1", bars: ["move"], action: fullAction }]}
+        onPull={() => {}}
+      />,
+    );
+    const row = screen.getByTestId("queue-row");
+    expect(row).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText(/Arma:/)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Detalhes" }));
+
+    expect(row).toHaveAttribute("aria-expanded", "true");
+    expect(within(row).getByText(/Arma: Throwing Dagger/)).toBeInTheDocument();
+    expect(within(row).getByText(/Movimento: Dash.*coluna 3, linha 1/)).toBeInTheDocument();
+    expect(within(row).getByText(/Velocidade de movimento: Accelerate.*= 12/)).toBeInTheDocument();
+    expect(within(row).getByText(/Velocidade de ação: Legerity.*= 14/)).toBeInTheDocument();
+    expect(within(row).getByText(/Ordem geral: chave 9/)).toBeInTheDocument();
+    expect(within(row).getByText(/Alvos: Gon/)).toBeInTheDocument(); // alvo, por nome
+
+    fireEvent.click(screen.getByRole("button", { name: "Detalhes" }));
+    expect(row).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText(/Arma:/)).not.toBeInTheDocument();
   });
 });
 
@@ -245,6 +312,8 @@ describe("QueuePanel — ação em andamento", () => {
       <QueuePanel
         queue={[{ actionId: "a2", actorId: "c3", bars: ["move"] }]}
         open={{ actorId: "c1", bars: ["action"], resolution: res }}
+        order={[]}
+        gridKind="square"
         nameOf={resolutionNameOf}
         onPull={() => {}}
       />,
@@ -257,7 +326,16 @@ describe("QueuePanel — ação em andamento", () => {
   });
 
   it("turno aberto ainda sem cálculo: o card aparece sem os números", () => {
-    render(<QueuePanel queue={[]} open={{ actorId: "c1", resolution: null }} nameOf={resolutionNameOf} onPull={() => {}} />);
+    render(
+      <QueuePanel
+        queue={[]}
+        open={{ actorId: "c1", resolution: null }}
+        order={[]}
+        gridKind="square"
+        nameOf={resolutionNameOf}
+        onPull={() => {}}
+      />,
+    );
     expect(screen.getByTestId("queue-open")).toBeInTheDocument();
     expect(screen.queryByLabelText("Cálculo do turno")).not.toBeInTheDocument();
   });
@@ -340,7 +418,7 @@ describe("EventStream", () => {
     });
     const armed: HistoryTurn = {
       uuid: "t1", createdAt: "2026-01-01T00:01:00Z", finishedAt: "2026-01-01T00:01:00Z",
-      action: { uuid: "a1", actorId: "c1", reactionKind: "", move: {}, targetId: ["n1", "c2"], attack: { weapon: "ThrowingDagger" } },
+      action: { uuid: "a1", actorId: "c1", reactionKind: "", move: { category: "Dash" }, targetId: ["n1", "c2"], attack: { weapon: "ThrowingDagger" } },
       resolution: { isSettled: true, targets: [target("n1", false, 7), target("c2", true, 0)] },
     };
     const unarmed: HistoryTurn = {

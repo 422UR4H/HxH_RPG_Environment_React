@@ -90,6 +90,34 @@ describe("normalizeWire — R33", () => {
     expect(out.bars).toEqual([]);
   });
 
+  // T13/B1: `action` (actionwire.Full) não tem lista nil-ável nenhuma (toda `omitempty`) —
+  // passa intacto, byte a byte, enquanto `bars` continua normalizado como sempre.
+  it("action_queued com a action completa e bars null: action intacta, bars vira []", () => {
+    const action = {
+      uuid: "a1",
+      actorId: "c1",
+      reactionKind: "",
+      targetId: ["c2"],
+      speed: { bar: 0, rollCheck: { skillName: "Legerity", skillValue: 14, attempts: { primary: [6, 8] }, result: 14 } },
+      move: {
+        category: "Dash",
+        from: [4, 4, 0] as [number, number, number],
+        position: [6, 4, 0] as [number, number, number],
+        speed: { skillName: "Accelerate", skillValue: 0, attempts: { primary: [5, 7] }, result: 12 },
+        finalSpeed: 12,
+      },
+      attack: {
+        weapon: "Sword",
+        hit: { skillName: "Accuracy", skillValue: 0, attempts: { primary: [6, 8] }, result: 14 },
+        damage: { skillName: "Push", skillValue: 0, attempts: { primary: [4] }, result: 4 },
+        relativeVelocity: 0,
+      },
+    };
+    const out = normalizeQueuedAction({ actionId: "a1", actorId: "c1", bars: null, action });
+    expect(out.bars).toEqual([]);
+    expect(out.action).toEqual(action);
+  });
+
   it("normaliza match_full_state.bars, .resolution e .queue", () => {
     const out = normalizeMatchFullState({
       roundMode: "Free",

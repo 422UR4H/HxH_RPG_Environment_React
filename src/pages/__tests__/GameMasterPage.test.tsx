@@ -25,6 +25,7 @@ vi.mock("../../features/tactical-map/TacticalMapViewer", () => ({
     onEmptySlotClick?: (slot: { kind: "square"; col: number; row: number }, x: number, y: number) => void;
     selectedPieceId?: string | null;
     inspectedPieceId?: string | null;
+    intentGhosts?: unknown[];
   }) => (
     <div
       data-testid="map-stub"
@@ -36,6 +37,9 @@ vi.mock("../../features/tactical-map/TacticalMapViewer", () => ({
       data-has-empty-slot-click={String(!!props.onEmptySlotClick)}
       data-selected-piece-id={props.selectedPieceId ?? ""}
       data-inspected-piece-id={props.inspectedPieceId ?? ""}
+      // T13/F1: o fantasma do mestre para cada ação na fila com `move` — verificado em
+      // JSON porque o viewer real desenha isto no canvas Pixi, que o teste não cobre.
+      data-ghosts={JSON.stringify(props.intentGhosts ?? [])}
     >
       {props.map.pieces.map((piece) => (
         <button
@@ -178,6 +182,38 @@ describe("GameMasterPage", () => {
     act(() => screen.getByRole("button", { name: "Abrir próxima" }).click());
     sent = ws.send.mock.calls.map((c) => JSON.parse(c[0] as string));
     expect(sent[sent.length - 1]?.type).toBe("open_next_action");
+  });
+
+  // T13/F6(2): o fantasma do MESTRE para uma ação na fila com `move` — o destino vem de
+  // `action.move.position` (contrato), a origem é a posição atual da peça no tabuleiro.
+  // Some no turn_opened porque a fila já tira a ação de `state.queue` ali (combatReducer).
+  it("T13: action_queued com move desenha o fantasma do mestre no mapa, que some ao abrir o turno", async () => {
+    renderMasterPage();
+    const ws = await waitForSocket();
+    act(() => ws.onopen?.());
+
+    act(() =>
+      ws.emit("action_queued", {
+        actionId: "a1",
+        actorId: "npc1",
+        bars: ["move"],
+        action: {
+          uuid: "a1",
+          actorId: "npc1",
+          reactionKind: "",
+          move: { category: "Dash", from: [4, 4, 0], position: [6, 4, 0], finalSpeed: 12 },
+        },
+      }),
+    );
+
+    let mapStub = screen.getByTestId("map-stub");
+    expect(JSON.parse(mapStub.getAttribute("data-ghosts") ?? "[]")).toEqual([
+      { from: [4, 4, 0], to: [6, 4, 0] },
+    ]);
+
+    act(() => ws.emit("turn_opened", { turnId: "t1", actorId: "npc1", actionId: "a1", actionType: "" }));
+    mapStub = screen.getByTestId("map-stub");
+    expect(JSON.parse(mapStub.getAttribute("data-ghosts") ?? "[]")).toEqual([]);
   });
 
   it("F7: turno aberto mostra o card em andamento na Fila, com o cálculo anexado", async () => {

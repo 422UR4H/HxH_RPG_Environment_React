@@ -112,21 +112,37 @@ export function useGameTable({
     if (arrivedKey) dismissDeclared(arrivedKey.split(","));
   }, [arrivedKey, dismissDeclared]);
 
-  const ghosts = useMemo<Array<{ from?: SlotTriple; to: SlotTriple }>>(
-    () =>
-      moves
-        .filter((d) => !arrivedIds.includes(d.id))
-        .map((d) => {
-          const piece = pieceByCharacter.get(d.actorId);
-          return {
-            from: piece ? slotToTriple(piece.coord.slot, piece.coord.z) : d.move.from,
-            to: d.move.to,
-          };
-        }),
+  // T13/F1: o fantasma do MESTRE — toda ação na fila com `move` vira um fantasma extra,
+  // excluindo o que o próprio navegador já declarou (já coberto por `moves`/`ownGhosts`
+  // acima: um NPC que o mestre declara chega a `state.queue` E a `state.declared` com o
+  // MESMO actionId, e contá-lo duas vezes desenharia dois fantasmas sobre a mesma peça).
+  // Some no `turn_opened` porque a fila já tira a ação de `state.queue` ali.
+  const ghosts = useMemo<Array<{ from?: SlotTriple; to: SlotTriple }>>(() => {
+    const ownGhosts = moves
+      .filter((d) => !arrivedIds.includes(d.id))
+      .map((d) => {
+        const piece = pieceByCharacter.get(d.actorId);
+        return {
+          from: piece ? slotToTriple(piece.coord.slot, piece.coord.z) : d.move.from,
+          to: d.move.to,
+        };
+      });
+    const declaredIds = new Set(state.declared.map((d) => d.id));
+    const queueGhosts = state.queue
+      .filter((q): q is typeof q & { action: { move: { position: SlotTriple } } } =>
+        !!q.action?.move?.position && !declaredIds.has(q.actionId),
+      )
+      .map((q) => {
+        const piece = pieceByCharacter.get(q.actorId);
+        return {
+          from: piece ? slotToTriple(piece.coord.slot, piece.coord.z) : q.action.move.from,
+          to: q.action.move.position,
+        };
+      });
+    return [...ownGhosts, ...queueGhosts];
     // `moves`/`arrivedIds` are rebuilt every render; their content is what matters.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [state.declared, pieceByCharacter, arrivedKey],
-  );
+  }, [state.declared, state.queue, pieceByCharacter, arrivedKey]);
 
   const nameOf = useCallback(
     (id: string) => {
