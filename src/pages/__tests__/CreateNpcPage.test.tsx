@@ -141,7 +141,7 @@ describe("CreateNpcPage", () => {
       await userEvent.click(screen.getByRole("button", { name: /Criar NPC/i }));
       expect(
         await screen.findByText(
-          /O NPC foi criado, mas a imagem não foi enviada\. Tentar de novo envia só a imagem\./i,
+          /O NPC já foi criado com os dados enviados\. Tentar de novo envia só as imagens; para mudar outros campos, edite a ficha depois\./i,
         ),
       ).toBeInTheDocument();
       expect(createCount).toBe(1);

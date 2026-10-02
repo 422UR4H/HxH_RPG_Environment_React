@@ -120,10 +120,13 @@ function CreateNpcPage() {
       navigate(`/campaigns/${campaignId}`, { replace: true });
     } catch (_) {
       // Se a ficha já foi criada (uuid gravado), um novo clique em "Criar NPC"
-      // não cria outra — só reenvia upload/patch contra o mesmo uuid.
+      // não cria outra — só reenvia upload/patch contra o mesmo uuid. O form
+      // continua editável, mas o retry ignora edições que não sejam imagem/
+      // brief description — a mensagem precisa deixar isso explícito, senão
+      // o mestre que corrige a classe e tenta de novo perde a correção.
       setSubmitError(
         createdUuidRef.current
-          ? "O NPC foi criado, mas a imagem não foi enviada. Tentar de novo envia só a imagem."
+          ? "O NPC já foi criado com os dados enviados. Tentar de novo envia só as imagens; para mudar outros campos, edite a ficha depois."
           : "Erro ao salvar o NPC. Tente novamente."
       );
     } finally {

@@ -141,7 +141,7 @@ describe("CreateCharacterSheetPage", () => {
       );
       expect(
         await screen.findByText(
-          /A ficha foi criada, mas a imagem não foi enviada\. Tentar de novo envia só a imagem\./i,
+          /A ficha já foi criada com os dados enviados\. Tentar de novo envia só as imagens; para mudar outros campos, edite a ficha depois\./i,
         ),
       ).toBeInTheDocument();
       expect(createCount).toBe(1);

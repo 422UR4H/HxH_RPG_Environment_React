@@ -114,10 +114,13 @@ function CreateCharacterSheetPage() {
       navigate(`/charactersheet/${uuid}`, { replace: true });
     } catch (_) {
       // Se a ficha já foi criada (uuid gravado), um novo clique em "Criar Ficha"
-      // não cria outra — só reenvia upload/patch contra o mesmo uuid.
+      // não cria outra — só reenvia upload/patch contra o mesmo uuid. O form
+      // continua editável, mas o retry ignora edições que não sejam imagem/
+      // brief description — a mensagem precisa deixar isso explícito, senão
+      // quem corrige um campo e tenta de novo perde a correção.
       setSubmitError(
         createdUuidRef.current
-          ? "A ficha foi criada, mas a imagem não foi enviada. Tentar de novo envia só a imagem."
+          ? "A ficha já foi criada com os dados enviados. Tentar de novo envia só as imagens; para mudar outros campos, edite a ficha depois."
           : "Erro ao salvar a ficha. Tente novamente."
       );
     } finally {
