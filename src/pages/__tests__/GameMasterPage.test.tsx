@@ -27,6 +27,10 @@ vi.mock("../../features/tactical-map/TacticalMapViewer", () => ({
     selectedPieceId?: string | null;
     inspectedPieceId?: string | null;
     intentGhosts?: unknown[];
+    intentPreview?: unknown;
+    onPieceMove?: (pieceId: string, slot: { kind: "square"; col: number; row: number }) => void;
+    placingNpcId?: string | null;
+    onNpcPlaced?: (slot: { kind: "square"; col: number; row: number }) => void;
   }) => (
     <div
       data-testid="map-stub"
@@ -41,6 +45,9 @@ vi.mock("../../features/tactical-map/TacticalMapViewer", () => ({
       // T13/F1: o fantasma do mestre para cada ação na fila com `move` — verificado em
       // JSON porque o viewer real desenha isto no canvas Pixi, que o teste não cobre.
       data-ghosts={JSON.stringify(props.intentGhosts ?? [])}
+      // F12: o pré-visualizar do destino pendente e o "pôr" do placer do lobby.
+      data-intent-preview={props.intentPreview ? JSON.stringify(props.intentPreview) : ""}
+      data-placing-npc-id={props.placingNpcId ?? ""}
     >
       {props.map.pieces.map((piece) => (
         <button
@@ -52,6 +59,19 @@ vi.mock("../../features/tactical-map/TacticalMapViewer", () => ({
           {piece.id}
         </button>
       ))}
+      {/* F12: soltar a peça arrastada num slot vazio, como o PiecesLayer faz. */}
+      {props.map.pieces.map((piece) => (
+        <button
+          key={`move-${piece.id}`}
+          data-testid={`move-piece-${piece.id}`}
+          onClick={() => props.onPieceMove?.(piece.id, { kind: "square", col: 2, row: 2 })}
+        >
+          move {piece.id}
+        </button>
+      ))}
+      <button data-testid="place-slot" onClick={() => props.onNpcPlaced?.({ kind: "square", col: 3, row: 5 })}>
+        place-slot
+      </button>
       <button data-testid="empty-slot" onClick={() => props.onEmptySlotClick?.({ kind: "square", col: 9, row: 9 }, 0, 0)}>
         empty-slot
       </button>
@@ -803,5 +823,183 @@ describe("GameMasterPage", () => {
       expect.stringContaining("Regime: Livre"),
       expect.stringContaining("Turno de Capanga"),
     ]));
+  });
+
+  // F12: o mestre arruma o tabuleiro num modo próprio — fora dele nada arrasta (I1). Soltar,
+  // pôr e tirar só abrem a confirmação; quem move a peça é o `piece_moved` do servidor.
+  describe("F12: Arrumar o tabuleiro", () => {
+    const mapStub = () => screen.getByTestId("map-stub");
+    const dialog = () => screen.queryByRole("dialog", { name: "Arrumar o tabuleiro" });
+    const enterArrange = () => act(() => screen.getByRole("button", { name: "Arrumar" }).click());
+
+    it("entrar no modo torna todas as peças arrastáveis, solta o ator e mostra o painel; Esc sai", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      act(() => screen.getByTestId("select-actor-npc1").click());
+      expect(mapStub()).toHaveAttribute("data-has-long-press", "true");
+
+      enterArrange();
+      expect(screen.getByRole("button", { name: "Arrumar" })).toHaveAttribute("aria-pressed", "true");
+      expect(JSON.parse(mapStub().getAttribute("data-draggable-piece-ids") ?? "[]")).toEqual(["piece-c1", "piece-npc1"]);
+      expect(mapStub()).toHaveAttribute("data-has-long-press", "false");
+      expect(screen.getByText("Arrumar o tabuleiro")).toBeInTheDocument();
+      // o ator foi solto: o compositor sumiu
+      expect(screen.queryByRole("button", { name: /declarar/i })).not.toBeInTheDocument();
+
+      await user.keyboard("{Escape}");
+      expect(screen.getByRole("button", { name: "Arrumar" })).toHaveAttribute("aria-pressed", "false");
+      expect(mapStub()).toHaveAttribute("data-draggable-piece-ids", "[]");
+      expect(screen.queryByText("Arrumar o tabuleiro")).not.toBeInTheDocument();
+    });
+
+    it("soltar a peça abre a confirmação, mostra o destino e não envia nada", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      enterArrange();
+
+      act(() => screen.getByTestId("move-piece-piece-c1").click());
+      expect(dialog()).toHaveTextContent("Mover Gon para coluna 3, linha 3?");
+      expect(ws.sent("enqueue_master_action")).toEqual([]);
+      expect(JSON.parse(mapStub().getAttribute("data-intent-preview") ?? "null")).toEqual({
+        from: { kind: "square", col: 1, row: 1 },
+        to: { kind: "square", col: 2, row: 2 },
+        auto: false,
+        targets: [],
+      });
+    });
+
+    it("confirmar o arrastar manda o move do contrato, com o uuid da ficha", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      enterArrange();
+
+      act(() => screen.getByTestId("move-piece-piece-c1").click());
+      await user.click(screen.getByRole("button", { name: "Confirmar" }));
+      expect(ws.sent("enqueue_master_action")).toEqual([{ targetIds: ["c1"], move: { position: [2, 2, 0] } }]);
+      expect(dialog()).not.toBeInTheDocument();
+      expect(mapStub()).toHaveAttribute("data-intent-preview", "");
+    });
+
+    it("cancelar não envia nada e fecha a confirmação", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      enterArrange();
+
+      act(() => screen.getByTestId("move-piece-piece-c1").click());
+      await user.click(screen.getByRole("button", { name: "Cancelar" }));
+      expect(dialog()).not.toBeInTheDocument();
+      expect(ws.sent("enqueue_master_action")).toEqual([]);
+    });
+
+    it("pôr: lista quem não tem peça e os NPCs da campanha, nunca o jogador de fora; confirmar manda o move", async () => {
+      server.use(
+        http.get(`${baseUrl}/campaigns/:id`, () =>
+          HttpResponse.json({
+            campaign: campaignWithNpcsApi(
+              [npcFixture],
+              [{ ...npcFixture, uuid: "pc-out", nickName: "Leorio", playerUuid: "user-9" }],
+            ),
+          }),
+        ),
+      );
+      renderWithProviders(
+        <GameMasterPage token="fake-jwt-token" matchId="match-1" campaignId="campaign-1" />,
+      );
+      const ws = await waitForSocket();
+      openWithServerBoard(ws, [piecesFixture[0]]);
+      enterArrange();
+
+      const placeList = await screen.findByRole("group", { name: "Pôr no mapa" });
+      await within(placeList).findByRole("button", { name: npcFixture.nickName });
+      expect(within(placeList).getByRole("button", { name: "Capanga" })).toBeInTheDocument();
+      expect(within(placeList).queryByRole("button", { name: "Gon" })).not.toBeInTheDocument();
+      expect(within(placeList).queryByRole("button", { name: "Leorio" })).not.toBeInTheDocument();
+
+      await user.click(within(placeList).getByRole("button", { name: "Capanga" }));
+      expect(mapStub()).toHaveAttribute("data-placing-npc-id", "npc1");
+      act(() => screen.getByTestId("place-slot").click());
+      expect(dialog()).toHaveTextContent("Pôr Capanga em coluna 4, linha 6?");
+      expect(ws.sent("enqueue_master_action")).toEqual([]);
+
+      await user.click(screen.getByRole("button", { name: "Confirmar" }));
+      expect(ws.sent("enqueue_master_action")).toEqual([{ targetIds: ["npc1"], move: { position: [3, 5, 0] } }]);
+      expect(mapStub()).toHaveAttribute("data-placing-npc-id", "");
+    });
+
+    it("pôr um NPC da campanha que não participa manda o move com o uuid dele", async () => {
+      server.use(
+        http.get(`${baseUrl}/campaigns/:id`, () =>
+          HttpResponse.json({ campaign: campaignWithNpcsApi([npcFixture]) }),
+        ),
+      );
+      renderWithProviders(
+        <GameMasterPage token="fake-jwt-token" matchId="match-1" campaignId="campaign-1" />,
+      );
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      enterArrange();
+
+      await user.click(await screen.findByRole("button", { name: npcFixture.nickName }));
+      act(() => screen.getByTestId("place-slot").click());
+      expect(dialog()).toHaveTextContent(`Pôr ${npcFixture.nickName} em coluna 4, linha 6?`);
+      await user.click(screen.getByRole("button", { name: "Confirmar" }));
+      expect(ws.sent("enqueue_master_action")).toEqual([{ targetIds: [npcFixture.uuid], move: { position: [3, 5, 0] } }]);
+    });
+
+    it("tirar: tocar seleciona a peça e Tirar do mapa, confirmado, manda o remove", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      enterArrange();
+      expect(screen.queryByRole("button", { name: "Tirar do mapa" })).not.toBeInTheDocument();
+
+      act(() => screen.getByTestId("select-actor-c1").click());
+      expect(mapStub()).toHaveAttribute("data-selected-piece-id", "piece-c1");
+      await user.click(screen.getByRole("button", { name: "Tirar do mapa" }));
+      expect(dialog()).toHaveTextContent("Tirar Gon do mapa?");
+      expect(ws.sent("enqueue_master_action")).toEqual([]);
+
+      await user.click(screen.getByRole("button", { name: "Confirmar" }));
+      expect(ws.sent("enqueue_master_action")).toEqual([{ targetIds: ["c1"], remove: {} }]);
+    });
+
+    it("a confirmação pendente cai ao sair do modo e em todo match_full_state", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      enterArrange();
+
+      act(() => screen.getByTestId("move-piece-piece-c1").click());
+      expect(dialog()).toBeInTheDocument();
+      act(() => ws.emit("match_full_state", { roundMode: "", bars: { seq: 0, prices: null, characters: null, order: null } }));
+      expect(dialog()).not.toBeInTheDocument();
+      // o modo continua
+      expect(screen.getByRole("button", { name: "Arrumar" })).toHaveAttribute("aria-pressed", "true");
+
+      act(() => screen.getByTestId("move-piece-piece-c1").click());
+      expect(dialog()).toBeInTheDocument();
+      act(() => screen.getByRole("button", { name: "Arrumar" }).click());
+      expect(dialog()).not.toBeInTheDocument();
+
+      enterArrange();
+      act(() => screen.getByTestId("move-piece-piece-c1").click());
+      await user.keyboard("{Escape}");
+      expect(dialog()).not.toBeInTheDocument();
+      expect(ws.sent("enqueue_master_action")).toEqual([]);
+    });
+
+    it("fora do modo, soltar e pôr não fazem nada", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      act(() => screen.getByTestId("move-piece-piece-c1").click());
+      act(() => screen.getByTestId("place-slot").click());
+      expect(dialog()).not.toBeInTheDocument();
+      expect(ws.sent("enqueue_master_action")).toEqual([]);
+    });
   });
 });

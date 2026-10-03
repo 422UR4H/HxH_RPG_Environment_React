@@ -1,5 +1,5 @@
-// Os controles que só a tela do mestre monta: regência (regime, abrir, fechar) e a escolha
-// do NPC por quem agir. Nenhum pergunta "sou mestre?" — a página é que decide montá-los.
+// Os controles que só a tela do mestre monta: regência (regime, abrir, fechar), a escolha
+// do NPC por quem agir e o painel de arrumar o tabuleiro. Nenhum pergunta "sou mestre?" — a página é que decide montá-los.
 import { useState } from "react";
 import styled, { css } from "styled-components";
 import { colors, fonts } from "../../../styles/tokens";
@@ -143,6 +143,58 @@ export function AddNpcPicker({
           Pôr
         </SmallButton>
       </AddRow>
+    </Picker>
+  );
+}
+
+/**
+ * O painel do modo Arrumar (F12): quem pode ir ao mapa (participante sem peça, NPC da
+ * campanha fora da partida — o servidor o inscreve ao pôr) e, com uma peça selecionada,
+ * tirá-la. Nada aqui envia: tudo passa pela confirmação da página.
+ */
+export function ArrangePanel({
+  placeable,
+  placingId,
+  onChoosePlace,
+  selectedName,
+  onRemove,
+}: {
+  placeable: Array<{ id: string; name: string }>;
+  placingId: string | undefined;
+  onChoosePlace: (id: string | undefined) => void;
+  /** Nome de quem tem a peça selecionada no mapa, se há uma. */
+  selectedName: string | undefined;
+  onRemove: () => void;
+}) {
+  return (
+    <Picker aria-label="Arrumar o tabuleiro">
+      <PanelTitle>Arrumar o tabuleiro</PanelTitle>
+      <PanelHint>
+        Arraste uma peça para movê-la, ou toque nela para tirá-la do mapa. Nada muda antes de
+        você confirmar.
+      </PanelHint>
+      {selectedName && (
+        <SmallButton type="button" onClick={onRemove} title={`Tirar ${selectedName} do mapa`}>
+          Tirar do mapa
+        </SmallButton>
+      )}
+      <PanelTitle id="arrange-place-title">Pôr no mapa</PanelTitle>
+      {placeable.length === 0 ? (
+        <PanelHint>Todos os participantes já estão no mapa.</PanelHint>
+      ) : (
+        <PickerList role="group" aria-labelledby="arrange-place-title">
+          {placeable.map((c) => (
+            <NpcChip
+              key={c.id}
+              type="button"
+              aria-pressed={placingId === c.id}
+              onClick={() => onChoosePlace(placingId === c.id ? undefined : c.id)}
+            >
+              {c.name}
+            </NpcChip>
+          ))}
+        </PickerList>
+      )}
     </Picker>
   );
 }

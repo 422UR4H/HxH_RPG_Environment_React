@@ -72,6 +72,9 @@ export function useGameTable({
   const onBoardChange = useCallback(() => {
     if (!openTurnRef.current) void invalidateHistory();
   }, [invalidateHistory]);
+  // Conta os `match_full_state`: a página zera por ele o que não sobrevive a uma reconexão
+  // (a confirmação pendente do Arrumar, F12).
+  const [fullStateSeq, setFullStateSeq] = useState(0);
   const combat = useMatchCombat({
     matchUuid: matchId,
     userUuid: user?.uuid,
@@ -89,6 +92,7 @@ export function useGameTable({
     onNpcAdded: () => { void refetchParticipants(); },
     // Toda (re)conexão: o que mudou enquanto a conexão estava caída só volta pelo REST.
     onFullState: () => {
+      setFullStateSeq((n) => n + 1);
       void refetchParticipants();
       void invalidateHistory();
       void queryClient.invalidateQueries({ queryKey: ["characterSheet", token] });
@@ -235,5 +239,6 @@ export function useGameTable({
     fitRequest,
     refit,
     openTurnPieceId,
+    fullStateSeq,
   };
 }

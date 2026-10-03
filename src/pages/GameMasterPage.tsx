@@ -1,6 +1,6 @@
 // A tela do mestre. Mesma mesa do jogador (`useGameTable`), com o que é do mestre: a fila,
-// a regência (abrir, fechar, regime) e agir por um NPC — que ele escolhe tocando no NPC ou
-// na lista do painel "Agir".
+// a regência (abrir, fechar, regime), agir por um NPC — que ele escolhe tocando no NPC ou
+// na lista do painel "Agir" — e o modo Arrumar, em que arrasta, põe e tira peças (F12).
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useResizeObserver } from "../hooks/useResizeObserver";
 import { useCombatCatalogue } from "../hooks/useCombatCatalogue";
@@ -10,7 +10,7 @@ import { defaultMoveCategory } from "../features/match/combat/defaultMoveCategor
 import MatchStageTemplate from "../components/templates/MatchStageTemplate";
 import MatchTopBar from "../features/match/combat/MatchTopBar";
 import {
-  AddNpcPicker, NpcPicker, PanelSection, RegencyControls, RoundModeSwitch,
+  AddNpcPicker, ArrangePanel, NpcPicker, PanelSection, RegencyControls, RoundModeSwitch,
 } from "../features/match/combat/MasterControls";
 import { PanelTitle } from "../features/match/combat/panelStyles";
 import RailNav from "../features/match/combat/RailNav";
@@ -24,6 +24,9 @@ import DeclaredActions from "../features/match/combat/DeclaredActions";
 import QueuePanel from "../features/match/combat/QueuePanel";
 import CloseTurnRefusedDialog from "../features/match/combat/CloseTurnRefusedDialog";
 import SceneChangeDialog from "../features/match/combat/SceneChangeDialog";
+import ArrangeConfirmDialog from "../features/match/combat/ArrangeConfirmDialog";
+import type { ArrangePending } from "../features/match/combat/ArrangeConfirmDialog";
+import type { MasterActionPayload } from "../features/match/combat/combatMessages";
 import { SmallButton } from "../features/match/combat/MatchTopBar";
 import MatchErrorBanner from "../features/match/combat/MatchErrorBanner";
 import LostDeclaredNotice from "../features/match/combat/LostDeclaredNotice";
@@ -32,8 +35,10 @@ import MatchCharactersSidebar from "../features/match/MatchCharactersSidebar";
 import WallActionSheet from "../features/match/WallActionSheet";
 import TacticalMapViewer from "../features/tactical-map/TacticalMapViewer";
 import {
-  CanvasWrapper, MapCornerButton, MapHint, MapLoadingMessage, NoMapMessage, StageNotices,
+  CanvasWrapper, MapCornerStack, MapCornerStackButton, MapHint, MapLoadingMessage, NoMapMessage, StageNotices,
 } from "../features/match/combat/mapCanvasStyles";
+import { isSameSlot, slotToTriple, tripleToSlot } from "../features/tactical-map/utils/coords";
+import type { IntentPreview } from "../features/tactical-map/utils/intentGeometry";
 import type { SlotCoord, WallSegment } from "../types/tacticalMap";
 
 type Props = {
@@ -44,8 +49,22 @@ type Props = {
 
 type RailTab = "fila" | "agir" | "ficha";
 
-// No jogo nenhuma peça é arrastável: quem decide onde a peça para é o servidor.
+// No jogo nenhuma peça é arrastável: quem decide onde a peça para é o servidor. A exceção é
+// o modo Arrumar, e mesmo lá soltar só pede confirmação — a peça anda com o `piece_moved`.
 const NO_DRAG = new Set<string>();
+
+/**
+ * O que um gesto no mapa do mestre significa. "play" é o da Fase 6 (tocar escolhe ator/alvo,
+ * segurar marca alvos). Um modo por vez: arrastar e segurar na mesma peça brigam no toque.
+ */
+type BoardMode = "play" | "arrange";
+
+/** O `enqueue_master_action` de peça do contrato (B9/B14): um id só, o da ficha. */
+function arrangePayload(p: ArrangePending): MasterActionPayload {
+  return p.kind === "remove"
+    ? { targetIds: [p.characterId], remove: {} }
+    : { targetIds: [p.characterId], move: { position: p.to } };
+}
 
 const initialAsideOpen = () =>
   typeof window !== "undefined" && window.matchMedia?.("(min-width: 1280px)").matches === true;
@@ -86,8 +105,55 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   const [wallPicker, setWallPicker] = useState<WallSegment | null>(null);
   const [sceneDialog, setSceneDialog] = useState(false);
 
+  // ─── Arrumar (F12) ─────────────────────────────────────────────────────────
+  const [boardMode, setBoardMode] = useState<BoardMode>("play");
+  const arranging = boardMode === "arrange";
+  const [arrangePending, setArrangePending] = useState<ArrangePending | null>(null);
+  const [arrangePieceId, setArrangePieceId] = useState<string | undefined>(undefined);
+  const [placingId, setPlacingId] = useState<string | undefined>(undefined);
+
+  const exitArrange = useCallback(() => {
+    setBoardMode("play");
+    setArrangePending(null);
+    setArrangePieceId(undefined);
+    setPlacingId(undefined);
+  }, []);
+  const toggleArrange = useCallback(() => {
+    if (arranging) {
+      exitArrange();
+      return;
+    }
+    setActorId(undefined);
+    setInspectedId(undefined);
+    setBoardMode("arrange");
+    setPanelOpen(true);
+  }, [arranging, exitArrange]);
+
+  useEffect(() => {
+    if (!arranging) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") exitArrange(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [arranging, exitArrange]);
+
+  // Toda (re)conexão derruba o pedido ainda não confirmado: o tabuleiro que ele mirava pode
+  // não ser mais o que o servidor tem.
+  const [seenFullState, setSeenFullState] = useState(game.fullStateSeq);
+  if (seenFullState !== game.fullStateSeq) {
+    setSeenFullState(game.fullStateSeq);
+    setArrangePending(null);
+    setPlacingId(undefined);
+  }
+
   const handleRailSelect = useCallback(
     (id: string) => {
+      // O Arrumar ocupa o painel: escolher outra aba sai dele.
+      if (arranging) {
+        exitArrange();
+        setRailActive(id as RailTab);
+        setPanelOpen(true);
+        return;
+      }
       if (id === railActive) {
         setPanelOpen((o) => !o);
         return;
@@ -95,7 +161,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
       setRailActive(id as RailTab);
       setPanelOpen(true);
     },
-    [railActive],
+    [railActive, arranging, exitArrange],
   );
 
   const chooseActor = useCallback((id: string | undefined) => {
@@ -205,19 +271,81 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     combat.dismissError();
   }, [state.lastError, game, combat]);
 
+  const allPieceIds = useMemo(() => new Set(game.boardPieces.map((p) => p.id)), [game.boardPieces]);
+  const arrangeSelected = arranging ? game.boardPieces.find((p) => p.id === arrangePieceId) : undefined;
+
+  // Pôr: quem participa e não tem peça, e o NPC da campanha que ainda não participa (o
+  // servidor o inscreve antes). Personagem de jogador fora da partida nunca — `not_participant`.
+  const placeable = useMemo(() => {
+    const onBoard = new Set(game.boardPieces.map((p) => p.characterId));
+    return [
+      ...participants
+        .filter((p) => !onBoard.has(p.characterSheet.uuid))
+        .map((p) => ({ id: p.characterSheet.uuid, name: p.characterSheet.nickName })),
+      ...npcCandidates.filter((c) => !onBoard.has(c.id)),
+    ];
+  }, [participants, npcCandidates, game.boardPieces]);
+
+  const handleArrangeMove = useCallback(
+    (pieceId: string, slot: SlotCoord) => {
+      const piece = game.boardPieces.find((p) => p.id === pieceId);
+      if (!piece?.characterId) return;
+      setArrangePending({ kind: "move", characterId: piece.characterId, to: slotToTriple(slot, piece.coord.z) });
+    },
+    [game.boardPieces],
+  );
+  const handleArrangePlaced = useCallback(
+    (slot: SlotCoord) => {
+      if (!placingId) return;
+      // O placer só avisa "soltou aqui"; quem não deixa pôr em cima de outra peça somos nós,
+      // como o PiecesLayer faz no arrastar.
+      if (game.boardPieces.some((p) => isSameSlot(p.coord.slot, slot))) return;
+      // Desarma já: senão o próximo toque no canvas (o Confirmar, por cima dele) seria outro "pôr".
+      setPlacingId(undefined);
+      setArrangePending({ kind: "place", characterId: placingId, to: slotToTriple(slot, 0) });
+    },
+    [placingId, game.boardPieces],
+  );
+  const confirmArrange = () => {
+    if (!arrangePending) return;
+    if (!combat.send.masterAction(arrangePayload(arrangePending))) return;
+    if (arrangePending.kind === "remove") setArrangePieceId(undefined);
+    setArrangePending(null);
+  };
+
+  // O destino pedido, desenhado como o pré-visualizar do compositor, enquanto se confirma.
+  const arrangePreview = useMemo<IntentPreview | undefined>(() => {
+    if (!arrangePending || arrangePending.kind === "remove") return undefined;
+    const from = game.boardPieces.find((p) => p.characterId === arrangePending.characterId)?.coord.slot;
+    return {
+      ...(from ? { from } : {}),
+      to: tripleToSlot(arrangePending.to, gridKind),
+      auto: false,
+      targets: [],
+    };
+  }, [arrangePending, game.boardPieces, gridKind]);
+
   const inspectedPieceId = inspectedId
     ? game.boardPieces.find((p) => p.characterId === inspectedId)?.id
     : undefined;
 
   const canCloseTurn = state.openTurn != null;
-  const mapHint = !actorId && map ? "Toque num NPC para agir por ele." : undefined;
+  const mapHint = !map
+    ? undefined
+    : arranging
+      ? placingId
+        ? `Toque num slot vazio para pôr ${nameOf(placingId)}.`
+        : "Arraste uma peça para movê-la."
+      : !actorId
+        ? "Toque num NPC para agir por ele."
+        : undefined;
 
   return (
     <>
       <MatchStageTemplate
         panelOpen={panelOpen}
         asideOpen={asideOpen}
-        panelWide={railActive === "ficha"}
+        panelWide={!arranging && railActive === "ficha"}
         topbar={
           <MatchTopBar
             scene={state.scene}
@@ -252,7 +380,19 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
           />
         }
         panel={
-          railActive === "ficha" ? (
+          arranging ? (
+            <ArrangePanel
+              placeable={placeable}
+              placingId={placingId}
+              onChoosePlace={setPlacingId}
+              selectedName={arrangeSelected?.characterId ? nameOf(arrangeSelected.characterId) : undefined}
+              onRemove={() => {
+                if (arrangeSelected?.characterId) {
+                  setArrangePending({ kind: "remove", characterId: arrangeSelected.characterId });
+                }
+              }}
+            />
+          ) : railActive === "ficha" ? (
             <MatchSheetPanel
               token={token}
               sheetUuid={sheetId}
@@ -339,19 +479,22 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                   npcMap={live.npcMap}
                   onWallClick={setWallPicker}
                   piecesInteractive
-                  draggablePieceIds={NO_DRAG}
+                  draggablePieceIds={arranging ? allPieceIds : NO_DRAG}
                   suppressPanOnPiecePress
-                  onPieceSelect={handlePieceTap}
-                  onPieceLongPress={actorId ? handlePieceHold : undefined}
-                  selectedPieceId={actorId ? composer.actorPiece?.id : undefined}
-                  inspectedPieceId={inspectedPieceId}
+                  onPieceSelect={arranging ? setArrangePieceId : handlePieceTap}
+                  onPieceLongPress={!arranging && actorId ? handlePieceHold : undefined}
+                  selectedPieceId={arranging ? arrangeSelected?.id : actorId ? composer.actorPiece?.id : undefined}
+                  inspectedPieceId={arranging ? undefined : inspectedPieceId}
                   targetPieceIds={composer.targetPieceIds}
                   activePieceId={game.openTurnPieceId}
-                  intentPreview={composer.preview}
+                  intentPreview={arranging ? arrangePreview : composer.preview}
                   intentGhosts={game.ghosts}
-                  highlightHoverSlot={!!actorId}
+                  highlightHoverSlot={!arranging && !!actorId}
                   fitRequest={game.fitRequest}
-                  onEmptySlotClick={actorId ? handleSlotTap : undefined}
+                  onEmptySlotClick={!arranging && actorId ? handleSlotTap : undefined}
+                  onPieceMove={arranging ? handleArrangeMove : undefined}
+                  placingNpcId={arranging ? (placingId ?? null) : null}
+                  onNpcPlaced={arranging ? handleArrangePlaced : undefined}
                 />
               ) : !map ? (
                 <NoMapMessage>Nenhum mapa anexado a esta partida.</NoMapMessage>
@@ -376,7 +519,14 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
               />
             </StageNotices>
             {mapHint && <MapHint>{mapHint}</MapHint>}
-            {map && <MapCornerButton type="button" onClick={game.refit}>Enquadrar</MapCornerButton>}
+            {map && (
+              <MapCornerStack>
+                <MapCornerStackButton type="button" aria-pressed={arranging} onClick={toggleArrange}>
+                  Arrumar
+                </MapCornerStackButton>
+                <MapCornerStackButton type="button" onClick={game.refit}>Enquadrar</MapCornerStackButton>
+              </MapCornerStack>
+            )}
           </>
         }
         aside={
@@ -411,6 +561,14 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
         }}
         onCancel={combat.dismissCloseTurnDialog}
       />
+      <ArrangeConfirmDialog
+        pending={arrangePending}
+        nameOf={nameOf}
+        gridKind={gridKind}
+        canConfirm={combat.status === "connected"}
+        onConfirm={confirmArrange}
+        onCancel={() => setArrangePending(null)}
+      />
       <SceneChangeDialog
         open={sceneDialog}
         onCancel={() => setSceneDialog(false)}
@@ -425,8 +583,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
             combat.send.masterAction({ targetIds: [wallPicker.id], interact: { kind } });
             setWallPicker(null);
           }}
-          // O mestre ataca uma parede POR um NPC: `enqueue_master_action` ainda não mapeia
-          // `attack` (seria no-op no servidor).
+          // O mestre ataca uma parede POR um NPC: `enqueue_master_action` recusa `attack` (B9).
           onAttack={
             actorId
               ? () => {

@@ -185,11 +185,12 @@ export type EnqueueActionPayload = {
 };
 
 /**
- * `enqueue_master_action`. Nesta fase só o menu de parede o usa (revelar/interagir): `move`
- * e `attack` ainda não são mapeados pelo servidor — o mestre age por NPC com
- * `enqueue_action`.
+ * `enqueue_master_action`. Sem `attack` (B9): o servidor o recusa sempre — o mestre ataca
+ * por um NPC, com `enqueue_action`. Parede: `interact` com os ids das paredes. Peça (B14):
+ * `move` ou `remove` com EXATAMENTE um id, o da ficha (não o da peça) — `move` arrasta quem
+ * tem peça e põe quem não tem; a tripla é `[col, row, z]` (hex: `[q, r, z]`).
  */
-export type MasterActionPayload = {
-  targetIds: string[];
-  interact: { kind: string };
-};
+export type MasterActionPayload =
+  | { targetIds: string[]; interact: { kind: string } }
+  | { targetIds: [string]; move: { position: [number, number, number] } }
+  | { targetIds: [string]; remove: Record<string, never> };
