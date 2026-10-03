@@ -129,12 +129,38 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     setPanelOpen(true);
   }, [arranging, exitArrange]);
 
+  // O Esc é do Arrumar só quando não é de outra coisa: outro diálogo aberto ou um campo de
+  // texto com foco ficam com ele. O diálogo de confirmação do próprio Arrumar não conta.
+  const otherDialogOpen = sceneDialog || wallPicker != null || state.pendingCloseTurn != null;
   useEffect(() => {
-    if (!arranging) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") exitArrange(); };
+    if (!arranging || otherDialogOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      const t = e.target;
+      if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement || t instanceof HTMLSelectElement) return;
+      if (t instanceof HTMLElement && t.isContentEditable) return;
+      exitArrange();
+    };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [arranging, exitArrange]);
+  }, [arranging, otherDialogOpen, exitArrange]);
+
+  // O placer do Pixi trata como "pôr" qualquer pointerup dentro da CAIXA do canvas — inclusive
+  // um toque no Enquadrar, na barra geral ou num aviso, que flutuam por cima dele. Sem mexer na
+  // zona Pixi: com o chip armado, um ouvinte de captura (roda antes do da janela, que o placer
+  // usa) anota se a soltura caiu no mapa mesmo; o `onNpcPlaced` de uma que não caiu é descartado.
+  const releaseOnMapRef = useRef(false);
+  useEffect(() => {
+    if (!arranging || !placingId) return;
+    const onUp = (e: PointerEvent) => {
+      releaseOnMapRef.current = !!canvasRef.current?.contains(e.target as Node);
+    };
+    window.addEventListener("pointerup", onUp, { capture: true });
+    return () => {
+      window.removeEventListener("pointerup", onUp, { capture: true });
+      releaseOnMapRef.current = false;
+    };
+  }, [arranging, placingId]);
 
   // Toda (re)conexão derruba o pedido ainda não confirmado: o tabuleiro que ele mirava pode
   // não ser mais o que o servidor tem.
@@ -289,14 +315,23 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   const handleArrangeMove = useCallback(
     (pieceId: string, slot: SlotCoord) => {
       const piece = game.boardPieces.find((p) => p.id === pieceId);
-      if (!piece?.characterId) return;
+      if (!piece?.characterId || isSameSlot(piece.coord.slot, slot)) return;
       setArrangePending({ kind: "move", characterId: piece.characterId, to: slotToTriple(slot, piece.coord.z) });
     },
     [game.boardPieces],
   );
+  const handleArrangeSelect = useCallback(
+    (pieceId: string) => setArrangePieceId((cur) => (cur === pieceId ? undefined : pieceId)),
+    [],
+  );
   const handleArrangePlaced = useCallback(
     (slot: SlotCoord) => {
       if (!placingId) return;
+      // Soltura num controle por cima do mapa: não é um pôr, e desarma o chip.
+      if (!releaseOnMapRef.current) {
+        setPlacingId(undefined);
+        return;
+      }
       // O placer só avisa "soltou aqui"; quem não deixa pôr em cima de outra peça somos nós,
       // como o PiecesLayer faz no arrastar.
       if (game.boardPieces.some((p) => isSameSlot(p.coord.slot, slot))) return;
@@ -479,9 +514,10 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                   npcMap={live.npcMap}
                   onWallClick={setWallPicker}
                   piecesInteractive
-                  draggablePieceIds={arranging ? allPieceIds : NO_DRAG}
+                  // Com um chip armado nada arrasta: a mesma soltura arrastaria E poria.
+                  draggablePieceIds={arranging && !placingId ? allPieceIds : NO_DRAG}
                   suppressPanOnPiecePress
-                  onPieceSelect={arranging ? setArrangePieceId : handlePieceTap}
+                  onPieceSelect={arranging ? handleArrangeSelect : handlePieceTap}
                   onPieceLongPress={!arranging && actorId ? handlePieceHold : undefined}
                   selectedPieceId={arranging ? arrangeSelected?.id : actorId ? composer.actorPiece?.id : undefined}
                   inspectedPieceId={arranging ? undefined : inspectedPieceId}

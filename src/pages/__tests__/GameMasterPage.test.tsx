@@ -1,12 +1,12 @@
 // src/pages/__tests__/GameMasterPage.test.tsx
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { http, HttpResponse } from "msw";
-import { act, screen, within } from "@testing-library/react";
+import { act, fireEvent, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { server } from "../../test/server";
 import { renderWithProviders } from "../../test/render";
 import { matchApiFixture } from "../../test/fixtures/match";
-import { mapWithPiecesApi } from "../../test/fixtures/map";
+import { mapApiFixture, mapWithPiecesApi } from "../../test/fixtures/map";
 import { campaignWithNpcsApi, npcFixture } from "../../test/fixtures/campaign";
 import GameMasterPage from "../GameMasterPage";
 import { installFakeWebSocket, waitForSocket } from "../../test/fakeWebSocket";
@@ -28,7 +28,7 @@ vi.mock("../../features/tactical-map/TacticalMapViewer", () => ({
     inspectedPieceId?: string | null;
     intentGhosts?: unknown[];
     intentPreview?: unknown;
-    onPieceMove?: (pieceId: string, slot: { kind: "square"; col: number; row: number }) => void;
+    onPieceMove?: (pieceId: string, slot: { kind: "square"; col: number; row: number } | { kind: "hex"; q: number; r: number }) => void;
     placingNpcId?: string | null;
     onNpcPlaced?: (slot: { kind: "square"; col: number; row: number }) => void;
   }) => (
@@ -67,6 +67,15 @@ vi.mock("../../features/tactical-map/TacticalMapViewer", () => ({
           onClick={() => props.onPieceMove?.(piece.id, { kind: "square", col: 2, row: 2 })}
         >
           move {piece.id}
+        </button>
+      ))}
+      {props.map.pieces.map((piece) => (
+        <button
+          key={`move-hex-${piece.id}`}
+          data-testid={`move-piece-hex-${piece.id}`}
+          onClick={() => props.onPieceMove?.(piece.id, { kind: "hex", q: 2, r: -1 })}
+        >
+          move hex {piece.id}
         </button>
       ))}
       <button data-testid="place-slot" onClick={() => props.onNpcPlaced?.({ kind: "square", col: 3, row: 5 })}>
@@ -921,7 +930,7 @@ describe("GameMasterPage", () => {
 
       await user.click(within(placeList).getByRole("button", { name: "Capanga" }));
       expect(mapStub()).toHaveAttribute("data-placing-npc-id", "npc1");
-      act(() => screen.getByTestId("place-slot").click());
+      await user.click(screen.getByTestId("place-slot"));
       expect(dialog()).toHaveTextContent("Pôr Capanga em coluna 4, linha 6?");
       expect(ws.sent("enqueue_master_action")).toEqual([]);
 
@@ -944,7 +953,7 @@ describe("GameMasterPage", () => {
       enterArrange();
 
       await user.click(await screen.findByRole("button", { name: npcFixture.nickName }));
-      act(() => screen.getByTestId("place-slot").click());
+      await user.click(screen.getByTestId("place-slot"));
       expect(dialog()).toHaveTextContent(`Pôr ${npcFixture.nickName} em coluna 4, linha 6?`);
       await user.click(screen.getByRole("button", { name: "Confirmar" }));
       expect(ws.sent("enqueue_master_action")).toEqual([{ targetIds: [npcFixture.uuid], move: { position: [3, 5, 0] } }]);
@@ -1000,6 +1009,114 @@ describe("GameMasterPage", () => {
       act(() => screen.getByTestId("place-slot").click());
       expect(dialog()).not.toBeInTheDocument();
       expect(ws.sent("enqueue_master_action")).toEqual([]);
+    });
+    // ─── Follow-up (revisão da T17) ──────────────────────────────────────────
+    it("chip armado: um toque num controle por cima do mapa não vira pôr e desarma", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws, [piecesFixture[0]]);
+      enterArrange();
+      await user.click(screen.getByRole("button", { name: "Capanga" }));
+      expect(mapStub()).toHaveAttribute("data-placing-npc-id", "npc1");
+      // arrastar e pôr na mesma soltura brigam: com o chip armado nada arrasta
+      expect(mapStub()).toHaveAttribute("data-draggable-piece-ids", "[]");
+
+      // O placer do Pixi escuta o pointerup na janela e só olha se ele caiu dentro da caixa
+      // do canvas — o Enquadrar está dentro dela. O stub reproduz a chamada sem pointerup.
+      fireEvent.pointerUp(screen.getByRole("button", { name: "Enquadrar" }));
+      act(() => screen.getByTestId("place-slot").click());
+
+      expect(dialog()).not.toBeInTheDocument();
+      expect(mapStub()).toHaveAttribute("data-placing-npc-id", "");
+      expect(ws.sent("enqueue_master_action")).toEqual([]);
+    });
+
+    it("soltar a peça no próprio slot não pergunta nada", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws, [{ ...piecesFixture[0], coord: { slot: { kind: "square", col: 2, row: 2 }, z: 0 } }]);
+      enterArrange();
+      act(() => screen.getByTestId("move-piece-piece-c1").click());
+      expect(dialog()).not.toBeInTheDocument();
+    });
+
+    it("Esc de outro diálogo ou de um campo de texto não sai do Arrumar", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      enterArrange();
+
+      await user.click(screen.getAllByRole("button", { name: "Nova cena" })[0]);
+      await user.keyboard("{Escape}");
+      expect(screen.getByRole("button", { name: "Arrumar" })).toHaveAttribute("aria-pressed", "true");
+      await user.click(screen.getByRole("button", { name: "Cancelar" }));
+
+      const input = document.createElement("input");
+      document.body.append(input);
+      input.focus();
+      await user.keyboard("{Escape}");
+      expect(screen.getByRole("button", { name: "Arrumar" })).toHaveAttribute("aria-pressed", "true");
+      input.remove();
+    });
+
+    it("em grade hex, o move vai como [q, r, z]", async () => {
+      server.use(
+        http.get(`${baseUrl}/maps/:id`, () =>
+          HttpResponse.json({ map: { ...mapApiFixture, grid: { ...(mapApiFixture.grid as object), kind: "hex" } } }),
+        ),
+      );
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws, [
+        { id: "piece-c1", characterId: "c1", coord: { slot: { kind: "hex", q: 0, r: 0 } as never, z: 0 }, visible: true },
+      ]);
+      enterArrange();
+
+      act(() => screen.getByTestId("move-piece-hex-piece-c1").click());
+      expect(dialog()).toHaveTextContent("Mover Gon para q 2, r -1?");
+      await user.click(screen.getByRole("button", { name: "Confirmar" }));
+      expect(ws.sent("enqueue_master_action")).toEqual([{ targetIds: ["c1"], move: { position: [2, -1, 0] } }]);
+    });
+
+    it("sem conexão, Confirmar fica desabilitado, o pedido fica e nada sai", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      enterArrange();
+      act(() => screen.getByTestId("move-piece-piece-c1").click());
+
+      act(() => ws.onclose?.({ code: 1000 } as CloseEvent));
+      const confirm = within(dialog()!).getByRole("button", { name: "Confirmar" });
+      expect(confirm).toBeDisabled();
+      await user.click(confirm);
+      expect(dialog()).toHaveTextContent("Mover Gon para coluna 3, linha 3?");
+      expect(ws.sent("enqueue_master_action")).toEqual([]);
+    });
+
+    it("escolher uma aba do rail sai do Arrumar e abre a aba", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      enterArrange();
+      act(() => screen.getByTestId("move-piece-piece-c1").click());
+      act(() => screen.getByRole("button", { name: "Agir" }).click());
+
+      expect(screen.getByRole("button", { name: "Arrumar" })).toHaveAttribute("aria-pressed", "false");
+      expect(screen.queryByText("Arrumar o tabuleiro")).not.toBeInTheDocument();
+      expect(screen.getByText("Agir por")).toBeInTheDocument();
+      expect(dialog()).not.toBeInTheDocument();
+    });
+
+    it("tocar de novo na peça selecionada a solta", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      enterArrange();
+      act(() => screen.getByTestId("select-actor-c1").click());
+      expect(mapStub()).toHaveAttribute("data-selected-piece-id", "piece-c1");
+      act(() => screen.getByTestId("select-actor-c1").click());
+      expect(mapStub()).toHaveAttribute("data-selected-piece-id", "");
+      expect(screen.queryByRole("button", { name: "Tirar do mapa" })).not.toBeInTheDocument();
     });
   });
 });
