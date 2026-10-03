@@ -19,7 +19,7 @@ const move = { category: "Dash" as const, from: [0, 0, 0] as [number, number, nu
 
 function mount(extra: Partial<Parameters<typeof useMatchCombat>[0]> = {}) {
   const hook = renderHook(() =>
-    useMatchCombat({ matchUuid: "m1", userUuid: "u1", token: "t", isMaster: false, ...extra }),
+    useMatchCombat({ matchUuid: "m1", userUuid: "u1", token: "t", ...extra }),
   );
   const ws = flushConnect();
   act(() => { ws.onopen?.(); });
@@ -74,7 +74,7 @@ describe("useMatchCombat", () => {
 
   it("dois acks no mesmo lote reportam, cada um, o ator do envio certo", () => {
     const onComposerSendAccepted = vi.fn();
-    const { result, ws } = mount({ onComposerSendAccepted, isMaster: true });
+    const { result, ws } = mount({ onComposerSendAccepted });
     act(() => {
       result.current.send.enqueueAction({ actorId: "npcA", move });
       result.current.send.enqueueAction({ actorId: "npcB", move });
@@ -89,7 +89,7 @@ describe("useMatchCombat", () => {
 
   it("uma recusa seguida de um ack no mesmo lote: o ack é do SEGUNDO envio", () => {
     const onComposerSendAccepted = vi.fn();
-    const { result, ws } = mount({ onComposerSendAccepted, isMaster: true });
+    const { result, ws } = mount({ onComposerSendAccepted });
     act(() => {
       result.current.send.enqueueAction({ actorId: "npcA", move });
       result.current.send.enqueueAction({ actorId: "npcB", move });
@@ -112,11 +112,11 @@ describe("useMatchCombat", () => {
     unmount();
 
     const again = renderHook(() =>
-      useMatchCombat({ matchUuid: "m1", userUuid: "u1", token: "t", isMaster: false }),
+      useMatchCombat({ matchUuid: "m1", userUuid: "u1", token: "t" }),
     );
     expect(again.result.current.state.declared.map((d) => d.id)).toEqual(["a1"]);
     const other = renderHook(() =>
-      useMatchCombat({ matchUuid: "m1", userUuid: "u2", token: "t", isMaster: false }),
+      useMatchCombat({ matchUuid: "m1", userUuid: "u2", token: "t" }),
     );
     expect(other.result.current.state.declared).toEqual([]);
   });
@@ -127,7 +127,7 @@ describe("useMatchCombat", () => {
       throw new Error("blocked");
     });
     const { result } = renderHook(() =>
-      useMatchCombat({ matchUuid: "m1", userUuid: "u1", token: "t", isMaster: false }),
+      useMatchCombat({ matchUuid: "m1", userUuid: "u1", token: "t" }),
     );
     expect(result.current.state.declared).toEqual([]);
     spy.mockRestore();
@@ -162,7 +162,7 @@ describe("useMatchCombat — avisos para o REST", () => {
 
   it("tudo o que o histórico guarda avisa onHistoryChanged (F4 parte 2)", () => {
     const onHistoryChanged = vi.fn();
-    const { ws } = mount({ isMaster: true, onHistoryChanged });
+    const { ws } = mount({ onHistoryChanged });
     const cases: Array<[string, unknown]> = [
       ["scene_changed", { sceneId: "s2", category: "battle", briefInitialDescription: "Arena" }],
       ["round_mode_changed", { mode: "Free" }],
@@ -177,7 +177,7 @@ describe("useMatchCombat — avisos para o REST", () => {
   });
 
   it("expõe addNpc e changeScene", () => {
-    const { result, ws } = mount({ isMaster: true });
+    const { result, ws } = mount();
     act(() => {
       result.current.send.addNpc("npc-2");
       result.current.send.changeScene({ category: "roleplay", briefInitialDescription: "" });

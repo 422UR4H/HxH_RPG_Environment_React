@@ -64,7 +64,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
       ? chosenActor
       : myCharacters[0]?.characterSheet.uuid;
 
-  const game = useGameTable({ token, campaignId, matchId, isMaster: false, declaredSource: "ownQueue", actorId });
+  const game = useGameTable({ token, campaignId, matchId, declaredSource: "ownQueue", actorId });
   const { combat, composer, live, map, nameOf } = game;
   const { state } = combat;
 

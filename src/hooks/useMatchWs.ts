@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { GridShape, Piece, SlotCoord, WallSegment } from "../types/tacticalMap";
+import type { Piece, SlotCoord, WallSegment } from "../types/tacticalMap";
 import type { ChangeScenePayload, CombatServerMessage, EnqueueActionPayload, MasterActionPayload, RoundMode } from "../features/match/combat/combatMessages";
 import { normalizeCombatMessage } from "../features/match/combat/normalizeWire";
 
@@ -8,34 +8,6 @@ import { normalizeCombatMessage } from "../features/match/combat/normalizeWire";
  * creates it, so a player who arrives first waits for them instead of giving up.
  */
 export type MatchWsStatus = "connecting" | "connected" | "waiting" | "disconnected";
-
-/**
- * Board the master seeds the game server with on connect. The server has no DB access
- * of its own, so without the pieces it has no line-of-sight origins and every player's
- * fog covers the whole map.
- *
- * This must come from the REST map, never from live WS state: feeding the server's own
- * map_full_state push back into a sync would loop forever.
- */
-export type MatchBoardSync = {
-  pieces: Piece[];
-  walls: WallSegment[];
-  grid?: GridShape;
-};
-
-function toPiecePayload(p: Piece) {
-  const slot = p.coord.slot;
-  return {
-    pieceId: p.id,
-    slot:
-      slot.kind === "square"
-        ? { kind: "square", col: slot.col, row: slot.row }
-        : { kind: "hex", q: slot.q, r: slot.r },
-    characterId: p.characterId,
-    visible: p.visible,
-    z: p.coord.z,
-  };
-}
 
 /**
  * A piece exactly as the game server serializes it: flat (`pieceId`/`slot` as
@@ -133,7 +105,6 @@ type WallStateChangedPayload = {
 type UseMatchWsOptions = {
   matchUuid: string | undefined;
   token: string;
-  isMaster: boolean;
   /** Called when the server broadcasts a wall open/locked change. */
   onWallStateChanged?: (wallId: string, open: boolean, locked: boolean) => void;
   /** Called when the server broadcasts a wall HP / destroyed change (attack result). */
@@ -186,18 +157,11 @@ type UseMatchWsOptions = {
    * Mesa inteira na nota de turno; só o mestre nas ações de peça (o eco carrega a posição).
    */
   onMasterActionEnqueued?: () => void;
-  /**
-   * Pieces, walls and grid used to seed the game server once connected (master only).
-   * Pass `null`/`undefined` while the REST map is still loading — syncing early would
-   * seed an empty board and blank out every player's line of sight.
-   */
-  board?: MatchBoardSync | null;
 };
 
 export function useMatchWs({
   matchUuid,
   token,
-  isMaster,
   onWallStateChanged,
   onWallHpChanged,
   onMapFullState,
@@ -209,7 +173,6 @@ export function useMatchWs({
   onCombatMessage,
   onNpcAdded,
   onMasterActionEnqueued,
-  board,
 }: UseMatchWsOptions) {
   const [status, setStatus] = useState<MatchWsStatus>("connecting");
   // Bumped by `reconnect()` — a new value re-runs the connection effect from scratch.
@@ -238,34 +201,6 @@ export function useMatchWs({
   const onMasterActionEnqueuedRef = useRef(onMasterActionEnqueued);
   onMasterActionEnqueuedRef.current = onMasterActionEnqueued;
   const lastSentTypeRef = useRef<string | undefined>(undefined);
-  const boardRef = useRef(board);
-  boardRef.current = board;
-  const isMasterRef = useRef(isMaster);
-  isMasterRef.current = isMaster;
-
-  // Batch 3 (Important, amends batch 2's boardSyncedRef): per-CONNECTION state for the
-  // board-sync decision, reset on every `ws.onopen` (first connect AND every reconnect —
-  // see the reset in `connect()` below). A once-per-MOUNT guard (batch 2) survived a
-  // reconnect fine, but not a game-server RESTART: room.go's NewRoom starts with `pieces`
-  // empty (no DB of its own), Register sends map_full_state only when `hasPieces`
-  // (room.go:257-262), and only the master's own map_state_sync ever refills `r.pieces` —
-  // so after a restart the master's reconnect landed in a genuinely empty room, the old
-  // guard blocked the re-sync forever, and the board stayed empty for everyone until a
-  // manual page reload.
-  //
-  // connGotMapFullStateRef: true once THIS connection's register sent a map_full_state
-  // (room.go:257-262) — i.e. the room already has pieces server-side; batch 2's own
-  // protection (never stomp a board the server has moved via combat) still applies.
-  const connGotMapFullStateRef = useRef(false);
-  // connRegisterDoneRef: true once the "register is finished, decide now" marker
-  // (match_full_state) has arrived this connection — see sendBoardSync/maybeSyncBoard's
-  // own comment for why this specific message was chosen.
-  const connRegisterDoneRef = useRef(false);
-  // connBoardSyncSentRef: true once this connection has already sent (or explicitly
-  // decided not to send) its board sync — maybeSyncBoard is called from two independent
-  // triggers (the marker arriving, and `board` arriving) and must not act twice.
-  const connBoardSyncSentRef = useRef(false);
-
   /**
    * Final review, Important 2: retorna `true` só quando o socket estava OPEN de verdade e
    * o `send` foi mesmo feito. Antes disto era `void` — `enqueueAction` (useMatchCombat)
@@ -282,69 +217,6 @@ export function useMatchWs({
     }
     return false;
   }, []);
-
-  // Seed the server's in-memory board. Pieces are included because the game server
-  // resolves each player's line of sight from the positions of the pieces it knows —
-  // omitting them leaves every player fully fogged.
-  const sendBoardSync = useCallback(() => {
-    if (!isMasterRef.current) return;
-    const b = boardRef.current;
-    if (!b) return; // map not loaded yet; the effect below re-fires once it is
-    sendRaw("map_state_sync", {
-      pieces: b.pieces.map(toPiecePayload),
-      walls: b.walls,
-      ...(b.grid ? { grid: b.grid } : {}),
-    });
-  }, [sendRaw]);
-
-  /**
-   * Batch 3: decides, per connection, whether THIS connection needs a board sync — called
-   * from two triggers (the register-finished marker arriving, and `board` becoming
-   * available), either of which may come last.
-   *
-   * The marker is `match_full_state`. Per the contract (match-combat-ws.md, "Disparado
-   * por" under match_full_state): "todo `register` (conexão OU reconexão) enquanto há
-   * sessão de partida — logo depois de `room_state` e do `map_full_state` (se houver
-   * peças no tabuleiro), e antes do `player_joined`". Two things that guarantee this is
-   * both reliable AND correctly ordered for our case:
-   * - room.go's register case (room.go:249-270) sends room_state, then map_full_state IF
-   *   `hasPieces` (room.go:257-262), then match_full_state IF the session is non-nil
-   *   (room.go:267), then broadcastPlayerJoined — all synchronously, in this exact source
-   *   order, inside the Room's single-goroutine event loop, so WS frame order preserves
-   *   it: if a map_full_state is sent at all, it is ALWAYS received before match_full_state.
-   * - "enquanto há sessão de partida" (session != nil) holds for every connection this
-   *   hook ever makes: GamePlayerPage/GameMasterPage only mount after match_started, and
-   *   handler.go rehydrates the session synchronously (RehydrateSession, called from
-   *   ServeHTTP before room.Register) whenever a restart left it nil but the match was
-   *   already started in DB — so match_full_state is not a "sometimes" message here.
-   *
-   * The self-echoed `player_joined`/`master_joined` was considered and rejected:
-   * broadcastPlayerJoined explicitly skips the registering client itself
-   * (`if c.userUUID != client.userUUID`, room.go:2473) — it never reaches the very
-   * connection that needs the marker, so it cannot be used at all, not just "arrives too
-   * late".
-   *
-   * No timer fallback: this marker is reliable for the traffic this hook actually
-   * generates (see above), so a timer would only paper over a case this reasoning already
-   * covers. The one theoretical gap — a rehydrate failure (handler.go logs and gives up,
-   * session stays nil, match_full_state never fires) — is a pre-existing backend failure
-   * mode this WS-layer fix cannot repair either way; noted, not silently patched with a
-   * timer.
-   */
-  const maybeSyncBoard = useCallback(() => {
-    if (!isMasterRef.current) return;
-    if (!connRegisterDoneRef.current) return; // marker not seen yet this connection
-    if (connBoardSyncSentRef.current) return; // already decided this connection
-    if (connGotMapFullStateRef.current) {
-      // The room already has pieces server-side (batch 2's own protection: never stomp
-      // a board the server has since moved via combat with a stale REST snapshot).
-      connBoardSyncSentRef.current = true;
-      return;
-    }
-    if (!boardRef.current) return; // REST map not loaded yet — retried when it arrives
-    sendBoardSync();
-    connBoardSyncSentRef.current = true;
-  }, [sendBoardSync]);
 
   useEffect(() => {
     if (!matchUuid) return;
@@ -380,16 +252,6 @@ export function useMatchWs({
         silenceTimer = setTimeout(() => {
           if (wsRef.current === ws) ws.close(SILENT_CLOSE_CODE, "silent socket");
         }, SILENT_SOCKET_MS);
-        // Batch 3: fresh per-connection state — this register's own map_full_state/
-        // match_full_state haven't arrived yet, and whatever this connection decides
-        // about the board sync hasn't happened yet either.
-        connGotMapFullStateRef.current = false;
-        connRegisterDoneRef.current = false;
-        connBoardSyncSentRef.current = false;
-        // The board sync itself is driven by maybeSyncBoard (called once the
-        // match_full_state marker and/or `board` arrive), not from here: on connect the
-        // REST map may still be loading, and seeding an empty board would wipe the
-        // server's pieces and blank out every player's fog.
       };
 
       ws.onmessage = (event: MessageEvent) => {
@@ -415,9 +277,6 @@ export function useMatchWs({
             const p = msg.payload as { wallId: string; hp: number; maxHp: number; destroyed: boolean };
             onWallHpChangedRef.current?.(p.wallId, p.hp, p.maxHp, p.destroyed);
           } else if (msg.type === "map_full_state") {
-            // Batch 3: this register sent pieces — mark it so maybeSyncBoard never
-            // overwrites them with a stale REST board (batch 2's protection).
-            connGotMapFullStateRef.current = true;
             const p = msg.payload as {
               pieces?: WirePiece[];
               walls?: unknown[];
@@ -486,12 +345,6 @@ export function useMatchWs({
               normalizeCombatMessage({ type: msg.type, payload: msg.payload }),
               serverAt,
             );
-            if (msg.type === "match_full_state") {
-              // Batch 3: the "register finished, decide now" marker — see
-              // maybeSyncBoard's own doc comment for why this message and not a timer.
-              connRegisterDoneRef.current = true;
-              maybeSyncBoard();
-            }
           } else if (IGNORED_LOBBY_TYPES.has(msg.type)) {
             // F5: legitimate on this socket (see IGNORED_LOBBY_TYPES above), just not
             // acted on here — not a warn-worthy "unhandled" type.
@@ -542,24 +395,9 @@ export function useMatchWs({
       wsRef.current?.close();
       wsRef.current = null;
     };
-    // maybeSyncBoard is referenced from onmessage below — genuinely stable (its own
-    // deps chain, sendBoardSync → sendRaw, bottoms out at `[]`), listed so
-    // exhaustive-deps doesn't flag it; it never actually changes identity, so this
-    // never causes an extra reconnect.
-  }, [matchUuid, token, maybeSyncBoard, connectNonce]);
+  }, [matchUuid, token, connectNonce]);
 
   const reconnect = useCallback(() => setConnectNonce((n) => n + 1), []);
-
-  // Batch 3 (amends batch 2): catches `board` arriving AFTER the match_full_state marker
-  // (the REST map fetch racing the WS round-trip) — the marker's own call to
-  // maybeSyncBoard already covers the more common "marker arrives after board" order.
-  // `board`'s identity only changes when the REST data actually changes (see
-  // MatchBoardSync's own doc comment) — never re-triggered by the server's own pushes —
-  // so this effect firing again is never itself a signal to re-sync; maybeSyncBoard's own
-  // per-connection guards (connRegisterDoneRef/connBoardSyncSentRef) decide that.
-  useEffect(() => {
-    maybeSyncBoard();
-  }, [board, maybeSyncBoard]);
 
   /** Send a player action (enqueue_action). */
   const sendAction = useCallback(

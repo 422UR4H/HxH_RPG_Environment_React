@@ -26,6 +26,19 @@ import RulesSidebar from "../components/organisms/RulesSidebar";
 import RuleSection from "../components/molecules/RuleSection";
 import type { MatchStatus } from "../types/match";
 import { ActionsList } from "../components/atoms/ActionsList";
+import { useQueryClient } from "@tanstack/react-query";
+import { isApiError } from "../services/httpClient";
+import { getApiErrorDetail } from "../utils/apiError";
+
+/** O back recusa trocar o mapa (anexar ou desanexar) depois do `start_match` (F16, 422). */
+function isMapLockedError(err: unknown): boolean {
+  return isApiError(err, 422) && /started/i.test(getApiErrorDetail(err) ?? "");
+}
+
+function mapChangeErrorText(err: unknown): string {
+  if (isMapLockedError(err)) return "O mapa não pode ser trocado depois que a partida começou.";
+  return "Não foi possível trocar o mapa. Tente novamente.";
+}
 
 function getMatchStatus(match: { gameStartAt?: string; storyEndAt?: string }): MatchStatus {
   if (!match.gameStartAt) return "scheduled";
@@ -78,6 +91,17 @@ export default function MatchPage() {
   const { data: matchMap } = useMatchMap(token, matchId);
   const { mutate: attachMap, isPending: isAttaching } = useAttachMatchMap(token, matchId);
   const { mutate: detachMap, isPending: isDetaching } = useDetachMatchMap(token, matchId);
+  const queryClient = useQueryClient();
+  const [mapChangeError, setMapChangeError] = useState<string | null>(null);
+  // Recusa por partida iniciada: esta tela carregou antes do início. Rebuscar a partida traz o
+  // `gameStartAt`, e a troca de mapa some.
+  const onMapChangeError = (err: unknown) => {
+    setMapChangeError(mapChangeErrorText(err));
+    if (isMapLockedError(err)) {
+      void queryClient.invalidateQueries({ queryKey: ["matchDetails", token, matchId] });
+    }
+  };
+  const mapChangeCallbacks = { onSuccess: () => setMapChangeError(null), onError: onMapChangeError };
 
   const sheetId =
     locationState?.sheetId ??
@@ -268,11 +292,12 @@ export default function MatchPage() {
           matchMap={matchMap}
           isAttaching={isAttaching}
           isDetaching={isDetaching}
+          changeError={mapChangeError}
           onMapClick={(mapId) =>
             navigate(`/campaigns/${campaignId}/maps/${mapId}/edit`)
           }
-          onAttach={(mapId) => attachMap(mapId)}
-          onDetach={() => detachMap()}
+          onAttach={(mapId) => attachMap(mapId, mapChangeCallbacks)}
+          onDetach={() => detachMap(undefined, mapChangeCallbacks)}
         />
       </DetailPageTemplate>
 

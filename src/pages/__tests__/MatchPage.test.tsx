@@ -361,5 +361,57 @@ describe("MatchPage", () => {
       expect(await screen.findByText(/Anexado/i)).toBeInTheDocument();
       expect(await screen.findByRole("button", { name: /desanexar/i })).toBeInTheDocument();
     });
+
+    // F16: o back recusa trocar o mapa depois do start_match (422). Com a partida iniciada a
+    // troca nem aparece.
+    it("partida iniciada: não oferece anexar nem desanexar", async () => {
+      server.use(
+        http.get(`${baseUrl}/matches/:id`, () =>
+          HttpResponse.json({ match: { ...matchOngoingApi(), masterUuid: masterUserFixture.user.uuid } }),
+        ),
+        http.get(`${baseUrl}/matches/:id/map`, () =>
+          HttpResponse.json({
+            matchMap: { matchUuid: "match-1", mapUuid: mapApiFixture.id, attachedAt: "2026-06-04T00:00:00Z" },
+          }),
+        ),
+        http.get(`${baseUrl}/campaigns/:cid/maps`, () =>
+          HttpResponse.json({ maps: [mapApiFixture, { ...mapApiFixture, id: "map-2", name: "Outro Mapa" }] }),
+        ),
+      );
+      renderPage({ user: masterUserFixture });
+      const u = userEvent.setup();
+      await u.click(await screen.findByRole("button", { name: /Mapas/i }));
+      expect(await screen.findByText("Outro Mapa")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /anexar/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /desanexar/i })).not.toBeInTheDocument();
+    });
+
+    // A página carregou antes do início (sem `gameStartAt`) e o mestre tenta anexar depois.
+    it("se o back recusa a troca porque a partida começou, mostra o motivo em português", async () => {
+      server.use(
+        http.get(`${baseUrl}/matches/:id`, () =>
+          HttpResponse.json({ match: masterMatch }),
+        ),
+        http.get(`${baseUrl}/matches/:id/map`, () =>
+          new HttpResponse(null, { status: 204 }),
+        ),
+        http.get(`${baseUrl}/campaigns/:cid/maps`, () =>
+          HttpResponse.json({ maps: [mapApiFixture] }),
+        ),
+        http.post(`${baseUrl}/matches/:id/map`, () =>
+          HttpResponse.json(
+            { title: "Unprocessable Entity", status: 422, detail: "cannot change map after match has started" },
+            { status: 422 },
+          ),
+        ),
+      );
+      renderPage({ user: masterUserFixture });
+      const u = userEvent.setup();
+      await u.click(await screen.findByRole("button", { name: /Mapas/i }));
+      await u.click(await screen.findByRole("button", { name: /anexar/i }));
+      expect(
+        await screen.findByText("O mapa não pode ser trocado depois que a partida começou."),
+      ).toBeInTheDocument();
+    });
   });
 });

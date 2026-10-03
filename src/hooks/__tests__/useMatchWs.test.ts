@@ -2,8 +2,6 @@ import { StrictMode } from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 import { useMatchWs } from "../useMatchWs";
-import type { MatchBoardSync } from "../useMatchWs";
-import type { GridShape, Piece } from "../../types/tacticalMap";
 import { FakeWS, flushConnect, installFakeWebSocket } from "../../test/fakeWebSocket";
 
 beforeEach(() => {
@@ -20,7 +18,7 @@ describe("useMatchWs fog events", () => {
   it("parses map_full_state fog state", () => {
     const onMapFullState = vi.fn();
     renderHook(() =>
-      useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onMapFullState }),
+      useMatchWs({ matchUuid: "m1", token: "t", onMapFullState }),
     );
     const ws = flushConnect();
     ws.onopen?.();
@@ -40,7 +38,7 @@ describe("useMatchWs fog events", () => {
   it("parses visibility_updated", () => {
     const onVisibilityUpdated = vi.fn();
     renderHook(() =>
-      useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onVisibilityUpdated }),
+      useMatchWs({ matchUuid: "m1", token: "t", onVisibilityUpdated }),
     );
     const ws = flushConnect();
     ws.onopen?.();
@@ -57,7 +55,7 @@ describe("useMatchWs fog events", () => {
   it("maps map_full_state pieces into the renderer's Piece shape", () => {
     const onMapFullState = vi.fn();
     renderHook(() =>
-      useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onMapFullState }),
+      useMatchWs({ matchUuid: "m1", token: "t", onMapFullState }),
     );
     const ws = flushConnect();
     act(() => { ws.onopen?.(); });
@@ -90,7 +88,7 @@ describe("useMatchWs fog events", () => {
   it("keeps hex slots intact through the mapping", () => {
     const onMapFullState = vi.fn();
     renderHook(() =>
-      useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onMapFullState }),
+      useMatchWs({ matchUuid: "m1", token: "t", onMapFullState }),
     );
     const ws = flushConnect();
     act(() => { ws.onopen?.(); });
@@ -108,7 +106,7 @@ describe("useMatchWs fog events", () => {
   it("carries piece elevation in from the wire", () => {
     const onMapFullState = vi.fn();
     renderHook(() =>
-      useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onMapFullState }),
+      useMatchWs({ matchUuid: "m1", token: "t", onMapFullState }),
     );
     const ws = flushConnect();
     act(() => { ws.onopen?.(); });
@@ -132,237 +130,38 @@ describe("useMatchWs fog events", () => {
   });
 });
 
-// ─── Board sync (master seeds the game server) ──────────────────────────────
+// ─── O tabuleiro é do servidor (F13) ────────────────────────────────────────
 //
-// The game server has no DB access: it derives every player's line of sight from the
-// pieces the master syncs to it. A sync that omits the pieces leaves players fully
-// fogged, and a sync fired before the REST map loaded wipes the board it already had.
+// Desde B14 o servidor carrega o tabuleiro do banco e o manda em `map_full_state` a cada
+// conexão; `map_state_sync` não escreve mais nada. O mestre conectando — na primeira vez, ao
+// reconectar, numa sala que acabou de nascer (reinício) — não manda tabuleiro nenhum.
 
-const grid: GridShape = {
-  kind: "square", cols: 20, rows: 20, cellSize: 64, skewRatio: 1,
-} as GridShape;
-
-const piece: Piece = {
-  id: "piece-1",
-  characterId: "sheet-1",
-  coord: { slot: { kind: "square", col: 3, row: 4 }, z: 0 },
-  visible: true,
-} as Piece;
-
-const board: MatchBoardSync = {
-  pieces: [piece],
-  walls: [{ id: "w1", wallType: "wall", maxHp: 100 } as never],
-  grid,
-};
-
-function syncPayloads(ws: FakeWS) {
-  return ws.send.mock.calls
-    .map(([raw]) => JSON.parse(raw as string))
-    .filter((m) => m.type === "map_state_sync")
-    .map((m) => m.payload);
-}
-
-// Batch 3: minimal valid raw match_full_state wire payload (normalizeMatchFullState's own
-// test, normalizeWire.test.ts, uses this exact minimal shape) — this is the "register
-// finished, decide now" marker maybeSyncBoard waits for. Emitting it after `ws.onopen?.()`
-// simulates room.go's register case (room.go:249-270) sending it right after room_state
-// and (if `hasPieces`) map_full_state, before broadcastPlayerJoined.
 const matchFullStatePayload = { roundMode: "", bars: { seq: 0, prices: null, characters: null, order: null } };
-function emitMatchFullState(ws: FakeWS) {
-  act(() => { ws.emit("match_full_state", matchFullStatePayload); });
-}
-function emitMapFullState(ws: FakeWS, pieces: unknown[] = [{ pieceId: "existing", slot: { kind: "square", col: 0, row: 0 } }]) {
-  act(() => {
-    ws.emit("map_full_state", { pieces, walls: [], visiblePolygons: [], fogMode: "explored" });
-  });
-}
 
-describe("useMatchWs board sync", () => {
-  // Batch 3, test (c): first load into an empty room (register sends no map_full_state,
-  // hasPieces is false) — the marker alone is enough to sync, same behavior as before
-  // batch 3's fix.
-  it("first load into an empty room: syncs once the register-finished marker arrives", () => {
-    const { rerender } = renderHook(
-      (props: { board: MatchBoardSync | null }) =>
-        useMatchWs({ matchUuid: "m1", token: "t", isMaster: true, board: props.board }),
-      { initialProps: { board } },
-    );
-    const ws = flushConnect();
-    act(() => { ws.onopen?.(); });
-    rerender({ board });
-    expect(syncPayloads(ws)).toHaveLength(0); // not yet — marker hasn't arrived
+describe("useMatchWs: o mestre não escreve o tabuleiro (F13)", () => {
+  it("conectar, reconectar e cair numa sala vazia nunca manda map_state_sync", () => {
+    renderHook(() => useMatchWs({ matchUuid: "m1", token: "t" }));
 
-    emitMatchFullState(ws);
-
-    const syncs = syncPayloads(ws);
-    expect(syncs).toHaveLength(1);
-    expect(syncs[0].pieces).toEqual([
-      {
-        pieceId: "piece-1",
-        slot: { kind: "square", col: 3, row: 4 },
-        characterId: "sheet-1",
-        visible: true,
-        z: 0,
-      },
-    ]);
-    expect(syncs[0].grid).toMatchObject({ cellSize: 64, cols: 20, rows: 20 });
-    expect(syncs[0].walls).toHaveLength(1);
-  });
-
-  it("does not sync before the map has loaded, then syncs once it arrives (marker already seen)", () => {
-    const { rerender } = renderHook(
-      (props: { board: MatchBoardSync | null }) =>
-        useMatchWs({ matchUuid: "m1", token: "t", isMaster: true, board: props.board }),
-      { initialProps: { board: null as MatchBoardSync | null } },
-    );
-    const ws = flushConnect();
-    act(() => { ws.onopen?.(); });
-    rerender({ board: null });
-
-    // The marker arrives before the REST map does — maybeSyncBoard must not act yet.
-    emitMatchFullState(ws);
-    expect(syncPayloads(ws)).toHaveLength(0);
-
-    // The `board`-reactive effect catches it once the REST map arrives.
-    rerender({ board });
-    const syncs = syncPayloads(ws);
-    expect(syncs).toHaveLength(1);
-    expect(syncs[0].pieces).toHaveLength(1);
-  });
-
-  it("never syncs as a player", () => {
-    const { rerender } = renderHook(
-      (props: { board: MatchBoardSync | null }) =>
-        useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, board: props.board }),
-      { initialProps: { board } },
-    );
-    const ws = flushConnect();
-    act(() => { ws.onopen?.(); });
-    rerender({ board });
-    emitMatchFullState(ws);
-
-    expect(syncPayloads(ws)).toHaveLength(0);
-  });
-
-  // Guards the infinite-loop regression: the board must be derived from the REST map,
-  // so a server push/rerender after the sync already happened must not trigger another.
-  it("does not re-sync when the server pushes another map_full_state after the initial sync", () => {
-    const { rerender } = renderHook(
-      (props: { board: MatchBoardSync | null }) =>
-        useMatchWs({ matchUuid: "m1", token: "t", isMaster: true, board: props.board }),
-      { initialProps: { board } },
-    );
-    const ws = flushConnect();
-    act(() => { ws.onopen?.(); });
-    rerender({ board });
-    emitMatchFullState(ws);
-    expect(syncPayloads(ws)).toHaveLength(1);
-
+    const first = flushConnect();
+    act(() => { first.onopen?.(); });
     act(() => {
-      ws.emit("map_full_state", {
-        pieces: [], walls: [], visiblePolygons: [], fogMode: "explored",
+      first.emit("map_full_state", {
+        pieces: [{ pieceId: "p1", slot: { kind: "square", col: 1, row: 1 } }],
+        walls: [], visiblePolygons: [], fogMode: "explored",
       });
+      first.emit("match_full_state", matchFullStatePayload);
     });
-    rerender({ board });
+    expect(first.sent("map_state_sync")).toEqual([]);
 
-    expect(syncPayloads(ws)).toHaveLength(1);
+    // Reconexão numa sala sem tabuleiro (o registro não traz map_full_state).
+    act(() => { first.onclose?.({ code: 1006 } as CloseEvent); });
+    act(() => { vi.advanceTimersByTime(1000); });
+    const second = FakeWS.instances[FakeWS.instances.length - 1];
+    expect(second).not.toBe(first);
+    act(() => { second.onopen?.(); });
+    act(() => { second.emit("match_full_state", matchFullStatePayload); });
+    expect(second.sent("map_state_sync")).toEqual([]);
   });
-
-  it("sends piece elevation so the server can hand it back", () => {
-    const elevated: MatchBoardSync = {
-      ...board,
-      pieces: [{ ...piece, coord: { ...piece.coord, z: 2 } }],
-    };
-    const { rerender } = renderHook(
-      (props: { board: MatchBoardSync | null }) =>
-        useMatchWs({ matchUuid: "m1", token: "t", isMaster: true, board: props.board }),
-      { initialProps: { board: elevated } },
-    );
-    const ws = flushConnect();
-    act(() => { ws.onopen?.(); });
-    rerender({ board: elevated });
-    emitMatchFullState(ws);
-
-    const syncs = syncPayloads(ws);
-    expect(syncs[syncs.length - 1].pieces[0].z).toBe(2);
-  });
-
-  // Batch 3 (Important): the regression the re-reviewer found in batch 2's fix. A
-  // once-per-MOUNT guard survived an ordinary reconnect fine, but not a game-server
-  // restart — room.go's NewRoom starts with `pieces` empty, Register sends
-  // map_full_state only when `hasPieces` (room.go:257-262), and only the master's own
-  // map_state_sync ever refills `r.pieces` server-side. The fix must re-sync PER
-  // CONNECTION, gated on whether THAT connection's register produced a map_full_state.
-  describe("reconnect (per-connection re-sync)", () => {
-    function reconnect(firstWs: FakeWS) {
-      act(() => { firstWs.onclose?.({ code: 1006 } as CloseEvent); }); // abnormal close
-      act(() => { vi.advanceTimersByTime(1000); }); // BASE_DELAY_MS, first retry attempt
-      expect(FakeWS.instances.length).toBeGreaterThan(1);
-      const secondWs = FakeWS.instances[FakeWS.instances.length - 1];
-      act(() => { secondWs.onopen?.(); });
-      return secondWs;
-    }
-
-    // Test (a): the server still has the pieces (an ordinary reconnect, room never
-    // restarted) — its register sends map_full_state, so the reconnected socket must NOT
-    // re-push the master's REST snapshot over whatever the server already has.
-    it("(a) reconnect where the server still has the board: no map_state_sync on the second socket", () => {
-      vi.useFakeTimers();
-      try {
-        const { rerender } = renderHook(
-          (props: { board: MatchBoardSync | null }) =>
-            useMatchWs({ matchUuid: "m1", token: "t", isMaster: true, board: props.board }),
-          { initialProps: { board } },
-        );
-        const firstWs = flushConnect();
-        act(() => { firstWs.onopen?.(); });
-        rerender({ board });
-        emitMatchFullState(firstWs);
-        expect(syncPayloads(firstWs)).toHaveLength(1);
-
-        const secondWs = reconnect(firstWs);
-        rerender({ board });
-        emitMapFullState(secondWs); // hasPieces was true — register sent it
-        emitMatchFullState(secondWs);
-
-        expect(syncPayloads(secondWs)).toHaveLength(0);
-      } finally {
-        vi.useRealTimers();
-      }
-    });
-
-    // Test (b): the exact regression — the game server restarted, the new Room has no
-    // pieces (hasPieces false), so register sends NO map_full_state this connection. The
-    // reconnected socket must re-sync exactly once, or the board stays empty for
-    // everyone until a manual page reload.
-    it("(b) reconnect into an empty room (server restart): exactly one map_state_sync", () => {
-      vi.useFakeTimers();
-      try {
-        const { rerender } = renderHook(
-          (props: { board: MatchBoardSync | null }) =>
-            useMatchWs({ matchUuid: "m1", token: "t", isMaster: true, board: props.board }),
-          { initialProps: { board } },
-        );
-        const firstWs = flushConnect();
-        act(() => { firstWs.onopen?.(); });
-        rerender({ board });
-        emitMatchFullState(firstWs);
-        expect(syncPayloads(firstWs)).toHaveLength(1);
-
-        const secondWs = reconnect(firstWs);
-        rerender({ board });
-        // No map_full_state this time — the restarted room has no pieces.
-        emitMatchFullState(secondWs);
-
-        const syncs = syncPayloads(secondWs);
-        expect(syncs).toHaveLength(1);
-        expect(syncs[0].pieces).toHaveLength(1);
-      } finally {
-        vi.useRealTimers();
-      }
-    });
-  });
-
 });
 
 // ─── Wall events (server→client) ────────────────────────────────────────────
@@ -371,7 +170,7 @@ describe("useMatchWs wall events", () => {
   it("calls onWallStateChanged with the exact wallId, open and locked on wall_state_changed", () => {
     const onWallStateChanged = vi.fn();
     renderHook(() =>
-      useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onWallStateChanged }),
+      useMatchWs({ matchUuid: "m1", token: "t", onWallStateChanged }),
     );
     const ws = flushConnect();
     act(() => { ws.onopen?.(); });
@@ -384,7 +183,7 @@ describe("useMatchWs wall events", () => {
   it("calls onWallHpChanged with the exact wallId, hp, maxHp and destroyed on wall_hp_changed", () => {
     const onWallHpChanged = vi.fn();
     renderHook(() =>
-      useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onWallHpChanged }),
+      useMatchWs({ matchUuid: "m1", token: "t", onWallHpChanged }),
     );
     const ws = flushConnect();
     act(() => { ws.onopen?.(); });
@@ -397,7 +196,7 @@ describe("useMatchWs wall events", () => {
   it("calls onWallHpChanged with destroyed=true when a wall's HP reaches 0", () => {
     const onWallHpChanged = vi.fn();
     renderHook(() =>
-      useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onWallHpChanged }),
+      useMatchWs({ matchUuid: "m1", token: "t", onWallHpChanged }),
     );
     const ws = flushConnect();
     act(() => { ws.onopen?.(); });
@@ -410,7 +209,7 @@ describe("useMatchWs wall events", () => {
   it("calls onWallRevealed with the wall payload passed through untouched on wall_revealed", () => {
     const onWallRevealed = vi.fn();
     renderHook(() =>
-      useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onWallRevealed }),
+      useMatchWs({ matchUuid: "m1", token: "t", onWallRevealed }),
     );
     const ws = flushConnect();
     act(() => { ws.onopen?.(); });
@@ -452,7 +251,7 @@ describe("useMatchWs piece events", () => {
   it("calls onPieceMoved positionally with everything the payload carries", () => {
     const onPieceMoved = vi.fn();
     renderHook(() =>
-      useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onPieceMoved }),
+      useMatchWs({ matchUuid: "m1", token: "t", onPieceMoved }),
     );
     const ws = flushConnect();
     act(() => { ws.onopen?.(); });
@@ -480,7 +279,7 @@ describe("useMatchWs piece events", () => {
   it("leaves characterId/visible/z undefined when the server omits them", () => {
     const onPieceMoved = vi.fn();
     renderHook(() =>
-      useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onPieceMoved }),
+      useMatchWs({ matchUuid: "m1", token: "t", onPieceMoved }),
     );
     const ws = flushConnect();
     act(() => { ws.onopen?.(); });
@@ -499,7 +298,7 @@ describe("useMatchWs piece events", () => {
   it("keeps hex slots intact and drops a piece_moved with an invalid/missing slot.kind", () => {
     const onPieceMoved = vi.fn();
     renderHook(() =>
-      useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onPieceMoved }),
+      useMatchWs({ matchUuid: "m1", token: "t", onPieceMoved }),
     );
     const ws = flushConnect();
     act(() => { ws.onopen?.(); });
@@ -524,7 +323,7 @@ describe("useMatchWs piece events", () => {
   it("calls onPieceRemoved with the pieceId on piece_removed", () => {
     const onPieceRemoved = vi.fn();
     renderHook(() =>
-      useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onPieceRemoved }),
+      useMatchWs({ matchUuid: "m1", token: "t", onPieceRemoved }),
     );
     const ws = flushConnect();
     act(() => { ws.onopen?.(); });
@@ -542,7 +341,7 @@ describe("useMatchWs piece events", () => {
 describe("useMatchWs lobby message types", () => {
   it("does not warn on legitimate lobby broadcasts reused by the match socket", () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-    renderHook(() => useMatchWs({ matchUuid: "m1", token: "t", isMaster: false }));
+    renderHook(() => useMatchWs({ matchUuid: "m1", token: "t" }));
     const ws = flushConnect();
     act(() => { ws.onopen?.(); });
     const ignored = [
@@ -556,7 +355,7 @@ describe("useMatchWs lobby message types", () => {
 
   it("still warns on a genuinely unknown type", () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-    renderHook(() => useMatchWs({ matchUuid: "m1", token: "t", isMaster: false }));
+    renderHook(() => useMatchWs({ matchUuid: "m1", token: "t" }));
     const ws = flushConnect();
     act(() => { ws.onopen?.(); });
     act(() => { ws.emit("something_new", {}); });
@@ -570,7 +369,7 @@ describe("useMatchWs lobby message types", () => {
 describe("useMatchWs outgoing actions", () => {
   it("sendAction sends enqueue_action with the payload forwarded as-is", () => {
     const { result } = renderHook(() =>
-      useMatchWs({ matchUuid: "m1", token: "t", isMaster: false }),
+      useMatchWs({ matchUuid: "m1", token: "t" }),
     );
     const ws = flushConnect();
     act(() => { ws.onopen?.(); });
@@ -593,7 +392,7 @@ describe("useMatchWs outgoing actions", () => {
   // on this, so a Declarar sent while reconnecting doesn't nascer an orphan ghost.
   it("sendAction returns true when the socket is OPEN and false when it is not", () => {
     const { result } = renderHook(() =>
-      useMatchWs({ matchUuid: "m1", token: "t", isMaster: false }),
+      useMatchWs({ matchUuid: "m1", token: "t" }),
     );
     const ws = flushConnect();
     // Not open yet (still "connecting" in the fake — readyState defaults to OPEN=1 in
@@ -612,7 +411,7 @@ describe("useMatchWs outgoing actions", () => {
 
   it("sendMasterAction sends enqueue_master_action with the payload forwarded as-is", () => {
     const { result } = renderHook(() =>
-      useMatchWs({ matchUuid: "m1", token: "t", isMaster: true }),
+      useMatchWs({ matchUuid: "m1", token: "t" }),
     );
     const ws = flushConnect();
     act(() => { ws.onopen?.(); });
@@ -633,7 +432,7 @@ describe("useMatchWs error handling", () => {
   it("surfaces a server error with the type of the last send", () => {
     const onWsError = vi.fn();
     const { result } = renderHook(() =>
-      useMatchWs({ matchUuid: "m1", token: "t", isMaster: true, onWsError }),
+      useMatchWs({ matchUuid: "m1", token: "t", onWsError }),
     );
     const ws = flushConnect();
     ws.onopen?.();
@@ -647,7 +446,7 @@ describe("useMatchWs error handling", () => {
   });
 
   it("does not throw on an unknown message type", () => {
-    renderHook(() => useMatchWs({ matchUuid: "m1", token: "t", isMaster: false }));
+    renderHook(() => useMatchWs({ matchUuid: "m1", token: "t" }));
     const ws = flushConnect();
     ws.onopen?.();
     expect(() => ws.emit("something_new", {})).not.toThrow();
@@ -660,7 +459,7 @@ describe("useMatchWs combat", () => {
   it("forwards every combat message it knows", () => {
     const onCombatMessage = vi.fn();
     renderHook(() =>
-      useMatchWs({ matchUuid: "m1", token: "t", isMaster: true, onCombatMessage }),
+      useMatchWs({ matchUuid: "m1", token: "t", onCombatMessage }),
     );
     const ws = flushConnect();
     ws.onopen?.();
@@ -675,7 +474,7 @@ describe("useMatchWs combat", () => {
 
   it("sends the master verbs with the payloads the contract names", () => {
     const { result } = renderHook(() =>
-      useMatchWs({ matchUuid: "m1", token: "t", isMaster: true }),
+      useMatchWs({ matchUuid: "m1", token: "t" }),
     );
     const ws = flushConnect();
     ws.onopen?.();
@@ -701,7 +500,7 @@ describe("useMatchWs — fechamento da Fase 6", () => {
   it("repassa a hora do servidor do envelope junto com a mensagem de combate", () => {
     const onCombatMessage = vi.fn();
     renderHook(() =>
-      useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onCombatMessage }),
+      useMatchWs({ matchUuid: "m1", token: "t", onCombatMessage }),
     );
     const ws = flushConnect();
     ws.onopen?.();
@@ -717,7 +516,7 @@ describe("useMatchWs — fechamento da Fase 6", () => {
   it("sem timestamp no envelope, serverAt é undefined", () => {
     const onCombatMessage = vi.fn();
     renderHook(() =>
-      useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onCombatMessage }),
+      useMatchWs({ matchUuid: "m1", token: "t", onCombatMessage }),
     );
     const ws = flushConnect();
     ws.onopen?.();
@@ -728,7 +527,7 @@ describe("useMatchWs — fechamento da Fase 6", () => {
   it("npc_added chama onNpcAdded com o characterId", () => {
     const onNpcAdded = vi.fn();
     renderHook(() =>
-      useMatchWs({ matchUuid: "m1", token: "t", isMaster: false, onNpcAdded }),
+      useMatchWs({ matchUuid: "m1", token: "t", onNpcAdded }),
     );
     const ws = flushConnect();
     ws.onopen?.();
@@ -740,7 +539,7 @@ describe("useMatchWs — fechamento da Fase 6", () => {
     const onMasterActionEnqueued = vi.fn();
     const onCombatMessage = vi.fn();
     renderHook(() =>
-      useMatchWs({ matchUuid: "m1", token: "t", isMaster: true, onMasterActionEnqueued, onCombatMessage }),
+      useMatchWs({ matchUuid: "m1", token: "t", onMasterActionEnqueued, onCombatMessage }),
     );
     const ws = flushConnect();
     ws.onopen?.();
@@ -751,7 +550,7 @@ describe("useMatchWs — fechamento da Fase 6", () => {
 
   it("sendAddNpc e sendChangeScene mandam o formato do contrato", () => {
     const { result } = renderHook(() =>
-      useMatchWs({ matchUuid: "m1", token: "t", isMaster: true }),
+      useMatchWs({ matchUuid: "m1", token: "t" }),
     );
     const ws = flushConnect();
     ws.onopen?.();
@@ -768,7 +567,7 @@ describe("useMatchWs — fechamento da Fase 6", () => {
 
 describe("useMatchWs connection lifecycle", () => {
   it("opens a single socket under StrictMode's mount → unmount → mount", () => {
-    renderHook(() => useMatchWs({ matchUuid: "m1", token: "t", isMaster: true }), {
+    renderHook(() => useMatchWs({ matchUuid: "m1", token: "t" }), {
       wrapper: StrictMode,
     });
     flushConnect();
@@ -776,7 +575,7 @@ describe("useMatchWs connection lifecycle", () => {
   });
 
   it("recycles a socket that opened but never received anything", () => {
-    const { result } = renderHook(() => useMatchWs({ matchUuid: "m1", token: "t", isMaster: true }));
+    const { result } = renderHook(() => useMatchWs({ matchUuid: "m1", token: "t" }));
     const ws = flushConnect();
     act(() => { ws.onopen?.(); });
     act(() => { vi.advanceTimersByTime(4999); });
@@ -791,7 +590,7 @@ describe("useMatchWs connection lifecycle", () => {
   });
 
   it("keeps a live socket once any message arrives", () => {
-    renderHook(() => useMatchWs({ matchUuid: "m1", token: "t", isMaster: true }));
+    renderHook(() => useMatchWs({ matchUuid: "m1", token: "t" }));
     const ws = flushConnect();
     act(() => { ws.onopen?.(); });
     act(() => { ws.emit("room_state", {}); });
@@ -800,7 +599,7 @@ describe("useMatchWs connection lifecycle", () => {
   });
 
   it("waits for the master while the room is not open, without giving up", () => {
-    const { result } = renderHook(() => useMatchWs({ matchUuid: "m1", token: "t", isMaster: false }));
+    const { result } = renderHook(() => useMatchWs({ matchUuid: "m1", token: "t" }));
     for (let i = 0; i < 8; i++) {
       const ws = i === 0 ? flushConnect() : FakeWS.instances[i];
       act(() => { ws.onopen?.(); });
@@ -820,7 +619,7 @@ describe("useMatchWs connection lifecycle", () => {
   });
 
   it("reconnect() opens a fresh socket after giving up", () => {
-    const { result } = renderHook(() => useMatchWs({ matchUuid: "m1", token: "t", isMaster: true }));
+    const { result } = renderHook(() => useMatchWs({ matchUuid: "m1", token: "t" }));
     const ws = flushConnect();
     act(() => { ws.onopen?.(); });
     act(() => { ws.onclose?.({ code: 1000 } as CloseEvent); });

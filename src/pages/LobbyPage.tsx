@@ -8,7 +8,6 @@ import { useMatchEnrollments } from "../hooks/useMatchEnrollments";
 import { useLobbyWs } from "../hooks/useLobbyWs";
 import { useMatchMap } from "../hooks/useMatchMap";
 import { useMap } from "../hooks/useMap";
-import { mapsService } from "../services/mapsService";
 import TacticalMapPlacer from "../features/tactical-map/TacticalMapPlacer";
 import {
   LoadingContainer,
@@ -63,7 +62,6 @@ export default function LobbyPage() {
   const { data: fullMap } = useMap(token, matchMap?.mapUuid);
 
   const [lobbyPieces, setLobbyPieces] = useState<Piece[]>([]);
-  const [mapSaveError, setMapSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     if (fullMap) setLobbyPieces(fullMap.pieces);
@@ -159,19 +157,6 @@ export default function LobbyPage() {
     masterSyncedRef.current = true;
     sendLobbySync(lobbyPieces, fullMap.walls, fullMap.grid);
   }, [status, isMaster, fullMap, lobbyPieces, sendLobbySync]);
-
-  const handleStartMatch = async () => {
-    setMapSaveError(null);
-    if (fullMap && lobbyPieces.length > 0) {
-      try {
-        await mapsService.updateMap(token!, fullMap.id, { pieces: lobbyPieces });
-      } catch {
-        setMapSaveError("Não foi possível salvar as posições. Tente novamente.");
-        return;
-      }
-    }
-    sendStartMatch();
-  };
 
   if (!token) return <Navigate to="/" replace />;
   if (isPending || enrollmentsPending)
@@ -282,7 +267,7 @@ export default function LobbyPage() {
         <ActionsList>
           {isMaster ? (
             <MasterActions>
-              <StartButton onClick={handleStartMatch}>
+              <StartButton onClick={sendStartMatch}>
                 Iniciar Partida
               </StartButton>
               <CancelButton onClick={() => setShowCancelConfirm(true)}>
@@ -310,7 +295,6 @@ export default function LobbyPage() {
             />
           </LobbyMapSection>
         )}
-        {mapSaveError && <MapSaveError>{mapSaveError}</MapSaveError>}
       </DetailPageTemplate>
 
       {showCancelConfirm && (
@@ -434,11 +418,4 @@ const LobbyMapSection = styled.div`
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid ${colors.borderInput};
-`;
-
-const MapSaveError = styled.p`
-  font-family: ${fonts.sans};
-  font-size: 13px;
-  color: ${colors.danger};
-  margin-top: 8px;
 `;

@@ -55,7 +55,7 @@ mais abaixo.
 | `src/features/match/combat/combatReducer.ts` | o reducer puro + estado inicial |
 | `src/features/match/combat/useMatchCombat.ts` | liga reducer ↔ `useMatchWs`, expõe `state`/`status`/`send`, persiste fantasmas |
 | `src/features/match/combat/useActionComposerState.ts` | rascunho (`localStorage`) + mapas peça↔personagem, compartilhado entre as duas páginas |
-| `src/features/match/combat/useLiveMapSync.ts` | paredes/peças/fog ao vivo; `seedFromRest` é a única diferença entre papéis |
+| `src/features/match/combat/useLiveMapSync.ts` | paredes/peças/fog ao vivo, só do servidor (`map_full_state` + mensagens de peça/parede) para os dois papéis (F13); do REST vem só o mapa (fundo, grade) |
 | `src/features/match/combat/actionDraft.ts` | rascunho + fantasmas confirmados em `localStorage`, migração de alvo |
 | `src/features/match/combat/mapCanvasStyles.ts` | os três styled-components do canvas do mapa, extraídos por estarem duplicados entre as páginas |
 | `src/features/match/combat/defaultMoveCategory.ts` | `defaultMoveCategory(state)` — hoje sempre `"Dash"`, é função de propósito (ver spec §6) |

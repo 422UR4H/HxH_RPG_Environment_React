@@ -303,8 +303,11 @@ describe("LobbyPage", () => {
       });
     });
 
-    it("handleStartMatch salva peças antes de enviar start_match", async () => {
-      let updateMapCalled = false;
+    // F16: o tabuleiro da partida vive em `match_boards` (B14) — o `start_match` grava o dele.
+    // Iniciar não escreve as peças do lobby no mapa da CAMPANHA (antes elas sobrescreviam o
+    // desenho original do mapa).
+    it("iniciar a partida não grava no mapa da campanha", async () => {
+      let mapWrites = 0;
       const pieceWithChar = { ...pieceFixture, characterId: "sheet-1" };
       const mapWithChar = mapWithPiecesApi([pieceWithChar]);
 
@@ -323,7 +326,11 @@ describe("LobbyPage", () => {
           HttpResponse.json({ map: mapWithChar }),
         ),
         http.put(`${baseUrl}/maps/:id`, () => {
-          updateMapCalled = true;
+          mapWrites++;
+          return new HttpResponse(null, { status: 204 });
+        }),
+        http.patch(`${baseUrl}/maps/:id`, () => {
+          mapWrites++;
           return new HttpResponse(null, { status: 204 });
         }),
       );
@@ -342,11 +349,11 @@ describe("LobbyPage", () => {
       await userEvent.click(startBtn);
 
       await waitFor(() => {
-        expect(updateMapCalled).toBe(true);
+        expect(wsInstance.send).toHaveBeenCalledWith(
+          expect.stringContaining("start_match"),
+        );
       });
-      expect(wsInstance.send).toHaveBeenCalledWith(
-        expect.stringContaining("start_match"),
-      );
+      expect(mapWrites).toBe(0);
     });
   });
 });

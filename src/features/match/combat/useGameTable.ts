@@ -8,8 +8,6 @@ import { useMatchMap } from "../../../hooks/useMatchMap";
 import { useMap } from "../../../hooks/useMap";
 import { useMatchParticipants } from "../../../hooks/useMatchParticipants";
 import { useCampaignDetails } from "../../../hooks/useCampaignDetails";
-import type { MatchBoardSync } from "../../../hooks/useMatchWs";
-import { visibleBoardPieces } from "../../tactical-map/utils/boardSource";
 import { isSameSlot, slotToTriple, tripleToSlot } from "../../tactical-map/utils/coords";
 import type { SlotTriple } from "../../tactical-map/utils/coords";
 import type { QueuedAction } from "./combatMessages";
@@ -31,14 +29,12 @@ export function useGameTable({
   token,
   campaignId,
   matchId,
-  isMaster,
   declaredSource,
   actorId,
 }: {
   token: string;
   campaignId?: string;
   matchId?: string;
-  isMaster: boolean;
   /** Contra o que as declaradas se reconciliam na reconexão (B12) — ver `useMatchCombat`. */
   declaredSource: DeclaredSource;
   actorId: string | undefined;
@@ -55,17 +51,10 @@ export function useGameTable({
     [queryClient, token, matchId],
   );
 
-  // O mestre é dono do tabuleiro inteiro e semeia do REST; o jogador só enxerga o que o
-  // servidor projeta pelo WS (ver `visibleBoardPieces`).
-  const live = useLiveMapSync({ map, campaign, seedFromRest: isMaster });
-
-  // O tabuleiro que o mestre semeia no servidor — sempre do REST, nunca do que o próprio
-  // servidor acabou de mandar (viraria loop).
-  const board = useMemo<MatchBoardSync | null>(
-    () => (isMaster && map ? { pieces: map.pieces ?? [], walls: map.walls ?? [], grid: map.grid } : null),
-    [isMaster, map],
-  );
-  const boardPieces = visibleBoardPieces(live.livePieces, map?.pieces, isMaster);
+  // O tabuleiro (peças, paredes, fog) é do servidor, para os dois papéis (F13): do REST vem
+  // só o mapa em si — fundo e grade. As peças do mapa da campanha não são as da partida.
+  const live = useLiveMapSync({ map, campaign });
+  const boardPieces = live.livePieces ?? [];
 
   // O ack de um envio precisa limpar o rascunho, que só existe depois do socket: um ref
   // quebra o ciclo, atribuído no corpo do render antes de qualquer ack poder chegar.
@@ -86,9 +75,7 @@ export function useGameTable({
     matchUuid: matchId,
     userUuid: user?.uuid,
     token,
-    isMaster,
     declaredSource,
-    board,
     onWallStateChanged: (...a) => { live.handleWallStateChanged(...a); onBoardChange(); },
     onWallHpChanged: live.handleWallHpChanged,
     onMapFullState: live.handleMapFullState,

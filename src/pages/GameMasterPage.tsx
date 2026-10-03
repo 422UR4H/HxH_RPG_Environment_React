@@ -58,7 +58,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   const [inspectedId, setInspectedId] = useState<string | undefined>(undefined);
   const [sheetId, setSheetId] = useState<string | undefined>(undefined);
 
-  const game = useGameTable({ token, campaignId, matchId, isMaster: true, declaredSource: "queue", actorId });
+  const game = useGameTable({ token, campaignId, matchId, declaredSource: "queue", actorId });
   const { combat, composer, live, map, nameOf, participants } = game;
   const { state } = combat;
   const gridKind = map?.grid.kind ?? "square";

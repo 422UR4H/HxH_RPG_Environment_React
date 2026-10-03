@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useReducer, useRef } from "react";
 import { useMatchWs } from "../../../hooks/useMatchWs";
-import type { MatchBoardSync } from "../../../hooks/useMatchWs";
 import { combatReducer, initialCombatState } from "./combatReducer";
 import type { CombatAction, DeclaredAction, DeclaredSource } from "./combatReducer";
 import { loadDeclared, saveDeclared } from "./declaredStorage";
@@ -11,14 +10,12 @@ type Options = {
   /** Separa as ações declaradas por usuário no `localStorage`. */
   userUuid: string | undefined;
   token: string;
-  isMaster: boolean;
   /**
    * Contra o que o `match_full_state` reconcilia as declaradas (B12): o jogador pela
    * `ownQueue`, o mestre pela `queue`. Escolha da PÁGINA (I2), via `useGameTable`. O padrão
    * é o seguro: sem `ownQueue` no payload, não reconcilia.
    */
   declaredSource?: DeclaredSource;
-  board?: MatchBoardSync | null;
   /** O servidor aceitou um envio do compositor: a página limpa o rascunho DAQUELE ator. */
   onComposerSendAccepted?: (actorId: string) => void;
   /**
@@ -49,7 +46,7 @@ const HISTORY_TYPES = new Set(["turn_closed", "scene_changed", "round_mode_chang
  * pedaço dele em useState.
  */
 export function useMatchCombat({
-  matchUuid, userUuid, token, isMaster, declaredSource = "ownQueue", board, onComposerSendAccepted,
+  matchUuid, userUuid, token, declaredSource = "ownQueue", onComposerSendAccepted,
   onHistoryChanged, onFullState, onNpcAdded, ...mapHandlers
 }: Options) {
   const [state, dispatch] = useReducer(
@@ -75,8 +72,6 @@ export function useMatchCombat({
   const ws = useMatchWs({
     matchUuid,
     token,
-    isMaster,
-    board,
     ...mapHandlers,
     onCombatMessage: (msg, serverAt) => {
       if (msg.type === "match_full_state") unackedRef.current = [];

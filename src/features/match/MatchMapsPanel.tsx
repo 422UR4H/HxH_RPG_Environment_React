@@ -14,6 +14,8 @@ interface MatchMapsPanelProps {
   matchMap: MatchMapResponse | null | undefined;
   isAttaching: boolean;
   isDetaching: boolean;
+  /** Por que a última troca de mapa falhou (texto já pronto, da página). */
+  changeError?: string | null;
   onMapClick: (mapId: string) => void;
   onAttach: (mapId: string) => void;
   onDetach: () => void;
@@ -29,6 +31,7 @@ export default function MatchMapsPanel({
   matchMap,
   isAttaching,
   isDetaching,
+  changeError,
   onMapClick,
   onAttach,
   onDetach,
@@ -38,6 +41,7 @@ export default function MatchMapsPanel({
   if (isMaster) {
     return (
       <MapsGrid>
+        {changeError && <MapChangeError role="alert">{changeError}</MapChangeError>}
         {mapsPending ? (
           <MapsEmptyText>Carregando mapas...</MapsEmptyText>
         ) : (maps ?? []).length === 0 ? (
@@ -106,6 +110,12 @@ const MapsPlaceholder = styled.p`
   color: ${colors.textMuted};
   padding: 40px 0;
   text-align: center;
+`;
+
+const MapChangeError = styled.p`
+  font-family: ${fonts.sans};
+  font-size: 14px;
+  color: ${colors.danger};
 `;
 
 const MapCardWrapper = styled.div`

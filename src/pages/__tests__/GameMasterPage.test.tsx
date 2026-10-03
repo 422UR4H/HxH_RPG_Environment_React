@@ -10,6 +10,7 @@ import { mapWithPiecesApi } from "../../test/fixtures/map";
 import { campaignWithNpcsApi, npcFixture } from "../../test/fixtures/campaign";
 import GameMasterPage from "../GameMasterPage";
 import { installFakeWebSocket, waitForSocket } from "../../test/fakeWebSocket";
+import type { FakeWS } from "../../test/fakeWebSocket";
 
 const baseUrl = "http://localhost:5000";
 const user = userEvent.setup();
@@ -134,6 +135,22 @@ const piecesFixture = [
   { id: "piece-npc1", characterId: "npc1", coord: { slot: { kind: "square", col: 4, row: 4 }, z: 0 }, visible: true },
 ];
 
+/**
+ * O tabuleiro da partida chega como o servidor manda em todo registro com peças: num
+ * `map_full_state` (F13) — o mapa do REST só dá fundo e grade.
+ */
+function openWithServerBoard(ws: FakeWS, pieces: typeof piecesFixture = piecesFixture) {
+  act(() => {
+    ws.onopen?.();
+    ws.emit("map_full_state", {
+      pieces: pieces.map((p) => ({ pieceId: p.id, slot: p.coord.slot, characterId: p.characterId, visible: p.visible })),
+      walls: [],
+      visiblePolygons: [],
+      fogMode: "explored",
+    });
+  });
+}
+
 function renderMasterPage() {
   return renderWithProviders(<GameMasterPage token="fake-jwt-token" matchId="match-1" />);
 }
@@ -167,10 +184,42 @@ afterEach(() => {
 });
 
 describe("GameMasterPage", () => {
+  // F13: as peças vêm só do servidor. O mapa da campanha (REST) tem duas peças; o tabuleiro
+  // da partida pode ter outras — ou nenhuma, e aí o registro nem traz `map_full_state`.
+  describe("o tabuleiro é do servidor (F13)", () => {
+    it("tabuleiro vazio no servidor: não desenha as peças do REST nem manda map_state_sync", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      act(() => ws.onopen?.());
+      await screen.findByTestId("map-stub");
+      act(() => ws.emit("match_full_state", { roundMode: "", bars: { seq: 0, prices: null, characters: null, order: null } }));
+
+      expect(ws.sent("map_state_sync")).toEqual([]);
+      expect(screen.queryByTestId("select-actor-c1")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("select-actor-npc1")).not.toBeInTheDocument();
+    });
+
+    it("desenha as peças do map_full_state, não as do mapa da campanha", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      act(() => ws.onopen?.());
+      await screen.findByTestId("map-stub");
+      act(() =>
+        ws.emit("map_full_state", {
+          pieces: [{ pieceId: "server-piece", slot: { kind: "square", col: 7, row: 2 }, characterId: "c1" }],
+          walls: [], visiblePolygons: [], fogMode: "explored",
+        }),
+      );
+
+      expect(screen.getByTestId("select-actor-c1")).toHaveTextContent("server-piece");
+      expect(screen.queryByTestId("select-actor-npc1")).not.toBeInTheDocument();
+    });
+  });
+
   it("abre a próxima ação e antecipa uma da fila", async () => {
     renderMasterPage();
     const ws = await waitForSocket();
-    act(() => ws.onopen?.());
+    openWithServerBoard(ws);
     act(() => ws.emit("action_queued", { actionId: "a1", actorId: "c1", bars: ["action"] }));
     // O badge do rail conta o que está na fila.
     expect(screen.getByRole("button", { name: /Fila/ })).toHaveTextContent("1");
@@ -190,7 +239,7 @@ describe("GameMasterPage", () => {
   it("T13: action_queued com move desenha o fantasma do mestre no mapa, que some ao abrir o turno", async () => {
     renderMasterPage();
     const ws = await waitForSocket();
-    act(() => ws.onopen?.());
+    openWithServerBoard(ws);
 
     act(() =>
       ws.emit("action_queued", {
@@ -223,7 +272,7 @@ describe("GameMasterPage", () => {
   it("T13: o fantasma de uma ação que o próprio mestre declarou por um NPC não duplica", async () => {
     renderMasterPage();
     const ws = await waitForSocket();
-    act(() => ws.onopen?.());
+    openWithServerBoard(ws);
 
     const npcButton = await screen.findByTestId("select-actor-npc1");
     act(() => npcButton.click());
@@ -273,7 +322,7 @@ describe("GameMasterPage", () => {
     it("a que a queue não tem sai da lista e o fantasma some", async () => {
       renderMasterPage();
       const ws = await waitForSocket();
-      act(() => ws.onopen?.());
+      openWithServerBoard(ws);
       await screen.findByTestId("select-actor-npc1");
       await declareNpcMove(ws);
       expect(ghosts()).toHaveLength(1);
@@ -287,7 +336,7 @@ describe("GameMasterPage", () => {
     it("a que a queue tem fica", async () => {
       renderMasterPage();
       const ws = await waitForSocket();
-      act(() => ws.onopen?.());
+      openWithServerBoard(ws);
       await screen.findByTestId("select-actor-npc1");
       await declareNpcMove(ws);
 
@@ -306,7 +355,7 @@ describe("GameMasterPage", () => {
   it("F7: turno aberto mostra o card em andamento na Fila, com o cálculo anexado", async () => {
     renderMasterPage();
     const ws = await waitForSocket();
-    act(() => ws.onopen?.());
+    openWithServerBoard(ws);
     act(() => ws.emit("action_queued", { actionId: "a1", actorId: "c1", bars: ["action"] }));
     act(() => ws.emit("turn_opened", { turnId: "t1", actorId: "c1", actionId: "a1", actionType: "" }));
     act(() =>
@@ -339,7 +388,7 @@ describe("GameMasterPage", () => {
   it("BF3: resolução chega antes do turn_opened (ordem real) e mesmo assim aparece no card em andamento", async () => {
     renderMasterPage();
     const ws = await waitForSocket();
-    act(() => ws.onopen?.());
+    openWithServerBoard(ws);
     act(() => ws.emit("action_queued", { actionId: "a1", actorId: "c1", bars: ["action"] }));
     act(() =>
       ws.emit("resolution_updated", {
@@ -369,7 +418,7 @@ describe("GameMasterPage", () => {
   it("mostra o diálogo que o servidor computou e reenvia com confirm", async () => {
     renderMasterPage();
     const ws = await waitForSocket();
-    act(() => ws.onopen?.());
+    openWithServerBoard(ws);
     act(() =>
       ws.emit("close_turn_refused", {
         turnId: "t1",
@@ -385,7 +434,7 @@ describe("GameMasterPage", () => {
   it("compõe ação por um NPC com enqueue_action, não com enqueue_master_action", async () => {
     renderMasterPage();
     const ws = await waitForSocket();
-    act(() => ws.onopen?.());
+    openWithServerBoard(ws);
 
     const actorButton = await screen.findByTestId("select-actor-npc1");
     // 1º clique sem ator selecionado: vira ator (não alvo). 2º clique, já com o NPC
@@ -405,7 +454,7 @@ describe("GameMasterPage", () => {
   it("escolhe o NPC pelo painel Agir e tocar de novo o solta", async () => {
     renderMasterPage();
     const ws = await waitForSocket();
-    act(() => ws.onopen?.());
+    openWithServerBoard(ws);
 
     act(() => screen.getByRole("button", { name: "Agir" }).click());
     const chip = await screen.findByRole("button", { name: "Capanga" });
@@ -430,19 +479,6 @@ describe("GameMasterPage", () => {
   // em Personagens — a rede de segurança do F2 rebusca os participantes até ele chegar.
   it("Personagens do mestre não inclui um NPC do mapa que ainda não é participante (F2)", async () => {
     server.use(
-      http.get(`${baseUrl}/maps/:id`, () =>
-        HttpResponse.json({
-          map: mapWithPiecesApi([
-            ...piecesFixture,
-            {
-              id: "piece-mapnpc",
-              characterId: "map-npc-1",
-              coord: { slot: { kind: "square", col: 6, row: 6 }, z: 0 },
-              visible: true,
-            },
-          ] as never),
-        }),
-      ),
       http.get(`${baseUrl}/campaigns/:id`, () =>
         HttpResponse.json({
           campaign: campaignWithNpcsApi([{ ...npcFixture, uuid: "map-npc-1", nickName: "NPC Só no Mapa" }]),
@@ -454,7 +490,15 @@ describe("GameMasterPage", () => {
       <GameMasterPage token="fake-jwt-token" matchId="match-1" campaignId="campaign-1" />,
     );
     const ws = await waitForSocket();
-    act(() => ws.onopen?.());
+    openWithServerBoard(ws, [
+      ...piecesFixture,
+      {
+        id: "piece-mapnpc",
+        characterId: "map-npc-1",
+        coord: { slot: { kind: "square", col: 6, row: 6 }, z: 0 },
+        visible: true,
+      },
+    ]);
 
     const toggle = await screen.findByRole("button", { name: "Ver histórico" });
     act(() => toggle.click());
@@ -470,13 +514,13 @@ describe("GameMasterPage", () => {
     // jogador) — invertido: a aba da direita continua em Histórico, não pula para Personagens.
     renderMasterPage();
     const ws = await waitForSocket();
-    act(() => ws.onopen?.());
+    openWithServerBoard(ws);
 
     const pcButton = await screen.findByTestId("select-actor-c1");
     const sentBefore = ws.send.mock.calls.length;
     act(() => pcButton.click());
 
-    // Nada de novo é enviado pelo clique (o board sync do mestre já rodou ao conectar).
+    // Nada de novo é enviado pelo clique.
     expect(ws.send.mock.calls.length).toBe(sentBefore);
     // A gaveta começa fechada nesta viewport de teste (sem setAsideOpen no tap agora) — abrir
     // pra inspecionar em qual aba ela ficou.
@@ -499,7 +543,7 @@ describe("GameMasterPage", () => {
   it("sem ator: onPieceLongPress/onEmptySlotClick não vão pro viewer; com ator, o anel de seleção segue a peça (F7)", async () => {
     renderMasterPage();
     const ws = await waitForSocket();
-    act(() => ws.onopen?.());
+    openWithServerBoard(ws);
 
     let mapStub = await screen.findByTestId("map-stub");
     expect(mapStub).toHaveAttribute("data-has-long-press", "false");
@@ -527,7 +571,7 @@ describe("GameMasterPage", () => {
     );
     renderMasterPage();
     const ws = await waitForSocket();
-    act(() => ws.onopen?.());
+    openWithServerBoard(ws);
 
     act(() => screen.getByRole("button", { name: "Agir" }).click());
     expect(
@@ -541,19 +585,6 @@ describe("GameMasterPage", () => {
   // a janela e o participante chega pouco depois).
   it("NPC do mapa fora da partida: inspeciona sem virar ator (F7)", async () => {
     server.use(
-      http.get(`${baseUrl}/maps/:id`, () =>
-        HttpResponse.json({
-          map: mapWithPiecesApi([
-            ...piecesFixture,
-            {
-              id: "piece-mapnpc",
-              characterId: "map-npc-1",
-              coord: { slot: { kind: "square", col: 6, row: 6 }, z: 0 },
-              visible: true,
-            },
-          ] as never),
-        }),
-      ),
       http.get(`${baseUrl}/campaigns/:id`, () =>
         HttpResponse.json({
           campaign: campaignWithNpcsApi([{ ...npcFixture, uuid: "map-npc-1", nickName: "NPC Só no Mapa" }]),
@@ -564,7 +595,15 @@ describe("GameMasterPage", () => {
       <GameMasterPage token="fake-jwt-token" matchId="match-1" campaignId="campaign-1" />,
     );
     const ws = await waitForSocket();
-    act(() => ws.onopen?.());
+    openWithServerBoard(ws, [
+      ...piecesFixture,
+      {
+        id: "piece-mapnpc",
+        characterId: "map-npc-1",
+        coord: { slot: { kind: "square", col: 6, row: 6 }, z: 0 },
+        visible: true,
+      },
+    ]);
 
     const mapNpcButton = await screen.findByTestId("select-actor-map-npc-1");
     act(() => mapNpcButton.click());
@@ -586,7 +625,7 @@ describe("GameMasterPage", () => {
       <GameMasterPage token="fake-jwt-token" matchId="match-1" campaignId="campaign-1" />,
     );
     const ws = await waitForSocket();
-    act(() => ws.onopen?.());
+    openWithServerBoard(ws);
 
     act(() => screen.getByRole("button", { name: "Agir" }).click());
     await user.selectOptions(await screen.findByLabelText("Pôr na partida"), npcFixture.uuid);
@@ -604,7 +643,7 @@ describe("GameMasterPage", () => {
     );
     renderMasterPage();
     const ws = await waitForSocket();
-    act(() => ws.onopen?.());
+    openWithServerBoard(ws);
     await vi.waitFor(() => expect(calls).toBe(1));
 
     act(() => { ws.emit("npc_added", { characterId: "npc-x" }); });
@@ -618,23 +657,18 @@ describe("GameMasterPage", () => {
         calls += 1;
         return HttpResponse.json({ participants: participantsFixture });
       }),
-      http.get(`${baseUrl}/maps/:id`, () =>
-        HttpResponse.json({
-          map: mapWithPiecesApi([
-            ...piecesFixture,
-            {
-              id: "p-orfao",
-              characterId: "npc-orfao",
-              coord: { slot: { kind: "square", col: 5, row: 5 }, z: 0 },
-              visible: true,
-            },
-          ] as never),
-        }),
-      ),
     );
     renderMasterPage();
     const ws = await waitForSocket();
-    act(() => ws.onopen?.());
+    openWithServerBoard(ws, [
+      ...piecesFixture,
+      {
+        id: "p-orfao",
+        characterId: "npc-orfao",
+        coord: { slot: { kind: "square", col: 5, row: 5 }, z: 0 },
+        visible: true,
+      },
+    ]);
     await vi.waitFor(() => expect(calls).toBe(2));
 
     // Outro re-render (ex.: bars_updated) não deve disparar uma segunda rebusca da mesma peça.
@@ -652,7 +686,7 @@ describe("GameMasterPage", () => {
       <GameMasterPage token="fake-jwt-token" matchId="match-1" campaignId="campaign-1" />,
     );
     const ws = await waitForSocket();
-    act(() => ws.onopen?.());
+    openWithServerBoard(ws);
 
     act(() => screen.getByRole("button", { name: "Agir" }).click());
     await user.selectOptions(await screen.findByLabelText("Pôr na partida"), npcFixture.uuid);
@@ -664,7 +698,7 @@ describe("GameMasterPage", () => {
   it("F8: nova cena manda change_scene com a categoria minúscula", async () => {
     renderMasterPage();
     const ws = await waitForSocket();
-    act(() => ws.onopen?.());
+    openWithServerBoard(ws);
 
     await user.click(screen.getAllByRole("button", { name: "Nova cena" })[0]);
     await user.click(screen.getByRole("radio", { name: "Interpretação" }));
@@ -678,7 +712,7 @@ describe("GameMasterPage", () => {
   it("D1: cancelar e reabrir reseta a categoria e a descrição para os padrões", async () => {
     renderMasterPage();
     const ws = await waitForSocket();
-    act(() => ws.onopen?.());
+    openWithServerBoard(ws);
 
     await user.click(screen.getAllByRole("button", { name: "Nova cena" })[0]);
     await user.click(screen.getByRole("radio", { name: "Interpretação" }));
@@ -693,7 +727,7 @@ describe("GameMasterPage", () => {
   it("F8: com turno aberto, Nova cena fica desabilitado", async () => {
     renderMasterPage();
     const ws = await waitForSocket();
-    act(() => ws.onopen?.());
+    openWithServerBoard(ws);
     act(() => { ws.emit("turn_opened", { turnId: "t1", actorId: "c1", actionId: "a1", actionType: "" }); });
     for (const b of screen.getAllByRole("button", { name: "Nova cena" })) expect(b).toBeDisabled();
   });
@@ -701,7 +735,7 @@ describe("GameMasterPage", () => {
   it("F3: tocar num card abre a ficha no painel, sem navegar", async () => {
     renderMasterPage();
     const ws = await waitForSocket();
-    act(() => ws.onopen?.());
+    openWithServerBoard(ws);
 
     await user.click(await screen.findByRole("button", { name: "Ver histórico" }));
     await user.click(screen.getByRole("button", { name: "Personagens" }));
@@ -749,7 +783,7 @@ describe("GameMasterPage", () => {
     );
     renderMasterPage();
     const ws = await waitForSocket();
-    act(() => ws.onopen?.());
+    openWithServerBoard(ws);
     await user.click(await screen.findByRole("button", { name: "Ver histórico" }));
 
     expect(await screen.findByText("Turno de Capanga — atacou Gon com Sword · Gon −4")).toBeInTheDocument();
