@@ -231,6 +231,17 @@ describe("useLobbyWs", () => {
     expect(MockWebSocket).toHaveBeenCalledTimes(1);
   });
 
+  // B4: a mesma conta abriu o lobby em outra aba; reconectar aqui derrubaria a outra, em loop.
+  it("does not reconnect after connection_replaced", () => {
+    const { result } = renderHook(() => useLobbyWs(defaultParams));
+    simulateOpen();
+    sendFromServer("error", { code: "connection_replaced", message: "this account connected again elsewhere" });
+    simulateClose(1006);
+    act(() => { vi.advanceTimersByTime(60_000); });
+    expect(MockWebSocket).toHaveBeenCalledTimes(1);
+    expect(result.current.status).toBe("replaced");
+  });
+
   it("reconnects after unexpected close with backoff", () => {
     renderHook(() => useLobbyWs(defaultParams));
     simulateOpen();

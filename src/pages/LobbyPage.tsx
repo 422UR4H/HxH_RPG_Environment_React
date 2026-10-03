@@ -30,6 +30,7 @@ const ERROR_STATUSES: WsStatus[] = [
   "lobby_closed",
   "throttled",
   "error",
+  "replaced",
 ];
 
 export default function LobbyPage() {
@@ -184,6 +185,8 @@ export default function LobbyPage() {
         return "O lobby foi encerrado pelo mestre.";
       case "error":
         return "Erro de conexão. Verifique sua internet.";
+      case "replaced":
+        return "Este lobby foi aberto em outra aba ou dispositivo com a sua conta. Recarregue a página para usá-lo aqui.";
       default:
         return null;
     }

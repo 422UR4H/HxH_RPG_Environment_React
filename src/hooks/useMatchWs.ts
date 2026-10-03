@@ -9,7 +9,8 @@ import { normalizeCombatMessage } from "../features/match/combat/normalizeWire";
  * `waiting`: the room is not open (`lobby_not_open`) — only the master's connection
  * creates it, so a player who arrives first waits for them instead of giving up.
  */
-export type MatchWsStatus = "connecting" | "connected" | "waiting" | "disconnected";
+/** `replaced`: a mesma conta abriu outra conexão e o servidor ficou com ela (B4). */
+export type MatchWsStatus = "connecting" | "connected" | "waiting" | "disconnected" | "replaced";
 
 /**
  * A piece exactly as the game server serializes it: flat (`pieceId`/`slot` as
@@ -234,6 +235,9 @@ export function useMatchWs({
     // 4001, but a browser that sees the TCP drop first reports 1006 — the message is the
     // reliable signal, the code is not.
     let roomNotOpen = false;
+    // Set by `connection_replaced` (B4): another connection of this account is the one that
+    // counts now. Reconnecting would take its place, and it would retake this one — forever.
+    let replaced = false;
 
     const clearSilence = () => {
       if (silenceTimer) clearTimeout(silenceTimer);
@@ -332,6 +336,11 @@ export function useMatchWs({
             onMasterActionEnqueuedRef.current?.();
           } else if (msg.type === "error") {
             const p = msg.payload as { code?: string; message?: string };
+            // Não responde a nada que esta aba enviou: não é erro de envio.
+            if (p.code === "connection_replaced") {
+              replaced = true;
+              return;
+            }
             onWsErrorRef.current?.({
               code: p.code ?? "unknown",
               message: p.message ?? "",
@@ -365,6 +374,10 @@ export function useMatchWs({
         clearSilence();
         if (!active) return;
         if (wsRef.current === ws) wsRef.current = null;
+        if (replaced) {
+          setStatus("replaced");
+          return;
+        }
         // The master has not opened the room yet: keep knocking, without spending the
         // reconnect budget — the player is waiting for someone, not fighting a failure.
         if (roomNotOpen || ev.code === LOBBY_NOT_OPEN_CODE) {

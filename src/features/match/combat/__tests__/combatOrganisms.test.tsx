@@ -694,6 +694,16 @@ describe("MatchTopBar", () => {
     expect(onReconnect).toHaveBeenCalled();
   });
 
+  it("aberta em outra aba: diz isso e oferece usar aqui (reconectar)", () => {
+    const onReconnect = vi.fn();
+    render(
+      <MatchTopBar roundMode="Free" status="replaced" onReconnect={onReconnect} asideOpen={false} onToggleAside={() => {}} />,
+    );
+    expect(screen.getByTestId("ws-status")).toHaveAttribute("title", "Aberta em outra aba");
+    fireEvent.click(screen.getByRole("button", { name: "Usar aqui" }));
+    expect(onReconnect).toHaveBeenCalled();
+  });
+
   it("diz que está esperando o mestre quando a sala não abriu", () => {
     render(<MatchTopBar roundMode="" status="waiting" asideOpen={false} onToggleAside={() => {}} />);
     expect(screen.getByTestId("ws-status")).toHaveAttribute("title", "Aguardando o mestre abrir a sala…");

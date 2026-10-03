@@ -11,6 +11,7 @@ const STATUS_LABELS: Record<MatchWsStatus, string> = {
   connected: "Conectado",
   waiting: "Aguardando o mestre abrir a sala…",
   disconnected: "Desconectado",
+  replaced: "Aberta em outra aba",
 };
 
 const STATUS_COLORS: Record<MatchWsStatus, string> = {
@@ -18,6 +19,7 @@ const STATUS_COLORS: Record<MatchWsStatus, string> = {
   connected: colors.statusOngoing,
   waiting: colors.warningText,
   disconnected: colors.danger,
+  replaced: colors.warningText,
 };
 
 /**
@@ -55,6 +57,12 @@ export default function MatchTopBar({
       {status === "disconnected" && onReconnect && (
         <SmallButton type="button" onClick={onReconnect}>
           Reconectar
+        </SmallButton>
+      )}
+      {/* Tomar a partida de volta: a outra aba recebe o mesmo aviso e para (B4). */}
+      {status === "replaced" && onReconnect && (
+        <SmallButton type="button" onClick={onReconnect}>
+          Usar aqui
         </SmallButton>
       )}
       {actions}

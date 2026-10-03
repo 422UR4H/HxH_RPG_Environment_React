@@ -9,7 +9,9 @@ export type WsStatus =
   | "kicked"
   | "lobby_closed"
   | "throttled"
-  | "error";
+  | "error"
+  /** A mesma conta abriu o lobby em outra conexão, e o servidor ficou com ela (B4). */
+  | "replaced";
 
 export type LobbyParticipant = {
   uuid: string;
@@ -59,6 +61,8 @@ const TERMINAL_STATUSES: WsStatus[] = [
   "kicked",
   "lobby_closed",
   "throttled",
+  // Reconectar tomaria o lugar da outra conexão, que retomaria o desta — para sempre.
+  "replaced",
 ];
 
 export function useLobbyWs({
@@ -182,6 +186,9 @@ export function useLobbyWs({
             break;
           case "lobby_closed":
             updateStatus("lobby_closed");
+            break;
+          case "error":
+            if (payload.code === "connection_replaced") updateStatus("replaced");
             break;
           case "match_started":
             onMatchStartedRef.current();

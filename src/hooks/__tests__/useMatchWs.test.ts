@@ -648,6 +648,27 @@ describe("useMatchWs connection lifecycle", () => {
     expect(result.current.status).toBe("connected");
   });
 
+  // B4 (contrato, `connection_replaced`): a mesma conta abriu outra conexão e o servidor ficou
+  // com ela. Esta NÃO reconecta sozinha — reconectar derrubaria a outra, que reconectaria e
+  // derrubaria esta, para sempre (duas abas da mesma conta na mesma partida).
+  it("connection_replaced: não reconecta sozinho, nem é erro de envio; reconnect() retoma", () => {
+    const onWsError = vi.fn();
+    const { result } = renderHook(() => useMatchWs({ matchUuid: "m1", token: "t", onWsError }));
+    const ws = flushConnect();
+    act(() => { ws.onopen?.(); });
+    act(() => { ws.emit("error", { code: "connection_replaced", message: "this account connected again elsewhere" }); });
+    act(() => { ws.onclose?.({ code: 1006 } as CloseEvent); });
+    act(() => { vi.advanceTimersByTime(60_000); });
+
+    expect(FakeWS.instances).toHaveLength(1);
+    expect(result.current.status).toBe("replaced");
+    expect(onWsError).not.toHaveBeenCalled();
+
+    act(() => { result.current.reconnect(); });
+    flushConnect(1);
+    expect(FakeWS.instances).toHaveLength(2);
+  });
+
   it("reconnect() opens a fresh socket after giving up", () => {
     const { result } = renderHook(() => useMatchWs({ matchUuid: "m1", token: "t" }));
     const ws = flushConnect();
