@@ -160,11 +160,6 @@ describe("CreateCharacterSheetPage", () => {
       expect(createCount).toBe(1);
       expect(presignedCallCount).toBe(2);
     },
-    // Two full submit round-trips (fill form, pick avatar, create, fail,
-    // retry, upload, patch, navigate) through real component re-renders —
-    // comfortably under 5s alone, but the default testTimeout gets tight
-    // under full-suite CPU contention (seen flaky at 5000ms in that mode).
-    15000,
   );
 
   it(
@@ -186,6 +181,5 @@ describe("CreateCharacterSheetPage", () => {
       ).toBeInTheDocument();
       expect(mockNavigate).not.toHaveBeenCalled();
     },
-    10000,
   );
 });

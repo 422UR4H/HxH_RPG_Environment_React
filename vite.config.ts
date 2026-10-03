@@ -8,6 +8,9 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
+    // Os testes de página com vários round-trips de submit passam folgados sozinhos, mas
+    // os 5s padrão ficam apertados com a suíte inteira disputando CPU.
+    testTimeout: 10000,
     exclude: [
       "**/node_modules/**",
       "**/.worktrees/**",
