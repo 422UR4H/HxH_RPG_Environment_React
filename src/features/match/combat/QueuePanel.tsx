@@ -18,26 +18,29 @@ function orderKeyFor(action: Pick<QueuedAction, "actorId" | "bars">, order: Bars
 }
 
 /**
- * O detalhe expandido de uma linha da fila (T13/F1) — tudo que `action.action` carrega, no
- * nível Full que só o mestre recebe. Sem `action` (servidor antigo), quem chama nem monta
- * este componente.
+ * O detalhe de uma ação (T13/F1) — tudo que a declaração carrega, no nível Full que só o
+ * mestre recebe. Sem declaração (servidor antigo), quem chama nem monta este componente.
+ * `bars` falta no card em andamento depois de uma reconexão (`openQueued` não volta): aí
+ * não há como achar a chave nem dizer o que cobra, e as duas linhas somem.
  */
 function QueueRowDetails({
   id,
-  action,
+  actorId,
+  bars,
   detail,
   order,
   gridKind,
   nameOf,
 }: {
-  id: string;
-  action: QueuedAction;
+  id?: string;
+  actorId: string;
+  bars?: Bar[];
   detail: QueuedActionDetail;
   order: BarsPayload["order"];
   gridKind: GridKind;
   nameOf: (characterId: string) => string;
 }) {
-  const key = orderKeyFor(action, order);
+  const key = bars ? orderKeyFor({ actorId, bars }, order) : undefined;
   return (
     <Details id={id} aria-label="Detalhes da ação">
       {!!detail.targetId?.length && <DetailLine>Alvos: {detail.targetId.map(nameOf).join(", ")}</DetailLine>}
@@ -64,7 +67,7 @@ function QueueRowDetails({
         </DetailLine>
       )}
       {key !== undefined && <DetailLine>Ordem geral: chave {key}</DetailLine>}
-      <DetailLine>Cobra: {action.bars.map((b) => BAR_LABELS[b]).join(" + ")}</DetailLine>
+      {!!bars?.length && <DetailLine>Cobra: {bars.map((b) => BAR_LABELS[b]).join(" + ")}</DetailLine>}
     </Details>
   );
 }
@@ -72,8 +75,8 @@ function QueueRowDetails({
 /**
  * A fila secreta — só o mestre recebe. Em ordem de chegada (a ordem de EXECUÇÃO é a barra
  * geral). Mostra também, no topo, a ação em andamento (`open`) — o turno aberto tirou essa
- * linha da fila de verdade, mas o mestre ainda precisa vê-la, com o cálculo que só ele
- * recebe (F7). Cada linha da fila é expansível (T13/F1): com `action.action` (B1), "Detalhes"
+ * linha da fila de verdade, mas o mestre ainda precisa vê-la, com a declaração (I1) e o
+ * cálculo que só ele recebe (F7). Cada linha da fila é expansível (T13/F1): com `action.action` (B1), "Detalhes"
  * mostra a declaração inteira; sem ele (servidor antigo), a linha fica como sempre foi.
  */
 export default function QueuePanel({
@@ -87,7 +90,7 @@ export default function QueuePanel({
 }: {
   queue: QueuedAction[];
   /** A ação do turno aberto — já não está em `queue`, mas continua na tela, marcada. */
-  open?: { actorId: string; bars?: Bar[]; resolution: ResolutionPayload | null };
+  open?: { actorId: string; bars?: Bar[]; action?: QueuedActionDetail; resolution: ResolutionPayload | null };
   /** `bars_updated.order` — para achar a chave desta ação na ordem geral (ver `orderKeyFor`). */
   order: BarsPayload["order"];
   gridKind: GridKind;
@@ -125,6 +128,16 @@ export default function QueuePanel({
                   <OpenBadge>em andamento</OpenBadge>
                 </Name>
               </Info>
+              {open.action && (
+                <QueueRowDetails
+                  actorId={open.actorId}
+                  bars={open.bars}
+                  detail={open.action}
+                  order={order}
+                  gridKind={gridKind}
+                  nameOf={nameOf}
+                />
+              )}
               {open.resolution && (
                 <ResolutionDetails
                   resolution={open.resolution}
@@ -167,7 +180,8 @@ export default function QueuePanel({
                 {isExpanded && detail && (
                   <QueueRowDetails
                     id={detailsId}
-                    action={action}
+                    actorId={action.actorId}
+                    bars={action.bars}
                     detail={detail}
                     order={order}
                     gridKind={gridKind}

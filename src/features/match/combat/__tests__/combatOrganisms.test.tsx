@@ -253,6 +253,41 @@ describe("QueuePanel", () => {
     expect(detailsButton).toHaveAttribute("aria-expanded", "false");
     expect(screen.queryByText(/Arma:/)).not.toBeInTheDocument();
   });
+
+  // I1 (spec §5 F7): o card "em andamento" mostra a declaração (`openTurn.action`, B2) com o
+  // mesmo bloco das linhas da fila — já aberto, sem botão.
+  it("card em andamento com `action` mostra a declaração; sem barras, omite a cobrança", () => {
+    render(
+      <QueuePanel
+        nameOf={nameOf}
+        gridKind="square"
+        order={[]}
+        queue={[]}
+        open={{ actorId: "n1", action: fullAction, resolution: null }}
+        onPull={() => {}}
+      />,
+    );
+    const open = screen.getByTestId("queue-open");
+    expect(within(open).getByText(/Arma: Throwing Dagger/)).toBeInTheDocument();
+    expect(within(open).getByText(/Alvos: Gon/)).toBeInTheDocument();
+    expect(within(open).getByText(/Movimento: Dash.*coluna 3, linha 1/)).toBeInTheDocument();
+    expect(within(open).queryByText(/Cobra:/)).not.toBeInTheDocument();
+    expect(within(open).queryByRole("button", { name: "Detalhes" })).not.toBeInTheDocument();
+  });
+
+  it("card em andamento com barras mostra também o que a ação cobra", () => {
+    render(
+      <QueuePanel
+        nameOf={nameOf}
+        gridKind="square"
+        order={[]}
+        queue={[]}
+        open={{ actorId: "n1", bars: ["move"], action: fullAction, resolution: null }}
+        onPull={() => {}}
+      />,
+    );
+    expect(within(screen.getByTestId("queue-open")).getByText(/Cobra: movimento/)).toBeInTheDocument();
+  });
 });
 
 // W1: "esquivou" é a palavra familiar de RPG; "evitou" saiu. `avoided` é por QUALQUER meio

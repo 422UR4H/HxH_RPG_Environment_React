@@ -514,6 +514,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                     ? {
                         actorId: state.openTurn.actorId,
                         bars: state.openQueued?.bars,
+                        action: state.openTurn.action ?? state.openQueued?.action,
                         resolution: state.openResolution,
                       }
                     : undefined

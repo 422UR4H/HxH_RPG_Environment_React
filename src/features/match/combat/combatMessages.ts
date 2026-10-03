@@ -46,6 +46,11 @@ export type TurnOpenedPayload = {
   actionId: string;
   /** Sempre "" hoje. NÃO ramifique por ele. */
   actionType: string;
+  /**
+   * B2: a declaração, projetada por destinatário (Full para o mestre, Opened para o dono do
+   * ator, cortada para o resto). Opcional só para um servidor anterior a B2.
+   */
+  action?: HistoryAction;
 };
 
 export type TurnClosedPayload = { turnId: string };
@@ -157,7 +162,7 @@ export type MatchFullStatePayload = {
    * ENQUANTO o cliente estava fora: ela já não está mais pendente (não aparece em
    * `ownQueue`), mas também não foi perdida.
    */
-  openTurn?: { turnId: string; actorId: string; actionId?: string };
+  openTurn?: { turnId: string; actorId: string; actionId?: string; action?: HistoryAction };
   /** Master-only. */
   resolution?: ResolutionPayload;
   /** Master-only; ausente = fila vazia. */

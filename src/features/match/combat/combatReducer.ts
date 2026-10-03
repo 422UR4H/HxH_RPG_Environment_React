@@ -4,7 +4,7 @@ import type {
   RoundModeChangedPayload, RoundMode, ScenePayload, TurnClosedPayload, TurnOpenedPayload,
 } from "./combatMessages";
 import type { WsError } from "./combatErrorMessages";
-import type { MatchHistory } from "../../../types/matchHistory";
+import type { HistoryAction, MatchHistory } from "../../../types/matchHistory";
 import type { SlotTriple } from "../../tactical-map/utils/coords";
 
 /**
@@ -54,7 +54,7 @@ export type CombatState = {
   scene?: ScenePayload;
   roundMode: RoundMode | "";
   bars: BarsPayload | null;
-  openTurn: { turnId: string; actorId: string; actionId?: string } | null;
+  openTurn: { turnId: string; actorId: string; actionId?: string; action?: HistoryAction } | null;
   /** A fila secreta — só chega ao mestre. */
   queue: QueuedAction[];
   hp: Record<string, { hp: number; maxHp: number }>;

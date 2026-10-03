@@ -445,6 +445,37 @@ describe("GameMasterPage", () => {
     expect(within(openRow).getByText("Capanga")).toBeInTheDocument();
   });
 
+  // I1: depois de uma reconexão a linha da fila não volta (`openQueued` nulo) — a declaração
+  // do card em andamento vem só de `openTurn.action`, sem as barras.
+  it("I1: match_full_state com openTurn.action mostra a declaração no card em andamento", async () => {
+    renderMasterPage();
+    const ws = await waitForSocket();
+    openWithServerBoard(ws);
+    act(() =>
+      ws.emit("match_full_state", {
+        roundMode: "Free",
+        bars: { seq: 1, prices: {}, characters: [], order: [] },
+        openTurn: {
+          turnId: "t1",
+          actorId: "c1",
+          actionId: "a1",
+          action: {
+            uuid: "a1",
+            actorId: "c1",
+            targetId: ["npc1"],
+            attack: { weapon: "Sword", hit: { skillName: "Accuracy", skillValue: 0, result: 14 } },
+          },
+        },
+      }),
+    );
+
+    const openRow = screen.getByTestId("queue-open");
+    expect(within(openRow).getByText(/em andamento/i)).toBeInTheDocument();
+    expect(within(openRow).getByText(/Arma: Sword/)).toBeInTheDocument();
+    expect(within(openRow).getByText(/Alvos: Capanga/)).toBeInTheDocument();
+    expect(within(openRow).queryByText(/Cobra:/)).not.toBeInTheDocument();
+  });
+
   it("mostra o diálogo que o servidor computou e reenvia com confirm", async () => {
     renderMasterPage();
     const ws = await waitForSocket();
