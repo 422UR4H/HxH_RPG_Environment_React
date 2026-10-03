@@ -18,6 +18,13 @@ vi.mock("react-router-dom", async () => {
   return { ...actual, useNavigate: () => mockNavigate };
 });
 
+// O placer real desenha no Pixi (mockado); o stub expõe as peças que a página lhe entrega.
+vi.mock("../../features/tactical-map/TacticalMapPlacer", () => ({
+  default: (props: { pieces: Array<{ id: string }> }) => (
+    <div data-testid="tactical-map-placer" data-piece-ids={JSON.stringify(props.pieces.map((p) => p.id))} />
+  ),
+}));
+
 const baseUrl = "http://localhost:5000";
 
 // ─── WebSocket mock ───────────────────────────────────────────────────────────
@@ -247,6 +254,55 @@ describe("LobbyPage", () => {
   });
 
   describe("LobbyPage — mapa", () => {
+    // B14: o tabuleiro do lobby é do servidor (carregado de `match_boards` ou de um retrato do
+    // mapa anexado) e chega em `map_full_state` — para o mestre também. O mapa da campanha
+    // (REST) só dá fundo e grade.
+    describe("o tabuleiro é do servidor, também para o mestre", () => {
+      const restPiece = { ...pieceFixture, id: "rest-piece", characterId: "sheet-1" };
+      function withAttachedMap() {
+        setupHandlers("master-1");
+        server.use(
+          http.get(`${baseUrl}/matches/:id/map`, () =>
+            HttpResponse.json({
+              matchMap: { matchUuid: "match-1", mapUuid: "map-1", attachedAt: "2026-01-01T00:00:00Z" },
+            }),
+          ),
+          http.get(`${baseUrl}/maps/:id`, () => HttpResponse.json({ map: mapWithPiecesApi([restPiece]) })),
+        );
+      }
+      const placedIds = () =>
+        JSON.parse(screen.getByTestId("tactical-map-placer").getAttribute("data-piece-ids") ?? "[]");
+      const sentTypes = () =>
+        wsInstance.send.mock.calls.map(([raw]) => (JSON.parse(raw as string) as { type: string }).type);
+
+      it("desenha as peças do map_full_state, não as do mapa da campanha", async () => {
+        withAttachedMap();
+        renderPage({ user: masterUserFixture });
+        await waitForWsConnect();
+        simulateWsOpen();
+        sendFromServer("room_state", { matchUuid: "match-1", state: "lobby", players: [] });
+        sendFromServer("map_full_state", {
+          pieces: [{ pieceId: "server-piece", slot: { kind: "square", col: 4, row: 4 }, characterId: "sheet-1" }],
+          walls: [], visiblePolygons: [], fogMode: "explored",
+        });
+        await screen.findByTestId("tactical-map-placer");
+        await waitFor(() => expect(placedIds()).toEqual(["server-piece"]));
+      });
+
+      it("tabuleiro vazio no servidor: não desenha as peças do REST nem manda map_state_sync", async () => {
+        withAttachedMap();
+        renderPage({ user: masterUserFixture });
+        await waitForWsConnect();
+        simulateWsOpen();
+        sendFromServer("room_state", { matchUuid: "match-1", state: "lobby", players: [] });
+        await screen.findByTestId("tactical-map-placer");
+        await screen.findByRole("button", { name: /Iniciar Partida/i });
+
+        expect(placedIds()).toEqual([]);
+        expect(sentTypes()).not.toContain("map_state_sync");
+      });
+    });
+
     it("não renderiza mapa quando não há mapa anexado", async () => {
       setupHandlers("master-1");
       server.use(

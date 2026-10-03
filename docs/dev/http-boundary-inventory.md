@@ -221,7 +221,6 @@ auditar.
 | `kick_player` | cliente→servidor | `KickPlayerPayload{playerUuid}` | `useLobbyWs` (`sendKick`) | passthrough; `{ playerUuid }` literal |
 | `piece_moved` | cliente→servidor | `PieceMovedPayload` | `useLobbyWs` (`sendPieceMoved`) | passthrough; `characterId`/`visible`/`z` só aparecem na chave quando não-nulos (`...(x != null && {...})`) |
 | `piece_removed` | cliente→servidor | `PieceRemovedPayload{pieceId}` | `useLobbyWs` (`sendPieceRemoved`) | passthrough |
-| `map_state_sync` | cliente→servidor (master, ao entrar na *lobby*) | `MapStateSyncPayload{pieces, walls, grid}` | `useLobbyWs` (`sendLobbySync`) | passthrough; pieces sempre inclui `characterId`; grid reduzido à mão a `{ cellSize }`. Desde B14 o servidor ignora o payload e responde com o `map_full_state` atual; a partida (`useMatchWs`) não manda mais (F13) |
 | `enqueue_action` | cliente→servidor | `ActionPayload` | `useMatchWs` (`sendAction`) | passthrough; chamador já monta em camelCase |
 | `enqueue_master_action` | cliente→servidor | `MasterActionPayload` | `useMatchWs` (`sendMasterAction`) | passthrough |
 | `room_state` | servidor→cliente | `RoomStatePayload{matchUuid, state, players:[PlayerInfo]}` | `useLobbyWs` | passthrough; lê `isMaster`/`isOnline` direto, monta `LobbyParticipant` à mão |
