@@ -11,7 +11,9 @@ import { SmallButton } from "./MatchTopBar";
 import { PanelHint, PanelTitle } from "./panelStyles";
 
 /**
- * Livre × Disputado. `placement` decide onde ele aparece: na topbar a partir do tablet, e
+ * Livre × Disputado. Clicar no regime atual não manda nada: o servidor responderia com
+ * `round_mode_changed` sem gravar a troca (não é troca), e a linha ao vivo do Histórico
+ * piscaria e sumiria no refetch. `placement` decide onde ele aparece: na topbar a partir do tablet, e
  * no painel da fila no celular — a topbar não tem largura para ele lá.
  */
 export function RoundModeSwitch({
@@ -26,7 +28,7 @@ export function RoundModeSwitch({
   return (
     <ModeGroup role="radiogroup" aria-label="Regime" $placement={placement}>
       {(["Free", "Race"] as RoundMode[]).map((m) => (
-        <ModeButton key={m} type="button" role="radio" aria-checked={mode === m} onClick={() => onChange(m)}>
+        <ModeButton key={m} type="button" role="radio" aria-checked={mode === m} onClick={() => { if (m !== mode) onChange(m); }}>
           {ROUND_MODE_LABELS[m]}
         </ModeButton>
       ))}

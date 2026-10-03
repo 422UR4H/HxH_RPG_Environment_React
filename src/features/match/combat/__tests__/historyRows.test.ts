@@ -123,4 +123,12 @@ describe("historyRows", () => {
     expect(rows[2]).toMatchObject({ kind: "master_action", masterAction: { uuid: "ma2" } });
     expect(rows[1]).toMatchObject({ kind: "turn", turn: { masterActions: [inside] } });
   });
+
+  it("um kind de evento que o front não conhece é ignorado, sem quebrar", () => {
+    const h = history();
+    h.scenes[0].rounds[0].events = [
+      { uuid: "x1", kind: "trapSprung", createdAt: "2026-01-01T00:01:00Z" } as unknown as MatchHistory["scenes"][0]["rounds"][0]["events"][0],
+    ];
+    expect(keys(historyRows(h, [], 0, undefined))).toEqual(["rest:scene:s1"]);
+  });
 });

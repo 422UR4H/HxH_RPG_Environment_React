@@ -38,7 +38,8 @@ export function historyRows(
         const at = Date.parse(ev.createdAt);
         const key = `rest:event:${ev.uuid}`;
         if (ev.kind === "roundModeChanged") rest.push({ source: "rest", kind: "round_mode_changed", key, at, mode: ev.payload.to });
-        else rest.push({ source: "rest", kind: "master_action", key, at, masterAction: ev.masterAction });
+        else if (ev.kind === "masterAction") rest.push({ source: "rest", kind: "master_action", key, at, masterAction: ev.masterAction });
+        // Um `kind` que o servidor venha a acrescentar não tem linha aqui: some, sem quebrar a aba.
       }
       for (const turn of round.turns) {
         rest.push({ source: "rest", kind: "turn", key: `rest:${turn.uuid}`, at: Date.parse(turn.finishedAt ?? turn.createdAt), turn });

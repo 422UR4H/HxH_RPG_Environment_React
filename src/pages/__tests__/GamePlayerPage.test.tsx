@@ -872,6 +872,35 @@ describe("GamePlayerPage", () => {
     await vi.waitFor(() => expect(calls).toBe(2));
   });
 
+  // F4 (follow-up da T15): a master action de peça entre turnos não chega ao jogador como
+  // `master_action_enqueued` — chega como piece_moved/piece_removed, e é gravada na hora.
+  // Com turno aberto nada é gravado até o fechamento, então não há o que rebuscar.
+  it("F4: peça mexida entre turnos rebusca o histórico; com turno aberto, não", async () => {
+    let calls = 0;
+    server.use(
+      http.get(`${baseUrl}/matches/:id/history`, () => {
+        calls++;
+        return HttpResponse.json({ scenes: [] });
+      }),
+    );
+    renderPlayerPage();
+    const ws = await waitForSocket();
+    act(() => ws.onopen?.());
+    await vi.waitFor(() => expect(calls).toBe(1));
+    const moved = { pieceId: "piece-c2", slot: { kind: "square", col: 3, row: 3 }, characterId: "c2", visible: true, z: 0 };
+
+    act(() => ws.emit("piece_moved", moved));
+    await vi.waitFor(() => expect(calls).toBe(2));
+    act(() => ws.emit("piece_removed", { pieceId: "piece-c2" }));
+    await vi.waitFor(() => expect(calls).toBe(3));
+
+    act(() => ws.emit("turn_opened", { turnId: "t1", actorId: "c2" }));
+    act(() => ws.emit("piece_moved", moved));
+    act(() => ws.emit("piece_removed", { pieceId: "piece-c2" }));
+    await act(async () => { await new Promise((r) => setTimeout(r, 50)); });
+    expect(calls).toBe(3);
+  });
+
   // F4, fix round 1: o refetch do turn_closed roda no MESMO stack síncrono que carimba o
   // receivedAt — o relógio parado reproduz o caso comum (mesmo milissegundo). O turno fechado
   // aparece uma vez só (pelo REST), e a linha ♥ que o servidor manda antes do turn_closed sai.

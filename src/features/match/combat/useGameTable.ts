@@ -70,6 +70,18 @@ export function useGameTable({
   // O ack de um envio precisa limpar o rascunho, que só existe depois do socket: um ref
   // quebra o ciclo, atribuído no corpo do render antes de qualquer ack poder chegar.
   const clearDraftForRef = useRef<(actorId: string) => void>(() => {});
+  const invalidateHistory = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: ["matchHistory", token, matchId] }),
+    [queryClient, token, matchId],
+  );
+  // Peça e parede mexidas ENTRE turnos são master actions já gravadas — e o jogador não recebe
+  // `master_action_enqueued` de peça, nem ninguém o de parede: o tabuleiro é o único aviso.
+  // Com turno aberto nada é gravado até o fechamento (o turn_closed rebusca). O ref espelha o
+  // último render: o piece_moved da abertura chega antes do turn_opened e rebusca à toa — inofensivo.
+  const openTurnRef = useRef(false);
+  const onBoardChange = useCallback(() => {
+    if (!openTurnRef.current) void invalidateHistory();
+  }, [invalidateHistory]);
   const combat = useMatchCombat({
     matchUuid: matchId,
     userUuid: user?.uuid,
@@ -77,24 +89,25 @@ export function useGameTable({
     isMaster,
     declaredSource,
     board,
-    onWallStateChanged: live.handleWallStateChanged,
+    onWallStateChanged: (...a) => { live.handleWallStateChanged(...a); onBoardChange(); },
     onWallHpChanged: live.handleWallHpChanged,
     onMapFullState: live.handleMapFullState,
     onVisibilityUpdated: live.handleVisibilityUpdated,
-    onWallRevealed: live.handleWallRevealed,
-    onPieceMoved: live.handlePieceMoved,
-    onPieceRemoved: live.handlePieceRemoved,
+    onWallRevealed: (...a) => { live.handleWallRevealed(...a); onBoardChange(); },
+    onPieceMoved: (...a) => { live.handlePieceMoved(...a); onBoardChange(); },
+    onPieceRemoved: (...a) => { live.handlePieceRemoved(...a); onBoardChange(); },
     onComposerSendAccepted: (a) => clearDraftForRef.current(a),
-    onHistoryChanged: () => queryClient.invalidateQueries({ queryKey: ["matchHistory", token, matchId] }),
+    onHistoryChanged: invalidateHistory,
     onNpcAdded: () => { void refetchParticipants(); },
     // Toda (re)conexão: o que mudou enquanto a conexão estava caída só volta pelo REST.
     onFullState: () => {
       void refetchParticipants();
-      void queryClient.invalidateQueries({ queryKey: ["matchHistory", token, matchId] });
+      void invalidateHistory();
       void queryClient.invalidateQueries({ queryKey: ["characterSheet", token] });
     },
   });
   const { state } = combat;
+  openTurnRef.current = state.openTurn !== null;
 
   const composer = useActionComposerState({
     matchId,

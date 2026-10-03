@@ -8,6 +8,7 @@ import CloseTurnRefusedDialog from "../CloseTurnRefusedDialog";
 import EventStream from "../EventStream";
 import DeclaredActions from "../DeclaredActions";
 import MatchTopBar from "../MatchTopBar";
+import { RoundModeSwitch } from "../MasterControls";
 import ResolutionDetails from "../ResolutionDetails";
 import { avoidedVerb } from "../combatText";
 import type { BarsPayload, ResolutionPayload } from "../combatMessages";
@@ -563,5 +564,17 @@ describe("MatchTopBar", () => {
   it("diz que está esperando o mestre quando a sala não abriu", () => {
     render(<MatchTopBar roundMode="" status="waiting" asideOpen={false} onToggleAside={() => {}} />);
     expect(screen.getByTestId("ws-status")).toHaveAttribute("title", "Aguardando o mestre abrir a sala…");
+  });
+});
+
+describe("RoundModeSwitch", () => {
+  it("clicar no regime em que o round já está não manda nada", () => {
+    // O servidor responderia com round_mode_changed sem gravar: a linha ao vivo piscaria e sumiria.
+    const onChange = vi.fn();
+    render(<RoundModeSwitch mode="Race" onChange={onChange} placement="panel" />);
+    fireEvent.click(screen.getByRole("radio", { name: "Disputado" }));
+    expect(onChange).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("radio", { name: "Livre" }));
+    expect(onChange).toHaveBeenCalledWith("Free");
   });
 });

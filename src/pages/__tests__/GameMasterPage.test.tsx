@@ -738,7 +738,9 @@ describe("GameMasterPage", () => {
                 masterActions: [],
               }],
               events: calls >= 2
-                ? [{ uuid: "e1", kind: "roundModeChanged", createdAt: "2026-06-01T00:02:00Z", payload: { from: "Race", to: "Free" } }]
+                // Antes do turno de propósito: a linha ao vivo (00:02) fica DEPOIS dele — se ela
+                // não saísse quando o REST chega, a contagem e a ordem denunciariam.
+                ? [{ uuid: "e1", kind: "roundModeChanged", createdAt: "2026-06-01T00:00:30Z", payload: { from: "Race", to: "Free" } }]
                 : [],
             }],
           }],
@@ -752,12 +754,20 @@ describe("GameMasterPage", () => {
 
     expect(await screen.findByText("Turno de Capanga — atacou Gon com Sword · Gon −4")).toBeInTheDocument();
     const before = calls;
-    act(() => ws.emit("round_mode_changed", { mode: "Free" }));
+    const texts = () => screen.getAllByTestId("event-row").map((r) => r.textContent);
+    act(() => ws.emit("round_mode_changed", { mode: "Free" }, { timestamp: "2026-06-01T00:02:00Z" }));
+    // Ao vivo, antes de o refetch responder: o regime na hora da mensagem, depois do turno.
+    expect(texts()).toEqual([
+      expect.stringContaining("Cena: batalha"),
+      expect.stringContaining("Turno de Capanga"),
+      expect.stringContaining("Regime: Livre"),
+    ]);
     await vi.waitFor(() => expect(calls).toBe(before + 1));
-    await vi.waitFor(() => expect(screen.getAllByTestId("event-row")).toHaveLength(3));
-    const rows = screen.getAllByTestId("event-row");
-    expect(rows[0]).toHaveTextContent("Cena: batalha");
-    expect(rows[1]).toHaveTextContent("Turno de Capanga");
-    expect(rows[2]).toHaveTextContent("Regime: Livre");
+    // O REST chegou: a linha ao vivo saiu e a do REST ocupa a hora gravada, antes do turno.
+    await vi.waitFor(() => expect(texts()).toEqual([
+      expect.stringContaining("Cena: batalha"),
+      expect.stringContaining("Regime: Livre"),
+      expect.stringContaining("Turno de Capanga"),
+    ]));
   });
 });
