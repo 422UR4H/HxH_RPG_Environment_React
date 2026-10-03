@@ -19,8 +19,9 @@ type Props = {
 export const RAIL_BAR_HEIGHT = 56;
 
 // BF4: a gaveta (aside) é posicionada sobre o palco abaixo de `asideUp` e precisa ficar
-// acima de QUALQUER coisa que flutue sobre o mapa — hoje o maior desses overlays é o
-// MatchErrorBanner (z-index: 50), seguido da barra geral e do botão de enquadrar (30).
+// acima de QUALQUER coisa que flutue sobre o mapa — hoje o maior desses overlays são os
+// avisos do palco (`StageNotices`, z-index: 50, onde mora o MatchErrorBanner), seguidos da
+// barra geral e do botão de enquadrar (30).
 // Sem isso a barra geral fica desenhada por cima da gaveta e esconde as abas Histórico/
 // Personagens quando ela está aberta em telas estreitas.
 const ASIDE_DRAWER_Z_INDEX = 60;

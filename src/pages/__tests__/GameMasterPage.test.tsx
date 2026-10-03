@@ -808,6 +808,16 @@ describe("GameMasterPage", () => {
     await user.click(screen.getByRole("button", { name: /Fila/ }));
     expect(screen.getByTestId("match-panel")).toHaveAttribute("data-wide", "false");
   });
+  it("Histórico que falha (depois da nova tentativa) avisa na aba", async () => {
+    server.use(http.get(`${baseUrl}/matches/:id/history`, () => new HttpResponse(null, { status: 500 })));
+    renderMasterPage();
+    const ws = await waitForSocket();
+    openWithServerBoard(ws);
+    await user.click(await screen.findByRole("button", { name: "Ver histórico" }));
+
+    expect(await screen.findByText("Não foi possível carregar o histórico.", undefined, { timeout: 5000 })).toBeInTheDocument();
+  });
+
   // F4: o mestre também lê o Histórico do REST — o ao vivo por cima até o refetch, que o
   // `round_mode_changed` dispara (parte 2: o REST guarda a troca de regime em `events`).
   it("F4: o Histórico do mestre junta o turno do REST e o regime, que o refetch traz", async () => {
@@ -1125,6 +1135,21 @@ describe("GameMasterPage", () => {
       expect(ws.sent("enqueue_master_action")).toEqual([]);
     });
 
+    it("tocar num card de Personagens sai do Arrumar e mostra a ficha", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      enterArrange();
+
+      await user.click(await screen.findByRole("button", { name: "Ver histórico" }));
+      await user.click(screen.getByRole("button", { name: "Personagens" }));
+      await user.click(await screen.findByTestId("character-row-c1"));
+
+      expect(screen.getByRole("button", { name: "Arrumar" })).toHaveAttribute("aria-pressed", "false");
+      expect(screen.queryByText("Arrumar o tabuleiro")).not.toBeInTheDocument();
+      expect(await screen.findByTestId("match-sheet")).toBeInTheDocument();
+    });
+
     it("escolher uma aba do rail sai do Arrumar e abre a aba", async () => {
       renderMasterPage();
       const ws = await waitForSocket();
@@ -1230,7 +1255,9 @@ describe("GameMasterPage", () => {
       expect(ws.sent("edit_action")).toEqual([]);
     });
 
-    it("entrar no Arrumar sai da escolha, e vice-versa", async () => {
+    // O caminho inverso não existe: o Arrumar ocupa o painel no lugar da Fila, e o botão
+    // "Escolher onde cai" mora no card em andamento dela.
+    it("entrar no Arrumar sai da escolha, e no Arrumar não há como escolher onde cai", async () => {
       renderMasterPage();
       const ws = await waitForSocket();
       openFailingEscape(ws);
@@ -1242,10 +1269,8 @@ describe("GameMasterPage", () => {
       act(() => screen.getByTestId("empty-slot").click());
       expect(dialog()).not.toBeInTheDocument();
 
-      act(() => screen.getByRole("button", { name: "Arrumar" }).click());
-      chooseFall();
-      expect(screen.getByRole("button", { name: "Arrumar" })).toHaveAttribute("aria-pressed", "false");
-      expect(mapStub()).toHaveAttribute("data-draggable-piece-ids", "[]");
+      expect(screen.queryByTestId("queue-open")).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Escolher onde cai" })).not.toBeInTheDocument();
     });
 
     it("o turno fechar no meio da escolha encerra o modo", async () => {

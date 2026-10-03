@@ -13,6 +13,7 @@ const byCode: Record<string, string> = {
   move_blocked: "O movimento esbarra numa parede.",
   not_found: "Não encontrado.",
   invalid_npc: "Esse personagem não pode entrar como NPC desta partida.",
+  not_participant: "Esse personagem não está na partida.",
 };
 
 const bySentType: Record<string, string> = {

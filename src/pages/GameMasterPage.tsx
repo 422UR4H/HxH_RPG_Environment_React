@@ -88,9 +88,10 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
 
   const { data: catalogue } = useCombatCatalogue(token, actorId);
 
-  // A aba Histórico: o REST (mesma query que useGameTable invalida em turn_closed e
-  // match_full_state), com os eventos ao vivo que ele ainda não cobre por cima.
-  const { data: historyData } = useMatchHistory(token, matchId);
+  // A aba Histórico: o REST (a query que useGameTable invalida a cada mensagem que muda o
+  // histórico — turno fechado, cena, regime, round, master action — a cada mexida no tabuleiro
+  // entre turnos e a cada match_full_state), com os eventos ao vivo que ele ainda não cobre por cima.
+  const { data: historyData, isError: historyFailed } = useMatchHistory(token, matchId);
   const rows = useMemo(
     () => historyRows(historyData?.history, state.events, historyData?.fetchStartedAt, state.openTurn?.turnId),
     [historyData, state.events, state.openTurn],
@@ -241,7 +242,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   );
 
   // Sem ator: tocar num NPC da partida o escolhe; tocar em outro personagem o inspeciona
-  // (a aba Personagens abre nele). Com ator: tocar em alguém marca o alvo — inclusive o
+  // (destaca a peça e rola até a linha dele em Personagens, se a aba estiver aberta). Com ator: tocar em alguém marca o alvo — inclusive o
   // próprio ator, que é um alvo legítimo; soltar o ator é o × do painel.
   const handlePieceTap = useCallback(
     (pieceId: string) => {
@@ -640,7 +641,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
         aside={
           <AsideTabs
             defaultTab="historico"
-            historico={<EventStream rows={rows} nameOf={nameOf} gridKind={gridKind} />}
+            historico={<EventStream rows={rows} nameOf={nameOf} gridKind={gridKind} loadFailed={historyFailed} />}
             personagens={
               <MatchCharactersSidebar
                 gameStarted
@@ -651,6 +652,8 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                 onAccept={() => {}}
                 onReject={() => {}}
                 onSelectCharacterSheet={(sheetUuid) => {
+                  // Abrir a ficha é largar o tabuleiro: o Arrumar ocupa o painel onde ela aparece.
+                  exitBoardMode();
                   setSheetId(sheetUuid);
                   setRailActive("ficha");
                   setPanelOpen(true);

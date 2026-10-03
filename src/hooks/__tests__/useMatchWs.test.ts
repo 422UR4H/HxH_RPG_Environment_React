@@ -353,6 +353,18 @@ describe("useMatchWs lobby message types", () => {
     warnSpy.mockRestore();
   });
 
+  // `action_edited` é o ack master-only de `edit_action`: o efeito da edição já chega pelo
+  // `resolution_updated` que vem junto, então a mensagem não tem o que fazer aqui.
+  it("does not warn on action_edited", () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    renderHook(() => useMatchWs({ matchUuid: "m1", token: "t" }));
+    const ws = flushConnect();
+    act(() => { ws.onopen?.(); });
+    act(() => { ws.emit("action_edited", { turnId: "t1", actionId: "a1" }); });
+    expect(warnSpy).not.toHaveBeenCalled();
+    warnSpy.mockRestore();
+  });
+
   it("still warns on a genuinely unknown type", () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     renderHook(() => useMatchWs({ matchUuid: "m1", token: "t" }));

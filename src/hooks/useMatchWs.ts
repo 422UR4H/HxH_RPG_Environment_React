@@ -93,9 +93,12 @@ const COMBAT_TYPES = new Set([
 // gets room_state/player_joined et al) — they're just not acted on by this hook. Listed
 // so the DEV warn below stays meaningful for genuinely unknown types. See
 // internal/app/game/message.go for the authoritative type list.
-const IGNORED_LOBBY_TYPES = new Set([
+// `action_edited` is the master-only ack of `edit_action`: the edit's effect already arrives
+// in the `resolution_updated` sent with it, so there is nothing left for it to do here.
+const IGNORED_TYPES = new Set([
   "room_state", "player_joined", "master_joined", "player_left", "master_left",
   "player_kicked", "chat_message", "match_started",
+  "action_edited",
 ]);
 
 type WallStateChangedPayload = {
@@ -347,8 +350,8 @@ export function useMatchWs({
               normalizeCombatMessage({ type: msg.type, payload: msg.payload }),
               serverAt,
             );
-          } else if (IGNORED_LOBBY_TYPES.has(msg.type)) {
-            // F5: legitimate on this socket (see IGNORED_LOBBY_TYPES above), just not
+          } else if (IGNORED_TYPES.has(msg.type)) {
+            // F5: legitimate on this socket (see IGNORED_TYPES above), just not
             // acted on here — not a warn-worthy "unhandled" type.
           } else if (import.meta.env.DEV) {
             console.warn("[match-ws] unhandled message type:", msg.type);

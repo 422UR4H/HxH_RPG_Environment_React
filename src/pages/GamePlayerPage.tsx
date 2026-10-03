@@ -71,9 +71,10 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
   const { data: catalogue } = useCombatCatalogue(token, actorId);
   const { data: ownSheet } = useCharacterSheet(token, actorId);
 
-  // A aba Histórico: o REST (mesma query que useGameTable invalida em turn_closed e
-  // match_full_state), com os eventos ao vivo que ele ainda não cobre por cima.
-  const { data: historyData } = useMatchHistory(token, matchId);
+  // A aba Histórico: o REST (a query que useGameTable invalida a cada mensagem que muda o
+  // histórico — turno fechado, cena, regime, round, master action — a cada mexida no tabuleiro
+  // entre turnos e a cada match_full_state), com os eventos ao vivo que ele ainda não cobre por cima.
+  const { data: historyData, isError: historyFailed } = useMatchHistory(token, matchId);
   const rows = useMemo(
     () => historyRows(historyData?.history, state.events, historyData?.fetchStartedAt, state.openTurn?.turnId),
     [historyData, state.events, state.openTurn],
@@ -268,7 +269,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
           <AsideTabs
             defaultTab="historico"
             historico={
-              <EventStream rows={rows} nameOf={nameOf} gridKind={map?.grid.kind ?? "square"} />
+              <EventStream rows={rows} nameOf={nameOf} gridKind={map?.grid.kind ?? "square"} loadFailed={historyFailed} />
             }
             personagens={
               <MatchCharactersSidebar

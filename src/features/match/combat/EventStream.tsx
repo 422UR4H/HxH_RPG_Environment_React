@@ -98,7 +98,7 @@ function turnLine(turn: HistoryTurn, nameOf: (id: string) => string, gridKind: G
     const who = (a.targetId ?? []).map(nameOf).join(", ");
     parts.push(`atacou ${who}${a.attack.weapon ? ` com ${humanWeapon(a.attack.weapon)}` : ""}`);
   }
-  if (a.interact) parts.push(`interagiu (${a.interact.kind})`);
+  if (a.interact) parts.push(`interagiu (${interactLabel(a.interact.kind)})`);
   const outcomes = (turn.resolution?.targets ?? []).map((t) => outcomeText(t, nameOf, gridKind));
   const what = parts.length ? ` — ${parts.join(" e ")}` : "";
   return {
@@ -135,10 +135,13 @@ export default function EventStream({
   rows,
   nameOf,
   gridKind,
+  loadFailed = false,
 }: {
   rows: HistoryRow[];
   nameOf: (characterId: string) => string;
   gridKind: GridKind;
+  /** O GET /history falhou (já depois da nova tentativa): as linhas são só as ao vivo. */
+  loadFailed?: boolean;
 }) {
   const containerRef = useRef<HTMLOListElement>(null);
 
@@ -147,12 +150,16 @@ export default function EventStream({
     containerRef.current?.scrollTo?.({ top: containerRef.current?.scrollHeight ?? 0 });
   }, [rows]);
 
+  const loadError = loadFailed && <LoadError role="alert">Não foi possível carregar o histórico.</LoadError>;
+
   if (rows.length === 0) {
-    return <Empty>Nada aconteceu ainda. Turnos, dano e trocas de regime aparecem aqui.</Empty>;
+    return loadError || <Empty>Nada aconteceu ainda. Turnos, dano e trocas de regime aparecem aqui.</Empty>;
   }
 
   return (
-    <Container ref={containerRef}>
+    <>
+      {loadError}
+      <Container ref={containerRef}>
       {rows.map((row) => {
         const line = rowLine(row, nameOf, gridKind);
         return (
@@ -165,7 +172,8 @@ export default function EventStream({
           </Row>
         );
       })}
-    </Container>
+      </Container>
+    </>
   );
 }
 
@@ -203,6 +211,14 @@ const Icon = styled.span`
 const Detail = styled.span`
   display: block;
   color: ${colors.textPlaceholderStrong};
+`;
+
+const LoadError = styled.p`
+  margin: 0;
+  padding: 8px 12px;
+  color: ${colors.danger};
+  font-family: ${fonts.sans};
+  font-size: 12px;
 `;
 
 const Empty = styled.p`

@@ -1,7 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, within } from "@testing-library/react";
 import GeneralBar from "../GeneralBar";
-import CharacterBarsStrip, { fmt } from "../CharacterBarsStrip";
+import CharacterBarsStrip from "../CharacterBarsStrip";
+import { fmt } from "../barsMath";
 import OwnBars from "../OwnBars";
 import QueuePanel from "../QueuePanel";
 import CloseTurnRefusedDialog from "../CloseTurnRefusedDialog";
@@ -115,7 +116,7 @@ describe("CharacterBarsStrip", () => {
   });
 });
 
-describe("fmt (CharacterBarsStrip)", () => {
+describe("fmt (barsMath)", () => {
   it("negativo que arredonda para zero perde o sinal — não existe \"−0\"", () => {
     expect(fmt(-0.04)).toBe("0");
     expect(fmt(-0.049)).toBe("0");
@@ -466,6 +467,19 @@ describe("CloseTurnRefusedDialog", () => {
 });
 
 describe("EventStream", () => {
+  it("histórico que não carregou: avisa por cima das linhas ao vivo", () => {
+    const events: TableEvent[] = [{ kind: "round_mode_changed", at: 1, receivedAt: 1, mode: "Free" }];
+    render(<EventStream rows={historyRows(undefined, events, undefined, undefined)} nameOf={nameOf} gridKind="square" loadFailed />);
+    expect(screen.getByRole("alert")).toHaveTextContent("Não foi possível carregar o histórico.");
+    expect(screen.getAllByTestId("event-row")).toHaveLength(1);
+  });
+
+  it("histórico que não carregou e nada ao vivo: só o aviso, sem o \"nada aconteceu\"", () => {
+    render(<EventStream rows={[]} nameOf={nameOf} gridKind="square" loadFailed />);
+    expect(screen.getByRole("alert")).toHaveTextContent("Não foi possível carregar o histórico.");
+    expect(screen.queryByText(/Nada aconteceu ainda/)).not.toBeInTheDocument();
+  });
+
   const declared: DeclaredAction = {
     id: "a1", actorId: "c1", status: "open", fromComposer: true, at: 0,
     move: { category: "Dash", to: [4, 7, 0] },
@@ -550,7 +564,7 @@ describe("EventStream", () => {
       `Turno de Gon — moveu para coluna 4, linha 5 (Dash) e atacou Hisoka, Killua com Throwing Dagger · Hisoka ${MINUS}7, Killua esquivou`,
     );
     expect(rows[2]).toHaveTextContent("Turno de Killua — moveu (Shift) e atacou Hisoka · Hisoka sem dano");
-    expect(rows[3]).toHaveTextContent("Turno de Hisoka — interagiu (open)");
+    expect(rows[3]).toHaveTextContent("Turno de Hisoka — interagiu (abrir)");
   });
 
   it("a fuga que falhou mostra onde o mestre a pôs, quando o leitor viu (F14)", () => {
