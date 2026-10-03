@@ -13,6 +13,7 @@ import { useMaps } from "../hooks/useMaps";
 import { useMatchMap } from "../hooks/useMatchMap";
 import { useAttachMatchMap } from "../hooks/useAttachMatchMap";
 import { useDetachMatchMap } from "../hooks/useDetachMatchMap";
+import { useInheritableBoards } from "../hooks/useInheritableBoards";
 import PageTabNav from "../components/organisms/PageTabNav";
 import MatchCharactersSidebar from "../features/match/MatchCharactersSidebar";
 import MatchHeaderSection from "../features/match/MatchHeaderSection";
@@ -28,19 +29,33 @@ import type { MatchStatus } from "../types/match";
 import { ActionsList } from "../components/atoms/ActionsList";
 import { useQueryClient } from "@tanstack/react-query";
 import { isApiError } from "../services/httpClient";
+import { getApiErrorDetail } from "../utils/apiError";
+
+const MAP_LOCKED_DETAIL = "cannot change map after match has started";
 
 /**
- * O back recusa trocar o mapa (anexar ou desanexar) depois do `start_match` (F16). Hoje é o
- * único 422 destes dois endpoints, porque o front nunca manda `inheritBoardFromMatchUuid`; a
- * UI de herdar tabuleiro (B16) vai precisar separar os 422 dela deste.
+ * As recusas de `POST`/`DELETE /matches/{id}/map`, pelo `detail` (o back usa um 422 para
+ * todas). A de partida iniciada (F16) é a única que também vem do desanexar; as outras são da
+ * herança de tabuleiro (B16).
  */
+const MAP_CHANGE_REFUSALS: Record<string, string> = {
+  [MAP_LOCKED_DETAIL]: "O mapa não pode ser trocado depois que a partida começou.",
+  "source match has no board to inherit": "Essa partida não deixou um tabuleiro para continuar.",
+  "source match's board is on a different map": "O tabuleiro dessa partida está em outro mapa.",
+  "source match is not in the same campaign": "Essa partida não é desta campanha.",
+  "source match cannot be the same match being attached to":
+    "Uma partida não pode continuar o próprio tabuleiro.",
+  "match not found": "A partida não foi encontrada.",
+  "map not found": "O mapa não foi encontrado.",
+};
+
 function isMapLockedError(err: unknown): boolean {
-  return isApiError(err, 422);
+  return isApiError(err, 422) && getApiErrorDetail(err) === MAP_LOCKED_DETAIL;
 }
 
 function mapChangeErrorText(err: unknown): string {
-  if (isMapLockedError(err)) return "O mapa não pode ser trocado depois que a partida começou.";
-  return "Não foi possível trocar o mapa. Tente novamente.";
+  const detail = getApiErrorDetail(err);
+  return (detail && MAP_CHANGE_REFUSALS[detail]) || "Não foi possível trocar o mapa. Tente novamente.";
 }
 
 function getMatchStatus(match: { gameStartAt?: string; storyEndAt?: string }): MatchStatus {
@@ -96,15 +111,25 @@ export default function MatchPage() {
   const { mutate: detachMap, isPending: isDetaching } = useDetachMatchMap(token, matchId);
   const queryClient = useQueryClient();
   const [mapChangeError, setMapChangeError] = useState<string | null>(null);
+  // A resposta do anexar não ecoa a herança: sem este aviso, herdar no mapa já anexado não
+  // mudaria nada na tela.
+  const [mapChangeNotice, setMapChangeNotice] = useState<string | null>(null);
   // Recusa por partida iniciada: esta tela carregou antes do início. Rebuscar a partida traz o
   // `gameStartAt`, e a troca de mapa some.
   const onMapChangeError = (err: unknown) => {
+    setMapChangeNotice(null);
     setMapChangeError(mapChangeErrorText(err));
     if (isMapLockedError(err)) {
       void queryClient.invalidateQueries({ queryKey: ["matchDetails", token, matchId] });
     }
   };
-  const mapChangeCallbacks = { onSuccess: () => setMapChangeError(null), onError: onMapChangeError };
+  const mapChangeCallbacks = {
+    onSuccess: () => {
+      setMapChangeError(null);
+      setMapChangeNotice(null);
+    },
+    onError: onMapChangeError,
+  };
 
   const sheetId =
     locationState?.sheetId ??
@@ -133,6 +158,12 @@ export default function MatchPage() {
   const { data: maps, isPending: mapsPending } = useMaps(
     token,
     activeTab === "maps" && isMaster ? campaignId : undefined,
+  );
+  const boardSources = useInheritableBoards(
+    token,
+    campaignId,
+    matchId,
+    activeTab === "maps" && isMaster && !matchStarted,
   );
 
   useEffect(() => {
@@ -172,6 +203,22 @@ export default function MatchPage() {
 
   const handleLobbyConfirm = () => {
     navigate(`/campaigns/${campaignId}/matches/${matchId}/lobby`);
+  };
+
+  const handleInherit = (mapId: string, sourceMatchUuid: string) => {
+    const source = boardSources[mapId]?.find((s) => s.matchUuid === sourceMatchUuid);
+    attachMap(
+      { mapId, inheritBoardFromMatchUuid: sourceMatchUuid },
+      {
+        onSuccess: () => {
+          setMapChangeError(null);
+          setMapChangeNotice(
+            source ? `O tabuleiro de «${source.title}» continua nesta partida.` : null,
+          );
+        },
+        onError: onMapChangeError,
+      },
+    );
   };
 
   const handleEnroll = () => {
@@ -296,11 +343,14 @@ export default function MatchPage() {
           isAttaching={isAttaching}
           isDetaching={isDetaching}
           changeError={mapChangeError}
+          changeNotice={mapChangeNotice}
+          boardSources={boardSources}
           onMapClick={(mapId) =>
             navigate(`/campaigns/${campaignId}/maps/${mapId}/edit`)
           }
-          onAttach={(mapId) => attachMap(mapId, mapChangeCallbacks)}
+          onAttach={(mapId) => attachMap({ mapId }, mapChangeCallbacks)}
           onDetach={() => detachMap(undefined, mapChangeCallbacks)}
+          onInherit={handleInherit}
         />
       </DetailPageTemplate>
 

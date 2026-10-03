@@ -43,11 +43,14 @@ export const mapsService = {
     token: string,
     matchId: string,
     mapId: string,
+    inheritBoardFromMatchUuid?: string,
   ): Promise<MatchMapResponse> =>
     httpClient
       .post<{ matchMap: Record<string, unknown> }>(
         `/matches/${matchId}/map`,
-        { mapUuid: mapId },
+        inheritBoardFromMatchUuid
+          ? { mapUuid: mapId, inheritBoardFromMatchUuid }
+          : { mapUuid: mapId },
         config(token),
       )
       .then(({ data: res }) => res.matchMap as MatchMapResponse),
