@@ -182,6 +182,11 @@ type UseMatchWsOptions = {
   /** `npc_added` (s→c, mesa inteira): o WS avisa, quem tem permissão rebusca por REST. */
   onNpcAdded?: (characterId: string) => void;
   /**
+   * `master_action_enqueued` (s→c): só avisa — o que o mestre fez volta pelo histórico (REST).
+   * Mesa inteira na nota de turno; só o mestre nas ações de peça (o eco carrega a posição).
+   */
+  onMasterActionEnqueued?: () => void;
+  /**
    * Pieces, walls and grid used to seed the game server once connected (master only).
    * Pass `null`/`undefined` while the REST map is still loading — syncing early would
    * seed an empty board and blank out every player's line of sight.
@@ -203,6 +208,7 @@ export function useMatchWs({
   onWsError,
   onCombatMessage,
   onNpcAdded,
+  onMasterActionEnqueued,
   board,
 }: UseMatchWsOptions) {
   const [status, setStatus] = useState<MatchWsStatus>("connecting");
@@ -229,6 +235,8 @@ export function useMatchWs({
   onCombatMessageRef.current = onCombatMessage;
   const onNpcAddedRef = useRef(onNpcAdded);
   onNpcAddedRef.current = onNpcAdded;
+  const onMasterActionEnqueuedRef = useRef(onMasterActionEnqueued);
+  onMasterActionEnqueuedRef.current = onMasterActionEnqueued;
   const lastSentTypeRef = useRef<string | undefined>(undefined);
   const boardRef = useRef(board);
   boardRef.current = board;
@@ -456,6 +464,8 @@ export function useMatchWs({
           } else if (msg.type === "npc_added") {
             const p = msg.payload as { characterId?: string };
             if (p.characterId) onNpcAddedRef.current?.(p.characterId);
+          } else if (msg.type === "master_action_enqueued") {
+            onMasterActionEnqueuedRef.current?.();
           } else if (msg.type === "error") {
             const p = msg.payload as { code?: string; message?: string };
             onWsErrorRef.current?.({

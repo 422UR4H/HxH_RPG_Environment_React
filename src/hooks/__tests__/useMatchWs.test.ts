@@ -736,6 +736,19 @@ describe("useMatchWs — fechamento da Fase 6", () => {
     expect(onNpcAdded).toHaveBeenCalledWith("npc-1");
   });
 
+  it("master_action_enqueued chama onMasterActionEnqueued, sem ir para o combate", () => {
+    const onMasterActionEnqueued = vi.fn();
+    const onCombatMessage = vi.fn();
+    renderHook(() =>
+      useMatchWs({ matchUuid: "m1", token: "t", isMaster: true, onMasterActionEnqueued, onCombatMessage }),
+    );
+    const ws = flushConnect();
+    ws.onopen?.();
+    act(() => { ws.emit("master_action_enqueued", { targetIds: ["c1"], move: { position: [3, 4, 0] } }); });
+    expect(onMasterActionEnqueued).toHaveBeenCalledTimes(1);
+    expect(onCombatMessage).not.toHaveBeenCalled();
+  });
+
   it("sendAddNpc e sendChangeScene mandam o formato do contrato", () => {
     const { result } = renderHook(() =>
       useMatchWs({ matchUuid: "m1", token: "t", isMaster: true }),

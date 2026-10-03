@@ -713,11 +713,14 @@ describe("GameMasterPage", () => {
     await user.click(screen.getByRole("button", { name: /Fila/ }));
     expect(screen.getByTestId("match-panel")).toHaveAttribute("data-wide", "false");
   });
-  // F4: o mestre também lê o Histórico do REST — com o ao vivo que o REST não guarda por cima.
-  it("F4: o Histórico do mestre junta o turno do REST e o regime ao vivo", async () => {
+  // F4: o mestre também lê o Histórico do REST — o ao vivo por cima até o refetch, que o
+  // `round_mode_changed` dispara (parte 2: o REST guarda a troca de regime em `events`).
+  it("F4: o Histórico do mestre junta o turno do REST e o regime, que o refetch traz", async () => {
+    let calls = 0;
     server.use(
-      http.get(`${baseUrl}/matches/:id/history`, () =>
-        HttpResponse.json({
+      http.get(`${baseUrl}/matches/:id/history`, () => {
+        calls++;
+        return HttpResponse.json({
           scenes: [{
             uuid: "s1", category: "battle", briefDesc: "", createdAt: "2026-06-01T00:00:00Z",
             rounds: [{
@@ -732,11 +735,15 @@ describe("GameMasterPage", () => {
                     rawDamage: 4, defenseApplied: 0, projectedDamage: 4,
                   }],
                 },
+                masterActions: [],
               }],
+              events: calls >= 2
+                ? [{ uuid: "e1", kind: "roundModeChanged", createdAt: "2026-06-01T00:02:00Z", payload: { from: "Race", to: "Free" } }]
+                : [],
             }],
           }],
-        }),
-      ),
+        });
+      }),
     );
     renderMasterPage();
     const ws = await waitForSocket();
@@ -744,10 +751,13 @@ describe("GameMasterPage", () => {
     await user.click(await screen.findByRole("button", { name: "Ver histórico" }));
 
     expect(await screen.findByText("Turno de Capanga — atacou Gon com Sword · Gon −4")).toBeInTheDocument();
+    const before = calls;
     act(() => ws.emit("round_mode_changed", { mode: "Free" }));
-    await vi.waitFor(() => expect(screen.getAllByTestId("event-row")).toHaveLength(2));
+    await vi.waitFor(() => expect(calls).toBe(before + 1));
+    await vi.waitFor(() => expect(screen.getAllByTestId("event-row")).toHaveLength(3));
     const rows = screen.getAllByTestId("event-row");
-    expect(rows[0]).toHaveTextContent("Turno de Capanga");
-    expect(rows[1]).toHaveTextContent("Regime: Livre");
+    expect(rows[0]).toHaveTextContent("Cena: batalha");
+    expect(rows[1]).toHaveTextContent("Turno de Capanga");
+    expect(rows[2]).toHaveTextContent("Regime: Livre");
   });
 });

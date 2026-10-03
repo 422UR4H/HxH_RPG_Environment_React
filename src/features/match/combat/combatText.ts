@@ -34,7 +34,11 @@ const INTERACT_LABELS: Record<string, string> = {
   toggle: "alternar",
   lockpick: "arrombar",
   examine: "examinar",
+  // Só o mestre revela (master action `revealWall`); o jogador nunca declara isto.
+  reveal: "revelar",
 };
+
+export const interactLabel = (kind: string) => INTERACT_LABELS[kind] ?? kind;
 
 /**
  * W1: o verbo de "evitou" depende de COMO o alvo evitou, não de um texto fixo — o contrato
@@ -73,7 +77,7 @@ export function describeDeclared(
     const who = d.attack.targets.map(nameOf).join(", ");
     parts.push(`atacar ${who}${d.attack.weapon ? ` com ${humanWeapon(d.attack.weapon)}` : ""}`);
   }
-  if (d.interact) parts.push(`${INTERACT_LABELS[d.interact.kind] ?? d.interact.kind} a passagem`);
+  if (d.interact) parts.push(`${interactLabel(d.interact.kind)} a passagem`);
   const text = parts.join(" e ");
   return text.charAt(0).toUpperCase() + text.slice(1);
 }

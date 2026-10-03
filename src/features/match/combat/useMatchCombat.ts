@@ -21,8 +21,11 @@ type Options = {
   board?: MatchBoardSync | null;
   /** O servidor aceitou um envio do compositor: a página limpa o rascunho DAQUELE ator. */
   onComposerSendAccepted?: (actorId: string) => void;
-  /** O WS avisa, o REST busca: a página (useGameTable) invalida as queries. */
-  onTurnClosed?: () => void;
+  /**
+   * O WS avisa, o REST busca: a página (useGameTable) invalida as queries. Toda mensagem cujo
+   * efeito o histórico guarda — turno fechado, cena, regime, round fechado, master action.
+   */
+  onHistoryChanged?: () => void;
   onFullState?: () => void;
   onNpcAdded?: (characterId: string) => void;
 } & Pick<
@@ -38,13 +41,16 @@ type SendOptions = {
 
 let localSeq = 0;
 
+/** As mensagens que o servidor só emite depois de gravar o que o histórico mostra. */
+const HISTORY_TYPES = new Set(["turn_closed", "scene_changed", "round_mode_changed", "round_closed"]);
+
 /**
  * Liga o socket ao reducer. Todo o estado de combate sai daqui; nenhuma página guarda
  * pedaço dele em useState.
  */
 export function useMatchCombat({
   matchUuid, userUuid, token, isMaster, declaredSource = "ownQueue", board, onComposerSendAccepted,
-  onTurnClosed, onFullState, onNpcAdded, ...mapHandlers
+  onHistoryChanged, onFullState, onNpcAdded, ...mapHandlers
 }: Options) {
   const [state, dispatch] = useReducer(
     combatReducer,
@@ -54,8 +60,8 @@ export function useMatchCombat({
 
   const onAcceptedRef = useRef(onComposerSendAccepted);
   onAcceptedRef.current = onComposerSendAccepted;
-  const onTurnClosedRef = useRef(onTurnClosed);
-  onTurnClosedRef.current = onTurnClosed;
+  const onHistoryChangedRef = useRef(onHistoryChanged);
+  onHistoryChangedRef.current = onHistoryChanged;
   const onFullStateRef = useRef(onFullState);
   onFullStateRef.current = onFullState;
   const onNpcAddedRef = useRef(onNpcAdded);
@@ -82,10 +88,11 @@ export function useMatchCombat({
         ...(msg.type === "match_full_state" ? { declaredSource } : {}),
       } as CombatAction);
       if (acked?.fromComposer) onAcceptedRef.current?.(acked.actorId);
-      if (msg.type === "turn_closed") onTurnClosedRef.current?.();
+      if (HISTORY_TYPES.has(msg.type)) onHistoryChangedRef.current?.();
       if (msg.type === "match_full_state") onFullStateRef.current?.();
     },
     onNpcAdded: (id) => onNpcAddedRef.current?.(id),
+    onMasterActionEnqueued: () => onHistoryChangedRef.current?.(),
     onWsError: (e) => {
       if (e.sentType === "enqueue_action") unackedRef.current.shift();
       dispatch({ type: "WS_ERROR", payload: { ...e, at: Date.now() } });

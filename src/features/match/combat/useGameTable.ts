@@ -85,7 +85,7 @@ export function useGameTable({
     onPieceMoved: live.handlePieceMoved,
     onPieceRemoved: live.handlePieceRemoved,
     onComposerSendAccepted: (a) => clearDraftForRef.current(a),
-    onTurnClosed: () => queryClient.invalidateQueries({ queryKey: ["matchHistory", token, matchId] }),
+    onHistoryChanged: () => queryClient.invalidateQueries({ queryKey: ["matchHistory", token, matchId] }),
     onNpcAdded: () => { void refetchParticipants(); },
     // Toda (re)conexão: o que mudou enquanto a conexão estava caída só volta pelo REST.
     onFullState: () => {

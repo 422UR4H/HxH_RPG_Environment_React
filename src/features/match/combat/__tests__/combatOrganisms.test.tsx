@@ -13,7 +13,7 @@ import { avoidedVerb } from "../combatText";
 import type { BarsPayload, ResolutionPayload } from "../combatMessages";
 import type { DeclaredAction, TableEvent } from "../combatReducer";
 import { historyRows } from "../historyRows";
-import type { HistoryTurn } from "../../../../types/matchHistory";
+import type { HistoryMasterAction, HistoryTurn, MatchHistory } from "../../../../types/matchHistory";
 
 const nameOf = (id: string) => ({ c1: "Gon", c2: "Killua", n1: "Hisoka" }[id] ?? id);
 
@@ -423,26 +423,95 @@ describe("EventStream", () => {
     });
     const armed: HistoryTurn = {
       uuid: "t1", createdAt: "2026-01-01T00:01:00Z", finishedAt: "2026-01-01T00:01:00Z",
-      action: { uuid: "a1", actorId: "c1", reactionKind: "", move: { category: "Dash" }, targetId: ["n1", "c2"], attack: { weapon: "ThrowingDagger" } },
+      action: {
+        uuid: "a1", actorId: "c1", reactionKind: "", move: { category: "Dash", from: [1, 1, 0], position: [3, 4, 0] },
+        targetId: ["n1", "c2"], attack: { weapon: "ThrowingDagger" },
+      },
       resolution: { isSettled: true, targets: [target("n1", false, 7), target("c2", true, 0)] },
+      masterActions: [],
     };
     const unarmed: HistoryTurn = {
       uuid: "t2", createdAt: "2026-01-01T00:02:00Z", finishedAt: "2026-01-01T00:02:00Z",
-      action: { uuid: "a2", actorId: "c2", reactionKind: "", targetId: ["n1"], attack: {} },
+      action: { uuid: "a2", actorId: "c2", reactionKind: "", targetId: ["n1"], attack: {}, move: { category: "Shift" } },
       resolution: { isSettled: true, targets: [target("n1", false, 0)] },
+      masterActions: [],
     };
     const bare: HistoryTurn = {
       uuid: "t3", createdAt: "2026-01-01T00:03:00Z",
       action: { uuid: "a3", actorId: "n1", reactionKind: "", interact: { kind: "open" } },
+      masterActions: [],
     };
-    const history = { scenes: [{ uuid: "s1", category: "battle", briefDesc: "", createdAt: "", rounds: [{ uuid: "r1", mode: "Race", createdAt: "", turns: [armed, unarmed, bare] }] }] };
+    const history: MatchHistory = {
+      scenes: [{
+        uuid: "s1", category: "battle", briefDesc: "", createdAt: "2026-01-01T00:00:00Z",
+        rounds: [{ uuid: "r1", mode: "Race", createdAt: "2026-01-01T00:00:00Z", turns: [armed, unarmed, bare], events: [] }],
+      }],
+    };
     render(<EventStream rows={historyRows(history, [], 0, undefined)} nameOf={nameOf} gridKind="square" />);
     const rows = screen.getAllByTestId("event-row");
-    expect(rows[0]).toHaveTextContent(
-      `Turno de Gon — moveu e atacou Hisoka, Killua com Throwing Dagger · Hisoka ${MINUS}7, Killua esquivou`,
+    expect(rows[0]).toHaveTextContent("Cena: batalha");
+    // O destino é como ESTE leitor o viu: sem `position`, só a categoria (fog, ou ator sem peça).
+    expect(rows[1]).toHaveTextContent(
+      `Turno de Gon — moveu para coluna 4, linha 5 (Dash) e atacou Hisoka, Killua com Throwing Dagger · Hisoka ${MINUS}7, Killua esquivou`,
     );
-    expect(rows[1]).toHaveTextContent("Turno de Killua — atacou Hisoka · Hisoka sem dano");
-    expect(rows[2]).toHaveTextContent("Turno de Hisoka — interagiu (open)");
+    expect(rows[2]).toHaveTextContent("Turno de Killua — moveu (Shift) e atacou Hisoka · Hisoka sem dano");
+    expect(rows[3]).toHaveTextContent("Turno de Hisoka — interagiu (open)");
+  });
+
+  it("cena, regime, round fechado e master actions do REST, com os textos do ao vivo (F4 parte 2)", () => {
+    const ma = (uuid: string, at: string, rest: Pick<HistoryMasterAction, "kind" | "content">): HistoryMasterAction =>
+      ({ uuid, happenedAt: at, ...rest }) as HistoryMasterAction;
+    const inTurn = ma("ma0", "2026-01-01T00:01:10Z", { kind: "wallInteract", content: { wallIds: ["w1"], interact: "open" } });
+    const turnWithMaster: HistoryTurn = {
+      uuid: "t1", createdAt: "2026-01-01T00:01:00Z", finishedAt: "2026-01-01T00:01:30Z",
+      action: { uuid: "a1", actorId: "c1", reactionKind: "" },
+      masterActions: [{ ...inTurn, turnId: "t1" }],
+    };
+    const event = (m: HistoryMasterAction) => ({ uuid: m.uuid, kind: "masterAction" as const, createdAt: m.happenedAt, masterAction: m });
+    const history: MatchHistory = {
+      scenes: [
+        {
+          uuid: "s1", category: "roleplay", briefDesc: "Taverna", createdAt: "2026-01-01T00:00:00Z", finishedAt: "2026-01-01T00:09:00Z",
+          rounds: [
+            {
+              uuid: "r1", mode: "Race", createdAt: "2026-01-01T00:00:00Z", finishedAt: "2026-01-01T00:05:00Z",
+              turns: [turnWithMaster],
+              events: [
+                { uuid: "e1", kind: "roundModeChanged", createdAt: "2026-01-01T00:00:30Z", payload: { from: "Free", to: "Race" } },
+                event(ma("ma1", "2026-01-01T00:02:00Z", { kind: "movePiece", content: { characterId: "c1", pieceId: "p1", from: [0, 0, 0], to: [2, 3, 0] } })),
+                event(ma("ma2", "2026-01-01T00:02:10Z", { kind: "movePiece", content: { characterId: "c2", pieceId: "p2", from: [0, 0, 0] } })),
+                event(ma("ma3", "2026-01-01T00:02:20Z", { kind: "placePiece", content: { characterId: "n1", pieceId: "p3", to: [5, 5, 0] } })),
+                event(ma("ma4", "2026-01-01T00:02:30Z", { kind: "removePiece", content: { characterId: "n1", pieceId: "p3", from: [5, 5, 0] } })),
+                event(ma("ma5", "2026-01-01T00:02:40Z", { kind: "revealWall", content: { wallIds: ["w2"], interact: "reveal" } })),
+                event(ma("ma6", "2026-01-01T00:02:50Z", { kind: "trapSprung", content: {} } as unknown as Pick<HistoryMasterAction, "kind" | "content">)),
+              ],
+            },
+            { uuid: "r2", mode: "Race", createdAt: "2026-01-01T00:05:00Z", finishedAt: "2026-01-01T00:09:00Z", turns: [], events: [] },
+          ],
+        },
+        {
+          uuid: "s2", category: "battle", briefDesc: "Arena", createdAt: "2026-01-01T00:09:00Z",
+          rounds: [{ uuid: "r3", mode: "Free", createdAt: "2026-01-01T00:09:00Z", turns: [], events: [] }],
+        },
+      ],
+    };
+    render(<EventStream rows={historyRows(history, [], 0, undefined)} nameOf={nameOf} gridKind="square" />);
+    const texts = screen.getAllByTestId("event-row").map((r) => r.textContent);
+    expect(texts).toEqual([
+      expect.stringContaining("Cena: Taverna"),
+      expect.stringContaining("Regime: Disputado"),
+      // A master action de dentro do turno vai junto da linha dele.
+      expect.stringMatching(/Turno de Gon.*Mestre: abrir na passagem/),
+      expect.stringContaining("Mestre moveu Gon para coluna 3, linha 4"),
+      // Este leitor só viu a peça sair: o REST já veio sem o destino.
+      expect.stringMatching(/Mestre moveu Killua$/),
+      expect.stringContaining("Mestre pôs Hisoka em coluna 6, linha 6"),
+      expect.stringContaining("Mestre tirou Hisoka do mapa"),
+      expect.stringContaining("Mestre: revelar na passagem"),
+      expect.stringContaining("Ação do mestre"),
+      expect.stringContaining("Fim do round"),
+      expect.stringContaining("Cena: Arena"),
+    ]);
   });
 });
 

@@ -398,7 +398,9 @@ describe("resolveLostCandidates (F10)", () => {
           uuid: `t${i}`, createdAt: "",
           action: { uuid: id, actorId: "c1", reactionKind: "" },
           reactions: reactionIds.map((r) => ({ uuid: r, actorId: "c2", reactionKind: "dodge" })),
+          masterActions: [],
         })),
+        events: [],
       }],
     }],
   });

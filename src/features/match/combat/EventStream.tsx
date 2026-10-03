@@ -3,20 +3,21 @@ import styled from "styled-components";
 import { colors, fonts } from "../../../styles/tokens";
 import type { GridKind } from "../../../types/tacticalMap";
 import type { TableEvent } from "./combatReducer";
-import type { ResolutionTarget, ScenePayload } from "./combatMessages";
-import type { HistoryTurn } from "../../../types/matchHistory";
+import type { ResolutionTarget, SceneCategory } from "./combatMessages";
+import type { HistoryMasterAction, HistoryMove, HistoryTurn } from "../../../types/matchHistory";
 import type { HistoryRow } from "./historyRows";
-import { avoidedVerb, describeDeclared, humanWeapon, ROUND_MODE_LABELS } from "./combatText";
+import { avoidedVerb, describeDeclared, formatSlot, humanWeapon, interactLabel, ROUND_MODE_LABELS } from "./combatText";
 
 /** U+2212 MINUS SIGN — não é hífen. */
 const MINUS = "−";
 
 const lowerFirst = (t: string) => t.charAt(0).toLowerCase() + t.slice(1);
 
-const sceneLabel = (s: ScenePayload) =>
-  s.briefInitialDescription || (s.category === "battle" ? "batalha" : "interpretação");
+const sceneLabel = (brief: string, category: SceneCategory) =>
+  brief || (category === "battle" ? "batalha" : "interpretação");
 
-type Line = { icon: string; text: string; tone?: "turn" | "hp" | "muted" };
+/** `details`: o que vai junto da linha — as master actions feitas dentro de um turno. */
+type Line = { icon: string; text: string; tone?: "turn" | "hp" | "muted"; details?: string[] };
 
 /** O desfecho de um alvo — o mesmo texto no ao vivo e no REST (W1: verbo por `reaction.kind`,
  * igual a ResolutionDetails via `avoidedVerb`). */
@@ -54,16 +55,41 @@ function eventLine(event: TableEvent, nameOf: (id: string) => string, gridKind: 
     case "round_mode_changed":
       return { icon: "⇄", tone: "muted", text: `Regime: ${ROUND_MODE_LABELS[event.mode]}` };
     case "scene_changed":
-      return { icon: "✦", tone: "muted", text: `Cena: ${sceneLabel(event.scene)}` };
+      return { icon: "✦", tone: "muted", text: `Cena: ${sceneLabel(event.scene.briefInitialDescription, event.scene.category)}` };
   }
 }
 
+/** Já projetada para quem lê: sem `to`, este leitor só viu a peça sair (ou não viu o destino). */
+function masterActionText(ma: HistoryMasterAction, nameOf: (id: string) => string, gridKind: GridKind): string {
+  switch (ma.kind) {
+    case "movePiece": {
+      const { characterId, to } = ma.content;
+      return to ? `Mestre moveu ${nameOf(characterId)} para ${formatSlot(to, gridKind)}` : `Mestre moveu ${nameOf(characterId)}`;
+    }
+    case "placePiece": {
+      const { characterId, to } = ma.content;
+      return to ? `Mestre pôs ${nameOf(characterId)} em ${formatSlot(to, gridKind)}` : `Mestre pôs ${nameOf(characterId)} no mapa`;
+    }
+    case "removePiece":
+      return `Mestre tirou ${nameOf(ma.content.characterId)} do mapa`;
+    case "wallInteract":
+    case "revealWall":
+      return `Mestre: ${interactLabel(ma.content.interact)} na passagem`;
+    default:
+      // `turnNote` e qualquer tipo que o servidor venha a acrescentar.
+      return "Ação do mestre";
+  }
+}
+
+function moveText(move: HistoryMove, gridKind: GridKind): string {
+  return move.position ? `moveu para ${formatSlot(move.position, gridKind)} (${move.category})` : `moveu (${move.category})`;
+}
+
 /** Um turno fechado como o REST o guarda (já projetado para quem pede). */
-function turnLine(turn: HistoryTurn, nameOf: (id: string) => string): Line {
+function turnLine(turn: HistoryTurn, nameOf: (id: string) => string, gridKind: GridKind): Line {
   const a = turn.action;
   const parts: string[] = [];
-  // Parte 1: o formato do `move` não está no contrato até B15 — só a presença é lida.
-  if (a.move !== undefined) parts.push("moveu");
+  if (a.move) parts.push(moveText(a.move, gridKind));
   if (a.attack) {
     const who = (a.targetId ?? []).map(nameOf).join(", ");
     parts.push(`atacou ${who}${a.attack.weapon ? ` com ${humanWeapon(a.attack.weapon)}` : ""}`);
@@ -71,11 +97,32 @@ function turnLine(turn: HistoryTurn, nameOf: (id: string) => string): Line {
   if (a.interact) parts.push(`interagiu (${a.interact.kind})`);
   const outcomes = (turn.resolution?.targets ?? []).map((t) => outcomeText(t, nameOf));
   const what = parts.length ? ` — ${parts.join(" e ")}` : "";
-  return { icon: "■", text: `Turno de ${nameOf(a.actorId)}${what}${outcomes.length ? ` · ${outcomes.join(", ")}` : ""}` };
+  return {
+    icon: "■",
+    text: `Turno de ${nameOf(a.actorId)}${what}${outcomes.length ? ` · ${outcomes.join(", ")}` : ""}`,
+    details: turn.masterActions.map((ma) => masterActionText(ma, nameOf, gridKind)),
+  };
+}
+
+function rowLine(row: HistoryRow, nameOf: (id: string) => string, gridKind: GridKind): Line {
+  if (row.source === "live") return eventLine(row.event, nameOf, gridKind);
+  switch (row.kind) {
+    case "turn":
+      return turnLine(row.turn, nameOf, gridKind);
+    case "scene":
+      return { icon: "✦", tone: "muted", text: `Cena: ${sceneLabel(row.scene.briefDesc, row.scene.category)}` };
+    case "round_closed":
+      return { icon: "↻", tone: "muted", text: "Fim do round" };
+    case "round_mode_changed":
+      return { icon: "⇄", tone: "muted", text: `Regime: ${ROUND_MODE_LABELS[row.mode]}` };
+    case "master_action":
+      return { icon: "⚑", text: masterActionText(row.masterAction, nameOf, gridKind) };
+  }
 }
 
 /**
- * A aba Histórico: os turnos que o servidor guardou (REST), com os eventos ao vivo por cima
+ * A aba Histórico: o que o servidor guardou (REST: turnos, cenas, regime, rounds, master
+ * actions), com os eventos ao vivo por cima
  * — `historyRows` já decidiu o que o REST cobre. O mais recente embaixo (a rolagem fica presa
  * ao fim). O que ESTE navegador declarou aparece com detalhe; o dos outros, não — a
  * declaração de um jogador nunca é projetada para a mesa.
@@ -103,11 +150,14 @@ export default function EventStream({
   return (
     <Container ref={containerRef}>
       {rows.map((row) => {
-        const line = row.source === "rest" ? turnLine(row.turn, nameOf) : eventLine(row.event, nameOf, gridKind);
+        const line = rowLine(row, nameOf, gridKind);
         return (
           <Row key={row.key} data-testid="event-row" $tone={line.tone}>
             <Icon aria-hidden>{line.icon}</Icon>
-            <span>{line.text}</span>
+            <span>
+              {line.text}
+              {line.details?.map((d, i) => <Detail key={i}>{d}</Detail>)}
+            </span>
           </Row>
         );
       })}
@@ -143,6 +193,11 @@ const Icon = styled.span`
   width: 12px;
   flex-shrink: 0;
   text-align: center;
+  color: ${colors.textPlaceholderStrong};
+`;
+
+const Detail = styled.span`
+  display: block;
   color: ${colors.textPlaceholderStrong};
 `;
 

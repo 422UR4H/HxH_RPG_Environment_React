@@ -381,7 +381,9 @@ describe("GamePlayerPage", () => {
           turns: [{
             uuid: "t1", createdAt: "2026-06-01T00:01:00Z", finishedAt: "2026-06-01T00:01:00Z",
             action: { uuid: actionId, actorId: "c1", reactionKind: "", targetId: ["c2"], attack: { weapon: "Fist" } },
+            masterActions: [],
           }],
+          events: [],
         }],
       }],
     });
@@ -849,7 +851,9 @@ describe("GamePlayerPage", () => {
               turns: [{
                 uuid: "t1", createdAt: "2026-06-01T00:01:00Z", finishedAt: "2026-06-01T00:01:00Z",
                 action: { uuid: "a1", actorId: "c1", reactionKind: "", targetId: ["c2"], attack: {} },
+                masterActions: [],
               }],
+              events: [],
             }],
           }],
         });
@@ -876,6 +880,7 @@ describe("GamePlayerPage", () => {
     const closed = {
       uuid: "t1", createdAt: "2026-06-01T00:01:00Z", finishedAt: "2026-06-01T00:01:00Z",
       action: { uuid: "a1", actorId: "c1", reactionKind: "", targetId: ["c2"], attack: {} },
+      masterActions: [],
       resolution: {
         isSettled: true,
         targets: [{
@@ -890,7 +895,7 @@ describe("GamePlayerPage", () => {
         return HttpResponse.json({
           scenes: [{
             uuid: "s1", category: "battle", briefDesc: "", createdAt: "2026-06-01T00:00:00Z",
-            rounds: [{ uuid: "r1", mode: "Race", createdAt: "2026-06-01T00:00:00Z", turns: calls >= 2 ? [closed] : [] }],
+            rounds: [{ uuid: "r1", mode: "Race", createdAt: "2026-06-01T00:00:00Z", turns: calls >= 2 ? [closed] : [], events: [] }],
           }],
         });
       }),
@@ -901,7 +906,7 @@ describe("GamePlayerPage", () => {
     const toggle = await screen.findByRole("button", { name: "Ver histórico" });
     act(() => toggle.click());
     await vi.waitFor(() => expect(calls).toBe(1));
-    await screen.findByText(/Nada aconteceu ainda/);
+    await screen.findByText("Cena: batalha");
 
     const now = vi.spyOn(Date, "now").mockReturnValue(Date.parse("2026-06-01T00:01:00Z"));
     try {
@@ -912,7 +917,8 @@ describe("GamePlayerPage", () => {
       await vi.waitFor(() => expect(calls).toBe(2));
       expect(await screen.findByText(`Turno de Gon — atacou Killua · Killua −3`)).toBeInTheDocument();
       const rows = screen.getAllByTestId("event-row");
-      expect(rows).toHaveLength(1);
+      expect(rows).toHaveLength(2);
+      expect(rows[0]).toHaveTextContent("Cena: batalha");
       expect(screen.queryByText(/♥/)).toBeNull();
     } finally {
       now.mockRestore();

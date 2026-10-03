@@ -145,19 +145,35 @@ describe("useMatchCombat — avisos para o REST", () => {
     });
   });
 
-  it("chama onTurnClosed, onFullState e onNpcAdded", () => {
-    const onTurnClosed = vi.fn();
+  it("chama onHistoryChanged, onFullState e onNpcAdded", () => {
+    const onHistoryChanged = vi.fn();
     const onFullState = vi.fn();
     const onNpcAdded = vi.fn();
-    const { ws } = mount({ onTurnClosed, onFullState, onNpcAdded });
+    const { ws } = mount({ onHistoryChanged, onFullState, onNpcAdded });
     act(() => {
       ws.emit("turn_closed", { turnId: "t1" });
       ws.emit("match_full_state", { roundMode: "Race", bars: { seq: 1, prices: {}, characters: [], order: [] } });
       ws.emit("npc_added", { characterId: "npc-1" });
     });
-    expect(onTurnClosed).toHaveBeenCalledTimes(1);
+    expect(onHistoryChanged).toHaveBeenCalledTimes(1);
     expect(onFullState).toHaveBeenCalledTimes(1);
     expect(onNpcAdded).toHaveBeenCalledWith("npc-1");
+  });
+
+  it("tudo o que o histórico guarda avisa onHistoryChanged (F4 parte 2)", () => {
+    const onHistoryChanged = vi.fn();
+    const { ws } = mount({ isMaster: true, onHistoryChanged });
+    const cases: Array<[string, unknown]> = [
+      ["scene_changed", { sceneId: "s2", category: "battle", briefInitialDescription: "Arena" }],
+      ["round_mode_changed", { mode: "Free" }],
+      ["round_closed", { roundMode: "Race" }],
+      ["master_action_enqueued", { targetIds: ["c1"], remove: {} }],
+    ];
+    for (const [type, payload] of cases) {
+      onHistoryChanged.mockClear();
+      act(() => { ws.emit(type, payload); });
+      expect(onHistoryChanged, type).toHaveBeenCalledTimes(1);
+    }
   });
 
   it("expõe addNpc e changeScene", () => {
