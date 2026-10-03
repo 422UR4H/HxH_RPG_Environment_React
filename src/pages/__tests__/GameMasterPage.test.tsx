@@ -254,6 +254,55 @@ describe("GameMasterPage", () => {
     expect(ghosts[0]).toEqual({ from: [4, 4, 0], to: [9, 9, 0] });
   });
 
+  // F10/B12: o mestre não recebe `ownQueue` — as declaradas dele (pelos NPCs) se reconciliam
+  // pela `queue`. Depois de um reinício a Fila vem vazia, e a lista e o fantasma vão junto.
+  describe("F10: as declaradas do mestre seguem a fila do servidor", () => {
+    const declareNpcMove = async (ws: { emit: (t: string, p: unknown) => void }) => {
+      act(() => screen.getByTestId("select-actor-npc1").click());
+      act(() => screen.getByTestId("empty-slot").click());
+      act(() => screen.getByRole("button", { name: /declarar/i }).click());
+      act(() => ws.emit("action_enqueued", { actionId: "a1" }));
+      await vi.waitFor(() => expect(screen.getAllByTestId("declared-row")).toHaveLength(1));
+    };
+    const ghosts = () => JSON.parse(screen.getByTestId("map-stub").getAttribute("data-ghosts") ?? "[]");
+    const fullState = (ws: { emit: (t: string, p: unknown) => void }, extra: Record<string, unknown> = {}) =>
+      act(() => ws.emit("match_full_state", {
+        roundMode: "Race", bars: { seq: 1, prices: {}, characters: [], order: [] }, ...extra,
+      }));
+
+    it("a que a queue não tem sai da lista e o fantasma some", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      act(() => ws.onopen?.());
+      await screen.findByTestId("select-actor-npc1");
+      await declareNpcMove(ws);
+      expect(ghosts()).toHaveLength(1);
+
+      fullState(ws); // `queue` ausente = fila vazia (contrato)
+
+      await vi.waitFor(() => expect(screen.queryAllByTestId("declared-row")).toHaveLength(0));
+      expect(ghosts()).toEqual([]);
+    });
+
+    it("a que a queue tem fica", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      act(() => ws.onopen?.());
+      await screen.findByTestId("select-actor-npc1");
+      await declareNpcMove(ws);
+
+      fullState(ws, {
+        queue: [{
+          actionId: "a1", actorId: "npc1", bars: ["move"],
+          action: { uuid: "a1", actorId: "npc1", reactionKind: "", move: { category: "Dash", position: [9, 9, 0], finalSpeed: 10 } },
+        }],
+      });
+      await act(async () => {});
+      expect(screen.getAllByTestId("declared-row")).toHaveLength(1);
+      expect(ghosts()).toHaveLength(1);
+    });
+  });
+
   it("F7: turno aberto mostra o card em andamento na Fila, com o cálculo anexado", async () => {
     renderMasterPage();
     const ws = await waitForSocket();

@@ -32,7 +32,7 @@ import MatchCharactersSidebar from "../features/match/MatchCharactersSidebar";
 import WallActionSheet from "../features/match/WallActionSheet";
 import TacticalMapViewer from "../features/tactical-map/TacticalMapViewer";
 import {
-  CanvasWrapper, MapCornerButton, MapHint, MapLoadingMessage, NoMapMessage,
+  CanvasWrapper, MapCornerButton, MapHint, MapLoadingMessage, NoMapMessage, StageNotices,
 } from "../features/match/combat/mapCanvasStyles";
 import type { SlotCoord, WallSegment } from "../types/tacticalMap";
 
@@ -58,7 +58,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   const [inspectedId, setInspectedId] = useState<string | undefined>(undefined);
   const [sheetId, setSheetId] = useState<string | undefined>(undefined);
 
-  const game = useGameTable({ token, campaignId, matchId, isMaster: true, actorId });
+  const game = useGameTable({ token, campaignId, matchId, isMaster: true, declaredSource: "queue", actorId });
   const { combat, composer, live, map, nameOf, participants } = game;
   const { state } = combat;
   const gridKind = map?.grid.kind ?? "square";
@@ -364,11 +364,17 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
               nameOf={nameOf}
               highlightActorIds={npcIds}
             />
-            <MatchErrorBanner
-              error={state.lastError?.code === "npc_already_in_match" ? null : state.lastError}
-              onDismiss={combat.dismissError}
-            />
-            <LostDeclaredNotice count={state.lostDeclared.length} onDismiss={combat.dismissLostDeclared} />
+            <StageNotices>
+              <MatchErrorBanner
+                error={state.lastError?.code === "npc_already_in_match" ? null : state.lastError}
+                onDismiss={combat.dismissError}
+              />
+              <LostDeclaredNotice
+                count={state.lostDeclared.length}
+                restoredCount={state.lostDeclared.filter((d) => d.draftRestored).length}
+                onDismiss={combat.dismissLostDeclared}
+              />
+            </StageNotices>
             {mapHint && <MapHint>{mapHint}</MapHint>}
             {map && <MapCornerButton type="button" onClick={game.refit}>Enquadrar</MapCornerButton>}
           </>

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useReducer, useRef } from "react";
 import { useMatchWs } from "../../../hooks/useMatchWs";
 import type { MatchBoardSync } from "../../../hooks/useMatchWs";
 import { combatReducer, initialCombatState } from "./combatReducer";
-import type { CombatAction, DeclaredAction } from "./combatReducer";
+import type { CombatAction, DeclaredAction, DeclaredSource } from "./combatReducer";
 import { loadDeclared, saveDeclared } from "./declaredStorage";
 import type { EnqueueActionPayload, MasterActionPayload } from "./combatMessages";
 
@@ -12,6 +12,12 @@ type Options = {
   userUuid: string | undefined;
   token: string;
   isMaster: boolean;
+  /**
+   * Contra o que o `match_full_state` reconcilia as declaradas (B12): o jogador pela
+   * `ownQueue`, o mestre pela `queue`. Escolha da PÁGINA (I2), via `useGameTable`. O padrão
+   * é o seguro: sem `ownQueue` no payload, não reconcilia.
+   */
+  declaredSource?: DeclaredSource;
   board?: MatchBoardSync | null;
   /** O servidor aceitou um envio do compositor: a página limpa o rascunho DAQUELE ator. */
   onComposerSendAccepted?: (actorId: string) => void;
@@ -37,7 +43,7 @@ let localSeq = 0;
  * pedaço dele em useState.
  */
 export function useMatchCombat({
-  matchUuid, userUuid, token, isMaster, board, onComposerSendAccepted,
+  matchUuid, userUuid, token, isMaster, declaredSource = "ownQueue", board, onComposerSendAccepted,
   onTurnClosed, onFullState, onNpcAdded, ...mapHandlers
 }: Options) {
   const [state, dispatch] = useReducer(
@@ -69,7 +75,12 @@ export function useMatchCombat({
     onCombatMessage: (msg, serverAt) => {
       if (msg.type === "match_full_state") unackedRef.current = [];
       const acked = msg.type === "action_enqueued" ? unackedRef.current.shift() : undefined;
-      dispatch({ ...msg, at: serverAt, receivedAt: Date.now() } as CombatAction);
+      dispatch({
+        ...msg,
+        at: serverAt,
+        receivedAt: Date.now(),
+        ...(msg.type === "match_full_state" ? { declaredSource } : {}),
+      } as CombatAction);
       if (acked?.fromComposer) onAcceptedRef.current?.(acked.actorId);
       if (msg.type === "turn_closed") onTurnClosedRef.current?.();
       if (msg.type === "match_full_state") onFullStateRef.current?.();
@@ -134,6 +145,11 @@ export function useMatchCombat({
     dismissError: useCallback(() => dispatch({ type: "ERROR_DISMISSED" }), []),
     dismissCloseTurnDialog: useCallback(() => dispatch({ type: "CLOSE_TURN_DIALOG_DISMISSED" }), []),
     dismissLostDeclared: useCallback(() => dispatch({ type: "LOST_DECLARED_DISMISSED" }), []),
+    resolveLostCandidates: useCallback(
+      (payload: { ran: string[]; lost: string[]; restored: string[] }) =>
+        dispatch({ type: "LOST_CANDIDATES_RESOLVED", payload }),
+      [],
+    ),
     dismissDeclared: useCallback(
       (ids: string[]) => { if (ids.length) dispatch({ type: "DECLARED_DISMISSED", payload: { ids } }); },
       [],

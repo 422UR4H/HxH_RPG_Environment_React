@@ -4,6 +4,7 @@ import type {
   RoundModeChangedPayload, RoundMode, ScenePayload, TurnClosedPayload, TurnOpenedPayload,
 } from "./combatMessages";
 import type { WsError } from "./combatErrorMessages";
+import type { MatchHistory } from "../../../types/matchHistory";
 import type { SlotTriple } from "../../tactical-map/utils/coords";
 
 /**
@@ -28,6 +29,19 @@ export type DeclaredAction = {
   at: number;
 };
 
+/**
+ * Uma declarada que o `match_full_state` não conhecia (B12). Ainda não é perda: pode ter
+ * aberto E fechado enquanto o cliente estava fora — só o histórico buscado depois desta
+ * chegada (`detectedAt`, hora local) decide. Ver `resolveLostCandidates`.
+ */
+export type LostCandidate = DeclaredAction & { detectedAt: number };
+
+/** Uma declarada que o servidor perdeu de verdade — para o aviso. */
+export type LostDeclared = DeclaredAction & { draftRestored: boolean };
+
+/** De onde vem o que o servidor ainda tem de MEU: jogador `ownQueue`, mestre `queue`. */
+export type DeclaredSource = "ownQueue" | "queue";
+
 export type TableEvent =
   | { kind: "turn_opened"; at: number; receivedAt: number; turnId: string; actorId: string; mine?: DeclaredAction }
   | { kind: "turn_closed"; at: number; receivedAt: number; turnId: string; actorId?: string; resolution?: ResolutionPayload }
@@ -45,11 +59,13 @@ export type CombatState = {
   queue: QueuedAction[];
   hp: Record<string, { hp: number; maxHp: number }>;
   declared: DeclaredAction[];
+  /** Saíram de `declared` na reconexão e esperam o histórico para virar perda (ou não). */
+  lostCandidates: LostCandidate[];
   /**
-   * Declaradas que o servidor não tinha mais na reconexão (B12) — só para o aviso e para
-   * devolver o rascunho. Nada aqui é reenviado (I7): reenviar rola os dados de novo.
+   * Declaradas que o servidor perdeu (B12) — só para o aviso e para devolver o rascunho.
+   * Nada aqui é reenviado (I7): reenviar rola os dados de novo.
    */
-  lostDeclared: DeclaredAction[];
+  lostDeclared: LostDeclared[];
   events: TableEvent[];
   pendingCloseTurn: CloseTurnRefusedPayload | null;
   lastError: WsError | null;
@@ -66,6 +82,7 @@ export const initialCombatState: CombatState = {
   queue: [],
   hp: {},
   declared: [],
+  lostCandidates: [],
   lostDeclared: [],
   events: [],
   pendingCloseTurn: null,
@@ -78,7 +95,7 @@ export const initialCombatState: CombatState = {
 type Stamp = { at?: number; receivedAt?: number };
 
 export type CombatAction =
-  | ({ type: "match_full_state"; payload: MatchFullStatePayload } & Stamp)
+  | ({ type: "match_full_state"; payload: MatchFullStatePayload; declaredSource?: DeclaredSource } & Stamp)
   | ({ type: "bars_updated"; payload: BarsPayload } & Stamp)
   | ({ type: "action_enqueued"; payload: ActionEnqueuedPayload } & Stamp)
   | ({ type: "action_queued"; payload: QueuedAction } & Stamp)
@@ -92,6 +109,7 @@ export type CombatAction =
   | ({ type: "close_turn_refused"; payload: CloseTurnRefusedPayload } & Stamp)
   | { type: "ACTION_SENT"; payload: DeclaredAction }
   | { type: "DECLARED_DISMISSED"; payload: { ids: string[] } }
+  | { type: "LOST_CANDIDATES_RESOLVED"; payload: { ran: string[]; lost: string[]; restored: string[] } }
   | { type: "LOST_DECLARED_DISMISSED" }
   | { type: "WS_ERROR"; payload: WsError }
   | { type: "ERROR_DISMISSED" }
@@ -122,15 +140,18 @@ function oldestSendingIndex(declared: DeclaredAction[]): number {
 
 /**
  * Regra de reconciliação B12 (contrato, `match_full_state`): uma declarada é conhecida pelo
- * servidor se e só se está em `ownQueue` ou é a ação do `openTurn`. Sem `ownQueue` (o mestre,
- * ou um servidor anterior a B12) não há como saber — fica tudo como estava.
+ * servidor se e só se está na fila (`ownQueue` do jogador; `queue` do mestre) ou é a ação do
+ * `openTurn`. `ownQueue` ausente é um servidor anterior a B12 — não há como saber, fica tudo
+ * como estava. `queue` ausente é fila vazia (contrato).
  */
 function reconcileDeclared(
   declared: DeclaredAction[],
   p: MatchFullStatePayload,
+  source: DeclaredSource,
 ): { declared: DeclaredAction[]; lost: DeclaredAction[] } {
-  if (!p.ownQueue) return { declared, lost: [] };
-  const pending = new Set(p.ownQueue.map((q) => q.actionId));
+  const pendingIds = source === "queue" ? (p.queue ?? []).map((q) => q.actionId) : p.ownQueue?.map((q) => q.actionId);
+  if (!pendingIds) return { declared, lost: [] };
+  const pending = new Set(pendingIds);
   const openActionId = p.openTurn?.actionId;
   const kept: DeclaredAction[] = [];
   const lost: DeclaredAction[] = [];
@@ -154,8 +175,9 @@ export function combatReducer(state: CombatState, action: CombatAction): CombatS
       const survivors = state.declared.filter(
         (d) => d.status === "queued" || (d.status === "open" && d.turnId === openTurn?.turnId),
       );
-      const { declared, lost } = reconcileDeclared(survivors, p);
-      const lostIds = new Set(state.lostDeclared.map((d) => d.id));
+      const { declared, lost } = reconcileDeclared(survivors, p, action.declaredSource ?? "ownQueue");
+      const known = new Set([...state.lostCandidates, ...state.lostDeclared].map((d) => d.id));
+      const { receivedAt: detectedAt } = stampOf(action);
       return {
         ...state,
         scene: p.scene,
@@ -164,7 +186,10 @@ export function combatReducer(state: CombatState, action: CombatAction): CombatS
         openTurn,
         queue: p.queue ?? [],
         declared,
-        lostDeclared: [...state.lostDeclared, ...lost.filter((d) => !lostIds.has(d.id))],
+        lostCandidates: [
+          ...state.lostCandidates,
+          ...lost.filter((d) => !known.has(d.id)).map((d) => ({ ...d, detectedAt })),
+        ],
         openResolution: p.resolution && !p.resolution.isSettled ? p.resolution : null,
         // A linha não volta na reconexão: o card em andamento usa o `openTurn`.
         openQueued: null,
@@ -190,6 +215,21 @@ export function combatReducer(state: CombatState, action: CombatAction): CombatS
     case "DECLARED_DISMISSED": {
       const ids = new Set(action.payload.ids);
       return { ...state, declared: state.declared.filter((d) => !ids.has(d.id)) };
+    }
+
+    case "LOST_CANDIDATES_RESOLVED": {
+      const { ran, lost, restored } = action.payload;
+      const decided = new Set([...ran, ...lost]);
+      const lostIds = new Set(lost);
+      const restoredIds = new Set(restored);
+      const confirmed = state.lostCandidates
+        .filter((d) => lostIds.has(d.id))
+        .map(({ detectedAt: _detectedAt, ...d }) => ({ ...d, draftRestored: restoredIds.has(d.id) }));
+      return {
+        ...state,
+        lostCandidates: state.lostCandidates.filter((d) => !decided.has(d.id)),
+        lostDeclared: [...state.lostDeclared, ...confirmed],
+      };
     }
 
     case "LOST_DECLARED_DISMISSED":
@@ -329,6 +369,34 @@ export function combatReducer(state: CombatState, action: CombatAction): CombatS
     default:
       return state;
   }
+}
+
+/**
+ * Decide as candidatas que um histórico cobre: só as detectadas ATÉ o início do fetch
+ * (`fetchStartedAt >= detectedAt`) — um histórico anterior ao `match_full_state` não sabe do
+ * que fechou durante a queda. A que aparece no histórico (como ação ou reação de um turno)
+ * rodou: sai calada. A que não aparece foi perdida. `null` = nada a decidir ainda.
+ */
+export function resolveLostCandidates(
+  candidates: LostCandidate[],
+  historyData: { history: MatchHistory; fetchStartedAt: number } | undefined,
+): { ran: string[]; lost: string[] } | null {
+  if (!historyData) return null;
+  const covered = candidates.filter((d) => historyData.fetchStartedAt >= d.detectedAt);
+  if (covered.length === 0) return null;
+  const inHistory = new Set<string>();
+  for (const scene of historyData.history.scenes ?? []) {
+    for (const round of scene.rounds) {
+      for (const turn of round.turns) {
+        inHistory.add(turn.action.uuid);
+        turn.reactions?.forEach((r) => inHistory.add(r.uuid));
+      }
+    }
+  }
+  return {
+    ran: covered.filter((d) => inHistory.has(d.id)).map((d) => d.id),
+    lost: covered.filter((d) => !inHistory.has(d.id)).map((d) => d.id),
+  };
 }
 
 /** Os movimentos pedidos que ainda não aconteceram — o fantasma no mapa. */

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { combatReducer, initialCombatState, pendingMoves } from "../combatReducer";
-import type { CombatAction, CombatState, DeclaredAction } from "../combatReducer";
+import { combatReducer, initialCombatState, pendingMoves, resolveLostCandidates } from "../combatReducer";
+import type { CombatAction, CombatState, DeclaredAction, LostCandidate } from "../combatReducer";
+import type { MatchHistory } from "../../../../types/matchHistory";
 import type { BarsPayload, MatchFullStatePayload } from "../combatMessages";
 import type { ResolutionPayload } from "../combatMessages";
 
@@ -278,16 +279,21 @@ describe("combatReducer — HP na reconexão", () => {
 });
 
 describe("combatReducer — a lista de declaradas segue o servidor (F10/B12)", () => {
-  const full = (extra: Partial<MatchFullStatePayload> = {}): CombatAction => ({
+  const full = (
+    extra: Partial<MatchFullStatePayload> = {},
+    rest: { receivedAt?: number; declaredSource?: "ownQueue" | "queue" } = {},
+  ): CombatAction => ({
     type: "match_full_state",
     payload: { roundMode: "Race", ...extra },
+    ...rest,
   });
   const own = (...ids: string[]) => ids.map((actionId) => ({ actionId, action: {} }));
+  const q = (...ids: string[]) => ids.map((actionId) => ({ actionId, actorId: "npc1", bars: ["move" as const] }));
 
   it("a ação que o servidor ainda tem na fila fica", () => {
     const s = run([sent("local-1"), acked("a1"), sent("local-2"), acked("a2"), full({ ownQueue: own("a1", "a2") })]);
     expect(s.declared.map((d) => [d.id, d.status])).toEqual([["a1", "queued"], ["a2", "queued"]]);
-    expect(s.lostDeclared).toEqual([]);
+    expect(s.lostCandidates).toEqual([]);
   });
 
   it("a ação que abriu enquanto eu estava fora é conhecida pelo openTurn.actionId — fica, aberta", () => {
@@ -296,43 +302,122 @@ describe("combatReducer — a lista de declaradas segue o servidor (F10/B12)", (
       full({ ownQueue: [], openTurn: { turnId: "t1", actorId: "c1", actionId: "a1" } }),
     ]);
     expect(s.declared.map((d) => [d.id, d.status, d.turnId])).toEqual([["a1", "open", "t1"]]);
-    expect(s.lostDeclared).toEqual([]);
+    expect(s.lostCandidates).toEqual([]);
   });
 
-  it("a ação que o servidor não tem sai da lista e vira lostDeclared", () => {
+  it("a ação que o servidor não tem sai da lista e vira candidata, carimbada com a chegada", () => {
     const s = run([
       sent("local-1", { ...moveTo, at: 10 }), acked("a1"),
       sent("local-2"), acked("a2"),
-      full({ ownQueue: own("a2") }),
+      full({ ownQueue: own("a2") }, { receivedAt: 500 }),
     ]);
     expect(s.declared.map((d) => d.id)).toEqual(["a2"]);
-    expect(s.lostDeclared.map((d) => [d.id, d.at])).toEqual([["a1", 10]]);
-    expect(s.lostDeclared[0].move).toEqual(moveTo.move);
+    expect(s.lostCandidates.map((d) => [d.id, d.at, d.detectedAt])).toEqual([["a1", 10, 500]]);
+    expect(s.lostCandidates[0].move).toEqual(moveTo.move);
+    // Ainda não é perda: pode ter aberto E fechado enquanto eu estava fora (o histórico diz).
+    expect(s.lostDeclared).toEqual([]);
   });
 
   it("um envio sem ack sai calado — não é perda (o servidor nunca disse que tinha)", () => {
     const s = run([sent("local-1"), full({ ownQueue: [] })]);
     expect(s.declared).toEqual([]);
-    expect(s.lostDeclared).toEqual([]);
+    expect(s.lostCandidates).toEqual([]);
   });
 
-  it("lostDeclared acumula entre reconexões, sem duplicar por id", () => {
+  it("candidatas acumulam entre reconexões, sem duplicar por id", () => {
     let s = run([sent("local-1"), acked("a1"), full({ ownQueue: [] })]);
     s = run([sent("local-2"), acked("a2"), full({ ownQueue: [] })], s);
-    expect(s.lostDeclared.map((d) => d.id)).toEqual(["a1", "a2"]);
-    // A mesma perdida de novo (ex.: voltou do localStorage num refresh) não entra duas vezes.
-    s = run([full({ ownQueue: [] })], { ...s, declared: [{ ...s.lostDeclared[0] }] });
-    expect(s.lostDeclared.map((d) => d.id)).toEqual(["a1", "a2"]);
+    expect(s.lostCandidates.map((d) => d.id)).toEqual(["a1", "a2"]);
+    // A mesma de novo (ex.: voltou do localStorage num refresh) não entra duas vezes.
+    s = run([full({ ownQueue: [] })], { ...s, declared: [{ ...s.lostCandidates[0] }] });
+    expect(s.lostCandidates.map((d) => d.id)).toEqual(["a1", "a2"]);
+  });
+
+  it("LOST_CANDIDATES_RESOLVED: a que rodou some calada; a perdida vira lostDeclared com o que voltou", () => {
+    let s = run([sent("local-1"), acked("a1"), sent("local-2"), acked("a2"), sent("local-3"), acked("a3"), full({ ownQueue: [] })]);
+    s = run([{ type: "LOST_CANDIDATES_RESOLVED", payload: { ran: ["a1"], lost: ["a2", "a3"], restored: ["a3"] } }], s);
+    expect(s.lostCandidates).toEqual([]);
+    expect(s.lostDeclared.map((d) => [d.id, d.draftRestored])).toEqual([["a2", false], ["a3", true]]);
+  });
+
+  it("LOST_CANDIDATES_RESOLVED parcial deixa as outras candidatas esperando", () => {
+    let s = run([sent("local-1"), acked("a1"), sent("local-2"), acked("a2"), full({ ownQueue: [] })]);
+    s = run([{ type: "LOST_CANDIDATES_RESOLVED", payload: { ran: [], lost: ["a1"], restored: [] } }], s);
+    expect(s.lostCandidates.map((d) => d.id)).toEqual(["a2"]);
+    expect(s.lostDeclared.map((d) => d.id)).toEqual(["a1"]);
   });
 
   it("LOST_DECLARED_DISMISSED limpa o aviso", () => {
-    const s = run([sent("local-1"), acked("a1"), full({ ownQueue: [] }), { type: "LOST_DECLARED_DISMISSED" }]);
+    let s = run([sent("local-1"), acked("a1"), full({ ownQueue: [] })]);
+    s = run([{ type: "LOST_CANDIDATES_RESOLVED", payload: { ran: [], lost: ["a1"], restored: [] } }, { type: "LOST_DECLARED_DISMISSED" }], s);
     expect(s.lostDeclared).toEqual([]);
   });
 
-  it("sem ownQueue (o mestre, ou um servidor antigo) nada muda", () => {
+  it("sem ownQueue (servidor antigo) nada muda", () => {
     const s = run([sent("local-1"), acked("a1"), full()]);
     expect(s.declared.map((d) => [d.id, d.status])).toEqual([["a1", "queued"]]);
-    expect(s.lostDeclared).toEqual([]);
+    expect(s.lostCandidates).toEqual([]);
+  });
+
+  describe("fonte \"queue\" (o mestre, pelos NPCs)", () => {
+    it("a que está em queue fica; a que não está vira candidata", () => {
+      const s = run([
+        sent("local-1"), acked("a1"), sent("local-2"), acked("a2"),
+        full({ queue: q("a2") }, { declaredSource: "queue" }),
+      ]);
+      expect(s.declared.map((d) => d.id)).toEqual(["a2"]);
+      expect(s.lostCandidates.map((d) => d.id)).toEqual(["a1"]);
+    });
+
+    it("queue ausente é fila vazia (contrato): todas viram candidatas", () => {
+      const s = run([sent("local-1"), acked("a1"), full({}, { declaredSource: "queue" })]);
+      expect(s.declared).toEqual([]);
+      expect(s.lostCandidates.map((d) => d.id)).toEqual(["a1"]);
+    });
+
+    it("a do openTurn fica, aberta", () => {
+      const s = run([
+        sent("local-1"), acked("a1"),
+        full({ openTurn: { turnId: "t1", actorId: "npc1", actionId: "a1" } }, { declaredSource: "queue" }),
+      ]);
+      expect(s.declared.map((d) => [d.id, d.status])).toEqual([["a1", "open"]]);
+    });
+  });
+});
+
+describe("resolveLostCandidates (F10)", () => {
+  const cand = (id: string, detectedAt: number): LostCandidate => ({
+    id, actorId: "c1", status: "queued", fromComposer: true, at: 0, detectedAt,
+  });
+  const history = (actionIds: string[], reactionIds: string[] = []): MatchHistory => ({
+    scenes: [{
+      uuid: "s1", category: "battle", briefDesc: "", createdAt: "",
+      rounds: [{
+        uuid: "r1", mode: "Race", createdAt: "",
+        turns: actionIds.map((id, i) => ({
+          uuid: `t${i}`, createdAt: "",
+          action: { uuid: id, actorId: "c1", reactionKind: "" },
+          reactions: reactionIds.map((r) => ({ uuid: r, actorId: "c2", reactionKind: "dodge" })),
+        })),
+      }],
+    }],
+  });
+
+  it("nada antes de um histórico buscado DEPOIS do match_full_state", () => {
+    expect(resolveLostCandidates([cand("a1", 100)], undefined)).toBeNull();
+    expect(resolveLostCandidates([cand("a1", 100)], { history: history([]), fetchStartedAt: 99 })).toBeNull();
+  });
+
+  it("no histórico (ação ou reação) → rodou; fora dele → perdida", () => {
+    const out = resolveLostCandidates(
+      [cand("a1", 100), cand("a2", 100), cand("a3", 100)],
+      { history: history(["a1"], ["a3"]), fetchStartedAt: 100 },
+    );
+    expect(out).toEqual({ ran: ["a1", "a3"], lost: ["a2"] });
+  });
+
+  it("só decide as candidatas que o fetch cobre", () => {
+    const out = resolveLostCandidates([cand("a1", 100), cand("a2", 300)], { history: history([]), fetchStartedAt: 200 });
+    expect(out).toEqual({ ran: [], lost: ["a1"] });
   });
 });

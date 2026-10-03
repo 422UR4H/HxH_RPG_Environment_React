@@ -15,10 +15,11 @@ import type { SlotTriple } from "../../tactical-map/utils/coords";
 import type { QueuedAction } from "./combatMessages";
 import { useLiveMapSync } from "./useLiveMapSync";
 import { useMatchCombat } from "./useMatchCombat";
+import { useMatchHistory } from "../../../hooks/useMatchHistory";
 import { useActionComposerState } from "./useActionComposerState";
 import { defaultMoveCategory } from "./defaultMoveCategory";
-import { pendingMoves } from "./combatReducer";
-import type { DeclaredAction } from "./combatReducer";
+import { pendingMoves, resolveLostCandidates } from "./combatReducer";
+import type { DeclaredAction, DeclaredSource } from "./combatReducer";
 import { draftFromDeclared } from "./actionDraft";
 
 /** O destino do `move` de uma ação da fila, quando há um — `undefined` se a ação não move. */
@@ -31,12 +32,15 @@ export function useGameTable({
   campaignId,
   matchId,
   isMaster,
+  declaredSource,
   actorId,
 }: {
   token: string;
   campaignId?: string;
   matchId?: string;
   isMaster: boolean;
+  /** Contra o que as declaradas se reconciliam na reconexão (B12) — ver `useMatchCombat`. */
+  declaredSource: DeclaredSource;
   actorId: string | undefined;
 }) {
   const { user } = useUser();
@@ -71,6 +75,7 @@ export function useGameTable({
     userUuid: user?.uuid,
     token,
     isMaster,
+    declaredSource,
     board,
     onWallStateChanged: live.handleWallStateChanged,
     onWallHpChanged: live.handleWallHpChanged,
@@ -101,23 +106,34 @@ export function useGameTable({
   clearDraftForRef.current = composer.clearDraftFor;
   const { pieceByCharacter } = composer;
 
-  // ─── Declaradas que o servidor perdeu (F10/B12) ────────────────────────────
-  // O rascunho volta, uma vez por id: o ref sobrevive aos re-renders e às próximas
-  // reconexões. Várias perdidas do mesmo ator → volta a mais recente. Uma só de parede (sem
-  // move nem ataque) não tem rascunho a devolver. Daqui NÃO sai envio nenhum (I7).
-  const restoredLostIds = useRef(new Set<string>());
+  // ─── Declaradas que o servidor não conhecia (F10/B12) ──────────────────────
+  // Uma candidata só vira perda depois do histórico buscado DEPOIS do match_full_state (o
+  // `onFullState` acima o invalida): se ela abriu e fechou durante a queda, está lá, e
+  // dizer "declare de novo" seria pedir uma re-rolagem. A perdida de verdade devolve o
+  // rascunho — várias do mesmo ator, a mais recente; uma só de parede (sem move nem ataque)
+  // não tem rascunho. O ref garante uma vez por id. Daqui NÃO sai envio nenhum (I7).
+  const { data: historyData } = useMatchHistory(token, matchId);
+  const decidedLostIds = useRef(new Set<string>());
   const { restoreDraftFor } = composer;
+  const { resolveLostCandidates: resolveLost } = combat;
   useEffect(() => {
+    const pending = state.lostCandidates.filter((d) => !decidedLostIds.current.has(d.id));
+    const decision = resolveLostCandidates(pending, historyData);
+    if (!decision) return;
+    [...decision.ran, ...decision.lost].forEach((id) => decidedLostIds.current.add(id));
+    const lostIds = new Set(decision.lost);
     const latestByActor = new Map<string, DeclaredAction>();
-    for (const d of state.lostDeclared) {
-      if (restoredLostIds.current.has(d.id)) continue;
-      restoredLostIds.current.add(d.id);
-      if (!d.move && !d.attack) continue;
+    for (const d of pending) {
+      if (!lostIds.has(d.id) || (!d.move && !d.attack)) continue;
       const prev = latestByActor.get(d.actorId);
       if (!prev || d.at > prev.at) latestByActor.set(d.actorId, d);
     }
-    latestByActor.forEach((d, actor) => restoreDraftFor(actor, draftFromDeclared(d)));
-  }, [state.lostDeclared, restoreDraftFor]);
+    const restored: string[] = [];
+    latestByActor.forEach((d, actor) => {
+      if (restoreDraftFor(actor, draftFromDeclared(d))) restored.push(d.id);
+    });
+    resolveLost({ ...decision, restored });
+  }, [state.lostCandidates, historyData, restoreDraftFor, resolveLost]);
 
   // ─── Movimentos declarados ainda por acontecer (o fantasma) ───────────────
   // A seta sai de onde a peça ESTÁ, não de onde estava ao declarar: se outra ação do mesmo

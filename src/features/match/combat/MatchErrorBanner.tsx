@@ -25,13 +25,9 @@ export default function MatchErrorBanner({
   );
 }
 
+// Sem posição própria: a página empilha os avisos do palco num `StageNotices`.
 const Banner = styled.div`
-  position: absolute;
-  top: 52px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 50;
-  max-width: min(92%, 520px);
+  max-width: 100%;
   padding: 10px 14px;
   border-radius: 6px;
   border: 1px solid ${colors.statusError};

@@ -27,7 +27,7 @@ import { PanelMessage } from "../features/match/combat/panelStyles";
 import WallActionSheet from "../features/match/WallActionSheet";
 import TacticalMapViewer from "../features/tactical-map/TacticalMapViewer";
 import {
-  CanvasWrapper, MapCornerButton, MapLoadingMessage, NoMapMessage,
+  CanvasWrapper, MapCornerButton, MapLoadingMessage, NoMapMessage, StageNotices,
 } from "../features/match/combat/mapCanvasStyles";
 import type { SlotCoord, WallSegment } from "../types/tacticalMap";
 
@@ -64,7 +64,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
       ? chosenActor
       : myCharacters[0]?.characterSheet.uuid;
 
-  const game = useGameTable({ token, campaignId, matchId, isMaster: false, actorId });
+  const game = useGameTable({ token, campaignId, matchId, isMaster: false, declaredSource: "ownQueue", actorId });
   const { combat, composer, live, map, nameOf } = game;
   const { state } = combat;
 
@@ -253,8 +253,14 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
               nameOf={nameOf}
               highlightActorIds={myActorIds}
             />
-            <MatchErrorBanner error={state.lastError} onDismiss={combat.dismissError} />
-            <LostDeclaredNotice count={state.lostDeclared.length} onDismiss={combat.dismissLostDeclared} />
+            <StageNotices>
+              <MatchErrorBanner error={state.lastError} onDismiss={combat.dismissError} />
+              <LostDeclaredNotice
+                count={state.lostDeclared.length}
+                restoredCount={state.lostDeclared.filter((d) => d.draftRestored).length}
+                onDismiss={combat.dismissLostDeclared}
+              />
+            </StageNotices>
             {map && <MapCornerButton type="button" onClick={game.refit}>Enquadrar</MapCornerButton>}
           </>
         }

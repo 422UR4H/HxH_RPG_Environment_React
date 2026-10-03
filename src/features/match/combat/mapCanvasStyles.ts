@@ -23,6 +23,29 @@ export const NoMapMessage = styled(MapLoadingMessage)`
   color: ${colors.textDisabled};
 `;
 
+/**
+ * A pilha de avisos sobre o mapa (erro do WS, declaradas perdidas): uma coluna abaixo da
+ * barra geral, para um aviso que quebra em duas linhas empurrar o outro em vez de cobri-lo.
+ * Não captura toque no vazio — o mapa embaixo continua tocável.
+ */
+export const StageNotices = styled.div`
+  position: absolute;
+  top: 52px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  width: min(92%, 520px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+
+  & > * {
+    pointer-events: auto;
+  }
+`;
+
 /** Botão flutuante no canto do mapa (enquadrar). */
 export const MapCornerButton = styled.button`
   position: absolute;

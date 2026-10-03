@@ -62,16 +62,22 @@ export function useActionComposerState({
     [matchId, actorId],
   );
 
-  /** Devolve um rascunho perdido — só se o do ator estiver vazio (não atropela o que o jogador começou). */
+  /**
+   * Devolve um rascunho perdido — só se o do ator estiver vazio (não atropela o que o jogador
+   * começou). `true` = voltou: o aviso só diz que o rascunho voltou quando é verdade.
+   */
   const restoreDraftFor = useCallback(
-    (actor: string, next: ActionDraft) => {
-      if (!matchId) return;
+    (actor: string, next: ActionDraft): boolean => {
+      if (!matchId) return false;
       const isEmpty = (d: ActionDraft) => d.moveMode === "none" && !d.attack;
       if (actor === actorId) {
-        if (isEmpty(draft)) updateDraft(next);
-        return;
+        if (!isEmpty(draft)) return false;
+        updateDraft(next);
+        return true;
       }
-      if (isEmpty(loadDraft(matchId, actor))) saveDraft(matchId, actor, next);
+      if (!isEmpty(loadDraft(matchId, actor))) return false;
+      saveDraft(matchId, actor, next);
+      return true;
     },
     [matchId, actorId, draft, updateDraft],
   );

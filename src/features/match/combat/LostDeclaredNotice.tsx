@@ -8,18 +8,26 @@ import { colors, fonts } from "../../../styles/tokens";
  */
 export default function LostDeclaredNotice({
   count,
+  restoredCount,
   onDismiss,
 }: {
   count: number;
+  /** Quantos rascunhos voltaram de fato — um rascunho que o jogador já tinha começado fica. */
+  restoredCount: number;
   onDismiss: () => void;
 }) {
   if (count === 0) return null;
   const what = count === 1 ? "1 ação" : `${count} ações`;
+  const draft =
+    restoredCount === 0
+      ? "Confira e declare de novo se ainda quiser."
+      : restoredCount >= count
+        ? "O rascunho voltou para o compositor — confira e declare de novo."
+        : `O rascunho de ${restoredCount} delas voltou para o compositor — confira e declare de novo.`;
   return (
     <Notice role="status">
       <span>
-        O servidor perdeu {what} que você tinha declarado. O rascunho voltou para o compositor —
-        confira e declare de novo.
+        O servidor perdeu {what} que você tinha declarado. {draft}
       </span>
       <Close type="button" aria-label="Fechar aviso" onClick={onDismiss}>
         ×
@@ -29,16 +37,10 @@ export default function LostDeclaredNotice({
 }
 
 const Notice = styled.div`
-  position: absolute;
-  top: 104px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 49;
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  width: max-content;
-  max-width: min(92%, 520px);
+  max-width: 100%;
   padding: 10px 8px 10px 14px;
   border-radius: 6px;
   border: 1px solid ${colors.warningBorder};
