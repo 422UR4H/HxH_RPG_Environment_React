@@ -97,6 +97,11 @@ export default function MatchMapsPanel({
                         </InheritButton>
                       ))}
                     </InheritList>
+                    <InheritHint>
+                      {isAttached
+                        ? "Substitui o tabuleiro atual desta partida."
+                        : "Anexa este mapa e substitui o tabuleiro atual desta partida."}
+                    </InheritHint>
                     {/* Contrato B16: a sala do lobby aberta guarda o tabuleiro antigo em memória e
                         o próximo salvamento dela sobrescreve o herdado. */}
                     <InheritHint>

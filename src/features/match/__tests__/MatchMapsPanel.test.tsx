@@ -69,6 +69,21 @@ describe("MatchMapsPanel — continuar o tabuleiro de outra partida (F15)", () =
     expect(screen.getByRole("button", { name: "Partida A · 01/12/2025" })).toBeInTheDocument();
   });
 
+  it("avisa que herdar anexa este mapa e substitui o tabuleiro atual", () => {
+    renderPanel({ boardSources: sources });
+    expect(
+      screen.getByText("Anexa este mapa e substitui o tabuleiro atual desta partida."),
+    ).toBeInTheDocument();
+  });
+
+  it("no mapa já anexado, avisa só que substitui o tabuleiro atual", () => {
+    renderPanel({
+      boardSources: sources,
+      matchMap: { matchUuid: "self", mapUuid: "map-1", attachedAt: "2026-06-04T00:00:00Z" },
+    });
+    expect(screen.getByText("Substitui o tabuleiro atual desta partida.")).toBeInTheDocument();
+  });
+
   it("enquanto anexa, as opções ficam desabilitadas", () => {
     renderPanel({ boardSources: sources, isAttaching: true });
     expect(screen.getByRole("button", { name: "Partida A · 01/12/2025" })).toBeDisabled();

@@ -404,7 +404,8 @@ describe("MatchPage", () => {
         http.post(`${baseUrl}/matches/:id/map`, () => {
           started = true;
           return HttpResponse.json(
-            { title: "Unprocessable Entity", status: 422, detail: "cannot change map after match has started" },
+            // Texto qualquer: sem herança, o 422 basta para ser a recusa por partida iniciada.
+            { title: "Unprocessable Entity", status: 422, detail: "match is already under way" },
             { status: 422 },
           );
         }),
@@ -486,6 +487,25 @@ describe("MatchPage", () => {
         // Não é a recusa por partida iniciada: a troca de mapa continua oferecida.
         expect(screen.getByRole("button", { name: /anexar/i })).toBeInTheDocument();
         expect(screen.queryByText(/depois que a partida começou/i)).not.toBeInTheDocument();
+      });
+
+      it("uma recusa 422 desconhecida na herança não manda tentar de novo nem diz que a partida começou", async () => {
+        useInheritScenario(() =>
+          HttpResponse.json(
+            { title: "Unprocessable Entity", status: 422, detail: "some new refusal" },
+            { status: 422 },
+          ),
+        );
+        renderPage({ user: masterUserFixture });
+        const u = userEvent.setup();
+        await u.click(await screen.findByRole("button", { name: /Mapas/i }));
+        await u.click(await screen.findByRole("button", { name: "Partida Anterior · 20/11/2025" }));
+        expect(
+          await screen.findByText("Não dá para continuar o tabuleiro dessa partida."),
+        ).toBeInTheDocument();
+        expect(screen.queryByText(/tente novamente/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/depois que a partida começou/i)).not.toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /anexar/i })).toBeInTheDocument();
       });
 
       it("se o tabuleiro de origem está em outro mapa, diz isso em português", async () => {

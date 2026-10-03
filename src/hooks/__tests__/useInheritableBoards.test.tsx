@@ -99,6 +99,46 @@ describe("useInheritableBoards", () => {
     expect(result.current["map-1"][0].matchUuid).toBe("b");
   });
 
+  it("uma busca de mapa que falha (500) não derruba as outras", async () => {
+    let failedCalls = 0;
+    server.use(
+      http.get(`${baseUrl}/campaigns/:id`, () =>
+        HttpResponse.json({
+          campaign: {
+            ...campaignApiFixture,
+            matches: [
+              match("a", "Partida A", "2025-12-01T19:00:00Z"),
+              match("b", "Partida B", "2025-12-05T19:00:00Z"),
+              match("c", "Partida C", "2025-12-08T19:00:00Z"),
+            ],
+          },
+        }),
+      ),
+      http.get(`${baseUrl}/matches/:id/map`, ({ params }) => {
+        const id = params.id as string;
+        if (id === "b") {
+          failedCalls++;
+          return HttpResponse.json({ detail: "boom" }, { status: 500 });
+        }
+        return HttpResponse.json({
+          matchMap: { matchUuid: id, mapUuid: id === "a" ? "map-1" : "map-2", attachedAt: "2025-12-01T00:00:00Z" },
+        });
+      }),
+    );
+
+    const { result } = renderHook(
+      () => useInheritableBoards("tok", "campaign-1", "self", true),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(Object.keys(result.current).sort()).toEqual(["map-1", "map-2"]));
+    expect(result.current["map-1"].map((s) => s.matchUuid)).toEqual(["a"]);
+    expect(result.current["map-2"].map((s) => s.matchUuid)).toEqual(["c"]);
+    // Espera a nova tentativa (retry: 1) acabar dentro do teste, com o handler ainda no ar.
+    await waitFor(() => expect(failedCalls).toBe(2), { timeout: 3000 });
+    expect(result.current["map-2"].map((s) => s.matchUuid)).toEqual(["c"]);
+  });
+
   it("desligado, não busca nada", async () => {
     let calls = 0;
     server.use(
