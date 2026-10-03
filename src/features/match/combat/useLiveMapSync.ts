@@ -2,11 +2,8 @@
 //
 // Fila de fix (Task 13, round 1): os cinco handlers de parede/mapa, o `npcMap` e o
 // `liveWalls`/`livePieces`/`fog` que eles atualizam eram idênticos entre GamePlayerPage
-// e GameMasterPage — copiados verbatim. Centraliza aqui; a única diferença real entre os
-// dois papéis é `seedFromRest`: o mestre é dono do tabuleiro inteiro e semeia
-// `liveWalls`/`livePieces` do REST assim que o mapa carrega (sem isso ele veria o mapa
-// vazio até o primeiro `map_full_state` — R11); o jogador nunca semeia do REST (só a WS é
-// fonte confiável pra ele — ver o comentário em `visibleBoardPieces`).
+// e GameMasterPage — copiados verbatim. Centraliza aqui. Peças e paredes vêm só do
+// servidor (`map_full_state` e as mensagens de peça/parede), para os dois papéis (F13).
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { CampaignMaster } from "../../../types/campaign";
 import type { CharacterPrivateSummary } from "../../../types/characterSheet";
@@ -15,10 +12,9 @@ import type { FogState, Piece, SlotCoord, TacticalMap, WallSegment } from "../..
 type Options = {
   map: TacticalMap | undefined;
   campaign: CampaignMaster | undefined;
-  seedFromRest: boolean;
 };
 
-export function useLiveMapSync({ map, campaign, seedFromRest }: Options) {
+export function useLiveMapSync({ map, campaign }: Options) {
   const [liveWalls, setLiveWalls] = useState<WallSegment[]>([]);
   const [livePieces, setLivePieces] = useState<Piece[] | null>(null);
   const [fog, setFog] = useState<FogState>({ fogMode: "explored", visiblePolygons: [] });
@@ -26,10 +22,7 @@ export function useLiveMapSync({ map, campaign, seedFromRest }: Options) {
   useEffect(() => {
     if (!map) return;
     setFog((f) => ({ ...f, fogMode: map.fogMode ?? "explored" }));
-    if (!seedFromRest) return;
-    setLiveWalls(map.walls ?? []);
-    setLivePieces(map.pieces ?? null);
-  }, [map, seedFromRest]);
+  }, [map]);
 
   const handleWallStateChanged = useCallback((wallId: string, open: boolean, locked: boolean) => {
     setLiveWalls((prev) => prev.map((w) => (w.id === wallId ? { ...w, open, locked } : w)));
@@ -93,10 +86,7 @@ export function useLiveMapSync({ map, campaign, seedFromRest }: Options) {
           };
           return next;
         }
-        // Nothing to attach a brand-new piece to, and nothing actually changes — return
-        // the ORIGINAL `prev` (possibly still null), not the `?? []` coercion, so a
-        // dropped/no-op piece_moved can't prematurely turn "never seeded" into "known
-        // empty" (visibleBoardPieces.ts treats those two very differently for the master).
+        // Nothing to attach a brand-new piece to, and nothing actually changes.
         if (!characterId) return prev;
         return [...list, { id: pieceId, characterId, coord: { slot, z: z ?? 0 }, visible: visible ?? true }];
       });

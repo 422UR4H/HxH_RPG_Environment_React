@@ -1,13 +1,14 @@
 // src/pages/__tests__/MatchPage.test.tsx
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { http, HttpResponse } from "msw";
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { server } from "../../test/server";
 import { renderWithProviders } from "../../test/render";
 import { matchApiFixture, matchAsMasterApi, matchOngoingApi, matchEndedApi } from "../../test/fixtures/match";
 import { masterUserFixture, userFixture } from "../../test/fixtures/user";
 import { mapApiFixture } from "../../test/fixtures/map";
+import { campaignAsMasterApi } from "../../test/fixtures/campaign";
 import MatchPage from "../MatchPage";
 
 const mockNavigate = vi.fn();
@@ -360,6 +361,168 @@ describe("MatchPage", () => {
       await u.click(await screen.findByRole("button", { name: /Mapas/i }));
       expect(await screen.findByText(/Anexado/i)).toBeInTheDocument();
       expect(await screen.findByRole("button", { name: /desanexar/i })).toBeInTheDocument();
+    });
+
+    // F16: o back recusa trocar o mapa depois do start_match (422). Com a partida iniciada a
+    // troca nem aparece.
+    it("partida iniciada: não oferece anexar nem desanexar", async () => {
+      server.use(
+        http.get(`${baseUrl}/matches/:id`, () =>
+          HttpResponse.json({ match: { ...matchOngoingApi(), masterUuid: masterUserFixture.user.uuid } }),
+        ),
+        http.get(`${baseUrl}/matches/:id/map`, () =>
+          HttpResponse.json({
+            matchMap: { matchUuid: "match-1", mapUuid: mapApiFixture.id, attachedAt: "2026-06-04T00:00:00Z" },
+          }),
+        ),
+        http.get(`${baseUrl}/campaigns/:cid/maps`, () =>
+          HttpResponse.json({ maps: [mapApiFixture, { ...mapApiFixture, id: "map-2", name: "Outro Mapa" }] }),
+        ),
+      );
+      renderPage({ user: masterUserFixture });
+      const u = userEvent.setup();
+      await u.click(await screen.findByRole("button", { name: /Mapas/i }));
+      expect(await screen.findByText("Outro Mapa")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /anexar/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /desanexar/i })).not.toBeInTheDocument();
+    });
+
+    // A página carregou antes do início (sem `gameStartAt`) e o mestre tenta anexar depois.
+    it("se o back recusa a troca porque a partida começou, mostra o motivo em português", async () => {
+      // A recusa faz a página rebuscar a partida: a resposta nova já traz `gameStartAt`.
+      let started = false;
+      server.use(
+        http.get(`${baseUrl}/matches/:id`, () =>
+          HttpResponse.json({ match: started ? { ...masterMatch, gameStartAt: "2025-12-01T19:05:00Z" } : masterMatch }),
+        ),
+        http.get(`${baseUrl}/matches/:id/map`, () =>
+          new HttpResponse(null, { status: 204 }),
+        ),
+        http.get(`${baseUrl}/campaigns/:cid/maps`, () =>
+          HttpResponse.json({ maps: [mapApiFixture] }),
+        ),
+        http.post(`${baseUrl}/matches/:id/map`, () => {
+          started = true;
+          return HttpResponse.json(
+            // Texto qualquer: sem herança, o 422 basta para ser a recusa por partida iniciada.
+            { title: "Unprocessable Entity", status: 422, detail: "match is already under way" },
+            { status: 422 },
+          );
+        }),
+      );
+      renderPage({ user: masterUserFixture });
+      const u = userEvent.setup();
+      await u.click(await screen.findByRole("button", { name: /Mapas/i }));
+      await u.click(await screen.findByRole("button", { name: /anexar/i }));
+      expect(
+        await screen.findByText("O mapa não pode ser trocado depois que a partida começou."),
+      ).toBeInTheDocument();
+      await waitFor(() => expect(screen.queryByRole("button", { name: /anexar/i })).not.toBeInTheDocument());
+      expect(screen.getByText("O mapa não pode ser trocado depois que a partida começou.")).toBeInTheDocument();
+    });
+
+    // F15 (B16): a partida começa de onde outra da mesma campanha, no mesmo mapa, terminou.
+    describe("continuar o tabuleiro de outra partida", () => {
+      const sourceMatch = {
+        ...matchEndedApi(),
+        uuid: "match-0",
+        title: "Partida Anterior",
+        gameStartAt: "2025-11-20T19:00:00Z",
+      };
+
+      function useInheritScenario(onPost: (body: unknown) => Response | Promise<Response>) {
+        server.use(
+          http.get(`${baseUrl}/matches/:id`, () => HttpResponse.json({ match: masterMatch })),
+          http.get(`${baseUrl}/campaigns/:cid`, () =>
+            HttpResponse.json({
+              campaign: { ...campaignAsMasterApi(masterUserFixture.user.uuid), matches: [masterMatch, sourceMatch] },
+            }),
+          ),
+          http.get(`${baseUrl}/matches/:id/map`, ({ params }) =>
+            params.id === "match-0"
+              ? HttpResponse.json({
+                  matchMap: { matchUuid: "match-0", mapUuid: mapApiFixture.id, attachedAt: "2025-11-20T00:00:00Z" },
+                })
+              : new HttpResponse(null, { status: 204 }),
+          ),
+          http.get(`${baseUrl}/campaigns/:cid/maps`, () => HttpResponse.json({ maps: [mapApiFixture] })),
+          http.post(`${baseUrl}/matches/:id/map`, async ({ request }) => onPost(await request.json())),
+        );
+      }
+
+      it("lista a partida anterior no mesmo mapa e pede a herança dela", async () => {
+        let body: unknown;
+        useInheritScenario((b) => {
+          body = b;
+          return HttpResponse.json({
+            matchMap: { matchUuid: "match-1", mapUuid: mapApiFixture.id, attachedAt: "2026-06-04T00:00:00Z" },
+          });
+        });
+        renderPage({ user: masterUserFixture });
+        const u = userEvent.setup();
+        await u.click(await screen.findByRole("button", { name: /Mapas/i }));
+        await u.click(await screen.findByRole("button", { name: "Partida Anterior · 20/11/2025" }));
+        await waitFor(() =>
+          expect(body).toEqual({ mapUuid: mapApiFixture.id, inheritBoardFromMatchUuid: "match-0" }),
+        );
+        expect(
+          await screen.findByText("O tabuleiro de «Partida Anterior» continua nesta partida."),
+        ).toBeInTheDocument();
+      });
+
+      it("se a partida de origem não deixou tabuleiro, diz isso em português", async () => {
+        useInheritScenario(() =>
+          HttpResponse.json(
+            { title: "Unprocessable Entity", status: 422, detail: "source match has no board to inherit" },
+            { status: 422 },
+          ),
+        );
+        renderPage({ user: masterUserFixture });
+        const u = userEvent.setup();
+        await u.click(await screen.findByRole("button", { name: /Mapas/i }));
+        await u.click(await screen.findByRole("button", { name: "Partida Anterior · 20/11/2025" }));
+        expect(
+          await screen.findByText("Essa partida não deixou um tabuleiro para continuar."),
+        ).toBeInTheDocument();
+        // Não é a recusa por partida iniciada: a troca de mapa continua oferecida.
+        expect(screen.getByRole("button", { name: /anexar/i })).toBeInTheDocument();
+        expect(screen.queryByText(/depois que a partida começou/i)).not.toBeInTheDocument();
+      });
+
+      it("uma recusa 422 desconhecida na herança não manda tentar de novo nem diz que a partida começou", async () => {
+        useInheritScenario(() =>
+          HttpResponse.json(
+            { title: "Unprocessable Entity", status: 422, detail: "some new refusal" },
+            { status: 422 },
+          ),
+        );
+        renderPage({ user: masterUserFixture });
+        const u = userEvent.setup();
+        await u.click(await screen.findByRole("button", { name: /Mapas/i }));
+        await u.click(await screen.findByRole("button", { name: "Partida Anterior · 20/11/2025" }));
+        expect(
+          await screen.findByText("Não dá para continuar o tabuleiro dessa partida."),
+        ).toBeInTheDocument();
+        expect(screen.queryByText(/tente novamente/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/depois que a partida começou/i)).not.toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /anexar/i })).toBeInTheDocument();
+      });
+
+      it("se o tabuleiro de origem está em outro mapa, diz isso em português", async () => {
+        useInheritScenario(() =>
+          HttpResponse.json(
+            { title: "Unprocessable Entity", status: 422, detail: "source match's board is on a different map" },
+            { status: 422 },
+          ),
+        );
+        renderPage({ user: masterUserFixture });
+        const u = userEvent.setup();
+        await u.click(await screen.findByRole("button", { name: /Mapas/i }));
+        await u.click(await screen.findByRole("button", { name: "Partida Anterior · 20/11/2025" }));
+        expect(
+          await screen.findByText("O tabuleiro dessa partida está em outro mapa."),
+        ).toBeInTheDocument();
+      });
     });
   });
 });

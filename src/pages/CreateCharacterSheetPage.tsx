@@ -22,6 +22,9 @@ function CreateCharacterSheetPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const avatarBlobUrlRef = useRef<string | undefined>(undefined);
   const coverBlobUrlRef = useRef<string | undefined>(undefined);
+  // Sobrevive a um retry: depois de criada, a ficha nunca é recriada — um
+  // clique seguinte só reenvia upload/patch contra este mesmo uuid.
+  const createdUuidRef = useRef<string | undefined>(undefined);
   const { data: charClasses, isLoading, error } = useCharacterClasses(token);
 
   useEffect(() => {
@@ -71,18 +74,19 @@ function CreateCharacterSheetPage() {
     }
     setSubmitError(null);
     setIsSubmitting(true);
-    let createdUuid: string | undefined;
-    let resolvedAvatarUrl: string | undefined;
-    let resolvedCoverUrl: string | undefined;
     try {
-      const selectedClass = charClasses?.find(
-        (cc) => cc.profile.name === charSheet.characterClass
-      );
-      const { uuid } = await characterSheetsService.createCharacterSheet(token, charSheet, selectedClass);
-      createdUuid = uuid;
+      let uuid = createdUuidRef.current;
+      if (!uuid) {
+        const selectedClass = charClasses?.find(
+          (cc) => cc.profile.name === charSheet.characterClass
+        );
+        const created = await characterSheetsService.createCharacterSheet(token, charSheet, selectedClass);
+        uuid = created.uuid;
+        createdUuidRef.current = uuid;
+      }
 
-      resolvedAvatarUrl = avatarBlob ? undefined : charSheet.profile.avatarUrl;
-      resolvedCoverUrl = coverBlob ? undefined : charSheet.profile.coverUrl;
+      let resolvedAvatarUrl = avatarBlob ? undefined : charSheet.profile.avatarUrl;
+      let resolvedCoverUrl = coverBlob ? undefined : charSheet.profile.coverUrl;
 
       if (avatarBlob) {
         const { uploadUrl, publicUrl } = await uploadService.getPresignedUrl(token, "avatar", uuid);
@@ -109,16 +113,16 @@ function CreateCharacterSheetPage() {
       queryClient.invalidateQueries({ queryKey: ["characterSheets", token] });
       navigate(`/charactersheet/${uuid}`, { replace: true });
     } catch (_) {
-      if (createdUuid && (resolvedAvatarUrl !== undefined || resolvedCoverUrl !== undefined)) {
-        characterSheetsService.patchCharacterSheetProfile(
-          token,
-          createdUuid,
-          resolvedAvatarUrl,
-          resolvedCoverUrl,
-          charSheet.profile.briefDescription ?? null,
-        ).catch(() => undefined);
-      }
-      setSubmitError("Erro ao salvar a ficha. Tente novamente.");
+      // Se a ficha já foi criada (uuid gravado), um novo clique em "Criar Ficha"
+      // não cria outra — só reenvia upload/patch contra o mesmo uuid. O form
+      // continua editável, mas o retry ignora edições que não sejam imagem/
+      // brief description — a mensagem precisa deixar isso explícito, senão
+      // quem corrige um campo e tenta de novo perde a correção.
+      setSubmitError(
+        createdUuidRef.current
+          ? "A ficha já foi criada com os dados enviados. Tentar de novo envia só as imagens; para mudar outros campos, edite a ficha depois."
+          : "Erro ao salvar a ficha. Tente novamente."
+      );
     } finally {
       setIsSubmitting(false);
     }

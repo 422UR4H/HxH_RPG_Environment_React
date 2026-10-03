@@ -11,6 +11,7 @@ import type { SlotTriple } from "../../tactical-map/utils/coords";
 import { slotToTriple } from "../../tactical-map/utils/coords";
 import { approachSlot, slotDistance } from "../../tactical-map/utils/reach";
 import type { EnqueueActionPayload, MoveCategory } from "./combatMessages";
+import type { DeclaredAction } from "./combatReducer";
 
 /**
  * - `none`: não vai se mover (o padrão).
@@ -207,6 +208,17 @@ export function buildEnqueuePayload(
       : {}),
     ...(move?.to
       ? { move: { category: move.category, ...(from ? { from } : {}), position: move.to } }
+      : {}),
+  };
+}
+
+/** O rascunho de uma declarada que o servidor perdeu — para o jogador declarar de novo (B12). */
+export function draftFromDeclared(d: Pick<DeclaredAction, "move" | "attack">): ActionDraft {
+  return {
+    moveMode: d.move ? "manual" : "none",
+    ...(d.move ? { to: d.move.to, category: d.move.category } : {}),
+    ...(d.attack
+      ? { attack: { targets: [...d.attack.targets], ...(d.attack.weapon ? { weapon: d.attack.weapon } : {}) } }
       : {}),
   };
 }

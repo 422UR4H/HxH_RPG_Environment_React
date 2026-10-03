@@ -1,6 +1,7 @@
 import { httpClient } from "./httpClient";
 import config from "./config";
 import type { Match, Enrollment, Participant } from "../types/match";
+import type { MatchHistory } from "../types/matchHistory";
 
 export const matchService = {
   createMatch: (token: string, matchData: object): Promise<Match> =>
@@ -28,6 +29,11 @@ export const matchService = {
         config(token)
       )
       .then(({ data }) => data.participants),
+
+  getHistory: (token: string, matchId: string): Promise<MatchHistory> =>
+    httpClient
+      .get<MatchHistory>(`/matches/${matchId}/history`, config(token))
+      .then(({ data }) => data),
 
   acceptEnrollment: (token: string, enrollmentId: string): Promise<void> =>
     httpClient

@@ -2,14 +2,17 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { http, HttpResponse } from "msw";
 import { act, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { server } from "../../test/server";
 import { renderWithProviders } from "../../test/render";
 import { matchApiFixture } from "../../test/fixtures/match";
 import { mapApiFixture } from "../../test/fixtures/map";
 import GamePlayerPage from "../GamePlayerPage";
 import { installFakeWebSocket, waitForSocket } from "../../test/fakeWebSocket";
+import type { FakeWS } from "../../test/fakeWebSocket";
 
 const baseUrl = "http://localhost:5000";
+const user = userEvent.setup();
 
 // Pixi não é coberto por teste (src/test/setup.ts mocka @pixi/react); o único jeito de
 // disparar cliques de peça/slot em vitest é substituir o componente inteiro por um stub
@@ -336,6 +339,195 @@ describe("GamePlayerPage", () => {
     await waitFor(() => expect(storedDraft()).toBeNull());
   });
 
+  // F10/B12: o servidor reiniciou e perdeu a fila. Uma declarada que ele não conhece sai da
+  // lista; só depois do histórico buscado DEPOIS do match_full_state ela vira perda (aviso +
+  // rascunho de volta) — ou some calada, se rodou durante a queda. NADA é reenviado (I7).
+  describe("F10: declaradas seguem o servidor", () => {
+    const wall = {
+      id: "wall-1", p1: [0, 0], p2: [1, 0], wallType: "door", material: "wood",
+      move: false, sense: "none", direction: "both", open: false, locked: false,
+      hp: 10, maxHp: 10, resistance: 0, destroyed: false,
+    };
+    const board = (ws: FakeWS) =>
+      act(() =>
+        ws.emit("map_full_state", {
+          pieces: [
+            { pieceId: "piece-c1", slot: { kind: "square", col: 1, row: 1 }, characterId: "c1", visible: true, z: 0 },
+            { pieceId: "piece-c2", slot: { kind: "square", col: 2, row: 2 }, characterId: "c2", visible: true, z: 0 },
+          ],
+          walls: [wall],
+          visiblePolygons: [],
+          fogMode: "explored",
+        }),
+      );
+    const declare = async (ws: FakeWS, pick: () => void, actionId: string) => {
+      act(pick);
+      act(() => screen.getByRole("button", { name: /^declarar/i }).click());
+      act(() => ws.emit("action_enqueued", { actionId }));
+      await waitFor(() => expect(storedDraft()).toBeNull());
+    };
+    const attackC2 = () => screen.getByTestId("select-actor-c2").click();
+    const fullState = (ws: FakeWS, extra: Record<string, unknown> = {}) =>
+      act(() =>
+        ws.emit("match_full_state", {
+          roundMode: "Race", bars: { seq: 1, prices: {}, characters: [], order: [] }, ownQueue: [], ...extra,
+        }),
+      );
+    const turnOf = (actionId: string) => ({
+      scenes: [{
+        uuid: "s1", category: "battle", briefDesc: "", createdAt: "2026-06-01T00:00:00Z",
+        rounds: [{
+          uuid: "r1", mode: "Race", createdAt: "2026-06-01T00:00:00Z",
+          turns: [{
+            uuid: "t1", createdAt: "2026-06-01T00:01:00Z", finishedAt: "2026-06-01T00:01:00Z",
+            action: { uuid: actionId, actorId: "c1", reactionKind: "", targetId: ["c2"], attack: { weapon: "Fist" } },
+            masterActions: [],
+          }],
+          events: [],
+        }],
+      }],
+    });
+    /** O 1º fetch (montagem) responde vazio; os seguintes, `later` — depois de `gate`, se houver. */
+    const historyHandler = (later: Record<string, unknown>, gate?: Promise<void>) => {
+      const calls = { n: 0 };
+      server.use(
+        http.get(`${baseUrl}/matches/:id/history`, async () => {
+          calls.n += 1;
+          if (calls.n === 1) return HttpResponse.json({ scenes: [] });
+          if (gate) await gate;
+          return HttpResponse.json(later);
+        }),
+      );
+      return calls;
+    };
+
+    it("perdida de verdade: aviso, o rascunho volta e nada é reenviado", async () => {
+      renderPlayerPage();
+      const ws = await waitForSocket();
+      act(() => ws.onopen?.());
+      board(ws);
+      await declare(ws, attackC2, "action-1");
+      expect(ws.sent("enqueue_action")).toHaveLength(1);
+
+      fullState(ws);
+
+      const notice = await screen.findByText(/o servidor perdeu 1 ação/i);
+      expect(notice).toHaveTextContent(/o rascunho voltou para o compositor/i);
+      await waitFor(() => expect(storedDraft()?.attack).toEqual({ targets: ["c2"] }));
+      expect(ws.sent("enqueue_action")).toHaveLength(1);
+
+      await user.click(screen.getByRole("button", { name: /fechar aviso/i }));
+      expect(screen.queryByText(/o servidor perdeu/i)).not.toBeInTheDocument();
+      expect(ws.sent("enqueue_action")).toHaveLength(1);
+    });
+
+    it("abriu e fechou durante a queda (está no histórico): some calada, sem rascunho de volta", async () => {
+      const calls = historyHandler(turnOf("action-1"));
+      renderPlayerPage();
+      const ws = await waitForSocket();
+      act(() => ws.onopen?.());
+      board(ws);
+      await declare(ws, attackC2, "action-1");
+
+      fullState(ws);
+
+      // A linha do turno só existe na resposta do fetch pós-reconexão: quando ela aparece,
+      // a decisão já foi tomada.
+      expect(await screen.findByText(/Turno de Gon/)).toBeInTheDocument();
+      expect(calls.n).toBeGreaterThanOrEqual(2);
+      await act(async () => {});
+      expect(screen.queryByText(/o servidor perdeu/i)).not.toBeInTheDocument();
+      expect(storedDraft()).toBeNull();
+      expect(screen.queryAllByTestId("declared-row")).toHaveLength(0);
+      expect(ws.sent("enqueue_action")).toHaveLength(1);
+    });
+
+    it("nada acontece antes do histórico pós-reconexão chegar", async () => {
+      let release!: () => void;
+      const gate = new Promise<void>((r) => { release = r; });
+      const calls = historyHandler({ scenes: [] }, gate);
+      renderPlayerPage();
+      const ws = await waitForSocket();
+      act(() => ws.onopen?.());
+      board(ws);
+      await declare(ws, attackC2, "action-1");
+
+      fullState(ws);
+      await waitFor(() => expect(calls.n).toBe(2));
+      await act(async () => {});
+      expect(screen.queryByText(/o servidor perdeu/i)).not.toBeInTheDocument();
+      expect(storedDraft()).toBeNull();
+
+      release();
+      expect(await screen.findByText(/o servidor perdeu 1 ação/i)).toBeInTheDocument();
+      await waitFor(() => expect(storedDraft()?.attack).toEqual({ targets: ["c2"] }));
+    });
+
+    it("várias perdidas do mesmo ator: volta só a mais recente", async () => {
+      renderPlayerPage();
+      const ws = await waitForSocket();
+      act(() => ws.onopen?.());
+      board(ws);
+      await declare(ws, attackC2, "action-1");
+      // `at` é Date.now(): garante que a segunda é mais nova.
+      await new Promise((r) => setTimeout(r, 5));
+      await declare(ws, () => screen.getByTestId("empty-slot").click(), "action-2");
+
+      fullState(ws);
+
+      const notice = await screen.findByText(/o servidor perdeu 2 ações/i);
+      expect(notice).toHaveTextContent(/o rascunho de 1 delas voltou/i);
+      await waitFor(() => expect(storedDraft()).toMatchObject({ moveMode: "manual", to: [9, 9, 0] }));
+      expect(storedDraft()?.attack).toBeUndefined();
+    });
+
+    it("perdida só de parede: aviso sem prometer rascunho, e nenhum rascunho aparece", async () => {
+      renderPlayerPage();
+      const ws = await waitForSocket();
+      act(() => ws.onopen?.());
+      board(ws);
+      act(() => screen.getByTestId("wall-wall-1").click());
+      act(() => screen.getByRole("button", { name: /^abrir$/i }).click());
+      act(() => ws.emit("action_enqueued", { actionId: "action-wall-1" }));
+
+      fullState(ws);
+
+      const notice = await screen.findByText(/o servidor perdeu 1 ação/i);
+      expect(notice).not.toHaveTextContent(/rascunho voltou/i);
+      expect(notice).toHaveTextContent(/declare de novo se ainda quiser/i);
+      expect(storedDraft()).toBeNull();
+    });
+
+    it("rascunho já começado não é atropelado, e o aviso não diz que voltou", async () => {
+      renderPlayerPage();
+      const ws = await waitForSocket();
+      act(() => ws.onopen?.());
+      board(ws);
+      await declare(ws, attackC2, "action-1");
+      act(() => screen.getByTestId("empty-slot").click());
+      await waitFor(() => expect(storedDraft()?.moveMode).toBe("manual"));
+
+      fullState(ws);
+
+      const notice = await screen.findByText(/o servidor perdeu 1 ação/i);
+      expect(notice).not.toHaveTextContent(/rascunho voltou/i);
+      expect(storedDraft()?.attack).toBeUndefined();
+    });
+
+    it("declarada que o servidor ainda tem continua, sem aviso", async () => {
+      renderPlayerPage();
+      const ws = await waitForSocket();
+      act(() => ws.onopen?.());
+      await declare(ws, () => screen.getByTestId("empty-slot").click(), "action-1");
+
+      fullState(ws, { ownQueue: [{ actionId: "action-1", action: { uuid: "action-1", actorId: "c1" } }] });
+      await act(async () => {});
+      expect(screen.queryByText(/o servidor perdeu/i)).not.toBeInTheDocument();
+      expect(screen.getAllByTestId("declared-row")).toHaveLength(1);
+      expect(storedDraft()).toBeNull();
+    });
+  });
+
   // Uma recusa do servidor ao envio do composer (ex.: move_blocked) mantém o rascunho
   // inteiro — destino e alvo — para o jogador só corrigir o que o servidor recusou e
   // declarar de novo; nada some da lista de "declaradas" como se tivesse entrado na fila.
@@ -604,7 +796,7 @@ describe("GamePlayerPage", () => {
     expect(await within(aside).findByText("Killua")).toBeInTheDocument();
   });
 
-  it("o aside abre em Histórico (padrão) e o rail só tem Ação", async () => {
+  it("o aside abre em Histórico (padrão) e o rail tem Ação e Ficha (F3)", async () => {
     renderPlayerPage();
 
     // A gaveta começa fechada por CSS (R24: o mapa precisa estar visível no celular no
@@ -614,8 +806,198 @@ describe("GamePlayerPage", () => {
 
     const historicoTab = await screen.findByRole("button", { name: "Histórico" });
     expect(historicoTab).toHaveAttribute("aria-pressed", "true");
+    // F3: o rail ganhou o item Ficha, ao lado de Ação.
     expect(
       screen.getAllByRole("button", { name: /^(ação|ficha|inventário|nen)$/i }),
-    ).toHaveLength(1);
+    ).toHaveLength(2);
+  });
+
+  // F3: a ficha do próprio personagem abre dentro da partida, no painel — nunca navega
+  // para fora dela.
+  it("F3: Ficha no rail abre a ficha do próprio personagem dentro da partida", async () => {
+    renderPlayerPage();
+    const ws = await waitForSocket();
+    act(() => ws.onopen?.());
+
+    await user.click(screen.getByRole("button", { name: /Ficha/ }));
+    expect(await screen.findByTestId("match-sheet")).toBeInTheDocument();
+  });
+
+  it("F3: a ficha mostra o HP ao vivo", async () => {
+    renderPlayerPage();
+    const ws = await waitForSocket();
+    act(() => ws.onopen?.());
+
+    await user.click(screen.getByRole("button", { name: /Ficha/ }));
+    await screen.findByTestId("match-sheet");
+    act(() => {
+      ws.emit("character_hp_changed", { characterId: "c1", hp: 7, maxHp: 30, damage: 3 });
+    });
+    const sheet = screen.getByTestId("match-sheet");
+    expect(await within(sheet).findByText(/7\/30/)).toBeInTheDocument();
+  });
+
+  // F4: a aba Histórico vem do REST; cada turn_closed invalida e rebusca a mesma query.
+  it("F4: o Histórico mostra os turnos do REST e rebusca a cada turn_closed", async () => {
+    let calls = 0;
+    server.use(
+      http.get(`${baseUrl}/matches/:id/history`, () => {
+        calls++;
+        return HttpResponse.json({
+          scenes: [{
+            uuid: "s1", category: "battle", briefDesc: "", createdAt: "2026-06-01T00:00:00Z",
+            rounds: [{
+              uuid: "r1", mode: "Race", createdAt: "2026-06-01T00:00:00Z",
+              turns: [{
+                uuid: "t1", createdAt: "2026-06-01T00:01:00Z", finishedAt: "2026-06-01T00:01:00Z",
+                action: { uuid: "a1", actorId: "c1", reactionKind: "", targetId: ["c2"], attack: {} },
+                masterActions: [],
+              }],
+              events: [],
+            }],
+          }],
+        });
+      }),
+    );
+    renderPlayerPage();
+    const ws = await waitForSocket();
+    act(() => ws.onopen?.());
+
+    const toggle = await screen.findByRole("button", { name: "Ver histórico" });
+    act(() => toggle.click());
+    expect(await screen.findByText("Turno de Gon — atacou Killua")).toBeInTheDocument();
+    expect(calls).toBe(1);
+
+    act(() => ws.emit("turn_closed", { turnId: "t2" }));
+    await vi.waitFor(() => expect(calls).toBe(2));
+  });
+
+  // F4 (follow-up da T15): a master action de peça entre turnos não chega ao jogador como
+  // `master_action_enqueued` — chega como piece_moved/piece_removed, e é gravada na hora.
+  // Com turno aberto nada é gravado até o fechamento, então não há o que rebuscar.
+  it("F4: peça mexida entre turnos rebusca o histórico; com turno aberto, não", async () => {
+    let calls = 0;
+    server.use(
+      http.get(`${baseUrl}/matches/:id/history`, () => {
+        calls++;
+        return HttpResponse.json({ scenes: [] });
+      }),
+    );
+    renderPlayerPage();
+    const ws = await waitForSocket();
+    act(() => ws.onopen?.());
+    await vi.waitFor(() => expect(calls).toBe(1));
+    const moved = { pieceId: "piece-c2", slot: { kind: "square", col: 3, row: 3 }, characterId: "c2", visible: true, z: 0 };
+
+    act(() => ws.emit("piece_moved", moved));
+    await vi.waitFor(() => expect(calls).toBe(2));
+    act(() => ws.emit("piece_removed", { pieceId: "piece-c2" }));
+    await vi.waitFor(() => expect(calls).toBe(3));
+
+    act(() => ws.emit("turn_opened", { turnId: "t1", actorId: "c2" }));
+    act(() => ws.emit("piece_moved", moved));
+    act(() => ws.emit("piece_removed", { pieceId: "piece-c2" }));
+    await act(async () => { await new Promise((r) => setTimeout(r, 50)); });
+    expect(calls).toBe(3);
+  });
+
+  // F4, fix round 1: o refetch do turn_closed roda no MESMO stack síncrono que carimba o
+  // receivedAt — o relógio parado reproduz o caso comum (mesmo milissegundo). O turno fechado
+  // aparece uma vez só (pelo REST), e a linha ♥ que o servidor manda antes do turn_closed sai.
+  it("F4: turno fechado no mesmo milissegundo do refetch aparece uma vez, sem a linha ♥", async () => {
+    let calls = 0;
+    const closed = {
+      uuid: "t1", createdAt: "2026-06-01T00:01:00Z", finishedAt: "2026-06-01T00:01:00Z",
+      action: { uuid: "a1", actorId: "c1", reactionKind: "", targetId: ["c2"], attack: {} },
+      masterActions: [],
+      resolution: {
+        isSettled: true,
+        targets: [{
+          targetId: "c2", avoided: false, defended: false, dodgeTotal: 0, defenseTotal: 0,
+          rawDamage: 3, defenseApplied: 0, projectedDamage: 3,
+        }],
+      },
+    };
+    server.use(
+      http.get(`${baseUrl}/matches/:id/history`, () => {
+        calls++;
+        return HttpResponse.json({
+          scenes: [{
+            uuid: "s1", category: "battle", briefDesc: "", createdAt: "2026-06-01T00:00:00Z",
+            rounds: [{ uuid: "r1", mode: "Race", createdAt: "2026-06-01T00:00:00Z", turns: calls >= 2 ? [closed] : [], events: [] }],
+          }],
+        });
+      }),
+    );
+    renderPlayerPage();
+    const ws = await waitForSocket();
+    act(() => ws.onopen?.());
+    const toggle = await screen.findByRole("button", { name: "Ver histórico" });
+    act(() => toggle.click());
+    await vi.waitFor(() => expect(calls).toBe(1));
+    await screen.findByText("Cena: batalha");
+
+    const now = vi.spyOn(Date, "now").mockReturnValue(Date.parse("2026-06-01T00:01:00Z"));
+    try {
+      act(() => {
+        ws.emit("character_hp_changed", { characterId: "c2", hp: 7, maxHp: 10, damage: 3 });
+        ws.emit("turn_closed", { turnId: "t1" });
+      });
+      await vi.waitFor(() => expect(calls).toBe(2));
+      expect(await screen.findByText(`Turno de Gon — atacou Killua · Killua −3`)).toBeInTheDocument();
+      const rows = screen.getAllByTestId("event-row");
+      expect(rows).toHaveLength(2);
+      expect(rows[0]).toHaveTextContent("Cena: batalha");
+      expect(screen.queryByText(/♥/)).toBeNull();
+    } finally {
+      now.mockRestore();
+    }
+  });
+
+  // F5: MatchCharactersSidebar sempre renderiza CharacterSidebarItem — um participante sem
+  // `private` (um NPC, aqui) usa só o dado público (toSidebarCharacter) e ganha o selo NPC.
+  it("Personagens do jogador: um NPC sem private mostra o card com o selo NPC (F5)", async () => {
+    server.use(
+      http.get(`${baseUrl}/matches/:id/participants`, () =>
+        HttpResponse.json({
+          participants: [
+            ...participantsFixture,
+            {
+              uuid: "p-npc",
+              joinedAt: "2026-06-01T00:00:00Z",
+              characterSheet: {
+                uuid: "npc-1",
+                nickName: "Guarda",
+                masterUuid: "master-1",
+                createdAt: "",
+                updatedAt: "",
+              },
+            },
+          ],
+        }),
+      ),
+    );
+    renderPlayerPage();
+    const ws = await waitForSocket();
+    act(() => ws.onopen?.());
+    // O NPC não é "meu" (sem playerUuid) — precisa de peça no tabuleiro pra entrar na lista
+    // (mesmo filtro de visibilidade do F6).
+    act(() =>
+      ws.emit("map_full_state", {
+        pieces: [
+          { pieceId: "piece-npc", slot: { kind: "square", col: 5, row: 5 }, characterId: "npc-1", visible: true, z: 0 },
+        ],
+        walls: [],
+        visiblePolygons: [],
+        fogMode: "explored",
+      }),
+    );
+
+    const toggle = await screen.findByRole("button", { name: "Ver histórico" });
+    act(() => toggle.click());
+    act(() => screen.getByRole("button", { name: "Personagens" }).click());
+
+    expect(await screen.findByTestId("character-row-npc-1")).toBeInTheDocument();
+    expect(screen.getByText("NPC")).toBeInTheDocument();
   });
 });

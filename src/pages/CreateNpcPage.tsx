@@ -23,6 +23,9 @@ function CreateNpcPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const avatarBlobUrlRef = useRef<string | undefined>(undefined);
   const coverBlobUrlRef = useRef<string | undefined>(undefined);
+  // Sobrevive a um retry: depois de criada, a ficha nunca é recriada — um
+  // clique seguinte só reenvia upload/patch contra este mesmo uuid.
+  const createdUuidRef = useRef<string | undefined>(undefined);
   const { data: charClasses, isLoading, error } = useCharacterClasses(token);
 
   useEffect(() => {
@@ -72,23 +75,24 @@ function CreateNpcPage() {
     }
     setSubmitError(null);
     setIsSubmitting(true);
-    let createdUuid: string | undefined;
-    let resolvedAvatarUrl: string | undefined;
-    let resolvedCoverUrl: string | undefined;
     try {
-      const selectedClass = charClasses?.find(
-        (cc) => cc.profile.name === charSheet.characterClass
-      );
-      const { uuid } = await characterSheetsService.createCharacterSheet(
-        token,
-        charSheet,
-        selectedClass,
-        campaignId
-      );
-      createdUuid = uuid;
+      let uuid = createdUuidRef.current;
+      if (!uuid) {
+        const selectedClass = charClasses?.find(
+          (cc) => cc.profile.name === charSheet.characterClass
+        );
+        const created = await characterSheetsService.createCharacterSheet(
+          token,
+          charSheet,
+          selectedClass,
+          campaignId
+        );
+        uuid = created.uuid;
+        createdUuidRef.current = uuid;
+      }
 
-      resolvedAvatarUrl = avatarBlob ? undefined : charSheet.profile.avatarUrl;
-      resolvedCoverUrl = coverBlob ? undefined : charSheet.profile.coverUrl;
+      let resolvedAvatarUrl = avatarBlob ? undefined : charSheet.profile.avatarUrl;
+      let resolvedCoverUrl = coverBlob ? undefined : charSheet.profile.coverUrl;
 
       if (avatarBlob) {
         const { uploadUrl, publicUrl } = await uploadService.getPresignedUrl(token, "avatar", uuid);
@@ -115,16 +119,16 @@ function CreateNpcPage() {
       queryClient.invalidateQueries({ queryKey: ["campaignDetails", token, campaignId] });
       navigate(`/campaigns/${campaignId}`, { replace: true });
     } catch (_) {
-      if (createdUuid && (resolvedAvatarUrl !== undefined || resolvedCoverUrl !== undefined)) {
-        characterSheetsService.patchCharacterSheetProfile(
-          token,
-          createdUuid,
-          resolvedAvatarUrl,
-          resolvedCoverUrl,
-          charSheet.profile.briefDescription ?? null,
-        ).catch(() => undefined);
-      }
-      setSubmitError("Erro ao salvar o NPC. Tente novamente.");
+      // Se a ficha já foi criada (uuid gravado), um novo clique em "Criar NPC"
+      // não cria outra — só reenvia upload/patch contra o mesmo uuid. O form
+      // continua editável, mas o retry ignora edições que não sejam imagem/
+      // brief description — a mensagem precisa deixar isso explícito, senão
+      // o mestre que corrige a classe e tenta de novo perde a correção.
+      setSubmitError(
+        createdUuidRef.current
+          ? "O NPC já foi criado com os dados enviados. Tentar de novo envia só as imagens; para mudar outros campos, edite a ficha depois."
+          : "Erro ao salvar o NPC. Tente novamente."
+      );
     } finally {
       setIsSubmitting(false);
     }

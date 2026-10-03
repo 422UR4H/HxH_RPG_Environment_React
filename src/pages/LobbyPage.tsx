@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
 import { Navigate, useParams, useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import useToken from "../hooks/useToken";
@@ -8,7 +8,6 @@ import { useMatchEnrollments } from "../hooks/useMatchEnrollments";
 import { useLobbyWs } from "../hooks/useLobbyWs";
 import { useMatchMap } from "../hooks/useMatchMap";
 import { useMap } from "../hooks/useMap";
-import { mapsService } from "../services/mapsService";
 import TacticalMapPlacer from "../features/tactical-map/TacticalMapPlacer";
 import {
   LoadingContainer,
@@ -31,6 +30,7 @@ const ERROR_STATUSES: WsStatus[] = [
   "lobby_closed",
   "throttled",
   "error",
+  "replaced",
 ];
 
 export default function LobbyPage() {
@@ -62,12 +62,9 @@ export default function LobbyPage() {
   const { data: matchMap } = useMatchMap(token, matchId);
   const { data: fullMap } = useMap(token, matchMap?.mapUuid);
 
+  // As peças vêm só do servidor (`map_full_state` e as mensagens de peça), para os dois
+  // papéis; do mapa da campanha (REST) vem só fundo e grade. Tabuleiro vazio: nada chega.
   const [lobbyPieces, setLobbyPieces] = useState<Piece[]>([]);
-  const [mapSaveError, setMapSaveError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (fullMap) setLobbyPieces(fullMap.pieces);
-  }, [fullMap?.id]);
 
   const handleWsPieceMoved = useCallback(
     (pieceId: string, slot: SlotCoord, characterId?: string, visible?: boolean) => {
@@ -94,25 +91,20 @@ export default function LobbyPage() {
     setLobbyPieces((prev) => prev.filter((p) => p.id !== pieceId));
   }, []);
 
-  const handleWsFullState = useCallback(
-    (pieces: LobbyPieceFullState[]) => {
-      // Only players replace their state from the server — the master's state is
-      // authoritative and gets synced TO the server (not the other way around).
-      if (!isMaster) {
-        setLobbyPieces(
-          pieces.map((p) => ({
-            id: p.pieceId,
-            characterId: p.characterId,
-            coord: { slot: p.slot, z: 0 },
-            visible: p.visible ?? true,
-          }))
-        );
-      }
-    },
-    [isMaster],
-  );
+  // Desde B14 o servidor é dono do tabuleiro do lobby também para o mestre: o que ele manda
+  // substitui o que estiver na tela.
+  const handleWsFullState = useCallback((pieces: LobbyPieceFullState[]) => {
+    setLobbyPieces(
+      pieces.map((p) => ({
+        id: p.pieceId,
+        characterId: p.characterId,
+        coord: { slot: p.slot, z: 0 },
+        visible: p.visible ?? true,
+      })),
+    );
+  }, []);
 
-  const { status, participants, sendStartMatch, sendKick, sendCancelLobby, sendPieceMoved, sendPieceRemoved, sendLobbySync } =
+  const { status, participants, sendStartMatch, sendKick, sendCancelLobby, sendPieceMoved, sendPieceRemoved } =
     useLobbyWs({
       matchUuid: matchId ?? "",
       token: token ?? "",
@@ -144,34 +136,6 @@ export default function LobbyPage() {
       lobbyPieces.filter((p) => playerCharIdSet.has(p.characterId)).map((p) => p.id),
     );
   }, [isMaster, lobbyPieces, playerCharacterIds]);
-
-  // Master seeds the backend's in-memory board once per WS connection so
-  // late-joining players receive the correct current state via lobby_full_state.
-  // Resets on reconnect (status leaves "connected") so a master page-refresh
-  // re-syncs against whatever pieces are loaded from the DB at that point.
-  const masterSyncedRef = useRef(false);
-  useEffect(() => {
-    if (status !== "connected") {
-      masterSyncedRef.current = false;
-      return;
-    }
-    if (!isMaster || !fullMap || masterSyncedRef.current) return;
-    masterSyncedRef.current = true;
-    sendLobbySync(lobbyPieces, fullMap.walls, fullMap.grid);
-  }, [status, isMaster, fullMap, lobbyPieces, sendLobbySync]);
-
-  const handleStartMatch = async () => {
-    setMapSaveError(null);
-    if (fullMap && lobbyPieces.length > 0) {
-      try {
-        await mapsService.updateMap(token!, fullMap.id, { pieces: lobbyPieces });
-      } catch {
-        setMapSaveError("Não foi possível salvar as posições. Tente novamente.");
-        return;
-      }
-    }
-    sendStartMatch();
-  };
 
   if (!token) return <Navigate to="/" replace />;
   if (isPending || enrollmentsPending)
@@ -221,6 +185,8 @@ export default function LobbyPage() {
         return "O lobby foi encerrado pelo mestre.";
       case "error":
         return "Erro de conexão. Verifique sua internet.";
+      case "replaced":
+        return "Este lobby foi aberto em outra aba ou dispositivo com a sua conta. Recarregue a página para usá-lo aqui.";
       default:
         return null;
     }
@@ -282,7 +248,7 @@ export default function LobbyPage() {
         <ActionsList>
           {isMaster ? (
             <MasterActions>
-              <StartButton onClick={handleStartMatch}>
+              <StartButton onClick={sendStartMatch}>
                 Iniciar Partida
               </StartButton>
               <CancelButton onClick={() => setShowCancelConfirm(true)}>
@@ -310,7 +276,6 @@ export default function LobbyPage() {
             />
           </LobbyMapSection>
         )}
-        {mapSaveError && <MapSaveError>{mapSaveError}</MapSaveError>}
       </DetailPageTemplate>
 
       {showCancelConfirm && (
@@ -434,11 +399,4 @@ const LobbyMapSection = styled.div`
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid ${colors.borderInput};
-`;
-
-const MapSaveError = styled.p`
-  font-family: ${fonts.sans};
-  font-size: 13px;
-  color: ${colors.danger};
-  margin-top: 8px;
 `;

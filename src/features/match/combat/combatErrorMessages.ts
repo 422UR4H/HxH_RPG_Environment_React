@@ -11,6 +11,9 @@ const byCode: Record<string, string> = {
   match_not_started: "A partida ainda não começou.",
   invalid_action: "Ação inválida.",
   move_blocked: "O movimento esbarra numa parede.",
+  not_found: "Não encontrado.",
+  invalid_npc: "Esse personagem não pode entrar como NPC desta partida.",
+  not_participant: "Esse personagem não está na partida.",
 };
 
 const bySentType: Record<string, string> = {
@@ -20,6 +23,9 @@ const bySentType: Record<string, string> = {
   close_turn: "Não foi possível fechar o turno",
   change_round_mode: "Não foi possível trocar o regime",
   enqueue_master_action: "Não foi possível executar a ação do mestre",
+  change_scene: "Não foi possível trocar de cena",
+  add_npc: "Não foi possível pôr o NPC na partida",
+  edit_action: "Não foi possível editar a ação",
 };
 
 export function combatErrorText(code: string, message: string, sentType?: string): string {

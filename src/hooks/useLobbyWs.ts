@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import type { SlotCoord, Piece, WallSegment, GridShape } from "../types/tacticalMap";
+import type { SlotCoord } from "../types/tacticalMap";
 
 export type WsStatus =
   | "connecting"
@@ -9,7 +9,9 @@ export type WsStatus =
   | "kicked"
   | "lobby_closed"
   | "throttled"
-  | "error";
+  | "error"
+  /** A mesma conta abriu o lobby em outra conexão, e o servidor ficou com ela (B4). */
+  | "replaced";
 
 export type LobbyParticipant = {
   uuid: string;
@@ -48,9 +50,6 @@ interface UseLobbyWsResult {
   sendCancelLobby: () => void;
   sendPieceMoved: (pieceId: string, slot: SlotCoord, characterId?: string, visible?: boolean, z?: number) => void;
   sendPieceRemoved: (pieceId: string) => void;
-  // Master calls this on WS connect to seed the backend's in-memory board with
-  // the current DB state, so late-joining players receive the correct board.
-  sendLobbySync: (pieces: Piece[], walls?: WallSegment[], grid?: GridShape) => void;
 }
 
 const MAX_RECONNECTS = 5;
@@ -62,6 +61,8 @@ const TERMINAL_STATUSES: WsStatus[] = [
   "kicked",
   "lobby_closed",
   "throttled",
+  // Reconectar tomaria o lugar da outra conexão, que retomaria o desta — para sempre.
+  "replaced",
 ];
 
 export function useLobbyWs({
@@ -185,6 +186,9 @@ export function useLobbyWs({
             break;
           case "lobby_closed":
             updateStatus("lobby_closed");
+            break;
+          case "error":
+            if (payload.code === "connection_replaced") updateStatus("replaced");
             break;
           case "match_started":
             onMatchStartedRef.current();
@@ -326,27 +330,5 @@ export function useLobbyWs({
     [sendMessage],
   );
 
-  const sendLobbySync = useCallback(
-    (pieces: Piece[], walls: WallSegment[] = [], grid?: GridShape) => {
-      sendMessage("map_state_sync", {
-        pieces: pieces.map((p) => {
-          const slotPayload =
-            p.coord.slot.kind === "square"
-              ? { kind: "square", col: p.coord.slot.col, row: p.coord.slot.row }
-              : { kind: "hex", q: p.coord.slot.q, r: p.coord.slot.r };
-          return {
-            pieceId: p.id,
-            slot: slotPayload,
-            characterId: p.characterId,
-            visible: p.visible,
-          };
-        }),
-        walls,
-        ...(grid ? { grid: { cellSize: grid.cellSize } } : {}),
-      });
-    },
-    [sendMessage],
-  );
-
-  return { status, participants, sendStartMatch, sendKick, sendCancelLobby, sendPieceMoved, sendPieceRemoved, sendLobbySync };
+  return { status, participants, sendStartMatch, sendKick, sendCancelLobby, sendPieceMoved, sendPieceRemoved };
 }

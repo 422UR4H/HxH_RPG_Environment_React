@@ -1,4 +1,4 @@
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 import { colors, fonts } from "../../../styles/tokens";
 
 /** O canvas preenche o palco inteiro; barras e avisos flutuam por cima dele. */
@@ -23,12 +23,30 @@ export const NoMapMessage = styled(MapLoadingMessage)`
   color: ${colors.textDisabled};
 `;
 
-/** Botão flutuante no canto do mapa (enquadrar). */
-export const MapCornerButton = styled.button`
+/**
+ * A pilha de avisos sobre o mapa (erro do WS, declaradas perdidas): uma coluna abaixo da
+ * barra geral, para um aviso que quebra em duas linhas empurrar o outro em vez de cobri-lo.
+ * Não captura toque no vazio — o mapa embaixo continua tocável.
+ */
+export const StageNotices = styled.div`
   position: absolute;
-  right: 10px;
-  bottom: 10px;
-  z-index: 30;
+  top: 52px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  width: min(92%, 520px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+
+  & > * {
+    pointer-events: auto;
+  }
+`;
+
+const cornerButton = css`
   font-family: ${fonts.sans};
   font-size: 12px;
   font-weight: 600;
@@ -38,6 +56,40 @@ export const MapCornerButton = styled.button`
   background: ${colors.overlayMedium};
   color: ${colors.textPrimary};
   cursor: pointer;
+`;
+
+/** Botão flutuante no canto do mapa (enquadrar). */
+export const MapCornerButton = styled.button`
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 30;
+  ${cornerButton}
+`;
+
+/**
+ * Mais de um botão no canto (mestre: Arrumar e Enquadrar): empilhados no mesmo canto, para
+ * a largura continuar a de um botão só — a `MapHint` do centro conta com isso.
+ */
+export const MapCornerStack = styled.div`
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+`;
+
+/** Botão dentro de `MapCornerStack`; com `aria-pressed`, aceso enquanto o modo dura. */
+export const MapCornerStackButton = styled.button`
+  ${cornerButton}
+
+  &[aria-pressed="true"] {
+    border-color: ${colors.pieceSelectionRing};
+    background: ${colors.brandAccent};
+  }
 `;
 
 /** Dica curta sobre o mapa: o que um toque vai fazer agora. */

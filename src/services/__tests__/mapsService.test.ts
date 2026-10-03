@@ -415,6 +415,23 @@ describe("mapsService", () => {
       };
       expect(result).toEqual(expected);
     });
+
+    // B16: herdar o tabuleiro de outra partida é o mesmo POST com um campo a mais.
+    it("manda inheritBoardFromMatchUuid quando a partida continua o tabuleiro de outra", async () => {
+      let capturedBody: unknown;
+      server.use(
+        http.post(`${baseUrl}/matches/:matchId/map`, async ({ request }) => {
+          capturedBody = await request.json();
+          return HttpResponse.json({
+            matchMap: { matchUuid: "match-1", mapUuid: "map-1", attachedAt: "2026-06-01T00:00:00Z" },
+          });
+        }),
+      );
+
+      await mapsService.attachMatchMap(token, "match-1", "map-1", "match-0");
+
+      expect(capturedBody).toEqual({ mapUuid: "map-1", inheritBoardFromMatchUuid: "match-0" });
+    });
   });
 
   describe("getMatchMap", () => {
