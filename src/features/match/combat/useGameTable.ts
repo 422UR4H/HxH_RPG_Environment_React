@@ -54,6 +54,7 @@ export function useGameTable({
   // O tabuleiro (peças, paredes, fog) é do servidor, para os dois papéis (F13): do REST vem
   // só o mapa em si — fundo e grade. As peças do mapa da campanha não são as da partida.
   const live = useLiveMapSync({ map, campaign });
+  // Peças só do servidor — é também o que mantém fora da vista do jogador as peças que o fog esconde.
   const boardPieces = live.livePieces ?? [];
 
   // O ack de um envio precisa limpar o rascunho, que só existe depois do socket: um ref

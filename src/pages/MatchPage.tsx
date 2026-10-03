@@ -28,11 +28,14 @@ import type { MatchStatus } from "../types/match";
 import { ActionsList } from "../components/atoms/ActionsList";
 import { useQueryClient } from "@tanstack/react-query";
 import { isApiError } from "../services/httpClient";
-import { getApiErrorDetail } from "../utils/apiError";
 
-/** O back recusa trocar o mapa (anexar ou desanexar) depois do `start_match` (F16, 422). */
+/**
+ * O back recusa trocar o mapa (anexar ou desanexar) depois do `start_match` (F16). Hoje é o
+ * único 422 destes dois endpoints, porque o front nunca manda `inheritBoardFromMatchUuid`; a
+ * UI de herdar tabuleiro (B16) vai precisar separar os 422 dela deste.
+ */
 function isMapLockedError(err: unknown): boolean {
-  return isApiError(err, 422) && /started/i.test(getApiErrorDetail(err) ?? "");
+  return isApiError(err, 422);
 }
 
 function mapChangeErrorText(err: unknown): string {

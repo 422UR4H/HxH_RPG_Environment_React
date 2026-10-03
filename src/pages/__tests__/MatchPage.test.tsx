@@ -1,7 +1,7 @@
 // src/pages/__tests__/MatchPage.test.tsx
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { http, HttpResponse } from "msw";
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { server } from "../../test/server";
 import { renderWithProviders } from "../../test/render";
@@ -388,9 +388,11 @@ describe("MatchPage", () => {
 
     // A página carregou antes do início (sem `gameStartAt`) e o mestre tenta anexar depois.
     it("se o back recusa a troca porque a partida começou, mostra o motivo em português", async () => {
+      // A recusa faz a página rebuscar a partida: a resposta nova já traz `gameStartAt`.
+      let started = false;
       server.use(
         http.get(`${baseUrl}/matches/:id`, () =>
-          HttpResponse.json({ match: masterMatch }),
+          HttpResponse.json({ match: started ? { ...masterMatch, gameStartAt: "2025-12-01T19:05:00Z" } : masterMatch }),
         ),
         http.get(`${baseUrl}/matches/:id/map`, () =>
           new HttpResponse(null, { status: 204 }),
@@ -398,12 +400,13 @@ describe("MatchPage", () => {
         http.get(`${baseUrl}/campaigns/:cid/maps`, () =>
           HttpResponse.json({ maps: [mapApiFixture] }),
         ),
-        http.post(`${baseUrl}/matches/:id/map`, () =>
-          HttpResponse.json(
+        http.post(`${baseUrl}/matches/:id/map`, () => {
+          started = true;
+          return HttpResponse.json(
             { title: "Unprocessable Entity", status: 422, detail: "cannot change map after match has started" },
             { status: 422 },
-          ),
-        ),
+          );
+        }),
       );
       renderPage({ user: masterUserFixture });
       const u = userEvent.setup();
@@ -412,6 +415,8 @@ describe("MatchPage", () => {
       expect(
         await screen.findByText("O mapa não pode ser trocado depois que a partida começou."),
       ).toBeInTheDocument();
+      await waitFor(() => expect(screen.queryByRole("button", { name: /anexar/i })).not.toBeInTheDocument());
+      expect(screen.getByText("O mapa não pode ser trocado depois que a partida começou.")).toBeInTheDocument();
     });
   });
 });
