@@ -24,6 +24,7 @@ const bySentType: Record<string, string> = {
   enqueue_master_action: "Não foi possível executar a ação do mestre",
   change_scene: "Não foi possível trocar de cena",
   add_npc: "Não foi possível pôr o NPC na partida",
+  edit_action: "Não foi possível editar a ação",
 };
 
 export function combatErrorText(code: string, message: string, sentType?: string): string {

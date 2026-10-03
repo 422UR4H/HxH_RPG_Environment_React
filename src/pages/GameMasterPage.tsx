@@ -1,6 +1,7 @@
 // A tela do mestre. Mesma mesa do jogador (`useGameTable`), com o que é do mestre: a fila,
 // a regência (abrir, fechar, regime), agir por um NPC — que ele escolhe tocando no NPC ou
-// na lista do painel "Agir" — e o modo Arrumar, em que arrasta, põe e tira peças (F12).
+// na lista do painel "Agir" —, o modo Arrumar, em que arrasta, põe e tira peças (F12), e a
+// escolha de onde cai a fuga que falhou (F14).
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useResizeObserver } from "../hooks/useResizeObserver";
 import { useCombatCatalogue } from "../hooks/useCombatCatalogue";
@@ -26,6 +27,7 @@ import CloseTurnRefusedDialog from "../features/match/combat/CloseTurnRefusedDia
 import SceneChangeDialog from "../features/match/combat/SceneChangeDialog";
 import ArrangeConfirmDialog from "../features/match/combat/ArrangeConfirmDialog";
 import type { ArrangePending } from "../features/match/combat/ArrangeConfirmDialog";
+import FallLandingDialog from "../features/match/combat/FallLandingDialog";
 import type { MasterActionPayload } from "../features/match/combat/combatMessages";
 import { SmallButton } from "../features/match/combat/MatchTopBar";
 import MatchErrorBanner from "../features/match/combat/MatchErrorBanner";
@@ -38,6 +40,7 @@ import {
   CanvasWrapper, MapCornerStack, MapCornerStackButton, MapHint, MapLoadingMessage, NoMapMessage, StageNotices,
 } from "../features/match/combat/mapCanvasStyles";
 import { isSameSlot, slotToTriple, tripleToSlot } from "../features/tactical-map/utils/coords";
+import type { SlotTriple } from "../features/tactical-map/utils/coords";
 import type { IntentPreview } from "../features/tactical-map/utils/intentGeometry";
 import type { SlotCoord, WallSegment } from "../types/tacticalMap";
 
@@ -55,9 +58,10 @@ const NO_DRAG = new Set<string>();
 
 /**
  * O que um gesto no mapa do mestre significa. "play" é o da Fase 6 (tocar escolhe ator/alvo,
- * segurar marca alvos). Um modo por vez: arrastar e segurar na mesma peça brigam no toque.
+ * segurar marca alvos). "fallPick" (F14): um toque num slot vazio escolhe onde cai a fuga que
+ * falhou. Um modo por vez: arrastar e segurar na mesma peça brigam no toque.
  */
-type BoardMode = "play" | "arrange";
+type BoardMode = "play" | "arrange" | "fallPick";
 
 /** O `enqueue_master_action` de peça do contrato (B9/B14): um id só, o da ficha. */
 function arrangePayload(p: ArrangePending): MasterActionPayload {
@@ -112,38 +116,65 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   const [arrangePieceId, setArrangePieceId] = useState<string | undefined>(undefined);
   const [placingId, setPlacingId] = useState<string | undefined>(undefined);
 
-  const exitArrange = useCallback(() => {
+  // ─── Onde cai a fuga que falhou (F14) ──────────────────────────────────────
+  const fallPicking = boardMode === "fallPick";
+  // O alvo (a ficha) cuja fuga está falhando, e o slot tocado que espera confirmação.
+  const [choosingFall, setChoosingFall] = useState<string | null>(null);
+  const [fallPending, setFallPending] = useState<SlotTriple | null>(null);
+
+  // Sair de um modo é sair de todos: os dois nunca estão ligados juntos.
+  const exitBoardMode = useCallback(() => {
     setBoardMode("play");
     setArrangePending(null);
     setArrangePieceId(undefined);
     setPlacingId(undefined);
+    setChoosingFall(null);
+    setFallPending(null);
   }, []);
   const toggleArrange = useCallback(() => {
     if (arranging) {
-      exitArrange();
+      exitBoardMode();
       return;
     }
+    exitBoardMode();
     setActorId(undefined);
     setInspectedId(undefined);
     setBoardMode("arrange");
     setPanelOpen(true);
-  }, [arranging, exitArrange]);
+  }, [arranging, exitBoardMode]);
+  const chooseFallSlot = useCallback(
+    (targetId: string) => {
+      exitBoardMode();
+      setActorId(undefined);
+      setInspectedId(undefined);
+      setChoosingFall(targetId);
+      setBoardMode("fallPick");
+    },
+    [exitBoardMode],
+  );
 
-  // O Esc é do Arrumar só quando não é de outra coisa: outro diálogo aberto ou um campo de
-  // texto com foco ficam com ele. O diálogo de confirmação do próprio Arrumar não conta.
+  // O `edit_action` nomeia a REAÇÃO de fuga, não o alvo: o id dela vem do cálculo do turno
+  // aberto. Sem ele — o turno fechou, a reação sumiu — não há o que escolher, e o modo cai.
+  const fallReactionId = choosingFall
+    ? state.openResolution?.targets.find((t) => t.targetId === choosingFall)?.reaction?.reactionId
+    : undefined;
+  if (fallPicking && !fallReactionId) exitBoardMode();
+
+  // O Esc é do modo só quando não é de outra coisa: outro diálogo aberto ou um campo de texto
+  // com foco ficam com ele. Os diálogos de confirmação do próprio modo não contam.
   const otherDialogOpen = sceneDialog || wallPicker != null || state.pendingCloseTurn != null;
   useEffect(() => {
-    if (!arranging || otherDialogOpen) return;
+    if (boardMode === "play" || otherDialogOpen) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       const t = e.target;
       if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement || t instanceof HTMLSelectElement) return;
       if (t instanceof HTMLElement && t.isContentEditable) return;
-      exitArrange();
+      exitBoardMode();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [arranging, otherDialogOpen, exitArrange]);
+  }, [boardMode, otherDialogOpen, exitBoardMode]);
 
   // O placer do Pixi trata como "pôr" qualquer pointerup dentro da CAIXA do canvas — inclusive
   // um toque no Enquadrar, na barra geral ou num aviso, que flutuam por cima dele. Sem mexer na
@@ -169,13 +200,14 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     setSeenFullState(game.fullStateSeq);
     setArrangePending(null);
     setPlacingId(undefined);
+    setFallPending(null);
   }
 
   const handleRailSelect = useCallback(
     (id: string) => {
       // O Arrumar ocupa o painel: escolher outra aba sai dele.
       if (arranging) {
-        exitArrange();
+        exitBoardMode();
         setRailActive(id as RailTab);
         setPanelOpen(true);
         return;
@@ -187,13 +219,17 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
       setRailActive(id as RailTab);
       setPanelOpen(true);
     },
-    [railActive, arranging, exitArrange],
+    [railActive, arranging, exitBoardMode],
   );
 
   const chooseActor = useCallback((id: string | undefined) => {
     setActorId(id);
     setInspectedId(undefined);
     if (id) {
+      // Escolher um ator (pela lista do Agir) é voltar a jogar: sai da escolha de onde cai.
+      setBoardMode((m) => (m === "fallPick" ? "play" : m));
+      setChoosingFall(null);
+      setFallPending(null);
       setRailActive("agir");
       setPanelOpen(true);
     }
@@ -360,6 +396,27 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     };
   }, [arrangePending, game.boardPieces, gridKind]);
 
+  const fallPiece = choosingFall ? game.boardPieces.find((p) => p.characterId === choosingFall) : undefined;
+  const handleFallSlot = useCallback(
+    (slot: SlotCoord) => setFallPending(slotToTriple(slot, fallPiece?.coord.z ?? 0)),
+    [fallPiece],
+  );
+  const confirmFall = () => {
+    if (!fallPending || !fallReactionId) return;
+    if (!combat.send.editAction({ actionId: fallReactionId, escapeLanding: { position: fallPending } })) return;
+    exitBoardMode();
+  };
+  // O slot tocado, desenhado como o pré-visualizar do compositor, enquanto se confirma.
+  const fallPreview = useMemo<IntentPreview | undefined>(() => {
+    if (!fallPending) return undefined;
+    return {
+      ...(fallPiece ? { from: fallPiece.coord.slot } : {}),
+      to: tripleToSlot(fallPending, gridKind),
+      auto: false,
+      targets: [],
+    };
+  }, [fallPending, fallPiece, gridKind]);
+
   const inspectedPieceId = inspectedId
     ? game.boardPieces.find((p) => p.characterId === inspectedId)?.id
     : undefined;
@@ -367,7 +424,9 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   const canCloseTurn = state.openTurn != null;
   const mapHint = !map
     ? undefined
-    : arranging
+    : fallPicking && choosingFall
+      ? `Toque num slot vazio para escolher onde ${nameOf(choosingFall)} cai.`
+      : arranging
       ? placingId
         ? `Toque num slot vazio para pôr ${nameOf(placingId)}.`
         : "Arraste uma peça para movê-la."
@@ -463,6 +522,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                 gridKind={gridKind}
                 nameOf={nameOf}
                 onPull={combat.send.pullAction}
+                onChooseFallSlot={chooseFallSlot}
               />
             </>
           ) : (
@@ -517,17 +577,23 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                   // Com um chip armado nada arrasta: a mesma soltura arrastaria E poria.
                   draggablePieceIds={arranging && !placingId ? allPieceIds : NO_DRAG}
                   suppressPanOnPiecePress
-                  onPieceSelect={arranging ? handleArrangeSelect : handlePieceTap}
-                  onPieceLongPress={!arranging && actorId ? handlePieceHold : undefined}
-                  selectedPieceId={arranging ? arrangeSelected?.id : actorId ? composer.actorPiece?.id : undefined}
-                  inspectedPieceId={arranging ? undefined : inspectedPieceId}
+                  onPieceSelect={fallPicking ? undefined : arranging ? handleArrangeSelect : handlePieceTap}
+                  onPieceLongPress={boardMode === "play" && actorId ? handlePieceHold : undefined}
+                  selectedPieceId={
+                    fallPicking
+                      ? fallPiece?.id
+                      : arranging ? arrangeSelected?.id : actorId ? composer.actorPiece?.id : undefined
+                  }
+                  inspectedPieceId={boardMode === "play" ? inspectedPieceId : undefined}
                   targetPieceIds={composer.targetPieceIds}
                   activePieceId={game.openTurnPieceId}
-                  intentPreview={arranging ? arrangePreview : composer.preview}
+                  intentPreview={fallPicking ? fallPreview : arranging ? arrangePreview : composer.preview}
                   intentGhosts={game.ghosts}
-                  highlightHoverSlot={!arranging && !!actorId}
+                  highlightHoverSlot={fallPicking || (!arranging && !!actorId)}
                   fitRequest={game.fitRequest}
-                  onEmptySlotClick={!arranging && actorId ? handleSlotTap : undefined}
+                  onEmptySlotClick={
+                    fallPicking ? handleFallSlot : boardMode === "play" && actorId ? handleSlotTap : undefined
+                  }
                   onPieceMove={arranging ? handleArrangeMove : undefined}
                   placingNpcId={arranging ? (placingId ?? null) : null}
                   onNpcPlaced={arranging ? handleArrangePlaced : undefined}
@@ -557,6 +623,11 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
             {mapHint && <MapHint>{mapHint}</MapHint>}
             {map && (
               <MapCornerStack>
+                {fallPicking && (
+                  <MapCornerStackButton type="button" aria-label="Cancelar a escolha de onde cai" onClick={exitBoardMode}>
+                    × Cancelar
+                  </MapCornerStackButton>
+                )}
                 <MapCornerStackButton type="button" aria-pressed={arranging} onClick={toggleArrange}>
                   Arrumar
                 </MapCornerStackButton>
@@ -604,6 +675,14 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
         canConfirm={combat.status === "connected"}
         onConfirm={confirmArrange}
         onCancel={() => setArrangePending(null)}
+      />
+      <FallLandingDialog
+        pending={fallPicking ? fallPending : null}
+        name={choosingFall ? nameOf(choosingFall) : ""}
+        gridKind={gridKind}
+        canConfirm={combat.status === "connected"}
+        onConfirm={confirmFall}
+        onCancel={() => setFallPending(null)}
       />
       <SceneChangeDialog
         open={sceneDialog}

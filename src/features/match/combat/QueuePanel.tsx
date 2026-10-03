@@ -83,6 +83,7 @@ export default function QueuePanel({
   gridKind,
   nameOf,
   onPull,
+  onChooseFallSlot,
 }: {
   queue: QueuedAction[];
   /** A ação do turno aberto — já não está em `queue`, mas continua na tela, marcada. */
@@ -92,6 +93,8 @@ export default function QueuePanel({
   gridKind: GridKind;
   nameOf: (characterId: string) => string;
   onPull: (actionId: string) => void;
+  /** F14: repassado ao cálculo do card em andamento (a fuga que falhou). */
+  onChooseFallSlot?: (targetId: string) => void;
 }) {
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
   const toggle = (actionId: string) =>
@@ -122,7 +125,14 @@ export default function QueuePanel({
                   <OpenBadge>em andamento</OpenBadge>
                 </Name>
               </Info>
-              {open.resolution && <ResolutionDetails resolution={open.resolution} nameOf={nameOf} />}
+              {open.resolution && (
+                <ResolutionDetails
+                  resolution={open.resolution}
+                  nameOf={nameOf}
+                  gridKind={gridKind}
+                  onChooseFallSlot={onChooseFallSlot}
+                />
+              )}
             </OpenRow>
           )}
           {queue.map((action) => {

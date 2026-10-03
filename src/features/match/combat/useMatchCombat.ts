@@ -143,6 +143,7 @@ export function useMatchCombat({
       masterAction,
       addNpc: ws.sendAddNpc,
       changeScene: ws.sendChangeScene,
+      editAction: ws.sendEditAction,
     },
     dismissError: useCallback(() => dispatch({ type: "ERROR_DISMISSED" }), []),
     dismissCloseTurnDialog: useCallback(() => dispatch({ type: "CLOSE_TURN_DIALOG_DISMISSED" }), []),

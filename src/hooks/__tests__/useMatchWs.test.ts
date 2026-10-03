@@ -561,6 +561,24 @@ describe("useMatchWs — fechamento da Fase 6", () => {
     expect(ws.sent("add_npc")).toEqual([{ characterSheetUuid: "npc-9" }]);
     expect(ws.sent("change_scene")).toEqual([{ category: "battle", briefInitialDescription: "Arena" }]);
   });
+
+  it("sendEditAction manda edit_action com a reação de fuga e a posição (F14)", () => {
+    const { result } = renderHook(() =>
+      useMatchWs({ matchUuid: "m1", token: "t" }),
+    );
+    const ws = flushConnect();
+    ws.onopen?.();
+    let sent: boolean | undefined;
+    act(() => {
+      sent = result.current.sendEditAction({ actionId: "r-esc", escapeLanding: { position: [5, 2, 0] } });
+      result.current.sendEditAction({ actionId: "r-esc", escapeLanding: { position: null } });
+    });
+    expect(sent).toBe(true);
+    expect(ws.sent("edit_action")).toEqual([
+      { actionId: "r-esc", escapeLanding: { position: [5, 2, 0] } },
+      { actionId: "r-esc", escapeLanding: { position: null } },
+    ]);
+  });
 });
 
 // ─── Connection lifecycle ──────────────────────────────────────────────────

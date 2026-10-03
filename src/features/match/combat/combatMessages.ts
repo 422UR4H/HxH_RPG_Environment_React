@@ -87,6 +87,20 @@ export type Payout = {
 /** Falta do MOTOR ao calcular — não é erro da operação. Master-only. */
 export type ResolutionError = { subject: string; kind: string; detail: string };
 
+/**
+ * O veredito de uma fuga (`escape`, `escapeGuard`, `closedEscape`) — ausente fora delas.
+ * `escaped` = `movePassed` E `dodgePassed`, os dois contra o acerto do atacante.
+ */
+export type EscapeVerdict = {
+  escaped: boolean;
+  movePassed: boolean;
+  dodgePassed: boolean;
+  /** Falhou e o mestre não escolheu onde a peça cai: no fechamento ela fica onde está. */
+  awaitsMaster: boolean;
+  /** Onde o mestre pôs a peça (`[col, row, z]`; hex `[q, r, z]`). Só enquanto a fuga falha e há escolha. */
+  landing?: [number, number, number];
+};
+
 export type ResolutionTarget = {
   targetId: string;
   avoided: boolean;
@@ -98,6 +112,7 @@ export type ResolutionTarget = {
   projectedDamage: number;
   reaction?: ReactionResult;
   payouts?: Payout[];
+  escape?: EscapeVerdict;
 };
 
 export type ResolutionPayload = {
@@ -194,3 +209,13 @@ export type MasterActionPayload =
   | { targetIds: string[]; interact: { kind: string } }
   | { targetIds: [string]; move: { position: [number, number, number] } }
   | { targetIds: [string]; remove: Record<string, never> };
+
+/**
+ * `edit_action` (c→s, só o mestre). Hoje o front só manda a seção `escapeLanding` (F14): o
+ * `actionId` é o da REAÇÃO de fuga, e `position: null` limpa a escolha. As outras seções do
+ * contrato (`conditions`, `skills`, `targetIds`) entram quando houver tela para editá-las.
+ */
+export type EditActionPayload = {
+  actionId: string;
+  escapeLanding: { position: [number, number, number] | null };
+};

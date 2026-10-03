@@ -1,18 +1,26 @@
 import styled from "styled-components";
 import { colors, fonts } from "../../../styles/tokens";
+import type { GridKind } from "../../../types/tacticalMap";
 import type { ResolutionPayload } from "./combatMessages";
-import { avoidedVerb, REACTION_KIND_LABELS, RUNG_LABELS } from "./combatText";
+import { avoidedVerb, formatSlot, REACTION_KIND_LABELS, RUNG_LABELS } from "./combatText";
 
 /**
  * O cálculo do turno aberto, que só o mestre recebe (F7). Nasce só leitura: dar a palavra a
- * uma reação é da Fase 7, editar é da Fase 8 — um botão antes disso não faria nada.
+ * uma reação é da Fase 7, editar é da Fase 8. A exceção é a fuga que está falhando (F14):
+ * onde a peça cai não é regra do motor, é decisão do mestre, e o único botão do cálculo é
+ * esse — fora desse caso não há botão nenhum.
  */
 export default function ResolutionDetails({
   resolution,
   nameOf,
+  gridKind,
+  onChooseFallSlot,
 }: {
   resolution: ResolutionPayload;
   nameOf: (id: string) => string;
+  gridKind: GridKind;
+  /** Põe o mapa em modo de escolha do slot onde cai o alvo cuja fuga está falhando. */
+  onChooseFallSlot?: (targetId: string) => void;
 }) {
   const { action, targets, pendingReactions, errors } = resolution;
   return (
@@ -46,6 +54,21 @@ export default function ResolutionDetails({
           <Line>
             dano {t.rawDamage} → {t.projectedDamage} (defesa −{t.defenseApplied})
           </Line>
+          {t.escape && !t.escape.escaped && (
+            <FallBox>
+              <strong>Escape falhou — posição final a critério do mestre</strong>
+              <Line>
+                {t.escape.landing
+                  ? `Cai em ${formatSlot(t.escape.landing, gridKind)}.`
+                  : "Sem escolha, fica onde está."}
+              </Line>
+              {onChooseFallSlot && (
+                <FallButton type="button" onClick={() => onChooseFallSlot(t.targetId)}>
+                  Escolher onde cai
+                </FallButton>
+              )}
+            </FallBox>
+          )}
           {t.payouts?.map((p, i) => (
             <Muted key={i} title={p.reason}>
               {p.amount !== 0 && `${p.amount > 0 ? "+" : ""}${p.amount} `}
@@ -106,6 +129,29 @@ const Target = styled.div`
   background: ${colors.surfaceInput};
 `;
 const Line = styled.span``;
+const FallBox = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  margin-top: 4px;
+  padding: 6px 8px;
+  border: 1px solid ${colors.warningBorder};
+  border-radius: 6px;
+  background: ${colors.warningBgDark};
+  color: ${colors.warningText};
+`;
+const FallButton = styled.button`
+  font-family: ${fonts.sans};
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 10px;
+  border: 1px solid ${colors.brandAccent};
+  border-radius: 6px;
+  cursor: pointer;
+  background: transparent;
+  color: ${colors.textPrimary};
+`;
 const Muted = styled.span`
   color: ${colors.textPlaceholderStrong};
   font-size: 12px;

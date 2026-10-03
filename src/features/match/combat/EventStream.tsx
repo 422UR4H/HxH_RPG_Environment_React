@@ -20,13 +20,17 @@ const sceneLabel = (brief: string, category: SceneCategory) =>
 type Line = { icon: string; text: string; tone?: "turn" | "hp" | "muted"; details?: string[] };
 
 /** O desfecho de um alvo — o mesmo texto no ao vivo e no REST (W1: verbo por `reaction.kind`,
- * igual a ResolutionDetails via `avoidedVerb`). */
+ * igual a ResolutionDetails via `avoidedVerb`). Uma fuga que falhou diz onde caiu (F14) só
+ * quando `landing` veio: a projeção o corta para quem não viu a peça pousar. */
 function outcomeText(
-  t: Pick<ResolutionTarget, "targetId" | "avoided" | "projectedDamage" | "reaction">,
+  t: Pick<ResolutionTarget, "targetId" | "avoided" | "projectedDamage" | "reaction" | "escape">,
   nameOf: (id: string) => string,
+  gridKind: GridKind,
 ): string {
   if (t.avoided) return `${nameOf(t.targetId)} ${avoidedVerb(t.reaction)}`;
-  return t.projectedDamage > 0 ? `${nameOf(t.targetId)} ${MINUS}${t.projectedDamage}` : `${nameOf(t.targetId)} sem dano`;
+  const hit = t.projectedDamage > 0 ? `${nameOf(t.targetId)} ${MINUS}${t.projectedDamage}` : `${nameOf(t.targetId)} sem dano`;
+  const landing = t.escape && !t.escape.escaped ? t.escape.landing : undefined;
+  return landing ? `${hit} (caiu em ${formatSlot(landing, gridKind)})` : hit;
 }
 
 function eventLine(event: TableEvent, nameOf: (id: string) => string, gridKind: GridKind): Line {
@@ -41,7 +45,7 @@ function eventLine(event: TableEvent, nameOf: (id: string) => string, gridKind: 
       };
     case "turn_closed": {
       const who = event.actorId ? ` de ${nameOf(event.actorId)}` : "";
-      const outcomes = (event.resolution?.targets ?? []).map((t) => outcomeText(t, nameOf));
+      const outcomes = (event.resolution?.targets ?? []).map((t) => outcomeText(t, nameOf, gridKind));
       return { icon: "■", text: `Fim do turno${who}${outcomes.length ? ` — ${outcomes.join(", ")}` : ""}` };
     }
     case "hp_changed":
@@ -95,7 +99,7 @@ function turnLine(turn: HistoryTurn, nameOf: (id: string) => string, gridKind: G
     parts.push(`atacou ${who}${a.attack.weapon ? ` com ${humanWeapon(a.attack.weapon)}` : ""}`);
   }
   if (a.interact) parts.push(`interagiu (${a.interact.kind})`);
-  const outcomes = (turn.resolution?.targets ?? []).map((t) => outcomeText(t, nameOf));
+  const outcomes = (turn.resolution?.targets ?? []).map((t) => outcomeText(t, nameOf, gridKind));
   const what = parts.length ? ` — ${parts.join(" e ")}` : "";
   return {
     icon: "■",

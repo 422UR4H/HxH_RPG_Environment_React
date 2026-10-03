@@ -1,11 +1,9 @@
-import styled from "styled-components";
-import { colors } from "../../../styles/tokens";
 import type { GridKind } from "../../../types/tacticalMap";
 import type { SlotTriple } from "../../tactical-map/utils/coords";
 import { formatSlot } from "./combatText";
 import { PanelHint } from "./panelStyles";
 import {
-  ButtonBase, Buttons, CancelButton, ConfirmButton, Dialog, DialogHint, DialogTitle, Overlay,
+  AccentConfirmButton, Buttons, CancelButton, ConfirmButton, Dialog, DialogHint, DialogTitle, Overlay,
 } from "./dialogStyles";
 
 /** O que o mestre pediu no Arrumar e ainda não confirmou (F12). `characterId` é o da ficha. */
@@ -56,8 +54,3 @@ export default function ArrangeConfirmDialog({
     </Overlay>
   );
 }
-
-const AccentConfirmButton = styled(ButtonBase)`
-  background: ${colors.brandAccent};
-  color: ${colors.textPrimary};
-`;

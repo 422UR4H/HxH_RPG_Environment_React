@@ -281,7 +281,7 @@ describe("avoidedVerb (W1)", () => {
 
 describe("ResolutionDetails", () => {
   it("mostra acerto, alvo, reação, dano, reações pendentes e falta do motor", () => {
-    render(<ResolutionDetails resolution={res} nameOf={resolutionNameOf} />);
+    render(<ResolutionDetails resolution={res} nameOf={resolutionNameOf} gridKind="square" />);
     expect(screen.getByText(/Accuracy/)).toBeInTheDocument();
     expect(screen.getByText(/6 \+ 8/)).toBeInTheDocument();
     expect(screen.getByText("Hisoka")).toBeInTheDocument();
@@ -291,9 +291,68 @@ describe("ResolutionDetails", () => {
     expect(screen.getByText(/incompleto/i)).toBeInTheDocument();
   });
 
-  it("não tem botão nenhum (nasce só leitura)", () => {
-    render(<ResolutionDetails resolution={res} nameOf={resolutionNameOf} />);
+  it("não tem botão nenhum fora de uma fuga que falhou (nasce só leitura)", () => {
+    render(<ResolutionDetails resolution={res} nameOf={resolutionNameOf} gridKind="square" onChooseFallSlot={() => {}} />);
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  describe("fuga que falhou (F14)", () => {
+    const escapeRes = (escape: NonNullable<ResolutionPayload["targets"][number]["escape"]>): ResolutionPayload => ({
+      turnId: "t1", isSettled: false,
+      targets: [{
+        targetId: "c2", avoided: escape.escaped, defended: false, dodgeTotal: 12, defenseTotal: 0,
+        rawDamage: 10, defenseApplied: 0, projectedDamage: escape.escaped ? 0 : 10,
+        reaction: { kind: "escape", total: 14, reactionId: "r-esc", margin: 0, difference: 0, stopsAttack: false },
+        escape,
+      }],
+    });
+    const failing = escapeRes({ escaped: false, movePassed: false, dodgePassed: true, awaitsMaster: true });
+
+    it("destaca o alvo e o botão manda o targetId", () => {
+      const onChoose = vi.fn();
+      render(<ResolutionDetails resolution={failing} nameOf={resolutionNameOf} gridKind="square" onChooseFallSlot={onChoose} />);
+      expect(screen.getByText("Escape falhou — posição final a critério do mestre")).toBeInTheDocument();
+      expect(screen.getByText(/fica onde está/i)).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "Escolher onde cai" }));
+      expect(onChoose).toHaveBeenCalledWith("c2");
+    });
+
+    it("mostra o slot já escolhido", () => {
+      const chosen = escapeRes({ escaped: false, movePassed: false, dodgePassed: true, awaitsMaster: false, landing: [5, 2, 0] });
+      render(<ResolutionDetails resolution={chosen} nameOf={resolutionNameOf} gridKind="square" onChooseFallSlot={() => {}} />);
+      expect(screen.getByText(/cai em coluna 6, linha 3/i)).toBeInTheDocument();
+      expect(screen.queryByText(/fica onde está/i)).not.toBeInTheDocument();
+    });
+
+    it("uma fuga que escapou não pede escolha", () => {
+      const escaped = escapeRes({ escaped: true, movePassed: true, dodgePassed: true, awaitsMaster: false });
+      render(<ResolutionDetails resolution={escaped} nameOf={resolutionNameOf} gridKind="square" onChooseFallSlot={() => {}} />);
+      expect(screen.queryByText(/Escape falhou/)).not.toBeInTheDocument();
+      expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    });
+
+    it("sem onChooseFallSlot, o destaque fica e o botão não", () => {
+      render(<ResolutionDetails resolution={failing} nameOf={resolutionNameOf} gridKind="square" />);
+      expect(screen.getByText(/Escape falhou/)).toBeInTheDocument();
+      expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    });
+
+    it("QueuePanel repassa onChooseFallSlot ao cálculo do card em andamento", () => {
+      const onChoose = vi.fn();
+      render(
+        <QueuePanel
+          queue={[]}
+          open={{ actorId: "c1", resolution: failing }}
+          order={[]}
+          gridKind="square"
+          nameOf={resolutionNameOf}
+          onPull={() => {}}
+          onChooseFallSlot={onChoose}
+        />,
+      );
+      fireEvent.click(within(screen.getByTestId("queue-open")).getByRole("button", { name: "Escolher onde cai" }));
+      expect(onChoose).toHaveBeenCalledWith("c2");
+    });
   });
 
   it("W1: alvo que evitou mostra o verbo sozinho, sem \"o golpe\"", () => {
@@ -305,7 +364,7 @@ describe("ResolutionDetails", () => {
         reaction: { kind: "repel", total: 17, reactionId: "r1", margin: 2, difference: 2, stopsAttack: true },
       }],
     };
-    render(<ResolutionDetails resolution={avoided} nameOf={resolutionNameOf} />);
+    render(<ResolutionDetails resolution={avoided} nameOf={resolutionNameOf} gridKind="square" />);
     expect(screen.getByText("Hisoka")).toBeInTheDocument();
     expect(screen.getByText(/^aparou ·/)).toBeInTheDocument();
     expect(screen.queryByText(/evitou/)).not.toBeInTheDocument();
@@ -457,6 +516,31 @@ describe("EventStream", () => {
     );
     expect(rows[2]).toHaveTextContent("Turno de Killua — moveu (Shift) e atacou Hisoka · Hisoka sem dano");
     expect(rows[3]).toHaveTextContent("Turno de Hisoka — interagiu (open)");
+  });
+
+  it("a fuga que falhou mostra onde o mestre a pôs, quando o leitor viu (F14)", () => {
+    const fled = (targetId: string, landing?: [number, number, number]) => ({
+      targetId, avoided: false, defended: false, dodgeTotal: 0, defenseTotal: 0,
+      rawDamage: 8, defenseApplied: 0, projectedDamage: 8,
+      reaction: { kind: "escape", total: 9, reactionId: "r1", margin: 0, difference: 0, stopsAttack: false },
+      escape: { escaped: false, movePassed: false, dodgePassed: true, awaitsMaster: !landing, ...(landing ? { landing } : {}) },
+    });
+    const turn: HistoryTurn = {
+      uuid: "t1", createdAt: "2026-01-01T00:01:00Z", finishedAt: "2026-01-01T00:01:00Z",
+      action: { uuid: "a1", actorId: "n1", reactionKind: "", targetId: ["c1", "c2"], attack: {} },
+      resolution: { isSettled: true, targets: [fled("c1", [7, 6, 0]), fled("c2")] },
+      masterActions: [],
+    };
+    const history: MatchHistory = {
+      scenes: [{
+        uuid: "s1", category: "battle", briefDesc: "", createdAt: "2026-01-01T00:00:00Z",
+        rounds: [{ uuid: "r1", mode: "Race", createdAt: "2026-01-01T00:00:00Z", turns: [turn], events: [] }],
+      }],
+    };
+    render(<EventStream rows={historyRows(history, [], 0, undefined)} nameOf={nameOf} gridKind="square" />);
+    expect(screen.getAllByTestId("event-row")[1]).toHaveTextContent(
+      `Turno de Hisoka — atacou Gon, Killua · Gon ${MINUS}8 (caiu em coluna 8, linha 7), Killua ${MINUS}8`,
+    );
   });
 
   it("cena, regime, round fechado e master actions do REST, com os textos do ao vivo (F4 parte 2)", () => {

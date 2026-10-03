@@ -70,3 +70,9 @@ export const ConfirmButton = styled(ButtonBase)`
   background: ${colors.dangerDark};
   color: ${colors.textPrimary};
 `;
+
+/** Confirmar algo que não destrói nada (arrumar uma peça, escolher onde ela cai). */
+export const AccentConfirmButton = styled(ButtonBase)`
+  background: ${colors.brandAccent};
+  color: ${colors.textPrimary};
+`;

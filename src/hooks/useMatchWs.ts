@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Piece, SlotCoord, WallSegment } from "../types/tacticalMap";
-import type { ChangeScenePayload, CombatServerMessage, EnqueueActionPayload, MasterActionPayload, RoundMode } from "../features/match/combat/combatMessages";
+import type {
+  ChangeScenePayload, CombatServerMessage, EditActionPayload, EnqueueActionPayload, MasterActionPayload, RoundMode,
+} from "../features/match/combat/combatMessages";
 import { normalizeCombatMessage } from "../features/match/combat/normalizeWire";
 
 /**
@@ -443,6 +445,10 @@ export function useMatchWs({
     (payload: ChangeScenePayload) => sendRaw("change_scene", payload),
     [sendRaw],
   );
+  const sendEditAction = useCallback(
+    (payload: EditActionPayload) => sendRaw("edit_action", payload),
+    [sendRaw],
+  );
 
   return {
     status,
@@ -456,5 +462,6 @@ export function useMatchWs({
     sendChangeRoundMode,
     sendAddNpc,
     sendChangeScene,
+    sendEditAction,
   };
 }

@@ -40,6 +40,7 @@ vi.mock("../../features/tactical-map/TacticalMapViewer", () => ({
       // onEmptySlotClick are truly omitted without an actor, not just no-op internally.
       data-has-long-press={String(!!props.onPieceLongPress)}
       data-has-empty-slot-click={String(!!props.onEmptySlotClick)}
+      data-has-piece-select={String(!!props.onPieceSelect)}
       data-selected-piece-id={props.selectedPieceId ?? ""}
       data-inspected-piece-id={props.inspectedPieceId ?? ""}
       // T13/F1: o fantasma do mestre para cada ação na fila com `move` — verificado em
@@ -1117,6 +1118,116 @@ describe("GameMasterPage", () => {
       act(() => screen.getByTestId("select-actor-c1").click());
       expect(mapStub()).toHaveAttribute("data-selected-piece-id", "");
       expect(screen.queryByRole("button", { name: "Tirar do mapa" })).not.toBeInTheDocument();
+    });
+  });
+
+  describe("F14: o mestre escolhe onde cai a fuga que falhou", () => {
+    const mapStub = () => screen.getByTestId("map-stub");
+    const dialog = () => screen.queryByRole("dialog", { name: "Onde cai" });
+    const chooseFall = () =>
+      act(() => within(screen.getByTestId("queue-open")).getByRole("button", { name: "Escolher onde cai" }).click());
+
+    /** O Capanga ataca o Gon, que fugiu e está falhando no movimento. */
+    function openFailingEscape(ws: FakeWS) {
+      openWithServerBoard(ws);
+      act(() => ws.emit("action_queued", { actionId: "a1", actorId: "npc1", bars: ["action"] }));
+      act(() => ws.emit("turn_opened", { turnId: "t1", actorId: "npc1", actionId: "a1", actionType: "" }));
+      act(() =>
+        ws.emit("resolution_updated", {
+          turnId: "t1",
+          isSettled: false,
+          targets: [{
+            targetId: "c1", avoided: false, defended: false, dodgeTotal: 14, defenseTotal: 0,
+            rawDamage: 8, defenseApplied: 0, projectedDamage: 8,
+            reaction: { kind: "escape", total: 14, reactionId: "r-esc", margin: 0, difference: 0, stopsAttack: false },
+            escape: { escaped: false, movePassed: false, dodgePassed: true, awaitsMaster: true },
+          }],
+        }),
+      );
+    }
+
+    it("escolher, tocar no slot vazio e confirmar manda o edit_action com o slot", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openFailingEscape(ws);
+      act(() => screen.getByTestId("select-actor-npc1").click());
+      expect(mapStub()).toHaveAttribute("data-has-long-press", "true");
+      act(() => screen.getByRole("button", { name: "Fila" }).click());
+
+      chooseFall();
+      // o ator foi solto e tocar nas peças não faz nada: só o slot vazio responde
+      expect(screen.queryByRole("button", { name: /declarar/i })).not.toBeInTheDocument();
+      expect(mapStub()).toHaveAttribute("data-has-piece-select", "false");
+      expect(mapStub()).toHaveAttribute("data-has-long-press", "false");
+      expect(mapStub()).toHaveAttribute("data-has-empty-slot-click", "true");
+      expect(screen.getByRole("button", { name: "Arrumar" })).toHaveAttribute("aria-pressed", "false");
+
+      act(() => screen.getByTestId("empty-slot").click());
+      expect(dialog()).toHaveTextContent("Gon cai em coluna 10, linha 10?");
+      expect(JSON.parse(mapStub().getAttribute("data-intent-preview") ?? "null")).toEqual({
+        from: { kind: "square", col: 1, row: 1 },
+        to: { kind: "square", col: 9, row: 9 },
+        auto: false,
+        targets: [],
+      });
+      expect(ws.sent("edit_action")).toEqual([]);
+
+      await user.click(screen.getByRole("button", { name: "Confirmar" }));
+      expect(ws.sent("edit_action")).toEqual([
+        { actionId: "r-esc", escapeLanding: { position: [9, 9, 0] } },
+      ]);
+      expect(dialog()).not.toBeInTheDocument();
+      expect(mapStub()).toHaveAttribute("data-has-empty-slot-click", "false");
+      expect(mapStub()).toHaveAttribute("data-has-piece-select", "true");
+    });
+
+    it("Esc e o × cancelam sem enviar nada", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openFailingEscape(ws);
+
+      chooseFall();
+      act(() => screen.getByTestId("empty-slot").click());
+      await user.keyboard("{Escape}");
+      expect(dialog()).not.toBeInTheDocument();
+      expect(mapStub()).toHaveAttribute("data-has-empty-slot-click", "false");
+
+      chooseFall();
+      await user.click(screen.getByRole("button", { name: "Cancelar a escolha de onde cai" }));
+      expect(mapStub()).toHaveAttribute("data-has-empty-slot-click", "false");
+      expect(screen.queryByRole("button", { name: "Cancelar a escolha de onde cai" })).not.toBeInTheDocument();
+      expect(ws.sent("edit_action")).toEqual([]);
+    });
+
+    it("entrar no Arrumar sai da escolha, e vice-versa", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openFailingEscape(ws);
+
+      chooseFall();
+      act(() => screen.getByRole("button", { name: "Arrumar" }).click());
+      expect(screen.getByRole("button", { name: "Arrumar" })).toHaveAttribute("aria-pressed", "true");
+      expect(screen.queryByRole("button", { name: "Cancelar a escolha de onde cai" })).not.toBeInTheDocument();
+      act(() => screen.getByTestId("empty-slot").click());
+      expect(dialog()).not.toBeInTheDocument();
+
+      act(() => screen.getByRole("button", { name: "Arrumar" }).click());
+      chooseFall();
+      expect(screen.getByRole("button", { name: "Arrumar" })).toHaveAttribute("aria-pressed", "false");
+      expect(mapStub()).toHaveAttribute("data-draggable-piece-ids", "[]");
+    });
+
+    it("o turno fechar no meio da escolha encerra o modo", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openFailingEscape(ws);
+
+      chooseFall();
+      act(() => screen.getByTestId("empty-slot").click());
+      act(() => ws.emit("turn_closed", { turnId: "t1" }));
+      expect(dialog()).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Cancelar a escolha de onde cai" })).not.toBeInTheDocument();
+      expect(mapStub()).toHaveAttribute("data-has-empty-slot-click", "false");
     });
   });
 });
