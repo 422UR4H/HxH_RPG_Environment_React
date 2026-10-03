@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { combatReducer, initialCombatState, pendingMoves } from "../combatReducer";
 import type { CombatAction, CombatState, DeclaredAction } from "../combatReducer";
-import type { BarsPayload } from "../combatMessages";
+import type { BarsPayload, MatchFullStatePayload } from "../combatMessages";
 import type { ResolutionPayload } from "../combatMessages";
 
 const bars = (seq: number): BarsPayload => ({
@@ -274,5 +274,65 @@ describe("combatReducer — HP na reconexão", () => {
       { type: "match_full_state", payload: { roundMode: "Race" } },
     ]);
     expect(s.hp).toEqual({});
+  });
+});
+
+describe("combatReducer — a lista de declaradas segue o servidor (F10/B12)", () => {
+  const full = (extra: Partial<MatchFullStatePayload> = {}): CombatAction => ({
+    type: "match_full_state",
+    payload: { roundMode: "Race", ...extra },
+  });
+  const own = (...ids: string[]) => ids.map((actionId) => ({ actionId, action: {} }));
+
+  it("a ação que o servidor ainda tem na fila fica", () => {
+    const s = run([sent("local-1"), acked("a1"), sent("local-2"), acked("a2"), full({ ownQueue: own("a1", "a2") })]);
+    expect(s.declared.map((d) => [d.id, d.status])).toEqual([["a1", "queued"], ["a2", "queued"]]);
+    expect(s.lostDeclared).toEqual([]);
+  });
+
+  it("a ação que abriu enquanto eu estava fora é conhecida pelo openTurn.actionId — fica, aberta", () => {
+    const s = run([
+      sent("local-1"), acked("a1"),
+      full({ ownQueue: [], openTurn: { turnId: "t1", actorId: "c1", actionId: "a1" } }),
+    ]);
+    expect(s.declared.map((d) => [d.id, d.status, d.turnId])).toEqual([["a1", "open", "t1"]]);
+    expect(s.lostDeclared).toEqual([]);
+  });
+
+  it("a ação que o servidor não tem sai da lista e vira lostDeclared", () => {
+    const s = run([
+      sent("local-1", { ...moveTo, at: 10 }), acked("a1"),
+      sent("local-2"), acked("a2"),
+      full({ ownQueue: own("a2") }),
+    ]);
+    expect(s.declared.map((d) => d.id)).toEqual(["a2"]);
+    expect(s.lostDeclared.map((d) => [d.id, d.at])).toEqual([["a1", 10]]);
+    expect(s.lostDeclared[0].move).toEqual(moveTo.move);
+  });
+
+  it("um envio sem ack sai calado — não é perda (o servidor nunca disse que tinha)", () => {
+    const s = run([sent("local-1"), full({ ownQueue: [] })]);
+    expect(s.declared).toEqual([]);
+    expect(s.lostDeclared).toEqual([]);
+  });
+
+  it("lostDeclared acumula entre reconexões, sem duplicar por id", () => {
+    let s = run([sent("local-1"), acked("a1"), full({ ownQueue: [] })]);
+    s = run([sent("local-2"), acked("a2"), full({ ownQueue: [] })], s);
+    expect(s.lostDeclared.map((d) => d.id)).toEqual(["a1", "a2"]);
+    // A mesma perdida de novo (ex.: voltou do localStorage num refresh) não entra duas vezes.
+    s = run([full({ ownQueue: [] })], { ...s, declared: [{ ...s.lostDeclared[0] }] });
+    expect(s.lostDeclared.map((d) => d.id)).toEqual(["a1", "a2"]);
+  });
+
+  it("LOST_DECLARED_DISMISSED limpa o aviso", () => {
+    const s = run([sent("local-1"), acked("a1"), full({ ownQueue: [] }), { type: "LOST_DECLARED_DISMISSED" }]);
+    expect(s.lostDeclared).toEqual([]);
+  });
+
+  it("sem ownQueue (o mestre, ou um servidor antigo) nada muda", () => {
+    const s = run([sent("local-1"), acked("a1"), full()]);
+    expect(s.declared.map((d) => [d.id, d.status])).toEqual([["a1", "queued"]]);
+    expect(s.lostDeclared).toEqual([]);
   });
 });

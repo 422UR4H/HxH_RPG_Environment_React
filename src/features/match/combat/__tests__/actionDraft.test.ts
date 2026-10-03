@@ -1,10 +1,12 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { act, renderHook } from "@testing-library/react";
 import {
-  buildEnqueuePayload, chooseDestination, chooseTarget, clearDraft, draftVerdict, emptyDraft,
+  buildEnqueuePayload, chooseDestination, chooseTarget, clearDraft, draftFromDeclared, draftVerdict, emptyDraft,
   loadDraft, purgeLegacyMatchStorage, removeTarget, resolveDraft, saveDraft, setMoveCategory,
   setWeapon, toggleAttack, toggleMove, toggleTarget,
 } from "../actionDraft";
 import type { ActionDraft, ReachContext } from "../actionDraft";
+import { useActionComposerState } from "../useActionComposerState";
 import { isSameSlot } from "../../../tactical-map/utils/coords";
 import type { GridShape, SlotCoord } from "../../../../types/tacticalMap";
 
@@ -242,5 +244,70 @@ describe("rascunho: persistência", () => {
     expect(() => saveDraft("m1", "gon", chooseTarget(emptyDraft(), "x"))).not.toThrow();
     get.mockRestore();
     set.mockRestore();
+  });
+});
+
+describe("rascunho de volta de uma declarada perdida (F10)", () => {
+  const move = { category: "Shift" as const, from: [1, 1, 0] as [number, number, number], to: [3, 1, 0] as [number, number, number] };
+  const attack = { targets: ["hisoka"], weapon: "Sword" };
+
+  it("só movimento: manual, com o destino e a categoria declarados", () => {
+    expect(draftFromDeclared({ move })).toEqual({ moveMode: "manual", to: [3, 1, 0], category: "Shift" });
+  });
+
+  it("só ataque: alvos e arma, sem movimento", () => {
+    expect(draftFromDeclared({ attack })).toEqual({ moveMode: "none", attack: { targets: ["hisoka"], weapon: "Sword" } });
+  });
+
+  it("os dois juntos", () => {
+    expect(draftFromDeclared({ move, attack })).toEqual({
+      moveMode: "manual", to: [3, 1, 0], category: "Shift", attack: { targets: ["hisoka"], weapon: "Sword" },
+    });
+  });
+
+  it("interact é ignorado — não vem do compositor", () => {
+    const d = { interact: { kind: "open", targets: ["w1"] } } as Parameters<typeof draftFromDeclared>[0];
+    expect(draftFromDeclared(d)).toEqual(emptyDraft());
+  });
+
+  it("não compartilha o array de alvos da declarada", () => {
+    const out = draftFromDeclared({ attack });
+    expect(out.attack!.targets).not.toBe(attack.targets);
+  });
+});
+
+describe("restoreDraftFor (F10)", () => {
+  const restored: ActionDraft = { moveMode: "manual", to: [5, 5, 0], category: "Dash" };
+  const render = (actorId: string) =>
+    renderHook(() =>
+      useActionComposerState({ matchId: "m1", actorId, boardPieces: [], grid, defaultCategory: "Dash" }),
+    );
+
+  it("ator na tela com rascunho vazio: o rascunho volta (e fica salvo)", () => {
+    const { result } = render("gon");
+    act(() => result.current.restoreDraftFor("gon", restored));
+    expect(result.current.draft).toEqual(restored);
+    expect(loadDraft("m1", "gon")).toEqual(restored);
+  });
+
+  it("ator na tela que já começou outro rascunho: não atropela", () => {
+    const started = chooseDestination(emptyDraft(), [2, 2, 0]);
+    saveDraft("m1", "gon", started);
+    const { result } = render("gon");
+    act(() => result.current.restoreDraftFor("gon", restored));
+    expect(result.current.draft).toEqual(started);
+    expect(loadDraft("m1", "gon")).toEqual(started);
+  });
+
+  it("outro ator (o mestre noutro NPC): grava no rascunho dele só se estiver vazio", () => {
+    const { result } = render("gon");
+    act(() => result.current.restoreDraftFor("killua", restored));
+    expect(loadDraft("m1", "killua")).toEqual(restored);
+    expect(result.current.draft).toEqual(emptyDraft());
+
+    const started = chooseTarget(emptyDraft(), "hisoka");
+    saveDraft("m1", "leorio", started);
+    act(() => result.current.restoreDraftFor("leorio", restored));
+    expect(loadDraft("m1", "leorio")).toEqual(started);
   });
 });

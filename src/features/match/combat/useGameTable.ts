@@ -18,6 +18,8 @@ import { useMatchCombat } from "./useMatchCombat";
 import { useActionComposerState } from "./useActionComposerState";
 import { defaultMoveCategory } from "./defaultMoveCategory";
 import { pendingMoves } from "./combatReducer";
+import type { DeclaredAction } from "./combatReducer";
+import { draftFromDeclared } from "./actionDraft";
 
 /** O destino do `move` de uma ação da fila, quando há um — `undefined` se a ação não move. */
 function queuedMoveTo(q: QueuedAction): SlotTriple | undefined {
@@ -98,6 +100,24 @@ export function useGameTable({
   });
   clearDraftForRef.current = composer.clearDraftFor;
   const { pieceByCharacter } = composer;
+
+  // ─── Declaradas que o servidor perdeu (F10/B12) ────────────────────────────
+  // O rascunho volta, uma vez por id: o ref sobrevive aos re-renders e às próximas
+  // reconexões. Várias perdidas do mesmo ator → volta a mais recente. Uma só de parede (sem
+  // move nem ataque) não tem rascunho a devolver. Daqui NÃO sai envio nenhum (I7).
+  const restoredLostIds = useRef(new Set<string>());
+  const { restoreDraftFor } = composer;
+  useEffect(() => {
+    const latestByActor = new Map<string, DeclaredAction>();
+    for (const d of state.lostDeclared) {
+      if (restoredLostIds.current.has(d.id)) continue;
+      restoredLostIds.current.add(d.id);
+      if (!d.move && !d.attack) continue;
+      const prev = latestByActor.get(d.actorId);
+      if (!prev || d.at > prev.at) latestByActor.set(d.actorId, d);
+    }
+    latestByActor.forEach((d, actor) => restoreDraftFor(actor, draftFromDeclared(d)));
+  }, [state.lostDeclared, restoreDraftFor]);
 
   // ─── Movimentos declarados ainda por acontecer (o fantasma) ───────────────
   // A seta sai de onde a peça ESTÁ, não de onde estava ao declarar: se outra ação do mesmo

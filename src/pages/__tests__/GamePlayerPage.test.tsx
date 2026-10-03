@@ -338,6 +338,63 @@ describe("GamePlayerPage", () => {
     await waitFor(() => expect(storedDraft()).toBeNull());
   });
 
+  // F10/B12: o servidor reiniciou e perdeu a fila. A declarada sai com um aviso persistente,
+  // o rascunho volta ao compositor e NADA é reenviado (I7 — reenviar re-rola os dados).
+  it("declarada que o servidor perdeu sai com aviso, o rascunho volta e nada é reenviado (F10)", async () => {
+    renderPlayerPage();
+    const ws = await waitForSocket();
+    act(() => ws.onopen?.());
+    act(() =>
+      ws.emit("map_full_state", {
+        pieces: [
+          { pieceId: "piece-c1", slot: { kind: "square", col: 1, row: 1 }, characterId: "c1", visible: true, z: 0 },
+          { pieceId: "piece-c2", slot: { kind: "square", col: 2, row: 2 }, characterId: "c2", visible: true, z: 0 },
+        ],
+        walls: [],
+        visiblePolygons: [],
+        fogMode: "explored",
+      }),
+    );
+    act(() => screen.getByTestId("select-actor-c2").click());
+    act(() => screen.getByRole("button", { name: /^declarar/i }).click());
+    act(() => ws.emit("action_enqueued", { actionId: "action-1" }));
+    await waitFor(() => expect(storedDraft()).toBeNull());
+    expect(ws.sent("enqueue_action")).toHaveLength(1);
+
+    act(() => ws.emit("match_full_state", { roundMode: "Race", bars: { seq: 1, prices: {}, characters: [], order: [] }, ownQueue: [] }));
+
+    const notice = await screen.findByText(/o servidor perdeu 1 ação/i);
+    expect(notice).toHaveTextContent(/o rascunho voltou para o compositor/i);
+    await waitFor(() => expect(storedDraft()?.attack).toEqual({ targets: ["c2"] }));
+    expect(ws.sent("enqueue_action")).toHaveLength(1);
+
+    await user.click(screen.getByRole("button", { name: /fechar aviso/i }));
+    expect(screen.queryByText(/o servidor perdeu/i)).not.toBeInTheDocument();
+    expect(ws.sent("enqueue_action")).toHaveLength(1);
+  });
+
+  it("declarada que o servidor ainda tem continua, sem aviso (F10)", async () => {
+    renderPlayerPage();
+    const ws = await waitForSocket();
+    act(() => ws.onopen?.());
+    act(() => screen.getByTestId("empty-slot").click());
+    act(() => screen.getByRole("button", { name: /^declarar/i }).click());
+    act(() => ws.emit("action_enqueued", { actionId: "action-1" }));
+    await waitFor(() => expect(storedDraft()).toBeNull());
+
+    act(() =>
+      ws.emit("match_full_state", {
+        roundMode: "Race",
+        bars: { seq: 1, prices: {}, characters: [], order: [] },
+        ownQueue: [{ actionId: "action-1", action: { uuid: "action-1", actorId: "c1" } }],
+      }),
+    );
+    // Dá tempo de um efeito errado agir antes de afirmar a ausência.
+    await act(async () => {});
+    expect(screen.queryByText(/o servidor perdeu/i)).not.toBeInTheDocument();
+    expect(storedDraft()).toBeNull();
+  });
+
   // Uma recusa do servidor ao envio do composer (ex.: move_blocked) mantém o rascunho
   // inteiro — destino e alvo — para o jogador só corrigir o que o servidor recusou e
   // declarar de novo; nada some da lista de "declaradas" como se tivesse entrado na fila.

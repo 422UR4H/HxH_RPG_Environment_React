@@ -122,17 +122,36 @@ export type CloseTurnRefusedPayload = {
   pendingReactions: PendingReaction[];
 };
 
+/**
+ * `match_full_state.ownQueue` (contrato, B12). O espelho de `queue` para quem NÃO é o
+ * mestre: a mesma ação ainda pendente, cortada em `actionwire.Declaration` — só o que o
+ * dono declarou (arma, alvos, `move.category`/`from`/`position`, nomes de perícia), sem
+ * dado, total ou velocidade. O reducer usa só `actionId` para reconciliar `declared`
+ * (regra B12); `action` não é consumido ainda — tipado largo de propósito.
+ */
+export type OwnQueuedAction = { actionId: string; action: unknown };
+
 export type MatchFullStatePayload = {
   scene?: ScenePayload;
   /** "" quando não há round ativo. */
   roundMode: RoundMode | "";
   bars?: BarsPayload;
-  /** Ausente em "fechado e nada aberto". NÃO carrega actionId — ver o spec §8 e §15. */
-  openTurn?: { turnId: string; actorId: string };
+  /**
+   * Ausente em "fechado e nada aberto". `actionId` (B2) é a ação que abriu este turno — é
+   * o que permite reconciliar `declared` contra `ownQueue` (B12) quando a ação abriu
+   * ENQUANTO o cliente estava fora: ela já não está mais pendente (não aparece em
+   * `ownQueue`), mas também não foi perdida.
+   */
+  openTurn?: { turnId: string; actorId: string; actionId?: string };
   /** Master-only. */
   resolution?: ResolutionPayload;
   /** Master-only; ausente = fila vazia. */
   queue?: QueuedAction[];
+  /**
+   * B12. Ausente SÓ para o mestre; para todo mundo mais, SEMPRE presente — `[]` quando
+   * nada seu está pendente. Ver "regra de reconciliação (B12)" no contrato.
+   */
+  ownQueue?: OwnQueuedAction[];
 };
 
 export type WsErrorPayload = { code: string; message: string };

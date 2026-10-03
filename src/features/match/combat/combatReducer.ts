@@ -45,6 +45,11 @@ export type CombatState = {
   queue: QueuedAction[];
   hp: Record<string, { hp: number; maxHp: number }>;
   declared: DeclaredAction[];
+  /**
+   * Declaradas que o servidor não tinha mais na reconexão (B12) — só para o aviso e para
+   * devolver o rascunho. Nada aqui é reenviado (I7): reenviar rola os dados de novo.
+   */
+  lostDeclared: DeclaredAction[];
   events: TableEvent[];
   pendingCloseTurn: CloseTurnRefusedPayload | null;
   lastError: WsError | null;
@@ -61,6 +66,7 @@ export const initialCombatState: CombatState = {
   queue: [],
   hp: {},
   declared: [],
+  lostDeclared: [],
   events: [],
   pendingCloseTurn: null,
   lastError: null,
@@ -86,6 +92,7 @@ export type CombatAction =
   | ({ type: "close_turn_refused"; payload: CloseTurnRefusedPayload } & Stamp)
   | { type: "ACTION_SENT"; payload: DeclaredAction }
   | { type: "DECLARED_DISMISSED"; payload: { ids: string[] } }
+  | { type: "LOST_DECLARED_DISMISSED" }
   | { type: "WS_ERROR"; payload: WsError }
   | { type: "ERROR_DISMISSED" }
   | { type: "CLOSE_TURN_DIALOG_DISMISSED" };
@@ -113,6 +120,29 @@ function oldestSendingIndex(declared: DeclaredAction[]): number {
   return declared.findIndex((d) => d.status === "sending");
 }
 
+/**
+ * Regra de reconciliação B12 (contrato, `match_full_state`): uma declarada é conhecida pelo
+ * servidor se e só se está em `ownQueue` ou é a ação do `openTurn`. Sem `ownQueue` (o mestre,
+ * ou um servidor anterior a B12) não há como saber — fica tudo como estava.
+ */
+function reconcileDeclared(
+  declared: DeclaredAction[],
+  p: MatchFullStatePayload,
+): { declared: DeclaredAction[]; lost: DeclaredAction[] } {
+  if (!p.ownQueue) return { declared, lost: [] };
+  const pending = new Set(p.ownQueue.map((q) => q.actionId));
+  const openActionId = p.openTurn?.actionId;
+  const kept: DeclaredAction[] = [];
+  const lost: DeclaredAction[] = [];
+  for (const d of declared) {
+    if (d.status !== "queued" || pending.has(d.id)) kept.push(d);
+    // Abriu enquanto eu estava fora: o `turn_opened` dela se perdeu, mas ela existe.
+    else if (openActionId && d.id === openActionId) kept.push({ ...d, status: "open", turnId: p.openTurn!.turnId });
+    else lost.push(d);
+  }
+  return { declared: kept, lost };
+}
+
 export function combatReducer(state: CombatState, action: CombatAction): CombatState {
   switch (action.type) {
     case "match_full_state": {
@@ -121,9 +151,11 @@ export function combatReducer(state: CombatState, action: CombatAction): CombatS
       // Um registro novo é um socket novo: o ack (ou erro) de um envio feito pelo socket
       // anterior nunca vai chegar por este. E um turno "meu" que estava aberto e não é mais
       // o turno aberto fechou enquanto eu estava fora.
-      const declared = state.declared.filter(
+      const survivors = state.declared.filter(
         (d) => d.status === "queued" || (d.status === "open" && d.turnId === openTurn?.turnId),
       );
+      const { declared, lost } = reconcileDeclared(survivors, p);
+      const lostIds = new Set(state.lostDeclared.map((d) => d.id));
       return {
         ...state,
         scene: p.scene,
@@ -132,6 +164,7 @@ export function combatReducer(state: CombatState, action: CombatAction): CombatS
         openTurn,
         queue: p.queue ?? [],
         declared,
+        lostDeclared: [...state.lostDeclared, ...lost.filter((d) => !lostIds.has(d.id))],
         openResolution: p.resolution && !p.resolution.isSettled ? p.resolution : null,
         // A linha não volta na reconexão: o card em andamento usa o `openTurn`.
         openQueued: null,
@@ -158,6 +191,9 @@ export function combatReducer(state: CombatState, action: CombatAction): CombatS
       const ids = new Set(action.payload.ids);
       return { ...state, declared: state.declared.filter((d) => !ids.has(d.id)) };
     }
+
+    case "LOST_DECLARED_DISMISSED":
+      return { ...state, lostDeclared: [] };
 
     case "action_queued":
       return { ...state, queue: [...state.queue, action.payload] };

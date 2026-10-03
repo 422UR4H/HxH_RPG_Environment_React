@@ -26,6 +26,7 @@ import CloseTurnRefusedDialog from "../features/match/combat/CloseTurnRefusedDia
 import SceneChangeDialog from "../features/match/combat/SceneChangeDialog";
 import { SmallButton } from "../features/match/combat/MatchTopBar";
 import MatchErrorBanner from "../features/match/combat/MatchErrorBanner";
+import LostDeclaredNotice from "../features/match/combat/LostDeclaredNotice";
 import MatchSheetPanel from "../features/match/combat/MatchSheetPanel";
 import MatchCharactersSidebar from "../features/match/MatchCharactersSidebar";
 import WallActionSheet from "../features/match/WallActionSheet";
@@ -367,6 +368,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
               error={state.lastError?.code === "npc_already_in_match" ? null : state.lastError}
               onDismiss={combat.dismissError}
             />
+            <LostDeclaredNotice count={state.lostDeclared.length} onDismiss={combat.dismissLostDeclared} />
             {mapHint && <MapHint>{mapHint}</MapHint>}
             {map && <MapCornerButton type="button" onClick={game.refit}>Enquadrar</MapCornerButton>}
           </>

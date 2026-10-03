@@ -139,6 +139,15 @@ describe("normalizeWire — R33", () => {
     expect(out.queue).toBeUndefined();
   });
 
+  it("match_full_state.ownQueue: [] fica [], ausente fica ausente, null vira ausente (B12)", () => {
+    const bars = { seq: 0, prices: null, characters: null, order: null };
+    expect(normalizeMatchFullState({ roundMode: "", bars, ownQueue: [] }).ownQueue).toEqual([]);
+    expect(normalizeMatchFullState({ roundMode: "", bars }).ownQueue).toBeUndefined();
+    // Um `null` não é "nada seu na fila": lido como [], descartaria declaradas que o
+    // servidor talvez tenha. Sem a lista, não se reconcilia.
+    expect(normalizeMatchFullState({ roundMode: "", bars, ownQueue: null }).ownQueue).toBeUndefined();
+  });
+
   it("normalizeCombatMessage roteia bars_updated pelo normalizador certo", () => {
     const out = normalizeCombatMessage({
       type: "bars_updated",

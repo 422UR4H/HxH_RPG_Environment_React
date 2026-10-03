@@ -20,6 +20,7 @@ import { historyRows } from "../features/match/combat/historyRows";
 import ActionComposer from "../features/match/combat/ActionComposer";
 import DeclaredActions from "../features/match/combat/DeclaredActions";
 import MatchErrorBanner from "../features/match/combat/MatchErrorBanner";
+import LostDeclaredNotice from "../features/match/combat/LostDeclaredNotice";
 import MatchSheetPanel from "../features/match/combat/MatchSheetPanel";
 import MatchCharactersSidebar from "../features/match/MatchCharactersSidebar";
 import { PanelMessage } from "../features/match/combat/panelStyles";
@@ -253,6 +254,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
               highlightActorIds={myActorIds}
             />
             <MatchErrorBanner error={state.lastError} onDismiss={combat.dismissError} />
+            <LostDeclaredNotice count={state.lostDeclared.length} onDismiss={combat.dismissLostDeclared} />
             {map && <MapCornerButton type="button" onClick={game.refit}>Enquadrar</MapCornerButton>}
           </>
         }

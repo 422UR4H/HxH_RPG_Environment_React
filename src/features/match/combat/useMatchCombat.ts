@@ -133,6 +133,7 @@ export function useMatchCombat({
     },
     dismissError: useCallback(() => dispatch({ type: "ERROR_DISMISSED" }), []),
     dismissCloseTurnDialog: useCallback(() => dispatch({ type: "CLOSE_TURN_DIALOG_DISMISSED" }), []),
+    dismissLostDeclared: useCallback(() => dispatch({ type: "LOST_DECLARED_DISMISSED" }), []),
     dismissDeclared: useCallback(
       (ids: string[]) => { if (ids.length) dispatch({ type: "DECLARED_DISMISSED", payload: { ids } }); },
       [],

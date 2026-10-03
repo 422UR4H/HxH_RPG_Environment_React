@@ -62,6 +62,20 @@ export function useActionComposerState({
     [matchId, actorId],
   );
 
+  /** Devolve um rascunho perdido — só se o do ator estiver vazio (não atropela o que o jogador começou). */
+  const restoreDraftFor = useCallback(
+    (actor: string, next: ActionDraft) => {
+      if (!matchId) return;
+      const isEmpty = (d: ActionDraft) => d.moveMode === "none" && !d.attack;
+      if (actor === actorId) {
+        if (isEmpty(draft)) updateDraft(next);
+        return;
+      }
+      if (isEmpty(loadDraft(matchId, actor))) saveDraft(matchId, actor, next);
+    },
+    [matchId, actorId, draft, updateDraft],
+  );
+
   // Uma peça por personagem; se houver mais de uma, vale a de menor id — a mesma regra
   // estável que o servidor usa para escolher qual peça uma ação move.
   const pieceByCharacter = useMemo(() => {
@@ -136,5 +150,6 @@ export function useActionComposerState({
     onCharacterTap,
     onCharacterHold,
     clearDraftFor,
+    restoreDraftFor,
   };
 }
