@@ -10,13 +10,53 @@ export const ROUND_MODE_LABELS: Record<RoundMode, string> = { Free: "Livre", Rac
 export const BAR_ICONS: Record<Bar, string> = { action: "⚔", move: "➜" };
 export const BAR_LABELS: Record<Bar, string> = { action: "ação", move: "movimento" };
 
+/** `reaction.rung` do repelir — snake_case do domínio, rótulo PT na tela. */
+export const RUNG_LABELS: Record<string, string> = {
+  great_success: "sucesso total",
+  success: "sucesso",
+  near_miss: "quase",
+  failure: "falha",
+};
+
+export const REACTION_KIND_LABELS: Record<string, string> = {
+  nothing: "nada",
+  dodge: "esquiva",
+  closedDodge: "esquiva fechada",
+  escape: "fuga",
+  escapeGuard: "fuga defensiva",
+  closedEscape: "fuga fechada",
+  repel: "repelir",
+};
+
 const INTERACT_LABELS: Record<string, string> = {
   open: "abrir",
   close: "fechar",
   toggle: "alternar",
   lockpick: "arrombar",
   examine: "examinar",
+  // Só o mestre revela (master action `revealWall`); o jogador nunca declara isto.
+  reveal: "revelar",
 };
+
+export const interactLabel = (kind: string) => INTERACT_LABELS[kind] ?? kind;
+
+/**
+ * W1: o verbo de "evitou" depende de COMO o alvo evitou, não de um texto fixo — o contrato
+ * (`targets[].avoided`) diz que `avoided` vale por qualquer meio; pergunte a `reaction.kind`.
+ * Sem reação, o alvo usou o reflexo passivo de esquiva.
+ */
+export function avoidedVerb(reaction?: { kind: string }): string {
+  switch (reaction?.kind) {
+    case "escape":
+    case "escapeGuard":
+    case "closedEscape":
+      return "fugiu";
+    case "repel":
+      return "aparou";
+    default:
+      return "esquivou";
+  }
+}
 
 /** Coordenada legível de um slot — contada a partir de 1 no quadrado. */
 export function formatSlot(t: SlotTriple, kind: GridKind): string {
@@ -37,7 +77,7 @@ export function describeDeclared(
     const who = d.attack.targets.map(nameOf).join(", ");
     parts.push(`atacar ${who}${d.attack.weapon ? ` com ${humanWeapon(d.attack.weapon)}` : ""}`);
   }
-  if (d.interact) parts.push(`${INTERACT_LABELS[d.interact.kind] ?? d.interact.kind} a passagem`);
+  if (d.interact) parts.push(`${interactLabel(d.interact.kind)} a passagem`);
   const text = parts.join(" e ");
   return text.charAt(0).toUpperCase() + text.slice(1);
 }

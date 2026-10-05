@@ -36,7 +36,7 @@ que a migração de case da Fase 8 não corrigiu porque não são bugs de case.
 | GET | `/maps/:mapId` | `map` | `GetMapResponseBody` (`internal/app/api/map/get_map.go`) | passthrough |
 | PUT | `/maps/:mapId` | — (204, sem corpo) | `UpdateMapResponse` (`internal/app/api/map/update_map.go`) | resolve `undefined` |
 | DELETE | `/maps/:mapId` | — (204) | `DeleteMapResponse` (`internal/app/api/map/delete_map.go`) | resolve `undefined` |
-| POST | `/matches/:matchUuid/map` | `matchMap` | `AttachMatchMapResponseBody` (`internal/app/api/matchmap/attach.go`) | passthrough; body `{ mapUuid }` |
+| POST | `/matches/:matchUuid/map` | `matchMap` | `AttachMatchMapResponseBody` (`internal/app/api/matchmap/attach.go`) | passthrough; body `{ mapUuid }`, ou `{ mapUuid, inheritBoardFromMatchUuid }` quando a partida continua o tabuleiro de outra (F15) |
 | GET | `/matches/:matchUuid/map` | `matchMap` (200) / sem corpo (204) | `GetMatchMapResponseBody` (`internal/app/api/matchmap/get.go`) | passthrough; 204 → `null`; **erro de rede sem `response.status` também vira `null`** [1] |
 | DELETE | `/matches/:matchUuid/map` | — (sem Body no struct) | `DetachMatchMapResponse` (`internal/app/api/matchmap/detach.go`) | resolve `undefined` |
 
@@ -82,7 +82,7 @@ A antiga inconsistência de ordem "lê a chave crua antes de converter" não exi
 como não há mais conversão de case nenhuma, ler `data.characterSheet` é só acesso direto
 de propriedade — não há ordem para errar.
 
-### matchService.ts (9 métodos)
+### matchService.ts (10 métodos)
 
 | Método | Path | Chave do envelope | Struct Go (arquivo) | Estado |
 |---|---|---|---|---|
@@ -90,6 +90,7 @@ de propriedade — não há ordem para errar.
 | GET | `/matches/:id` | `match` | `GetMatchResponseBody` (`internal/app/api/match/get_match.go`) | passthrough |
 | GET | `/matches/:id/enrollments` | `enrollments` | `ListMatchEnrollmentsResponseBody` (`internal/app/api/match/list_match_enrollments.go`) | passthrough |
 | GET | `/matches/:id/participants` | `participants` | `GetMatchParticipantsResponseBody` (`internal/app/api/match/get_match_participants.go`) | passthrough |
+| GET | `/matches/:id/history` | — (o corpo inteiro: `{ scenes }`) | `GetMatchHistoryResponseBody` (`internal/app/api/match/get_match_history.go`) | passthrough; projetado por quem pede |
 | POST | `/enrollments/:id/accept` | — (sem Body) | `AcceptEnrollmentResponse` (`internal/app/api/enrollment/accept_enrollment.go`) | body `{}` literal |
 | POST | `/enrollments/:id/reject` | — (sem Body) | `RejectEnrollmentResponse` (`internal/app/api/enrollment/reject_enrollment.go`) | body `{}` literal |
 | PATCH | `/matches/:id` | `match` | `UpdateMatchResponseBody` (`internal/app/api/match/update_match.go`) | passthrough |
@@ -221,8 +222,6 @@ auditar.
 | `kick_player` | cliente→servidor | `KickPlayerPayload{playerUuid}` | `useLobbyWs` (`sendKick`) | passthrough; `{ playerUuid }` literal |
 | `piece_moved` | cliente→servidor | `PieceMovedPayload` | `useLobbyWs` (`sendPieceMoved`) | passthrough; `characterId`/`visible`/`z` só aparecem na chave quando não-nulos (`...(x != null && {...})`) |
 | `piece_removed` | cliente→servidor | `PieceRemovedPayload{pieceId}` | `useLobbyWs` (`sendPieceRemoved`) | passthrough |
-| `map_state_sync` | cliente→servidor (master, ao entrar na *lobby*) | `MapStateSyncPayload{pieces, walls, grid}` | `useLobbyWs` (`sendLobbySync`) | passthrough; pieces sempre inclui `characterId`; grid reduzido à mão a `{ cellSize }` |
-| `map_state_sync` | cliente→servidor (master, dentro da *partida*) | idem | `useMatchWs` (`sendBoardSync`) | passthrough; pieces via `toPiecePayload` (à mão); walls e grid repassados como estão |
 | `enqueue_action` | cliente→servidor | `ActionPayload` | `useMatchWs` (`sendAction`) | passthrough; chamador já monta em camelCase |
 | `enqueue_master_action` | cliente→servidor | `MasterActionPayload` | `useMatchWs` (`sendMasterAction`) | passthrough |
 | `room_state` | servidor→cliente | `RoomStatePayload{matchUuid, state, players:[PlayerInfo]}` | `useLobbyWs` | passthrough; lê `isMaster`/`isOnline` direto, monta `LobbyParticipant` à mão |

@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useLobbyWs } from "../useLobbyWs";
-import type { Piece, WallSegment, GridShape } from "../../types/tacticalMap";
 
 // ─── WebSocket mock ───────────────────────────────────────────────────────────
 
@@ -232,6 +231,17 @@ describe("useLobbyWs", () => {
     expect(MockWebSocket).toHaveBeenCalledTimes(1);
   });
 
+  // B4: a mesma conta abriu o lobby em outra aba; reconectar aqui derrubaria a outra, em loop.
+  it("does not reconnect after connection_replaced", () => {
+    const { result } = renderHook(() => useLobbyWs(defaultParams));
+    simulateOpen();
+    sendFromServer("error", { code: "connection_replaced", message: "this account connected again elsewhere" });
+    simulateClose(1006);
+    act(() => { vi.advanceTimersByTime(60_000); });
+    expect(MockWebSocket).toHaveBeenCalledTimes(1);
+    expect(result.current.status).toBe("replaced");
+  });
+
   it("reconnects after unexpected close with backoff", () => {
     renderHook(() => useLobbyWs(defaultParams));
     simulateOpen();
@@ -422,43 +432,5 @@ describe("useLobbyWs", () => {
     const sent = JSON.parse(wsInstance.send.mock.calls[0][0]);
     expect(sent.type).toBe("piece_removed");
     expect(sent.payload).toEqual({ pieceId: "piece-3" });
-  });
-
-  it("sendLobbySync sends pieces, walls and the grid cellSize untouched (camelCase)", () => {
-    const { result } = renderHook(() => useLobbyWs(defaultParams));
-    simulateOpen();
-    const pieces: Piece[] = [
-      { id: "p1", characterId: "c1", coord: { slot: { kind: "square", col: 1, row: 2 }, z: 0 }, visible: true },
-    ];
-    const walls: WallSegment[] = [
-      {
-        id: "w1", p1: [0, 0], p2: [1, 0], wallType: "wall", material: "stone",
-        move: false, sense: "none", direction: "both", open: false, locked: false,
-        hp: 10, maxHp: 10, resistance: 0, destroyed: false,
-      },
-    ];
-    const grid: GridShape = {
-      kind: "square", cols: 10, rows: 10, cellSize: 32, skewRatio: 1,
-      rotation: 0, color: "#fff", opacity: 1, lineStyle: "solid",
-    };
-    act(() => { result.current.sendLobbySync(pieces, walls, grid); });
-    const sent = JSON.parse(wsInstance.send.mock.calls[0][0]);
-    expect(sent.type).toBe("map_state_sync");
-    expect(sent.payload.pieces).toEqual([
-      { pieceId: "p1", slot: { kind: "square", col: 1, row: 2 }, characterId: "c1", visible: true },
-    ]);
-    expect(sent.payload.walls[0]).toMatchObject({ wallType: "wall", maxHp: 10 });
-    expect(sent.payload.grid).toEqual({ cellSize: 32 });
-  });
-
-  it("sendLobbySync omits the grid key entirely when no grid is provided", () => {
-    const { result } = renderHook(() => useLobbyWs(defaultParams));
-    simulateOpen();
-    act(() => { result.current.sendLobbySync([]); });
-    const sent = JSON.parse(wsInstance.send.mock.calls[0][0]);
-    expect(sent.type).toBe("map_state_sync");
-    expect(sent.payload.pieces).toEqual([]);
-    expect(sent.payload.walls).toEqual([]);
-    expect("grid" in sent.payload).toBe(false);
   });
 });

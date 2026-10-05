@@ -13,6 +13,7 @@ import { useMaps } from "../hooks/useMaps";
 import { useMatchMap } from "../hooks/useMatchMap";
 import { useAttachMatchMap } from "../hooks/useAttachMatchMap";
 import { useDetachMatchMap } from "../hooks/useDetachMatchMap";
+import { useInheritableBoards } from "../hooks/useInheritableBoards";
 import PageTabNav from "../components/organisms/PageTabNav";
 import MatchCharactersSidebar from "../features/match/MatchCharactersSidebar";
 import MatchHeaderSection from "../features/match/MatchHeaderSection";
@@ -26,6 +27,44 @@ import RulesSidebar from "../components/organisms/RulesSidebar";
 import RuleSection from "../components/molecules/RuleSection";
 import type { MatchStatus } from "../types/match";
 import { ActionsList } from "../components/atoms/ActionsList";
+import { useQueryClient } from "@tanstack/react-query";
+import { isApiError } from "../services/httpClient";
+import { getApiErrorDetail } from "../utils/apiError";
+
+const MAP_LOCKED_TEXT = "O mapa não pode ser trocado depois que a partida começou.";
+const MAP_LOCKED_DETAIL = "cannot change map after match has started";
+
+/** Recusas da herança de tabuleiro (B16), pelo `detail` — o back usa um 422 para as cinco. */
+const INHERIT_REFUSALS: Record<string, string> = {
+  [MAP_LOCKED_DETAIL]: MAP_LOCKED_TEXT,
+  "source match has no board to inherit": "Essa partida não deixou um tabuleiro para continuar.",
+  "source match's board is on a different map": "O tabuleiro dessa partida está em outro mapa.",
+  "source match is not in the same campaign": "Essa partida não é desta campanha.",
+  "source match cannot be the same match being attached to":
+    "Uma partida não pode continuar o próprio tabuleiro.",
+  "match not found": "A partida não foi encontrada.",
+  "map not found": "O mapa não foi encontrado.",
+};
+
+/**
+ * Sem herança, o único 422 de anexar/desanexar é o de partida iniciada (F16, garantido pelo
+ * contrato): o status basta, e um `detail` reescrito no back não quebra a recusa. Com herança,
+ * o 422 tem cinco motivos e só o `detail` diz qual.
+ */
+function mapChangeRefusal(err: unknown, inheriting: boolean): { text: string; locked: boolean } {
+  if (!inheriting) {
+    if (isApiError(err, 422)) return { text: MAP_LOCKED_TEXT, locked: true };
+  } else {
+    const detail = getApiErrorDetail(err);
+    const known = detail ? INHERIT_REFUSALS[detail] : undefined;
+    if (known) return { text: known, locked: detail === MAP_LOCKED_DETAIL };
+    // Recusa que o front não conhece: tentar de novo daria o mesmo 422.
+    if (isApiError(err, 422)) {
+      return { text: "Não dá para continuar o tabuleiro dessa partida.", locked: false };
+    }
+  }
+  return { text: "Não foi possível trocar o mapa. Tente novamente.", locked: false };
+}
 
 function getMatchStatus(match: { gameStartAt?: string; storyEndAt?: string }): MatchStatus {
   if (!match.gameStartAt) return "scheduled";
@@ -78,6 +117,28 @@ export default function MatchPage() {
   const { data: matchMap } = useMatchMap(token, matchId);
   const { mutate: attachMap, isPending: isAttaching } = useAttachMatchMap(token, matchId);
   const { mutate: detachMap, isPending: isDetaching } = useDetachMatchMap(token, matchId);
+  const queryClient = useQueryClient();
+  const [mapChangeError, setMapChangeError] = useState<string | null>(null);
+  // A resposta do anexar não ecoa a herança: sem este aviso, herdar no mapa já anexado não
+  // mudaria nada na tela.
+  const [mapChangeNotice, setMapChangeNotice] = useState<string | null>(null);
+  // Recusa por partida iniciada: esta tela carregou antes do início. Rebuscar a partida traz o
+  // `gameStartAt`, e a troca de mapa some.
+  const onMapChangeError = (err: unknown, inheriting = false) => {
+    const refusal = mapChangeRefusal(err, inheriting);
+    setMapChangeNotice(null);
+    setMapChangeError(refusal.text);
+    if (refusal.locked) {
+      void queryClient.invalidateQueries({ queryKey: ["matchDetails", token, matchId] });
+    }
+  };
+  const mapChangeCallbacks = {
+    onSuccess: () => {
+      setMapChangeError(null);
+      setMapChangeNotice(null);
+    },
+    onError: (err: unknown) => onMapChangeError(err),
+  };
 
   const sheetId =
     locationState?.sheetId ??
@@ -106,6 +167,12 @@ export default function MatchPage() {
   const { data: maps, isPending: mapsPending } = useMaps(
     token,
     activeTab === "maps" && isMaster ? campaignId : undefined,
+  );
+  const boardSources = useInheritableBoards(
+    token,
+    campaignId,
+    matchId,
+    activeTab === "maps" && isMaster && !matchStarted,
   );
 
   useEffect(() => {
@@ -145,6 +212,22 @@ export default function MatchPage() {
 
   const handleLobbyConfirm = () => {
     navigate(`/campaigns/${campaignId}/matches/${matchId}/lobby`);
+  };
+
+  const handleInherit = (mapId: string, sourceMatchUuid: string) => {
+    const source = boardSources[mapId]?.find((s) => s.matchUuid === sourceMatchUuid);
+    attachMap(
+      { mapId, inheritBoardFromMatchUuid: sourceMatchUuid },
+      {
+        onSuccess: () => {
+          setMapChangeError(null);
+          setMapChangeNotice(
+            source ? `O tabuleiro de «${source.title}» continua nesta partida.` : null,
+          );
+        },
+        onError: (err: unknown) => onMapChangeError(err, true),
+      },
+    );
   };
 
   const handleEnroll = () => {
@@ -268,11 +351,15 @@ export default function MatchPage() {
           matchMap={matchMap}
           isAttaching={isAttaching}
           isDetaching={isDetaching}
+          changeError={mapChangeError}
+          changeNotice={mapChangeNotice}
+          boardSources={boardSources}
           onMapClick={(mapId) =>
             navigate(`/campaigns/${campaignId}/maps/${mapId}/edit`)
           }
-          onAttach={(mapId) => attachMap(mapId)}
-          onDetach={() => detachMap()}
+          onAttach={(mapId) => attachMap({ mapId }, mapChangeCallbacks)}
+          onDetach={() => detachMap(undefined, mapChangeCallbacks)}
+          onInherit={handleInherit}
         />
       </DetailPageTemplate>
 

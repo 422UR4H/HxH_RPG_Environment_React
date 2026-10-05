@@ -13,7 +13,7 @@ import { useLiveMapSync } from "../useLiveMapSync";
 
 function setup() {
   return renderHook(() =>
-    useLiveMapSync({ map: undefined, campaign: undefined, seedFromRest: false }),
+    useLiveMapSync({ map: undefined, campaign: undefined }),
   );
 }
 

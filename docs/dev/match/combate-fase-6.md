@@ -19,6 +19,9 @@ Fora de escopo (spec §13): reações, edição do mestre, histórico por REST, 
 inventário dentro da partida, Nen, cancelar ação, adicionar NPC com a sala viva, e o
 fantasma de espera (o de um movimento que depende de CD).
 
+> **Superado no fechamento:** o histórico por REST, a ficha dentro da partida e o `add_npc`
+> com a sala viva foram entregues depois. Ver `combate-fechamento-fase-6.md` (F2, F3, F4).
+
 ## Arquitetura
 
 ```
@@ -40,6 +43,10 @@ fantasma de espera (o de um movimento que depende de CD).
         └── GameMasterPage  → MatchStageTemplate + organismos
 ```
 
+> **Superado no fechamento:** o `useLiveMapSync` não mistura mais REST e WS. O tabuleiro
+> (peças, paredes, fog) vem só do servidor, e do REST vêm o fundo e a grade. Ver
+> `combate-fechamento-fase-6.md` ("O tabuleiro é do servidor").
+
 `GamePage.tsx` deixou de ser a página: hoje é só a rota. Ela busca `match`/`user`, decide
 `isMaster = match.masterUuid === user.uuid` e monta `GameMasterPage` ou `GamePlayerPage`.
 Daí para baixo, nenhum componente recebe `isMaster` — exceto as três exceções declaradas
@@ -55,7 +62,7 @@ mais abaixo.
 | `src/features/match/combat/combatReducer.ts` | o reducer puro + estado inicial |
 | `src/features/match/combat/useMatchCombat.ts` | liga reducer ↔ `useMatchWs`, expõe `state`/`status`/`send`, persiste fantasmas |
 | `src/features/match/combat/useActionComposerState.ts` | rascunho (`localStorage`) + mapas peça↔personagem, compartilhado entre as duas páginas |
-| `src/features/match/combat/useLiveMapSync.ts` | paredes/peças/fog ao vivo; `seedFromRest` é a única diferença entre papéis |
+| `src/features/match/combat/useLiveMapSync.ts` | paredes/peças/fog ao vivo, só do servidor (`map_full_state` + mensagens de peça/parede) para os dois papéis (F13); do REST vem só o mapa (fundo, grade) |
 | `src/features/match/combat/actionDraft.ts` | rascunho + fantasmas confirmados em `localStorage`, migração de alvo |
 | `src/features/match/combat/mapCanvasStyles.ts` | os três styled-components do canvas do mapa, extraídos por estarem duplicados entre as páginas |
 | `src/features/match/combat/defaultMoveCategory.ts` | `defaultMoveCategory(state)` — hoje sempre `"Dash"`, é função de propósito (ver spec §6) |
@@ -225,6 +232,9 @@ controlável vira ator; clique numa peça de jogador OU num NPC do mapa que não
 participante da partida vira `inspectedId`, força a aba Personagens e abre a gaveta — o
 painel explica que um NPC não-participante não está inscrito na partida).
 
+> **Superado no fechamento:** inspecionar só marca o anel e não troca a aba (F11), e o NPC
+> não-participante entra por "Pôr na partida" (F2). Ver `combate-fechamento-fase-6.md`.
+
 **Por quê.** Virar ator produziria `action actor does not match player` na primeira
 tentativa de declarar — o servidor só deixa o mestre agir por NPC. E não fazer nada
 desperdiçaria o gesto mais natural numa mesa ("quem é esse, como ele está"), que a Fase 6
@@ -258,6 +268,8 @@ sobrevivem, todas conscientes:
    dele está fora do escopo desta fase; aceito como terceira exceção declarada. Custo
    conhecido: as linhas de personagem nunca são clicáveis para o jogador (o organismo
    precisaria de um `isOwn` que não existe).
+   **Superado no fechamento:** a página do jogador passa `ownPlayerUuid`, e o card do dono é
+   clicável (`isOwn`).
 
 ## O fantasma da intenção declarada
 
@@ -296,6 +308,9 @@ sem depender do Pixi real.
 histórico por REST; ficha e inventário dentro da partida; Nen; cancelar ação (não existe no
 contrato); `add_npc` com a sala viva (o NPC entra pelo REST antes de a sala nascer);
 o fantasma de espera; migrar os breakpoints antigos do resto do app.
+
+> **Superado no fechamento:** histórico por REST, ficha dentro da partida e `add_npc` com a
+> sala viva já existem. Ver `combate-fechamento-fase-6.md`.
 
 **Desvios decididos durante a implementação, registrados no ledger:**
 

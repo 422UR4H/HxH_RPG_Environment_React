@@ -107,21 +107,32 @@ type WireQueuedAction = Omit<QueuedAction, "bars"> & { bars: QueuedAction["bars"
  * ActionQueuedPayload, reused whole per message.go's comment on MatchFullStatePayload.Queue).
  * `Bars []string` lacks `omitempty`; normalized defensively (both known constructors
  * `make` it non-nil today).
+ *
+ * `action` (`actionwire.Action`, T13/B1) needs no normalization here: every slice inside it
+ * (`TargetID`, `Skills`, `RollAttempts.Primary/Secondary`) has `omitempty` in the Go struct,
+ * and every nilable sub-object (`Move`, `Attack`, …) is a pointer with `omitempty` too — none
+ * of them can come back as JSON `null`, only absent. It passes through byte-identical.
  */
 export function normalizeQueuedAction(raw: WireQueuedAction): QueuedAction {
   return { ...raw, bars: raw.bars ?? [] };
 }
 
-type WireMatchFullState = Omit<MatchFullStatePayload, "bars" | "resolution" | "queue"> & {
+type WireMatchFullState = Omit<MatchFullStatePayload, "bars" | "resolution" | "queue" | "ownQueue"> & {
   bars: WireBars;
   resolution?: WireResolution | null;
   queue?: WireQueuedAction[] | null;
+  ownQueue?: MatchFullStatePayload["ownQueue"] | null;
 };
 
 /**
  * match_full_state. `Queue []ActionQueuedPayload `json:"queue,omitempty"`` already matches
  * combatMessages.ts's optional `queue?:` — never `null`, only absent — so it is passed
  * through unchanged except for mapping each item through `normalizeQueuedAction`.
+ *
+ * `ownQueue` (B12) is `*[]OwnQueuedActionPayload` with `omitempty`: absent for the master,
+ * `[]` or a list for everyone else — never `null` by contract. A `null` anyway is read as
+ * ABSENT, not as `[]`: `[]` means "the server has nothing of yours" and would drop every
+ * declared action; with no list the reducer just skips the reconciliation.
  */
 export function normalizeMatchFullState(raw: WireMatchFullState): MatchFullStatePayload {
   return {
@@ -129,6 +140,7 @@ export function normalizeMatchFullState(raw: WireMatchFullState): MatchFullState
     bars: normalizeBars(raw.bars),
     resolution: raw.resolution ? normalizeResolution(raw.resolution) : undefined,
     queue: raw.queue ? raw.queue.map(normalizeQueuedAction) : undefined,
+    ownQueue: raw.ownQueue ?? undefined,
   };
 }
 

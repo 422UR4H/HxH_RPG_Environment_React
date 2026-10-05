@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useReducer, useRef } from "react";
 import { useMatchWs } from "../../../hooks/useMatchWs";
-import type { MatchBoardSync } from "../../../hooks/useMatchWs";
 import { combatReducer, initialCombatState } from "./combatReducer";
-import type { DeclaredAction } from "./combatReducer";
+import type { CombatAction, DeclaredAction, DeclaredSource } from "./combatReducer";
 import { loadDeclared, saveDeclared } from "./declaredStorage";
 import type { EnqueueActionPayload, MasterActionPayload } from "./combatMessages";
 
@@ -11,10 +10,21 @@ type Options = {
   /** Separa as ações declaradas por usuário no `localStorage`. */
   userUuid: string | undefined;
   token: string;
-  isMaster: boolean;
-  board?: MatchBoardSync | null;
+  /**
+   * Contra o que o `match_full_state` reconcilia as declaradas (B12): o jogador pela
+   * `ownQueue`, o mestre pela `queue`. Escolha da PÁGINA (I2), via `useGameTable`. O padrão
+   * é o seguro: sem `ownQueue` no payload, não reconcilia.
+   */
+  declaredSource?: DeclaredSource;
   /** O servidor aceitou um envio do compositor: a página limpa o rascunho DAQUELE ator. */
   onComposerSendAccepted?: (actorId: string) => void;
+  /**
+   * O WS avisa, o REST busca: a página (useGameTable) invalida as queries. Toda mensagem cujo
+   * efeito o histórico guarda — turno fechado, cena, regime, round fechado, master action.
+   */
+  onHistoryChanged?: () => void;
+  onFullState?: () => void;
+  onNpcAdded?: (characterId: string) => void;
 } & Pick<
   Parameters<typeof useMatchWs>[0],
   | "onWallStateChanged" | "onWallHpChanged" | "onMapFullState" | "onVisibilityUpdated"
@@ -28,12 +38,16 @@ type SendOptions = {
 
 let localSeq = 0;
 
+/** As mensagens que o servidor só emite depois de gravar o que o histórico mostra. */
+const HISTORY_TYPES = new Set(["turn_closed", "scene_changed", "round_mode_changed", "round_closed"]);
+
 /**
  * Liga o socket ao reducer. Todo o estado de combate sai daqui; nenhuma página guarda
  * pedaço dele em useState.
  */
 export function useMatchCombat({
-  matchUuid, userUuid, token, isMaster, board, onComposerSendAccepted, ...mapHandlers
+  matchUuid, userUuid, token, declaredSource = "ownQueue", onComposerSendAccepted,
+  onHistoryChanged, onFullState, onNpcAdded, ...mapHandlers
 }: Options) {
   const [state, dispatch] = useReducer(
     combatReducer,
@@ -43,6 +57,12 @@ export function useMatchCombat({
 
   const onAcceptedRef = useRef(onComposerSendAccepted);
   onAcceptedRef.current = onComposerSendAccepted;
+  const onHistoryChangedRef = useRef(onHistoryChanged);
+  onHistoryChangedRef.current = onHistoryChanged;
+  const onFullStateRef = useRef(onFullState);
+  onFullStateRef.current = onFullState;
+  const onNpcAddedRef = useRef(onNpcAdded);
+  onNpcAddedRef.current = onNpcAdded;
 
   // Espelho SÍNCRONO dos envios ainda sem ack, na ordem de envio. O reducer tem a mesma fila
   // (`declared` com status `sending`), mas o `state` que esta closure enxerga é o do último
@@ -52,15 +72,22 @@ export function useMatchCombat({
   const ws = useMatchWs({
     matchUuid,
     token,
-    isMaster,
-    board,
     ...mapHandlers,
-    onCombatMessage: (msg) => {
+    onCombatMessage: (msg, serverAt) => {
       if (msg.type === "match_full_state") unackedRef.current = [];
       const acked = msg.type === "action_enqueued" ? unackedRef.current.shift() : undefined;
-      dispatch(msg);
+      dispatch({
+        ...msg,
+        at: serverAt,
+        receivedAt: Date.now(),
+        ...(msg.type === "match_full_state" ? { declaredSource } : {}),
+      } as CombatAction);
       if (acked?.fromComposer) onAcceptedRef.current?.(acked.actorId);
+      if (HISTORY_TYPES.has(msg.type)) onHistoryChangedRef.current?.();
+      if (msg.type === "match_full_state") onFullStateRef.current?.();
     },
+    onNpcAdded: (id) => onNpcAddedRef.current?.(id),
+    onMasterActionEnqueued: () => onHistoryChangedRef.current?.(),
     onWsError: (e) => {
       if (e.sentType === "enqueue_action") unackedRef.current.shift();
       dispatch({ type: "WS_ERROR", payload: { ...e, at: Date.now() } });
@@ -114,9 +141,18 @@ export function useMatchCombat({
       closeTurn: ws.sendCloseTurn,
       changeRoundMode: ws.sendChangeRoundMode,
       masterAction,
+      addNpc: ws.sendAddNpc,
+      changeScene: ws.sendChangeScene,
+      editAction: ws.sendEditAction,
     },
     dismissError: useCallback(() => dispatch({ type: "ERROR_DISMISSED" }), []),
     dismissCloseTurnDialog: useCallback(() => dispatch({ type: "CLOSE_TURN_DIALOG_DISMISSED" }), []),
+    dismissLostDeclared: useCallback(() => dispatch({ type: "LOST_DECLARED_DISMISSED" }), []),
+    resolveLostCandidates: useCallback(
+      (payload: { ran: string[]; lost: string[]; restored: string[] }) =>
+        dispatch({ type: "LOST_CANDIDATES_RESOLVED", payload }),
+      [],
+    ),
     dismissDeclared: useCallback(
       (ids: string[]) => { if (ids.length) dispatch({ type: "DECLARED_DISMISSED", payload: { ids } }); },
       [],
