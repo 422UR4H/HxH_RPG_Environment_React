@@ -33,7 +33,8 @@ import { PanelMessage } from "../features/match/combat/panelStyles";
 import WallActionSheet from "../features/match/WallActionSheet";
 import TacticalMapViewer from "../features/tactical-map/TacticalMapViewer";
 import {
-  CanvasWrapper, MapCornerStack, MapCornerStackButton, MapHint, MapLoadingMessage, NoMapMessage, StageNotices,
+  CanvasWrapper, MapCornerStack, MapCornerStackButton, MapHint, MapHintButton, MapLoadingMessage, NoMapMessage,
+  StageNotices,
 } from "../features/match/combat/mapCanvasStyles";
 import type { SlotCoord, WallSegment } from "../types/tacticalMap";
 
@@ -172,6 +173,16 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
     return () => window.removeEventListener("keydown", onKey);
   }, [picking, otherDialogOpen, cancelPick]);
 
+  // Um personagem meu pode reagir e a seção "Você é alvo" (aba Ação) não está na tela: no
+  // celular os botões não vão ao mapa, e sem isto o jogador não saberia que é alvo. A dica leva
+  // à aba. A da escolha da casa vence: o toque, ali, é da fuga.
+  const reactionWaiting = controls.targets.some((t) => t.status === "available");
+  const showReactionHint = !!map && !picking && reactionWaiting && !(panelOpen && railActive === "acao");
+  const showReactionSection = useCallback(() => {
+    setRailActive("acao");
+    setPanelOpen(true);
+  }, []);
+
   // Botões de reação (abaixo da peça) e balões (acima): a mesma camada, os mesmos helpers nas duas telas.
   const anchoredItems: PieceAnchoredItem[] = useCombatAnchoredItems(controls, nameOf, game.balloons);
 
@@ -279,12 +290,14 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
                   piecesInteractive
                   draggablePieceIds={NO_DRAG}
                   suppressPanOnPiecePress
-                  onPieceSelect={handlePieceTap}
-                  onPieceLongPress={handlePieceHold}
+                  // Na escolha da casa da fuga o toque na peça não marca alvo, e os anéis e a
+                  // intenção do compositor leriam como parte da fuga: somem com ela (como no mestre).
+                  onPieceSelect={picking ? undefined : handlePieceTap}
+                  onPieceLongPress={picking ? undefined : handlePieceHold}
                   selectedPieceId={composer.actorPiece?.id}
-                  targetPieceIds={composer.targetPieceIds}
+                  targetPieceIds={picking ? undefined : composer.targetPieceIds}
                   activePieceId={game.openTurnPieceId}
-                  intentPreview={composer.preview}
+                  intentPreview={picking ? undefined : composer.preview}
                   intentGhosts={game.ghosts}
                   highlightHoverSlot={!!actorId}
                   fitRequest={game.fitRequest}
@@ -320,6 +333,11 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
             </StageNotices>
             {map && controls.pick && (
               <MapHint>Toque na casa para onde {nameOf(controls.pick.actorId)} escapa.</MapHint>
+            )}
+            {showReactionHint && (
+              <MapHintButton type="button" onClick={showReactionSection}>
+                Você é alvo — reaja no painel.
+              </MapHintButton>
             )}
             {map && (
               <MapCornerStack>

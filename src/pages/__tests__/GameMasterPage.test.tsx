@@ -1377,6 +1377,39 @@ describe("GameMasterPage", () => {
       expect(mapStub()).toHaveAttribute("data-has-empty-slot-click", "false");
     });
 
+    // No celular os botões não vão ao mapa: com a Fila fora da tela, a dica é o único aviso.
+    it("NPC alvo com a Fila fora da tela: a dica no mapa avisa e abre a Fila", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openAttackOnNpc(ws);
+      const hint = () => screen.queryByRole("button", { name: "Um NPC seu é alvo — reaja no painel." });
+
+      // A Fila aberta já mostra a seção: sem dica.
+      expect(hint()).not.toBeInTheDocument();
+
+      act(() => screen.getByRole("button", { name: "Agir" }).click());
+      expect(hint()).toBeInTheDocument();
+      expect(screen.queryByText("Toque num NPC para agir por ele.")).not.toBeInTheDocument();
+      act(() => hint()!.click());
+      expect(reactionGroup()).toBeInTheDocument();
+      expect(hint()).not.toBeInTheDocument();
+
+      // Fila fechada (o toque na própria aba) também esconde a seção.
+      await user.click(screen.getByRole("button", { name: /Fila/ }));
+      expect(screen.getByTestId("match-panel")).toHaveAttribute("data-open", "false");
+      act(() => hint()!.click());
+      expect(screen.getByTestId("match-panel")).toHaveAttribute("data-open", "true");
+      expect(reactionGroup()).toBeInTheDocument();
+
+      // Reagiu: não há mais o que avisar.
+      act(() => screen.getByRole("button", { name: "Agir" }).click());
+      expect(hint()).toBeInTheDocument();
+      act(() => hint()!.click());
+      quick("Esquivar");
+      act(() => screen.getByRole("button", { name: "Agir" }).click());
+      expect(hint()).not.toBeInTheDocument();
+    });
+
     it("Dar a palavra manda o open_reaction da reação esperando", async () => {
       renderMasterPage();
       const ws = await waitForSocket();

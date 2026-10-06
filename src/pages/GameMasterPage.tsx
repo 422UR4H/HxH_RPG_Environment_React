@@ -44,7 +44,8 @@ import MatchCharactersSidebar from "../features/match/MatchCharactersSidebar";
 import WallActionSheet from "../features/match/WallActionSheet";
 import TacticalMapViewer from "../features/tactical-map/TacticalMapViewer";
 import {
-  CanvasWrapper, MapCornerStack, MapCornerStackButton, MapHint, MapLoadingMessage, NoMapMessage, StageNotices,
+  CanvasWrapper, MapCornerStack, MapCornerStackButton, MapHint, MapHintButton, MapLoadingMessage, NoMapMessage,
+  StageNotices,
 } from "../features/match/combat/mapCanvasStyles";
 import { isSameSlot, slotToTriple, tripleToSlot } from "../features/tactical-map/utils/coords";
 import type { SlotTriple } from "../features/tactical-map/utils/coords";
@@ -471,6 +472,17 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   const anchoredItems: PieceAnchoredItem[] = useCombatAnchoredItems(controls, nameOf, game.balloons);
 
   const canCloseTurn = state.openTurn != null;
+  // Um NPC pode reagir e a seção "Reagir pelo NPC" (topo da Fila) não está na tela: no celular
+  // os botões não vão ao mapa, e sem isto o mestre não saberia que há o que reagir. A dica leva
+  // à Fila. Fica abaixo das dicas dos modos (casa da fuga, onde cai, Arrumar) — o toque, ali,
+  // é do modo, e sair dele devolve a dica.
+  const reactionWaiting = controls.targets.some((t) => t.status === "available");
+  const reactionSectionShown = panelOpen && !arranging && railActive === "fila";
+  const showReactionHint = !!map && reactionWaiting && !reactionSectionShown;
+  const showReactionSection = useCallback(() => {
+    setRailActive("fila");
+    setPanelOpen(true);
+  }, []);
   const mapHint = !map
     ? undefined
     : reactionPicking && reactionPick
@@ -481,6 +493,8 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
       ? placingId
         ? `Toque num slot vazio para pôr ${nameOf(placingId)}.`
         : "Arraste uma peça para movê-la."
+      : showReactionHint
+        ? undefined
       : !actorId
         ? "Toque num NPC para agir por ele."
         : undefined;
@@ -698,7 +712,15 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                 onDismiss={combat.dismissLostDeclared}
               />
             </StageNotices>
-            {mapHint && <MapHint>{mapHint}</MapHint>}
+            {mapHint ? (
+              <MapHint>{mapHint}</MapHint>
+            ) : (
+              showReactionHint && (
+                <MapHintButton type="button" onClick={showReactionSection}>
+                  Um NPC seu é alvo — reaja no painel.
+                </MapHintButton>
+              )
+            )}
             {map && (
               <MapCornerStack>
                 {fallPicking && (
