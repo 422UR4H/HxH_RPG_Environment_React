@@ -11,9 +11,11 @@ type Controls = Pick<ReturnType<typeof useReactionControls>, "targets" | "quick"
 /**
  * Os botões de reação ao lado da peça de cada alvo meu (abaixo dela: acima fica o balão).
  * Alvo sem peça visível fica só no painel. O nome aparece quando há mais de um alvo.
+ * Só enquanto dá para reagir: o andamento depois do envio ("Enviando…", "aguardando o
+ * mestre") é texto de painel — no mapa ele só cobriria as peças vizinhas.
  */
 export function reactionAnchoredItems(controls: Controls, nameOf: (id: string) => string): PieceAnchoredItem[] {
-  return controls.targets.map((t) => ({
+  return controls.targets.filter((t) => t.status === "available").map((t) => ({
     key: `reaction-${t.actorId}`,
     characterId: t.actorId,
     placement: "below",
