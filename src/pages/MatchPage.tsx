@@ -250,6 +250,12 @@ export default function MatchPage() {
       (e) => e.characterSheet.uuid === sheetId && e.status === "accepted"
     );
 
+  // Só quem joga (mestre ou personagem inscrito e aceito, que é o que `participants` lista)
+  // tem o que fazer na tela do jogo; quem não está na partida não deve ser convidado a ela.
+  const canEnterGame =
+    status === "ongoing" &&
+    (isMaster || participants.some((p) => p.characterSheet.playerUuid === user?.uuid));
+
   const canEnroll =
     !isMaster &&
     !match.gameStartAt &&
@@ -303,7 +309,7 @@ export default function MatchPage() {
 
         {activeTab === "events" && (
           <ActionsList>
-            {(isMaster && !match.gameStartAt) || canEnterLobby || canEnroll ? (
+            {(isMaster && !match.gameStartAt) || canEnterLobby || canEnroll || canEnterGame ? (
               <BottomActions
                 containerRef={mainContentRef}
                 contentChangeSignal={descriptionSignal}
@@ -319,7 +325,12 @@ export default function MatchPage() {
                     : undefined
                 }
                 primaryButton={
-                  isMaster && !match.gameStartAt
+                  canEnterGame
+                    ? {
+                        label: "Entrar na partida",
+                        onClick: () => navigate(`/campaigns/${campaignId}/matches/${matchId}/game`),
+                      }
+                    : isMaster && !match.gameStartAt
                     ? { label: "Abrir Lobby", onClick: () => setShowLobbyConfirm(true) }
                     : canEnterLobby
                     ? {

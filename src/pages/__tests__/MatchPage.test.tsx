@@ -221,6 +221,87 @@ describe("MatchPage", () => {
     });
   });
 
+  describe("Entrar na partida", () => {
+    const participantsOf = (playerUuid: string) =>
+      http.get(`${baseUrl}/matches/:id/participants`, () =>
+        HttpResponse.json({
+          participants: [
+            {
+              uuid: "part-1",
+              joinedAt: "2025-12-01T19:06:00Z",
+              leftAt: null,
+              characterSheet: {
+                uuid: "sheet-y",
+                playerUuid,
+                nickName: "Participant",
+                createdAt: "2025-01-01T00:00:00.000Z",
+                updatedAt: "2025-01-01T00:00:00.000Z",
+                private: null,
+              },
+            },
+          ],
+        }),
+      );
+    const GAME_URL = "/campaigns/campaign-1/matches/match-1/game";
+
+    it("mestre vê o botão com a partida em andamento e o clique navega pro jogo", async () => {
+      server.use(
+        http.get(`${baseUrl}/matches/:id`, () =>
+          HttpResponse.json({
+            match: { ...matchOngoingApi(), masterUuid: masterUserFixture.user.uuid },
+          }),
+        ),
+      );
+      renderPage({ user: masterUserFixture });
+      const u = userEvent.setup();
+      await u.click(await screen.findByText("Entrar na partida"));
+      expect(mockNavigate).toHaveBeenCalledWith(GAME_URL);
+    });
+
+    it("jogador com personagem em participants vê o botão", async () => {
+      server.use(
+        http.get(`${baseUrl}/matches/:id`, () => HttpResponse.json({ match: matchOngoingApi() })),
+        participantsOf(userFixture.user.uuid),
+      );
+      renderPage({ user: userFixture });
+      expect(await screen.findByText("Entrar na partida")).toBeInTheDocument();
+    });
+
+    it("usuário sem personagem na partida não vê o botão", async () => {
+      server.use(
+        http.get(`${baseUrl}/matches/:id`, () => HttpResponse.json({ match: matchOngoingApi() })),
+        participantsOf("outro-jogador"),
+      );
+      renderPage({ user: userFixture });
+      await screen.findByText("Participant");
+      expect(screen.queryByText("Entrar na partida")).not.toBeInTheDocument();
+    });
+
+    it("partida não iniciada mostra 'Abrir Lobby' ao mestre, não o botão", async () => {
+      server.use(
+        http.get(`${baseUrl}/matches/:id`, () =>
+          HttpResponse.json({ match: matchAsMasterApi(masterUserFixture.user.uuid) }),
+        ),
+      );
+      renderPage({ user: masterUserFixture });
+      expect(await screen.findByText(/Abrir Lobby/i)).toBeInTheDocument();
+      expect(screen.queryByText("Entrar na partida")).not.toBeInTheDocument();
+    });
+
+    it("partida encerrada não mostra o botão", async () => {
+      server.use(
+        http.get(`${baseUrl}/matches/:id`, () =>
+          HttpResponse.json({
+            match: { ...matchEndedApi(), masterUuid: masterUserFixture.user.uuid },
+          }),
+        ),
+      );
+      renderPage({ user: masterUserFixture });
+      await screen.findByText("ENCERRADA");
+      expect(screen.queryByText("Entrar na partida")).not.toBeInTheDocument();
+    });
+  });
+
   describe("sidebar dependente do status", () => {
     it("antes do gameStart busca /enrollments e renderiza", async () => {
       server.use(
