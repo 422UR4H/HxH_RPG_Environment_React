@@ -49,6 +49,27 @@ describe("ReactionButtons", () => {
     expect(onQuick).not.toHaveBeenCalled();
   });
 
+  // Mouse não captura o ponteiro: arrastar para fora manda os moves a outro elemento.
+  it("mouse: sair do botão segurando cancela o hold — nada abre, nada é enviado", () => {
+    const { onQuick, onConfigure } = setup();
+    const b = button("Esquivar");
+    fireEvent.pointerDown(b, { button: 0, pointerType: "mouse", clientX: 5, clientY: 5 });
+    fireEvent.pointerLeave(b, { pointerType: "mouse" });
+    act(() => { vi.advanceTimersByTime(HOLD_MS + 50); });
+    expect(onConfigure).not.toHaveBeenCalled();
+    expect(onQuick).not.toHaveBeenCalled();
+  });
+
+  it("toque: pointerleave não cancela — segurar ainda abre a configuração", () => {
+    const { onQuick, onConfigure } = setup();
+    const b = button("Esquivar");
+    fireEvent.pointerDown(b, { button: 0, pointerType: "touch", clientX: 5, clientY: 5 });
+    fireEvent.pointerLeave(b, { pointerType: "touch" });
+    act(() => { vi.advanceTimersByTime(HOLD_MS); });
+    expect(onConfigure).toHaveBeenCalledWith("dodge");
+    expect(onQuick).not.toHaveBeenCalled();
+  });
+
   it("botão direito configura na hora, sem menu do navegador e sem enviar", () => {
     const { onQuick, onConfigure } = setup();
     const b = button("Repelir");

@@ -109,6 +109,9 @@ export default function ReactionButtons({
             onPointerDown={handlePointerDown(b)}
             onPointerMove={(e) => tracker.move(e.clientX, e.clientY)}
             onPointerUp={handlePointerUp(b)}
+            // Mouse não captura o ponteiro: arrastar para fora manda os moves a outro elemento e o
+            // tracker não os vê. No toque o leave só chega junto do up — não mexe nesse caminho.
+            onPointerLeave={(e) => { if (e.pointerType === "mouse") tracker.cancel(); }}
             onPointerCancel={() => tracker.cancel()}
             onContextMenu={handleContextMenu(b)}
             onKeyDown={handleKeyDown(b)}
