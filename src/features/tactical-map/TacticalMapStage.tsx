@@ -40,6 +40,7 @@ export default function TacticalMapStage({
   onStageDeselect,
   onEmptySlotClick,
   onViewportScaleChange,
+  onViewportTransform,
   onBgLoadingChange,
   uploading = false,
   activeTool,
@@ -134,6 +135,7 @@ export default function TacticalMapStage({
           onStageDeselect={onStageDeselect}
           onEmptySlotClick={onEmptySlotClick}
           onViewportScaleChange={onViewportScaleChange}
+          onViewportTransform={onViewportTransform}
           activeTool={activeTool}
           onBgChange={onBgChange}
           onGridChange={onGridChange}

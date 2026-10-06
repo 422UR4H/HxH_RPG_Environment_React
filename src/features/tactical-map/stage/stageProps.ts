@@ -4,6 +4,7 @@ import type { CharacterPrivateSummary } from "../../../types/characterSheet";
 import type { Selection, ToolKind } from "../store/editorStore";
 import type { SlotTriple } from "../utils/coords";
 import type { IntentPreview } from "../utils/intentGeometry";
+import type { ViewportTransform } from "../utils/screenAnchor";
 
 export type TacticalMapStageProps = {
   map: TacticalMap;
@@ -62,6 +63,9 @@ export type TacticalMapStageProps = {
   // Current viewport zoom (world→screen scale). Lets the DOM drag ghost in
   // TacticalMapEditor size itself to match the on-screen token size.
   onViewportScaleChange?: (scale: number) => void;
+  // Game only: the viewport framing (pan + zoom), emitted whenever it changes — the HTML
+  // layer anchors things on the pieces through it (reaction buttons, balloons).
+  onViewportTransform?: (t: ViewportTransform) => void;
   onBgLoadingChange?: (loading: boolean) => void;
   // True while a fresh image is being compressed + uploaded to R2 in the
   // sidebar (BgImagePanel). This phase happens BEFORE bg.url changes, so the
