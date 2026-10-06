@@ -10,7 +10,6 @@ import { useMatchHistory } from "../hooks/useMatchHistory";
 import { useGameTable } from "../features/match/combat/useGameTable";
 import { defaultMoveCategory } from "../features/match/combat/defaultMoveCategory";
 import { useReactionControls } from "../features/match/combat/useReactionControls";
-import { loadDraft } from "../features/match/combat/actionDraft";
 import MatchStageTemplate from "../components/templates/MatchStageTemplate";
 import MatchTopBar from "../features/match/combat/MatchTopBar";
 import {
@@ -37,8 +36,8 @@ import MatchErrorBanner from "../features/match/combat/MatchErrorBanner";
 import LostDeclaredNotice from "../features/match/combat/LostDeclaredNotice";
 import MatchSheetPanel from "../features/match/combat/MatchSheetPanel";
 import ReactionPanel from "../features/match/combat/ReactionPanel";
-import ReactionButtons from "../features/match/combat/ReactionButtons";
-import ReactionConfigDialog from "../features/match/combat/ReactionConfigDialog";
+import ReactionDialogHost from "../features/match/combat/ReactionDialogHost";
+import { balloonAnchoredItems, reactionAnchoredItems } from "../features/match/combat/anchoredItems";
 import PieceAnchoredLayer from "../features/match/combat/PieceAnchoredLayer";
 import type { PieceAnchoredItem } from "../features/match/combat/PieceAnchoredLayer";
 import MatchCharactersSidebar from "../features/match/MatchCharactersSidebar";
@@ -125,10 +124,6 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     fullStateSeq: game.fullStateSeq,
   });
   const { onSlotForPick, cancelPick } = controls;
-  // A configuração lista as armas do NPC que reage — que pode não ser o ator do compositor.
-  // Espera o catálogo: o diálogo lê a arma padrão só ao abrir.
-  const { data: reactionCatalogue, isLoading: reactionCatalogueLoading } =
-    useCombatCatalogue(token, controls.dialog?.actorId);
 
   const [railActive, setRailActive] = useState<RailTab>("fila");
   const [panelOpen, setPanelOpen] = useState(true);
@@ -472,23 +467,11 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     ? game.boardPieces.find((p) => p.characterId === inspectedId)?.id
     : undefined;
 
-  // Os botões ao lado da peça do NPC alvo (abaixo dela: acima fica o balão). NPC sem peça
-  // visível fica só na Fila. O nome aparece quando há mais de um NPC alvo.
-  const reactionItems: PieceAnchoredItem[] = controls.targets.map((t) => ({
-    key: `reaction-${t.actorId}`,
-    characterId: t.actorId,
-    placement: "below",
-    node: (
-      <ReactionButtons
-        compact
-        status={t.status}
-        name={nameOf(t.actorId)}
-        showName={controls.targets.length > 1}
-        onQuick={(b) => controls.quick(t.actorId, b)}
-        onConfigure={(b) => controls.configure(t.actorId, b)}
-      />
-    ),
-  }));
+  // Botões de reação (abaixo da peça) e balões (acima): a mesma camada, os mesmos helpers nas duas telas.
+  const anchoredItems: PieceAnchoredItem[] = [
+    ...reactionAnchoredItems(controls, nameOf),
+    ...balloonAnchoredItems(game.balloons),
+  ];
 
   const canCloseTurn = state.openTurn != null;
   const mapHint = !map
@@ -669,7 +652,8 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                       : arranging ? arrangeSelected?.id : actorId ? composer.actorPiece?.id : undefined
                   }
                   inspectedPieceId={boardMode === "play" ? inspectedPieceId : undefined}
-                  targetPieceIds={composer.targetPieceIds}
+                  // Os anéis de alvo do compositor leriam como parte da fuga: some com a escolha, como a intenção.
+                  targetPieceIds={reactionPicking ? undefined : composer.targetPieceIds}
                   activePieceId={game.openTurnPieceId}
                   intentPreview={
                     reactionPicking ? undefined : fallPicking ? fallPreview : arranging ? arrangePreview : composer.preview
@@ -695,7 +679,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
               viewport={game.viewport}
               grid={map?.grid}
               pieces={game.pieceByCharacter}
-              items={reactionItems}
+              items={anchoredItems}
               width={width}
               height={height}
             />
@@ -763,17 +747,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
           />
         }
       />
-      {controls.dialog && !reactionCatalogueLoading && (
-        <ReactionConfigDialog
-          key={`${controls.dialog.actorId}:${controls.dialog.initial}`}
-          name={nameOf(controls.dialog.actorId)}
-          initial={controls.dialog.initial}
-          weapons={reactionCatalogue?.weapons.map((w) => w.name) ?? []}
-          defaultWeapon={matchId ? loadDraft(matchId, controls.dialog.actorId).attack?.weapon : undefined}
-          onSend={controls.sendFromDialog}
-          onCancel={controls.closeDialog}
-        />
-      )}
+      <ReactionDialogHost token={token} matchId={matchId} controls={controls} nameOf={nameOf} />
       <CloseTurnRefusedDialog
         payload={state.pendingCloseTurn}
         nameOf={nameOf}

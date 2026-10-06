@@ -20,6 +20,10 @@ import { pendingMoves, resolveLostCandidates } from "./combatReducer";
 import type { DeclaredAction, DeclaredSource } from "./combatReducer";
 import { draftFromDeclared } from "./actionDraft";
 import { createViewportStore } from "./viewportStore";
+import { actionMechanicsText, actorResultText, reactionMechanicsText, targetResultText } from "./balloonText";
+import type { BalloonTone } from "./balloonText";
+
+export type TableBalloon = { characterId: string; text: string; tone: BalloonTone };
 
 /** O destino do `move` de uma ação da fila, quando há um — `undefined` se a ação não move. */
 function queuedMoveTo(q: QueuedAction): SlotTriple | undefined {
@@ -185,10 +189,22 @@ export function useGameTable({
           to: queuedMoveTo(q)!,
         };
       });
-    return [...ownGhosts, ...queueGhosts];
+    // §10.2: a fuga aberta tem o mesmo desenho do fantasma de intenção, só a vida é outra —
+    // vive entre a abertura da reação e o fechamento do turno (o reducer zera `openReactions`).
+    // Sem `position` (fog) não há para onde apontar.
+    const reactionGhosts = state.openReactions
+      .filter((r) => r.move?.position)
+      .map((r) => {
+        const piece = pieceByCharacter.get(r.actorId);
+        return {
+          from: piece ? slotToTriple(piece.coord.slot, piece.coord.z) : r.move?.from,
+          to: r.move!.position!,
+        };
+      });
+    return [...ownGhosts, ...queueGhosts, ...reactionGhosts];
     // `moves`/`arrivedIds` are rebuilt every render; their content is what matters.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.declared, state.queue, pieceByCharacter, arrivedKey]);
+  }, [state.declared, state.queue, state.openReactions, pieceByCharacter, arrivedKey]);
 
   const nameOf = useCallback(
     (id: string) => {
@@ -198,6 +214,31 @@ export function useGameTable({
     },
     [participants, live.npcMap],
   );
+
+  // ─── Balões (spec §4.9) ────────────────────────────────────────────────────
+  // Cinza enquanto há turno aberto: a mecânica da ação (no ator) e de cada reação aberta
+  // (no reator). Liquidado e sem turno aberto: o resultado em cada alvo e no ator, até o
+  // próximo `turn_opened` (o reducer limpa `lastSettled`). Movimento puro não tem alvo, logo
+  // nem balão de resultado.
+  const gridKind = map?.grid.kind ?? "square";
+  const balloons = useMemo<TableBalloon[]>(() => {
+    const out: TableBalloon[] = [];
+    if (state.openTurn) {
+      const { action, actorId: turnActor } = state.openTurn;
+      const text = action ? actionMechanicsText(action, nameOf, gridKind) : "";
+      if (text) out.push({ characterId: turnActor, text, tone: "neutral" });
+      for (const r of state.openReactions) {
+        out.push({ characterId: r.actorId, text: reactionMechanicsText(r, gridKind), tone: "neutral" });
+      }
+    } else if (state.lastSettled) {
+      const { actorId: settledActor, resolution } = state.lastSettled;
+      for (const t of resolution.targets) out.push({ characterId: t.targetId, ...targetResultText(t) });
+      if (settledActor && resolution.targets.length > 0) {
+        out.push({ characterId: settledActor, ...actorResultText(resolution) });
+      }
+    }
+    return out;
+  }, [state.openTurn, state.openReactions, state.lastSettled, nameOf, gridKind]);
 
   const sendingForActor = !!actorId && state.declared.some(
     (d) => d.status === "sending" && d.actorId === actorId && d.fromComposer,
@@ -240,6 +281,7 @@ export function useGameTable({
     combat,
     composer,
     ghosts,
+    balloons,
     nameOf,
     canDeclare,
     blockedReason,
