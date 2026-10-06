@@ -136,8 +136,9 @@ chave da ordem e o "Cobra".
 
 ### F14 — onde cai
 
-**Não é alcançável pela UI até a Fase 7.** O escape que falha nasce de um `open_reaction`, e
-o `open_reaction` ainda não tem UI. No browser ele foi enviado pelo socket da página.
+**Alcançável pela UI desde a Fase 7.** O escape que falha nasce de um `open_reaction`, que o
+mestre agora dá pelo "Dar a palavra" do card em andamento (ver `combate-fase-7.md`). Na Fase 6
+ele só era enviado pelo socket da página.
 
 ## O tabuleiro é do servidor (F13, F16)
 
