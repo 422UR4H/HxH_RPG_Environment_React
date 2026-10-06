@@ -16,6 +16,10 @@ export type MapPieceAnchor = {
  * A camada HTML sobre o mapa que ancora coisas nas peças (botões de reação, balões).
  * O contêiner não recebe ponteiro — o mapa continua com o pan e os toques — e só os
  * itens recebem. Âncora fora da caixa visível não é desenhada.
+ *
+ * O pan do mapa escuta `pointerdown` no `window` e trata qualquer toque dentro da caixa do
+ * canvas como toque no mapa — inclusive num botão daqui. Cada item corta a propagação: o
+ * handler do botão já rodou (vem antes no borbulhar) e o `window` não chega a ver o toque.
  */
 export default function MapPieceOverlay({
   anchors,
@@ -34,6 +38,7 @@ export default function MapPieceOverlay({
           <Item
             key={a.key}
             $placement={a.placement}
+            onPointerDown={(e) => e.stopPropagation()}
             style={{ left: a.x, top: a.placement === "above" ? a.y - a.radius : a.y + a.radius }}
           >
             {a.node}
