@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import ReactionConfigDialog from "../ReactionConfigDialog";
 import type { ReactionButton } from "../reactionModel";
+import { colors, fonts } from "../../../../styles/tokens";
 
 function setup(initial: ReactionButton = "dodge", extra: { defaultWeapon?: string } = {}) {
   const onSend = vi.fn();
@@ -92,6 +93,36 @@ describe("ReactionConfigDialog", () => {
     expect(screen.getByText("Não cobra nada")).toBeInTheDocument();
     fireEvent.click(radio("Escapar"));
     expect(screen.getByText(/^Cobra:/)).toHaveTextContent("Cobra: ação + movimento");
+  });
+
+  it("rótulos e a arma usam a fonte e a cor do diálogo, não o `* { font-family }` global", () => {
+    // A regra do `ResetStyle` que vazava: ela vence a herança, então o rótulo precisa declarar a
+    // própria fonte. (O `createGlobalStyle` não chega ao jsdom; a regra entra à mão.)
+    const reset = document.head.appendChild(document.createElement("style"));
+    reset.textContent = "* { font-family: 'Lato'; }";
+    // O token é "white"; o computado vem em rgb — normaliza pelo próprio jsdom.
+    const probe = document.body.appendChild(document.createElement("div"));
+    probe.style.color = colors.textPrimary;
+    const textPrimary = getComputedStyle(probe).color;
+    probe.remove();
+    try {
+      setup("repel");
+      const select = screen.getByRole("combobox", { name: "Arma" });
+      const styled = [
+        radio("Esquivar").closest("label"),
+        evasion().closest("label"),
+        select.closest("label"),
+        select,
+        screen.getByRole("option", { name: "Desarmado" }),
+      ];
+      for (const el of styled) {
+        const style = getComputedStyle(el as HTMLElement);
+        expect(style.fontFamily).toBe(fonts.sans);
+        expect(style.color).toBe(textPrimary);
+      }
+    } finally {
+      reset.remove();
+    }
   });
 
   it("Cancelar não envia", () => {

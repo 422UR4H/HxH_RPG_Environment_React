@@ -113,11 +113,15 @@ const Kinds = styled.div`
   gap: 8px;
 `;
 
+// Fonte e cor declaradas, não herdadas: o `* { font-family }` do ResetStyle vence a herança
+// do Dialog e deixava os rótulos na serifa do navegador.
 const Choice = styled.label<{ $disabled?: boolean }>`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  font-family: ${fonts.sans};
   font-size: 15px;
+  color: ${colors.textPrimary};
   cursor: ${({ $disabled }) => ($disabled ? "not-allowed" : "pointer")};
   opacity: ${({ $disabled }) => ($disabled ? 0.5 : 1)};
 `;
@@ -126,7 +130,9 @@ const Field = styled.label`
   display: flex;
   flex-direction: column;
   gap: 4px;
+  font-family: ${fonts.sans};
   font-size: 14px;
+  color: ${colors.textPrimary};
 `;
 
 const Select = styled.select`
@@ -137,10 +143,16 @@ const Select = styled.select`
   color: ${colors.textPrimary};
   font-family: ${fonts.sans};
   font-size: 14px;
+
+  & option {
+    font-family: ${fonts.sans};
+    color: ${colors.textPrimary};
+  }
 `;
 
 const Cost = styled.p`
   margin: 0;
+  font-family: ${fonts.sans};
   font-size: 14px;
   line-height: 1.5;
   color: ${colors.textMuted};
