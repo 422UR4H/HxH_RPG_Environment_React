@@ -28,7 +28,7 @@ describe("PieceAnchoredLayer", () => {
     const store = renderLayer();
     const t1 = { x: 10, y: 20, scale: 1 };
     act(() => store.set(t1));
-    const item = () => screen.getByRole("button", { name: "Esquivar" }).parentElement as HTMLElement;
+    const item = () => screen.getByRole("button", { name: "Esquivar" }).closest("[data-anchor]") as HTMLElement;
     const a1 = pieceScreenAnchor(piece.coord.slot, grid, t1);
     expect(item().style.left).toBe(`${a1.x}px`);
     expect(item().style.top).toBe(`${a1.y + pieceScreenRadius(grid, t1)}px`);
