@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Piece, SlotCoord, WallSegment } from "../types/tacticalMap";
 import type {
-  ChangeScenePayload, CombatServerMessage, EditActionPayload, EnqueueActionPayload, MasterActionPayload, RoundMode,
+  AttachReactionPayload, ChangeScenePayload, CombatServerMessage, EditActionPayload, EnqueueActionPayload, MasterActionPayload, RoundMode,
 } from "../features/match/combat/combatMessages";
 import { normalizeCombatMessage } from "../features/match/combat/normalizeWire";
 
@@ -87,6 +87,7 @@ const COMBAT_TYPES = new Set([
   "match_full_state", "bars_updated", "action_enqueued", "action_queued",
   "turn_opened", "turn_closed", "resolution_updated", "character_hp_changed",
   "round_closed", "round_mode_changed", "scene_changed", "close_turn_refused",
+  "reaction_attached", "reaction_opened",
 ]);
 
 // F5: the match socket is the same `room.go` connection the lobby uses, so these
@@ -465,6 +466,14 @@ export function useMatchWs({
     (payload: EditActionPayload) => sendRaw("edit_action", payload),
     [sendRaw],
   );
+  const sendAttachReaction = useCallback(
+    (payload: AttachReactionPayload) => sendRaw("attach_reaction", payload),
+    [sendRaw],
+  );
+  const sendOpenReaction = useCallback(
+    (reactionId: string) => sendRaw("open_reaction", { reactionId }),
+    [sendRaw],
+  );
 
   return {
     status,
@@ -479,5 +488,7 @@ export function useMatchWs({
     sendAddNpc,
     sendChangeScene,
     sendEditAction,
+    sendAttachReaction,
+    sendOpenReaction,
   };
 }
