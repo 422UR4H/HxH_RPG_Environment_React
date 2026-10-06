@@ -32,6 +32,36 @@ describe("MapPieceOverlay", () => {
     expect(onWindowDown).not.toHaveBeenCalled();
   });
 
+  // Balão é só leitura: o toque sobre ele é do mapa (casa, peça, pan) — nada o corta no caminho.
+  it("apertar um balão chega ao window, e o balão não recebe ponteiro", () => {
+    const onWindowDown = vi.fn();
+    window.addEventListener("pointerdown", onWindowDown);
+    listeners.push(() => window.removeEventListener("pointerdown", onWindowDown));
+    render(
+      <MapPieceOverlay
+        width={800}
+        height={600}
+        anchors={[anchor({ placement: "above", node: <span>balão</span> })]}
+      />,
+    );
+
+    const balloon = screen.getByText("balão");
+    fireEvent.pointerDown(balloon);
+    expect(onWindowDown).toHaveBeenCalledTimes(1);
+    expect(getComputedStyle(balloon.parentElement as HTMLElement).pointerEvents).toBe("none");
+  });
+
+  it("os botões de baixo recebem ponteiro", () => {
+    render(
+      <MapPieceOverlay
+        width={800}
+        height={600}
+        anchors={[anchor({ placement: "below", node: <span>botões</span> })]}
+      />,
+    );
+    expect(getComputedStyle(screen.getByText("botões").parentElement as HTMLElement).pointerEvents).toBe("auto");
+  });
+
   // O jsdom não tem layout: a caixa de cada item vem de uma tabela, pelo `data-anchor` dele.
   function mockRects(rects: Record<string, { x: number; y: number; w: number; h: number }>) {
     vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {

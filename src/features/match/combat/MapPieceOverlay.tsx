@@ -23,11 +23,12 @@ function sameOffsets(a: Record<string, number>, b: Record<string, number>): bool
 /**
  * A camada HTML sobre o mapa que ancora coisas nas peças (botões de reação, balões).
  * O contêiner não recebe ponteiro — o mapa continua com o pan e os toques — e só os
- * itens recebem. Âncora fora da caixa visível não é desenhada.
+ * botões de baixo recebem: o balão (acima) é só leitura, e o toque sobre ele é do mapa.
+ * Âncora fora da caixa visível não é desenhada.
  *
  * O pan do mapa escuta `pointerdown` no `window` e trata qualquer toque dentro da caixa do
- * canvas como toque no mapa — inclusive num botão daqui. Cada item corta a propagação: o
- * handler do botão já rodou (vem antes no borbulhar) e o `window` não chega a ver o toque.
+ * canvas como toque no mapa — inclusive num botão daqui. O item de baixo corta a propagação:
+ * o handler do botão já rodou (vem antes no borbulhar) e o `window` não chega a ver o toque.
  *
  * Balões de peças vizinhas se cobririam: depois de cada render, mede os itens "acima" e
  * sobe os que se sobrepõem (`stackAbove`). A medida é da casca do item, que fica no lugar
@@ -81,7 +82,8 @@ export default function MapPieceOverlay({
             style={{ left: a.x, top: a.placement === "above" ? a.y - a.radius : a.y + a.radius }}
           >
             <Content
-              onPointerDown={(e) => e.stopPropagation()}
+              $interactive={a.placement === "below"}
+              onPointerDown={a.placement === "below" ? (e) => e.stopPropagation() : undefined}
               style={offset ? { transform: `translateY(${offset}px)` } : undefined}
             >
               {a.node}
@@ -108,6 +110,7 @@ const Item = styled.div<{ $placement: "above" | "below" }>`
   pointer-events: none;
 `;
 
-const Content = styled.div`
-  pointer-events: auto;
+// Só o miolo de baixo (os botões) recebe ponteiro; o balão deixa o toque passar ao mapa.
+const Content = styled.div<{ $interactive: boolean }>`
+  pointer-events: ${({ $interactive }) => ($interactive ? "auto" : "none")};
 `;
