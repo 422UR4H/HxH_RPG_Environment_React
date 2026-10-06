@@ -3,6 +3,7 @@
 import type { PieceAnchoredItem } from "./PieceAnchoredLayer";
 import ReactionButtons from "./ReactionButtons";
 import ActionBalloon from "./ActionBalloon";
+import type { BalloonLine } from "./ActionBalloon";
 import type { TableBalloon } from "./useGameTable";
 import type { useReactionControls } from "./useReactionControls";
 
@@ -32,12 +33,22 @@ export function reactionAnchoredItems(controls: Controls, nameOf: (id: string) =
   }));
 }
 
-/** Os balões de mecânica e de resultado, acima da peça. */
+/**
+ * Os balões de mecânica e de resultado, acima da peça — um por personagem. O ator que ataca a
+ * si mesmo tem o resultado de alvo e o de ator: as duas frases vão no mesmo balão, na ordem de
+ * chegada, em vez de dois balões um em cima do outro na mesma âncora.
+ */
 export function balloonAnchoredItems(balloons: TableBalloon[]): PieceAnchoredItem[] {
-  return balloons.map((b, i) => ({
-    key: `balloon-${b.characterId}-${i}`,
-    characterId: b.characterId,
+  const linesByCharacter = new Map<string, BalloonLine[]>();
+  for (const b of balloons) {
+    const lines = linesByCharacter.get(b.characterId) ?? [];
+    lines.push({ text: b.text, tone: b.tone });
+    linesByCharacter.set(b.characterId, lines);
+  }
+  return [...linesByCharacter].map(([characterId, lines]) => ({
+    key: `balloon-${characterId}`,
+    characterId,
     placement: "above",
-    node: <ActionBalloon text={b.text} tone={b.tone} />,
+    node: <ActionBalloon lines={lines} />,
   }));
 }
