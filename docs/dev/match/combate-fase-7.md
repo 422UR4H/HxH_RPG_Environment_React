@@ -2,7 +2,6 @@
 
 > Spec: `docs/superpowers/specs/2026-10-05-front-combat-phase-7-reactions-design.md`.
 > Plano: `docs/superpowers/plans/2026-10-05-front-combat-phase-7-reactions.md`.
-> Ledger (linhas `Ruling:`): `.superpowers/sdd/2026-10-05-front-combat-phase-7-reactions/progress.md`.
 > Contrato: `System_X_System/docs/dev/api/match-combat-ws.md` e `match-history.md` (PR #83 do back).
 
 Este documento vem **depois** de `combate-fase-6.md` e `combate-fechamento-fase-6.md`. Onde
@@ -14,9 +13,10 @@ discordam, vale este.
 |---|---|
 | Painel "Você é alvo" | Para cada personagem seu que é alvo da ação aberta, os cinco botões (Não fazer nada, Esquivar, Escapar, Escape defensivo, Repelir) e, depois do envio, o andamento: "Enviando a reação…", "Reação enviada — aguardando o mestre", "O mestre deu a palavra — narre sua reação". O mestre vê o mesmo painel como "Reagir pelo NPC". |
 | Botões no mapa | Os mesmos cinco botões **abaixo** da peça, só enquanto o alvo ainda pode reagir (`available`). Em largura de celular (`media.phone`, < `tabletUp`) não são desenhados no mapa: ficam só no painel, que no celular fica logo abaixo do mapa. |
+| Dica "você é alvo" | Enquanto um alvo seu pode reagir e a seção de reação não está na tela (outra aba, ou o painel fechado), o mapa mostra "Você é alvo — reaja no painel." (mestre: "Um NPC seu é alvo — reaja no painel."); o toque nela abre a aba (Ação / Fila) e o painel. As dicas da escolha da casa, de onde cai e do Arrumar vencem. |
 | Clicar / segurar | Clicar envia. Segurar (450 ms) ou botão direito abre o diálogo de configuração (tipo, Evasão, arma do Repelir, custo). |
 | Escolha da casa | Escapar e Escape defensivo (e Escapar com Evasão) armam a escolha: dica "Toque na casa para onde X escapa." e "× Cancelar". O toque na casa envia. |
-| Mestre: Dar a palavra | Cada reação esperando no card "em andamento" tem "Dar a palavra" (`open_reaction`), com a nota de que a ordem de abertura muda o resultado. Cada alvo com reação aberta mostra "aberta em 1º/2º/3º". |
+| Mestre: Dar a palavra | Cada reação esperando no card "em andamento" tem "Dar a palavra" (`open_reaction`), com a nota de que a ordem de abertura muda o resultado. Depois do clique o botão daquela linha trava até a reação sair de `pendingReactions` (ou o turno mudar): um segundo clique não manda outro `open_reaction`. Cada alvo com reação aberta mostra "aberta em 1º/2º/3º". |
 | Fantasma da fuga | A reação de fuga **aberta** aparece no mapa como fantasma (origem → destino), para toda a mesa que recebeu a posição. |
 | Balões | Acima da peça: a mecânica ao abrir (ação e reações, cinza) e o resultado ao fechar (verde/vermelho). Um balão por personagem. |
 | "Entrar na partida" | Botão no `BottomActions` da `MatchPage` com a partida em andamento, para o mestre e para quem tem personagem nela. |
@@ -56,9 +56,11 @@ quando algum dos três muda (pega o pan dos handlers próprios, o zoom e o enqua
 - `pieceScreenAnchor` / `pieceScreenRadius` (`utils/screenAnchor.ts`) convertem casa em pixel de
   palco. Peça empilhada ancora no centro da casa. Peça fora do fog não existe em `boardPieces`,
   então não tem âncora.
-- `MapPieceOverlay` posiciona cada item; o contêiner tem `pointer-events: none` e os itens
-  `auto`. **Cada item corta o `pointerdown`**: o pan do mapa escuta o `window` e trata qualquer
-  toque dentro da caixa do canvas como toque no mapa, inclusive num botão ali.
+- `MapPieceOverlay` posiciona cada item; o contêiner tem `pointer-events: none`, e só os
+  botões (os itens de baixo) têm `auto`. **O item de botões corta o `pointerdown`**: o pan do
+  mapa escuta o `window` e trata qualquer toque dentro da caixa do canvas como toque no mapa,
+  inclusive num botão ali. O balão é só leitura: não recebe ponteiro, e o toque sobre ele vai
+  ao mapa (casa, peça, pan).
 - **Balões: um por personagem.** O ator que se alveja tem resultado de ator e de alvo; as duas
   frases vão no mesmo balão, cada uma no seu tom. Balões de peças vizinhas que se sobrepõem são
   **empilhados** para cima (`stackAbove`, em `overlayLayout.ts`, pura e testada), com medição
@@ -72,7 +74,9 @@ quando algum dos três muda (pega o pan dos handlers próprios, o zoom e o enqua
 
 Os botões reusam o `createHoldTracker` (`useHoldGesture.ts`, Fase 6): pointerdown → `start`,
 pointerup → `end()`: `"click"` envia, `"hold"` configura; `onContextMenu` configura sem esperar
-o timer. Teclado: Enter/Espaço enviam, Shift+Enter configura. Não há segundo mecanismo.
+o timer. Teclado: Enter/Espaço enviam, Shift+Enter configura. Um `click` sem ponteiro nem
+tecla antes (`detail === 0`: leitor de tela, `element.click()`) também envia; o click do mouse
+(`detail ≥ 1`) é ignorado, porque o pointerup já enviou. Não há segundo mecanismo.
 
 ## A escolha da casa
 
@@ -81,7 +85,8 @@ vazio envia a reação com `move.position` e limpa o `pick`. A categoria do movi
 tipo (`escape`/`escapeGuard` → Dash, `closedEscape` → Shift); não há seletor. Cai quando o turno
 muda, no `match_full_state` ou com Esc/Cancelar. No jogador, o `handleSlotTap` consulta o `pick`
 antes do compositor; no mestre, `BoardMode` ganhou `"reactionPick"`, exclusivo com `arrange` e
-`fallPick`. Durante a escolha os anéis de alvo do compositor ficam escondidos.
+`fallPick`. Durante a escolha, nas duas telas, os anéis de alvo e a intenção do compositor ficam
+escondidos e o toque na peça não marca alvo.
 
 **O diálogo de configuração fecha** quando o turno muda, no `match_full_state` ou quando o alvo
 deixa de estar `available` (mesma regra do `pick`).
@@ -107,8 +112,9 @@ conta como "rodou" o id que aparece em `consumedActionIds` de uma reação do hi
 | D8 | O mestre vê os mesmos balões da mesa. |
 | D9 | "Entrar na partida" no `BottomActions`, para mestre e participante, só em andamento. |
 
-Decisões de execução (ledger): o texto "consome a ação que você tinha na fila, com Desvantagem"
-aparece para todo tipo que cobra barra, inclusive `closedEscape`; defendido com 0 de dano é
+Decisões de execução: o texto "Se você tinha uma ação na fila nessa barra, ela é consumida e
+a reação rola com Desvantagem." aparece para todo tipo que cobra barra, inclusive
+`closedEscape` (o consumo é condicional; sem ação na fila não há custo nem Desvantagem); defendido com 0 de dano é
 "defendeu" (verde); "acertou N de M" conta alvo defendido como acertado; movimento puro não tem
 balão de resultado; cores: neutro = `surfaceInput`, sucesso = `brandAccent`, fracasso =
 `dangerDark`; no mapa só os botões em `available` (o status pós-envio colidia com os balões e o
@@ -132,9 +138,10 @@ painel já o mostra); os rótulos do diálogo usam fonte e cor dos tokens.
 - **O emissor Pixi** (`onViewportTransform` no ticker) e a posição real das âncoras **só o
   browser prova**: `src/test/setup.ts` mocka `@pixi/react`. Foi visto no browser (botões e balão
   acompanham o reenquadrar), não por teste.
-- **O re-empilhamento dos balões só roda quando a lista de âncoras muda**, não a cada quadro de
-  pan/zoom: o deslocamento é em px de tela dentro do mesmo enquadramento, e a re-medição por
-  quadro custaria layout sem ganho.
+- **O re-empilhamento dos balões re-mede a cada mudança de enquadramento**: a
+  `PieceAnchoredLayer` refaz a lista de âncoras a cada quadro de pan/zoom, e o `useLayoutEffect`
+  do `MapPieceOverlay` roda com ela (um `getBoundingClientRect` por balão visível). Com os poucos
+  balões de um turno é barato; o estado só muda (e re-renderiza) quando a pilha muda.
 - **O reset global `* { font-family: 'Lato' }`** (pré-existente) sem a fonte Lato carregada cai
   na serifada padrão e afeta **outros diálogos**; foi corrigido só no diálogo de reação.
 - **Com esquivas a ordem de abertura não muda o cálculo.** Só um Repelir que para o ataque o
