@@ -65,6 +65,9 @@ quando algum dos três muda (pega o pan dos handlers próprios, o zoom e o enqua
   frases vão no mesmo balão, cada uma no seu tom. Balões de peças vizinhas que se sobrepõem são
   **empilhados** para cima (`stackAbove`, em `overlayLayout.ts`, pura e testada), com medição
   em `useLayoutEffect`. Os botões de baixo não empilham.
+- **"Ficou a salvo".** Alvo com `attackStopped` (um aparo anterior na corrente já tinha parado o
+  golpe) é rotulado "ficou a salvo" (`avoidedVerb`) no balão, no card ("… (o golpe já tinha
+  parado)") e no histórico — nunca "esquivou", mesmo com reação `nothing`.
 - `anchoredItems.tsx` é o lugar único onde as duas páginas montam os itens (botões e balões);
   `ReactionDialogHost` é o do diálogo.
 
@@ -76,7 +79,9 @@ Os botões reusam o `createHoldTracker` (`useHoldGesture.ts`, Fase 6): pointerdo
 pointerup → `end()`: `"click"` envia, `"hold"` configura; `onContextMenu` configura sem esperar
 o timer. Teclado: Enter/Espaço enviam, Shift+Enter configura. Um `click` sem ponteiro nem
 tecla antes (`detail === 0`: leitor de tela, `element.click()`) também envia; o click do mouse
-(`detail ≥ 1`) é ignorado, porque o pointerup já enviou. Não há segundo mecanismo.
+(`detail ≥ 1`) é ignorado, porque o pointerup já enviou. Com mouse, `pointerleave` cancela o
+segurar (o mouse não captura o ponteiro: arrastar para fora esconde os moves do tracker); no
+toque o leave só chega junto do up, então não é tratado. Não há segundo mecanismo.
 
 ## A escolha da casa
 
