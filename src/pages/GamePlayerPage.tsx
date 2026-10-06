@@ -1,6 +1,6 @@
 // A tela do jogador. Orquestra: dados e socket vêm de `useGameTable`; aqui fica só o que é
 // do jogador — o ator é o próprio personagem, e um toque no mapa compõe a ação dele.
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import useUser from "../hooks/useUser";
 import { useMatchParticipants } from "../hooks/useMatchParticipants";
 import { useResizeObserver } from "../hooks/useResizeObserver";
@@ -9,6 +9,8 @@ import { useMatchHistory } from "../hooks/useMatchHistory";
 import { useCharacterSheet } from "../hooks/useCharacterSheet";
 import { useGameTable } from "../features/match/combat/useGameTable";
 import { defaultMoveCategory } from "../features/match/combat/defaultMoveCategory";
+import { useReactionControls } from "../features/match/combat/useReactionControls";
+import { loadDraft } from "../features/match/combat/actionDraft";
 import MatchStageTemplate from "../components/templates/MatchStageTemplate";
 import MatchTopBar from "../features/match/combat/MatchTopBar";
 import RailNav from "../features/match/combat/RailNav";
@@ -22,12 +24,17 @@ import DeclaredActions from "../features/match/combat/DeclaredActions";
 import MatchErrorBanner from "../features/match/combat/MatchErrorBanner";
 import LostDeclaredNotice from "../features/match/combat/LostDeclaredNotice";
 import MatchSheetPanel from "../features/match/combat/MatchSheetPanel";
+import ReactionPanel from "../features/match/combat/ReactionPanel";
+import ReactionButtons from "../features/match/combat/ReactionButtons";
+import ReactionConfigDialog from "../features/match/combat/ReactionConfigDialog";
+import MapPieceOverlay from "../features/match/combat/MapPieceOverlay";
+import type { MapPieceAnchor } from "../features/match/combat/MapPieceOverlay";
 import MatchCharactersSidebar from "../features/match/MatchCharactersSidebar";
 import { PanelMessage } from "../features/match/combat/panelStyles";
 import WallActionSheet from "../features/match/WallActionSheet";
 import TacticalMapViewer from "../features/tactical-map/TacticalMapViewer";
 import {
-  CanvasWrapper, MapCornerButton, MapLoadingMessage, NoMapMessage, StageNotices,
+  CanvasWrapper, MapCornerStack, MapCornerStackButton, MapHint, MapLoadingMessage, NoMapMessage, StageNotices,
 } from "../features/match/combat/mapCanvasStyles";
 import type { SlotCoord, WallSegment } from "../types/tacticalMap";
 
@@ -82,6 +89,24 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
   const actorName = myCharacters.find((p) => p.characterSheet.uuid === actorId)?.characterSheet.nickName ?? "Você";
 
   const [wallPicker, setWallPicker] = useState<WallSegment | null>(null);
+
+  // ─── Reações (spec §4.5, §4.6) ─────────────────────────────────────────────
+  // O jogador reage pelos personagens dele que são alvo da ação aberta: botões ao lado da
+  // peça e na seção "Você é alvo" do painel; a fuga arma a escolha da casa no mapa.
+  const myActorIds = useMemo(() => new Set(myCharacters.map((p) => p.characterSheet.uuid)), [myCharacters]);
+  const controls = useReactionControls({
+    state,
+    mine: myActorIds,
+    boardPieces: game.boardPieces,
+    matchId,
+    send: combat.send,
+    fullStateSeq: game.fullStateSeq,
+  });
+  const { onSlotForPick, cancelPick } = controls;
+  // A configuração lista as armas do personagem que reage — que pode não ser o ator do
+  // compositor. Espera o catálogo: o diálogo lê a arma padrão só ao abrir.
+  const { data: reactionCatalogue, isLoading: reactionCatalogueLoading } =
+    useCombatCatalogue(token, controls.dialog?.actorId);
   const [railActive, setRailActive] = useState<RailTab>("acao");
   const [panelOpen, setPanelOpen] = useState(true);
   const [asideOpen, setAsideOpen] = useState(initialAsideOpen);
@@ -125,13 +150,54 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
   );
   const handleSlotTap = useCallback(
     (slot: SlotCoord) => {
+      // A escolha da casa da fuga vem antes do compositor: o toque é dela.
+      if (onSlotForPick(slot)) return;
       if (!actorId) return;
       composer.onSlotTap(slot);
       setRailActive("acao");
       setPanelOpen(true);
     },
-    [actorId, composer],
+    [onSlotForPick, actorId, composer],
   );
+
+  // O Esc é da escolha da casa só quando não é de outra coisa: um diálogo aberto ou um campo
+  // de texto com foco ficam com ele (o mesmo filtro do mestre).
+  const otherDialogOpen = wallPicker != null || controls.dialog != null;
+  const picking = controls.pick != null;
+  useEffect(() => {
+    if (!picking || otherDialogOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      const t = e.target;
+      if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement || t instanceof HTMLSelectElement) return;
+      if (t instanceof HTMLElement && t.isContentEditable) return;
+      cancelPick();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [picking, otherDialogOpen, cancelPick]);
+
+  // Os botões ao lado da peça (abaixo dela: acima fica o balão). Alvo sem peça visível
+  // fica só no painel. O nome aparece quando o jogador tem mais de um alvo.
+  const reactionAnchors: MapPieceAnchor[] = controls.targets.flatMap((t) => {
+    const at = game.pieceAnchor(t.actorId);
+    if (!at) return [];
+    return [{
+      key: `reaction-${t.actorId}`,
+      ...at,
+      placement: "below" as const,
+      node: (
+        <ReactionButtons
+          compact
+          status={t.status}
+          name={nameOf(t.actorId)}
+          showName={controls.targets.length > 1}
+          onQuick={(b) => controls.quick(t.actorId, b)}
+          onConfigure={(b) => controls.configure(t.actorId, b)}
+        />
+      ),
+    }];
+  });
 
   // Personagens: quem o mapa deste jogador mostra (o fog do servidor já recortou), mais os
   // próprios personagens mesmo antes da peça chegar.
@@ -148,7 +214,6 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
     ? (state.hp[actorId] ?? (restHealth ? { hp: restHealth.current, maxHp: restHealth.max } : undefined))
     : undefined;
 
-  const myActorIds = useMemo(() => new Set(myCharacters.map((p) => p.characterSheet.uuid)), [myCharacters]);
   const actorChoices = useMemo(
     () => myCharacters.map((p) => ({ id: p.characterSheet.uuid, name: p.characterSheet.nickName })),
     [myCharacters],
@@ -186,6 +251,12 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
             <MatchSheetPanel token={token} sheetUuid={actorId} liveHp={actorId ? state.hp[actorId] : undefined} />
           ) : actorId ? (
             <>
+              <ReactionPanel
+                targets={controls.targets}
+                nameOf={nameOf}
+                onQuick={controls.quick}
+                onConfigure={controls.configure}
+              />
               <OwnBars bars={state.bars} characterId={actorId} hp={ownHp} />
               <ActionComposer
                 actorName={actorName}
@@ -242,11 +313,13 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
                   highlightHoverSlot={!!actorId}
                   fitRequest={game.fitRequest}
                   onEmptySlotClick={handleSlotTap}
+                  onViewportTransform={game.setViewport}
                 />
               ) : !map ? (
                 <NoMapMessage>Nenhum mapa anexado a esta partida.</NoMapMessage>
               ) : null}
             </CanvasWrapper>
+            <MapPieceOverlay anchors={reactionAnchors} width={width} height={height} />
             <GeneralBar
               bars={state.bars}
               roundMode={state.roundMode}
@@ -262,7 +335,19 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
                 onDismiss={combat.dismissLostDeclared}
               />
             </StageNotices>
-            {map && <MapCornerButton type="button" onClick={game.refit}>Enquadrar</MapCornerButton>}
+            {map && controls.pick && (
+              <MapHint>Toque na casa para onde {nameOf(controls.pick.actorId)} escapa.</MapHint>
+            )}
+            {map && (
+              <MapCornerStack>
+                {controls.pick && (
+                  <MapCornerStackButton type="button" aria-label="Cancelar a escolha da casa da fuga" onClick={cancelPick}>
+                    × Cancelar
+                  </MapCornerStackButton>
+                )}
+                <MapCornerStackButton type="button" onClick={game.refit}>Enquadrar</MapCornerStackButton>
+              </MapCornerStack>
+            )}
           </>
         }
         aside={
@@ -291,6 +376,17 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
           />
         }
       />
+      {controls.dialog && !reactionCatalogueLoading && (
+        <ReactionConfigDialog
+          key={`${controls.dialog.actorId}:${controls.dialog.initial}`}
+          name={nameOf(controls.dialog.actorId)}
+          initial={controls.dialog.initial}
+          weapons={reactionCatalogue?.weapons.map((w) => w.name) ?? []}
+          defaultWeapon={matchId ? loadDraft(matchId, controls.dialog.actorId).attack?.weapon : undefined}
+          onSend={controls.sendFromDialog}
+          onCancel={controls.closeDialog}
+        />
+      )}
       {wallPicker && actorId && (
         <WallActionSheet
           wall={wallPicker}
