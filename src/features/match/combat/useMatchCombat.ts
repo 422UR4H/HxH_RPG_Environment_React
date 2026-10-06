@@ -3,7 +3,7 @@ import { useMatchWs } from "../../../hooks/useMatchWs";
 import { combatReducer, initialCombatState } from "./combatReducer";
 import type { CombatAction, DeclaredAction, DeclaredSource } from "./combatReducer";
 import { loadDeclared, saveDeclared } from "./declaredStorage";
-import type { EnqueueActionPayload, MasterActionPayload } from "./combatMessages";
+import type { AttachReactionPayload, EnqueueActionPayload, MasterActionPayload } from "./combatMessages";
 
 type Options = {
   matchUuid: string | undefined;
@@ -130,6 +130,16 @@ export function useMatchCombat({
     [ws],
   );
 
+  const attachReaction = useCallback(
+    (payload: AttachReactionPayload, turnId: string): boolean => {
+      // Como no enqueue: só nasce a `sending` quando o envio saiu de verdade.
+      if (!ws.sendAttachReaction(payload)) return false;
+      dispatch({ type: "REACTION_SENT", payload: { actorId: payload.actorId, turnId, kind: payload.reactionKind } });
+      return true;
+    },
+    [ws],
+  );
+
   return {
     state,
     status: ws.status,
@@ -144,6 +154,8 @@ export function useMatchCombat({
       addNpc: ws.sendAddNpc,
       changeScene: ws.sendChangeScene,
       editAction: ws.sendEditAction,
+      attachReaction,
+      openReaction: ws.sendOpenReaction,
     },
     dismissError: useCallback(() => dispatch({ type: "ERROR_DISMISSED" }), []),
     dismissCloseTurnDialog: useCallback(() => dispatch({ type: "CLOSE_TURN_DIALOG_DISMISSED" }), []),
