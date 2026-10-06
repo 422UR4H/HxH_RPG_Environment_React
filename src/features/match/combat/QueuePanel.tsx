@@ -87,6 +87,7 @@ export default function QueuePanel({
   nameOf,
   onPull,
   onChooseFallSlot,
+  onOpenReaction,
 }: {
   queue: QueuedAction[];
   /** A ação do turno aberto — já não está em `queue`, mas continua na tela, marcada. */
@@ -98,6 +99,8 @@ export default function QueuePanel({
   onPull: (actionId: string) => void;
   /** F14: repassado ao cálculo do card em andamento (a fuga que falhou). */
   onChooseFallSlot?: (targetId: string) => void;
+  /** Fase 7: repassado ao cálculo do card em andamento (dar a palavra a uma reação). */
+  onOpenReaction?: (reactionId: string) => void;
 }) {
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
   const toggle = (actionId: string) =>
@@ -144,6 +147,7 @@ export default function QueuePanel({
                   nameOf={nameOf}
                   gridKind={gridKind}
                   onChooseFallSlot={onChooseFallSlot}
+                  onOpenReaction={onOpenReaction}
                 />
               )}
             </OpenRow>

@@ -10,8 +10,6 @@ import { useMatchParticipants } from "../../../hooks/useMatchParticipants";
 import { useCampaignDetails } from "../../../hooks/useCampaignDetails";
 import { isSameSlot, slotToTriple, tripleToSlot } from "../../tactical-map/utils/coords";
 import type { SlotTriple } from "../../tactical-map/utils/coords";
-import { pieceScreenAnchor, pieceScreenRadius } from "../../tactical-map/utils/screenAnchor";
-import type { ViewportTransform } from "../../tactical-map/utils/screenAnchor";
 import type { QueuedAction } from "./combatMessages";
 import { useLiveMapSync } from "./useLiveMapSync";
 import { useMatchCombat } from "./useMatchCombat";
@@ -21,6 +19,7 @@ import { defaultMoveCategory } from "./defaultMoveCategory";
 import { pendingMoves, resolveLostCandidates } from "./combatReducer";
 import type { DeclaredAction, DeclaredSource } from "./combatReducer";
 import { draftFromDeclared } from "./actionDraft";
+import { createViewportStore } from "./viewportStore";
 
 /** O destino do `move` de uma ação da fila, quando há um — `undefined` se a ação não move. */
 function queuedMoveTo(q: QueuedAction): SlotTriple | undefined {
@@ -222,18 +221,11 @@ export function useGameTable({
   const openTurnPieceId = state.openTurn ? pieceByCharacter.get(state.openTurn.actorId)?.id : undefined;
 
   // ─── Âncora de peça na tela (spec §4.4) ────────────────────────────────────
-  // O Pixi reporta o enquadramento a cada pan/zoom; a camada HTML do palco põe botões e
-  // balões ao lado das peças com ele. Peça empilhada ancora no centro da casa (protótipo).
-  const [viewport, setViewport] = useState<ViewportTransform | null>(null);
-  const grid = map?.grid;
-  const pieceAnchor = useCallback(
-    (characterId: string): { x: number; y: number; radius: number } | undefined => {
-      const piece = pieceByCharacter.get(characterId);
-      if (!piece || !grid || !viewport) return undefined;
-      return { ...pieceScreenAnchor(piece.coord.slot, grid, viewport), radius: pieceScreenRadius(grid, viewport) };
-    },
-    [pieceByCharacter, grid, viewport],
-  );
+  // O Pixi reporta o enquadramento a cada pan/zoom; a camada HTML do palco
+  // (`PieceAnchoredLayer`) põe botões e balões ao lado das peças com ele. Fica num store
+  // fora do estado do React, criado uma vez: só a camada assina, a página não re-renderiza
+  // a cada quadro. `setViewport` é estável — vai direto como `onViewportTransform`.
+  const [viewport] = useState(createViewportStore);
 
   return {
     user,
@@ -257,7 +249,7 @@ export function useGameTable({
     openTurnPieceId,
     fullStateSeq,
     viewport,
-    setViewport,
-    pieceAnchor,
+    setViewport: viewport.set,
+    pieceByCharacter,
   };
 }

@@ -1286,4 +1286,110 @@ describe("GameMasterPage", () => {
       expect(mapStub()).toHaveAttribute("data-has-empty-slot-click", "false");
     });
   });
+  describe("Fase 7: o mestre reage pelo NPC e dá a palavra", () => {
+    const mapStub = () => screen.getByTestId("map-stub");
+    const cancelPickButton = () => screen.queryByRole("button", { name: "Cancelar a escolha da casa da fuga" });
+    const reactionGroup = () => screen.getByRole("group", { name: "Reagir — Capanga" });
+    const quick = (label: string) =>
+      fireEvent.keyDown(within(reactionGroup()).getByRole("button", { name: `${label} — segure para configurar` }), { key: "Enter" });
+
+    /** O Gon ataca o Capanga (NPC): o mestre reage por ele. */
+    function openAttackOnNpc(ws: FakeWS) {
+      openWithServerBoard(ws);
+      act(() => ws.emit("action_queued", { actionId: "a1", actorId: "c1", bars: ["action"] }));
+      act(() =>
+        ws.emit("turn_opened", {
+          turnId: "t1", actorId: "c1", actionId: "a1", actionType: "",
+          action: { uuid: "a1", actorId: "c1", reactionKind: "", targetId: ["npc1"], attack: {} },
+        }),
+      );
+    }
+
+    it("NPC alvo: a Fila mostra os botões dele, e Esquivar manda o attach_reaction pelo NPC", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openAttackOnNpc(ws);
+
+      quick("Esquivar");
+      expect(ws.sent("attach_reaction")).toEqual([
+        { actorId: "npc1", reactToId: "a1", reactionKind: "dodge", dodge: {} },
+      ]);
+      expect(screen.getByText("Enviando a reação…")).toBeInTheDocument();
+    });
+
+    it("Escapar arma a escolha da casa: dica, × Cancelar, peças quietas; o toque envia e o modo volta a jogar", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openAttackOnNpc(ws);
+
+      quick("Escapar");
+      expect(ws.sent("attach_reaction")).toEqual([]);
+      expect(screen.getByText("Toque na casa para onde Capanga escapa.")).toBeInTheDocument();
+      expect(cancelPickButton()).toBeInTheDocument();
+      expect(mapStub()).toHaveAttribute("data-has-piece-select", "false");
+      expect(mapStub()).toHaveAttribute("data-has-long-press", "false");
+      expect(mapStub()).toHaveAttribute("data-has-empty-slot-click", "true");
+      expect(mapStub()).toHaveAttribute("data-selected-piece-id", "piece-npc1");
+
+      act(() => screen.getByTestId("empty-slot").click());
+      expect(ws.sent("attach_reaction")).toEqual([
+        expect.objectContaining({ actorId: "npc1", reactToId: "a1", reactionKind: "escape", move: expect.objectContaining({ position: [9, 9, 0] }) }),
+      ]);
+      expect(cancelPickButton()).not.toBeInTheDocument();
+      expect(screen.queryByText(/escapa\./)).not.toBeInTheDocument();
+      expect(mapStub()).toHaveAttribute("data-has-piece-select", "true");
+      expect(mapStub()).toHaveAttribute("data-has-empty-slot-click", "false");
+    });
+
+    it("Esc e o × cancelam sem enviar; entrar no Arrumar também sai da escolha", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openAttackOnNpc(ws);
+
+      quick("Escapar");
+      await user.keyboard("{Escape}");
+      expect(cancelPickButton()).not.toBeInTheDocument();
+      expect(mapStub()).toHaveAttribute("data-has-piece-select", "true");
+
+      quick("Escapar");
+      await user.click(cancelPickButton()!);
+      expect(cancelPickButton()).not.toBeInTheDocument();
+      expect(mapStub()).toHaveAttribute("data-has-empty-slot-click", "false");
+
+      quick("Escapar");
+      act(() => screen.getByRole("button", { name: "Arrumar" }).click());
+      expect(screen.getByRole("button", { name: "Arrumar" })).toHaveAttribute("aria-pressed", "true");
+      expect(cancelPickButton()).not.toBeInTheDocument();
+      act(() => screen.getByTestId("place-slot").click());
+      act(() => screen.getByTestId("empty-slot").click());
+      expect(ws.sent("attach_reaction")).toEqual([]);
+    });
+
+    it("o turno fechar no meio da escolha encerra o modo", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openAttackOnNpc(ws);
+
+      quick("Escapar");
+      act(() => ws.emit("turn_closed", { turnId: "t1" }));
+      expect(cancelPickButton()).not.toBeInTheDocument();
+      expect(mapStub()).toHaveAttribute("data-has-piece-select", "true");
+      expect(mapStub()).toHaveAttribute("data-has-empty-slot-click", "false");
+    });
+
+    it("Dar a palavra manda o open_reaction da reação esperando", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openAttackOnNpc(ws);
+      act(() =>
+        ws.emit("resolution_updated", {
+          turnId: "t1", isSettled: false, targets: [],
+          pendingReactions: [{ reactionId: "r1", actorId: "npc1", kind: "dodge" }],
+        }),
+      );
+
+      act(() => within(screen.getByTestId("queue-open")).getByRole("button", { name: "Dar a palavra" }).click());
+      expect(ws.sent("open_reaction")).toEqual([{ reactionId: "r1" }]);
+    });
+  });
 });

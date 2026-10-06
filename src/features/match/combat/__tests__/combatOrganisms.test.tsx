@@ -327,7 +327,7 @@ describe("ResolutionDetails", () => {
     expect(screen.getByText(/incompleto/i)).toBeInTheDocument();
   });
 
-  it("não tem botão nenhum fora de uma fuga que falhou (nasce só leitura)", () => {
+  it("sem onOpenReaction, não tem botão nenhum fora de uma fuga que falhou", () => {
     render(<ResolutionDetails resolution={res} nameOf={resolutionNameOf} gridKind="square" onChooseFallSlot={() => {}} />);
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
@@ -388,6 +388,63 @@ describe("ResolutionDetails", () => {
       );
       fireEvent.click(within(screen.getByTestId("queue-open")).getByRole("button", { name: "Escolher onde cai" }));
       expect(onChoose).toHaveBeenCalledWith("c2");
+    });
+  });
+
+  describe("dar a palavra (Fase 7, §4.7)", () => {
+    const pending: ResolutionPayload = {
+      turnId: "t1", isSettled: false, targets: [],
+      pendingReactions: [{ reactionId: "r1", actorId: "c2", kind: "dodge" }],
+    };
+
+    it("cada reação esperando tem o botão Dar a palavra, que manda o reactionId", () => {
+      const onOpen = vi.fn();
+      render(<ResolutionDetails resolution={pending} nameOf={resolutionNameOf} gridKind="square" onOpenReaction={onOpen} />);
+      expect(screen.getByText("A ordem em que você abre muda o resultado.")).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "Dar a palavra" }));
+      expect(onOpen).toHaveBeenCalledWith("r1");
+    });
+
+    it("sem onOpenReaction, nenhum botão", () => {
+      render(<ResolutionDetails resolution={pending} nameOf={resolutionNameOf} gridKind="square" />);
+      expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    });
+
+    it("mostra a ordem de abertura: a posição entre os alvos com reação", () => {
+      const target = (targetId: string, withReaction: boolean): ResolutionPayload["targets"][number] => ({
+        targetId, avoided: false, defended: false, dodgeTotal: 10, defenseTotal: 0,
+        rawDamage: 5, defenseApplied: 0, projectedDamage: 5,
+        ...(withReaction
+          ? { reaction: { kind: "dodge", total: 11, reactionId: `r-${targetId}`, margin: 0, difference: 0, stopsAttack: false } }
+          : {}),
+      });
+      const ordered: ResolutionPayload = {
+        turnId: "t1", isSettled: false,
+        targets: [target("b", true), target("a", true), target("c", false)],
+      };
+      const names = (id: string) => ({ a: "Alfa", b: "Beta", c: "Gama" }[id] ?? id);
+      render(<ResolutionDetails resolution={ordered} nameOf={names} gridKind="square" />);
+      const card = (name: string) => screen.getByText(name).parentElement as HTMLElement;
+      expect(within(card("Beta")).getByText(/aberta em 1º/)).toBeInTheDocument();
+      expect(within(card("Alfa")).getByText(/aberta em 2º/)).toBeInTheDocument();
+      expect(within(card("Gama")).queryByText(/aberta em/)).not.toBeInTheDocument();
+    });
+
+    it("QueuePanel repassa onOpenReaction ao cálculo do card em andamento", () => {
+      const onOpen = vi.fn();
+      render(
+        <QueuePanel
+          queue={[]}
+          open={{ actorId: "c1", resolution: pending }}
+          order={[]}
+          gridKind="square"
+          nameOf={resolutionNameOf}
+          onPull={() => {}}
+          onOpenReaction={onOpen}
+        />,
+      );
+      fireEvent.click(within(screen.getByTestId("queue-open")).getByRole("button", { name: "Dar a palavra" }));
+      expect(onOpen).toHaveBeenCalledWith("r1");
     });
   });
 

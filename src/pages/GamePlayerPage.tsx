@@ -27,8 +27,8 @@ import MatchSheetPanel from "../features/match/combat/MatchSheetPanel";
 import ReactionPanel from "../features/match/combat/ReactionPanel";
 import ReactionButtons from "../features/match/combat/ReactionButtons";
 import ReactionConfigDialog from "../features/match/combat/ReactionConfigDialog";
-import MapPieceOverlay from "../features/match/combat/MapPieceOverlay";
-import type { MapPieceAnchor } from "../features/match/combat/MapPieceOverlay";
+import PieceAnchoredLayer from "../features/match/combat/PieceAnchoredLayer";
+import type { PieceAnchoredItem } from "../features/match/combat/PieceAnchoredLayer";
 import MatchCharactersSidebar from "../features/match/MatchCharactersSidebar";
 import { PanelMessage } from "../features/match/combat/panelStyles";
 import WallActionSheet from "../features/match/WallActionSheet";
@@ -179,25 +179,21 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
 
   // Os botões ao lado da peça (abaixo dela: acima fica o balão). Alvo sem peça visível
   // fica só no painel. O nome aparece quando o jogador tem mais de um alvo.
-  const reactionAnchors: MapPieceAnchor[] = controls.targets.flatMap((t) => {
-    const at = game.pieceAnchor(t.actorId);
-    if (!at) return [];
-    return [{
-      key: `reaction-${t.actorId}`,
-      ...at,
-      placement: "below" as const,
-      node: (
-        <ReactionButtons
-          compact
-          status={t.status}
-          name={nameOf(t.actorId)}
-          showName={controls.targets.length > 1}
-          onQuick={(b) => controls.quick(t.actorId, b)}
-          onConfigure={(b) => controls.configure(t.actorId, b)}
-        />
-      ),
-    }];
-  });
+  const reactionItems: PieceAnchoredItem[] = controls.targets.map((t) => ({
+    key: `reaction-${t.actorId}`,
+    characterId: t.actorId,
+    placement: "below",
+    node: (
+      <ReactionButtons
+        compact
+        status={t.status}
+        name={nameOf(t.actorId)}
+        showName={controls.targets.length > 1}
+        onQuick={(b) => controls.quick(t.actorId, b)}
+        onConfigure={(b) => controls.configure(t.actorId, b)}
+      />
+    ),
+  }));
 
   // Personagens: quem o mapa deste jogador mostra (o fog do servidor já recortou), mais os
   // próprios personagens mesmo antes da peça chegar.
@@ -319,7 +315,14 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
                 <NoMapMessage>Nenhum mapa anexado a esta partida.</NoMapMessage>
               ) : null}
             </CanvasWrapper>
-            <MapPieceOverlay anchors={reactionAnchors} width={width} height={height} />
+            <PieceAnchoredLayer
+              viewport={game.viewport}
+              grid={map?.grid}
+              pieces={game.pieceByCharacter}
+              items={reactionItems}
+              width={width}
+              height={height}
+            />
             <GeneralBar
               bars={state.bars}
               roundMode={state.roundMode}
