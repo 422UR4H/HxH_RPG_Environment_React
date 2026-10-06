@@ -1,3 +1,4 @@
+import { useState } from "react";
 import styled from "styled-components";
 import { colors, fonts } from "../../../styles/tokens";
 import type { GridKind } from "../../../types/tacticalMap";
@@ -25,7 +26,19 @@ export default function ResolutionDetails({
   /** Dá a palavra a uma reação esperando (`open_reaction`). */
   onOpenReaction?: (reactionId: string) => void;
 }) {
-  const { action, targets, pendingReactions, errors } = resolution;
+  const { turnId, action, targets, pendingReactions, errors } = resolution;
+  // "Dar a palavra" já clicado: a linha trava até a reação sair de `pendingReactions` (o
+  // servidor abriu) ou o cálculo virar de outro turno — um segundo clique nesse meio mandaria
+  // outro `open_reaction`. Uma reação que sai e volta (recusa) volta destravada.
+  const [sent, setSent] = useState<{ turnId: string; ids: string[] }>({ turnId, ids: [] });
+  const stillSent =
+    sent.turnId === turnId ? sent.ids.filter((id) => pendingReactions?.some((r) => r.reactionId === id)) : [];
+  if (sent.turnId !== turnId || stillSent.length !== sent.ids.length) setSent({ turnId, ids: stillSent });
+  const openReaction = (reactionId: string) => {
+    if (!onOpenReaction || stillSent.includes(reactionId)) return;
+    setSent({ turnId, ids: [...stillSent, reactionId] });
+    onOpenReaction(reactionId);
+  };
   // `targets[]` vem na ordem da cadeia (contrato): a posição de um alvo entre os que já têm
   // reação aberta É a ordem em que o mestre deu a palavra — e, por vir do servidor, sobrevive
   // à reconexão.
@@ -98,7 +111,11 @@ export default function ResolutionDetails({
                 {nameOf(r.actorId)} — {REACTION_KIND_LABELS[r.kind] ?? r.kind}
               </Line>
               {onOpenReaction && (
-                <ActionButton type="button" onClick={() => onOpenReaction(r.reactionId)}>
+                <ActionButton
+                  type="button"
+                  disabled={stillSent.includes(r.reactionId)}
+                  onClick={() => openReaction(r.reactionId)}
+                >
                   Dar a palavra
                 </ActionButton>
               )}
@@ -175,6 +192,11 @@ const ActionButton = styled.button`
   cursor: pointer;
   background: transparent;
   color: ${colors.textPrimary};
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 `;
 const Muted = styled.span`
   color: ${colors.textPlaceholderStrong};

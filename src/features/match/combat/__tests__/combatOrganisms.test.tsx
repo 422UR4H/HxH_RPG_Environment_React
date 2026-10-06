@@ -405,6 +405,54 @@ describe("ResolutionDetails", () => {
       expect(onOpen).toHaveBeenCalledWith("r1");
     });
 
+    // A resposta do servidor (a reação sai de `pendingReactions`) demora um pouco: um segundo
+    // clique nesse meio não manda outro `open_reaction`.
+    it("clique duplo em Dar a palavra manda uma vez só; a outra reação segue livre", () => {
+      const onOpen = vi.fn();
+      const two: ResolutionPayload = {
+        ...pending,
+        pendingReactions: [
+          { reactionId: "r1", actorId: "c2", kind: "dodge" },
+          { reactionId: "r2", actorId: "c1", kind: "repel" },
+        ],
+      };
+      render(<ResolutionDetails resolution={two} nameOf={resolutionNameOf} gridKind="square" onOpenReaction={onOpen} />);
+      const [first, second] = screen.getAllByRole("button", { name: "Dar a palavra" });
+      fireEvent.click(first);
+      fireEvent.click(first);
+      expect(onOpen).toHaveBeenCalledTimes(1);
+      expect(first).toBeDisabled();
+      expect(second).toBeEnabled();
+    });
+
+    it("a trava cai quando o cálculo é de outro turno", () => {
+      const onOpen = vi.fn();
+      const { rerender } = render(
+        <ResolutionDetails resolution={pending} nameOf={resolutionNameOf} gridKind="square" onOpenReaction={onOpen} />,
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Dar a palavra" }));
+      expect(screen.getByRole("button", { name: "Dar a palavra" })).toBeDisabled();
+      rerender(
+        <ResolutionDetails
+          resolution={{ ...pending, turnId: "t2" }}
+          nameOf={resolutionNameOf}
+          gridKind="square"
+          onOpenReaction={onOpen}
+        />,
+      );
+      expect(screen.getByRole("button", { name: "Dar a palavra" })).toBeEnabled();
+    });
+
+    it("a trava cai quando a reação sai de pendingReactions (e volta destravada)", () => {
+      const onOpen = vi.fn();
+      const props = { nameOf: resolutionNameOf, gridKind: "square" as const, onOpenReaction: onOpen };
+      const { rerender } = render(<ResolutionDetails resolution={pending} {...props} />);
+      fireEvent.click(screen.getByRole("button", { name: "Dar a palavra" }));
+      rerender(<ResolutionDetails resolution={{ ...pending, pendingReactions: [] }} {...props} />);
+      rerender(<ResolutionDetails resolution={pending} {...props} />);
+      expect(screen.getByRole("button", { name: "Dar a palavra" })).toBeEnabled();
+    });
+
     it("sem onOpenReaction, nenhum botão", () => {
       render(<ResolutionDetails resolution={pending} nameOf={resolutionNameOf} gridKind="square" />);
       expect(screen.queryByRole("button")).not.toBeInTheDocument();

@@ -83,6 +83,25 @@ describe("ReactionButtons", () => {
     expect(onQuick).toHaveBeenCalledTimes(1);
   });
 
+  // O leitor de tela (e o `click()` de quem automatiza) ativa o botão com um click sintético,
+  // sem ponteiro nem tecla antes: `detail` 0.
+  it("clique sintético (sem ponteiro, detail 0) envia", () => {
+    const { onQuick, onConfigure } = setup();
+    fireEvent.click(button("Repelir"), { detail: 0 });
+    expect(onQuick).toHaveBeenCalledTimes(1);
+    expect(onQuick).toHaveBeenCalledWith("repel");
+    expect(onConfigure).not.toHaveBeenCalled();
+  });
+
+  it("clique de mouse envia uma vez só: o pointerup já enviou, o click que vem depois não", () => {
+    const { onQuick } = setup();
+    const b = button("Esquivar");
+    fireEvent.pointerDown(b, { button: 0, clientX: 5, clientY: 5 });
+    fireEvent.pointerUp(b, { button: 0, clientX: 5, clientY: 5 });
+    fireEvent.click(b, { detail: 1 });
+    expect(onQuick).toHaveBeenCalledTimes(1);
+  });
+
   it.each([
     ["sending", "Enviando a reação…"],
     ["attached", "Reação enviada — aguardando o mestre"],

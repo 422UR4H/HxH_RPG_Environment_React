@@ -89,6 +89,12 @@ export default function ReactionButtons({
     if (e.shiftKey) onConfigure(b);
     else onQuick(b);
   };
+  // Leitor de tela e afins ativam o botão com um click sem ponteiro nem tecla antes (`detail`
+  // 0). O click do mouse (detail ≥ 1) vem depois do pointerup, que já enviou; o do Enter/Espaço
+  // não chega — o keydown acima o cancela.
+  const handleClick = (b: ReactionButton) => (e: MouseEvent<HTMLButtonElement>) => {
+    if (e.detail === 0) onQuick(b);
+  };
 
   return (
     <Box $compact={!!compact} role="group" aria-label={`Reagir — ${name}`}>
@@ -106,6 +112,7 @@ export default function ReactionButtons({
             onPointerCancel={() => tracker.cancel()}
             onContextMenu={handleContextMenu(b)}
             onKeyDown={handleKeyDown(b)}
+            onClick={handleClick(b)}
           >
             {REACTION_BUTTON_LABELS[b]}
           </Button>

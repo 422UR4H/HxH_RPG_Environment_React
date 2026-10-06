@@ -84,7 +84,9 @@ describe("ReactionConfigDialog", () => {
     setup("escape");
     fireEvent.click(evasion());
     const cost = screen.getByText(/^Cobra:/);
-    expect(cost).toHaveTextContent("Cobra: movimento — consome a ação que você tinha na fila, com Desvantagem");
+    expect(cost).toHaveTextContent(
+      "Cobra: movimento. Se você tinha uma ação na fila nessa barra, ela é consumida e a reação rola com Desvantagem.",
+    );
     expect(cost).not.toHaveTextContent("ação +");
   });
 

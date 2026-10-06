@@ -11,11 +11,14 @@ import {
   AccentConfirmButton, Buttons, CancelButton, Dialog, DialogTitle, Overlay,
 } from "./dialogStyles";
 
-/** O custo do tipo em texto, a partir da tabela do contrato. */
+/**
+ * O custo do tipo em texto, a partir da tabela do contrato. O consumo é condicional: só existe
+ * se havia uma ação na fila naquela barra — sem ela a reação não consome nada nem rola pior.
+ */
 function costText(kind: ReactionKind): string {
   const bars = REACTION_BARS[kind];
   if (bars.length === 0) return "Não cobra nada";
-  return `Cobra: ${bars.map((b) => BAR_LABELS[b]).join(" + ")} — consome a ação que você tinha na fila, com Desvantagem`;
+  return `Cobra: ${bars.map((b) => BAR_LABELS[b]).join(" + ")}. Se você tinha uma ação na fila nessa barra, ela é consumida e a reação rola com Desvantagem.`;
 }
 
 /**
