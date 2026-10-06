@@ -1,5 +1,7 @@
 // O que as duas telas põem ao lado das peças — um lugar só, para não divergirem: os botões de
 // reação (abaixo da peça) e os balões (acima).
+import useMediaQuery from "../../../hooks/useMediaQuery";
+import { breakpoints } from "../../../styles/breakpoints";
 import type { PieceAnchoredItem } from "./PieceAnchoredLayer";
 import ReactionButtons from "./ReactionButtons";
 import ActionBalloon from "./ActionBalloon";
@@ -51,4 +53,22 @@ export function balloonAnchoredItems(balloons: TableBalloon[]): PieceAnchoredIte
     placement: "above",
     node: <ActionBalloon lines={lines} />,
   }));
+}
+
+/**
+ * Tudo que as duas telas põem ao lado das peças, num lugar só. No celular (abaixo do
+ * `tabletUp`) os botões de reação não vão para o mapa: o painel ("Você é alvo" / "Reagir pelo
+ * NPC") já os mostra logo abaixo do mapa, e na tela estreita eles quebram em várias linhas e
+ * cobrem o mapa. Os balões ficam — são só leitura e curtos.
+ */
+export function useCombatAnchoredItems(
+  controls: Controls,
+  nameOf: (id: string) => string,
+  balloons: TableBalloon[],
+): PieceAnchoredItem[] {
+  const isPhone = useMediaQuery(`(max-width: ${breakpoints.tabletUp - 1}px)`);
+  return [
+    ...(isPhone ? [] : reactionAnchoredItems(controls, nameOf)),
+    ...balloonAnchoredItems(balloons),
+  ];
 }

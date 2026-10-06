@@ -1,6 +1,7 @@
-import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
-import { balloonAnchoredItems, reactionAnchoredItems } from "../anchoredItems";
+import { describe, it, expect, vi, afterEach } from "vitest";
+import { render, renderHook, screen } from "@testing-library/react";
+import { balloonAnchoredItems, reactionAnchoredItems, useCombatAnchoredItems } from "../anchoredItems";
+import { breakpoints } from "../../../../styles/breakpoints";
 import type { ReactionStatus } from "../reactionModel";
 
 const controls = (targets: Array<{ actorId: string; status: ReactionStatus }>) => ({
@@ -54,5 +55,33 @@ describe("balloonAnchoredItems", () => {
 
   it("sem balões, sem itens", () => {
     expect(balloonAnchoredItems([])).toEqual([]);
+  });
+});
+
+describe("useCombatAnchoredItems", () => {
+  const original = window.matchMedia;
+  afterEach(() => { window.matchMedia = original; });
+  const mockViewport = (phone: boolean) => {
+    window.matchMedia = ((query: string) => ({
+      matches: phone && query === `(max-width: ${breakpoints.tabletUp - 1}px)`,
+      media: query, onchange: null,
+      addListener: () => {}, removeListener: () => {},
+      addEventListener: () => {}, removeEventListener: () => {},
+      dispatchEvent: () => false,
+    })) as typeof window.matchMedia;
+  };
+  const balloons = [{ characterId: "a", text: "−3", tone: "failure" as const }];
+  const run = () => renderHook(() =>
+    useCombatAnchoredItems(controls([{ actorId: "a", status: "available" }]), nameOf, balloons),
+  ).result.current;
+
+  it("no celular, sem botões de reação no mapa; os balões ficam", () => {
+    mockViewport(true);
+    expect(run().map((i) => i.key)).toEqual(["balloon-a"]);
+  });
+
+  it("de tablet para cima, botões de reação e balões", () => {
+    mockViewport(false);
+    expect(run().map((i) => i.key)).toEqual(["reaction-a", "balloon-a"]);
   });
 });

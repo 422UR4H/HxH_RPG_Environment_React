@@ -25,7 +25,7 @@ import LostDeclaredNotice from "../features/match/combat/LostDeclaredNotice";
 import MatchSheetPanel from "../features/match/combat/MatchSheetPanel";
 import ReactionPanel from "../features/match/combat/ReactionPanel";
 import ReactionDialogHost from "../features/match/combat/ReactionDialogHost";
-import { balloonAnchoredItems, reactionAnchoredItems } from "../features/match/combat/anchoredItems";
+import { useCombatAnchoredItems } from "../features/match/combat/anchoredItems";
 import PieceAnchoredLayer from "../features/match/combat/PieceAnchoredLayer";
 import type { PieceAnchoredItem } from "../features/match/combat/PieceAnchoredLayer";
 import MatchCharactersSidebar from "../features/match/MatchCharactersSidebar";
@@ -173,10 +173,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
   }, [picking, otherDialogOpen, cancelPick]);
 
   // Botões de reação (abaixo da peça) e balões (acima): a mesma camada, os mesmos helpers nas duas telas.
-  const anchoredItems: PieceAnchoredItem[] = [
-    ...reactionAnchoredItems(controls, nameOf),
-    ...balloonAnchoredItems(game.balloons),
-  ];
+  const anchoredItems: PieceAnchoredItem[] = useCombatAnchoredItems(controls, nameOf, game.balloons);
 
   // Personagens: quem o mapa deste jogador mostra (o fog do servidor já recortou), mais os
   // próprios personagens mesmo antes da peça chegar.
