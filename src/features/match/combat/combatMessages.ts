@@ -130,6 +130,8 @@ export type EscapeVerdict = {
 export type ResolutionTarget = {
   targetId: string;
   avoided: boolean;
+  /** Um aparo anterior na corrente já tinha parado o golpe ao chegar a este alvo (omitido quando false). */
+  attackStopped?: boolean;
   defended: boolean;
   dodgeTotal: number;
   defenseTotal: number;

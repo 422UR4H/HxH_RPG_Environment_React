@@ -40,7 +40,7 @@ export function reactionMechanicsText(reaction: HistoryAction, gridKind: GridKin
 
 /** Verde = o alvo se saiu bem (evitou, ou nem levou dano); vermelho = foi acertado (D6). */
 export function targetResultText(t: ResolutionTarget): { text: string; tone: "success" | "failure" } {
-  if (t.avoided) return { text: avoidedVerb(t.reaction), tone: "success" };
+  if (t.avoided) return { text: avoidedVerb(t), tone: "success" };
   if (t.defended) {
     return t.projectedDamage > 0
       ? { text: `defendeu · −${t.projectedDamage}`, tone: "failure" }

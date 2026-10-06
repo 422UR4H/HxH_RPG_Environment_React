@@ -64,7 +64,7 @@ export default function ResolutionDetails({
           <strong>{nameOf(t.targetId)}</strong>
           <Line>
             {/* W1: "esquivou"/"fugiu"/"aparou" sozinho — "evitou do golpe" soava estranho. */}
-            {t.avoided ? avoidedVerb(t.reaction) : t.defended ? "defendeu" : "acertado"} · esquiva {t.dodgeTotal} · defesa {t.defenseTotal}
+            {t.avoided ? avoidedVerb(t) + (t.attackStopped ? " (o golpe já tinha parado)" : "") : t.defended ? "defendeu" : "acertado"} · esquiva {t.dodgeTotal} · defesa {t.defenseTotal}
           </Line>
           {t.reaction && (
             <Line>

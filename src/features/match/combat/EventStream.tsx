@@ -23,11 +23,11 @@ type Line = { icon: string; text: string; tone?: "turn" | "hp" | "muted"; detail
  * igual a ResolutionDetails via `avoidedVerb`). Uma fuga que falhou diz onde caiu (F14) só
  * quando `landing` veio: a projeção o corta para quem não viu a peça pousar. */
 function outcomeText(
-  t: Pick<ResolutionTarget, "targetId" | "avoided" | "projectedDamage" | "reaction" | "escape">,
+  t: Pick<ResolutionTarget, "targetId" | "avoided" | "attackStopped" | "projectedDamage" | "reaction" | "escape">,
   nameOf: (id: string) => string,
   gridKind: GridKind,
 ): string {
-  if (t.avoided) return `${nameOf(t.targetId)} ${avoidedVerb(t.reaction)}`;
+  if (t.avoided) return `${nameOf(t.targetId)} ${avoidedVerb(t)}`;
   const hit = t.projectedDamage > 0 ? `${nameOf(t.targetId)} ${MINUS}${t.projectedDamage}` : `${nameOf(t.targetId)} sem dano`;
   const landing = t.escape && !t.escape.escaped ? t.escape.landing : undefined;
   return landing ? `${hit} (caiu em ${formatSlot(landing, gridKind)})` : hit;

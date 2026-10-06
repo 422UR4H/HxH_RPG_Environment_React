@@ -54,6 +54,10 @@ describe("targetResultText", () => {
     expect(targetResultText(t)).toEqual({ text: "fugiu", tone: "success" });
     expect(targetResultText(target({ avoided: true }))).toEqual({ text: "esquivou", tone: "success" });
   });
+  it("attackStopped: ficou a salvo, mesmo com reação nothing", () => {
+    const t = target({ avoided: true, attackStopped: true, reaction: { kind: "nothing", total: 0, reactionId: "r", margin: 0, difference: 0, stopsAttack: false } });
+    expect(targetResultText(t)).toEqual({ text: "ficou a salvo", tone: "success" });
+  });
   it("defendeu, acertado e sem dano", () => {
     expect(targetResultText(target({ defended: true, projectedDamage: 3 }))).toEqual({ text: "defendeu · −3", tone: "failure" });
     expect(targetResultText(target({ projectedDamage: 7 }))).toEqual({ text: "−7", tone: "failure" });

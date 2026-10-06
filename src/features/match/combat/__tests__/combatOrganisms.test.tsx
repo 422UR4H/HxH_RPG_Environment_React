@@ -295,23 +295,29 @@ describe("QueuePanel", () => {
 // (contrato) — o verbo depende de `reaction.kind`; sem reação, foi o reflexo passivo.
 describe("avoidedVerb (W1)", () => {
   it("sem reação ou dodge/closedDodge: esquivou", () => {
-    expect(avoidedVerb(undefined)).toBe("esquivou");
-    expect(avoidedVerb({ kind: "dodge" })).toBe("esquivou");
-    expect(avoidedVerb({ kind: "closedDodge" })).toBe("esquivou");
+    expect(avoidedVerb({})).toBe("esquivou");
+    expect(avoidedVerb({ reaction: { kind: "dodge" } })).toBe("esquivou");
+    expect(avoidedVerb({ reaction: { kind: "closedDodge" } })).toBe("esquivou");
   });
 
   it("escape/escapeGuard/closedEscape: fugiu", () => {
-    expect(avoidedVerb({ kind: "escape" })).toBe("fugiu");
-    expect(avoidedVerb({ kind: "escapeGuard" })).toBe("fugiu");
-    expect(avoidedVerb({ kind: "closedEscape" })).toBe("fugiu");
+    expect(avoidedVerb({ reaction: { kind: "escape" } })).toBe("fugiu");
+    expect(avoidedVerb({ reaction: { kind: "escapeGuard" } })).toBe("fugiu");
+    expect(avoidedVerb({ reaction: { kind: "closedEscape" } })).toBe("fugiu");
   });
 
   it("repel: aparou", () => {
-    expect(avoidedVerb({ kind: "repel" })).toBe("aparou");
+    expect(avoidedVerb({ reaction: { kind: "repel" } })).toBe("aparou");
+  });
+
+  it("attackStopped: ficou a salvo, e precede o kind", () => {
+    expect(avoidedVerb({ attackStopped: true })).toBe("ficou a salvo");
+    expect(avoidedVerb({ attackStopped: true, reaction: { kind: "nothing" } })).toBe("ficou a salvo");
+    expect(avoidedVerb({ attackStopped: true, reaction: { kind: "dodge" } })).toBe("ficou a salvo");
   });
 
   it("kind desconhecido cai no padrão: esquivou", () => {
-    expect(avoidedVerb({ kind: "nothing" })).toBe("esquivou");
+    expect(avoidedVerb({ reaction: { kind: "nothing" } })).toBe("esquivou");
   });
 });
 
@@ -510,6 +516,20 @@ describe("ResolutionDetails", () => {
     expect(screen.getByText(/^aparou ·/)).toBeInTheDocument();
     expect(screen.queryByText(/evitou/)).not.toBeInTheDocument();
   });
+
+  it("alvo depois de um aparo: ficou a salvo (o golpe já tinha parado)", () => {
+    const stopped: ResolutionPayload = {
+      turnId: "t1", isSettled: true,
+      targets: [{
+        targetId: "c2", avoided: true, attackStopped: true, defended: false, dodgeTotal: 9, defenseTotal: 0,
+        rawDamage: 0, defenseApplied: 0, projectedDamage: 0,
+        reaction: { kind: "nothing", total: 0, reactionId: "r1", margin: 0, difference: 0, stopsAttack: false },
+      }],
+    };
+    render(<ResolutionDetails resolution={stopped} nameOf={resolutionNameOf} gridKind="square" />);
+    expect(screen.getByText(/^ficou a salvo \(o golpe já tinha parado\) ·/)).toBeInTheDocument();
+    expect(screen.queryByText(/esquivou/)).not.toBeInTheDocument();
+  });
 });
 
 describe("QueuePanel — ação em andamento", () => {
@@ -623,6 +643,24 @@ describe("EventStream", () => {
     expect(rows[1]).toHaveTextContent(`Fim do turno de Gon — Hisoka ${MINUS}7, Killua esquivou`);
     expect(rows[2]).toHaveTextContent(`Hisoka: 13/20 (${MINUS}7)`);
     expect(rows[3]).toHaveTextContent("Regime: Disputado");
+  });
+
+  it("alvo depois de um aparo aparece como ficou a salvo na linha do turno", () => {
+    const events: TableEvent[] = [
+      {
+        kind: "turn_closed", at: 2, receivedAt: 2, turnId: "t1", actorId: "c1",
+        resolution: {
+          turnId: "t1", isSettled: true,
+          targets: [{
+            targetId: "c2", avoided: true, attackStopped: true, defended: false, dodgeTotal: 0, defenseTotal: 0,
+            rawDamage: 0, defenseApplied: 0, projectedDamage: 0,
+            reaction: { kind: "nothing", total: 0, reactionId: "r1", margin: 0, difference: 0, stopsAttack: false },
+          }],
+        },
+      },
+    ];
+    render(<EventStream rows={historyRows(undefined, events, undefined, undefined)} nameOf={nameOf} gridKind="square" />);
+    expect(screen.getByTestId("event-row")).toHaveTextContent("Killua ficou a salvo");
   });
 
   it("sem eventos, explica o que vai aparecer", () => {
