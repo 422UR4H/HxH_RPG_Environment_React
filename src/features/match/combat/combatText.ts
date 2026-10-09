@@ -43,10 +43,12 @@ export const interactLabel = (kind: string) => INTERACT_LABELS[kind] ?? kind;
 /**
  * W1: o verbo de "evitou" depende de COMO o alvo evitou, não de um texto fixo — o contrato
  * (`targets[].avoided`) diz que `avoided` vale por qualquer meio; pergunte a `reaction.kind`.
- * Sem reação, o alvo usou o reflexo passivo de esquiva.
+ * Com `attackStopped`, ninguém "evitou": o golpe já tinha parado. Sem reação, o alvo usou o reflexo passivo de esquiva.
  */
-export function avoidedVerb(reaction?: { kind: string }): string {
-  switch (reaction?.kind) {
+export function avoidedVerb(t: { reaction?: { kind: string }; attackStopped?: boolean }): string {
+  // Um aparo anterior já tinha parado o golpe: nem esquiva nem fuga foi o que salvou o alvo.
+  if (t.attackStopped) return "ficou a salvo";
+  switch (t.reaction?.kind) {
     case "escape":
     case "escapeGuard":
     case "closedEscape":

@@ -53,6 +53,27 @@ export type TurnOpenedPayload = {
   action?: HistoryAction;
 };
 
+export type ReactionKind = "nothing" | "dodge" | "closedDodge" | "escape" | "escapeGuard" | "closedEscape" | "repel";
+
+/** `attach_reaction` (c→s). Payload mínimo do contrato — o servidor deriva as perícias. */
+export type AttachReactionPayload = {
+  actorId: string;
+  reactToId: string;
+  reactionKind: ReactionKind;
+  dodge?: Record<string, never>;
+  move?: { category: MoveCategory; position: [number, number, number] };
+  repel?: { weapon?: string };
+};
+
+/** `reaction_attached` (s→c): a quem reagiu e ao mestre. `consumedActionIds` sempre lista. */
+export type ReactionAttachedPayload = { turnId: string; reactionId: string; actorId: string; consumedActionIds: string[] };
+
+/** `reaction_opened` (s→c): a reação cortada para quem recebe (Full/Opened, `move` pelo fog). */
+export type ReactionOpenedPayload = { turnId: string; reactionId: string; reaction?: HistoryAction };
+
+/** `match_full_state.ownReactions[]`. `reactionKind` é o verdadeiro. */
+export type OwnReactionPayload = { reactionId: string; actorId: string; reactionKind: ReactionKind; opened: boolean; consumedActionIds: string[] };
+
 export type TurnClosedPayload = { turnId: string };
 export type RoundClosedPayload = { roundMode: RoundMode };
 export type RoundModeChangedPayload = { mode: RoundMode };
@@ -109,6 +130,8 @@ export type EscapeVerdict = {
 export type ResolutionTarget = {
   targetId: string;
   avoided: boolean;
+  /** Um aparo anterior na corrente já tinha parado o golpe ao chegar a este alvo (omitido quando false). */
+  attackStopped?: boolean;
   defended: boolean;
   dodgeTotal: number;
   defenseTotal: number;
@@ -162,7 +185,12 @@ export type MatchFullStatePayload = {
    * ENQUANTO o cliente estava fora: ela já não está mais pendente (não aparece em
    * `ownQueue`), mas também não foi perdida.
    */
-  openTurn?: { turnId: string; actorId: string; actionId?: string; action?: HistoryAction };
+  openTurn?: { turnId: string; actorId: string; actionId?: string; action?: HistoryAction;
+    /** As reações abertas, na ordem em que o mestre as abriu; ausente = nenhuma. */
+    reactions?: HistoryAction[];
+  };
+  /** As reações MINHAS do turno aberto; ausente = nenhuma. */
+  ownReactions?: OwnReactionPayload[];
   /** Master-only. */
   resolution?: ResolutionPayload;
   /** Master-only; ausente = fila vazia. */
@@ -188,7 +216,9 @@ export type CombatServerMessage =
   | { type: "round_closed"; payload: RoundClosedPayload }
   | { type: "round_mode_changed"; payload: RoundModeChangedPayload }
   | { type: "scene_changed"; payload: ScenePayload }
-  | { type: "close_turn_refused"; payload: CloseTurnRefusedPayload };
+  | { type: "close_turn_refused"; payload: CloseTurnRefusedPayload }
+  | { type: "reaction_attached"; payload: ReactionAttachedPayload }
+  | { type: "reaction_opened"; payload: ReactionOpenedPayload };
 
 /** O que o cliente monta para `enqueue_action`. Sem perícia: o hit é derivado pelo servidor. */
 export type EnqueueActionPayload = {

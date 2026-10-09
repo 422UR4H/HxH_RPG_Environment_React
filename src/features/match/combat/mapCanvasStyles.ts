@@ -92,8 +92,7 @@ export const MapCornerStackButton = styled.button`
   }
 `;
 
-/** Dica curta sobre o mapa: o que um toque vai fazer agora. */
-export const MapHint = styled.p`
+const hintBox = css`
   position: absolute;
   left: 50%;
   bottom: 10px;
@@ -108,5 +107,21 @@ export const MapHint = styled.p`
   font-family: ${fonts.sans};
   font-size: 12px;
   text-align: center;
+`;
+
+/** Dica curta sobre o mapa: o que um toque vai fazer agora. Não engole o toque no mapa. */
+export const MapHint = styled.p`
+  ${hintBox}
   pointer-events: none;
+`;
+
+/**
+ * Dica que leva a algum lugar (a seção de reação, no painel que está fechado ou noutra aba):
+ * o mesmo lugar e a mesma cara da `MapHint`, mas tocável.
+ */
+export const MapHintButton = styled.button`
+  ${hintBox}
+  border: 1px solid ${colors.brandAccent};
+  color: ${colors.textPrimary};
+  cursor: pointer;
 `;

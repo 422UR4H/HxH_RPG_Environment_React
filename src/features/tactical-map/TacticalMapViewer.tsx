@@ -3,6 +3,7 @@ import type { TacticalMap, WallSegment, FogState, SlotCoord } from "../../types/
 import type { CharacterPrivateSummary } from "../../types/characterSheet";
 import type { SlotTriple } from "./utils/coords";
 import type { IntentPreview } from "./utils/intentGeometry";
+import type { ViewportTransform } from "./utils/screenAnchor";
 
 type Props = {
   map: TacticalMap;
@@ -33,6 +34,8 @@ type Props = {
   onPieceMove?: (pieceId: string, slot: SlotCoord) => void;
   placingNpcId?: string | null;
   onNpcPlaced?: (slot: SlotCoord) => void;
+  // See stageProps.ts — the HTML layer anchors reaction buttons and balloons on the pieces.
+  onViewportTransform?: (t: ViewportTransform) => void;
 };
 
 export default function TacticalMapViewer({
@@ -40,7 +43,7 @@ export default function TacticalMapViewer({
   piecesInteractive, draggablePieceIds, onPieceSelect, onPieceLongPress,
   selectedPieceId, inspectedPieceId, targetPieceIds, activePieceId, onEmptySlotClick,
   suppressPanOnPiecePress, intentPreview, intentGhosts, highlightHoverSlot, fitRequest,
-  onPieceMove, placingNpcId, onNpcPlaced,
+  onPieceMove, placingNpcId, onNpcPlaced, onViewportTransform,
 }: Props) {
   return (
     <TacticalMapStage
@@ -69,6 +72,7 @@ export default function TacticalMapViewer({
       onPieceMove={onPieceMove}
       placingNpcId={placingNpcId}
       onNpcPlaced={onNpcPlaced}
+      onViewportTransform={onViewportTransform}
     />
   );
 }

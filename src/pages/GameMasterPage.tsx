@@ -1,13 +1,15 @@
 // A tela do mestre. Mesma mesa do jogador (`useGameTable`), com o que é do mestre: a fila,
 // a regência (abrir, fechar, regime), agir por um NPC — que ele escolhe tocando no NPC ou
-// na lista do painel "Agir" —, o modo Arrumar, em que arrasta, põe e tira peças (F12), e a
-// escolha de onde cai a fuga que falhou (F14).
+// na lista do painel "Agir" —, o modo Arrumar, em que arrasta, põe e tira peças (F12), a
+// escolha de onde cai a fuga que falhou (F14) e as reações (Fase 7): reagir pelo NPC alvo e
+// dar a palavra a cada reação esperando, na ordem que o mestre quiser.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useResizeObserver } from "../hooks/useResizeObserver";
 import { useCombatCatalogue } from "../hooks/useCombatCatalogue";
 import { useMatchHistory } from "../hooks/useMatchHistory";
 import { useGameTable } from "../features/match/combat/useGameTable";
 import { defaultMoveCategory } from "../features/match/combat/defaultMoveCategory";
+import { useReactionControls } from "../features/match/combat/useReactionControls";
 import MatchStageTemplate from "../components/templates/MatchStageTemplate";
 import MatchTopBar from "../features/match/combat/MatchTopBar";
 import {
@@ -33,11 +35,17 @@ import { SmallButton } from "../features/match/combat/MatchTopBar";
 import MatchErrorBanner from "../features/match/combat/MatchErrorBanner";
 import LostDeclaredNotice from "../features/match/combat/LostDeclaredNotice";
 import MatchSheetPanel from "../features/match/combat/MatchSheetPanel";
+import ReactionPanel from "../features/match/combat/ReactionPanel";
+import ReactionDialogHost from "../features/match/combat/ReactionDialogHost";
+import { useCombatAnchoredItems } from "../features/match/combat/anchoredItems";
+import PieceAnchoredLayer from "../features/match/combat/PieceAnchoredLayer";
+import type { PieceAnchoredItem } from "../features/match/combat/PieceAnchoredLayer";
 import MatchCharactersSidebar from "../features/match/MatchCharactersSidebar";
 import WallActionSheet from "../features/match/WallActionSheet";
 import TacticalMapViewer from "../features/tactical-map/TacticalMapViewer";
 import {
-  CanvasWrapper, MapCornerStack, MapCornerStackButton, MapHint, MapLoadingMessage, NoMapMessage, StageNotices,
+  CanvasWrapper, MapCornerStack, MapCornerStackButton, MapHint, MapHintButton, MapLoadingMessage, NoMapMessage,
+  StageNotices,
 } from "../features/match/combat/mapCanvasStyles";
 import { isSameSlot, slotToTriple, tripleToSlot } from "../features/tactical-map/utils/coords";
 import type { SlotTriple } from "../features/tactical-map/utils/coords";
@@ -59,9 +67,10 @@ const NO_DRAG = new Set<string>();
 /**
  * O que um gesto no mapa do mestre significa. "play" é o da Fase 6 (tocar escolhe ator/alvo,
  * segurar marca alvos). "fallPick" (F14): um toque num slot vazio escolhe onde cai a fuga que
- * falhou. Um modo por vez: arrastar e segurar na mesma peça brigam no toque.
+ * falhou. "reactionPick" (Fase 7): um toque num slot vazio é a casa para onde o NPC escapa — e
+ * envia a reação. Um modo por vez: arrastar e segurar na mesma peça brigam no toque.
  */
-type BoardMode = "play" | "arrange" | "fallPick";
+type BoardMode = "play" | "arrange" | "fallPick" | "reactionPick";
 
 /** O `enqueue_master_action` de peça do contrato (B9/B14): um id só, o da ficha. */
 function arrangePayload(p: ArrangePending): MasterActionPayload {
@@ -104,6 +113,19 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   );
   const npcIds = useMemo(() => new Set(npcs.map((p) => p.characterSheet.uuid)), [npcs]);
 
+  // ─── Reações (spec §4.5–§4.7) ──────────────────────────────────────────────
+  // O mestre reage pelos NPCs que são alvo da ação aberta: os mesmos botões do jogador, ao
+  // lado da peça e no topo da Fila; a fuga arma a escolha da casa (o modo "reactionPick").
+  const controls = useReactionControls({
+    state,
+    mine: npcIds,
+    boardPieces: game.boardPieces,
+    matchId,
+    send: combat.send,
+    fullStateSeq: game.fullStateSeq,
+  });
+  const { onSlotForPick, cancelPick } = controls;
+
   const [railActive, setRailActive] = useState<RailTab>("fila");
   const [panelOpen, setPanelOpen] = useState(true);
   const [asideOpen, setAsideOpen] = useState(initialAsideOpen);
@@ -123,15 +145,21 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   const [choosingFall, setChoosingFall] = useState<string | null>(null);
   const [fallPending, setFallPending] = useState<SlotTriple | null>(null);
 
-  // Sair de um modo é sair de todos: os dois nunca estão ligados juntos.
-  const exitBoardMode = useCallback(() => {
-    setBoardMode("play");
+  // O que os modos guardam, largado. A escolha da casa da fuga mora em `useReactionControls`
+  // e é limpa à parte: armá-la passa por aqui sem se derrubar.
+  const clearModeState = useCallback(() => {
     setArrangePending(null);
     setArrangePieceId(undefined);
     setPlacingId(undefined);
     setChoosingFall(null);
     setFallPending(null);
   }, []);
+  // Sair de um modo é sair de todos: dois nunca estão ligados juntos.
+  const exitBoardMode = useCallback(() => {
+    setBoardMode("play");
+    clearModeState();
+    cancelPick();
+  }, [clearModeState, cancelPick]);
   const toggleArrange = useCallback(() => {
     if (arranging) {
       exitBoardMode();
@@ -161,9 +189,25 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     : undefined;
   if (fallPicking && !fallReactionId) exitBoardMode();
 
+  // ─── Para onde o NPC escapa (Fase 7, §4.6) ─────────────────────────────────
+  // A escolha mora em `useReactionControls`; o modo do tabuleiro a segue. Armá-la sai dos
+  // outros modos; ela cair sozinha (o turno mudou, a reconexão) volta a jogar.
+  const reactionPick = controls.pick;
+  const reactionPicking = boardMode === "reactionPick";
+  if (reactionPick && !reactionPicking) {
+    clearModeState();
+    setBoardMode("reactionPick");
+  } else if (!reactionPick && reactionPicking) {
+    setBoardMode("play");
+  }
+  const reactionPiece = reactionPick ? game.pieceByCharacter.get(reactionPick.actorId) : undefined;
+  // O toque envia: sem preview nem confirmação (decisão 6). O modo cai quando o `pick` some.
+  const handleReactionSlot = useCallback((slot: SlotCoord) => { onSlotForPick(slot); }, [onSlotForPick]);
+
   // O Esc é do modo só quando não é de outra coisa: outro diálogo aberto ou um campo de texto
   // com foco ficam com ele. Os diálogos de confirmação do próprio modo não contam.
-  const otherDialogOpen = sceneDialog || wallPicker != null || state.pendingCloseTurn != null;
+  const otherDialogOpen =
+    sceneDialog || wallPicker != null || state.pendingCloseTurn != null || controls.dialog != null;
   useEffect(() => {
     if (boardMode === "play" || otherDialogOpen) return;
     const onKey = (e: KeyboardEvent) => {
@@ -227,14 +271,16 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     setActorId(id);
     setInspectedId(undefined);
     if (id) {
-      // Escolher um ator (pela lista do Agir) é voltar a jogar: sai da escolha de onde cai.
+      // Escolher um ator (pela lista do Agir) é voltar a jogar: sai da escolha de onde cai e
+      // da casa da fuga (esta volta a "play" sozinha quando o `pick` some).
       setBoardMode((m) => (m === "fallPick" ? "play" : m));
       setChoosingFall(null);
       setFallPending(null);
+      cancelPick();
       setRailActive("agir");
       setPanelOpen(true);
     }
-  }, []);
+  }, [cancelPick]);
 
   const pieceCharacter = useCallback(
     (pieceId: string) => game.boardPieces.find((p) => p.id === pieceId)?.characterId,
@@ -422,15 +468,33 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     ? game.boardPieces.find((p) => p.characterId === inspectedId)?.id
     : undefined;
 
+  // Botões de reação (abaixo da peça) e balões (acima): a mesma camada, os mesmos helpers nas duas telas.
+  const anchoredItems: PieceAnchoredItem[] = useCombatAnchoredItems(controls, nameOf, game.balloons);
+
   const canCloseTurn = state.openTurn != null;
+  // Um NPC pode reagir e a seção "Reagir pelo NPC" (topo da Fila) não está na tela: no celular
+  // os botões não vão ao mapa, e sem isto o mestre não saberia que há o que reagir. A dica leva
+  // à Fila. Fica abaixo das dicas dos modos (casa da fuga, onde cai, Arrumar) — o toque, ali,
+  // é do modo, e sair dele devolve a dica.
+  const reactionWaiting = controls.targets.some((t) => t.status === "available");
+  const reactionSectionShown = panelOpen && !arranging && railActive === "fila";
+  const showReactionHint = !!map && reactionWaiting && !reactionSectionShown;
+  const showReactionSection = useCallback(() => {
+    setRailActive("fila");
+    setPanelOpen(true);
+  }, []);
   const mapHint = !map
     ? undefined
+    : reactionPicking && reactionPick
+      ? `Toque na casa para onde ${nameOf(reactionPick.actorId)} escapa.`
     : fallPicking && choosingFall
       ? `Toque num slot vazio para escolher onde ${nameOf(choosingFall)} cai.`
       : arranging
       ? placingId
         ? `Toque num slot vazio para pôr ${nameOf(placingId)}.`
         : "Arraste uma peça para movê-la."
+      : showReactionHint
+        ? undefined
       : !actorId
         ? "Toque num NPC para agir por ele."
         : undefined;
@@ -496,6 +560,13 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
             />
           ) : railActive === "fila" ? (
             <>
+              <ReactionPanel
+                title="Reagir pelo NPC"
+                targets={controls.targets}
+                nameOf={nameOf}
+                onQuick={controls.quick}
+                onConfigure={controls.configure}
+              />
               <PanelSection>
                 <PanelTitle>Regime</PanelTitle>
                 <RoundModeSwitch mode={state.roundMode} onChange={combat.send.changeRoundMode} placement="panel" />
@@ -525,6 +596,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                 nameOf={nameOf}
                 onPull={combat.send.pullAction}
                 onChooseFallSlot={chooseFallSlot}
+                onOpenReaction={combat.send.openReaction}
               />
             </>
           ) : (
@@ -579,31 +651,49 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                   // Com um chip armado nada arrasta: a mesma soltura arrastaria E poria.
                   draggablePieceIds={arranging && !placingId ? allPieceIds : NO_DRAG}
                   suppressPanOnPiecePress
-                  onPieceSelect={fallPicking ? undefined : arranging ? handleArrangeSelect : handlePieceTap}
+                  onPieceSelect={
+                    fallPicking || reactionPicking ? undefined : arranging ? handleArrangeSelect : handlePieceTap
+                  }
                   onPieceLongPress={boardMode === "play" && actorId ? handlePieceHold : undefined}
                   selectedPieceId={
-                    fallPicking
+                    reactionPicking
+                      ? reactionPiece?.id
+                      : fallPicking
                       ? fallPiece?.id
                       : arranging ? arrangeSelected?.id : actorId ? composer.actorPiece?.id : undefined
                   }
                   inspectedPieceId={boardMode === "play" ? inspectedPieceId : undefined}
-                  targetPieceIds={composer.targetPieceIds}
+                  // Os anéis de alvo do compositor leriam como parte da fuga: some com a escolha, como a intenção.
+                  targetPieceIds={reactionPicking ? undefined : composer.targetPieceIds}
                   activePieceId={game.openTurnPieceId}
-                  intentPreview={fallPicking ? fallPreview : arranging ? arrangePreview : composer.preview}
+                  intentPreview={
+                    reactionPicking ? undefined : fallPicking ? fallPreview : arranging ? arrangePreview : composer.preview
+                  }
                   intentGhosts={game.ghosts}
-                  highlightHoverSlot={fallPicking || (!arranging && !!actorId)}
+                  highlightHoverSlot={fallPicking || reactionPicking || (!arranging && !!actorId)}
                   fitRequest={game.fitRequest}
                   onEmptySlotClick={
-                    fallPicking ? handleFallSlot : boardMode === "play" && actorId ? handleSlotTap : undefined
+                    reactionPicking
+                      ? handleReactionSlot
+                      : fallPicking ? handleFallSlot : boardMode === "play" && actorId ? handleSlotTap : undefined
                   }
                   onPieceMove={arranging ? handleArrangeMove : undefined}
                   placingNpcId={arranging ? (placingId ?? null) : null}
                   onNpcPlaced={arranging ? handleArrangePlaced : undefined}
+                  onViewportTransform={game.setViewport}
                 />
               ) : !map ? (
                 <NoMapMessage>Nenhum mapa anexado a esta partida.</NoMapMessage>
               ) : null}
             </CanvasWrapper>
+            <PieceAnchoredLayer
+              viewport={game.viewport}
+              grid={map?.grid}
+              pieces={game.pieceByCharacter}
+              items={anchoredItems}
+              width={width}
+              height={height}
+            />
             <GeneralBar
               bars={state.bars}
               roundMode={state.roundMode}
@@ -622,11 +712,24 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                 onDismiss={combat.dismissLostDeclared}
               />
             </StageNotices>
-            {mapHint && <MapHint>{mapHint}</MapHint>}
+            {mapHint ? (
+              <MapHint>{mapHint}</MapHint>
+            ) : (
+              showReactionHint && (
+                <MapHintButton type="button" onClick={showReactionSection}>
+                  Um NPC seu é alvo — reaja no painel.
+                </MapHintButton>
+              )
+            )}
             {map && (
               <MapCornerStack>
                 {fallPicking && (
                   <MapCornerStackButton type="button" aria-label="Cancelar a escolha de onde cai" onClick={exitBoardMode}>
+                    × Cancelar
+                  </MapCornerStackButton>
+                )}
+                {reactionPicking && (
+                  <MapCornerStackButton type="button" aria-label="Cancelar a escolha da casa da fuga" onClick={exitBoardMode}>
                     × Cancelar
                   </MapCornerStackButton>
                 )}
@@ -663,6 +766,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
           />
         }
       />
+      <ReactionDialogHost token={token} matchId={matchId} controls={controls} nameOf={nameOf} />
       <CloseTurnRefusedDialog
         payload={state.pendingCloseTurn}
         nameOf={nameOf}

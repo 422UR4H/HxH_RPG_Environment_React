@@ -185,4 +185,25 @@ describe("useMatchCombat — avisos para o REST", () => {
     expect(ws.sent("add_npc")).toEqual([{ characterSheetUuid: "npc-2" }]);
     expect(ws.sent("change_scene")).toEqual([{ category: "roleplay", briefInitialDescription: "" }]);
   });
+
+  it("attachReaction só registra a sending se o envio saiu; openReaction envia o id", () => {
+    const { result, ws } = mount();
+    const payload = { actorId: "c2", reactToId: "a1", reactionKind: "dodge" as const, dodge: {} };
+    act(() => { result.current.send.attachReaction(payload, "t1"); });
+    expect(ws.sent("attach_reaction")).toEqual([payload]);
+    expect(result.current.state.ownReactions).toEqual([
+      { actorId: "c2", turnId: "t1", kind: "dodge", status: "sending", consumedActionIds: [] },
+    ]);
+    act(() => { result.current.send.openReaction("r1"); });
+    expect(ws.sent("open_reaction")).toEqual([{ reactionId: "r1" }]);
+  });
+
+  it("attachReaction com o socket fechado não muda nada", () => {
+    const { result, ws } = mount();
+    ws.readyState = 3;
+    let ok = true;
+    act(() => { ok = result.current.send.attachReaction({ actorId: "c2", reactToId: "a1", reactionKind: "dodge" }, "t1"); });
+    expect(ok).toBe(false);
+    expect(result.current.state.ownReactions).toEqual([]);
+  });
 });

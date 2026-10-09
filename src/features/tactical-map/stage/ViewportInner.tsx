@@ -8,6 +8,7 @@ import MapHandlesLayer from "../MapHandlesLayer";
 import WallsLayer from "../WallsLayer";
 import FogLayer from "../FogLayer";
 import { worldToSlot, isSlotInBounds, slotCorners, gridLocalBounds, applyTransform } from "../utils/coords";
+import type { ViewportTransform } from "../utils/screenAnchor";
 import type { TacticalMapStageProps } from "./stageProps";
 import BgLayer from "./BgLayer";
 import GridLayer from "./GridLayer";
@@ -61,6 +62,7 @@ export default function ViewportInner({
   onStageDeselect,
   onEmptySlotClick,
   onViewportScaleChange,
+  onViewportTransform,
   activeTool,
   onBgChange,
   onGridChange,
@@ -130,6 +132,38 @@ export default function ViewportInner({
     app.renderer.resize(width, height);
     vpRef.current?.resize(width, height);
   }, [app, width, height]);
+
+  // Game only: a camada HTML (botões de reação, balões) ancora coisas nas peças por este
+  // enquadramento. Vai pelo ticker, e não pelo evento `moved`, porque o pan é feito pelos
+  // nossos handlers de ponteiro na window (escrevem vp.x/vp.y direto e não disparam
+  // `moved`); o ticker pega o pan, o zoom e o enquadramento igual. Emite só quando mudou.
+  // O callback vai num ref: um callback novo a cada render do pai não pode re-registrar o
+  // ticker (e re-emitir) a cada quadro.
+  const onViewportTransformRef = useRef(onViewportTransform);
+  useEffect(() => {
+    onViewportTransformRef.current = onViewportTransform;
+  }, [onViewportTransform]);
+  const lastTransformRef = useRef<ViewportTransform | null>(null);
+  const emitsTransform = !!onViewportTransform;
+  useEffect(() => {
+    const vp = vpRef.current;
+    const ticker = app?.ticker;
+    if (!emitsTransform || !vpReady || !vp || !ticker) return;
+    const tick = () => {
+      const last = lastTransformRef.current;
+      const x = vp.x;
+      const y = vp.y;
+      const scale = vp.scale.x;
+      if (last && last.x === x && last.y === y && last.scale === scale) return;
+      lastTransformRef.current = { x, y, scale };
+      onViewportTransformRef.current?.({ x, y, scale });
+    };
+    ticker.add(tick);
+    return () => {
+      ticker.remove(tick);
+      lastTransformRef.current = null;
+    };
+  }, [app, vpReady, emitsTransform]);
 
   // Game only: frame the whole grid, centered — on every new `fitRequest` (mount, or the
   // "enquadrar" button), and again when the canvas changes size (a panel opening on the

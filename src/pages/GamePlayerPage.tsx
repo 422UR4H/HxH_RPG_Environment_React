@@ -1,6 +1,6 @@
 // A tela do jogador. Orquestra: dados e socket vêm de `useGameTable`; aqui fica só o que é
 // do jogador — o ator é o próprio personagem, e um toque no mapa compõe a ação dele.
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import useUser from "../hooks/useUser";
 import { useMatchParticipants } from "../hooks/useMatchParticipants";
 import { useResizeObserver } from "../hooks/useResizeObserver";
@@ -9,6 +9,7 @@ import { useMatchHistory } from "../hooks/useMatchHistory";
 import { useCharacterSheet } from "../hooks/useCharacterSheet";
 import { useGameTable } from "../features/match/combat/useGameTable";
 import { defaultMoveCategory } from "../features/match/combat/defaultMoveCategory";
+import { useReactionControls } from "../features/match/combat/useReactionControls";
 import MatchStageTemplate from "../components/templates/MatchStageTemplate";
 import MatchTopBar from "../features/match/combat/MatchTopBar";
 import RailNav from "../features/match/combat/RailNav";
@@ -22,12 +23,18 @@ import DeclaredActions from "../features/match/combat/DeclaredActions";
 import MatchErrorBanner from "../features/match/combat/MatchErrorBanner";
 import LostDeclaredNotice from "../features/match/combat/LostDeclaredNotice";
 import MatchSheetPanel from "../features/match/combat/MatchSheetPanel";
+import ReactionPanel from "../features/match/combat/ReactionPanel";
+import ReactionDialogHost from "../features/match/combat/ReactionDialogHost";
+import { useCombatAnchoredItems } from "../features/match/combat/anchoredItems";
+import PieceAnchoredLayer from "../features/match/combat/PieceAnchoredLayer";
+import type { PieceAnchoredItem } from "../features/match/combat/PieceAnchoredLayer";
 import MatchCharactersSidebar from "../features/match/MatchCharactersSidebar";
 import { PanelMessage } from "../features/match/combat/panelStyles";
 import WallActionSheet from "../features/match/WallActionSheet";
 import TacticalMapViewer from "../features/tactical-map/TacticalMapViewer";
 import {
-  CanvasWrapper, MapCornerButton, MapLoadingMessage, NoMapMessage, StageNotices,
+  CanvasWrapper, MapCornerStack, MapCornerStackButton, MapHint, MapHintButton, MapLoadingMessage, NoMapMessage,
+  StageNotices,
 } from "../features/match/combat/mapCanvasStyles";
 import type { SlotCoord, WallSegment } from "../types/tacticalMap";
 
@@ -82,6 +89,20 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
   const actorName = myCharacters.find((p) => p.characterSheet.uuid === actorId)?.characterSheet.nickName ?? "Você";
 
   const [wallPicker, setWallPicker] = useState<WallSegment | null>(null);
+
+  // ─── Reações (spec §4.5, §4.6) ─────────────────────────────────────────────
+  // O jogador reage pelos personagens dele que são alvo da ação aberta: botões ao lado da
+  // peça e na seção "Você é alvo" do painel; a fuga arma a escolha da casa no mapa.
+  const myActorIds = useMemo(() => new Set(myCharacters.map((p) => p.characterSheet.uuid)), [myCharacters]);
+  const controls = useReactionControls({
+    state,
+    mine: myActorIds,
+    boardPieces: game.boardPieces,
+    matchId,
+    send: combat.send,
+    fullStateSeq: game.fullStateSeq,
+  });
+  const { onSlotForPick, cancelPick } = controls;
   const [railActive, setRailActive] = useState<RailTab>("acao");
   const [panelOpen, setPanelOpen] = useState(true);
   const [asideOpen, setAsideOpen] = useState(initialAsideOpen);
@@ -125,13 +146,45 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
   );
   const handleSlotTap = useCallback(
     (slot: SlotCoord) => {
+      // A escolha da casa da fuga vem antes do compositor: o toque é dela.
+      if (onSlotForPick(slot)) return;
       if (!actorId) return;
       composer.onSlotTap(slot);
       setRailActive("acao");
       setPanelOpen(true);
     },
-    [actorId, composer],
+    [onSlotForPick, actorId, composer],
   );
+
+  // O Esc é da escolha da casa só quando não é de outra coisa: um diálogo aberto ou um campo
+  // de texto com foco ficam com ele (o mesmo filtro do mestre).
+  const otherDialogOpen = wallPicker != null || controls.dialog != null;
+  const picking = controls.pick != null;
+  useEffect(() => {
+    if (!picking || otherDialogOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      const t = e.target;
+      if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement || t instanceof HTMLSelectElement) return;
+      if (t instanceof HTMLElement && t.isContentEditable) return;
+      cancelPick();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [picking, otherDialogOpen, cancelPick]);
+
+  // Um personagem meu pode reagir e a seção "Você é alvo" (aba Ação) não está na tela: no
+  // celular os botões não vão ao mapa, e sem isto o jogador não saberia que é alvo. A dica leva
+  // à aba. A da escolha da casa vence: o toque, ali, é da fuga.
+  const reactionWaiting = controls.targets.some((t) => t.status === "available");
+  const showReactionHint = !!map && !picking && reactionWaiting && !(panelOpen && railActive === "acao");
+  const showReactionSection = useCallback(() => {
+    setRailActive("acao");
+    setPanelOpen(true);
+  }, []);
+
+  // Botões de reação (abaixo da peça) e balões (acima): a mesma camada, os mesmos helpers nas duas telas.
+  const anchoredItems: PieceAnchoredItem[] = useCombatAnchoredItems(controls, nameOf, game.balloons);
 
   // Personagens: quem o mapa deste jogador mostra (o fog do servidor já recortou), mais os
   // próprios personagens mesmo antes da peça chegar.
@@ -148,7 +201,6 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
     ? (state.hp[actorId] ?? (restHealth ? { hp: restHealth.current, maxHp: restHealth.max } : undefined))
     : undefined;
 
-  const myActorIds = useMemo(() => new Set(myCharacters.map((p) => p.characterSheet.uuid)), [myCharacters]);
   const actorChoices = useMemo(
     () => myCharacters.map((p) => ({ id: p.characterSheet.uuid, name: p.characterSheet.nickName })),
     [myCharacters],
@@ -186,6 +238,12 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
             <MatchSheetPanel token={token} sheetUuid={actorId} liveHp={actorId ? state.hp[actorId] : undefined} />
           ) : actorId ? (
             <>
+              <ReactionPanel
+                targets={controls.targets}
+                nameOf={nameOf}
+                onQuick={controls.quick}
+                onConfigure={controls.configure}
+              />
               <OwnBars bars={state.bars} characterId={actorId} hp={ownHp} />
               <ActionComposer
                 actorName={actorName}
@@ -232,21 +290,32 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
                   piecesInteractive
                   draggablePieceIds={NO_DRAG}
                   suppressPanOnPiecePress
-                  onPieceSelect={handlePieceTap}
-                  onPieceLongPress={handlePieceHold}
+                  // Na escolha da casa da fuga o toque na peça não marca alvo, e os anéis e a
+                  // intenção do compositor leriam como parte da fuga: somem com ela (como no mestre).
+                  onPieceSelect={picking ? undefined : handlePieceTap}
+                  onPieceLongPress={picking ? undefined : handlePieceHold}
                   selectedPieceId={composer.actorPiece?.id}
-                  targetPieceIds={composer.targetPieceIds}
+                  targetPieceIds={picking ? undefined : composer.targetPieceIds}
                   activePieceId={game.openTurnPieceId}
-                  intentPreview={composer.preview}
+                  intentPreview={picking ? undefined : composer.preview}
                   intentGhosts={game.ghosts}
                   highlightHoverSlot={!!actorId}
                   fitRequest={game.fitRequest}
                   onEmptySlotClick={handleSlotTap}
+                  onViewportTransform={game.setViewport}
                 />
               ) : !map ? (
                 <NoMapMessage>Nenhum mapa anexado a esta partida.</NoMapMessage>
               ) : null}
             </CanvasWrapper>
+            <PieceAnchoredLayer
+              viewport={game.viewport}
+              grid={map?.grid}
+              pieces={game.pieceByCharacter}
+              items={anchoredItems}
+              width={width}
+              height={height}
+            />
             <GeneralBar
               bars={state.bars}
               roundMode={state.roundMode}
@@ -262,7 +331,24 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
                 onDismiss={combat.dismissLostDeclared}
               />
             </StageNotices>
-            {map && <MapCornerButton type="button" onClick={game.refit}>Enquadrar</MapCornerButton>}
+            {map && controls.pick && (
+              <MapHint>Toque na casa para onde {nameOf(controls.pick.actorId)} escapa.</MapHint>
+            )}
+            {showReactionHint && (
+              <MapHintButton type="button" onClick={showReactionSection}>
+                Você é alvo — reaja no painel.
+              </MapHintButton>
+            )}
+            {map && (
+              <MapCornerStack>
+                {controls.pick && (
+                  <MapCornerStackButton type="button" aria-label="Cancelar a escolha da casa da fuga" onClick={cancelPick}>
+                    × Cancelar
+                  </MapCornerStackButton>
+                )}
+                <MapCornerStackButton type="button" onClick={game.refit}>Enquadrar</MapCornerStackButton>
+              </MapCornerStack>
+            )}
           </>
         }
         aside={
@@ -291,6 +377,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
           />
         }
       />
+      <ReactionDialogHost token={token} matchId={matchId} controls={controls} nameOf={nameOf} />
       {wallPicker && actorId && (
         <WallActionSheet
           wall={wallPicker}

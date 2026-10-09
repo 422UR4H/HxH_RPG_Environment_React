@@ -26,6 +26,8 @@ const bySentType: Record<string, string> = {
   change_scene: "Não foi possível trocar de cena",
   add_npc: "Não foi possível pôr o NPC na partida",
   edit_action: "Não foi possível editar a ação",
+  attach_reaction: "Não foi possível reagir",
+  open_reaction: "Não foi possível dar a palavra",
 };
 
 export function combatErrorText(code: string, message: string, sentType?: string): string {

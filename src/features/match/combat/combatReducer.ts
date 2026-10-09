@@ -1,6 +1,7 @@
 import type {
   ActionEnqueuedPayload, BarsPayload, CloseTurnRefusedPayload, HpChangedPayload,
-  MatchFullStatePayload, MoveCategory, QueuedAction, ResolutionPayload, RoundClosedPayload,
+  MatchFullStatePayload, MoveCategory, QueuedAction, ReactionAttachedPayload, ReactionKind,
+  ReactionOpenedPayload, ResolutionPayload, RoundClosedPayload,
   RoundModeChangedPayload, RoundMode, ScenePayload, TurnClosedPayload, TurnOpenedPayload,
 } from "./combatMessages";
 import type { WsError } from "./combatErrorMessages";
@@ -42,6 +43,21 @@ export type LostDeclared = DeclaredAction & { draftRestored: boolean };
 /** De onde vem o que o servidor ainda tem de MEU: jogador `ownQueue`, mestre `queue`. */
 export type DeclaredSource = "ownQueue" | "queue";
 
+/**
+ * Uma reação MINHA no turno aberto (jogador: meus personagens; mestre: meus NPCs). Nasce
+ * `sending` no envio, vira `attached` no `reaction_attached` e `opened` quando o mestre dá a
+ * palavra. Nada daqui vai para o `localStorage`: o servidor devolve tudo no `match_full_state`.
+ */
+export type OwnReaction = {
+  /** Ausente enquanto `sending` (o id vem no reaction_attached). */
+  reactionId?: string;
+  actorId: string;
+  turnId: string;
+  kind: ReactionKind;
+  status: "sending" | "attached" | "opened";
+  consumedActionIds: string[];
+};
+
 export type TableEvent =
   | { kind: "turn_opened"; at: number; receivedAt: number; turnId: string; actorId: string; mine?: DeclaredAction }
   | { kind: "turn_closed"; at: number; receivedAt: number; turnId: string; actorId?: string; resolution?: ResolutionPayload }
@@ -73,6 +89,14 @@ export type CombatState = {
   openResolution: ResolutionPayload | null;
   /** A linha da fila que o `turn_opened` tirou — a ação em andamento continua na Fila (F7). */
   openQueued: QueuedAction | null;
+  /** As reações ABERTAS do turno aberto, na ordem em que o mestre as abriu (já cortadas para mim). */
+  openReactions: HistoryAction[];
+  /** As MINHAS reações do turno aberto. */
+  ownReactions: OwnReaction[];
+  /** O turno que acabou de fechar: o `turn_closed` zera `openTurn` antes de o liquidado chegar. */
+  closedTurn: { turnId: string; actorId: string; action?: HistoryAction } | null;
+  /** O último turno liquidado — para os balões de resultado. Some no próximo turn_opened. */
+  lastSettled: { turnId: string; actorId?: string; action?: HistoryAction; resolution: ResolutionPayload } | null;
 };
 
 export const initialCombatState: CombatState = {
@@ -89,6 +113,10 @@ export const initialCombatState: CombatState = {
   lastError: null,
   openResolution: null,
   openQueued: null,
+  openReactions: [],
+  ownReactions: [],
+  closedTurn: null,
+  lastSettled: null,
 };
 
 /** Carimbo de chegada: `at` é a hora do SERVIDOR (envelope), `receivedAt` a local. */
@@ -107,6 +135,9 @@ export type CombatAction =
   | ({ type: "round_mode_changed"; payload: RoundModeChangedPayload } & Stamp)
   | ({ type: "scene_changed"; payload: ScenePayload } & Stamp)
   | ({ type: "close_turn_refused"; payload: CloseTurnRefusedPayload } & Stamp)
+  | ({ type: "reaction_attached"; payload: ReactionAttachedPayload } & Stamp)
+  | ({ type: "reaction_opened"; payload: ReactionOpenedPayload } & Stamp)
+  | { type: "REACTION_SENT"; payload: { actorId: string; turnId: string; kind: ReactionKind } }
   | { type: "ACTION_SENT"; payload: DeclaredAction }
   | { type: "DECLARED_DISMISSED"; payload: { ids: string[] } }
   | { type: "LOST_CANDIDATES_RESOLVED"; payload: { ran: string[]; lost: string[]; restored: string[] } }
@@ -148,6 +179,7 @@ function reconcileDeclared(
   declared: DeclaredAction[],
   p: MatchFullStatePayload,
   source: DeclaredSource,
+  consumed: Set<string>,
 ): { declared: DeclaredAction[]; lost: DeclaredAction[] } {
   const pendingIds = source === "queue" ? (p.queue ?? []).map((q) => q.actionId) : p.ownQueue?.map((q) => q.actionId);
   if (!pendingIds) return { declared, lost: [] };
@@ -156,6 +188,8 @@ function reconcileDeclared(
   const kept: DeclaredAction[] = [];
   const lost: DeclaredAction[] = [];
   for (const d of declared) {
+    // Consumida por uma reação cobrada: não é perda — sai calada (contrato B12).
+    if (d.status === "queued" && consumed.has(d.id)) continue;
     if (d.status !== "queued" || pending.has(d.id)) kept.push(d);
     // Abriu enquanto eu estava fora: o `turn_opened` dela se perdeu, mas ela existe.
     else if (openActionId && d.id === openActionId) kept.push({ ...d, status: "open", turnId: p.openTurn!.turnId });
@@ -175,7 +209,10 @@ export function combatReducer(state: CombatState, action: CombatAction): CombatS
       const survivors = state.declared.filter(
         (d) => d.status === "queued" || (d.status === "open" && d.turnId === openTurn?.turnId),
       );
-      const { declared, lost } = reconcileDeclared(survivors, p, action.declaredSource ?? "ownQueue");
+      const { declared, lost } = reconcileDeclared(
+        survivors, p, action.declaredSource ?? "ownQueue",
+        new Set((p.ownReactions ?? []).flatMap((r) => r.consumedActionIds)),
+      );
       const known = new Set([...state.lostCandidates, ...state.lostDeclared].map((d) => d.id));
       const { receivedAt: detectedAt } = stampOf(action);
       return {
@@ -193,6 +230,18 @@ export function combatReducer(state: CombatState, action: CombatAction): CombatS
         openResolution: p.resolution && !p.resolution.isSettled ? p.resolution : null,
         // A linha não volta na reconexão: o card em andamento usa o `openTurn`.
         openQueued: null,
+        // As reações são as do servidor: a `sending` local some (o botão volta se não chegou).
+        openReactions: p.openTurn?.reactions ?? [],
+        ownReactions: (p.ownReactions ?? []).map((r) => ({
+          reactionId: r.reactionId,
+          actorId: r.actorId,
+          turnId: p.openTurn?.turnId ?? "",
+          kind: r.reactionKind,
+          status: r.opened ? ("opened" as const) : ("attached" as const),
+          consumedActionIds: r.consumedActionIds,
+        })),
+        lastSettled: null,
+        closedTurn: null,
         // Um character_hp_changed perdido na queda não volta: o REST rebuscado é a base.
         hp: {},
       };
@@ -252,6 +301,10 @@ export function combatReducer(state: CombatState, action: CombatAction): CombatS
           d.id === actionId ? { ...d, status: "open" as const, turnId } : d,
         ),
         queue: state.queue.filter((q) => q.actionId !== actionId),
+        openReactions: [],
+        ownReactions: [],
+        lastSettled: null,
+        closedTurn: null,
         events: push(state.events, { kind: "turn_opened", ...stampOf(action), turnId, actorId, mine }),
       };
     }
@@ -265,6 +318,12 @@ export function combatReducer(state: CombatState, action: CombatAction): CombatS
         openTurn: state.openTurn?.turnId === turnId ? null : state.openTurn,
         openResolution: state.openResolution?.turnId === turnId ? null : state.openResolution,
         openQueued: state.openTurn?.turnId === turnId ? null : state.openQueued,
+        // O liquidado chega depois e precisa de quem agiu e do que declarou.
+        closedTurn: state.openTurn?.turnId === turnId
+          ? { turnId, actorId: state.openTurn.actorId, action: state.openTurn.action }
+          : state.closedTurn,
+        openReactions: [],
+        ownReactions: [],
         pendingCloseTurn: null,
         declared: state.declared.filter((d) => d.turnId !== turnId),
         events: existing
@@ -287,16 +346,25 @@ export function combatReducer(state: CombatState, action: CombatAction): CombatS
           : state;
       }
       const turnId = action.payload.turnId;
+      const closedTurn = state.closedTurn?.turnId === turnId ? state.closedTurn : undefined;
+      const openTurn = state.openTurn?.turnId === turnId ? state.openTurn : undefined;
+      const lastSettled = {
+        turnId,
+        actorId: closedTurn?.actorId ?? openTurn?.actorId,
+        action: closedTurn?.action ?? openTurn?.action,
+        resolution: action.payload,
+      };
       const idx = state.events.findIndex((e) => e.kind === "turn_closed" && e.turnId === turnId);
       if (idx >= 0) {
         const events = [...state.events];
         events[idx] = { ...(events[idx] as Extract<TableEvent, { kind: "turn_closed" }>), resolution: action.payload };
-        return { ...state, events };
+        return { ...state, events, lastSettled };
       }
       // Chegou antes do turn_closed — a ordem entre os dois não é promessa (contrato).
       const actorId = state.openTurn?.turnId === turnId ? state.openTurn.actorId : undefined;
       return {
         ...state,
+        lastSettled,
         events: push(state.events, {
           kind: "turn_closed", ...stampOf(action), turnId, actorId, resolution: action.payload,
         }),
@@ -324,6 +392,8 @@ export function combatReducer(state: CombatState, action: CombatAction): CombatS
         openTurn: null,
         openResolution: null,
         openQueued: null,
+        openReactions: [],
+        ownReactions: [],
         events: push(state.events, { kind: "round_closed", ...stampOf(action), roundMode: action.payload.roundMode }),
       };
 
@@ -338,8 +408,51 @@ export function combatReducer(state: CombatState, action: CombatAction): CombatS
       return {
         ...state,
         scene: action.payload,
+        openReactions: [],
+        ownReactions: [],
+        lastSettled: null,
         events: push(state.events, { kind: "scene_changed", ...stampOf(action), scene: action.payload }),
       };
+
+    case "REACTION_SENT":
+      return {
+        ...state,
+        ownReactions: [...state.ownReactions, { ...action.payload, status: "sending", consumedActionIds: [] }],
+      };
+
+    case "reaction_attached": {
+      const p = action.payload;
+      const consumed = new Set(p.consumedActionIds);
+      const i = state.ownReactions.findIndex((r) => r.status === "sending" && r.actorId === p.actorId);
+      // Sem nenhuma `sending` (o mestre recebendo a reação de um jogador) não cria entrada.
+      const ownReactions =
+        i < 0
+          ? state.ownReactions
+          : state.ownReactions.map((r, j) =>
+              j === i
+                ? { ...r, reactionId: p.reactionId, status: "attached" as const, consumedActionIds: p.consumedActionIds }
+                : r,
+            );
+      return {
+        ...state,
+        ownReactions,
+        // Consumida não é perdida (contrato): sai calada, sem aviso e sem devolver rascunho.
+        declared: state.declared.filter((d) => !consumed.has(d.id)),
+        queue: state.queue.filter((q) => !consumed.has(q.actionId)),
+      };
+    }
+
+    case "reaction_opened": {
+      const { reactionId, reaction } = action.payload;
+      const known = state.openReactions.some((r) => r.uuid === reactionId);
+      return {
+        ...state,
+        openReactions: reaction && !known ? [...state.openReactions, reaction] : state.openReactions,
+        ownReactions: state.ownReactions.map((r) =>
+          r.reactionId === reactionId ? { ...r, status: "opened" as const } : r,
+        ),
+      };
+    }
 
     case "close_turn_refused":
       return { ...state, pendingCloseTurn: action.payload };
@@ -350,6 +463,15 @@ export function combatReducer(state: CombatState, action: CombatAction): CombatS
     case "WS_ERROR": {
       // `error` é sempre sobre o último envio deste socket; se foi um enqueue, o envio mais
       // antigo ainda sem ack é o recusado.
+      if (action.payload.sentType === "attach_reaction") {
+        // Mesma regra do enqueue: o erro é do envio mais antigo ainda sem ack.
+        const i = state.ownReactions.findIndex((r) => r.status === "sending");
+        return {
+          ...state,
+          lastError: action.payload,
+          ownReactions: i < 0 ? state.ownReactions : state.ownReactions.filter((_, j) => j !== i),
+        };
+      }
       if (action.payload.sentType === "enqueue_action") {
         const i = oldestSendingIndex(state.declared);
         if (i >= 0) {
@@ -389,7 +511,11 @@ export function resolveLostCandidates(
     for (const round of scene.rounds) {
       for (const turn of round.turns) {
         inHistory.add(turn.action.uuid);
-        turn.reactions?.forEach((r) => inHistory.add(r.uuid));
+        turn.reactions?.forEach((r) => {
+          inHistory.add(r.uuid);
+          // Consumida por uma reação cobrada — rodou, de certa forma; não foi perdida (contrato B12).
+          r.consumedActionIds?.forEach((id) => inHistory.add(id));
+        });
       }
     }
   }

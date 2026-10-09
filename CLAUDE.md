@@ -75,4 +75,4 @@ See `src/features/sheet/CLAUDE.md` for sheet-specific conventions (factories, di
 
 ## Feature: match combat
 
-See `docs/dev/match/combate-fase-6.md` for the combat-loop architecture (reducer, `useMatchCombat`, the hold gesture, ghost, stacking cascade) delivered in Fase 6, and `docs/dev/match/combate-fechamento-fase-6.md` for what the closure changed (WS-notifies/REST-fetches invalidation, history overlay, declared-action reconciliation, the master's board modes, the server-owned board, inheriting a board).
+See `docs/dev/match/combate-fase-6.md` for the combat-loop architecture (reducer, `useMatchCombat`, the hold gesture, ghost, stacking cascade) delivered in Fase 6, and `docs/dev/match/combate-fechamento-fase-6.md` for what the closure changed (WS-notifies/REST-fetches invalidation, history overlay, declared-action reconciliation, the master's board modes, the server-owned board, inheriting a board), and `docs/dev/match/combate-fase-7.md` for the Fase 7 reactions (reaction buttons/dialog, escape-square pick, balloons and the HTML layer anchored to pieces over the Pixi map, the viewport external store, consumed actions, known limits).

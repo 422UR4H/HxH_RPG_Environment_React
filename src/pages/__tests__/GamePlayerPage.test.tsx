@@ -1,7 +1,7 @@
 // src/pages/__tests__/GamePlayerPage.test.tsx
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { http, HttpResponse } from "msw";
-import { act, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { server } from "../../test/server";
 import { renderWithProviders } from "../../test/render";
@@ -28,12 +28,20 @@ vi.mock("../../features/tactical-map/TacticalMapViewer", () => ({
     onPieceLongPress?: (pieceId: string) => void;
     onWallClick?: (wall: { id: string }) => void;
     onEmptySlotClick?: (slot: { kind: "square"; col: number; row: number }, x: number, y: number) => void;
+    targetPieceIds?: Set<string>;
+    intentPreview?: unknown;
   }) => (
     <div
       data-testid="map-stub"
       // Final review, Important 1: draggablePieceIds must reach PiecesLayer as an empty
       // Set (not undefined) — undefined reads there as "every piece is draggable".
       data-draggable-piece-ids={props.draggablePieceIds ? JSON.stringify([...props.draggablePieceIds]) : "undefined"}
+      // Fase 7: durante a escolha da casa da fuga, o compositor some do mapa (anéis, intenção)
+      // e o toque na peça não marca alvo — como no mestre.
+      data-target-piece-ids={props.targetPieceIds ? JSON.stringify([...props.targetPieceIds]) : ""}
+      data-intent-preview={props.intentPreview ? JSON.stringify(props.intentPreview) : ""}
+      data-has-piece-select={String(!!props.onPieceSelect)}
+      data-has-long-press={String(!!props.onPieceLongPress)}
     >
       {props.map.pieces.map((piece) => (
         <button
@@ -999,5 +1007,90 @@ describe("GamePlayerPage", () => {
 
     expect(await screen.findByTestId("character-row-npc-1")).toBeInTheDocument();
     expect(screen.getByText("NPC")).toBeInTheDocument();
+  });
+
+  describe("Fase 7: o jogador é alvo", () => {
+    const mapStub = () => screen.getByTestId("map-stub");
+    const reactionGroup = () => screen.getByRole("group", { name: "Reagir — Gon" });
+    const quick = (label: string) =>
+      fireEvent.keyDown(within(reactionGroup()).getByRole("button", { name: `${label} — segure para configurar` }), { key: "Enter" });
+    const hint = () => screen.queryByRole("button", { name: "Você é alvo — reaja no painel." });
+
+    function boardWithBoth(ws: FakeWS) {
+      act(() => ws.onopen?.());
+      act(() =>
+        ws.emit("map_full_state", {
+          pieces: [
+            { pieceId: "piece-c1", slot: { kind: "square", col: 1, row: 1 }, characterId: "c1", visible: true, z: 0 },
+            { pieceId: "piece-c2", slot: { kind: "square", col: 6, row: 1 }, characterId: "c2", visible: true, z: 0 },
+          ],
+          walls: [],
+          visiblePolygons: [],
+          fogMode: "explored",
+        }),
+      );
+    }
+    /** O Killua ataca o Gon: o jogador reage por ele. */
+    function openAttackOnMe(ws: FakeWS) {
+      act(() =>
+        ws.emit("turn_opened", {
+          turnId: "t1", actorId: "c2", actionId: "a1", actionType: "",
+          action: { uuid: "a1", actorId: "c2", reactionKind: "", targetId: ["c1"], attack: {} },
+        }),
+      );
+    }
+
+    // No celular os botões não vão ao mapa: com a seção fora da tela, a dica é o único aviso.
+    it("com a seção fora da tela, a dica no mapa avisa e abre a aba Ação", async () => {
+      renderPlayerPage();
+      const ws = await waitForSocket();
+      boardWithBoth(ws);
+      openAttackOnMe(ws);
+
+      // A aba Ação aberta já mostra a seção: sem dica.
+      expect(reactionGroup()).toBeInTheDocument();
+      expect(hint()).not.toBeInTheDocument();
+
+      await user.click(screen.getByRole("button", { name: /Ficha/ }));
+      await screen.findByTestId("match-sheet");
+      expect(hint()).toBeInTheDocument();
+      act(() => hint()!.click());
+      expect(reactionGroup()).toBeInTheDocument();
+      expect(hint()).not.toBeInTheDocument();
+
+      // Painel fechado (o toque na própria aba) também esconde a seção.
+      await user.click(screen.getByRole("button", { name: /Ação/ }));
+      expect(screen.getByTestId("match-panel")).toHaveAttribute("data-open", "false");
+      act(() => hint()!.click());
+      expect(screen.getByTestId("match-panel")).toHaveAttribute("data-open", "true");
+
+      // Reagiu: não há mais o que avisar.
+      quick("Esquivar");
+      await user.click(screen.getByRole("button", { name: /Ação/ }));
+      expect(hint()).not.toBeInTheDocument();
+    });
+
+    it("na escolha da casa da fuga o compositor some do mapa e o toque na peça não marca alvo", async () => {
+      renderPlayerPage();
+      const ws = await waitForSocket();
+      boardWithBoth(ws);
+      act(() => screen.getByTestId("select-actor-c2").click());
+      expect(mapStub()).toHaveAttribute("data-target-piece-ids", JSON.stringify(["piece-c2"]));
+      expect(mapStub().getAttribute("data-intent-preview")).not.toBe("");
+      openAttackOnMe(ws);
+
+      quick("Escapar");
+      expect(screen.getByText("Toque na casa para onde Gon escapa.")).toBeInTheDocument();
+      expect(mapStub()).toHaveAttribute("data-target-piece-ids", "");
+      expect(mapStub()).toHaveAttribute("data-intent-preview", "");
+      expect(mapStub()).toHaveAttribute("data-has-piece-select", "false");
+      expect(mapStub()).toHaveAttribute("data-has-long-press", "false");
+      // A dica da escolha vence a de "você é alvo" (o painel pode estar fechado).
+      expect(hint()).not.toBeInTheDocument();
+
+      act(() => screen.getByRole("button", { name: "Cancelar a escolha da casa da fuga" }).click());
+      expect(mapStub()).toHaveAttribute("data-target-piece-ids", JSON.stringify(["piece-c2"]));
+      expect(mapStub()).toHaveAttribute("data-has-piece-select", "true");
+    });
   });
 });

@@ -41,6 +41,8 @@ export type HistoryAction = {
   interact?: { kind: string };
   feint?: RollCheck;
   trigger?: Record<string, never>;
+  /** Só numa reação cobrada; só para mestre e dono (o servidor já projeta). */
+  consumedActionIds?: string[];
 };
 
 /**

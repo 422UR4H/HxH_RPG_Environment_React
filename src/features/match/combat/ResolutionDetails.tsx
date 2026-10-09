@@ -1,3 +1,4 @@
+import { useState } from "react";
 import styled from "styled-components";
 import { colors, fonts } from "../../../styles/tokens";
 import type { GridKind } from "../../../types/tacticalMap";
@@ -5,24 +6,45 @@ import type { ResolutionPayload } from "./combatMessages";
 import { avoidedVerb, formatSlot, REACTION_KIND_LABELS, RUNG_LABELS } from "./combatText";
 
 /**
- * O cálculo do turno aberto, que só o mestre recebe (F7). Nasce só leitura: dar a palavra a
- * uma reação é da Fase 7, editar é da Fase 8. A exceção é a fuga que está falhando (F14):
- * onde a peça cai não é regra do motor, é decisão do mestre, e o único botão do cálculo é
- * esse — fora desse caso não há botão nenhum.
+ * O cálculo do turno aberto, que só o mestre recebe (F7). É quase só leitura — editar é da
+ * Fase 8. Os botões são dois, e só onde a decisão é do mestre: dar a palavra a cada reação
+ * esperando (Fase 7 — a ordem em que ele abre muda o resultado) e, na fuga que está falhando
+ * (F14), onde a peça cai, que não é regra do motor.
  */
 export default function ResolutionDetails({
   resolution,
   nameOf,
   gridKind,
   onChooseFallSlot,
+  onOpenReaction,
 }: {
   resolution: ResolutionPayload;
   nameOf: (id: string) => string;
   gridKind: GridKind;
   /** Põe o mapa em modo de escolha do slot onde cai o alvo cuja fuga está falhando. */
   onChooseFallSlot?: (targetId: string) => void;
+  /** Dá a palavra a uma reação esperando (`open_reaction`). */
+  onOpenReaction?: (reactionId: string) => void;
 }) {
-  const { action, targets, pendingReactions, errors } = resolution;
+  const { turnId, action, targets, pendingReactions, errors } = resolution;
+  // "Dar a palavra" já clicado: a linha trava até a reação sair de `pendingReactions` (o
+  // servidor abriu) ou o cálculo virar de outro turno — um segundo clique nesse meio mandaria
+  // outro `open_reaction`. Uma reação que sai e volta (recusa) volta destravada.
+  const [sent, setSent] = useState<{ turnId: string; ids: string[] }>({ turnId, ids: [] });
+  const stillSent =
+    sent.turnId === turnId ? sent.ids.filter((id) => pendingReactions?.some((r) => r.reactionId === id)) : [];
+  if (sent.turnId !== turnId || stillSent.length !== sent.ids.length) setSent({ turnId, ids: stillSent });
+  const openReaction = (reactionId: string) => {
+    if (!onOpenReaction || stillSent.includes(reactionId)) return;
+    setSent({ turnId, ids: [...stillSent, reactionId] });
+    onOpenReaction(reactionId);
+  };
+  // `targets[]` vem na ordem da cadeia (contrato): a posição de um alvo entre os que já têm
+  // reação aberta É a ordem em que o mestre deu a palavra — e, por vir do servidor, sobrevive
+  // à reconexão.
+  const openedOrder = new Map(
+    targets.filter((t) => t.reaction).map((t, i) => [t.targetId, i + 1] as const),
+  );
   return (
     <Wrap aria-label="Cálculo do turno">
       {action && (
@@ -42,13 +64,14 @@ export default function ResolutionDetails({
           <strong>{nameOf(t.targetId)}</strong>
           <Line>
             {/* W1: "esquivou"/"fugiu"/"aparou" sozinho — "evitou do golpe" soava estranho. */}
-            {t.avoided ? avoidedVerb(t.reaction) : t.defended ? "defendeu" : "acertado"} · esquiva {t.dodgeTotal} · defesa {t.defenseTotal}
+            {t.avoided ? avoidedVerb(t) + (t.attackStopped ? " (o golpe já tinha parado)" : "") : t.defended ? "defendeu" : "acertado"} · esquiva {t.dodgeTotal} · defesa {t.defenseTotal}
           </Line>
           {t.reaction && (
             <Line>
               reação: {REACTION_KIND_LABELS[t.reaction.kind] ?? t.reaction.kind} {t.reaction.total}
               {t.reaction.rung && ` · ${RUNG_LABELS[t.reaction.rung] ?? t.reaction.rung}`}
               {t.reaction.stopsAttack && " · para o ataque"}
+              {` · aberta em ${openedOrder.get(t.targetId)}º`}
             </Line>
           )}
           <Line>
@@ -63,9 +86,9 @@ export default function ResolutionDetails({
                   : "Sem escolha, fica onde está."}
               </Line>
               {onChooseFallSlot && (
-                <FallButton type="button" onClick={() => onChooseFallSlot(t.targetId)}>
+                <ActionButton type="button" onClick={() => onChooseFallSlot(t.targetId)}>
                   Escolher onde cai
-                </FallButton>
+                </ActionButton>
               )}
             </FallBox>
           )}
@@ -81,10 +104,22 @@ export default function ResolutionDetails({
       {!!pendingReactions?.length && (
         <Block>
           <Label>Reações esperando</Label>
+          {onOpenReaction && <Muted>A ordem em que você abre muda o resultado.</Muted>}
           {pendingReactions.map((r) => (
-            <Line key={r.reactionId}>
-              {nameOf(r.actorId)} — {REACTION_KIND_LABELS[r.kind] ?? r.kind}
-            </Line>
+            <PendingRow key={r.reactionId}>
+              <Line>
+                {nameOf(r.actorId)} — {REACTION_KIND_LABELS[r.kind] ?? r.kind}
+              </Line>
+              {onOpenReaction && (
+                <ActionButton
+                  type="button"
+                  disabled={stillSent.includes(r.reactionId)}
+                  onClick={() => openReaction(r.reactionId)}
+                >
+                  Dar a palavra
+                </ActionButton>
+              )}
+            </PendingRow>
           ))}
         </Block>
       )}
@@ -141,7 +176,13 @@ const FallBox = styled.div`
   background: ${colors.warningBgDark};
   color: ${colors.warningText};
 `;
-const FallButton = styled.button`
+const PendingRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+`;
+const ActionButton = styled.button`
   font-family: ${fonts.sans};
   font-size: 12px;
   font-weight: 600;
@@ -151,6 +192,11 @@ const FallButton = styled.button`
   cursor: pointer;
   background: transparent;
   color: ${colors.textPrimary};
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 `;
 const Muted = styled.span`
   color: ${colors.textPlaceholderStrong};

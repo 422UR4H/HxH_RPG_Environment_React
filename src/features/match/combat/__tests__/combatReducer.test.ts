@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { combatReducer, initialCombatState, pendingMoves, resolveLostCandidates } from "../combatReducer";
 import type { CombatAction, CombatState, DeclaredAction, LostCandidate } from "../combatReducer";
-import type { MatchHistory } from "../../../../types/matchHistory";
-import type { BarsPayload, MatchFullStatePayload } from "../combatMessages";
+import type { HistoryAction, MatchHistory } from "../../../../types/matchHistory";
+import type { BarsPayload, MatchFullStatePayload, OwnReactionPayload, ReactionKind } from "../combatMessages";
 import type { ResolutionPayload } from "../combatMessages";
 
 const bars = (seq: number): BarsPayload => ({
@@ -421,5 +421,177 @@ describe("resolveLostCandidates (F10)", () => {
   it("só decide as candidatas que o fetch cobre", () => {
     const out = resolveLostCandidates([cand("a1", 100), cand("a2", 300)], { history: history([]), fetchStartedAt: 200 });
     expect(out).toEqual({ ran: [], lost: ["a1"] });
+  });
+});
+
+describe("combatReducer — reações (Fase 7)", () => {
+  const reactionSent = (actorId = "c2", turnId = "t1", kind: ReactionKind = "dodge"): CombatAction => ({
+    type: "REACTION_SENT",
+    payload: { actorId, turnId, kind },
+  });
+  const attached = (consumedActionIds: string[] = [], actorId = "c2"): CombatAction => ({
+    type: "reaction_attached",
+    payload: { turnId: "t1", reactionId: "r1", actorId, consumedActionIds },
+  });
+  const reaction = (uuid: string, actorId = "c2"): HistoryAction => ({
+    uuid, actorId, reactionKind: "escape", move: { category: "Dash", position: [3, 3, 0] },
+  });
+  const reactionOpened = (uuid: string): CombatAction => ({
+    type: "reaction_opened",
+    payload: { turnId: "t1", reactionId: uuid, reaction: reaction(uuid) },
+  });
+  const settled = (turnId: string): ResolutionPayload => ({ ...unsettled(turnId), isSettled: true });
+  const full = (extra: Partial<MatchFullStatePayload> = {}): CombatAction => ({
+    type: "match_full_state",
+    payload: { roundMode: "Race", ...extra },
+  });
+  const ownReaction = (extra: Partial<OwnReactionPayload> = {}): OwnReactionPayload => ({
+    reactionId: "r1", actorId: "c2", reactionKind: "closedEscape", opened: false, consumedActionIds: ["a9"], ...extra,
+  });
+
+  it("REACTION_SENT acrescenta a minha como sending", () => {
+    expect(run([reactionSent()]).ownReactions).toEqual([
+      { actorId: "c2", turnId: "t1", kind: "dodge", status: "sending", consumedActionIds: [] },
+    ]);
+  });
+
+  it("reaction_attached promove a minha e consome a declarada, calada", () => {
+    const s = run([sent("local-1"), acked("a9"), reactionSent(), attached(["a9"])]);
+    expect(s.ownReactions).toEqual([
+      { reactionId: "r1", actorId: "c2", turnId: "t1", kind: "dodge", status: "attached", consumedActionIds: ["a9"] },
+    ]);
+    expect(s.declared).toEqual([]);
+    expect(s.lostDeclared).toEqual([]);
+    expect(s.lostCandidates).toEqual([]);
+  });
+
+  it("reaction_attached tira a consumida da fila do mestre", () => {
+    const queue = [{ actionId: "a9", actorId: "npc1", bars: ["move" as const] }, { actionId: "a8", actorId: "npc1", bars: ["move" as const] }];
+    const s = run([attached(["a9"])], { ...initialCombatState, queue });
+    expect(s.queue.map((q) => q.actionId)).toEqual(["a8"]);
+  });
+
+  it("sem REACTION_SENT (o mestre vendo a de um jogador) não cria entrada, mas consome da fila", () => {
+    const queue = [{ actionId: "a9", actorId: "npc1", bars: ["move" as const] }];
+    const s = run([attached(["a9"])], { ...initialCombatState, queue });
+    expect(s.ownReactions).toEqual([]);
+    expect(s.queue).toEqual([]);
+  });
+
+  it("reaction_opened acrescenta a reação, marca a minha e não duplica", () => {
+    const s = run([reactionSent(), attached(), reactionOpened("r1"), reactionOpened("r1")]);
+    expect(s.openReactions).toEqual([reaction("r1")]);
+    expect(s.ownReactions[0].status).toBe("opened");
+  });
+
+  it("recusa de attach_reaction tira a sending e guarda o erro", () => {
+    const error = { code: "game_error", message: "x", sentType: "attach_reaction", at: 1 };
+    const s = run([reactionSent(), { type: "WS_ERROR", payload: error }]);
+    expect(s.ownReactions).toEqual([]);
+    expect(s.lastError).toEqual(error);
+  });
+
+  it("turn_opened de outro turno zera as reações e o último liquidado", () => {
+    const s = run([
+      opened("t1", "a1"), reactionSent(), reactionOpened("r1"), closed("t1"),
+      { type: "resolution_updated", payload: settled("t1") }, opened("t2", "a2"),
+    ]);
+    expect(s.openReactions).toEqual([]);
+    expect(s.ownReactions).toEqual([]);
+    expect(s.lastSettled).toBeNull();
+  });
+
+  describe("turn_closed e lastSettled", () => {
+    const act1 = reaction("a1", "c1");
+    const openWithAction: CombatAction = {
+      type: "turn_opened",
+      payload: { turnId: "t1", actorId: "c1", actionId: "a1", actionType: "", action: act1 },
+    };
+
+    it("guarda closedTurn, zera as reações e o liquidado seguinte vira lastSettled", () => {
+      let s = run([openWithAction, reactionSent(), reactionOpened("r1"), closed("t1")]);
+      expect(s.closedTurn).toEqual({ turnId: "t1", actorId: "c1", action: act1 });
+      expect(s.openReactions).toEqual([]);
+      expect(s.ownReactions).toEqual([]);
+      s = run([{ type: "resolution_updated", payload: settled("t1") }], s);
+      expect(s.lastSettled).toEqual({ turnId: "t1", actorId: "c1", action: act1, resolution: settled("t1") });
+    });
+
+    it("o liquidado antes do turn_closed lê o openTurn", () => {
+      const s = run([openWithAction, { type: "resolution_updated", payload: settled("t1") }]);
+      expect(s.lastSettled).toEqual({ turnId: "t1", actorId: "c1", action: act1, resolution: settled("t1") });
+    });
+
+    it("sem turno que bata, fica só com a resolução", () => {
+      const s = run([{ type: "resolution_updated", payload: settled("t7") }]);
+      expect(s.lastSettled).toEqual({ turnId: "t7", actorId: undefined, action: undefined, resolution: settled("t7") });
+    });
+  });
+
+  describe("match_full_state", () => {
+    it("descarta a sending local quando o payload não traz ownReactions", () => {
+      expect(run([reactionSent(), full()]).ownReactions).toEqual([]);
+    });
+
+    it("traduz ownReactions, com status pelo opened", () => {
+      const openTurn = { turnId: "t1", actorId: "c1" };
+      expect(run([full({ openTurn, ownReactions: [ownReaction()] })]).ownReactions).toEqual([
+        { reactionId: "r1", actorId: "c2", turnId: "t1", kind: "closedEscape", status: "attached", consumedActionIds: ["a9"] },
+      ]);
+      expect(run([full({ openTurn, ownReactions: [ownReaction({ opened: true })] })]).ownReactions[0].status).toBe("opened");
+    });
+
+    it("openReactions segue a ordem do payload e lastSettled zera", () => {
+      const s = run(
+        [full({ openTurn: { turnId: "t1", actorId: "c1", reactions: [reaction("r2"), reaction("r1")] } })],
+        { ...initialCombatState, lastSettled: { turnId: "t0", resolution: settled("t0") } },
+      );
+      expect(s.openReactions.map((r) => r.uuid)).toEqual(["r2", "r1"]);
+      expect(s.lastSettled).toBeNull();
+    });
+
+    it("declarada consumida por uma reação sai calada, sem virar candidata", () => {
+      const s = run([
+        sent("local-1"), acked("a9"),
+        full({ ownQueue: [], openTurn: { turnId: "t1", actorId: "c1" }, ownReactions: [ownReaction()] }),
+      ]);
+      expect(s.declared).toEqual([]);
+      expect(s.lostCandidates).toEqual([]);
+    });
+  });
+
+  it("resolveLostCandidates: o consumido por uma reação do histórico rodou", () => {
+    const cand: LostCandidate = { id: "a9", actorId: "c1", status: "queued", fromComposer: true, at: 0, detectedAt: 100 };
+    const history: MatchHistory = {
+      scenes: [{
+        uuid: "s1", category: "battle", briefDesc: "", createdAt: "",
+        rounds: [{
+          uuid: "r1", mode: "Race", createdAt: "", events: [],
+          turns: [{
+            uuid: "t1", createdAt: "", masterActions: [],
+            action: { uuid: "a1", actorId: "c1", reactionKind: "" },
+            reactions: [{ uuid: "r1", actorId: "c2", reactionKind: "closedEscape", consumedActionIds: ["a9"] }],
+          }],
+        }],
+      }],
+    };
+    expect(resolveLostCandidates([cand], { history, fetchStartedAt: 100 })).toEqual({ ran: ["a9"], lost: [] });
+  });
+
+  it("round_closed zera as reações; scene_changed zera também o último liquidado", () => {
+    const base: CombatState = {
+      ...initialCombatState,
+      openReactions: [reaction("r1")],
+      ownReactions: [{ actorId: "c2", turnId: "t1", kind: "dodge", status: "sending", consumedActionIds: [] }],
+      lastSettled: { turnId: "t1", resolution: settled("t1") },
+    };
+    const afterRound = run([{ type: "round_closed", payload: { roundMode: "Race" } }], base);
+    expect(afterRound.openReactions).toEqual([]);
+    expect(afterRound.ownReactions).toEqual([]);
+    expect(afterRound.lastSettled).not.toBeNull();
+    const afterScene = run([{ type: "scene_changed", payload: { sceneId: "s2", category: "battle", briefInitialDescription: "" } }], base);
+    expect(afterScene.openReactions).toEqual([]);
+    expect(afterScene.ownReactions).toEqual([]);
+    expect(afterScene.lastSettled).toBeNull();
   });
 });
