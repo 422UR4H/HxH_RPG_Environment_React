@@ -7,6 +7,7 @@ import { applyTransform, inverseTransform } from "./utils/coords";
 import { snapWallPoint, explodePolyline, newWallAttrs, isOpening } from "./utils/walls";
 import { findNearestWall } from "./utils/wallHit";
 import { drawStippledSegment } from "./utils/stipple";
+import { createTapTracker } from "./hooks/tapGesture";
 import LosSplit from "./LosSplit";
 
 const MATERIAL_COLOR: Record<WallMaterial, number> = {
@@ -256,10 +257,17 @@ export default function WallsLayer({
   }, [wallsInteractive, finishPolyline]);
 
   // ─── Viewer-mode door click (fires when not in wall-editing mode) ─────────
+  // Só um TOQUE abre a caixa da parede; arrastar o mapa por cima dela não. O pointermove
+  // fica na window porque o ponteiro sai do canvas durante um arraste.
   useEffect(() => {
     if (!canvasEl) return;
     const HIT = 8;
+    const tracker = createTapTracker();
+    const handleDown = (e: PointerEvent) => tracker.down(e);
+    const handleMove = (e: PointerEvent) => tracker.move(e);
+    const handleCancel = () => tracker.cancel();
     const handleViewerClick = (e: PointerEvent) => {
+      if (!tracker.up(e)) return;
       if (wallsInteractiveRef.current) return; // editor handles its own selection
       if (!onWallClickRef.current) return;
       const vp = vpRef.current;
@@ -274,9 +282,16 @@ export default function WallsLayer({
         onWallClickRef.current?.(hit);
       }
     };
+    canvasEl.addEventListener("pointerdown", handleDown);
     canvasEl.addEventListener("pointerup", handleViewerClick);
+    window.addEventListener("pointermove", handleMove);
+    window.addEventListener("pointercancel", handleCancel);
     return () => {
+      canvasEl.removeEventListener("pointerdown", handleDown);
       canvasEl.removeEventListener("pointerup", handleViewerClick);
+      window.removeEventListener("pointermove", handleMove);
+      window.removeEventListener("pointercancel", handleCancel);
+      tracker.cancel();
     };
   }, [canvasEl, vpRef]);
 
