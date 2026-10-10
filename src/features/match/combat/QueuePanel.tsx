@@ -1,4 +1,3 @@
-import { useState } from "react";
 import styled from "styled-components";
 import { colors, fonts } from "../../../styles/tokens";
 import type { GridKind } from "../../../types/tacticalMap";
@@ -24,7 +23,6 @@ function orderKeyFor(action: Pick<QueuedAction, "actorId" | "bars">, order: Bars
  * não há como achar a chave nem dizer o que cobra, e as duas linhas somem.
  */
 function QueueRowDetails({
-  id,
   actorId,
   bars,
   detail,
@@ -32,7 +30,6 @@ function QueueRowDetails({
   gridKind,
   nameOf,
 }: {
-  id?: string;
   actorId: string;
   bars?: Bar[];
   detail: QueuedActionDetail;
@@ -42,7 +39,7 @@ function QueueRowDetails({
 }) {
   const key = bars ? orderKeyFor({ actorId, bars }, order) : undefined;
   return (
-    <Details id={id} aria-label="Detalhes da ação">
+    <Details aria-label="Detalhes da ação">
       {!!detail.targetId?.length && <DetailLine>Alvos: {detail.targetId.map(nameOf).join(", ")}</DetailLine>}
       {detail.attack?.weapon && <DetailLine>Arma: {humanWeapon(detail.attack.weapon)}</DetailLine>}
       {detail.move && (
@@ -76,8 +73,8 @@ function QueueRowDetails({
  * A fila secreta — só o mestre recebe. Em ordem de chegada (a ordem de EXECUÇÃO é a barra
  * geral). Mostra também, no topo, a ação em andamento (`open`) — o turno aberto tirou essa
  * linha da fila de verdade, mas o mestre ainda precisa vê-la, com a declaração (I1) e o
- * cálculo que só ele recebe (F7). Cada linha da fila é expansível (T13/F1): com `action.action` (B1), "Detalhes"
- * mostra a declaração inteira; sem ele (servidor antigo), a linha fica como sempre foi.
+ * cálculo que só ele recebe (F7). Cada linha da fila mostra sempre a declaração inteira (T13/F1) quando
+ * `action.action` (B1) vem; sem ele (servidor antigo), a linha fica como sempre foi.
  */
 export default function QueuePanel({
   queue,
@@ -105,15 +102,6 @@ export default function QueuePanel({
   /** Fase 8: repassado ao cálculo do card em andamento. */
   onEditAction?: (payload: EditActionPayload) => void;
 }) {
-  const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
-  const toggle = (actionId: string) =>
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(actionId)) next.delete(actionId);
-      else next.add(actionId);
-      return next;
-    });
-
   return (
     <Panel aria-label="Fila">
       <Title>Fila de ações</Title>
@@ -158,8 +146,6 @@ export default function QueuePanel({
           )}
           {queue.map((action) => {
             const detail = action.action;
-            const isExpanded = expanded.has(action.actionId);
-            const detailsId = `queue-details-${action.actionId}`;
             return (
               <Row key={action.actionId} data-testid="queue-row">
                 <RowHeader>
@@ -171,23 +157,12 @@ export default function QueuePanel({
                       </Bars>
                     </Name>
                   </Info>
-                  {detail && (
-                    <DetailsButton
-                      type="button"
-                      aria-expanded={isExpanded}
-                      aria-controls={detailsId}
-                      onClick={() => toggle(action.actionId)}
-                    >
-                      Detalhes
-                    </DetailsButton>
-                  )}
                   <PullButton type="button" onClick={() => onPull(action.actionId)} title="Abrir esta ação agora, fora da ordem">
                     Abrir agora
                   </PullButton>
                 </RowHeader>
-                {isExpanded && detail && (
+                {detail && (
                   <QueueRowDetails
-                    id={detailsId}
                     actorId={action.actorId}
                     bars={action.bars}
                     detail={detail}
@@ -297,19 +272,6 @@ const PullButton = styled.button`
   font-weight: 600;
   padding: 6px 10px;
   border: 1px solid ${colors.brandAccent};
-  border-radius: 6px;
-  cursor: pointer;
-  background: transparent;
-  color: ${colors.textPrimary};
-`;
-
-const DetailsButton = styled.button`
-  flex-shrink: 0;
-  font-family: ${fonts.sans};
-  font-size: 12px;
-  font-weight: 600;
-  padding: 6px 10px;
-  border: 1px solid ${colors.textPlaceholderStrong};
   border-radius: 6px;
   cursor: pointer;
   background: transparent;

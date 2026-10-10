@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import styled from "styled-components";
 import { colors, fonts } from "../../../styles/tokens";
 import type { GridKind } from "../../../types/tacticalMap";
@@ -136,14 +136,17 @@ export default function EventStream({
   nameOf,
   gridKind,
   loadFailed = false,
+  footer,
 }: {
   rows: HistoryRow[];
   nameOf: (characterId: string) => string;
   gridKind: GridKind;
   /** O GET /history falhou (já depois da nova tentativa): as linhas são só as ao vivo. */
   loadFailed?: boolean;
+  /** Vai depois da última linha, dentro do que rola — o histórico e o rodapé sobem juntos. */
+  footer?: ReactNode;
 }) {
-  const containerRef = useRef<HTMLOListElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // jsdom não tem layout (scrollTo pode nem existir) — o pin-ao-fim só se verifica no browser.
@@ -153,42 +156,52 @@ export default function EventStream({
   const loadError = loadFailed && <LoadError role="alert">Não foi possível carregar o histórico.</LoadError>;
 
   if (rows.length === 0) {
-    return loadError || <Empty>Nada aconteceu ainda. Turnos, dano e trocas de regime aparecem aqui.</Empty>;
+    return (
+      <Container ref={containerRef}>
+        {loadError || <Empty>Nada aconteceu ainda. Turnos, dano e trocas de regime aparecem aqui.</Empty>}
+        {footer}
+      </Container>
+    );
   }
 
   return (
-    <>
+    <Container ref={containerRef}>
       {loadError}
-      <Container ref={containerRef}>
-      {rows.map((row) => {
-        const line = rowLine(row, nameOf, gridKind);
-        return (
-          <Row key={row.key} data-testid="event-row" $tone={line.tone}>
-            <Icon aria-hidden>{line.icon}</Icon>
-            <span>
-              {line.text}
-              {line.details?.map((d, i) => <Detail key={i}>{d}</Detail>)}
-            </span>
-          </Row>
-        );
-      })}
-      </Container>
-    </>
+      <Lines>
+        {rows.map((row) => {
+          const line = rowLine(row, nameOf, gridKind);
+          return (
+            <Row key={row.key} data-testid="event-row" $tone={line.tone}>
+              <Icon aria-hidden>{line.icon}</Icon>
+              <span>
+                {line.text}
+                {line.details?.map((d, i) => <Detail key={i}>{d}</Detail>)}
+              </span>
+            </Row>
+          );
+        })}
+      </Lines>
+      {footer}
+    </Container>
   );
 }
 
-const Container = styled.ol`
-  list-style: none;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+const Container = styled.div`
   height: 100%;
   overflow-y: auto;
   padding: 8px;
   color: ${colors.textPrimary};
   font-family: ${fonts.sans};
   font-size: 12px;
+`;
+
+const Lines = styled.ol`
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 `;
 
 const Row = styled.li<{ $tone?: Line["tone"] }>`

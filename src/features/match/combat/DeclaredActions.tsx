@@ -62,7 +62,7 @@ const Wrapper = styled.section`
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 0 12px 12px;
+  padding: 12px 6px 0; /* dentro do Histórico: alinha com o texto das linhas (8px do contêiner + 6px da linha) */
   font-family: ${fonts.sans};
   color: ${colors.textPrimary};
 `;

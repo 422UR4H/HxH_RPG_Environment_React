@@ -262,12 +262,6 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
                 canDeclare={game.canDeclare}
                 blockedReason={game.blockedReason}
               />
-              <DeclaredActions
-                declared={state.declared}
-                nameOf={nameOf}
-                gridKind={map?.grid.kind ?? "square"}
-                onHide={(id) => combat.dismissDeclared([id])}
-              />
             </>
           ) : (
             <PanelMessage>Você não tem personagem nesta partida.</PanelMessage>
@@ -355,10 +349,24 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
           <AsideTabs
             defaultTab="historico"
             historico={
-              <EventStream rows={rows} nameOf={nameOf} gridKind={map?.grid.kind ?? "square"} loadFailed={historyFailed} />
+              <EventStream
+                rows={rows}
+                nameOf={nameOf}
+                gridKind={map?.grid.kind ?? "square"}
+                loadFailed={historyFailed}
+                footer={
+                  <DeclaredActions
+                    declared={state.declared}
+                    nameOf={nameOf}
+                    gridKind={map?.grid.kind ?? "square"}
+                    onHide={(id) => combat.dismissDeclared([id])}
+                  />
+                }
+              />
             }
             personagens={
               <MatchCharactersSidebar
+                fluid
                 gameStarted
                 enrollments={[]}
                 participants={visibleParticipants}

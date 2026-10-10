@@ -556,7 +556,6 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
               token={token}
               sheetUuid={sheetId}
               liveHp={sheetId ? state.hp[sheetId] : undefined}
-              onClose={() => setSheetId(undefined)}
             />
           ) : railActive === "fila" ? (
             <>
@@ -603,7 +602,6 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
           ) : (
             <>
               <NpcPicker npcs={npcs} actorId={actorId} onChoose={chooseActor} />
-              <AddNpcPicker candidates={npcCandidates} onAdd={(id) => combat.send.addNpc(id)} />
               {actorId && (
                 <>
                   <OwnBars bars={state.bars} characterId={actorId} hp={actorHp} />
@@ -624,13 +622,6 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                   />
                 </>
               )}
-              <DeclaredActions
-                declared={state.declared}
-                nameOf={nameOf}
-                gridKind={gridKind}
-                showActor
-                onHide={(id) => combat.dismissDeclared([id])}
-              />
             </>
           )
         }
@@ -745,9 +736,27 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
         aside={
           <AsideTabs
             defaultTab="historico"
-            historico={<EventStream rows={rows} nameOf={nameOf} gridKind={gridKind} loadFailed={historyFailed} />}
+            historico={
+              <EventStream
+                rows={rows}
+                nameOf={nameOf}
+                gridKind={gridKind}
+                loadFailed={historyFailed}
+                footer={
+                  <DeclaredActions
+                    declared={state.declared}
+                    nameOf={nameOf}
+                    gridKind={gridKind}
+                    showActor
+                    onHide={(id) => combat.dismissDeclared([id])}
+                  />
+                }
+              />
+            }
             personagens={
               <MatchCharactersSidebar
+                fluid
+                footer={<AddNpcPicker candidates={npcCandidates} onAdd={(id) => combat.send.addNpc(id)} />}
                 gameStarted
                 enrollments={[]}
                 participants={participantsWithLiveHp}

@@ -219,10 +219,8 @@ describe("QueuePanel", () => {
     expect(screen.queryByRole("button", { name: "Detalhes" })).not.toBeInTheDocument();
   });
 
-  // Fix round 1: `aria-expanded` mora no BOTÃO "Detalhes", não na `<li>` — `role="listitem"`
-  // não aceita esse atributo (Important 1 da revisão). `aria-controls` liga o botão ao bloco
-  // expandido pelo id.
-  it("com `action`: Detalhes expande e mostra arma, destino e o total da velocidade", () => {
+  // §10: sem "Detalhes" — a declaração da fila fica sempre à vista.
+  it("com `action`: mostra arma, destino e o total da velocidade sem clique, e não há botão Detalhes", () => {
     render(
       <QueuePanel
         nameOf={nameOf}
@@ -233,26 +231,14 @@ describe("QueuePanel", () => {
       />,
     );
     const row = screen.getByTestId("queue-row");
-    const detailsButton = screen.getByRole("button", { name: "Detalhes" });
-    expect(detailsButton).toHaveAttribute("aria-expanded", "false");
-    expect(screen.queryByText(/Arma:/)).not.toBeInTheDocument();
-
-    fireEvent.click(detailsButton);
-
-    expect(detailsButton).toHaveAttribute("aria-expanded", "true");
-    const detailsId = detailsButton.getAttribute("aria-controls");
-    expect(detailsId).toBeTruthy();
-    expect(document.getElementById(detailsId!)).toHaveAttribute("aria-label", "Detalhes da ação");
+    expect(screen.queryByRole("button", { name: "Detalhes" })).not.toBeInTheDocument();
+    expect(within(row).getByLabelText("Detalhes da ação")).toBeInTheDocument();
     expect(within(row).getByText(/Arma: Throwing Dagger/)).toBeInTheDocument();
     expect(within(row).getByText(/Movimento: Dash.*coluna 3, linha 1/)).toBeInTheDocument();
     expect(within(row).getByText(/Velocidade de movimento: Accelerate.*= 12/)).toBeInTheDocument();
     expect(within(row).getByText(/Velocidade de ação: Legerity.*= 14/)).toBeInTheDocument();
     expect(within(row).getByText(/Ordem geral: chave 9/)).toBeInTheDocument();
     expect(within(row).getByText(/Alvos: Gon/)).toBeInTheDocument(); // alvo, por nome
-
-    fireEvent.click(detailsButton);
-    expect(detailsButton).toHaveAttribute("aria-expanded", "false");
-    expect(screen.queryByText(/Arma:/)).not.toBeInTheDocument();
   });
 
   // I1 (spec §5 F7): o card "em andamento" mostra a declaração (`openTurn.action`, B2) com o
@@ -701,6 +687,25 @@ describe("EventStream", () => {
     render(<EventStream rows={historyRows(undefined, events, undefined, undefined)} nameOf={nameOf} gridKind="square" loadFailed />);
     expect(screen.getByRole("alert")).toHaveTextContent("Não foi possível carregar o histórico.");
     expect(screen.getAllByTestId("event-row")).toHaveLength(1);
+  });
+
+  it("o `footer` aparece depois da última linha do histórico", () => {
+    const events: TableEvent[] = [{ kind: "round_mode_changed", at: 1, receivedAt: 1, mode: "Free" }];
+    render(
+      <EventStream
+        rows={historyRows(undefined, events, undefined, undefined)}
+        nameOf={nameOf}
+        gridKind="square"
+        footer={<p>rodapé</p>}
+      />,
+    );
+    const row = screen.getByTestId("event-row");
+    expect(row.compareDocumentPosition(screen.getByText("rodapé")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("o `footer` também aparece com o histórico vazio", () => {
+    render(<EventStream rows={[]} nameOf={nameOf} gridKind="square" footer={<p>rodapé</p>} />);
+    expect(screen.getByText("rodapé")).toBeInTheDocument();
   });
 
   it("histórico que não carregou e nada ao vivo: só o aviso, sem o \"nada aconteceu\"", () => {

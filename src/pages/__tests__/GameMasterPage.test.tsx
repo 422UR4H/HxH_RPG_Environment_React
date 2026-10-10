@@ -567,7 +567,8 @@ describe("GameMasterPage", () => {
 
     // Continua mostrando os participantes normais.
     expect(await screen.findByText("Gon")).toBeInTheDocument();
-    expect(screen.queryByText("NPC Só no Mapa")).not.toBeInTheDocument();
+    // Só como candidato do "Pôr na partida" (option) — nunca como card de personagem.
+    expect(screen.queryAllByText("NPC Só no Mapa").filter((el) => el.tagName !== "OPTION")).toHaveLength(0);
   });
 
   it("F11: inspecionar uma peça que o mestre não controla não troca a aba da direita", async () => {
@@ -688,7 +689,9 @@ describe("GameMasterPage", () => {
     const ws = await waitForSocket();
     openWithServerBoard(ws);
 
-    act(() => screen.getByRole("button", { name: "Agir" }).click());
+    // "Pôr na partida" mora no fim da aba Personagens.
+    act(() => screen.getByRole("button", { name: "Ver histórico" }).click());
+    act(() => screen.getByRole("button", { name: "Personagens" }).click());
     await user.selectOptions(await screen.findByLabelText("Pôr na partida"), npcFixture.uuid);
     await user.click(screen.getByRole("button", { name: "Pôr" }));
     expect(ws.sent("add_npc")).toEqual([{ characterSheetUuid: npcFixture.uuid }]);
@@ -749,7 +752,9 @@ describe("GameMasterPage", () => {
     const ws = await waitForSocket();
     openWithServerBoard(ws);
 
-    act(() => screen.getByRole("button", { name: "Agir" }).click());
+    // "Pôr na partida" mora no fim da aba Personagens.
+    act(() => screen.getByRole("button", { name: "Ver histórico" }).click());
+    act(() => screen.getByRole("button", { name: "Personagens" }).click());
     await user.selectOptions(await screen.findByLabelText("Pôr na partida"), npcFixture.uuid);
     await user.click(screen.getByRole("button", { name: "Pôr" }));
     act(() => { ws.emit("error", { code: "npc_already_in_match", message: "npc already in match" }); });
