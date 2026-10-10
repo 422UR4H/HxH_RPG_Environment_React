@@ -2,6 +2,7 @@
 // do NPC por quem agir e o painel de arrumar o tabuleiro. Nenhum pergunta "sou mestre?" — a página é que decide montá-los.
 import { useState } from "react";
 import styled, { css } from "styled-components";
+import Tooltip from "../../../components/ions/Tooltip";
 import { colors, fonts } from "../../../styles/tokens";
 import { media } from "../../../styles/breakpoints";
 import type { Participant } from "../../../types/match";
@@ -45,6 +46,8 @@ export function RegencyControls({
   canCloseTurn,
   onNewScene,
   canChangeScene,
+  queueLength,
+  orderLength,
 }: {
   mode: RoundMode | "";
   onModeChange: (mode: RoundMode) => void;
@@ -53,7 +56,14 @@ export function RegencyControls({
   canCloseTurn: boolean;
   onNewScene: () => void;
   canChangeScene: boolean;
+  queueLength: number;
+  /** Tamanho da ordem da Corrida (`bars.order`). */
+  orderLength: number;
 }) {
+  // Na Corrida o servidor encerra a rodada quando abrir a próxima não acha quem pague
+  // (`bars_updated.order` vazio): este botão é como o mestre a encerra, nunca desabilita.
+  const endsRound = mode === "Race" && orderLength === 0;
+  const empty = !endsRound && queueLength === 0;
   return (
     <Regency>
       <RoundModeSwitch mode={mode} onChange={onModeChange} placement="topbar" />
@@ -68,9 +78,12 @@ export function RegencyControls({
       >
         Nova cena
       </NewSceneButton>
-      <PrimaryButton type="button" onClick={onOpenNext}>
-        Abrir próxima
-      </PrimaryButton>
+      {/* aria-disabled (e não disabled): o botão segue focável e o hover/foco mostram o porquê. */}
+      <Tooltip label="A fila de ações está vazia" enabled={empty}>
+        <PrimaryButton type="button" aria-disabled={empty || undefined} onClick={empty ? undefined : onOpenNext}>
+          {endsRound ? "Encerrar rodada" : "Abrir próxima"}
+        </PrimaryButton>
+      </Tooltip>
       <SmallButton type="button" onClick={onCloseTurn} disabled={!canCloseTurn}>
         Fechar turno
       </SmallButton>
@@ -277,6 +290,11 @@ const ModeButton = styled.button`
 const PrimaryButton = styled(SmallButton)`
   border-color: ${colors.brandAccentBright};
   background: ${colors.brandAccent};
+
+  &[aria-disabled="true"] {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
 `;
 
 /* BF5: some da topbar abaixo de tabletUp — o painel da Fila (PanelSection) já tem o dela. */

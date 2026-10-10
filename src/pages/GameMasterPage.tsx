@@ -522,6 +522,8 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                 canCloseTurn={canCloseTurn}
                 onNewScene={() => setSceneDialog(true)}
                 canChangeScene={state.openTurn == null}
+                queueLength={state.queue.length}
+                orderLength={state.bars?.order.length ?? 0}
               />
             }
           />

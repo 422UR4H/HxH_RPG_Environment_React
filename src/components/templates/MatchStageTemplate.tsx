@@ -87,6 +87,16 @@ const Shell = styled.div`
   background: ${colors.surfaceSidebar};
   color: ${colors.textPrimary};
   font-family: ${fonts.sans};
+  /* Spec §13: arrastar no mapa/HUD não pode virar seleção de texto. Campos continuam selecionáveis. */
+  user-select: none;
+  -webkit-user-select: none;
+
+  & input,
+  & textarea,
+  & select {
+    user-select: text;
+    -webkit-user-select: text;
+  }
 
   & * {
     font-family: inherit;
