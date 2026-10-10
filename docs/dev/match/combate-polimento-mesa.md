@@ -13,7 +13,8 @@ se afastou do spec, vale o código descrito aqui.
 `tactical-map/hooks/tapGesture.ts` — `createTapTracker(tolerance = TAP_TOLERANCE_PX)` (6 px de
 tela). Fora do React, em closure, como `createHoldTracker`: `down` / `move` / `up` / `cancel`.
 Só o botão primário arma; `move` que passa da tolerância desarma (virou arraste); `up` devolve
-`true` só se for o mesmo `pointerId` e nunca saiu da tolerância.
+`true` só se for o mesmo `pointerId` e nunca saiu da tolerância. Um **segundo ponteiro** enquanto
+armado (multitoque, pinça) desarma: `down` com outro `pointerId` zera a origem — nunca é toque.
 
 Por que um só: comparar apenas início × fim deixa passar o arraste que **volta ao ponto de
 partida** antes de soltar (era o bug: arrastar o mapa por cima de uma parede abria a caixa dela).
@@ -63,7 +64,7 @@ gaveta aberta só em tela larga.
 
 ## Ordem da fila do mestre
 
-`combat/queueOrder.ts` — `orderQueue(queue, order)` devolve `{ action, inOrder }[]`; o `QueuePanel`
+`combat/queueOrder.ts` — `orderQueue(queue, order, mode)` devolve `{ action, inOrder, key? }[]`; o `QueuePanel`
 só renderiza. A fila do mestre aparece **na ordem em que as ações vão abrir**.
 
 - **De onde vem:** `bars_updated.order` (maior chave primeiro). Ele é público e **não carrega id de
@@ -71,10 +72,19 @@ só renderiza. A fila do mestre aparece **na ordem em que as ações vão abrir*
   consome uma ação da fila.
 - **Desempate** entre ações do mesmo ator e das mesmas barras: o servidor pega a de maior chave,
   que cresce com a velocidade, então **maior velocidade primeiro, depois chegada** (`>` estrito).
-  `speedOf`: `action.speed.rollCheck.result` se cobra a barra `action`, senão `action.move.finalSpeed`;
-  sem o número, `-Infinity` (cai na chegada).
+  `speedOf`: `action.speed.rollCheck.result` se cobra a barra `action`, `action.move.finalSpeed` se
+  cobra `move`; sem o número, `-Infinity` (cai na chegada). Ação que cobra **as duas barras**
+  (investida) vale pela **menor** das duas velocidades: o servidor (`keyOf`) a agenda pela menor
+  das duas chaves.
+- **`key`:** cada item devolve a chave da entrada que casou com ELA (o card mostra "Ordem geral:
+  chave N" com ela, não com a primeira entrada do mesmo ator e barras). A ação em andamento já
+  saiu da ordem e não tem chave.
 - Ação sem entrada na ordem não cabe nesta rodada: vai ao fim com `inOrder: false`.
-- `order` vazia (antes do primeiro `bars_updated`) é "sem informação": chegada, tudo `inOrder`.
+- "Sem informação" (chegada, tudo `inOrder`) é: `order` `undefined` (nenhum `bars_updated` ainda)
+  **ou** fora do Race com ordem vazia (no Free não há portão: a ordem só vem vazia com a fila
+  vazia). No **Race, ordem vazia com fila cheia** quer dizer que nenhuma ação consegue pagar:
+  todas ficam `inOrder: false` ("próxima rodada") — o mesmo estado em que o botão do mestre vira
+  "Encerrar rodada". O `QueuePanel` recebe `order` (opcional) e `mode`.
 - Entrada da ordem sem ação correspondente é pulada (só acontece de passagem, quando
   `bars_updated` chega antes de `action_queued`).
 
@@ -152,7 +162,12 @@ preenchimentos não levam contorno.
 - Aba **Personagens** (`MatchCharactersSidebar`): `fluid` (cards na largura do painel) e `footer`;
   o mestre põe o "Pôr na partida" (`AddNpcPicker`) ali, não mais no painel de ação.
 - A fila do mestre perdeu o botão "Detalhes"; o `MatchSheetPanel` perdeu o cabeçalho com `×` (`onClose`) que só ele usava.
-- Partes do HUD ganharam `user-select: none` (o `Tooltip` e a barra da mesa), para o toque longo não selecionar texto.
+- A `Shell` inteira da partida (`MatchStageTemplate`) é `user-select: none`, para o toque longo
+  não selecionar texto; `input`, `textarea` e `select` voltam a `user-select: text`. O `Tooltip`
+  e outros ions pontuais também a marcam.
+- **Histórico:** o pin-ao-fim do `EventStream` depende de `rows` **e** de `pinKey` (as páginas
+  passam as ações declaradas — `id:status` juntos), porque declarar só faz crescer o rodapé.
+  O aviso de falha do GET fica fora do que rola, acima do scroller.
 
 ## Limites conhecidos
 
@@ -163,5 +178,3 @@ preenchimentos não levam contorno.
   só ao abrir).
 - Girar um tablet de largo para estreito pode deixar painel e gaveta abertos ao mesmo tempo: a
   regra "uma por vez" roda ao abrir, não ao mudar de breakpoint.
-- O Histórico não rola sozinho para o fim quando só o rodapé de ações declaradas cresce (o
-  auto-scroll olha as linhas do histórico).
