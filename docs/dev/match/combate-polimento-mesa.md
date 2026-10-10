@@ -173,7 +173,7 @@ preenchimentos não levam contorno.
 ## Outros ajustes da rodada
 
 - Aba **Personagens** (`MatchCharactersSidebar`): `fluid` (cards na largura do painel) e `footer`;
-  o mestre põe o "Pôr na partida" (`AddNpcPicker`) ali, não mais no painel de ação.
+  o mestre põe o "Adicionar à partida" (`AddNpcPicker`; era "Pôr na partida") ali, não mais no painel de ação.
 - A fila do mestre perdeu o botão "Detalhes"; o `MatchSheetPanel` perdeu o cabeçalho com `×` (`onClose`) que só ele usava.
 - A `Shell` inteira da partida (`MatchStageTemplate`) é `user-select: none`, para o toque longo
   não selecionar texto; `input`, `textarea` e `select` voltam a `user-select: text`. O `Tooltip`
@@ -181,6 +181,23 @@ preenchimentos não levam contorno.
 - **Histórico:** o pin-ao-fim do `EventStream` depende de `rows` **e** de `pinKey` (as páginas
   passam as ações declaradas — `id:status` juntos), porque declarar só faz crescer o rodapé.
   O aviso de falha do GET fica fora do que rola, acima do scroller.
+
+## Segunda rodada (spec §17)
+
+- **Pan do mapa** (`ViewportInner`): só começa se o alvo do `pointerdown` é o próprio canvas
+  (`e.target === canvas`); card, aba Histórico ou camada HTML por cima não iniciam pan. Termina
+  num `pointermove` sem o botão principal (`(e.buttons & 1) === 0`), porque um `pointerup` perdido
+  deixava o mapa seguindo o mouse.
+- **Cursor da parede** (`WallsLayer`): com mouse, sem botão e sobre parede clicável, `pointer`.
+  Vai no elemento PAI do canvas, pois o Pixi reescreve `canvas.style.cursor` a cada movimento
+  (`inherit` fora de objeto interativo, `pointer` na peça); no pai ele herda e não briga. Usa o
+  mesmo teste de acerto do toque (`hitWallAt`).
+- **Arma padrão:** `defaultWeaponOf(names)` (`actionDraft.ts`) é a primeira arma do catálogo que
+  não seja `Fist`; entra na resolução do rascunho (`resolveDraft`, 4º arg opcional, alimentado
+  por `useGameTable`). No `ReactionConfigDialog`: arma do rascunho (se no catálogo) > padrão > `Fist`.
+- **"Barras"** saiu da linha que rola de lado da `GeneralBar` (novo wrapper `Scroll`).
+- **"Adicionar à partida"** (antes "Pôr na partida"), com o botão "Adicionar" abaixo do seletor,
+  alinhado aos cards.
 
 ## Limites conhecidos
 

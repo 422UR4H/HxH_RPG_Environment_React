@@ -213,11 +213,9 @@ export default function ViewportInner({
     const onWindowDown = (e: PointerEvent) => {
       const canvas = app?.renderer ? app.canvas : null;
       if (!canvas || placingNpcId || e.button !== 0) return;
-      const rect = canvas.getBoundingClientRect();
-      if (
-        e.clientX < rect.left || e.clientX > rect.right ||
-        e.clientY < rect.top  || e.clientY > rect.bottom
-      ) return;
+      // Só o alvo ser o canvas conta: um card, a aba Histórico ou a camada HTML por cima
+      // recebem o toque, e o retângulo sozinho começava pan por baixo deles.
+      if (e.target !== canvas) return;
       const vp = vpRef.current;
       if (!vp) return;
       const snapX = e.clientX;
@@ -253,6 +251,9 @@ export default function ViewportInner({
         return;
       }
       if (!isPanningRef.current) return;
+      // Um pointerup perdido (arraste nativo, soltar fora da janela) deixava o mapa
+      // seguindo o mouse: sem o botão principal pressionado, o pan acabou.
+      if ((e.buttons & 1) === 0) { isPanningRef.current = false; return; }
       const vp = vpRef.current;
       if (!vp) return;
       userMovedRef.current = true;
