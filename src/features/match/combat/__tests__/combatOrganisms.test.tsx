@@ -16,7 +16,7 @@ import { avoidedVerb } from "../combatText";
 import type { BarsPayload, ResolutionPayload } from "../combatMessages";
 import type { DeclaredAction, TableEvent } from "../combatReducer";
 import { historyRows } from "../historyRows";
-import type { HistoryMasterAction, HistoryTurn, MatchHistory } from "../../../../types/matchHistory";
+import type { HistoryAction, HistoryMasterAction, HistoryTurn, MatchHistory } from "../../../../types/matchHistory";
 
 const nameOf = (id: string) => ({ c1: "Gon", c2: "Killua", n1: "Hisoka" }[id] ?? id);
 
@@ -1029,6 +1029,34 @@ describe("MatchTopBar", () => {
   it("diz que está esperando o mestre quando a sala não abriu", () => {
     render(<MatchTopBar roundMode="" status="waiting" asideOpen={false} onToggleAside={() => {}} />);
     expect(screen.getByTestId("ws-status")).toHaveAttribute("title", "Aguardando o mestre abrir a sala…");
+  });
+});
+
+describe("EventStream: ação cancelada", () => {
+  const cancelled = (action?: HistoryAction): MatchHistory => ({
+    scenes: [{
+      uuid: "s1", category: "battle", briefDesc: "", createdAt: "2026-01-01T00:00:00Z",
+      rounds: [{
+        uuid: "r1", mode: "Race", createdAt: "2026-01-01T00:00:00Z", turns: [],
+        events: [{ uuid: "x1", kind: "actionCancelled", createdAt: "2026-01-01T00:01:00Z", actorId: "c1", ...(action && { action }) }],
+      }],
+    }],
+  });
+  const lastRow = (h: MatchHistory) => {
+    render(<EventStream rows={historyRows(h, [], 0, undefined)} nameOf={nameOf} gridKind="square" />);
+    return screen.getAllByTestId("event-row")[1];
+  };
+
+  it("com a ação (mestre/dono): 'cancelou: <descrição>'; destino e alvos vêm do wire", () => {
+    const row = lastRow(cancelled({
+      uuid: "x1", actorId: "c1", reactionKind: "", targetId: ["n1"],
+      move: { category: "Dash", position: [4, 7, 0] }, attack: { weapon: "Sword" },
+    }));
+    expect(row).toHaveTextContent("Gon cancelou: mover para coluna 5, linha 8 (Dash) e atacar Hisoka com Sword");
+  });
+
+  it("sem a ação (os outros): só 'cancelou uma ação'", () => {
+    expect(lastRow(cancelled())).toHaveTextContent("Gon cancelou uma ação");
   });
 });
 

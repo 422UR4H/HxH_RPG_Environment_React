@@ -6,7 +6,7 @@ import type { TableEvent } from "./combatReducer";
 import type { ResolutionTarget, SceneCategory } from "./combatMessages";
 import type { HistoryMasterAction, HistoryMove, HistoryTurn } from "../../../types/matchHistory";
 import type { HistoryRow } from "./historyRows";
-import { avoidedVerb, describeDeclared, formatSlot, interactLabel, withWeapon, ROUND_MODE_LABELS } from "./combatText";
+import { avoidedVerb, describeDeclared, describeHistoryAction, formatSlot, interactLabel, withWeapon, ROUND_MODE_LABELS } from "./combatText";
 
 /** U+2212 MINUS SIGN — não é hífen. */
 const MINUS = "−";
@@ -121,6 +121,12 @@ function rowLine(row: HistoryRow, nameOf: (id: string) => string, gridKind: Grid
       return { icon: "⇄", tone: "muted", text: `Regime: ${ROUND_MODE_LABELS[row.mode]}` };
     case "master_action":
       return { icon: "⚑", text: masterActionText(row.masterAction, nameOf, gridKind) };
+    case "action_cancelled": {
+      // Sem `action` (quem não é mestre nem dono) o contrato só entrega quem cancelou; uma
+      // ação sem nada descritível (ex.: só uma perícia) cai no mesmo texto genérico.
+      const what = row.action ? describeHistoryAction(row.action, nameOf, gridKind) : "";
+      return { icon: "✕", text: what ? `${nameOf(row.actorId)} cancelou: ${lowerFirst(what)}` : `${nameOf(row.actorId)} cancelou uma ação` };
+    }
   }
 }
 

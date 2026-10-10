@@ -124,6 +124,16 @@ describe("historyRows", () => {
     expect(rows[1]).toMatchObject({ kind: "turn", turn: { masterActions: [inside] } });
   });
 
+  it("ação cancelada vira linha própria, na ordem do tempo entre turnos e eventos", () => {
+    const h = history(turn("t1", "2026-01-01T00:01:00Z"), turn("t2", "2026-01-01T00:03:00Z"));
+    h.scenes[0].rounds[0].events = [
+      { uuid: "x1", kind: "actionCancelled", createdAt: "2026-01-01T00:02:00Z", actorId: "c1" },
+    ];
+    const rows = historyRows(h, [], 0, undefined);
+    expect(keys(rows)).toEqual(["rest:scene:s1", "rest:t1", "rest:event:x1", "rest:t2"]);
+    expect(rows[2]).toMatchObject({ kind: "action_cancelled", actorId: "c1" });
+  });
+
   it("um kind de evento que o front não conhece é ignorado, sem quebrar", () => {
     const h = history();
     h.scenes[0].rounds[0].events = [

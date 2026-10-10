@@ -3,6 +3,7 @@
 import type { GridKind } from "../../../types/tacticalMap";
 import type { SlotTriple } from "../../tactical-map/utils/coords";
 import type { Bar, RoundMode } from "./combatMessages";
+import type { HistoryAction } from "../../../types/matchHistory";
 import type { DeclaredAction } from "./combatReducer";
 
 export const ROUND_MODE_LABELS: Record<RoundMode, string> = { Free: "Livre", Race: "Disputado" };
@@ -78,14 +79,18 @@ export const weaponLabel = (name: string) => (name === "Fist" ? "Desarmado" : hu
 /** " com Sword" ou " desarmado" — o complemento do verbo de ataque no texto corrido. */
 export const withWeapon = (name: string) => (name === "Fist" ? " desarmado" : ` com ${humanWeapon(name)}`);
 
+/** A ação em forma neutra: o que o rascunho (`DeclaredAction`) e o wire (`HistoryAction`) têm em comum. */
+export type ActionSummary = {
+  /** `to` ausente: o leitor não viu a casa (a projeção do histórico corta). */
+  move?: { category: string; to?: SlotTriple };
+  attack?: { targets: string[]; weapon?: string };
+  interact?: { kind: string };
+};
+
 /** "Mover para coluna 8, linha 5 (Dash) e atacar Hisoka com Sword". */
-export function describeDeclared(
-  d: Pick<DeclaredAction, "move" | "attack" | "interact">,
-  nameOf: (id: string) => string,
-  gridKind: GridKind,
-): string {
+export function describeAction(d: ActionSummary, nameOf: (id: string) => string, gridKind: GridKind): string {
   const parts: string[] = [];
-  if (d.move) parts.push(`mover para ${formatSlot(d.move.to, gridKind)} (${d.move.category})`);
+  if (d.move) parts.push(`mover${d.move.to ? ` para ${formatSlot(d.move.to, gridKind)}` : ""} (${d.move.category})`);
   if (d.attack) {
     const who = d.attack.targets.map(nameOf).join(", ");
     parts.push(`atacar ${who}${d.attack.weapon ? withWeapon(d.attack.weapon) : ""}`);
@@ -93,4 +98,26 @@ export function describeDeclared(
   if (d.interact) parts.push(`${interactLabel(d.interact.kind)} a passagem`);
   const text = parts.join(" e ");
   return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+/** A declarada do rascunho. */
+export function describeDeclared(
+  d: Pick<DeclaredAction, "move" | "attack" | "interact">,
+  nameOf: (id: string) => string,
+  gridKind: GridKind,
+): string {
+  return describeAction(d, nameOf, gridKind);
+}
+
+/** A ação como o histórico a guarda: alvos em `targetId`, destino em `move.position` (pode faltar). */
+export function describeHistoryAction(a: HistoryAction, nameOf: (id: string) => string, gridKind: GridKind): string {
+  return describeAction(
+    {
+      move: a.move && { category: a.move.category, to: a.move.position },
+      attack: a.attack && { targets: a.targetId ?? [], weapon: a.attack.weapon },
+      interact: a.interact,
+    },
+    nameOf,
+    gridKind,
+  );
 }
