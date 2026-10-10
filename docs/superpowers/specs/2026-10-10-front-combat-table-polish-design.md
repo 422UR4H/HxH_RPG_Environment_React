@@ -209,3 +209,26 @@ novo do back:
 - Mostrar a dica de "Abrir próxima" com o motivo de cada ação que não paga.
 - Cancelar reação já anexada; o mestre cancelar ação de jogador.
 - Rever a cor de outros elementos do mapa.
+
+---
+
+## 16. Adendo (2026-10-10, mesmo PR): o custo de cancelar, "Custo:" e a cancelada no histórico
+
+Decidido pelo dono do produto depois da primeira rodada. Back: spec
+`System_X_System/docs/superpowers/specs/2026-10-10-combat-cancel-action-back-design.md` §8
+(PR #86) — cancelar marca o personagem até o fim da rodada (Race) e o que ele fizer de novo rola
+a velocidade (ação; movimento quando move) com Desvantagem; a cancelada é gravada e o histórico a
+mostra como evento de rodada `kind: "actionCancelled"`.
+
+- **"Cobra:" vira "Custo:"** em todo texto de UI que diz o que uma ação ou reação gasta (fila do
+  mestre, caixa da reação), com a barra por extenso: "Custo: barra de ação", "Custo: barras de
+  ação e movimento". Não se usa "consome" aqui: "consumir" já é o que a reação faz com a ação
+  que estava na fila, e as duas ideias aparecem juntas na caixa da reação.
+- **O diálogo de cancelar avisa o custo** quando o regime é Disputado (Race): uma linha a mais —
+  "Até o fim da rodada, o que este personagem fizer de novo rola a velocidade com
+  Desvantagem." No Livre a linha não aparece (lá não há efeito).
+- **O histórico mostra a cancelada** (evento de rodada, na ordem do tempo, no estilo das linhas
+  de evento que já existem, como a troca de regime): com `action`, "Fulano cancelou: *descrição*"
+  (a mesma descrição de "Suas ações declaradas"); sem `action` (outros jogadores), "Fulano
+  cancelou uma ação".
+- **Fora:** marcar o custo nos botões de reação (o dono do produto vai desenhar com o designer).
