@@ -6,7 +6,6 @@ import { BAR_ICONS, BAR_LABELS, formatSlot, humanWeapon } from "./combatText";
 import { orderQueue, sameBars } from "./queueOrder";
 import ResolutionDetails from "./ResolutionDetails";
 
-
 /**
  * A primeira entrada da ordem geral com o mesmo ator E as mesmas barras desta ação (T13) —
  * `bars_updated.order` não carrega identidade de ação, então é assim que o card acha "a
@@ -71,9 +70,10 @@ function QueueRowDetails({
 
 /**
  * A fila secreta — só o mestre recebe. Na ordem em que as ações vão abrir (`orderQueue`, a
- * partir de `bars_updated.order`); o que não cabe na rodada vai ao fim, marcado. Mostra também, no topo, a ação em andamento (`open`) — o turno aberto tirou essa
- * linha da fila de verdade, mas o mestre ainda precisa vê-la, com a declaração (I1) e o
- * cálculo que só ele recebe (F7). Cada linha da fila mostra sempre a declaração inteira (T13/F1) quando
+ * partir de `bars_updated.order`); o que não cabe na rodada vai ao fim, marcado. Mostra
+ * também, no topo, a ação em andamento (`open`) — o turno aberto tirou essa linha da fila de
+ * verdade, mas o mestre ainda precisa vê-la, com a declaração (I1) e o cálculo que só ele
+ * recebe (F7). Cada linha da fila mostra sempre a declaração inteira (T13/F1) quando
  * `action.action` (B1) vem; sem ele (servidor antigo), a linha fica como sempre foi.
  */
 export default function QueuePanel({

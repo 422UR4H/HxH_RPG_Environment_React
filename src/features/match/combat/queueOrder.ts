@@ -23,7 +23,9 @@ function speedOf(a: QueuedAction): number {
  * pega a de maior chave, que cresce com a velocidade — então maior velocidade primeiro, depois
  * chegada. Ação sem entrada na ordem não cabe nesta rodada: vai ao fim, `inOrder: false`.
  * Ordem vazia (antes do primeiro `bars_updated`) é "sem informação": chegada, tudo `inOrder`.
- * Entrada sem ação na fila (a que está em andamento) é ignorada.
+ * A ordem é projetada só da fila pendente (a ação aberta já saiu dela), então toda entrada
+ * tem uma ação na fila; entrada sem par só acontece de passagem (um `bars_updated` que
+ * corre à frente de `action_queued`/`turn_opened`) e é pulada.
  */
 export function orderQueue(queue: readonly QueuedAction[], order: BarsPayload["order"]): OrderedQueueItem[] {
   if (order.length === 0) return queue.map((action) => ({ action, inOrder: true }));
