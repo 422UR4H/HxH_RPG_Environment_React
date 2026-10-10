@@ -24,6 +24,8 @@ import OwnBars from "../features/match/combat/OwnBars";
 import EventStream from "../features/match/combat/EventStream";
 import { historyRows } from "../features/match/combat/historyRows";
 import ActionComposer from "../features/match/combat/ActionComposer";
+import type { DeclaredAction } from "../features/match/combat/combatReducer";
+import CancelDeclaredDialog from "../features/match/combat/CancelDeclaredDialog";
 import DeclaredActions from "../features/match/combat/DeclaredActions";
 import QueuePanel from "../features/match/combat/QueuePanel";
 import CloseTurnRefusedDialog from "../features/match/combat/CloseTurnRefusedDialog";
@@ -124,6 +126,11 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   const { onSlotForPick, cancelPick } = controls;
 
   const [railActive, setRailActive] = useState<RailTab>("fila");
+  // Cancelar uma ação declarada: o pedido espera a confirmação; se a linha deixa de estar
+  // "na fila" com o diálogo aberto (abriu no meio-tempo), o diálogo fecha sozinho.
+  const [cancelling, setCancelling] = useState<DeclaredAction | null>(null);
+  const cancelPending =
+    cancelling && state.declared.some((d) => d.id === cancelling.id && d.status === "queued") ? cancelling : null;
   const { panelOpen, setPanelOpen, asideOpen, setAsideOpen, closeAsideIfDrawer } = useStageOverlays();
   const [wallPicker, setWallPicker] = useState<WallSegment | null>(null);
   const [sceneDialog, setSceneDialog] = useState(false);
@@ -750,7 +757,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                     nameOf={nameOf}
                     gridKind={gridKind}
                     showActor
-                    onHide={(id) => combat.dismissDeclared([id])}
+                    onCancel={(id) => setCancelling(state.declared.find((d) => d.id === id) ?? null)}
                   />
                 }
               />
@@ -788,6 +795,18 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
           combat.dismissCloseTurnDialog();
         }}
         onCancel={combat.dismissCloseTurnDialog}
+      />
+      <CancelDeclaredDialog
+        pending={cancelPending}
+        nameOf={nameOf}
+        gridKind={gridKind}
+        showActor
+        canConfirm={combat.status === "connected"}
+        onConfirm={() => {
+          if (cancelPending) combat.send.cancelAction(cancelPending.id);
+          setCancelling(null);
+        }}
+        onKeep={() => setCancelling(null)}
       />
       <ArrangeConfirmDialog
         pending={arrangePending}

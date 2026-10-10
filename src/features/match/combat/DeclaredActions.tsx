@@ -12,22 +12,23 @@ const STATUS_LABELS: Record<DeclaredAction["status"], string> = {
 
 /**
  * O que ESTE navegador declarou e ainda não terminou — a fila é secreta, então só o dono
- * sabe o que mandou. Ocultar tira da lista (e o fantasma do mapa); não cancela a ação — o
- * contrato ainda não tem verbo de cancelar.
+ * sabe o que mandou. Só a linha "na fila" cancela (`cancel_action`); a que já abriu é o turno,
+ * e a que ainda está "enviando…" não tem id do servidor para cancelar. A linha some com o
+ * `action_cancelled`, não ao clicar.
  */
 export default function DeclaredActions({
   declared,
   nameOf,
   gridKind,
   showActor,
-  onHide,
+  onCancel,
 }: {
   declared: DeclaredAction[];
   nameOf: (id: string) => string;
   gridKind: GridKind;
   /** O mestre declara por vários NPCs: cada linha diz de quem é. */
   showActor?: boolean;
-  onHide: (id: string) => void;
+  onCancel: (id: string) => void;
 }) {
   if (declared.length === 0) return null;
   return (
@@ -42,14 +43,9 @@ export default function DeclaredActions({
             </Text>
             <Status $status={d.status}>{STATUS_LABELS[d.status]}</Status>
             {d.status === "queued" && (
-              <Hide
-                type="button"
-                title="Ocultar da lista (não cancela a ação)"
-                aria-label="Ocultar da lista"
-                onClick={() => onHide(d.id)}
-              >
-                ×
-              </Hide>
+              <CancelAction type="button" onClick={() => onCancel(d.id)}>
+                Cancelar
+              </CancelAction>
             )}
           </Row>
         ))}
@@ -113,12 +109,13 @@ const Status = styled.span<{ $status: DeclaredAction["status"] }>`
   color: ${({ $status }) => ($status === "open" ? colors.textPrimary : colors.textPlaceholderStrong)};
 `;
 
-const Hide = styled.button`
+const CancelAction = styled.button`
   border: none;
   background: transparent;
   color: ${colors.textPlaceholderStrong};
   cursor: pointer;
-  font-size: 14px;
-  line-height: 1;
+  font-family: ${fonts.sans};
+  font-size: 11px;
+  text-decoration: underline;
   padding: 0 2px;
 `;

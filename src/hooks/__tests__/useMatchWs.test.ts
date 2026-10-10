@@ -504,6 +504,14 @@ describe("useMatchWs combat", () => {
     expect(sent[2].payload).toEqual({ confirm: true });
     expect(sent[3].payload).toEqual({ mode: "Race" });
   });
+
+  it("cancel_action leva só o actionId", () => {
+    const { result } = renderHook(() => useMatchWs({ matchUuid: "m1", token: "t" }));
+    const ws = flushConnect();
+    ws.onopen?.();
+    act(() => { result.current.sendCancelAction("a1"); });
+    expect(JSON.parse(ws.send.mock.calls[0][0] as string)).toEqual({ type: "cancel_action", payload: { actionId: "a1" } });
+  });
 });
 
 // ─── Server time, npc_added, add_npc, change_scene (Task 1) ─────────────────

@@ -84,7 +84,7 @@ const SILENT_CLOSE_CODE = 4000;
 const LOBBY_NOT_OPEN_CODE = 4001;
 
 const COMBAT_TYPES = new Set([
-  "match_full_state", "bars_updated", "action_enqueued", "action_queued",
+  "match_full_state", "bars_updated", "action_enqueued", "action_queued", "action_cancelled",
   "turn_opened", "turn_closed", "resolution_updated", "character_hp_changed",
   "round_closed", "round_mode_changed", "scene_changed", "close_turn_refused",
   "reaction_attached", "reaction_opened",
@@ -446,6 +446,10 @@ export function useMatchWs({
     (actionId: string) => sendRaw("pull_action", { actionId }),
     [sendRaw],
   );
+  const sendCancelAction = useCallback(
+    (actionId: string) => sendRaw("cancel_action", { actionId }),
+    [sendRaw],
+  );
   const sendCloseTurn = useCallback(
     (confirm?: boolean) => sendRaw("close_turn", confirm ? { confirm: true } : {}),
     [sendRaw],
@@ -483,6 +487,7 @@ export function useMatchWs({
     sendEnqueueAction,
     sendOpenNextAction,
     sendPullAction,
+    sendCancelAction,
     sendCloseTurn,
     sendChangeRoundMode,
     sendAddNpc,

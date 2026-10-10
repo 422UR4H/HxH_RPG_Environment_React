@@ -20,6 +20,8 @@ import OwnBars from "../features/match/combat/OwnBars";
 import EventStream from "../features/match/combat/EventStream";
 import { historyRows } from "../features/match/combat/historyRows";
 import ActionComposer from "../features/match/combat/ActionComposer";
+import type { DeclaredAction } from "../features/match/combat/combatReducer";
+import CancelDeclaredDialog from "../features/match/combat/CancelDeclaredDialog";
 import DeclaredActions from "../features/match/combat/DeclaredActions";
 import MatchErrorBanner from "../features/match/combat/MatchErrorBanner";
 import LostDeclaredNotice from "../features/match/combat/LostDeclaredNotice";
@@ -101,6 +103,11 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
   });
   const { onSlotForPick, cancelPick } = controls;
   const [railActive, setRailActive] = useState<RailTab>("acao");
+  // Cancelar uma ação declarada: o pedido espera a confirmação; se a linha deixa de estar
+  // "na fila" com o diálogo aberto (abriu no meio-tempo), o diálogo fecha sozinho.
+  const [cancelling, setCancelling] = useState<DeclaredAction | null>(null);
+  const cancelPending =
+    cancelling && state.declared.some((d) => d.id === cancelling.id && d.status === "queued") ? cancelling : null;
   const { panelOpen, setPanelOpen, asideOpen, setAsideOpen, closeAsideIfDrawer } = useStageOverlays();
 
   const handleRailSelect = useCallback(
@@ -359,7 +366,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
                     declared={state.declared}
                     nameOf={nameOf}
                     gridKind={map?.grid.kind ?? "square"}
-                    onHide={(id) => combat.dismissDeclared([id])}
+                    onCancel={(id) => setCancelling(state.declared.find((d) => d.id === id) ?? null)}
                   />
                 }
               />
@@ -387,6 +394,17 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
         }
       />
       <ReactionDialogHost token={token} matchId={matchId} controls={controls} nameOf={nameOf} />
+      <CancelDeclaredDialog
+        pending={cancelPending}
+        nameOf={nameOf}
+        gridKind={map?.grid.kind ?? "square"}
+        canConfirm={combat.status === "connected"}
+        onConfirm={() => {
+          if (cancelPending) combat.send.cancelAction(cancelPending.id);
+          setCancelling(null);
+        }}
+        onKeep={() => setCancelling(null)}
+      />
       {wallPicker && actorId && (
         <WallActionSheet
           wall={wallPicker}

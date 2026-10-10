@@ -8,6 +8,7 @@ import QueuePanel from "../QueuePanel";
 import CloseTurnRefusedDialog from "../CloseTurnRefusedDialog";
 import EventStream from "../EventStream";
 import DeclaredActions from "../DeclaredActions";
+import CancelDeclaredDialog from "../CancelDeclaredDialog";
 import MatchTopBar from "../MatchTopBar";
 import { RoundModeSwitch } from "../MasterControls";
 import ResolutionDetails from "../ResolutionDetails";
@@ -927,16 +928,17 @@ describe("EventStream", () => {
 });
 
 describe("DeclaredActions", () => {
-  it("lista o que foi declarado com o status, e oculta sem cancelar", () => {
-    const onHide = vi.fn();
+  it("lista o que foi declarado com o status; só a linha na fila tem Cancelar", () => {
+    const onCancel = vi.fn();
     render(
       <DeclaredActions
         nameOf={nameOf}
         gridKind="square"
-        onHide={onHide}
+        onCancel={onCancel}
         declared={[
           { id: "a1", actorId: "c1", status: "queued", fromComposer: true, at: 0, attack: { targets: ["n1"] } },
           { id: "local-2", actorId: "c1", status: "sending", fromComposer: true, at: 1, move: { category: "Shift", to: [0, 0, 0] } },
+          { id: "a3", actorId: "c1", status: "open", fromComposer: true, at: 2, attack: { targets: ["n1"] } },
         ]}
       />,
     );
@@ -945,12 +947,46 @@ describe("DeclaredActions", () => {
     expect(rows[0]).toHaveTextContent("na fila");
     expect(rows[1]).toHaveTextContent("Mover para coluna 1, linha 1 (Shift)");
     expect(rows[1]).toHaveTextContent("enviando…");
-    fireEvent.click(screen.getByRole("button", { name: "Ocultar da lista" }));
-    expect(onHide).toHaveBeenCalledWith("a1");
+    expect(screen.queryByRole("button", { name: "Ocultar da lista" })).toBeNull();
+    expect(screen.getAllByRole("button", { name: "Cancelar" })).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(onCancel).toHaveBeenCalledWith("a1");
   });
 
   it("não ocupa espaço quando não há nada", () => {
-    const { container } = render(<DeclaredActions nameOf={nameOf} gridKind="square" declared={[]} onHide={() => {}} />);
+    const { container } = render(<DeclaredActions nameOf={nameOf} gridKind="square" declared={[]} onCancel={() => {}} />);
+    expect(container).toBeEmptyDOMElement();
+  });
+});
+
+describe("CancelDeclaredDialog", () => {
+  const pending: DeclaredAction = { id: "a1", actorId: "c1", status: "queued", fromComposer: true, at: 0, attack: { targets: ["n1"] } };
+  const base = { nameOf, gridKind: "square" as const, canConfirm: true, onConfirm: () => {}, onKeep: () => {} };
+
+  it("pergunta, descreve a ação e diz o que acontece", () => {
+    render(<CancelDeclaredDialog {...base} pending={pending} />);
+    expect(screen.getByText("Cancelar esta ação?")).toBeInTheDocument();
+    expect(screen.getByText(/Atacar Hisoka/i)).toBeInTheDocument();
+    expect(screen.getByText("Ela sai da fila e não acontece.")).toBeInTheDocument();
+  });
+
+  it("Manter e Cancelar ação chamam cada um o seu", () => {
+    const onKeep = vi.fn();
+    const onConfirm = vi.fn();
+    render(<CancelDeclaredDialog {...base} pending={pending} onKeep={onKeep} onConfirm={onConfirm} />);
+    fireEvent.click(screen.getByRole("button", { name: "Manter" }));
+    expect(onKeep).toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar ação" }));
+    expect(onConfirm).toHaveBeenCalled();
+  });
+
+  it("sem conexão não dá para confirmar", () => {
+    render(<CancelDeclaredDialog {...base} pending={pending} canConfirm={false} />);
+    expect(screen.getByRole("button", { name: "Cancelar ação" })).toBeDisabled();
+  });
+
+  it("sem pedido não renderiza", () => {
+    const { container } = render(<CancelDeclaredDialog {...base} pending={null} />);
     expect(container).toBeEmptyDOMElement();
   });
 });

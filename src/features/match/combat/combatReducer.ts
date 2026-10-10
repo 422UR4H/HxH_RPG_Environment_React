@@ -1,5 +1,5 @@
 import type {
-  ActionEnqueuedPayload, BarsPayload, CloseTurnRefusedPayload, HpChangedPayload,
+  ActionCancelledPayload, ActionEnqueuedPayload, BarsPayload, CloseTurnRefusedPayload, HpChangedPayload,
   MatchFullStatePayload, MoveCategory, QueuedAction, ReactionAttachedPayload, ReactionKind,
   ReactionOpenedPayload, ResolutionPayload, RoundClosedPayload,
   RoundModeChangedPayload, RoundMode, ScenePayload, TurnClosedPayload, TurnOpenedPayload,
@@ -127,6 +127,7 @@ export type CombatAction =
   | ({ type: "bars_updated"; payload: BarsPayload } & Stamp)
   | ({ type: "action_enqueued"; payload: ActionEnqueuedPayload } & Stamp)
   | ({ type: "action_queued"; payload: QueuedAction } & Stamp)
+  | ({ type: "action_cancelled"; payload: ActionCancelledPayload } & Stamp)
   | ({ type: "turn_opened"; payload: TurnOpenedPayload } & Stamp)
   | ({ type: "turn_closed"; payload: TurnClosedPayload } & Stamp)
   | ({ type: "resolution_updated"; payload: ResolutionPayload } & Stamp)
@@ -286,6 +287,18 @@ export function combatReducer(state: CombatState, action: CombatAction): CombatS
 
     case "action_queued":
       return { ...state, queue: [...state.queue, action.payload] };
+
+    case "action_cancelled": {
+      // Sem estado otimista: a linha só some quando o servidor confirma. O fantasma do mapa
+      // deriva de `declared`, então sai junto. Id desconhecido (já abriu, já saiu) não muda nada.
+      const { actionId } = action.payload;
+      if (!state.queue.some((q) => q.actionId === actionId) && !state.declared.some((d) => d.id === actionId)) return state;
+      return {
+        ...state,
+        queue: state.queue.filter((q) => q.actionId !== actionId),
+        declared: state.declared.filter((d) => d.id !== actionId),
+      };
+    }
 
     case "turn_opened": {
       const { turnId, actorId, actionId } = action.payload;

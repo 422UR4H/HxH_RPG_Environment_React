@@ -595,3 +595,19 @@ describe("combatReducer — reações (Fase 7)", () => {
     expect(afterScene.lastSettled).toBeNull();
   });
 });
+
+describe("combatReducer — action_cancelled", () => {
+  const queued = (actionId: string): CombatAction => ({ type: "action_queued", payload: { actionId, actorId: "c1", bars: ["action"] } });
+  const cancelled = (actionId: string): CombatAction => ({ type: "action_cancelled", payload: { actionId } });
+
+  it("tira a ação da fila do mestre e de declared", () => {
+    const s = run([queued("a1"), queued("a2"), sent("local-1", moveTo), acked("a1"), cancelled("a1")]);
+    expect(s.queue.map((q) => q.actionId)).toEqual(["a2"]);
+    expect(s.declared).toEqual([]);
+  });
+
+  it("id desconhecido não muda nada", () => {
+    const before = run([queued("a1")]);
+    expect(run([cancelled("zzz")], before)).toBe(before);
+  });
+});
