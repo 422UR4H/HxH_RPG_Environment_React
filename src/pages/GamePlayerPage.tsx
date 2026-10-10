@@ -361,6 +361,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
                 nameOf={nameOf}
                 gridKind={map?.grid.kind ?? "square"}
                 loadFailed={historyFailed}
+                pinKey={state.declared.map((d) => `${d.id}:${d.status}`).join(",")}
                 footer={
                   <DeclaredActions
                     declared={state.declared}

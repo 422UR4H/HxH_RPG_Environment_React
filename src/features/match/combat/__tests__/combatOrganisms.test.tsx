@@ -708,6 +708,20 @@ describe("CloseTurnRefusedDialog", () => {
 });
 
 describe("EventStream", () => {
+  it("mudar só o rodapé (pinKey) prende a rolagem ao fim de novo", () => {
+    const scrollTo = vi.fn();
+    Object.defineProperty(HTMLElement.prototype, "scrollTo", { configurable: true, value: scrollTo });
+    try {
+      const rows = historyRows(undefined, [], undefined, undefined);
+      const { rerender } = render(<EventStream rows={rows} nameOf={nameOf} gridKind="square" pinKey="a" footer={<p>f1</p>} />);
+      const before = scrollTo.mock.calls.length;
+      rerender(<EventStream rows={rows} nameOf={nameOf} gridKind="square" pinKey="a:queued" footer={<p>f2</p>} />);
+      expect(scrollTo.mock.calls.length).toBe(before + 1);
+    } finally {
+      delete (HTMLElement.prototype as { scrollTo?: unknown }).scrollTo;
+    }
+  });
+
   it("histórico que não carregou: avisa por cima das linhas ao vivo", () => {
     const events: TableEvent[] = [{ kind: "round_mode_changed", at: 1, receivedAt: 1, mode: "Free" }];
     render(<EventStream rows={historyRows(undefined, events, undefined, undefined)} nameOf={nameOf} gridKind="square" loadFailed />);

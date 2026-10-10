@@ -137,6 +137,7 @@ export default function EventStream({
   gridKind,
   loadFailed = false,
   footer,
+  pinKey,
 }: {
   rows: HistoryRow[];
   nameOf: (characterId: string) => string;
@@ -145,49 +146,64 @@ export default function EventStream({
   loadFailed?: boolean;
   /** Vai depois da última linha, dentro do que rola — o histórico e o rodapé sobem juntos. */
   footer?: ReactNode;
+  /** O que muda quando só o rodapé muda (ex.: as ações declaradas) — refaz o pin-ao-fim. */
+  pinKey?: string;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // jsdom não tem layout (scrollTo pode nem existir) — o pin-ao-fim só se verifica no browser.
     containerRef.current?.scrollTo?.({ top: containerRef.current?.scrollHeight ?? 0 });
-  }, [rows]);
+  }, [rows, pinKey]);
 
   const loadError = loadFailed && <LoadError role="alert">Não foi possível carregar o histórico.</LoadError>;
 
   if (rows.length === 0) {
     return (
-      <Container ref={containerRef}>
-        {loadError || <Empty>Nada aconteceu ainda. Turnos, dano e trocas de regime aparecem aqui.</Empty>}
-        {footer}
-      </Container>
+      <Wrapper>
+        {loadError}
+        <Container ref={containerRef}>
+          {!loadError && <Empty>Nada aconteceu ainda. Turnos, dano e trocas de regime aparecem aqui.</Empty>}
+          {footer}
+        </Container>
+      </Wrapper>
     );
   }
 
   return (
-    <Container ref={containerRef}>
+    <Wrapper>
       {loadError}
-      <Lines>
-        {rows.map((row) => {
-          const line = rowLine(row, nameOf, gridKind);
-          return (
-            <Row key={row.key} data-testid="event-row" $tone={line.tone}>
-              <Icon aria-hidden>{line.icon}</Icon>
-              <span>
-                {line.text}
-                {line.details?.map((d, i) => <Detail key={i}>{d}</Detail>)}
-              </span>
-            </Row>
-          );
-        })}
-      </Lines>
-      {footer}
-    </Container>
+      <Container ref={containerRef}>
+        <Lines>
+          {rows.map((row) => {
+            const line = rowLine(row, nameOf, gridKind);
+            return (
+              <Row key={row.key} data-testid="event-row" $tone={line.tone}>
+                <Icon aria-hidden>{line.icon}</Icon>
+                <span>
+                  {line.text}
+                  {line.details?.map((d, i) => <Detail key={i}>{d}</Detail>)}
+                </span>
+              </Row>
+            );
+          })}
+        </Lines>
+        {footer}
+      </Container>
+    </Wrapper>
   );
 }
 
-const Container = styled.div`
+/** O aviso de falha fica fora do que rola — continua à vista com o histórico no fim. */
+const Wrapper = styled.div`
+  display: flex;
+  flex-direction: column;
   height: 100%;
+`;
+
+const Container = styled.div`
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 8px;
   color: ${colors.textPrimary};
