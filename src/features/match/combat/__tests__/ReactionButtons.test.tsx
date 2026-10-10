@@ -26,6 +26,7 @@ describe("ReactionButtons", () => {
     }
     expect(screen.getAllByRole("button")).toHaveLength(5);
     expect(button("Esquivar")).toHaveAttribute("aria-label", "Esquivar — segure para configurar");
+    expect(button("Repelir")).toHaveAttribute("aria-label", "Repelir — abre a configuração");
   });
 
   it("toque rápido envia direto", () => {
