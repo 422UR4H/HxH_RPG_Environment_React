@@ -10,6 +10,7 @@ import { useMatchHistory } from "../hooks/useMatchHistory";
 import { useGameTable } from "../features/match/combat/useGameTable";
 import { defaultMoveCategory } from "../features/match/combat/defaultMoveCategory";
 import { useReactionControls } from "../features/match/combat/useReactionControls";
+import { useStageOverlays } from "../features/match/combat/useStageOverlays";
 import MatchStageTemplate from "../components/templates/MatchStageTemplate";
 import MatchTopBar from "../features/match/combat/MatchTopBar";
 import {
@@ -79,9 +80,6 @@ function arrangePayload(p: ArrangePending): MasterActionPayload {
     : { targetIds: [p.characterId], move: { position: p.to } };
 }
 
-const initialAsideOpen = () =>
-  typeof window !== "undefined" && window.matchMedia?.("(min-width: 1280px)").matches === true;
-
 export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const { width, height } = useResizeObserver(canvasRef);
@@ -126,8 +124,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   const { onSlotForPick, cancelPick } = controls;
 
   const [railActive, setRailActive] = useState<RailTab>("fila");
-  const [panelOpen, setPanelOpen] = useState(true);
-  const [asideOpen, setAsideOpen] = useState(initialAsideOpen);
+  const { panelOpen, setPanelOpen, asideOpen, setAsideOpen, closeAsideIfDrawer } = useStageOverlays();
   const [wallPicker, setWallPicker] = useState<WallSegment | null>(null);
   const [sceneDialog, setSceneDialog] = useState(false);
 
@@ -169,7 +166,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     setInspectedId(undefined);
     setBoardMode("arrange");
     setPanelOpen(true);
-  }, [arranging, exitBoardMode]);
+  }, [arranging, exitBoardMode, setPanelOpen]);
   const chooseFallSlot = useCallback(
     (targetId: string) => {
       exitBoardMode();
@@ -263,7 +260,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
       setRailActive(id as RailTab);
       setPanelOpen(true);
     },
-    [railActive, arranging, exitBoardMode],
+    [railActive, arranging, exitBoardMode, setPanelOpen],
   );
 
   const chooseActor = useCallback((id: string | undefined) => {
@@ -279,7 +276,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
       setRailActive("agir");
       setPanelOpen(true);
     }
-  }, [cancelPick]);
+  }, [cancelPick, setPanelOpen]);
 
   const pieceCharacter = useCallback(
     (pieceId: string) => game.boardPieces.find((p) => p.id === pieceId)?.characterId,
@@ -481,7 +478,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   const showReactionSection = useCallback(() => {
     setRailActive("fila");
     setPanelOpen(true);
-  }, []);
+  }, [setPanelOpen]);
   const mapHint = !map
     ? undefined
     : reactionPicking && reactionPick
@@ -504,6 +501,11 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
         panelOpen={panelOpen}
         asideOpen={asideOpen}
         panelWide={!arranging && railActive === "ficha"}
+        // Spec §4: o painel só vira modal (véu) quando não pede toque no mapa. Pedem: Arrumar,
+        // escolher a casa da queda, escolher a casa de fuga e compor ação (aba Agir com ator).
+        panelDismissible={!(arranging || fallPicking || reactionPicking || (railActive === "agir" && !!actorId))}
+        onDismissPanel={() => setPanelOpen(false)}
+        onDismissAside={() => setAsideOpen(false)}
         topbar={
           <MatchTopBar
             scene={state.scene}
@@ -771,6 +773,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                   setSheetId(sheetUuid);
                   setRailActive("ficha");
                   setPanelOpen(true);
+                  closeAsideIfDrawer();
                 }}
               />
             }

@@ -10,6 +10,7 @@ import { useCharacterSheet } from "../hooks/useCharacterSheet";
 import { useGameTable } from "../features/match/combat/useGameTable";
 import { defaultMoveCategory } from "../features/match/combat/defaultMoveCategory";
 import { useReactionControls } from "../features/match/combat/useReactionControls";
+import { useStageOverlays } from "../features/match/combat/useStageOverlays";
 import MatchStageTemplate from "../components/templates/MatchStageTemplate";
 import MatchTopBar from "../features/match/combat/MatchTopBar";
 import RailNav from "../features/match/combat/RailNav";
@@ -47,9 +48,6 @@ type Props = {
 // No jogo nenhuma peça é arrastável: quem decide onde a peça para é o servidor. Um Set
 // vazio (e não `undefined`, que o PiecesLayer lê como "tudo arrastável", o modo editor).
 const NO_DRAG = new Set<string>();
-
-const initialAsideOpen = () =>
-  typeof window !== "undefined" && window.matchMedia?.("(min-width: 1280px)").matches === true;
 
 type RailTab = "acao" | "ficha";
 
@@ -103,8 +101,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
   });
   const { onSlotForPick, cancelPick } = controls;
   const [railActive, setRailActive] = useState<RailTab>("acao");
-  const [panelOpen, setPanelOpen] = useState(true);
-  const [asideOpen, setAsideOpen] = useState(initialAsideOpen);
+  const { panelOpen, setPanelOpen, asideOpen, setAsideOpen, closeAsideIfDrawer } = useStageOverlays();
 
   const handleRailSelect = useCallback(
     (id: string) => {
@@ -115,7 +112,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
       setRailActive(id as RailTab);
       setPanelOpen(true);
     },
-    [railActive],
+    [railActive, setPanelOpen],
   );
 
   const pieceCharacter = useCallback(
@@ -131,7 +128,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
       setRailActive("acao");
       setPanelOpen(true);
     },
-    [pieceCharacter, actorId, composer],
+    [pieceCharacter, actorId, composer, setPanelOpen],
   );
   const handlePieceHold = useCallback(
     (pieceId: string) => {
@@ -141,7 +138,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
       setRailActive("acao");
       setPanelOpen(true);
     },
-    [pieceCharacter, actorId, composer],
+    [pieceCharacter, actorId, composer, setPanelOpen],
   );
   const handleSlotTap = useCallback(
     (slot: SlotCoord) => {
@@ -152,7 +149,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
       setRailActive("acao");
       setPanelOpen(true);
     },
-    [onSlotForPick, actorId, composer],
+    [onSlotForPick, actorId, composer, setPanelOpen],
   );
 
   // O Esc é da escolha da casa só quando não é de outra coisa: um diálogo aberto ou um campo
@@ -180,7 +177,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
   const showReactionSection = useCallback(() => {
     setRailActive("acao");
     setPanelOpen(true);
-  }, []);
+  }, [setPanelOpen]);
 
   // Botões de reação (abaixo da peça) e balões (acima): a mesma camada, os mesmos helpers nas duas telas.
   const anchoredItems: PieceAnchoredItem[] = useCombatAnchoredItems(controls, nameOf, game.balloons);
@@ -211,6 +208,11 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
         panelOpen={panelOpen}
         asideOpen={asideOpen}
         panelWide={railActive === "ficha"}
+        // Spec §4: o painel só vira modal (véu) quando não pede toque no mapa. A aba Ação com
+        // personagem é o compositor, e escolher a casa de fuga também pede o mapa.
+        panelDismissible={(railActive === "ficha" || !actorId) && !picking}
+        onDismissPanel={() => setPanelOpen(false)}
+        onDismissAside={() => setAsideOpen(false)}
         topbar={
           <MatchTopBar
             scene={state.scene}
@@ -378,6 +380,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
                   setChosenActor(sheetUuid);
                   setRailActive("ficha");
                   setPanelOpen(true);
+                  closeAsideIfDrawer();
                 }}
               />
             }

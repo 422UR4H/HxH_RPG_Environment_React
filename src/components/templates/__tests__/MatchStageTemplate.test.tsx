@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
 import MatchStageTemplate from "../MatchStageTemplate";
 
 // jsdom não avalia media query contra layout: a disposição por largura só se verifica no
@@ -64,5 +64,54 @@ describe("MatchStageTemplate", () => {
     const css = Array.from(document.querySelectorAll("style")).map((s) => s.textContent).join("\n");
     expect(css).toContain('grid-template-areas:"stage" "panel" "rail";');
     expect(css).not.toMatch(/position:fixed/);
+  });
+
+  describe("véus em tela estreita", () => {
+    const base = { topbar: <div />, rail: <div />, stage: <div />, panel: <div />, aside: <div /> };
+
+    it("véu do painel: existe com panelOpen + panelDismissible e o click o dispensa", () => {
+      const onDismissPanel = vi.fn();
+      render(<MatchStageTemplate {...base} panelOpen panelDismissible onDismissPanel={onDismissPanel} />);
+      fireEvent.click(screen.getByTestId("panel-scrim"));
+      expect(onDismissPanel).toHaveBeenCalledTimes(1);
+    });
+
+    it("não há véu do painel sem panelDismissible (o painel pede toque no mapa) nem com ele fechado", () => {
+      const { rerender } = render(<MatchStageTemplate {...base} panelOpen onDismissPanel={() => {}} />);
+      expect(screen.queryByTestId("panel-scrim")).toBeNull();
+      rerender(<MatchStageTemplate {...base} panelOpen={false} panelDismissible onDismissPanel={() => {}} />);
+      expect(screen.queryByTestId("panel-scrim")).toBeNull();
+    });
+
+    it("véu da gaveta: existe com asideOpen + onDismissAside e o click o dispensa", () => {
+      const onDismissAside = vi.fn();
+      render(<MatchStageTemplate {...base} asideOpen onDismissAside={onDismissAside} />);
+      fireEvent.click(screen.getByTestId("aside-scrim"));
+      expect(onDismissAside).toHaveBeenCalledTimes(1);
+    });
+
+    it("não há véu da gaveta fechada", () => {
+      render(<MatchStageTemplate {...base} asideOpen={false} onDismissAside={() => {}} />);
+      expect(screen.queryByTestId("aside-scrim")).toBeNull();
+    });
+
+    it("pointerdown nos véus não chega à window (o pan do mapa escuta lá)", () => {
+      const onWindowPointerDown = vi.fn();
+      window.addEventListener("pointerdown", onWindowPointerDown);
+      render(
+        <MatchStageTemplate
+          {...base}
+          panelOpen
+          panelDismissible
+          onDismissPanel={() => {}}
+          asideOpen
+          onDismissAside={() => {}}
+        />,
+      );
+      fireEvent.pointerDown(screen.getByTestId("panel-scrim"));
+      fireEvent.pointerDown(screen.getByTestId("aside-scrim"));
+      window.removeEventListener("pointerdown", onWindowPointerDown);
+      expect(onWindowPointerDown).not.toHaveBeenCalled();
+    });
   });
 });

@@ -99,6 +99,7 @@ export const colors = {
   overlaySoft: "rgba(0, 0, 0, 0.44)",
   overlayMedium: "rgba(0, 0, 0, 0.6)",
   overlayDark: "rgba(0, 0, 0, 0.85)",
+  scrim: "rgba(0, 0, 0, 0.32)", // véu do painel/gaveta em tela estreita
 
   // shadows
   shadowSoft: "rgba(0, 0, 0, 0.3)",

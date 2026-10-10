@@ -807,9 +807,10 @@ describe("GameMasterPage", () => {
     await user.click(screen.getByRole("button", { name: "Personagens" }));
     await user.click(await screen.findByTestId("character-row-c1"));
     expect(await screen.findByTestId("match-sheet")).toBeInTheDocument();
-    // o painel alarga só para a ficha, e a aba da direita continua em Personagens
+    // o painel alarga só para a ficha; em tela estreita (o jsdom é sempre estreito) a gaveta
+    // cobre o mapa e fecha ao escolher o card — a ficha abre no painel, que ela não encobre
     expect(screen.getByTestId("match-panel")).toHaveAttribute("data-wide", "true");
-    expect(screen.getByRole("button", { name: "Personagens", pressed: true })).toBeInTheDocument();
+    expect(screen.getByTestId("match-aside")).toHaveAttribute("data-open", "false");
     await user.click(screen.getByRole("button", { name: /Fila/ }));
     expect(screen.getByTestId("match-panel")).toHaveAttribute("data-wide", "false");
   });
