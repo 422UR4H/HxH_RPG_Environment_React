@@ -3,9 +3,9 @@ import { colors, fonts } from "../../../styles/tokens";
 import type { GridKind } from "../../../types/tacticalMap";
 import type { Bar, BarsPayload, EditActionPayload, QueuedAction, QueuedActionDetail, ResolutionPayload } from "./combatMessages";
 import { BAR_ICONS, BAR_LABELS, formatSlot, humanWeapon } from "./combatText";
+import { orderQueue, sameBars } from "./queueOrder";
 import ResolutionDetails from "./ResolutionDetails";
 
-const sameBars = (a: readonly Bar[], b: readonly Bar[]) => [...a].sort().join(",") === [...b].sort().join(",");
 
 /**
  * A primeira entrada da ordem geral com o mesmo ator E as mesmas barras desta ação (T13) —
@@ -70,8 +70,8 @@ function QueueRowDetails({
 }
 
 /**
- * A fila secreta — só o mestre recebe. Em ordem de chegada (a ordem de EXECUÇÃO é a barra
- * geral). Mostra também, no topo, a ação em andamento (`open`) — o turno aberto tirou essa
+ * A fila secreta — só o mestre recebe. Na ordem em que as ações vão abrir (`orderQueue`, a
+ * partir de `bars_updated.order`); o que não cabe na rodada vai ao fim, marcado. Mostra também, no topo, a ação em andamento (`open`) — o turno aberto tirou essa
  * linha da fila de verdade, mas o mestre ainda precisa vê-la, com a declaração (I1) e o
  * cálculo que só ele recebe (F7). Cada linha da fila mostra sempre a declaração inteira (T13/F1) quando
  * `action.action` (B1) vem; sem ele (servidor antigo), a linha fica como sempre foi.
@@ -144,7 +144,7 @@ export default function QueuePanel({
               )}
             </OpenRow>
           )}
-          {queue.map((action) => {
+          {orderQueue(queue, order).map(({ action, inOrder }) => {
             const detail = action.action;
             return (
               <Row key={action.actionId} data-testid="queue-row">
@@ -155,6 +155,7 @@ export default function QueuePanel({
                       <Bars title={action.bars.map((b) => BAR_LABELS[b]).join(" + ")}>
                         {action.bars.map((b) => BAR_ICONS[b]).join("")}
                       </Bars>
+                      {!inOrder && <NextRoundBadge title="Não cabe mais nesta rodada; abre na próxima">próxima rodada</NextRoundBadge>}
                     </Name>
                   </Info>
                   <PullButton type="button" onClick={() => onPull(action.actionId)} title="Abrir esta ação agora, fora da ordem">
@@ -246,6 +247,10 @@ const OpenBadge = styled.span`
   font-weight: 600;
   text-transform: uppercase;
   color: ${colors.pieceActiveTurn};
+`;
+
+const NextRoundBadge = styled(OpenBadge)`
+  color: ${colors.textPlaceholderStrong};
 `;
 
 const Info = styled.div`

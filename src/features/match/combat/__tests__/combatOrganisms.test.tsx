@@ -201,6 +201,31 @@ describe("QueuePanel", () => {
     expect(onPull).toHaveBeenCalledWith("a2");
   });
 
+  it("mostra as linhas na ordem do servidor, não da chegada; fora da ordem leva a etiqueta", () => {
+    render(
+      <QueuePanel
+        nameOf={nameOf}
+        gridKind="square"
+        order={[
+          { actorId: "n1", bars: ["move"], key: 9 },
+          { actorId: "c1", bars: ["action"], key: 5 },
+        ]}
+        queue={[
+          { actionId: "a1", actorId: "c1", bars: ["action"] },
+          { actionId: "a2", actorId: "n1", bars: ["move"] },
+          { actionId: "a3", actorId: "c2", bars: ["action"] },
+        ]}
+        onPull={() => {}}
+      />,
+    );
+    const rows = screen.getAllByTestId("queue-row");
+    expect(rows[0]).toHaveTextContent("Hisoka");
+    expect(rows[1]).toHaveTextContent("Gon");
+    expect(rows[2]).toHaveTextContent("Killua");
+    expect(within(rows[0]).queryByText("próxima rodada")).not.toBeInTheDocument();
+    expect(within(rows[2]).getByText("próxima rodada")).toBeInTheDocument();
+  });
+
   it("fila vazia diz o que vai aparecer ali", () => {
     render(<QueuePanel nameOf={nameOf} queue={[]} order={[]} gridKind="square" onPull={() => {}} />);
     expect(screen.getByText(/Ninguém declarou nada ainda/)).toBeInTheDocument();
