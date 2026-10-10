@@ -10,7 +10,7 @@ import { useCharacterSheet } from "../hooks/useCharacterSheet";
 import { useGameTable } from "../features/match/combat/useGameTable";
 import { defaultMoveCategory } from "../features/match/combat/defaultMoveCategory";
 import { useReactionControls } from "../features/match/combat/useReactionControls";
-import { useStageOverlays } from "../features/match/combat/useStageOverlays";
+import { playerPanelDismissible, useStageOverlays } from "../features/match/combat/useStageOverlays";
 import MatchStageTemplate from "../components/templates/MatchStageTemplate";
 import MatchTopBar from "../features/match/combat/MatchTopBar";
 import RailNav from "../features/match/combat/RailNav";
@@ -208,9 +208,8 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
         panelOpen={panelOpen}
         asideOpen={asideOpen}
         panelWide={railActive === "ficha"}
-        // Spec §4: o painel só vira modal (véu) quando não pede toque no mapa. A aba Ação com
-        // personagem é o compositor, e escolher a casa de fuga também pede o mapa.
-        panelDismissible={(railActive === "ficha" || !actorId) && !picking}
+        // Spec §4: véu só quando o painel não pede toque no mapa (regra em playerPanelDismissible).
+        panelDismissible={playerPanelDismissible({ railActive, hasActor: !!actorId, picking })}
         onDismissPanel={() => setPanelOpen(false)}
         onDismissAside={() => setAsideOpen(false)}
         topbar={

@@ -10,7 +10,7 @@ import { useMatchHistory } from "../hooks/useMatchHistory";
 import { useGameTable } from "../features/match/combat/useGameTable";
 import { defaultMoveCategory } from "../features/match/combat/defaultMoveCategory";
 import { useReactionControls } from "../features/match/combat/useReactionControls";
-import { useStageOverlays } from "../features/match/combat/useStageOverlays";
+import { masterPanelDismissible, useStageOverlays } from "../features/match/combat/useStageOverlays";
 import MatchStageTemplate from "../components/templates/MatchStageTemplate";
 import MatchTopBar from "../features/match/combat/MatchTopBar";
 import {
@@ -501,9 +501,8 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
         panelOpen={panelOpen}
         asideOpen={asideOpen}
         panelWide={!arranging && railActive === "ficha"}
-        // Spec §4: o painel só vira modal (véu) quando não pede toque no mapa. Pedem: Arrumar,
-        // escolher a casa da queda, escolher a casa de fuga e compor ação (aba Agir com ator).
-        panelDismissible={!(arranging || fallPicking || reactionPicking || (railActive === "agir" && !!actorId))}
+        // Spec §4: véu só quando o painel não pede toque no mapa (regra em masterPanelDismissible).
+        panelDismissible={masterPanelDismissible({ railActive, mapPicking: arranging || fallPicking || reactionPicking })}
         onDismissPanel={() => setPanelOpen(false)}
         onDismissAside={() => setAsideOpen(false)}
         topbar={

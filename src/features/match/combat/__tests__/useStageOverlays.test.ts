@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { useStageOverlays } from "../useStageOverlays";
+import { useStageOverlays, masterPanelDismissible, playerPanelDismissible } from "../useStageOverlays";
 
 const original = window.matchMedia;
 
@@ -98,5 +98,32 @@ describe("useStageOverlays", () => {
       act(() => result.current.closeAsideIfDrawer());
       expect(result.current.asideOpen).toBe(true);
     });
+  });
+});
+
+describe("masterPanelDismissible", () => {
+  it("Agir nunca é dispensável (com ou sem ator o toque no mapa é do mestre)", () => {
+    expect(masterPanelDismissible({ railActive: "agir", mapPicking: false })).toBe(false);
+  });
+  it("Fila e Ficha são dispensáveis", () => {
+    expect(masterPanelDismissible({ railActive: "fila", mapPicking: false })).toBe(true);
+    expect(masterPanelDismissible({ railActive: "ficha", mapPicking: false })).toBe(true);
+  });
+  it("Arrumar, queda e fuga (mapPicking) não são dispensáveis", () => {
+    expect(masterPanelDismissible({ railActive: "fila", mapPicking: true })).toBe(false);
+    expect(masterPanelDismissible({ railActive: "ficha", mapPicking: true })).toBe(false);
+  });
+});
+
+describe("playerPanelDismissible", () => {
+  it("Ação com personagem é o compositor: não", () => {
+    expect(playerPanelDismissible({ railActive: "acao", hasActor: true, picking: false })).toBe(false);
+  });
+  it("Ficha: sim; Ficha escolhendo casa: não", () => {
+    expect(playerPanelDismissible({ railActive: "ficha", hasActor: true, picking: false })).toBe(true);
+    expect(playerPanelDismissible({ railActive: "ficha", hasActor: true, picking: true })).toBe(false);
+  });
+  it("sem personagem: sim", () => {
+    expect(playerPanelDismissible({ railActive: "acao", hasActor: false, picking: false })).toBe(true);
   });
 });

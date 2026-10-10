@@ -57,3 +57,24 @@ export function useStageOverlays(): {
     closeAsideIfDrawer,
   };
 }
+
+/**
+ * Quando o painel vira modal (véu) abaixo de `railUp` — spec §4: só se o conteúdo NÃO pede
+ * toque no mapa. Mestre: a aba Agir nunca (sem ator, tocar num NPC é como ele escolhe o
+ * ator; com ator, é o compositor), e nem Arrumar/queda/fuga, que escolhem casa no mapa.
+ */
+export function masterPanelDismissible(input: {
+  railActive: "fila" | "agir" | "ficha";
+  mapPicking: boolean;
+}): boolean {
+  return input.railActive !== "agir" && !input.mapPicking;
+}
+
+/** Jogador: a aba Ação com personagem é o compositor; escolher a casa de fuga também pede o mapa. */
+export function playerPanelDismissible(input: {
+  railActive: "acao" | "ficha";
+  hasActor: boolean;
+  picking: boolean;
+}): boolean {
+  return (input.railActive === "ficha" || !input.hasActor) && !input.picking;
+}
