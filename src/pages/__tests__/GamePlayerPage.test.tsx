@@ -842,7 +842,8 @@ describe("GamePlayerPage", () => {
       ws.emit("character_hp_changed", { characterId: "c1", hp: 7, maxHp: 30, damage: 3 });
     });
     const sheet = screen.getByTestId("match-sheet");
-    expect(await within(sheet).findByText(/7\/30/)).toBeInTheDocument();
+    // a barra repete o texto em duas camadas (clara e escura recortada)
+    expect((await within(sheet).findAllByText(/7\/30/)).length).toBeGreaterThan(0);
   });
 
   // F4: a aba Histórico vem do REST; cada turn_closed invalida e rebusca a mesma query.

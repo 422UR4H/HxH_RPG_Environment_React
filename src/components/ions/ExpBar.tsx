@@ -20,7 +20,7 @@ export default function ExpBar({ currExp, maxExp, color = colors.redExpDefault, 
   }, []);
 
   const showTooltip = () => {
-    if (currExp > 0) setTooltipVisible(true);
+    setTooltipVisible(true);
   };
 
   const hideTooltip = () => {
@@ -29,7 +29,7 @@ export default function ExpBar({ currExp, maxExp, color = colors.redExpDefault, 
 
   const startLongPress = () => {
     timerRef.current = setTimeout(() => {
-      if (currExp > 0) setTooltipVisible(true);
+      setTooltipVisible(true);
     }, 400);
   };
 
