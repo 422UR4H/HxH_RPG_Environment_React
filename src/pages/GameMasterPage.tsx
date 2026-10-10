@@ -803,6 +803,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
         nameOf={nameOf}
         gridKind={gridKind}
         showActor
+        showSwapCost={state.roundMode === "Race"}
         canConfirm={combat.status === "connected"}
         onConfirm={() => {
           if (cancelPending) combat.send.cancelAction(cancelPending.id);

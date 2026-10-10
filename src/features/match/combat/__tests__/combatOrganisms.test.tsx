@@ -271,7 +271,7 @@ describe("QueuePanel", () => {
     expect(within(open).getByText(/Arma: Throwing Dagger/)).toBeInTheDocument();
     expect(within(open).getByText(/Alvos: Gon/)).toBeInTheDocument();
     expect(within(open).getByText(/Movimento: Dash.*coluna 3, linha 1/)).toBeInTheDocument();
-    expect(within(open).queryByText(/Cobra:/)).not.toBeInTheDocument();
+    expect(within(open).queryByText(/Custo:/)).not.toBeInTheDocument();
     expect(within(open).queryByRole("button", { name: "Detalhes" })).not.toBeInTheDocument();
   });
 
@@ -286,7 +286,7 @@ describe("QueuePanel", () => {
         onPull={() => {}}
       />,
     );
-    expect(within(screen.getByTestId("queue-open")).getByText(/Cobra: movimento/)).toBeInTheDocument();
+    expect(within(screen.getByTestId("queue-open")).getByText("Custo: barra de movimento")).toBeInTheDocument();
   });
 });
 
@@ -984,6 +984,14 @@ describe("CancelDeclaredDialog", () => {
   it("sem conexão não dá para confirmar", () => {
     render(<CancelDeclaredDialog {...base} pending={pending} canConfirm={false} />);
     expect(screen.getByRole("button", { name: "Cancelar ação" })).toBeDisabled();
+  });
+
+  it("com showSwapCost avisa da Desvantagem; sem ele, não", () => {
+    const aviso = "Até o fim da rodada, o que este personagem fizer de novo rola a velocidade com Desvantagem.";
+    const { rerender } = render(<CancelDeclaredDialog {...base} pending={pending} showSwapCost />);
+    expect(screen.getByText(aviso)).toBeInTheDocument();
+    rerender(<CancelDeclaredDialog {...base} pending={pending} />);
+    expect(screen.queryByText(aviso)).not.toBeInTheDocument();
   });
 
   it("sem pedido não renderiza", () => {

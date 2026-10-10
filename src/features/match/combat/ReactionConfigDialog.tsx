@@ -2,7 +2,7 @@ import { useState } from "react";
 import styled from "styled-components";
 import { colors, fonts } from "../../../styles/tokens";
 import type { ReactionKind } from "./combatMessages";
-import { BAR_LABELS, weaponLabel } from "./combatText";
+import { costLabel, weaponLabel } from "./combatText";
 import {
   REACTION_BARS, REACTION_BUTTONS, REACTION_BUTTON_LABELS, needsDestination, reactionKindOf, supportsEvasion,
 } from "./reactionModel";
@@ -18,7 +18,7 @@ import {
 function costText(kind: ReactionKind): string {
   const bars = REACTION_BARS[kind];
   if (bars.length === 0) return "Não cobra nada";
-  return `Cobra: ${bars.map((b) => BAR_LABELS[b]).join(" + ")}. Se você tinha uma ação na fila nessa barra, ela é consumida e a reação rola com Desvantagem.`;
+  return `Custo: ${costLabel(bars)}. Se você tinha uma ação na fila nessa barra, ela é consumida e a reação rola com Desvantagem.`;
 }
 
 /**

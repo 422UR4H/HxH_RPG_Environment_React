@@ -399,6 +399,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
         pending={cancelPending}
         nameOf={nameOf}
         gridKind={map?.grid.kind ?? "square"}
+        showSwapCost={state.roundMode === "Race"}
         canConfirm={combat.status === "connected"}
         onConfirm={() => {
           if (cancelPending) combat.send.cancelAction(cancelPending.id);

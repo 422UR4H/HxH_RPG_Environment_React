@@ -473,7 +473,7 @@ describe("GameMasterPage", () => {
     expect(within(openRow).getByText(/em andamento/i)).toBeInTheDocument();
     expect(within(openRow).getByText(/Arma: Sword/)).toBeInTheDocument();
     expect(within(openRow).getByText(/Alvos: Capanga/)).toBeInTheDocument();
-    expect(within(openRow).queryByText(/Cobra:/)).not.toBeInTheDocument();
+    expect(within(openRow).queryByText(/Custo:/)).not.toBeInTheDocument();
   });
 
   it("mostra o diálogo que o servidor computou e reenvia com confirm", async () => {

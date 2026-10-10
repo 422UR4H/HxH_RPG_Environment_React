@@ -16,6 +16,7 @@ export default function CancelDeclaredDialog({
   nameOf,
   gridKind,
   showActor,
+  showSwapCost,
   canConfirm,
   onConfirm,
   onKeep,
@@ -25,6 +26,11 @@ export default function CancelDeclaredDialog({
   gridKind: GridKind;
   /** O mestre declara por vários NPCs: o diálogo diz de quem é, como a linha. */
   showActor?: boolean;
+  /**
+   * Na corrida (Race) cancelar e refazer custa: até o fim da rodada o personagem rola a
+   * velocidade com Desvantagem. Em Livre não há velocidade a rolar, então o aviso some.
+   */
+  showSwapCost?: boolean;
   /** Sem conexão o envio não sai: o diálogo fica aberto em vez de perder o pedido. */
   canConfirm: boolean;
   onConfirm: () => void;
@@ -38,6 +44,9 @@ export default function CancelDeclaredDialog({
         <DialogTitle>Cancelar esta ação?</DialogTitle>
         <DialogHint>{what}</DialogHint>
         <DialogHint>Ela sai da fila e não acontece.</DialogHint>
+        {showSwapCost && (
+          <DialogHint>Até o fim da rodada, o que este personagem fizer de novo rola a velocidade com Desvantagem.</DialogHint>
+        )}
         {!canConfirm && <PanelHint>Sem conexão com a mesa — confirme quando ela voltar.</PanelHint>}
         <Buttons>
           <CancelButton type="button" onClick={onKeep}>Manter</CancelButton>

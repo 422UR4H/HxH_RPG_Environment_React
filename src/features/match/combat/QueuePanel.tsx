@@ -2,7 +2,7 @@ import styled from "styled-components";
 import { colors, fonts } from "../../../styles/tokens";
 import type { GridKind } from "../../../types/tacticalMap";
 import type { Bar, BarsPayload, EditActionPayload, QueuedAction, QueuedActionDetail, ResolutionPayload, RoundMode } from "./combatMessages";
-import { BAR_ICONS, BAR_LABELS, formatSlot, weaponLabel } from "./combatText";
+import { BAR_ICONS, BAR_LABELS, costLabel, formatSlot, weaponLabel } from "./combatText";
 import { orderQueue } from "./queueOrder";
 import ResolutionDetails from "./ResolutionDetails";
 
@@ -52,7 +52,7 @@ function QueueRowDetails({
         </DetailLine>
       )}
       {orderKey !== undefined && <DetailLine>Ordem geral: chave {orderKey}</DetailLine>}
-      {!!bars?.length && <DetailLine>Cobra: {bars.map((b) => BAR_LABELS[b]).join(" + ")}</DetailLine>}
+      {!!bars?.length && <DetailLine>Custo: {costLabel(bars)}</DetailLine>}
     </Details>
   );
 }

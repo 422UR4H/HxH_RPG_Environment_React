@@ -87,9 +87,9 @@ describe("ReactionConfigDialog", () => {
   it("o custo da fuga fechada cita só a barra de movimento", () => {
     setup("escape");
     fireEvent.click(evasion());
-    const cost = screen.getByText(/^Cobra:/);
+    const cost = screen.getByText(/^Custo:/);
     expect(cost).toHaveTextContent(
-      "Cobra: movimento. Se você tinha uma ação na fila nessa barra, ela é consumida e a reação rola com Desvantagem.",
+      "Custo: barra de movimento. Se você tinha uma ação na fila nessa barra, ela é consumida e a reação rola com Desvantagem.",
     );
     expect(cost).not.toHaveTextContent("ação +");
   });
@@ -98,7 +98,7 @@ describe("ReactionConfigDialog", () => {
     setup("dodge");
     expect(screen.getByText("Não cobra nada")).toBeInTheDocument();
     fireEvent.click(radio("Escapar"));
-    expect(screen.getByText(/^Cobra:/)).toHaveTextContent("Cobra: ação + movimento");
+    expect(screen.getByText(/^Custo:/)).toHaveTextContent("Custo: barras de ação e movimento");
   });
 
   it("rótulos e a arma usam a fonte e a cor do diálogo, não o `* { font-family }` global", () => {

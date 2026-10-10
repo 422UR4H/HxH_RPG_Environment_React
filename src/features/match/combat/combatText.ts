@@ -10,6 +10,11 @@ export const ROUND_MODE_LABELS: Record<RoundMode, string> = { Free: "Livre", Rac
 export const BAR_ICONS: Record<Bar, string> = { action: "⚔", move: "➜" };
 export const BAR_LABELS: Record<Bar, string> = { action: "ação", move: "movimento" };
 
+/** O que a ação/reação gasta, com a barra por extenso ("barra de ação", "barras de ação e movimento"). */
+export function costLabel(bars: Bar[]): string {
+  return `${bars.length > 1 ? "barras" : "barra"} de ${bars.map((b) => BAR_LABELS[b]).join(" e ")}`;
+}
+
 /** `reaction.rung` do repelir — snake_case do domínio, rótulo PT na tela. */
 export const RUNG_LABELS: Record<string, string> = {
   great_success: "sucesso total",
