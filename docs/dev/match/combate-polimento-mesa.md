@@ -151,8 +151,8 @@ preenchimentos não levam contorno.
 
 - Aba **Personagens** (`MatchCharactersSidebar`): `fluid` (cards na largura do painel) e `footer`;
   o mestre põe o "Pôr na partida" (`AddNpcPicker`) ali, não mais no painel de ação.
-- A fila do mestre perdeu o botão "Detalhes" e o `MatchSheetPanel` o `onClose` que sobrou dele.
-- HUD sem seleção de texto (`user-select: none`).
+- A fila do mestre perdeu o botão "Detalhes"; o `MatchSheetPanel` perdeu o cabeçalho com `×` (`onClose`) que só ele usava.
+- Partes do HUD ganharam `user-select: none` (o `Tooltip` e a barra da mesa), para o toque longo não selecionar texto.
 
 ## Limites conhecidos
 
