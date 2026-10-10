@@ -65,8 +65,9 @@ tocar no véu fecha a folha e o toque não chega ao mapa (nada é selecionado).
 
 - **Painel (bottom sheet, abaixo de `railUp`):** véu sobre o palco quando o painel está aberto
   **e** o conteúdo dele não pede um toque no mapa. Pede toque no mapa (sem véu, como hoje): o
-  compositor com ator escolhido (mestre: aba Agir com `actorId`; jogador: aba Ação), a escolha de
-  onde cai a fuga, a casa da fuga e o Arrumar. Com véu: Ficha, Fila, Agir sem ator.
+  mestre na aba Agir (com ator, compõe; sem ator, o toque num NPC do mapa é o que escolhe o ator
+  — ajuste da revisão da Task 8), o jogador na aba Ação, a escolha de onde cai a fuga, a casa da
+  fuga e o Arrumar. Com véu: Ficha e Fila.
 - **Gaveta direita (Histórico/Personagens, abaixo de `asideUp`):** véu sobre tudo menos a gaveta;
   tocar fecha a gaveta. Escolher um card em Personagens (que abre a ficha) fecha a gaveta.
 - **Um por vez abaixo de `railUp`:** abrir a gaveta fecha o painel e vice-versa.
