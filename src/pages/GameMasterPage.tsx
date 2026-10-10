@@ -597,6 +597,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                 onPull={combat.send.pullAction}
                 onChooseFallSlot={chooseFallSlot}
                 onOpenReaction={combat.send.openReaction}
+                onEditAction={combat.send.editAction}
               />
             </>
           ) : (

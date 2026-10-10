@@ -2,14 +2,19 @@ import { useState } from "react";
 import styled from "styled-components";
 import { colors, fonts } from "../../../styles/tokens";
 import type { GridKind } from "../../../types/tacticalMap";
-import type { ResolutionPayload } from "./combatMessages";
+import type { EditActionPayload, ResolutionPayload } from "./combatMessages";
 import { avoidedVerb, formatSlot, REACTION_KIND_LABELS, RUNG_LABELS } from "./combatText";
+import { damageSkillPayload, describeCondition, editableRolls, type EditableRoll } from "./rollEdits";
+import RollConditionEditor from "./RollConditionEditor";
+
+/** As perícias que medem o dano de um ataque (o motor só conhece estas duas). */
+const DAMAGE_SKILLS = ["Push", "Grab"];
 
 /**
- * O cálculo do turno aberto, que só o mestre recebe (F7). É quase só leitura — editar é da
- * Fase 8. Os botões são dois, e só onde a decisão é do mestre: dar a palavra a cada reação
- * esperando (Fase 7 — a ordem em que ele abre muda o resultado) e, na fuga que está falhando
- * (F14), onde a peça cai, que não é regra do motor.
+ * O cálculo do turno aberto, que só o mestre recebe (F7). Os botões são três, e só onde a
+ * decisão é do mestre: dar a palavra a cada reação esperando (Fase 7 — a ordem em que ele abre
+ * muda o resultado), na fuga que está falhando (F14) onde a peça cai, que não é regra do
+ * motor, e a edição das rolagens do turno (Fase 8). O painel está completo.
  */
 export default function ResolutionDetails({
   resolution,
@@ -17,6 +22,7 @@ export default function ResolutionDetails({
   gridKind,
   onChooseFallSlot,
   onOpenReaction,
+  onEditAction,
 }: {
   resolution: ResolutionPayload;
   nameOf: (id: string) => string;
@@ -25,6 +31,8 @@ export default function ResolutionDetails({
   onChooseFallSlot?: (targetId: string) => void;
   /** Dá a palavra a uma reação esperando (`open_reaction`). */
   onOpenReaction?: (reactionId: string) => void;
+  /** Edita uma rolagem ou a perícia do dano (`edit_action`, Fase 8). */
+  onEditAction?: (payload: EditActionPayload) => void;
 }) {
   const { turnId, action, targets, pendingReactions, errors } = resolution;
   // "Dar a palavra" já clicado: a linha trava até a reação sair de `pendingReactions` (o
@@ -39,6 +47,36 @@ export default function ResolutionDetails({
     setSent({ turnId, ids: [...stillSent, reactionId] });
     onOpenReaction(reactionId);
   };
+  // Editor aberto: derivado, não efeito — fecha sozinho quando o turno muda ou a rolagem some
+  // do cálculo (mesmo padrão do `sent` acima).
+  const [editing, setEditing] = useState<{ turnId: string; key: string } | null>(null);
+  const rolls = onEditAction ? editableRolls(resolution) : [];
+  const editingKey =
+    editing && editing.turnId === turnId && rolls.some((r) => r.key === editing.key) ? editing.key : null;
+  const rollOf = (key: string) => rolls.find((r) => r.key === key);
+  const renderRoll = (roll: EditableRoll, tail?: string) => (
+    <>
+      <RollRow>
+        {tail !== undefined && <Line>{roll.label}{tail}</Line>}
+        {roll.current && <Applied>{describeCondition(roll.current)}</Applied>}
+        <ActionButton
+          type="button"
+          aria-label={roll.targetId ? `Editar ${roll.label} de ${nameOf(roll.targetId)}` : `Editar ${roll.label}`}
+          onClick={() => setEditing({ turnId, key: roll.key })}
+        >
+          Editar
+        </ActionButton>
+      </RollRow>
+      {editingKey === roll.key && onEditAction && (
+        <RollConditionEditor roll={roll} onSend={onEditAction} onClose={() => setEditing(null)} />
+      )}
+    </>
+  );
+  const hitRoll = rollOf("action:hit");
+  const damageRoll = rollOf("action:damage");
+  const totalOf = (t: ResolutionPayload["targets"][number], field: string) =>
+    field === "dodge" ? ` ${t.dodgeTotal}` : field === "defense" ? ` ${t.defenseTotal}`
+      : field === "repel" && t.reaction ? ` ${t.reaction.total}` : "";
   // `targets[]` vem na ordem da cadeia (contrato): a posição de um alvo entre os que já têm
   // reação aberta É a ordem em que o mestre deu a palavra — e, por vir do servidor, sobrevive
   // à reconexão.
@@ -57,6 +95,31 @@ export default function ResolutionDetails({
             {action.isCritical && " · crítico"}
             {action.isCriticalFailure && " · falha crítica"}
           </span>
+          {hitRoll && renderRoll(hitRoll)}
+        </Block>
+      )}
+      {resolution.damageSkill !== undefined && onEditAction && (
+        <Block>
+          <Label>Dano</Label>
+          <RollRow>
+            <Line>medido por</Line>
+            {DAMAGE_SKILLS.map((name) => (
+              <ActionButton
+                key={name}
+                type="button"
+                aria-pressed={resolution.damageSkill === name}
+                onClick={() => resolution.damageSkill !== name && onEditAction(damageSkillPayload(name))}
+              >
+                {name}
+              </ActionButton>
+            ))}
+            {!DAMAGE_SKILLS.includes(resolution.damageSkill) && (
+              <ActionButton type="button" disabled aria-pressed="true">
+                {resolution.damageSkill}
+              </ActionButton>
+            )}
+          </RollRow>
+          {damageRoll && renderRoll(damageRoll)}
         </Block>
       )}
       {targets.map((t) => (
@@ -92,6 +155,11 @@ export default function ResolutionDetails({
               )}
             </FallBox>
           )}
+          {rolls
+            .filter((r) => r.targetId === t.targetId)
+            .map((r) => (
+              <Block key={r.key}>{renderRoll(r, totalOf(t, r.field))}</Block>
+            ))}
           {t.payouts?.map((p, i) => (
             <Muted key={i} title={p.reason}>
               {p.amount !== 0 && `${p.amount > 0 ? "+" : ""}${p.amount} `}
@@ -197,6 +265,15 @@ const ActionButton = styled.button`
     opacity: 0.5;
     cursor: not-allowed;
   }
+`;
+const RollRow = styled.div`
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+`;
+const Applied = styled.span`
+  color: ${colors.warningText};
 `;
 const Muted = styled.span`
   color: ${colors.textPlaceholderStrong};

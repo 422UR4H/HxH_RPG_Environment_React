@@ -2,7 +2,7 @@ import { useState } from "react";
 import styled from "styled-components";
 import { colors, fonts } from "../../../styles/tokens";
 import type { GridKind } from "../../../types/tacticalMap";
-import type { Bar, BarsPayload, QueuedAction, QueuedActionDetail, ResolutionPayload } from "./combatMessages";
+import type { Bar, BarsPayload, EditActionPayload, QueuedAction, QueuedActionDetail, ResolutionPayload } from "./combatMessages";
 import { BAR_ICONS, BAR_LABELS, formatSlot, humanWeapon } from "./combatText";
 import ResolutionDetails from "./ResolutionDetails";
 
@@ -88,6 +88,7 @@ export default function QueuePanel({
   onPull,
   onChooseFallSlot,
   onOpenReaction,
+  onEditAction,
 }: {
   queue: QueuedAction[];
   /** A ação do turno aberto — já não está em `queue`, mas continua na tela, marcada. */
@@ -101,6 +102,8 @@ export default function QueuePanel({
   onChooseFallSlot?: (targetId: string) => void;
   /** Fase 7: repassado ao cálculo do card em andamento (dar a palavra a uma reação). */
   onOpenReaction?: (reactionId: string) => void;
+  /** Fase 8: repassado ao cálculo do card em andamento. */
+  onEditAction?: (payload: EditActionPayload) => void;
 }) {
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
   const toggle = (actionId: string) =>
@@ -148,6 +151,7 @@ export default function QueuePanel({
                   gridKind={gridKind}
                   onChooseFallSlot={onChooseFallSlot}
                   onOpenReaction={onOpenReaction}
+                  onEditAction={onEditAction}
                 />
               )}
             </OpenRow>
