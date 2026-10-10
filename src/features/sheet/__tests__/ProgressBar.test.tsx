@@ -18,4 +18,12 @@ describe("ProgressBar", () => {
     const fill = screen.getByTestId("progress-fill");
     expect(within(fill).queryByText("0/32")).not.toBeInTheDocument();
   });
+
+  it("anuncia o texto uma única vez (a cópia escura é aria-hidden)", () => {
+    render(<ProgressBar current={5} max={32} color="red" />);
+    const visibleToAT = screen
+      .getAllByText("5/32")
+      .filter((el) => !el.closest("[aria-hidden]"));
+    expect(visibleToAT).toHaveLength(1);
+  });
 });

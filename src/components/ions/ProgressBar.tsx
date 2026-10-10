@@ -33,9 +33,11 @@ export default function ProgressBar({
       >
         <BarFill data-testid="progress-fill" $percentage={percentage} $color={color} />
         {/* Camada clara: lida sobre a trilha escura (o que não está preenchido). */}
-        <Label $percentage={percentage} $tone="onTrack">
-          {current}/{max}
-        </Label>
+        <TrackClip $percentage={percentage}>
+          <Label $percentage={percentage} $tone="onTrack">
+            {current}/{max}
+          </Label>
+        </TrackClip>
         {/* Camada escura: a MESMA etiqueta, recortada na área preenchida. As duas juntas
             fazem o texto trocar de cor exatamente na borda do preenchimento. */}
         <FillClip $percentage={percentage} aria-hidden>
@@ -82,6 +84,16 @@ const BarFill = styled.div<{
   height: 100%;
   background-color: ${({ $color }) => $color};
   transition: width 0.3s ease;
+`;
+
+// Complementar ao FillClip: a camada clara só aparece na parte NÃO preenchida, para não
+// deixar halo claro de antialiasing sob os glifos escuros. O recorte fica no wrapper
+// (no próprio Label ele andaria junto com o translateX) e o wrapper segue em fluxo,
+// então a altura da barra continua vindo da etiqueta.
+const TrackClip = styled.div<{ $percentage: number }>`
+  position: relative;
+  clip-path: inset(0 0 0 ${({ $percentage }) => $percentage}%);
+  transition: clip-path 0.3s ease;
 `;
 
 const FillClip = styled.div<{ $percentage: number }>`
