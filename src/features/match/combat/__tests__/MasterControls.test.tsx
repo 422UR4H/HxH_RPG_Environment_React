@@ -37,7 +37,7 @@ describe("RegencyControls — Abrir próxima", () => {
     fireEvent.click(btn);
     expect(onOpenNext).not.toHaveBeenCalled();
     fireEvent.pointerEnter(btn, { pointerType: "mouse" });
-    expect(screen.getByRole("tooltip")).toHaveTextContent("A fila de ações está vazia");
+    expect(screen.getByRole("tooltip", { hidden: true })).toHaveTextContent("A fila de ações está vazia");
   });
 
   it("Livre com fila: botão normal", () => {
@@ -47,6 +47,6 @@ describe("RegencyControls — Abrir próxima", () => {
     fireEvent.click(btn);
     expect(onOpenNext).toHaveBeenCalledTimes(1);
     fireEvent.pointerEnter(btn, { pointerType: "mouse" });
-    expect(screen.queryByRole("tooltip")).toBeNull();
+    expect(screen.queryByRole("tooltip", { hidden: true })).toBeNull();
   });
 });

@@ -1,4 +1,4 @@
-import { cloneElement, useEffect, useId, useRef, useState } from "react";
+import { cloneElement, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import type { CSSProperties, ReactElement } from "react";
 import styled from "styled-components";
 import { colors, fonts } from "../../styles/tokens";
@@ -27,7 +27,41 @@ export default function Tooltip({
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [pos, setPos] = useState<CSSProperties | null>(null);
 
+  const bubbleRef = useRef<HTMLSpanElement>(null);
+
   useEffect(() => () => clearTimeout(timer.current), []);
+
+  // Se a dica for desligada com a bolha aberta, ela não pode reaparecer velha depois.
+  useEffect(() => {
+    if (!enabled) {
+      clearTimeout(timer.current);
+      setPos(null);
+    }
+  }, [enabled]);
+
+  // Esc dispensa a dica sem tirar o foco/hover (WCAG 1.4.13).
+  const isOpen = pos !== null;
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        clearTimeout(timer.current);
+        setPos(null);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [isOpen]);
+
+  // Mede a bolha e a mantém a 8px das bordas da tela (num celular de 390px ela cortaria).
+  useLayoutEffect(() => {
+    const el = bubbleRef.current;
+    if (!el || !pos) return;
+    const w = el.offsetWidth;
+    const center = Number(pos.left);
+    el.style.transform = "none";
+    el.style.left = `${Math.max(8, Math.min(center - w / 2, window.innerWidth - w - 8))}px`;
+  }, [pos]);
 
   const show = () => {
     if (!enabled) return;
@@ -55,15 +89,27 @@ export default function Tooltip({
         timer.current = setTimeout(hide, TOUCH_MS);
       }}
     >
-      {cloneElement(children, open ? { "aria-describedby": id } : {})}
+      {/* A descrição existe desde o foco (o botão aria-disabled só se explica por ela);
+          a bolha visual é aria-hidden para o texto não ser lido duas vezes. */}
+      {enabled && <SrOnly id={id}>{label}</SrOnly>}
+      {cloneElement(children, enabled ? { "aria-describedby": id } : {})}
       {open && (
-        <Bubble role="tooltip" id={id} style={pos ?? undefined}>
+        <Bubble ref={bubbleRef} role="tooltip" aria-hidden="true" style={pos ?? undefined}>
           {label}
         </Bubble>
       )}
     </Wrap>
   );
 }
+
+const SrOnly = styled.span`
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+`;
 
 const Wrap = styled.span`
   display: inline-flex;
