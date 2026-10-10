@@ -1,8 +1,9 @@
 /**
  * Toque × arraste do mapa — a única fronteira. Quem precisa distinguir "clicou" de
- * "arrastou o mapa" (caixa da parede, slot vazio, hold da peça) usa este reconhecedor em
- * vez de comparar início × fim por conta própria: comparar só as pontas deixa passar o
- * arraste que volta ao ponto de partida antes de soltar.
+ * "arrastou o mapa" (caixa da parede, slot vazio) usa este reconhecedor em vez de comparar
+ * início × fim por conta própria: comparar só as pontas deixa passar o arraste que volta ao
+ * ponto de partida antes de soltar. O hold da peça (`useHoldGesture`) não o usa — só divide
+ * com ele a constante de tolerância.
  *
  * Fora do React, em closure, como `createHoldTracker`.
  */
@@ -16,8 +17,15 @@ export function createTapTracker(tolerance: number = TAP_TOLERANCE_PX) {
   let origin: { pointerId: number; x: number; y: number } | null = null;
 
   return {
-    /** pointerdown. Só o botão primário (button 0 ou ausente) arma. Rearma se já armado. */
+    /**
+     * pointerdown. Só o botão primário (button 0 ou ausente) arma. Rearma se já armado com o
+     * mesmo ponteiro; um segundo ponteiro (multitoque, pinça) desarma — nunca é toque.
+     */
     down(e: TapPointer) {
+      if (origin && origin.pointerId !== e.pointerId) {
+        origin = null;
+        return;
+      }
       origin = e.button === undefined || e.button === 0
         ? { pointerId: e.pointerId, x: e.clientX, y: e.clientY }
         : null;

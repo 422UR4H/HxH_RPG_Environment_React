@@ -15,6 +15,13 @@ describe("createTapTracker", () => {
     expect(t.up(at(10, 10))).toBe(true);
   });
 
+  it("um segundo ponteiro enquanto armado (multitoque) desarma: nenhum dos dois é toque", () => {
+    const t = createTapTracker();
+    t.down(at(10, 10, 1));
+    t.down(at(12, 10, 2));
+    expect(t.up(at(12, 10, 2))).toBe(false);
+  });
+
   it("andar 4px e soltar ainda é toque", () => {
     const t = createTapTracker();
     t.down(at(10, 10));
