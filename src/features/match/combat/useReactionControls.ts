@@ -6,7 +6,6 @@ import type { Piece, SlotCoord } from "../../../types/tacticalMap";
 import { slotToTriple } from "../../tactical-map/utils/coords";
 import type { AttachReactionPayload, ReactionKind } from "./combatMessages";
 import type { CombatState } from "./combatReducer";
-import { loadDraft } from "./actionDraft";
 import {
   buildReactionPayload, needsDestination, reactableTargets, reactionKindOf, reactionStatusOf,
 } from "./reactionModel";
@@ -23,7 +22,6 @@ export function useReactionControls({
   state,
   mine,
   boardPieces,
-  matchId,
   send,
   fullStateSeq = 0,
 }: {
@@ -31,7 +29,6 @@ export function useReactionControls({
   /** Os personagens por quem esta tela reage (jogador: os seus; mestre: os NPCs). */
   mine: ReadonlySet<string>;
   boardPieces: Piece[];
-  matchId?: string;
   send: { attachReaction: (p: AttachReactionPayload, turnId: string) => boolean };
   /** O contador de `match_full_state` de `useGameTable`: cada reconexão derruba a escolha. */
   fullStateSeq?: number;
@@ -90,17 +87,6 @@ export function useReactionControls({
     [turnId, canReact, fullStateSeq, sendReaction],
   );
 
-  const quick = useCallback(
-    (actorId: string, b: ReactionButton) => {
-      const kind = reactionKindOf(b, false);
-      // Repelir rápido usa a arma que o jogador já escolheu no rascunho daquele personagem;
-      // sem rascunho, desarmado (o servidor lê a proficiência de Fist).
-      const weapon = kind === "repel" && matchId ? loadDraft(matchId, actorId).attack?.weapon : undefined;
-      reactWith(actorId, kind, weapon);
-    },
-    [matchId, reactWith],
-  );
-
   const configure = useCallback(
     (actorId: string, b: ReactionButton) => {
       if (!turnId || !canReact(actorId)) return;
@@ -108,6 +94,19 @@ export function useReactionControls({
       setDialog({ actorId, initial: b, turnId, seq: fullStateSeq });
     },
     [turnId, canReact, fullStateSeq],
+  );
+
+  // Repelir sempre abre a caixa (spec §14): a arma muda o resultado, e a caixa já vem com a do
+  // rascunho do personagem (ou Desarmado). Os outros botões enviam no toque.
+  const quick = useCallback(
+    (actorId: string, b: ReactionButton) => {
+      if (reactionKindOf(b, false) === "repel") {
+        configure(actorId, b);
+        return;
+      }
+      reactWith(actorId, reactionKindOf(b, false));
+    },
+    [reactWith, configure],
   );
 
   const closeDialog = useCallback(() => setDialog(null), []);

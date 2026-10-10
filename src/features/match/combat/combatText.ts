@@ -67,6 +67,12 @@ export function formatSlot(t: SlotTriple, kind: GridKind): string {
 
 export const humanWeapon = (name: string) => name.replace(/([a-z])([A-Z])/g, "$1 $2");
 
+/** O rótulo da arma na tela: o catálogo sempre traz `Fist`, que é o mesmo que "Desarmado". */
+export const weaponLabel = (name: string) => (name === "Fist" ? "Desarmado" : humanWeapon(name));
+
+/** " com Sword" ou " desarmado" — o complemento do verbo de ataque no texto corrido. */
+export const withWeapon = (name: string) => (name === "Fist" ? " desarmado" : ` com ${humanWeapon(name)}`);
+
 /** "Mover para coluna 8, linha 5 (Dash) e atacar Hisoka com Sword". */
 export function describeDeclared(
   d: Pick<DeclaredAction, "move" | "attack" | "interact">,
@@ -77,7 +83,7 @@ export function describeDeclared(
   if (d.move) parts.push(`mover para ${formatSlot(d.move.to, gridKind)} (${d.move.category})`);
   if (d.attack) {
     const who = d.attack.targets.map(nameOf).join(", ");
-    parts.push(`atacar ${who}${d.attack.weapon ? ` com ${humanWeapon(d.attack.weapon)}` : ""}`);
+    parts.push(`atacar ${who}${d.attack.weapon ? withWeapon(d.attack.weapon) : ""}`);
   }
   if (d.interact) parts.push(`${interactLabel(d.interact.kind)} a passagem`);
   const text = parts.join(" e ");

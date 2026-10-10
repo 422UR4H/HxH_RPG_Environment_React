@@ -98,7 +98,6 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
     state,
     mine: myActorIds,
     boardPieces: game.boardPieces,
-    matchId,
     send: combat.send,
     fullStateSeq: game.fullStateSeq,
   });

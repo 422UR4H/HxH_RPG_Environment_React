@@ -11,7 +11,7 @@ function setup(initial: ReactionButton = "dodge", extra: { defaultWeapon?: strin
     <ReactionConfigDialog
       name="Gon"
       initial={initial}
-      weapons={["Sword", "ShortBow"]}
+      weapons={["Fist", "Sword", "ShortBow"]}
       onSend={onSend}
       onCancel={onCancel}
       {...extra}
@@ -64,20 +64,24 @@ describe("ReactionConfigDialog", () => {
     expect(onSend).toHaveBeenCalledWith({ kind: "nothing" });
   });
 
-  it("a arma só aparece em Repelir, com o padrão do rascunho e a opção Desarmado", () => {
+  it("a arma só aparece em Repelir, com o padrão do rascunho", () => {
     const { onSend } = setup("dodge", { defaultWeapon: "ShortBow" });
     expect(screen.queryByRole("combobox", { name: "Arma" })).not.toBeInTheDocument();
     fireEvent.click(radio("Repelir"));
     const select = screen.getByRole("combobox", { name: "Arma" });
     expect(select).toHaveValue("ShortBow");
     expect(screen.getByRole("option", { name: "Short Bow" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "Desarmado" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Enviar" }));
     expect(onSend).toHaveBeenLastCalledWith({ kind: "repel", weapon: "ShortBow" });
+  });
 
-    fireEvent.change(select, { target: { value: "" } });
+  it("Fist e Desarmado são uma opção só; sem arma padrão vem Desarmado e envia Fist", () => {
+    const { onSend } = setup("repel");
+    const select = screen.getByRole("combobox", { name: "Arma" });
+    expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual(["Desarmado", "Sword", "Short Bow"]);
+    expect(select).toHaveValue("Fist");
     fireEvent.click(screen.getByRole("button", { name: "Enviar" }));
-    expect(onSend).toHaveBeenLastCalledWith({ kind: "repel", weapon: undefined });
+    expect(onSend).toHaveBeenLastCalledWith({ kind: "repel", weapon: "Fist" });
   });
 
   it("o custo da fuga fechada cita só a barra de movimento", () => {

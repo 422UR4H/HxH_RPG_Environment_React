@@ -120,7 +120,6 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     state,
     mine: npcIds,
     boardPieces: game.boardPieces,
-    matchId,
     send: combat.send,
     fullStateSeq: game.fullStateSeq,
   });

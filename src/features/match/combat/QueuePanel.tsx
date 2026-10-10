@@ -2,7 +2,7 @@ import styled from "styled-components";
 import { colors, fonts } from "../../../styles/tokens";
 import type { GridKind } from "../../../types/tacticalMap";
 import type { Bar, BarsPayload, EditActionPayload, QueuedAction, QueuedActionDetail, ResolutionPayload } from "./combatMessages";
-import { BAR_ICONS, BAR_LABELS, formatSlot, humanWeapon } from "./combatText";
+import { BAR_ICONS, BAR_LABELS, formatSlot, weaponLabel } from "./combatText";
 import { orderQueue, sameBars } from "./queueOrder";
 import ResolutionDetails from "./ResolutionDetails";
 
@@ -40,7 +40,7 @@ function QueueRowDetails({
   return (
     <Details aria-label="Detalhes da ação">
       {!!detail.targetId?.length && <DetailLine>Alvos: {detail.targetId.map(nameOf).join(", ")}</DetailLine>}
-      {detail.attack?.weapon && <DetailLine>Arma: {humanWeapon(detail.attack.weapon)}</DetailLine>}
+      {detail.attack?.weapon && <DetailLine>Arma: {weaponLabel(detail.attack.weapon)}</DetailLine>}
       {detail.move && (
         <DetailLine>
           Movimento: {detail.move.category}

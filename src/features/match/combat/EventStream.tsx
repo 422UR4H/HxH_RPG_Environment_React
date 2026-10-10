@@ -6,7 +6,7 @@ import type { TableEvent } from "./combatReducer";
 import type { ResolutionTarget, SceneCategory } from "./combatMessages";
 import type { HistoryMasterAction, HistoryMove, HistoryTurn } from "../../../types/matchHistory";
 import type { HistoryRow } from "./historyRows";
-import { avoidedVerb, describeDeclared, formatSlot, humanWeapon, interactLabel, ROUND_MODE_LABELS } from "./combatText";
+import { avoidedVerb, describeDeclared, formatSlot, interactLabel, withWeapon, ROUND_MODE_LABELS } from "./combatText";
 
 /** U+2212 MINUS SIGN — não é hífen. */
 const MINUS = "−";
@@ -96,7 +96,7 @@ function turnLine(turn: HistoryTurn, nameOf: (id: string) => string, gridKind: G
   if (a.move) parts.push(moveText(a.move, gridKind));
   if (a.attack) {
     const who = (a.targetId ?? []).map(nameOf).join(", ");
-    parts.push(`atacou ${who}${a.attack.weapon ? ` com ${humanWeapon(a.attack.weapon)}` : ""}`);
+    parts.push(`atacou ${who}${a.attack.weapon ? withWeapon(a.attack.weapon) : ""}`);
   }
   if (a.interact) parts.push(`interagiu (${interactLabel(a.interact.kind)})`);
   const outcomes = (turn.resolution?.targets ?? []).map((t) => outcomeText(t, nameOf, gridKind));

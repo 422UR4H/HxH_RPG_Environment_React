@@ -30,7 +30,6 @@ function mount(over: Partial<Props> = {}) {
     state: { ...initialCombatState, openTurn: openTurn() },
     mine: new Set(["c2", "c3"]),
     boardPieces: [piece("c2", 1, 1), piece("c3", 2, 2, 3)],
-    matchId: "m1",
     send: { attachReaction },
     fullStateSeq: 1,
     ...over,
@@ -128,23 +127,12 @@ describe("useReactionControls", () => {
     expect(result.current.pick).toBeNull();
   });
 
-  it("quick em Repelir leva a arma do rascunho do personagem", () => {
+  it("quick em Repelir não envia: abre a caixa (a arma muda o resultado), pré-escolhida pelo botão", () => {
     saveDraft("m1", "c2", { moveMode: "none", attack: { targets: [], weapon: "Sword" } });
     const { result, attachReaction } = mount();
     act(() => result.current.quick("c2", "repel"));
-    expect(attachReaction).toHaveBeenCalledWith(
-      { actorId: "c2", reactToId: "a1", reactionKind: "repel", repel: { weapon: "Sword" } },
-      "t1",
-    );
-  });
-
-  it("quick em Repelir sem rascunho vai desarmado", () => {
-    const { result, attachReaction } = mount();
-    act(() => result.current.quick("c2", "repel"));
-    expect(attachReaction).toHaveBeenCalledWith(
-      { actorId: "c2", reactToId: "a1", reactionKind: "repel", repel: {} },
-      "t1",
-    );
+    expect(attachReaction).not.toHaveBeenCalled();
+    expect(result.current.dialog).toEqual({ actorId: "c2", initial: "repel" });
   });
 
   it("configure abre o diálogo; o diálogo envia o tipo e a arma escolhidos", () => {
