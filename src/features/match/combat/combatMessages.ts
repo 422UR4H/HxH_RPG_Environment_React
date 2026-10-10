@@ -143,6 +143,21 @@ export type ResolutionTarget = {
   escape?: EscapeVerdict;
 };
 
+/** As rolagens que `edit_action.conditions[].field` nomeia (contrato). */
+export type ConditionField = "speed" | "hit" | "damage" | "dodge" | "defense" | "repel" | "feint" | "moveSpeed";
+
+/** A condição do mestre numa rolagem: viés nos dados (−1/0/+1), ajuste no total, motivo. */
+export type RollCondition = { bias: number; modifier: number; description?: string };
+
+/**
+ * Uma condição EM VIGOR no turno aberto (`resolution.conditions`, só o mestre). `actionId` é
+ * sempre o ID real — o da ação do turno também. `field` e `skillName` são alternativos.
+ */
+export type ConditionEntry = { actionId: string; field?: ConditionField; skillName?: string } & RollCondition;
+
+/** Uma entrada de `edit_action.conditions`. Zerada (só `field`) = volta a "sem condição". */
+export type ConditionEdit = { field: ConditionField; bias?: number; modifier?: number; description?: string };
+
 export type ResolutionPayload = {
   turnId: string;
   isSettled: boolean;
@@ -158,6 +173,13 @@ export type ResolutionPayload = {
   targets: ResolutionTarget[];
   pendingReactions?: PendingReaction[];
   errors?: ResolutionError[];
+  /**
+   * A perícia que mediu o dano ("Push" se o mestre não trocou). Presente SÓ quando a ação tem
+   * ataque — é assim que o painel sabe que há acerto e dano para editar.
+   */
+  damageSkill?: string;
+  /** As condições do mestre em vigor. Só o mestre, só com o turno aberto; ausente = nada editado. */
+  conditions?: ConditionEntry[];
 };
 
 export type CloseTurnRefusedPayload = {
@@ -246,11 +268,16 @@ export type MasterActionPayload =
   | { targetIds: [string]; remove: Record<string, never> };
 
 /**
- * `edit_action` (c→s, só o mestre). Hoje o front só manda a seção `escapeLanding` (F14): o
- * `actionId` é o da REAÇÃO de fuga, e `position: null` limpa a escolha. As outras seções do
- * contrato (`conditions`, `skills`, `targetIds`) entram quando houver tela para editá-las.
+ * `edit_action` (c→s, só o mestre). Toda seção é opcional. `actionId` ausente = a ação
+ * própria do turno; senão, o id de uma reação. `conditions` se aplica POR ROLAGEM, e uma
+ * entrada zerada (`{ field }`) desfaz a edição daquela rolagem. `damageSkill` troca a perícia
+ * do dano. `escapeLanding` (F14): `actionId` é o da reação de fuga; `position: null` limpa.
+ * `skills`/`targetIds` existem no contrato e ficam fora: editar perícias espera a corrente de
+ * testes, e alvos não estão no escopo da Fase 8.
  */
 export type EditActionPayload = {
-  actionId: string;
-  escapeLanding: { position: [number, number, number] | null };
+  actionId?: string;
+  conditions?: ConditionEdit[];
+  damageSkill?: string;
+  escapeLanding?: { position: [number, number, number] | null };
 };
