@@ -232,19 +232,6 @@ describe("QueuePanel", () => {
     expect(screen.getByText(/Ninguém declarou nada ainda/)).toBeInTheDocument();
   });
 
-  it("sem `action` (servidor antigo), a linha não ganha botão Detalhes", () => {
-    render(
-      <QueuePanel
-        nameOf={nameOf}
-        order={[]}
-        gridKind="square"
-        queue={[{ actionId: "a1", actorId: "c1", bars: ["action"] }]}
-        onPull={() => {}}
-      />,
-    );
-    expect(screen.queryByRole("button", { name: "Detalhes" })).not.toBeInTheDocument();
-  });
-
   // §10: sem "Detalhes" — a declaração da fila fica sempre à vista.
   it("com `action`: mostra arma, destino e o total da velocidade sem clique, e não há botão Detalhes", () => {
     render(

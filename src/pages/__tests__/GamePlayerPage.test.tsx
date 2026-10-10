@@ -409,6 +409,28 @@ describe("GamePlayerPage", () => {
       return calls;
     };
 
+    it("cancelar: Cancelar → confirmar envia cancel_action e a linha só some com o action_cancelled", async () => {
+      renderPlayerPage();
+      const ws = await waitForSocket();
+      act(() => ws.onopen?.());
+      board(ws);
+      await declare(ws, attackC2, "action-1");
+      expect(screen.getAllByTestId("declared-row")).toHaveLength(1);
+
+      // A linha mora no Histórico, atrás do painel recolhido.
+      act(() => screen.getByRole("button", { name: "Ver histórico" }).click());
+      await user.click(await screen.findByRole("button", { name: "Cancelar" }));
+      await user.click(await screen.findByRole("button", { name: "Cancelar ação" }));
+
+      expect(ws.sent("cancel_action")).toHaveLength(1);
+      expect(ws.sent("cancel_action")[0]).toEqual({ actionId: "action-1" });
+      // Sem estado otimista: a linha espera a confirmação do servidor.
+      expect(screen.getAllByTestId("declared-row")).toHaveLength(1);
+
+      act(() => ws.emit("action_cancelled", { actionId: "action-1" }));
+      await waitFor(() => expect(screen.queryAllByTestId("declared-row")).toHaveLength(0));
+    });
+
     it("perdida de verdade: aviso, o rascunho volta e nada é reenviado", async () => {
       renderPlayerPage();
       const ws = await waitForSocket();
