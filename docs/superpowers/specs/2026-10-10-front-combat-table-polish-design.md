@@ -232,3 +232,39 @@ mostra como evento de rodada `kind: "actionCancelled"`.
   (a mesma descrição de "Suas ações declaradas"); sem `action` (outros jogadores), "Fulano
   cancelou uma ação".
 - **Fora:** marcar o custo nos botões de reação (o dono do produto vai desenhar com o designer).
+
+---
+
+## 17. Adendo (2026-10-10, mesmo PR): segunda rodada de testes do dono do produto
+
+Achados ao testar à mão a primeira rodada. Só front.
+
+- **Parede com mãozinha.** Com mouse, passar sobre uma parede que um toque abriria mostra o
+  cursor `pointer` (o mesmo da peça): o usuário precisa saber quando o clique dele vai acertar a
+  parede. Mesma condição e mesmo teste de acerto do toque que abre a caixa (há `onWallClick` e não
+  é o editor de paredes; `findNearestWall` com a tolerância de 8 px de tela). Fora do canvas ou
+  longe de parede, volta ao cursor de antes. Só `pointerType === "mouse"` e só sem botão
+  pressionado (durante o arraste do mapa não muda). O cursor vai no elemento PAI do canvas: o
+  Pixi reescreve `canvas.style.cursor` a cada movimento (`inherit` fora de objeto interativo, e
+  `pointer` sobre a peça) — no pai ele herda e não briga com a peça.
+- **Arrastar sobre um card (ou qualquer painel) não move o mapa.** Causa: o pan começa com
+  qualquer `pointerdown` cujas coordenadas caiam dentro do retângulo do canvas — mesmo com um
+  card, a aba Histórico ou um botão da camada HTML por cima. Regra: o pan só começa quando o alvo
+  do `pointerdown` é o próprio canvas (`e.target === canvas`). E o pan termina num `pointermove`
+  sem o botão principal pressionado (`(e.buttons & 1) === 0`): um `pointerup` perdido (arraste
+  nativo do navegador começando sobre um card ou imagem) deixava o mapa seguindo o mouse depois
+  de soltar.
+- **"Pôr na partida" vira "Adicionar à partida"**; o botão "Pôr" vira "Adicionar" e desce para
+  baixo do seletor, na largura dele. O bloco alinha com os cards: as mesmas margens laterais
+  (sem o recuo próprio de 12 px dos painéis). A dica do Agir acompanha: "…ou em Personagens →
+  Adicionar à partida." "Pôr no mapa" (Arrumar) não muda — é outro verbo.
+- **O botão "Barras" nunca some.** Ele morava dentro da linha que rola de lado (sem barra de
+  rolagem visível) e, com muitas ações na ordem ou tela estreita, ia para fora da vista. Ele sai
+  da área que rola: a linha tem a parte rolável (vez, ordem, preço) e, fixo à direita, o botão.
+- **A arma padrão é uma arma, não o Desarmado.** Atacar e Repelir abrem com a primeira arma do
+  catálogo do personagem que não seja `Fist`, na ordem do catálogo; sem nenhuma, Desarmado.
+  Escolha explícita continua valendo (inclusive escolher Desarmado). No Repelir, a arma do
+  rascunho de ataque, quando é do catálogo, continua tendo precedência. Uma regra só
+  (`defaultWeaponOf`), que o dono do produto vai enriquecer depois. O que a tela mostra como
+  escolhida é o que vai no envio: o padrão entra na resolução do rascunho (`resolveDraft`), não
+  só na tela.
