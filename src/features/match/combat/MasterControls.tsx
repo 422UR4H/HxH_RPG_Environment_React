@@ -106,7 +106,7 @@ export function NpcPicker({
       <PanelTitle>Agir por</PanelTitle>
       {npcs.length === 0 ? (
         <PanelHint>
-          Nenhum NPC nesta partida. Ponha um NPC no mapa ou escolha abaixo.
+          Nenhum NPC nesta partida. Ponha um NPC no mapa ou em Personagens → Pôr na partida.
         </PanelHint>
       ) : (
         <PickerList>

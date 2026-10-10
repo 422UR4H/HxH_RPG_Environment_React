@@ -1,42 +1,31 @@
 import styled from "styled-components";
 import { colors, fonts } from "../../../styles/tokens";
 import type { GridKind } from "../../../types/tacticalMap";
-import type { Bar, BarsPayload, EditActionPayload, QueuedAction, QueuedActionDetail, ResolutionPayload } from "./combatMessages";
+import type { Bar, BarsPayload, EditActionPayload, QueuedAction, QueuedActionDetail, ResolutionPayload, RoundMode } from "./combatMessages";
 import { BAR_ICONS, BAR_LABELS, formatSlot, weaponLabel } from "./combatText";
-import { orderQueue, sameBars } from "./queueOrder";
+import { orderQueue } from "./queueOrder";
 import ResolutionDetails from "./ResolutionDetails";
-
-/**
- * A primeira entrada da ordem geral com o mesmo ator E as mesmas barras desta ação (T13) —
- * `bars_updated.order` não carrega identidade de ação, então é assim que o card acha "a
- * chave desta ação" sem o servidor precisar mandar mais nada.
- */
-function orderKeyFor(action: Pick<QueuedAction, "actorId" | "bars">, order: BarsPayload["order"]): number | undefined {
-  return order.find((o) => o.actorId === action.actorId && sameBars(o.bars, action.bars))?.key;
-}
 
 /**
  * O detalhe de uma ação (T13/F1) — tudo que a declaração carrega, no nível Full que só o
  * mestre recebe. Sem declaração (servidor antigo), quem chama nem monta este componente.
- * `bars` falta no card em andamento depois de uma reconexão (`openQueued` não volta): aí
- * não há como achar a chave nem dizer o que cobra, e as duas linhas somem.
+ * `orderKey` é a chave da entrada da ordem que `orderQueue` casou com ESTA ação (a em
+ * andamento já saiu da ordem: não tem). `bars` falta no card em andamento depois de uma
+ * reconexão (`openQueued` não volta): aí não há o que ela cobra, e a linha some.
  */
 function QueueRowDetails({
-  actorId,
   bars,
   detail,
-  order,
+  orderKey,
   gridKind,
   nameOf,
 }: {
-  actorId: string;
   bars?: Bar[];
   detail: QueuedActionDetail;
-  order: BarsPayload["order"];
+  orderKey?: number;
   gridKind: GridKind;
   nameOf: (characterId: string) => string;
 }) {
-  const key = bars ? orderKeyFor({ actorId, bars }, order) : undefined;
   return (
     <Details aria-label="Detalhes da ação">
       {!!detail.targetId?.length && <DetailLine>Alvos: {detail.targetId.map(nameOf).join(", ")}</DetailLine>}
@@ -62,7 +51,7 @@ function QueueRowDetails({
           {detail.move.speed.result !== undefined && ` = ${detail.move.speed.result}`}
         </DetailLine>
       )}
-      {key !== undefined && <DetailLine>Ordem geral: chave {key}</DetailLine>}
+      {orderKey !== undefined && <DetailLine>Ordem geral: chave {orderKey}</DetailLine>}
       {!!bars?.length && <DetailLine>Cobra: {bars.map((b) => BAR_LABELS[b]).join(" + ")}</DetailLine>}
     </Details>
   );
@@ -80,6 +69,7 @@ export default function QueuePanel({
   queue,
   open,
   order,
+  mode,
   gridKind,
   nameOf,
   onPull,
@@ -90,8 +80,10 @@ export default function QueuePanel({
   queue: QueuedAction[];
   /** A ação do turno aberto — já não está em `queue`, mas continua na tela, marcada. */
   open?: { actorId: string; bars?: Bar[]; action?: QueuedActionDetail; resolution: ResolutionPayload | null };
-  /** `bars_updated.order` — para achar a chave desta ação na ordem geral (ver `orderKeyFor`). */
-  order: BarsPayload["order"];
+  /** `bars_updated.order`; undefined antes do primeiro `bars_updated` (ver `orderQueue`). */
+  order?: BarsPayload["order"];
+  /** O regime: no Race, ordem vazia com fila cheia quer dizer que ninguém paga. */
+  mode?: RoundMode | "";
   gridKind: GridKind;
   nameOf: (characterId: string) => string;
   onPull: (actionId: string) => void;
@@ -124,10 +116,8 @@ export default function QueuePanel({
               </Info>
               {open.action && (
                 <QueueRowDetails
-                  actorId={open.actorId}
                   bars={open.bars}
                   detail={open.action}
-                  order={order}
                   gridKind={gridKind}
                   nameOf={nameOf}
                 />
@@ -144,7 +134,7 @@ export default function QueuePanel({
               )}
             </OpenRow>
           )}
-          {orderQueue(queue, order).map(({ action, inOrder }) => {
+          {orderQueue(queue, order, mode).map(({ action, inOrder, key }) => {
             const detail = action.action;
             return (
               <Row key={action.actionId} data-testid="queue-row">
@@ -164,10 +154,9 @@ export default function QueuePanel({
                 </RowHeader>
                 {detail && (
                   <QueueRowDetails
-                    actorId={action.actorId}
                     bars={action.bars}
                     detail={detail}
-                    order={order}
+                    orderKey={key}
                     gridKind={gridKind}
                     nameOf={nameOf}
                   />

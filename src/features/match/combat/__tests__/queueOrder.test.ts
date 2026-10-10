@@ -74,10 +74,45 @@ describe("orderQueue", () => {
     expect(out.map((i) => i.inOrder)).toEqual([true, false, false]);
   });
 
-  it("ordem vazia: chegada, tudo inOrder", () => {
-    const out = orderQueue([B, A], []);
+  it("sem bars_updated ainda (order undefined): chegada, tudo inOrder", () => {
+    const out = orderQueue([B, A], undefined, "Race");
     expect(ids(out)).toEqual(["b", "a"]);
     expect(out.every((i) => i.inOrder)).toBe(true);
+  });
+
+  it("Race com ordem vazia e fila cheia: ninguém paga, tudo inOrder false", () => {
+    const out = orderQueue([B, A], [], "Race");
+    expect(ids(out)).toEqual(["b", "a"]);
+    expect(out.every((i) => !i.inOrder)).toBe(true);
+  });
+
+  it("Free (ou regime ainda desconhecido) com ordem vazia: sem informação, tudo inOrder", () => {
+    expect(orderQueue([B, A], [], "Free").every((i) => i.inOrder)).toBe(true);
+    expect(orderQueue([B, A], [], "").every((i) => i.inOrder)).toBe(true);
+  });
+
+  it("devolve a chave da entrada casada, não a da primeira do mesmo ator e barras", () => {
+    const slow = q("slow", "A", ["action"], 9);
+    const fast = q("fast", "A", ["action"], 14);
+    const out = orderQueue([slow, fast], [
+      { actorId: "A", bars: ["action"], key: 24 },
+      { actorId: "A", bars: ["action"], key: 15 },
+    ], "Race");
+    expect(out.map((i) => [i.action.actionId, i.key])).toEqual([["fast", 24], ["slow", 15]]);
+    expect(orderQueue([A], [], "Race")[0].key).toBeUndefined();
+  });
+
+  it("ação nas duas barras desempata pela menor das duas velocidades", () => {
+    const both = (id: string, act: number, mov: number) =>
+      ({ ...q(id, "A", ["action", "move"]), action: { uuid: id, actorId: "A", reactionKind: "", speed: { bar: 0, rollCheck: { result: act } }, move: { category: "Dash", finalSpeed: mov } } }) as QueuedAction;
+    // x: min 5; y: min 8 — y abre primeiro, embora x tenha a maior velocidade isolada (20).
+    const x = both("x", 20, 5);
+    const y = both("y", 8, 9);
+    const order = [
+      { actorId: "A", bars: ["action" as const, "move" as const], key: 8 },
+      { actorId: "A", bars: ["action" as const, "move" as const], key: 5 },
+    ];
+    expect(ids(orderQueue([x, y], order, "Race"))).toEqual(["y", "x"]);
   });
 
   it("entrada da ordem sem ação na fila (a em andamento) é ignorada", () => {

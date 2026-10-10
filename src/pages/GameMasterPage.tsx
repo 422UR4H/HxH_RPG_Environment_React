@@ -599,7 +599,8 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                       }
                     : undefined
                 }
-                order={state.bars?.order ?? []}
+                order={state.bars?.order}
+                mode={state.roundMode}
                 gridKind={gridKind}
                 nameOf={nameOf}
                 onPull={combat.send.pullAction}
