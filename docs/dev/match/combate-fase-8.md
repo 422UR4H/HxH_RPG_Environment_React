@@ -22,7 +22,7 @@ botão **Editar**, e o painel fica completo.
 | Total na linha | Esquiva mostra `dodgeTotal`, Defesa padrão `defenseTotal`, Aparo `reaction.total`. **Movimento não mostra total** (o painel não tem esse número à mão). |
 | Resumo em vigor | Ao lado de "Editar", em cor de aviso (`warningText`), o texto da condição que o servidor tem: "vantagem · −2 · escuridão". Vem de `resolution.conditions`, não do que o mestre digitou. |
 | Editor | Abre **inline**, embaixo da linha, um por vez: viés (Desvantagem / Normal / Vantagem, só onde cabe), Ajuste (inteiro, aceita negativo), Motivo (até 80 caracteres, opcional) e os botões Aplicar, Desfazer edição (só com condição em vigor) e Cancelar. Abre preenchido com a condição em vigor. |
-| Push / Grab | No bloco Dano, "medido por" com dois botões de alternância; o atual (`resolution.damageSkill`) fica `aria-pressed`. Clicar no outro manda `{ damageSkill }` na hora, sem Aplicar; clicar no que já está marcado não manda nada. Uma perícia fora das duas aparece como terceiro botão marcado e **desabilitado** (só leitura). |
+| Push / Grab | No bloco Dano, "medido por" com dois botões de alternância; o atual (`resolution.damageSkill`) fica `aria-pressed` e destacado (preenchimento verde). Clicar no outro manda `{ damageSkill }` na hora, sem Aplicar; clicar no que já está marcado não manda nada. Uma perícia fora das duas aparece como terceiro botão marcado e **desabilitado** (só leitura). |
 
 Sem `onEditAction`, o `ResolutionDetails` não desenha **nenhum** botão de edição (nem o bloco
 Dano): o teste "sem onOpenReaction, não tem botão nenhum…" continua valendo. A página do mestre
@@ -92,7 +92,7 @@ some sozinho quando o turno muda ou a rolagem deixa de existir (a reação sumiu
 | F2 | Editor inline, um por vez, com Aplicar / Desfazer / Cancelar (cabe no bottom sheet do celular; sem diálogo a mais). |
 | F3 | Push/Grab manda na hora, sem "Aplicar" (escolha binária e reversível). |
 | F4 | Sem estado otimista: o servidor é a fonte. |
-| F5 | "Reflexo" em vez de "Esquiva" nas reações fechadas: o campo `dodge` ali edita só o Reflexo, e a esquiva lida é o pior entre Reflexo e Evasion. |
+| F5 | "Reflexo" em vez de "Esquiva" nas reações fechadas: o campo `dodge` ali edita só o Reflexo, e a esquiva lida é o pior entre Reflexo e Evasion. Por isso a linha "Reflexo" não mostra total: `dodgeTotal` não é só o Reflexo. |
 
 ## Como verificar no browser
 

@@ -74,8 +74,10 @@ export default function ResolutionDetails({
   );
   const hitRoll = rollOf("action:hit");
   const damageRoll = rollOf("action:damage");
+  // Nas reações fechadas a linha `dodge` é só o Reflexo, mas `dodgeTotal` é o pior entre Reflexo e
+  // Evasion — mostrá-lo ali rotularia como Reflexo um número que não é dele.
   const totalOf = (t: ResolutionPayload["targets"][number], field: string) =>
-    field === "dodge" ? ` ${t.dodgeTotal}` : field === "defense" ? ` ${t.defenseTotal}`
+    field === "dodge" ? (t.reaction?.kind === "closedDodge" || t.reaction?.kind === "closedEscape" ? "" : ` ${t.dodgeTotal}`) : field === "defense" ? ` ${t.defenseTotal}`
       : field === "repel" && t.reaction ? ` ${t.reaction.total}` : "";
   // `targets[]` vem na ordem da cadeia (contrato): a posição de um alvo entre os que já têm
   // reação aberta É a ordem em que o mestre deu a palavra — e, por vir do servidor, sobrevive
@@ -104,19 +106,19 @@ export default function ResolutionDetails({
           <RollRow>
             <Line>medido por</Line>
             {DAMAGE_SKILLS.map((name) => (
-              <ActionButton
+              <SkillToggle
                 key={name}
                 type="button"
                 aria-pressed={resolution.damageSkill === name}
                 onClick={() => resolution.damageSkill !== name && onEditAction(damageSkillPayload(name))}
               >
                 {name}
-              </ActionButton>
+              </SkillToggle>
             ))}
             {!DAMAGE_SKILLS.includes(resolution.damageSkill) && (
-              <ActionButton type="button" disabled aria-pressed="true">
+              <SkillToggle type="button" disabled aria-pressed="true">
                 {resolution.damageSkill}
-              </ActionButton>
+              </SkillToggle>
             )}
           </RollRow>
           {damageRoll && renderRoll(damageRoll)}
@@ -264,6 +266,13 @@ const ActionButton = styled.button`
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+`;
+// Mesmo visual do Toggle de viés em RollConditionEditor: o ativo vira preenchido.
+const SkillToggle = styled(ActionButton)`
+  &[aria-pressed="true"] {
+    background: ${colors.brandAccent};
+    border-color: ${colors.brandAccent};
   }
 `;
 const RollRow = styled.div`

@@ -605,6 +605,34 @@ describe("ResolutionDetails", () => {
       );
       expect(screen.queryByRole("button", { name: "Aplicar" })).not.toBeInTheDocument();
     });
+
+    it("o editor fecha quando o turno muda", () => {
+      const { rerender } = render(
+        <ResolutionDetails resolution={editable} nameOf={resolutionNameOf} gridKind="square" onEditAction={() => {}} />,
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Editar Esquiva de Hisoka" }));
+      expect(screen.getByRole("button", { name: "Aplicar" })).toBeInTheDocument();
+      rerender(
+        <ResolutionDetails resolution={{ ...editable, turnId: "t2" }} nameOf={resolutionNameOf} gridKind="square" onEditAction={() => {}} />,
+      );
+      expect(screen.queryByRole("button", { name: "Aplicar" })).not.toBeInTheDocument();
+    });
+
+    it("Reflexo (reação fechada) não mostra total; Esquiva (dodge) mostra", () => {
+      const withKind = (kind: "dodge" | "closedDodge") => ({
+        ...editable,
+        targets: [{ ...editable.targets[0], reaction: { ...editable.targets[0].reaction!, kind } }],
+      });
+      const { rerender } = render(
+        <ResolutionDetails resolution={withKind("closedDodge")} nameOf={resolutionNameOf} gridKind="square" onEditAction={() => {}} />,
+      );
+      expect(screen.getByText("Reflexo")).toBeInTheDocument();
+      expect(screen.queryByText(/Reflexo\s+\d/)).not.toBeInTheDocument();
+      rerender(
+        <ResolutionDetails resolution={withKind("dodge")} nameOf={resolutionNameOf} gridKind="square" onEditAction={() => {}} />,
+      );
+      expect(screen.getByText("Esquiva 12")).toBeInTheDocument();
+    });
   });
 });
 
