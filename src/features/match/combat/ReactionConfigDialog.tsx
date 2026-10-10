@@ -3,6 +3,7 @@ import styled from "styled-components";
 import { colors, fonts } from "../../../styles/tokens";
 import type { ReactionKind } from "./combatMessages";
 import { costLabel, weaponLabel } from "./combatText";
+import { defaultWeaponOf } from "./actionDraft";
 import {
   REACTION_BARS, REACTION_BUTTONS, REACTION_BUTTON_LABELS, needsDestination, reactionKindOf, supportsEvasion,
 } from "./reactionModel";
@@ -46,11 +47,12 @@ export default function ReactionConfigDialog({
 }) {
   const [button, setButton] = useState<ReactionButton>(initial);
   const [evasion, setEvasion] = useState(false);
-  // Fist é o Desarmado (o catálogo sempre o traz, então não há opção vazia à parte). Uma arma
-  // padrão fora do catálogo cai em Fist; catálogo ainda vazio mostra só Desarmado.
+  // Fist é o Desarmado (o catálogo sempre o traz, então não há opção vazia à parte). Vale a arma
+  // do rascunho, se está no catálogo; senão a primeira arma real (`defaultWeaponOf`); sem
+  // nenhuma — ou catálogo ainda vazio — Desarmado.
   const options = weapons.length > 0 ? weapons : ["Fist"];
   const [weapon, setWeapon] = useState(() =>
-    defaultWeapon && weapons.includes(defaultWeapon) ? defaultWeapon : "Fist",
+    defaultWeapon && weapons.includes(defaultWeapon) ? defaultWeapon : (defaultWeaponOf(weapons) ?? "Fist"),
   );
 
   const evasionOn = supportsEvasion(button) && evasion;

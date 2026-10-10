@@ -14,6 +14,8 @@ import type { QueuedAction } from "./combatMessages";
 import { useLiveMapSync } from "./useLiveMapSync";
 import { useMatchCombat } from "./useMatchCombat";
 import { useMatchHistory } from "../../../hooks/useMatchHistory";
+import { useCombatCatalogue } from "../../../hooks/useCombatCatalogue";
+import { defaultWeaponOf } from "./actionDraft";
 import { useActionComposerState } from "./useActionComposerState";
 import { defaultMoveCategory } from "./defaultMoveCategory";
 import { pendingMoves, resolveLostCandidates } from "./combatReducer";
@@ -106,12 +108,15 @@ export function useGameTable({
   const { state } = combat;
   openTurnRef.current = state.openTurn !== null;
 
+  // A mesma query das páginas (React Query reaproveita): daqui sai a arma padrão do ataque.
+  const { data: catalogue } = useCombatCatalogue(token, actorId);
   const composer = useActionComposerState({
     matchId,
     actorId,
     boardPieces,
     grid: map?.grid,
     defaultCategory: defaultMoveCategory(state),
+    defaultWeapon: defaultWeaponOf(catalogue?.weapons.map((w) => w.name) ?? []),
   });
   clearDraftForRef.current = composer.clearDraftFor;
   const { pieceByCharacter } = composer;

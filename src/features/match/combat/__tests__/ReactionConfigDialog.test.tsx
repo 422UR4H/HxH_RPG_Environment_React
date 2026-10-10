@@ -75,13 +75,23 @@ describe("ReactionConfigDialog", () => {
     expect(onSend).toHaveBeenLastCalledWith({ kind: "repel", weapon: "ShortBow" });
   });
 
-  it("Fist e Desarmado são uma opção só; sem arma padrão vem Desarmado e envia Fist", () => {
+  it("Fist e Desarmado são uma opção só; sem arma padrão vem a primeira arma real", () => {
     const { onSend } = setup("repel");
     const select = screen.getByRole("combobox", { name: "Arma" });
     expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual(["Desarmado", "Sword", "Short Bow"]);
-    expect(select).toHaveValue("Fist");
+    expect(select).toHaveValue("Sword");
     fireEvent.click(screen.getByRole("button", { name: "Enviar" }));
-    expect(onSend).toHaveBeenLastCalledWith({ kind: "repel", weapon: "Fist" });
+    expect(onSend).toHaveBeenLastCalledWith({ kind: "repel", weapon: "Sword" });
+  });
+
+  it("rascunho explícito em Desarmado vence o padrão", () => {
+    setup("repel", { defaultWeapon: "Fist" });
+    expect(screen.getByRole("combobox", { name: "Arma" })).toHaveValue("Fist");
+  });
+
+  it("catálogo só com Desarmado fica em Desarmado", () => {
+    render(<ReactionConfigDialog name="Gon" initial="repel" weapons={["Fist"]} onSend={vi.fn()} onCancel={vi.fn()} />);
+    expect(screen.getByRole("combobox", { name: "Arma" })).toHaveValue("Fist");
   });
 
   it("o custo da fuga fechada cita só a barra de movimento", () => {

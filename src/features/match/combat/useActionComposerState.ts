@@ -23,12 +23,15 @@ export function useActionComposerState({
   boardPieces,
   grid,
   defaultCategory,
+  defaultWeapon,
 }: {
   matchId: string | undefined;
   actorId: string | undefined;
   boardPieces: Piece[];
   grid: GridShape | undefined;
   defaultCategory: MoveCategory;
+  /** A arma com que o ataque abre quando o rascunho não escolheu uma. */
+  defaultWeapon?: string;
 }) {
   useEffect(() => { purgeLegacyMatchStorage(); }, []);
 
@@ -105,7 +108,10 @@ export function useActionComposerState({
     [grid, actorPiece, pieceByCharacter, boardPieces, actorId],
   );
 
-  const resolved = useMemo(() => resolveDraft(draft, ctx, defaultCategory), [draft, ctx, defaultCategory]);
+  const resolved = useMemo(
+    () => resolveDraft(draft, ctx, defaultCategory, defaultWeapon),
+    [draft, ctx, defaultCategory, defaultWeapon],
+  );
   const verdict = draftVerdict(resolved);
   const from = actorPiece ? slotToTriple(actorPiece.coord.slot, actorPiece.coord.z) : undefined;
   const payload = actorId ? buildEnqueuePayload(resolved, actorId, from) : null;

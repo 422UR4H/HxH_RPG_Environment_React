@@ -135,10 +135,20 @@ export type ResolvedDraft = {
   approachBlocked: boolean;
 };
 
+/**
+ * A arma com que Atacar e Repelir abrem: a primeira do catálogo que não é o Desarmado (`Fist`),
+ * na ordem dada; sem nenhuma, `undefined` (e quem consome cai em Fist). Regra única do padrão,
+ * a ser enriquecida depois pelo dono do produto.
+ */
+export function defaultWeaponOf(names: string[]): string | undefined {
+  return names.find((n) => n !== "Fist");
+}
+
 export function resolveDraft(
   draft: ActionDraft,
   ctx: ReachContext,
   defaultCategory: MoveCategory,
+  defaultWeapon?: string,
 ): ResolvedDraft {
   const category = draft.category ?? defaultCategory;
   const primary = draft.attack?.targets[0];
@@ -146,7 +156,11 @@ export function resolveDraft(
   const targetSteps =
     ctx.actorSlot && targetSlot ? slotDistance(ctx.actorSlot, targetSlot) : undefined;
 
-  const base: ResolvedDraft = { attack: draft.attack, targetSteps, approachBlocked: false };
+  // O padrão entra na resolução (não só na tela): o que aparece escolhido é o que vai no envio.
+  // Sem chave `weapon: undefined` quando nenhum dos dois existe.
+  const weapon = draft.attack?.weapon ?? defaultWeapon;
+  const attack = draft.attack && weapon !== undefined ? { ...draft.attack, weapon } : draft.attack;
+  const base: ResolvedDraft = { attack, targetSteps, approachBlocked: false };
 
   switch (draft.moveMode) {
     case "manual":

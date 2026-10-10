@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 import {
-  buildEnqueuePayload, chooseDestination, chooseTarget, clearDraft, draftFromDeclared, draftVerdict, emptyDraft,
+  buildEnqueuePayload, chooseDestination, chooseTarget, clearDraft, defaultWeaponOf, draftFromDeclared, draftVerdict, emptyDraft,
   loadDraft, purgeLegacyMatchStorage, removeTarget, resolveDraft, saveDraft, setMoveCategory,
   setWeapon, toggleAttack, toggleMove, toggleTarget,
 } from "../actionDraft";
@@ -309,5 +309,31 @@ describe("restoreDraftFor (F10)", () => {
     saveDraft("m1", "leorio", started);
     act(() => result.current.restoreDraftFor("leorio", restored));
     expect(loadDraft("m1", "leorio")).toEqual(started);
+  });
+});
+
+describe("arma padrão", () => {
+  it("defaultWeaponOf: a primeira que não é Fist, na ordem dada", () => {
+    expect(defaultWeaponOf(["Fist", "Katana", "ThrowingDagger"])).toBe("Katana");
+    expect(defaultWeaponOf(["ThrowingDagger", "Fist"])).toBe("ThrowingDagger");
+    expect(defaultWeaponOf(["Fist"])).toBeUndefined();
+    expect(defaultWeaponOf([])).toBeUndefined();
+  });
+
+  it("resolveDraft aplica o padrão e o envio manda a mesma arma", () => {
+    const d: ActionDraft = { ...emptyDraft(), attack: { targets: ["hisoka"] } };
+    const r = resolveDraft(d, ctx, "Dash", "Katana");
+    expect(r.attack?.weapon).toBe("Katana");
+    expect(buildEnqueuePayload(r, "gon", [2, 4, 0])?.attack).toEqual({ weapon: "Katana" });
+  });
+
+  it("escolha explícita de Fist não é atropelada pelo padrão", () => {
+    const d: ActionDraft = { ...emptyDraft(), attack: { targets: ["hisoka"], weapon: "Fist" } };
+    expect(resolveDraft(d, ctx, "Dash", "Katana").attack?.weapon).toBe("Fist");
+  });
+
+  it("sem padrão, a arma segue ausente", () => {
+    const d: ActionDraft = { ...emptyDraft(), attack: { targets: ["hisoka"] } };
+    expect(resolveDraft(d, ctx, "Dash").attack).toEqual({ targets: ["hisoka"] });
   });
 });
