@@ -154,4 +154,4 @@ painel já o mostra); os rótulos do diálogo usam fonte e cor dos tokens.
   reconexão, **não** um desfecho que depende da ordem.
 - Peça empilhada ancora no centro da casa (sem o deslocamento da pilha).
 - Fora do escopo: cancelar ou trocar uma reação anexada (o servidor recusa o segundo attach),
-  edição do mestre (Fase 8), narração/chat.
+  narração/chat. (A edição do mestre, que era a Fase 8, existe agora: ver `combate-fase-8.md`.)

@@ -530,6 +530,110 @@ describe("ResolutionDetails", () => {
     expect(screen.getByText(/^ficou a salvo \(o golpe já tinha parado\) ·/)).toBeInTheDocument();
     expect(screen.queryByText(/esquivou/)).not.toBeInTheDocument();
   });
+
+  describe("edição do mestre (Fase 8)", () => {
+    const editable: ResolutionPayload = {
+      ...res,
+      damageSkill: "Push",
+      targets: [{ ...res.targets[0], reaction: { ...res.targets[0].reaction!, kind: "dodge", reactionId: "r1" } }],
+      conditions: [{ actionId: "act-1", field: "hit", bias: 1, modifier: -2, description: "escuridao" }],
+    };
+
+    it("sem onEditAction não há nada de edição", () => {
+      render(<ResolutionDetails resolution={editable} nameOf={resolutionNameOf} gridKind="square" />);
+      expect(screen.queryByRole("button", { name: /Editar/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Grab" })).not.toBeInTheDocument();
+    });
+
+    it("mostra o resumo em vigor e os botões de cada rolagem editável", () => {
+      render(<ResolutionDetails resolution={editable} nameOf={resolutionNameOf} gridKind="square" onEditAction={() => {}} />);
+      expect(screen.getByText("vantagem · −2 · escuridao")).toBeInTheDocument();
+      for (const name of ["Editar Acerto", "Editar Dano", "Editar Esquiva de Hisoka", "Editar Defesa padrão de Hisoka"]) {
+        expect(screen.getByRole("button", { name })).toBeInTheDocument();
+      }
+    });
+
+    it("editar o acerto abre o editor e manda o edit_action da ação", () => {
+      const onEdit = vi.fn();
+      render(<ResolutionDetails resolution={editable} nameOf={resolutionNameOf} gridKind="square" onEditAction={onEdit} />);
+      fireEvent.click(screen.getByRole("button", { name: "Editar Acerto" }));
+      fireEvent.click(screen.getByRole("button", { name: "Desfazer edição" }));
+      expect(onEdit).toHaveBeenCalledWith({ conditions: [{ field: "hit" }] });
+      expect(screen.queryByRole("button", { name: "Aplicar" })).not.toBeInTheDocument();
+    });
+
+    it("editar a defesa padrão manda com o id da reação e sem viés", () => {
+      const onEdit = vi.fn();
+      render(<ResolutionDetails resolution={editable} nameOf={resolutionNameOf} gridKind="square" onEditAction={onEdit} />);
+      fireEvent.click(screen.getByRole("button", { name: "Editar Defesa padrão de Hisoka" }));
+      expect(screen.queryByRole("button", { name: "Vantagem" })).not.toBeInTheDocument();
+      fireEvent.change(screen.getByLabelText("Ajuste"), { target: { value: "3" } });
+      fireEvent.click(screen.getByRole("button", { name: "Aplicar" }));
+      expect(onEdit).toHaveBeenCalledWith({ actionId: "r1", conditions: [{ field: "defense", modifier: 3 }] });
+    });
+
+    it("Push/Grab manda damageSkill na hora; o atual não manda nada", () => {
+      const onEdit = vi.fn();
+      render(<ResolutionDetails resolution={editable} nameOf={resolutionNameOf} gridKind="square" onEditAction={onEdit} />);
+      expect(screen.getByRole("button", { name: "Push" })).toHaveAttribute("aria-pressed", "true");
+      fireEvent.click(screen.getByRole("button", { name: "Push" }));
+      expect(onEdit).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole("button", { name: "Grab" }));
+      expect(onEdit).toHaveBeenCalledWith({ damageSkill: "Grab" });
+    });
+
+    it("sem ataque (sem damageSkill) não há bloco Dano nem acerto editável", () => {
+      const noAttack = { ...editable, damageSkill: undefined };
+      render(<ResolutionDetails resolution={noAttack} nameOf={resolutionNameOf} gridKind="square" onEditAction={() => {}} />);
+      expect(screen.queryByRole("button", { name: "Editar Acerto" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Grab" })).not.toBeInTheDocument();
+    });
+
+    it("o editor fecha quando a rolagem some do cálculo", () => {
+      const { rerender } = render(
+        <ResolutionDetails resolution={editable} nameOf={resolutionNameOf} gridKind="square" onEditAction={() => {}} />,
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Editar Esquiva de Hisoka" }));
+      expect(screen.getByRole("button", { name: "Aplicar" })).toBeInTheDocument();
+      rerender(
+        <ResolutionDetails
+          resolution={{ ...editable, targets: [{ ...editable.targets[0], reaction: undefined }] }}
+          nameOf={resolutionNameOf}
+          gridKind="square"
+          onEditAction={() => {}}
+        />,
+      );
+      expect(screen.queryByRole("button", { name: "Aplicar" })).not.toBeInTheDocument();
+    });
+
+    it("o editor fecha quando o turno muda", () => {
+      const { rerender } = render(
+        <ResolutionDetails resolution={editable} nameOf={resolutionNameOf} gridKind="square" onEditAction={() => {}} />,
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Editar Esquiva de Hisoka" }));
+      expect(screen.getByRole("button", { name: "Aplicar" })).toBeInTheDocument();
+      rerender(
+        <ResolutionDetails resolution={{ ...editable, turnId: "t2" }} nameOf={resolutionNameOf} gridKind="square" onEditAction={() => {}} />,
+      );
+      expect(screen.queryByRole("button", { name: "Aplicar" })).not.toBeInTheDocument();
+    });
+
+    it("Reflexo (reação fechada) não mostra total; Esquiva (dodge) mostra", () => {
+      const withKind = (kind: "dodge" | "closedDodge") => ({
+        ...editable,
+        targets: [{ ...editable.targets[0], reaction: { ...editable.targets[0].reaction!, kind } }],
+      });
+      const { rerender } = render(
+        <ResolutionDetails resolution={withKind("closedDodge")} nameOf={resolutionNameOf} gridKind="square" onEditAction={() => {}} />,
+      );
+      expect(screen.getByText("Reflexo")).toBeInTheDocument();
+      expect(screen.queryByText(/Reflexo\s+\d/)).not.toBeInTheDocument();
+      rerender(
+        <ResolutionDetails resolution={withKind("dodge")} nameOf={resolutionNameOf} gridKind="square" onEditAction={() => {}} />,
+      );
+      expect(screen.getByText("Esquiva 12")).toBeInTheDocument();
+    });
+  });
 });
 
 describe("QueuePanel — ação em andamento", () => {
