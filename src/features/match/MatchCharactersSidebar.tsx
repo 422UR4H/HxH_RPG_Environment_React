@@ -18,7 +18,7 @@ interface MatchCharactersSidebarProps {
   ownPlayerUuid?: string;
   /** Cards na largura toda do painel (a aba Personagens da mesa). */
   fluid?: boolean;
-  /** Depois dos cards, dentro da lista (ex.: "Pôr na partida" do mestre). */
+  /** Depois dos cards, dentro da lista (ex.: "Adicionar à partida" do mestre). */
   footer?: ReactNode;
 }
 

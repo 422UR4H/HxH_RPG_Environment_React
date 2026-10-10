@@ -40,6 +40,7 @@ export default function GeneralBar({
   return (
     <Wrapper aria-label="Barra geral">
       <TopRow>
+        <Scroll>
         {openTurnActorId ? (
           <Turn data-testid="open-turn">
             <Dot aria-hidden /> Vez de <strong>{nameOf(openTurnActorId)}</strong>
@@ -69,6 +70,7 @@ export default function GeneralBar({
             preço {priced.map((b) => `${BAR_ICONS[b]} ${bars!.prices[b]}`).join(" · ")}
           </Prices>
         )}
+        </Scroll>
         {hasCharacters && (
           <StripToggle type="button" aria-expanded={stripOpen} onClick={() => setStripOpen((o) => !o)}>
             Barras {stripOpen ? "▴" : "▾"}
@@ -101,6 +103,15 @@ const TopRow = styled.div`
   display: flex;
   align-items: center;
   gap: 10px;
+`;
+
+/** Só isto rola; o botão "Barras" fica fora, sempre à vista. */
+const Scroll = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
   overflow-x: auto;
   white-space: nowrap;
   scrollbar-width: none;
@@ -156,7 +167,6 @@ const Prices = styled.span`
 `;
 
 const StripToggle = styled.button`
-  margin-left: auto;
   flex-shrink: 0;
   border: none;
   background: transparent;

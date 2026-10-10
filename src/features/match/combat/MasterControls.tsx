@@ -106,7 +106,7 @@ export function NpcPicker({
       <PanelTitle>Agir por</PanelTitle>
       {npcs.length === 0 ? (
         <PanelHint>
-          Nenhum NPC nesta partida. Ponha um NPC no mapa ou em Personagens → Pôr na partida.
+          Nenhum NPC nesta partida. Ponha um NPC no mapa ou em Personagens → Adicionar à partida.
         </PanelHint>
       ) : (
         <PickerList>
@@ -130,7 +130,7 @@ export function NpcPicker({
 }
 
 /**
- * Pôr na partida um NPC da campanha que ainda não está nela (`add_npc`). Ele vira
+ * Adiciona à partida um NPC da campanha que ainda não está nela (`add_npc`). Ele vira
  * participante quando `npc_added` chegar e o REST for rebuscado.
  */
 export function AddNpcPicker({
@@ -143,20 +143,18 @@ export function AddNpcPicker({
   const [chosen, setChosen] = useState("");
   if (candidates.length === 0) return null;
   return (
-    <Picker>
-      <PanelTitle as="label" htmlFor="add-npc-select">Pôr na partida</PanelTitle>
-      <AddRow>
-        <NpcSelect id="add-npc-select" value={chosen} onChange={(e) => setChosen(e.target.value)}>
-          <option value="">Escolha um NPC da campanha</option>
-          {candidates.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </NpcSelect>
-        <SmallButton type="button" disabled={!chosen} onClick={() => { onAdd(chosen); setChosen(""); }}>
-          Pôr
-        </SmallButton>
-      </AddRow>
-    </Picker>
+    <AddBlock>
+      <PanelTitle as="label" htmlFor="add-npc-select">Adicionar à partida</PanelTitle>
+      <NpcSelect id="add-npc-select" value={chosen} onChange={(e) => setChosen(e.target.value)}>
+        <option value="">Escolha um NPC da campanha</option>
+        {candidates.map((c) => (
+          <option key={c.id} value={c.id}>{c.name}</option>
+        ))}
+      </NpcSelect>
+      <SmallButton type="button" disabled={!chosen} onClick={() => { onAdd(chosen); setChosen(""); }}>
+        Adicionar
+      </SmallButton>
+    </AddBlock>
   );
 }
 
@@ -212,13 +210,15 @@ export function ArrangePanel({
   );
 }
 
-const AddRow = styled.div`
+/* Mora dentro da lista de cards (que já tem as margens): sem recuo lateral próprio. */
+const AddBlock = styled.section`
   display: flex;
+  flex-direction: column;
   gap: 6px;
 `;
 
 const NpcSelect = styled.select`
-  flex: 1;
+  width: 100%;
   min-width: 0;
   background: ${colors.surfaceInput};
   color: ${colors.textPrimary};
