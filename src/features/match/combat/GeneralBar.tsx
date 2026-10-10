@@ -41,35 +41,35 @@ export default function GeneralBar({
     <Wrapper aria-label="Barra geral">
       <TopRow>
         <Scroll>
-        {openTurnActorId ? (
-          <Turn data-testid="open-turn">
-            <Dot aria-hidden /> Vez de <strong>{nameOf(openTurnActorId)}</strong>
-          </Turn>
-        ) : (
-          <Idle>Nenhum turno aberto</Idle>
-        )}
-        <Order aria-label="Ordem">
-          {order.length === 0 ? (
-            <Idle>ordem vazia</Idle>
+          {openTurnActorId ? (
+            <Turn data-testid="open-turn">
+              <Dot aria-hidden /> Vez de <strong>{nameOf(openTurnActorId)}</strong>
+            </Turn>
           ) : (
-            order.map((entry, i) => (
-              <OrderChip
-                key={`${entry.actorId}-${i}`}
-                data-testid="order-row"
-                $mine={!!highlightActorIds?.has(entry.actorId)}
-                title={entry.bars.map((b) => BAR_LABELS[b]).join(" + ")}
-              >
-                {nameOf(entry.actorId)} <Icons aria-hidden>{entry.bars.map((b) => BAR_ICONS[b]).join("")}</Icons>{" "}
-                <Key>{entry.key}</Key>
-              </OrderChip>
-            ))
+            <Idle>Nenhum turno aberto</Idle>
           )}
-        </Order>
-        {priced.length > 0 && (
-          <Prices data-testid="prices">
-            preço {priced.map((b) => `${BAR_ICONS[b]} ${bars!.prices[b]}`).join(" · ")}
-          </Prices>
-        )}
+          <Order aria-label="Ordem">
+            {order.length === 0 ? (
+              <Idle>ordem vazia</Idle>
+            ) : (
+              order.map((entry, i) => (
+                <OrderChip
+                  key={`${entry.actorId}-${i}`}
+                  data-testid="order-row"
+                  $mine={!!highlightActorIds?.has(entry.actorId)}
+                  title={entry.bars.map((b) => BAR_LABELS[b]).join(" + ")}
+                >
+                  {nameOf(entry.actorId)} <Icons aria-hidden>{entry.bars.map((b) => BAR_ICONS[b]).join("")}</Icons>{" "}
+                  <Key>{entry.key}</Key>
+                </OrderChip>
+              ))
+            )}
+          </Order>
+          {priced.length > 0 && (
+            <Prices data-testid="prices">
+              preço {priced.map((b) => `${BAR_ICONS[b]} ${bars!.prices[b]}`).join(" · ")}
+            </Prices>
+          )}
         </Scroll>
         {hasCharacters && (
           <StripToggle type="button" aria-expanded={stripOpen} onClick={() => setStripOpen((o) => !o)}>
