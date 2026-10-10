@@ -2,7 +2,8 @@
 
 > Spec: `docs/superpowers/specs/2026-10-10-front-combat-table-polish-design.md`.
 > Contrato do cancelar: `System_X_System/docs/dev/api/match-combat-ws.md` — `cancel_action`
-> e `action_cancelled`.
+> e `action_cancelled`. Histórico: `System_X_System/docs/dev/api/match-history.md` — `rounds[].events`
+> com `kind: "actionCancelled"`.
 
 Este documento vem **depois** de `combate-fase-8.md`. É uma rodada de acabamento sobre a mesa
 (mestre e jogador), sem fase nova. Cada seção diz o que mudou e onde mora a regra. Onde o código
@@ -157,6 +158,18 @@ preenchimentos não levam contorno.
 - `action_cancelled` só chega ao mestre e a quem pediu — a fila é secreta. A autorização é por
   ação (cada um cancela o que declarou).
 
+- **Custo (§16):** o texto de custo é "Custo:" (antes "Cobra:"), montado por `costLabel(bars)` em
+  `combatText.ts` e usado por `QueuePanel` e `ReactionConfigDialog`. O diálogo de cancelar só
+  mostra a linha da Desvantagem ("Até o fim da rodada, o que este personagem fizer de novo rola a
+  velocidade com Desvantagem") em **Race** — as páginas passam `showSwapCost={state.roundMode === "Race"}`.
+- **No histórico:** o evento `actionCancelled` vira uma linha "ação cancelada" (`historyRows.ts`),
+  descrita pelo mesmo `describeAction` das demais. Com `action` (só mestre e o dono recebem o
+  conteúdo) a linha diz o quê; sem `action` (quem não pode ver a fila) diz só que o personagem
+  cancelou uma ação.
+- **Cancelada não é perdida:** `resolveLostCandidates` trata o `uuid` de cada `actionCancelled` como
+  achado no histórico (mesmo conjunto de "rodou"): saída calada, sem rascunho restaurado e sem
+  `LostDeclaredNotice`.
+
 ## Outros ajustes da rodada
 
 - Aba **Personagens** (`MatchCharactersSidebar`): `fluid` (cards na largura do painel) e `footer`;
@@ -171,9 +184,9 @@ preenchimentos não levam contorno.
 
 ## Limites conhecidos
 
-- Um cancelamento confirmado logo antes de uma desconexão pode aparecer como "perdido" na
-  reconexão: o `match_full_state` reconcilia o estado e o front não distingue "cancelada" de
-  "perdida".
+- Uma ação cancelada enquanto um turno estava aberto só entra no histórico (`actionCancelled`)
+  quando esse turno fecha. Se a desconexão e a reconexão caírem nessa janela, ela ainda pode
+  aparecer como "perdida" (o restante dos casos já é calado).
 - A bolha do `Tooltip` não acompanha o botão se a topbar rolar com ela aberta (a posição é medida
   só ao abrir).
 - Girar um tablet de largo para estreito pode deixar painel e gaveta abertos ao mesmo tempo: a

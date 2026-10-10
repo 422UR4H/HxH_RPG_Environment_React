@@ -510,7 +510,7 @@ export function combatReducer(state: CombatState, action: CombatAction): CombatS
  * Decide as candidatas que um histórico cobre: só as detectadas ATÉ o início do fetch
  * (`fetchStartedAt >= detectedAt`) — um histórico anterior ao `match_full_state` não sabe do
  * que fechou durante a queda. A que aparece no histórico (como ação ou reação de um turno)
- * rodou: sai calada. A que não aparece foi perdida. `null` = nada a decidir ainda.
+ * rodou, e a que consta como `actionCancelled` foi cancelada: ambas saem caladas. A que não aparece foi perdida. `null` = nada a decidir ainda.
  */
 export function resolveLostCandidates(
   candidates: LostCandidate[],
@@ -530,6 +530,9 @@ export function resolveLostCandidates(
           r.consumedActionIds?.forEach((id) => inHistory.add(id));
         });
       }
+      // Cancelada com confirmação: saída calada, não perda (sem rascunho, sem aviso). O evento
+      // só entra no histórico quando o turno aberto fecha; nessa janela ainda pode parecer perdida.
+      for (const ev of round.events ?? []) if (ev.kind === "actionCancelled") inHistory.add(ev.uuid);
     }
   }
   return {

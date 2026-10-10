@@ -418,6 +418,13 @@ describe("resolveLostCandidates (F10)", () => {
     expect(out).toEqual({ ran: ["a1", "a3"], lost: ["a2"] });
   });
 
+  it("cancelada (evento actionCancelled) não é perdida", () => {
+    const h = history([]);
+    h.scenes![0].rounds[0].events = [{ uuid: "a1", kind: "actionCancelled", createdAt: "", actorId: "c1" }];
+    const out = resolveLostCandidates([cand("a1", 100), cand("a2", 100)], { history: h, fetchStartedAt: 100 });
+    expect(out).toEqual({ ran: ["a1"], lost: ["a2"] });
+  });
+
   it("só decide as candidatas que o fetch cobre", () => {
     const out = resolveLostCandidates([cand("a1", 100), cand("a2", 300)], { history: history([]), fetchStartedAt: 200 });
     expect(out).toEqual({ ran: [], lost: ["a1"] });
