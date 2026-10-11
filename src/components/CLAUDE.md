@@ -54,6 +54,10 @@ Cores, fontes e gradientes vivem em `src/styles/tokens.ts` (`colors`, `fonts`, `
 - Se não existe um token apropriado, **crie o token** antes de hardcodar — é 1 linha em `tokens.ts`.
 - `tokens.ts` é `as const` → autocomplete e erro de TS em typo.
 
+### Scrollbars — `src/styles/scrollbar.ts`
+
+Paleta `dark` (trilho quase preto, polegar `redCardAccent`) é a global, aplicada no `ResetStyle`. Telas de campanha/partida trocam para `earth` (marrons dos painéis) no container da página com `${scopedScrollbar(scrollbarPalettes.earth)}` — hoje `CreateFormTemplate`, `DetailPageTemplate`, `MapEditorTemplate`. Não escreva `::-webkit-scrollbar` à mão num componente; esconder a barra (`scrollbar-width: none`) continua livre.
+
 > Escopo atual: os tokens estão aplicados em toda a árvore (`components/` e `features/`) — exceto na zona pixel-tuned descrita abaixo. Toda nova UI deve consumir tokens.
 
 ## Zona pixel-tuned — NÃO normalizar

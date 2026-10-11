@@ -1,5 +1,6 @@
 import { createGlobalStyle } from "styled-components";
 import { colors } from "./tokens";
+import { globalScrollbar, scrollbarPalettes } from "./scrollbar";
 
 const ResetStyle = createGlobalStyle`
 	html, body, span, applet, object, iframe,
@@ -31,15 +32,9 @@ const ResetStyle = createGlobalStyle`
 	body {
 		line-height: 1;
     position: relative;
-
-		&::-webkit-scrollbar {
-			width: 10px;
-		}
-		&::-webkit-scrollbar-thumb {
-			background-color: ${colors.actionBlue};
-			border-radius: 3px;
-		}
 	}
+
+	${globalScrollbar(scrollbarPalettes.dark)}
 
 	#root{
 		height: 100%;
