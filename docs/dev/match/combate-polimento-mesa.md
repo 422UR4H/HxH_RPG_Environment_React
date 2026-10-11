@@ -187,7 +187,9 @@ preenchimentos não levam contorno.
 - **Pan do mapa** (`ViewportInner`): só começa se o alvo do `pointerdown` é o próprio canvas
   (`e.target === canvas`); card, aba Histórico ou camada HTML por cima não iniciam pan. Termina
   num `pointermove` sem o botão principal (`(e.buttons & 1) === 0`), porque um `pointerup` perdido
-  deixava o mapa seguindo o mouse.
+  deixava o mapa seguindo o mouse. O pan é armado no quadro seguinte ao `pointerdown`; se o
+  dedo/botão já subiu até lá (`pointerHeldRef`), não arma — no toque não há hover para
+  desligá-lo, e o toque seguinte fazia o mapa pular.
 - **Cursor da parede** (`WallsLayer`): com mouse, sem botão e sobre parede clicável, `pointer`.
   Vai no elemento PAI do canvas, pois o Pixi reescreve `canvas.style.cursor` a cada movimento
   (`inherit` fora de objeto interativo, `pointer` na peça); no pai ele herda e não briga. Usa o
