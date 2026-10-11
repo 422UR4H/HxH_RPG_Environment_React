@@ -4,6 +4,7 @@ import PageHeader from "../atoms/PageHeader";
 import PageTitle from "../ions/PageTitle";
 import worldMap from "../../assets/images/worldmap.png";
 import { colors, fonts } from "../../styles/tokens";
+import { scopedScrollbar, scrollbarPalettes } from "../../styles/scrollbar";
 
 interface CreateFormTemplateProps {
   title: string;
@@ -68,27 +69,7 @@ const PageContainer = styled.div`
   height: 100dvh;
   overflow: hidden;
 
-  /* scrollbars custom */
-  * {
-    &::-webkit-scrollbar {
-      width: 12px;
-      height: 12px;
-    }
-    &::-webkit-scrollbar-track {
-      background: ${colors.surfaceScrollTrack};
-    }
-    &::-webkit-scrollbar-thumb {
-      background: ${colors.surfaceInput};
-      border-radius: 6px;
-      border: 2px solid ${colors.surfaceSidebar};
-    }
-    &::-webkit-scrollbar-thumb:hover {
-      background: ${colors.surfaceScrollThumbHover};
-    }
-    &::-webkit-scrollbar-corner {
-      background: ${colors.surfaceSidebar};
-    }
-  }
+  ${scopedScrollbar(scrollbarPalettes.earth)}
 `;
 
 const PageBody = styled.main`

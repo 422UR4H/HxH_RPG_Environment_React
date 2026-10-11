@@ -69,6 +69,43 @@ describe("Tooltip", () => {
     expect(screen.queryByRole("tooltip", { hidden: true })).toBeNull();
   });
 
+  it("segurar o toque mostra a dica e engole o clique ao soltar", () => {
+    const onClick = vi.fn();
+    render(
+      <Tooltip label="Dica curta">
+        <button type="button" onClick={onClick}>Alvo</button>
+      </Tooltip>,
+    );
+    const btn = screen.getByRole("button", { name: "Alvo" });
+    fireEvent.pointerDown(btn, { pointerType: "touch" });
+    act(() => { vi.advanceTimersByTime(500); });
+    expect(screen.getByRole("tooltip", { hidden: true })).toBeInTheDocument();
+    fireEvent.pointerUp(btn, { pointerType: "touch" });
+    fireEvent.click(btn);
+    expect(onClick).not.toHaveBeenCalled();
+    // o toque seguinte, curto, volta a acionar
+    fireEvent.pointerDown(btn, { pointerType: "touch" });
+    fireEvent.pointerUp(btn, { pointerType: "touch" });
+    fireEvent.click(btn);
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it("toque curto não é segurar: o filho é acionado", () => {
+    const onClick = vi.fn();
+    render(
+      <Tooltip label="Dica curta">
+        <button type="button" onClick={onClick}>Alvo</button>
+      </Tooltip>,
+    );
+    const btn = screen.getByRole("button", { name: "Alvo" });
+    fireEvent.pointerDown(btn, { pointerType: "touch" });
+    act(() => { vi.advanceTimersByTime(200); });
+    fireEvent.pointerUp(btn, { pointerType: "touch" });
+    act(() => { vi.advanceTimersByTime(1000); });
+    fireEvent.click(btn);
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
   it("enabled=false nunca mostra", () => {
     const btn = setup(false);
     fireEvent.pointerEnter(btn, { pointerType: "mouse" });

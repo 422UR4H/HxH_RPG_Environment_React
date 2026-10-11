@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import styled from "styled-components";
 import PageHeader from "../atoms/PageHeader";
 import { colors, fonts } from "../../styles/tokens";
+import { scopedScrollbar, scrollbarPalettes } from "../../styles/scrollbar";
 
 type Props = {
   sidebar: ReactNode;
@@ -33,6 +34,8 @@ const PageContainer = styled.div`
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
+
+  ${scopedScrollbar(scrollbarPalettes.earth)}
 `;
 
 const PageBody = styled.main`

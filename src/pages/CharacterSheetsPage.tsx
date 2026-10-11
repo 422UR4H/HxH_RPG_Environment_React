@@ -8,6 +8,7 @@ import CharacterSheetCard from "../components/atoms/CharacterSheetCard";
 import PageTitle from "../components/ions/PageTitle";
 import ListPageTemplate from "../components/templates/ListPageTemplate";
 import CreateButton from "../components/atoms/CreateButton";
+import { colors } from "../styles/tokens";
 
 function CharacterSheetsPage() {
   const { token } = useToken();
@@ -28,7 +29,7 @@ function CharacterSheetsPage() {
   return (
     <ListPageTemplate
       bgImage={space}
-      headerColor="black"
+      headerColor={colors.surfaceHeaderDark}
       bgAttachment="scroll"
       isPending={isPending}
       isError={isError}

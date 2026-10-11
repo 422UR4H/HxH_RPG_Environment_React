@@ -5,6 +5,7 @@ import PageHeader from "../atoms/PageHeader";
 import CloseButton from "../ions/CloseButton";
 import worldMap from "../../assets/images/worldmap.png";
 import { colors, fonts } from "../../styles/tokens";
+import { scopedScrollbar, scrollbarPalettes } from "../../styles/scrollbar";
 import useMediaQuery from "../../hooks/useMediaQuery";
 
 interface DetailPageTemplateProps {
@@ -115,6 +116,8 @@ const PageContainer = styled.div`
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
+
+  ${scopedScrollbar(scrollbarPalettes.earth)}
 `;
 
 const PageBody = styled.main`

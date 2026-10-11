@@ -13,9 +13,11 @@ export const colors = {
   surfaceInputHover: "#382a1a", // match item hover
   surfaceScrollTrack: "#42331f", // webkit scrollbar track
   surfaceScrollThumbHover: "#5a4529", // webkit scrollbar thumb on hover
+  scrollThumbAccentHover: "#d6224b", // dark scrollbar thumb on hover (redCardAccent, lighter)
   surfaceMuted: "#333", // fallback dark card (participant without private data)
   surfaceControl: "#444", // inner control surface: progress bar fill bg, attribute card bg
   surfaceHeaderDefault: "#252525", // PageHeader default background
+  surfaceHeaderDark: "black", // PageHeader on dark pages (home, character sheets)
 
   // surfaces — neutral scale (top-bar/menu/modal panels)
   grayBgDark: "#222", // ExpBar dark background
@@ -121,4 +123,6 @@ export const gradients = {
   orange: `linear-gradient(to bottom, ${colors.orange} 0%, ${colors.orange} 20%, #e60000 100%)`,
   // SignPages (login/register) page background
   signBg: `linear-gradient(to bottom, #4b70a4 0%, ${colors.linkBlue} 100%)`,
+  // véu sob o texto de um card com imagem de fundo: limpo no topo, escuro onde o texto fica
+  cardScrim: `linear-gradient(to bottom, transparent 30%, ${colors.overlaySoft} 55%, ${colors.overlayDark} 100%)`,
 } as const;
