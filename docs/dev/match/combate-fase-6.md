@@ -314,7 +314,8 @@ o fantasma de espera; migrar os breakpoints antigos do resto do app.
 
 **Desvios decididos durante a implementação, registrados no ledger:**
 
-- **R23 — paredes não são alvo do composer.** O spec §6 dizia "clicar numa peça, parede ou
+- **R23 — paredes não são alvo do composer.** *(Superado em 2026-10-10: a parede virou alvo do
+  compositor e o `WallActionSheet` saiu — ver `combate-parede-alvo.md`.)* O spec §6 dizia "clicar numa peça, parede ou
   campo marca o alvo". A implementação manteve o menu de parede separado
   (`WallActionSheet`) em vez de fazer clique em parede alimentar o `ActionComposer`. Ver a
   exceção I2 #2 acima. **Emenda da revisão final (R29):** o menu do jogador era sempre
