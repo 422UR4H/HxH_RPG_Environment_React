@@ -71,14 +71,10 @@ export function useGameTable({
     () => queryClient.invalidateQueries({ queryKey: ["matchHistory", token, matchId] }),
     [queryClient, token, matchId],
   );
-  // Peça e parede mexidas ENTRE turnos são master actions já gravadas — e o jogador não recebe
-  // `master_action_enqueued` de peça, nem ninguém o de parede: o tabuleiro é o único aviso.
-  // Com turno aberto nada é gravado até o fechamento (o turn_closed rebusca). O ref espelha o
-  // último render: o piece_moved da abertura chega antes do turn_opened e rebusca à toa — inofensivo.
-  const openTurnRef = useRef(false);
-  const onBoardChange = useCallback(() => {
-    if (!openTurnRef.current) void invalidateHistory();
-  }, [invalidateHistory]);
+  // Peça e parede mexidas ENTRE turnos são master actions: o histórico rebusca no
+  // `master_action_recorded` (useMatchCombat), que sai depois da gravação. A notícia do
+  // tabuleiro sai antes dela — rebuscar ali voltava sem a ação.
+
   // Conta os `match_full_state`: a página zera por ele o que não sobrevive a uma reconexão
   // (a confirmação pendente do Arrumar, F12).
   const [fullStateSeq, setFullStateSeq] = useState(0);
@@ -87,13 +83,13 @@ export function useGameTable({
     userUuid: user?.uuid,
     token,
     declaredSource,
-    onWallStateChanged: (...a) => { live.handleWallStateChanged(...a); onBoardChange(); },
+    onWallStateChanged: live.handleWallStateChanged,
     onWallHpChanged: live.handleWallHpChanged,
     onMapFullState: live.handleMapFullState,
     onVisibilityUpdated: live.handleVisibilityUpdated,
-    onWallRevealed: (...a) => { live.handleWallRevealed(...a); onBoardChange(); },
-    onPieceMoved: (...a) => { live.handlePieceMoved(...a); onBoardChange(); },
-    onPieceRemoved: (...a) => { live.handlePieceRemoved(...a); onBoardChange(); },
+    onWallRevealed: live.handleWallRevealed,
+    onPieceMoved: live.handlePieceMoved,
+    onPieceRemoved: live.handlePieceRemoved,
     onComposerSendAccepted: (a) => clearDraftForRef.current(a),
     onHistoryChanged: invalidateHistory,
     onNpcAdded: () => { void refetchParticipants(); },
@@ -106,7 +102,6 @@ export function useGameTable({
     },
   });
   const { state } = combat;
-  openTurnRef.current = state.openTurn !== null;
 
   // A mesma query das páginas (React Query reaproveita): daqui sai a arma padrão do ataque.
   const { data: catalogue } = useCombatCatalogue(token, actorId);

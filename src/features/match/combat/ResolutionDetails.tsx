@@ -4,7 +4,9 @@ import { colors, fonts } from "../../../styles/tokens";
 import type { EditActionPayload, ResolutionPayload } from "./combatMessages";
 import { orderPending, wallOutcomeText } from "./resolutionText";
 import { avoidedVerb, REACTION_KIND_LABELS, RUNG_LABELS } from "./combatText";
-import { damageSkillPayload, describeCondition, editableRolls, type EditableRoll } from "./rollEdits";
+import {
+  SYSTEM_BIAS_REASON, damageSkillPayload, describeCondition, editableRolls, systemBiasText, type EditableRoll,
+} from "./rollEdits";
 import RollConditionEditor from "./RollConditionEditor";
 
 /** As perícias que medem o dano de um ataque (o motor só conhece estas duas). */
@@ -58,6 +60,7 @@ export default function ResolutionDetails({
     <>
       <RollRow>
         {tail !== undefined && <Line>{roll.label}{tail}</Line>}
+        {roll.systemBias ? <SystemApplied title={SYSTEM_BIAS_REASON}>{systemBiasText(roll.systemBias)}</SystemApplied> : null}
         {roll.current && <Applied>{describeCondition(roll.current)}</Applied>}
         <ActionButton
           type="button"
@@ -142,6 +145,7 @@ export default function ResolutionDetails({
               {` · aberta em ${openedOrder.get(t.targetId)}º`}
             </Line>
           )}
+          {!!t.reaction?.systemBias && <Muted>{SYSTEM_BIAS_REASON}</Muted>}
           <Line>
             dano {t.rawDamage} → {t.projectedDamage} (defesa −{t.defenseApplied})
           </Line>
@@ -203,6 +207,11 @@ export default function ResolutionDetails({
                   {r.speed !== undefined ? `chave ${r.speed}` : "sem velocidade"}
                   {r.arrival !== undefined && ` · chegou em ${r.arrival}º`}
                 </Muted>
+                {!!r.systemBias && (
+                  <SystemLine title={SYSTEM_BIAS_REASON}>
+                    {systemBiasText(r.systemBias)} — trocou a ação da fila
+                  </SystemLine>
+                )}
               </PendingInfo>
               {onOpenReaction && (
                 <ActionButton
@@ -315,6 +324,19 @@ const RollRow = styled.div`
 `;
 const Applied = styled.span`
   color: ${colors.warningText};
+`;
+const SystemLine = styled.span`
+  color: ${colors.warningText};
+  font-size: 12px;
+`;
+// O que o sistema aplicou sozinho: contornado, para não se confundir com a condição do mestre.
+const SystemApplied = styled.span`
+  align-self: flex-start;
+  padding: 1px 6px;
+  border: 1px solid ${colors.warningText};
+  border-radius: 999px;
+  color: ${colors.warningText};
+  font-size: 11px;
 `;
 const Muted = styled.span`
   color: ${colors.textPlaceholderStrong};

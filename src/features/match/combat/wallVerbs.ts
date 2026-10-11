@@ -94,7 +94,7 @@ export function masterWallVerbs(w: WallSegment): MasterWallKind[] {
 
 /** A vida da parede como o mestre lê: "Vida 7/10", "Indestrutível", "Destruída". */
 export function wallLifeText(w: WallSegment): string {
-  if (w.destroyed) return "Destruída";
+  if (w.destroyed) return w.maxHp > 0 ? `Destruída · vida ${w.hp}/${w.maxHp}` : "Destruída";
   if (w.maxHp <= 0) return "Indestrutível";
   return `Vida ${w.hp}/${w.maxHp}`;
 }

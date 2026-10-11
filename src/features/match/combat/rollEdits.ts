@@ -17,6 +17,12 @@ export type EditableRoll = {
   current?: RollCondition;
   /** O alvo cuja reação é dona da rolagem; ausente na ação. */
   targetId?: string;
+  /**
+   * O viés que o próprio sistema já pôs nesta rolagem (-1: a reação trocou a ação da fila).
+   * Só nas velocidades — o movimento de uma fuga; a esquiva, o aparo e a defesa não pioram.
+   * Soma com o do mestre: Vantagem do mestre anula.
+   */
+  systemBias?: number;
 };
 
 type RollSpec = { field: ConditionField; label: string; allowsBias: boolean };
@@ -84,10 +90,12 @@ export function editableRolls(res: ResolutionPayload): EditableRoll[] {
   for (const t of res.targets) {
     if (!t.reaction) continue;
     const reactionId = t.reaction.reactionId;
+    const systemBias = t.reaction.systemBias ?? 0;
     for (const spec of REACTION_ROLLS[t.reaction.kind] ?? []) {
       out.push({
         ...spec, key: `${reactionId}:${spec.field}`, actionId: reactionId, targetId: t.targetId,
         current: currentOf(reactionId, spec.field),
+        ...(spec.field === "moveSpeed" && systemBias !== 0 && { systemBias }),
       });
     }
   }
@@ -96,7 +104,7 @@ export function editableRolls(res: ResolutionPayload): EditableRoll[] {
 
 const trimmed = (s?: string) => s?.trim() ?? "";
 
-/** Sem viés, sem ajuste e sem motivo — o mesmo que "sem condição" para o servidor. */
+/** Sem viés, sem modificador e sem motivo — o mesmo que "sem condição" para o servidor. */
 export function isNeutral(c: RollCondition): boolean {
   return c.bias === 0 && c.modifier === 0 && trimmed(c.description) === "";
 }
@@ -140,3 +148,13 @@ export function describeCondition(c: RollCondition): string {
   if (trimmed(c.description)) parts.push(trimmed(c.description));
   return parts.join(" · ");
 }
+
+/** "desvantagem do sistema" / "vantagem do sistema"; vazio sem viés do sistema. */
+export function systemBiasText(bias: number | undefined): string {
+  if (!bias) return "";
+  return bias < 0 ? "desvantagem do sistema" : "vantagem do sistema";
+}
+
+/** Por que o sistema pôs o viés: hoje só a troca (a reação consumiu uma ação da fila, ou cancelou antes). */
+export const SYSTEM_BIAS_REASON =
+  "A reação trocou o que estava na fila (consumiu a ação, ou cancelou antes nesta rodada): velocidade e movimento rolam com Desvantagem.";

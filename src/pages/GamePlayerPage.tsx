@@ -35,12 +35,11 @@ import MatchCharactersSidebar from "../features/match/MatchCharactersSidebar";
 import { PanelMessage } from "../features/match/combat/panelStyles";
 import TacticalMapViewer from "../features/tactical-map/TacticalMapViewer";
 import {
-  CanvasWrapper, MapCornerStack, MapCornerStackButton, MapHintButton, MapLoadingMessage, NoMapMessage,
+  CanvasWrapper, MapCornerStack, MapCornerStackButton, MapHint, MapHintButton, MapLoadingMessage, NoMapMessage,
   StageNotices,
 } from "../features/match/combat/mapCanvasStyles";
 import type { SlotCoord, WallSegment } from "../types/tacticalMap";
 import { actorWallVerbs } from "../features/match/combat/wallVerbs";
-import MapPickConfirm from "../features/match/combat/MapPickConfirm";
 
 type Props = {
   token: string;
@@ -325,7 +324,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
                   selectedPieceId={composer.actorPiece?.id}
                   targetPieceIds={picking ? undefined : composer.targetPieceIds}
                   activePieceId={game.openTurnPieceId}
-                  intentPreview={picking ? controls.pickPreview : composer.preview}
+                  intentPreview={picking ? undefined : composer.preview}
                   intentGhosts={game.ghosts}
                   highlightHoverSlot={!!actorId}
                   fitRequest={game.fitRequest}
@@ -360,13 +359,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
               />
             </StageNotices>
             {map && controls.pick && (
-              <MapPickConfirm
-                prompt={`Toque na casa para onde ${nameOf(controls.pick.actorId)} escapa.`}
-                chosen={controls.pick.pending ? `${nameOf(controls.pick.actorId)} escapa para a casa marcada.` : undefined}
-                confirmLabel="Escapar para cá"
-                canConfirm={combat.status === "connected"}
-                onConfirm={controls.confirmPick}
-              />
+              <MapHint>Toque na casa para onde {nameOf(controls.pick.actorId)} escapa.</MapHint>
             )}
             {showReactionHint && (
               <MapHintButton type="button" onClick={showReactionSection}>

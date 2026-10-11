@@ -10,6 +10,9 @@ import type { WallSegment } from "../../../types/tacticalMap";
 import type { RoundMode } from "./combatMessages";
 import { ROUND_MODE_LABELS } from "./combatText";
 import { SmallButton } from "./MatchTopBar";
+import {
+  Buttons, CancelButton, ConfirmButton, Dialog, DialogHint, DialogTitle, Overlay,
+} from "./dialogStyles";
 import { PanelHint, PanelTitle } from "./panelStyles";
 import { MASTER_WALL_LABELS, WALL_TYPE_LABELS, masterWallVerbs, wallLifeText } from "./wallVerbs";
 import type { MasterWallKind } from "./wallVerbs";
@@ -241,6 +244,8 @@ export function WallMasterPanel({
   onInteract: (kind: MasterWallKind, wallIds: string[]) => void;
   onDismiss: () => void;
 }) {
+  // Destruir não tem volta: pede um segundo toque explícito (um clique errado derrubaria a parede).
+  const [confirmDestroy, setConfirmDestroy] = useState(false);
   if (walls.length === 0) return null;
   const single = walls.length === 1 ? walls[0] : undefined;
   const standing = walls.filter((w) => !w.destroyed);
@@ -273,11 +278,40 @@ export function WallMasterPanel({
       {verbs.length > 0 && (
         <PickerList>
           {verbs.map((v) => (
-            <SmallButton key={v} type="button" onClick={() => onInteract(v, targetIds)}>
+            <SmallButton
+              key={v}
+              type="button"
+              onClick={() => (v === "destroy" ? setConfirmDestroy(true) : onInteract(v, targetIds))}
+            >
               {v === "destroy" && !single ? `Destruir ${standing.length}` : MASTER_WALL_LABELS[v]}
             </SmallButton>
           ))}
         </PickerList>
+      )}
+      {confirmDestroy && (
+        <Overlay onClick={() => setConfirmDestroy(false)}>
+          <Dialog role="dialog" aria-modal aria-label="Destruir" onClick={(e) => e.stopPropagation()}>
+            <DialogTitle>
+              {single ? `Destruir ${WALL_TYPE_LABELS[single.wallType]}?` : `Destruir ${standing.length} paredes?`}
+            </DialogTitle>
+            <DialogHint>
+              {single ? "Ela vai ao chão" : "Elas vão ao chão"} na hora, e não dá para desfazer: nenhuma ação da
+              mesa levanta uma parede de novo.
+            </DialogHint>
+            <Buttons>
+              <CancelButton type="button" onClick={() => setConfirmDestroy(false)}>Cancelar</CancelButton>
+              <ConfirmButton
+                type="button"
+                onClick={() => {
+                  setConfirmDestroy(false);
+                  onInteract("destroy", targetIds);
+                }}
+              >
+                Destruir
+              </ConfirmButton>
+            </Buttons>
+          </Dialog>
+        </Overlay>
       )}
     </Picker>
   );
@@ -293,7 +327,7 @@ function WallFacts({ wall }: { wall: WallSegment }) {
   return (
     <WallLife data-destroyed={wall.destroyed || undefined}>
       <strong>{wallLifeText(wall)}</strong>
-      {!wall.destroyed && wall.maxHp > 0 && (
+      {wall.maxHp > 0 && (
         <LifeBar aria-hidden>
           <LifeFill style={{ width: `${Math.max(0, Math.min(100, (wall.hp / wall.maxHp) * 100))}%` }} />
         </LifeBar>

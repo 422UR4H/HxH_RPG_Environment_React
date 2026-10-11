@@ -546,9 +546,11 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     setRailActive("fila");
     setPanelOpen(true);
   }, [setPanelOpen]);
-  // A casa da fuga e o onde cai têm a barra deles (MapPickConfirm), não a dica.
-  const mapHint = !map || (reactionPicking && reactionPick) || (fallPicking && choosingFall)
+  // O onde cai tem a barra dele (MapPickConfirm); a casa da fuga, só a dica — o toque já envia.
+  const mapHint = !map || (fallPicking && choosingFall)
     ? undefined
+      : reactionPicking && reactionPick
+      ? `Toque na casa para onde ${nameOf(reactionPick.actorId)} escapa.`
       : arranging
       ? placingId
         ? `Toque num slot vazio para pôr ${nameOf(placingId)}.`
@@ -737,7 +739,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                   targetPieceIds={reactionPicking ? undefined : composer.targetPieceIds}
                   activePieceId={game.openTurnPieceId}
                   intentPreview={
-                    reactionPicking ? controls.pickPreview : fallPicking ? fallPreview : arranging ? arrangePreview : composer.preview ?? masterWallPreview
+                    reactionPicking ? undefined : fallPicking ? fallPreview : arranging ? arrangePreview : composer.preview ?? masterWallPreview
                   }
                   intentGhosts={intentGhosts}
                   highlightHoverSlot={fallPicking || reactionPicking || (!arranging && !!actorId)}
@@ -782,15 +784,6 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                 onDismiss={combat.dismissLostDeclared}
               />
             </StageNotices>
-            {map && reactionPicking && reactionPick && (
-              <MapPickConfirm
-                prompt={`Toque na casa para onde ${nameOf(reactionPick.actorId)} escapa.`}
-                chosen={reactionPick.pending ? `${nameOf(reactionPick.actorId)} escapa para a casa marcada.` : undefined}
-                confirmLabel="Escapar para cá"
-                canConfirm={combat.status === "connected"}
-                onConfirm={controls.confirmPick}
-              />
-            )}
             {map && fallPicking && choosingFall && (
               <MapPickConfirm
                 prompt={`Toque na casa onde ${nameOf(choosingFall)} cai.`}

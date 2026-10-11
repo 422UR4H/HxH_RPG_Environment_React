@@ -568,10 +568,19 @@ describe("GameMasterPage", () => {
       const card = await screen.findByRole("region", { name: "Ação do Mestre" });
       expect(card).toHaveTextContent("Indestrutível");
       act(() => within(card).getByRole("button", { name: "Destruir" }).click());
+      // Sem volta: um clique errado não derruba — pede confirmação, e Cancelar não manda nada.
+      expect(ws.sent("enqueue_master_action")).toEqual([]);
+      let confirm = screen.getByRole("dialog", { name: "Destruir" });
+      act(() => within(confirm).getByRole("button", { name: "Cancelar" }).click());
+      expect(screen.queryByRole("dialog", { name: "Destruir" })).not.toBeInTheDocument();
+      expect(ws.sent("enqueue_master_action")).toEqual([]);
+      act(() => within(card).getByRole("button", { name: "Destruir" }).click());
+      confirm = screen.getByRole("dialog", { name: "Destruir" });
+      act(() => within(confirm).getByRole("button", { name: "Destruir" }).click());
       expect(ws.sent("enqueue_master_action")).toEqual([{ targetIds: ["door-1"], interact: { kind: "destroy" } }]);
 
       act(() => screen.getByTestId("wall-wall-2").click());
-      expect(screen.getByRole("region", { name: "Ação do Mestre" })).toHaveTextContent("Destruída");
+      expect(screen.getByRole("region", { name: "Ação do Mestre" })).toHaveTextContent("Destruída · vida 0/10");
       expect(within(screen.getByRole("region", { name: "Ação do Mestre" })).queryByRole("button", { name: "Destruir" })).not.toBeInTheDocument();
     });
 
@@ -589,6 +598,9 @@ describe("GameMasterPage", () => {
       const card = screen.getByRole("region", { name: "Ação do Mestre" });
       expect(card).toHaveTextContent("3 paredes");
       act(() => within(card).getByRole("button", { name: "Destruir 2" }).click());
+      const confirm = screen.getByRole("dialog", { name: "Destruir" });
+      expect(confirm).toHaveTextContent("Destruir 2 paredes?");
+      act(() => within(confirm).getByRole("button", { name: "Destruir" }).click());
       expect(ws.sent("enqueue_master_action")).toEqual([{ targetIds: ["door-1", "wall-2"], interact: { kind: "destroy" } }]);
     });
 
@@ -885,7 +897,7 @@ describe("GameMasterPage", () => {
     openWithServerBoard(ws);
 
     await user.click(screen.getAllByRole("button", { name: "Nova cena" })[0]);
-    await user.click(screen.getByRole("radio", { name: "Interpretação" }));
+    await user.click(screen.getByRole("radio", { name: "Roleplay" }));
     await user.type(screen.getByLabelText("Descrição inicial"), "Taverna");
     await user.click(screen.getByRole("button", { name: "Trocar de cena" }));
     expect(ws.sent("change_scene")).toEqual([{ category: "roleplay", briefInitialDescription: "Taverna" }]);
@@ -899,7 +911,7 @@ describe("GameMasterPage", () => {
     openWithServerBoard(ws);
 
     await user.click(screen.getAllByRole("button", { name: "Nova cena" })[0]);
-    await user.click(screen.getByRole("radio", { name: "Interpretação" }));
+    await user.click(screen.getByRole("radio", { name: "Roleplay" }));
     await user.type(screen.getByLabelText("Descrição inicial"), "Taverna");
     await user.click(screen.getByRole("button", { name: "Cancelar" }));
 
@@ -1458,17 +1470,10 @@ describe("GameMasterPage", () => {
       expect(mapStub()).toHaveAttribute("data-has-empty-slot-click", "true");
       expect(mapStub()).toHaveAttribute("data-selected-piece-id", "piece-npc1");
 
-      // O toque escolhe: o caminho aparece no mapa (como o destino do compositor) e nada sai.
-      act(() => screen.getByTestId("empty-slot").click());
-      expect(ws.sent("attach_reaction")).toEqual([]);
-      expect(screen.getByRole("group", { name: "Confirmar a casa escolhida" })).toHaveTextContent("Capanga escapa para a casa marcada.");
-      expect(JSON.parse(mapStub().getAttribute("data-intent-preview") ?? "null")).toMatchObject({
-        to: { kind: "square", col: 9, row: 9 },
-        auto: false,
-      });
       // O botão da fuga fica aceso enquanto se escolhe.
       expect(screen.getAllByRole("button", { name: /^Escapar —/ })[0]).toHaveAttribute("aria-pressed", "true");
-      await user.click(screen.getByRole("button", { name: "Escapar para cá" }));
+      // O toque já envia, sem confirmar: a reação tem de ser rápida.
+      act(() => screen.getByTestId("empty-slot").click());
       expect(ws.sent("attach_reaction")).toEqual([
         expect.objectContaining({ actorId: "npc1", reactToId: "a1", reactionKind: "escape", move: expect.objectContaining({ position: [9, 9, 0] }) }),
       ]);

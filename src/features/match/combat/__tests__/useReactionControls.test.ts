@@ -64,23 +64,15 @@ describe("useReactionControls", () => {
     const { result, attachReaction } = mount();
     act(() => result.current.quick("c2", "escape"));
     expect(attachReaction).not.toHaveBeenCalled();
-    expect(result.current.pick).toMatchObject({ actorId: "c2", kind: "escape" });
-    expect(result.current.pick?.pending).toBeUndefined();
+    expect(result.current.pick).toEqual({ actorId: "c2", kind: "escape" });
   });
 
-  it("o toque na casa só a escolhe (com o pré-visualizar); Confirmar envia com o z da peça e limpa", () => {
+  it("o toque na casa envia a fuga com a casa e o z da peça, e limpa a escolha", () => {
     const { result, attachReaction } = mount();
     act(() => result.current.quick("c2", "escape"));
     let consumed = false;
     act(() => { consumed = result.current.onSlotForPick({ kind: "square", col: 4, row: 2 }); });
     expect(consumed).toBe(true);
-    expect(attachReaction).not.toHaveBeenCalled();
-    expect(result.current.pick?.pending).toEqual({ kind: "square", col: 4, row: 2 });
-    expect(result.current.pickPreview?.to).toEqual({ kind: "square", col: 4, row: 2 });
-    // Tocar outra casa troca a escolha.
-    act(() => { result.current.onSlotForPick({ kind: "square", col: 3, row: 2 }); });
-    act(() => { result.current.onSlotForPick({ kind: "square", col: 4, row: 2 }); });
-    act(() => result.current.confirmPick());
     expect(attachReaction).toHaveBeenCalledWith(
       { actorId: "c2", reactToId: "a1", reactionKind: "escape", dodge: {}, move: { category: "Dash", position: [4, 2, 0] } },
       "t1",
@@ -92,7 +84,6 @@ describe("useReactionControls", () => {
     const { result, attachReaction } = mount();
     act(() => result.current.quick("c3", "escapeGuard"));
     act(() => { result.current.onSlotForPick({ kind: "square", col: 5, row: 5 }); });
-    act(() => result.current.confirmPick());
     expect(attachReaction.mock.calls[0][0].move).toEqual({ category: "Dash", position: [5, 5, 3] });
   });
 
@@ -162,9 +153,8 @@ describe("useReactionControls", () => {
     act(() => result.current.sendFromDialog({ kind: "closedEscape" }));
     expect(attachReaction).not.toHaveBeenCalled();
     expect(result.current.dialog).toBeNull();
-    expect(result.current.pick).toMatchObject({ actorId: "c2", kind: "closedEscape" });
+    expect(result.current.pick).toEqual({ actorId: "c2", kind: "closedEscape" });
     act(() => { result.current.onSlotForPick({ kind: "square", col: 0, row: 3 }); });
-    act(() => result.current.confirmPick());
     expect(attachReaction.mock.calls[0][0].move).toEqual({ category: "Shift", position: [0, 3, 0] });
   });
 

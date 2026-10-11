@@ -416,6 +416,33 @@ describe("ResolutionDetails", () => {
     });
   });
 
+  describe("o viés que o sistema aplicou sozinho", () => {
+    it("a reação que trocou a ação da fila diz que rola com desvantagem — esperando e aberta", () => {
+      const res: ResolutionPayload = {
+        turnId: "t1", isSettled: false,
+        targets: [{
+          targetId: "c2", avoided: false, defended: false, dodgeTotal: 11, defenseTotal: 11,
+          rawDamage: 10, defenseApplied: 0, projectedDamage: 10,
+          reaction: { kind: "escape", total: 12, reactionId: "r2", margin: 0, difference: 0, stopsAttack: false, systemBias: -1 },
+        }],
+        pendingReactions: [
+          { reactionId: "r3", actorId: "c3", kind: "repel", arrival: 2, speed: 14, systemBias: -1 },
+          { reactionId: "r4", actorId: "c4", kind: "dodge", arrival: 3 },
+        ],
+      };
+      const onEdit = vi.fn();
+      render(<ResolutionDetails resolution={res} nameOf={resolutionNameOf} onOpenReaction={vi.fn()} onEditAction={onEdit} />);
+      const rows = screen.getAllByRole("button", { name: "Dar a palavra" }).map((b) => b.parentElement!.textContent);
+      expect(rows[0]).toMatch(/desvantagem do sistema — trocou a ação da fila/);
+      expect(rows[1]).not.toMatch(/sistema/);
+      // Aberta: só o movimento da fuga leva a marca — a esquiva não piora.
+      expect(screen.getAllByText("desvantagem do sistema")).toHaveLength(1);
+      fireEvent.click(screen.getByRole("button", { name: /Editar Movimento/ }));
+      expect(screen.getByRole("note")).toHaveTextContent("O sistema já rola esta com Desvantagem");
+      expect(screen.getByRole("note")).toHaveTextContent("Vantagem deixa neutro");
+    });
+  });
+
   describe("paredes do turno", () => {
     it("com o turno aberto: quanto cada parede vai perder, e que cai no fechamento", () => {
       const res: ResolutionPayload = {
@@ -607,7 +634,7 @@ describe("ResolutionDetails", () => {
       render(<ResolutionDetails resolution={editable} nameOf={resolutionNameOf} onEditAction={onEdit} />);
       fireEvent.click(screen.getByRole("button", { name: "Editar Defesa padrão de Hisoka" }));
       expect(screen.queryByRole("button", { name: "Vantagem" })).not.toBeInTheDocument();
-      fireEvent.change(screen.getByLabelText("Ajuste"), { target: { value: "3" } });
+      fireEvent.change(screen.getByLabelText("Modificador"), { target: { value: "3" } });
       fireEvent.click(screen.getByRole("button", { name: "Aplicar" }));
       expect(onEdit).toHaveBeenCalledWith({ actionId: "r1", conditions: [{ field: "defense", modifier: 3 }] });
     });

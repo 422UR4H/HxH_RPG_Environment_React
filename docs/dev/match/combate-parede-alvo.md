@@ -74,7 +74,9 @@ da grade com um quarto de célula para cada lado — quadrado ou hex, qualquer r
   o mestre lê a vida até da destruída. Tocar troca a seleção; segurar (ou clique direito) junta
   (`masterWallIds`). Uma parede: vida (com barra), estado, resistência e os verbos dela. Várias: a
   vida de cada uma e "Destruir N" (as de pé). As selecionadas ficam destacadas no mapa
-  (`masterWallPreview`, a mesma linha da parede-alvo).
+  (`masterWallPreview`, a mesma linha da parede-alvo). **Destruir pede confirmação** (diálogo
+  "Destruir N paredes?" — não tem volta, e um clique errado derrubaria a parede). A destruída
+  mantém a barra, vazia: "Destruída · vida 0/40".
 - `ResolutionDetails` mostra o bloco **Paredes** (`resolution.walls`): quanto cada uma vai perder e
   como fica — o golpe cai no **fechamento** do turno —, indestrutível sem dano, e a interação que
   falhou ("trancada — não abriu"). O feed e o histórico (`EventStream`) põem o desfecho das paredes
@@ -98,12 +100,38 @@ da fuga; mestre só no modo de jogo).
 
 ## Escolher uma casa no mapa (fuga, onde cai)
 
-`MapPickConfirm`: o toque **escolhe** a casa — ela aparece como o destino de um movimento (o azul do
-compositor, com o caminho) — e o **Confirmar** da barra no mapa envia. Tocar outra casa troca.
-Sem modal e sem coluna/linha. Vale para a casa da fuga (`useReactionControls`: `pick.pending`,
-`pickPreview`, `confirmPick`; o botão da fuga fica aceso, `ReactionButtons.armed`) e para onde cai
-a fuga que falhou (mestre). Escolhida a queda, ela fica marcada no mapa como um fantasma
-(`intentGhosts` do mestre) e o card diz "Você já escolheu onde cai — marcado no mapa".
+- **Casa da fuga: o toque envia**, sem confirmar (decisão do dono do produto: a reação tem de ser
+  rápida para a narração não parar, e um toque errado faz parte do jogo). O botão da fuga fica
+  aceso enquanto se escolhe (`ReactionButtons.armed`) e a dica no mapa diz o que fazer.
+- **Onde cai** a fuga que falhou (mestre): `MapPickConfirm` — o toque **escolhe** a casa (o azul do
+  compositor, com o caminho) e o **Confirmar** da barra envia; tocar outra troca. Sem modal e sem
+  coluna/linha. Escolhida, ela fica marcada como fantasma (`intentGhosts` do mestre) e o card diz
+  "Você já escolheu onde cai — marcado no mapa".
+
+## Seletores (`choiceStyles.ts`)
+
+Escolher entre poucas opções é tocar num botão — nunca a bolinha de rádio nem a caixinha nativa.
+`choiceStyles.ts` reúne os seletores da mesa (antes só do compositor): `Toggles`/`Toggle` (botões
+grandes, 2 por linha; `aria-pressed` num interruptor, `aria-checked` numa opção de `radiogroup`),
+`Segmented`/`Segment` e os cards de arma (`WeaponList`/`Weapon`). Usados no compositor, no diálogo
+de **Nova cena** (Batalha / Roleplay) e no de **reação** (tipo, Evasão como interruptor à parte,
+arma do Repelir em cards). `ActionComposer.styles` os reexporta.
+
+## O viés que o sistema aplica sozinho
+
+Uma reação que cobra barra e **consome** a ação da fila (ou de quem cancelou antes na rodada)
+rola as velocidades com Desvantagem do motor (`systemBias: -1`). O painel do mestre mostra:
+na reação esperando, "desvantagem do sistema — trocou a ação da fila"; na aberta, a explicação e
+a etiqueta **desvantagem do sistema** na linha do Movimento (a esquiva, o aparo e a defesa não
+pioram). O editor da rolagem avisa que o viés do mestre **soma** com o do sistema: Vantagem deixa
+neutro, Normal mantém. "Ajuste" virou **Modificador**.
+
+## Histórico ao vivo das ações do mestre
+
+As notícias de tabuleiro (`wall_state_changed`, `piece_moved`…) saem **antes** de o servidor gravar
+a ação do mestre; rebuscar o histórico nelas voltava sem a ação. O histórico rebusca no
+`master_action_recorded`, que sai depois da gravação e só para quem pode ler o registro (o mestre e
+quem viu). `useGameTable` não rebusca mais na notícia de tabuleiro.
 
 ## Reações esperando e a rodada
 
@@ -117,8 +145,6 @@ a fuga que falhou (mestre). Escolhida a queda, ela fica marcada no mapa como um 
 
 - `lockpick` não rola nada: a corrente de testes de perícia não é executada no servidor. O mestre lê
   a tentativa ("tentativa sem teste — o mestre decide") e destranca pela mão dele.
-- As ações do mestre (abrir, destruir…) só entram no histórico ao recarregar: o feed ao vivo só
-  recebe eventos de mesa.
 - O jogador **vê** que a porta está trancada (o verbo vira "Arrombar fechadura" sem ele tentar).
   O servidor já está pronto para o "tentar abrir" (a abertura de porta trancada não é recusada no
   envio, só não abre), mas falta esconder `locked` dos jogadores e avisar quem tentou.

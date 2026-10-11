@@ -14,7 +14,7 @@ const MINUS = "−";
 const lowerFirst = (t: string) => t.charAt(0).toLowerCase() + t.slice(1);
 
 const sceneLabel = (brief: string, category: SceneCategory) =>
-  brief || (category === "battle" ? "batalha" : "interpretação");
+  brief || (category === "battle" ? "batalha" : "roleplay");
 
 /** `details`: o que vai junto da linha — as master actions feitas dentro de um turno. */
 type Line = { icon: string; text: string; tone?: "turn" | "hp" | "muted"; details?: string[] };

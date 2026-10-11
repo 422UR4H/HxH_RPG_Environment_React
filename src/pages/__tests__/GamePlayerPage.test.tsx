@@ -935,10 +935,10 @@ describe("GamePlayerPage", () => {
     await vi.waitFor(() => expect(calls).toBe(2));
   });
 
-  // F4 (follow-up da T15): a master action de peça entre turnos não chega ao jogador como
-  // `master_action_enqueued` — chega como piece_moved/piece_removed, e é gravada na hora.
-  // Com turno aberto nada é gravado até o fechamento, então não há o que rebuscar.
-  it("F4: peça mexida entre turnos rebusca o histórico; com turno aberto, não", async () => {
+  // A master action entre turnos chega ao jogador como notícia de tabuleiro (piece_moved,
+  // wall_state_changed…) ANTES de ser gravada: rebuscar ali voltava sem ela. Quem rebusca é o
+  // `master_action_recorded`, que o servidor manda depois do insert.
+  it("o histórico rebusca no master_action_recorded, não na peça mexida", async () => {
     let calls = 0;
     server.use(
       http.get(`${baseUrl}/matches/:id/history`, () => {
@@ -953,15 +953,12 @@ describe("GamePlayerPage", () => {
     const moved = { pieceId: "piece-c2", slot: { kind: "square", col: 3, row: 3 }, characterId: "c2", visible: true, z: 0 };
 
     act(() => ws.emit("piece_moved", moved));
-    await vi.waitFor(() => expect(calls).toBe(2));
-    act(() => ws.emit("piece_removed", { pieceId: "piece-c2" }));
-    await vi.waitFor(() => expect(calls).toBe(3));
-
-    act(() => ws.emit("turn_opened", { turnId: "t1", actorId: "c2" }));
-    act(() => ws.emit("piece_moved", moved));
-    act(() => ws.emit("piece_removed", { pieceId: "piece-c2" }));
+    act(() => ws.emit("wall_state_changed", { wallId: "w1", open: true, locked: false }));
     await act(async () => { await new Promise((r) => setTimeout(r, 50)); });
-    expect(calls).toBe(3);
+    expect(calls).toBe(1);
+
+    act(() => ws.emit("master_action_recorded", { kind: "movePiece" }));
+    await vi.waitFor(() => expect(calls).toBe(2));
   });
 
   // F4, fix round 1: o refetch do turn_closed roda no MESMO stack síncrono que carimba o

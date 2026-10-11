@@ -99,6 +99,8 @@ export type PendingReaction = {
   arrival?: number;
   /** A chave: o resultado da velocidade de ação da reação. Ausente quando não rola (esquiva, nada). */
   speed?: number;
+  /** A Desvantagem que o próprio sistema pôs nas velocidades (-1: trocou a ação da fila). Ausente = nenhuma. */
+  systemBias?: number;
 };
 
 /**
@@ -127,6 +129,8 @@ export type ReactionResult = {
   margin: number;
   difference: number;
   stopsAttack: boolean;
+  /** Como `PendingReaction.systemBias`: Desvantagem do sistema nas velocidades da reação. */
+  systemBias?: number;
 };
 
 export type Payout = {
