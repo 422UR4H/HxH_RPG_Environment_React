@@ -84,8 +84,8 @@ export function toggleTarget(draft: ActionDraft, characterId: string): ActionDra
 
 /**
  * Segurar numa parede liga/desliga ela entre os alvos, junto de personagens e outras paredes (um
- * golpe em área). Sozinha, é como o toque (o verbo dela). Junto de outros alvos é ataque — e uma
- * parede que não se ataca (indestrutível) não entra.
+ * golpe em área). Sozinha, é como o toque (o verbo dela). Junto de outros alvos é ataque — a
+ * indestrutível entra (só não recebe dano); o terreno, que não se ataca, não.
  */
 export function toggleWallTarget(draft: ActionDraft, wall: WallSegment): ActionDraft {
   const current = draft.act?.targets ?? [];
@@ -212,7 +212,7 @@ export function defaultWeaponOf(names: string[]): string | undefined {
 
 /**
  * A metade de ação contra o tabuleiro de agora: uma parede que deixou de aceitar qualquer verbo
- * (destruída) sai dos alvos; com vários alvos é ataque, e a parede que não se ataca sai; um verbo
+ * (destruída) sai dos alvos; com vários alvos é ataque, e a parede que não se ataca (terreno) sai; um verbo
  * que a parede deixou de aceitar (alguém abriu a porta) cai no primeiro que ela aceita;
  * personagem entre os alvos é sempre ataque.
  */
@@ -226,6 +226,7 @@ function resolveAct(
     return t?.kind === "wall" ? actorWallVerbs(t.wall) : undefined;
   };
   const standing = draftAct.targets.filter((id) => wallVerbsOf(id)?.length !== 0);
+  // Vários alvos = ataque: a parede que não se ataca (terreno) sai.
   const targets = standing.length > 1
     ? standing.filter((id) => wallVerbsOf(id)?.includes("attack") ?? true)
     : standing;

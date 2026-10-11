@@ -45,6 +45,7 @@ const INTERACT_LABELS: Record<string, string> = {
   // Só o mestre tranca e destranca (master action `wallInteract`).
   lock: "trancar",
   unlock: "destrancar",
+  destroy: "destruir",
 };
 
 export const interactLabel = (kind: string) => INTERACT_LABELS[kind] ?? kind;

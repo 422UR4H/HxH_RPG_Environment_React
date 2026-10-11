@@ -60,7 +60,8 @@ export function useReactionControls({
   );
 
   const [rawDialog, setDialog] = useState<Armed<{ actorId: string; initial: ReactionButton }> | null>(null);
-  const [rawPick, setPick] = useState<Armed<{ actorId: string; kind: ReactionKind }> | null>(null);
+  // `pending`: a casa tocada, esperando o Confirmar (o toque escolhe; confirmar envia).
+  const [rawPick, setPick] = useState<Armed<{ actorId: string; kind: ReactionKind; pending?: SlotCoord }> | null>(null);
   const dialogArmed = stillValid(rawDialog) && canReact(rawDialog.actorId) ? rawDialog : null;
   const pickArmed = stillValid(rawPick) && canReact(rawPick.actorId) ? rawPick : null;
 
@@ -72,8 +73,8 @@ export function useReactionControls({
     [turnId, reactToId, canReact, attachReaction],
   );
 
-  // A fuga precisa da casa: arma a escolha no mapa em vez de enviar (decisão 6 — o toque na
-  // casa envia, sem diálogo). O resto sai na hora.
+  // A fuga precisa da casa: arma a escolha no mapa em vez de enviar. O toque na casa a escolhe
+  // (aparece o caminho, como no movimento do compositor) e o Confirmar envia. O resto sai na hora.
   const reactWith = useCallback(
     (actorId: string, kind: ReactionKind, weapon?: string) => {
       if (!turnId || !canReact(actorId)) return;
@@ -121,21 +122,27 @@ export function useReactionControls({
 
   const cancelPick = useCallback(() => setPick(null), []);
 
-  /** `true` quando o toque era da escolha da casa (consumido, o compositor não o vê). */
+  // Mais de uma peça do mesmo personagem: vale a de menor id, a regra do servidor.
+  const pickPiece = pickArmed
+    ? boardPieces.filter((p) => p.characterId === pickArmed.actorId).sort((a, b) => a.id.localeCompare(b.id))[0]
+    : undefined;
+
+  /** `true` quando o toque era da escolha da casa (consumido, o compositor não o vê). Só escolhe. */
   const onSlotForPick = useCallback(
     (slot: SlotCoord): boolean => {
       if (!pickArmed) return false;
-      // Mais de uma peça do mesmo personagem: vale a de menor id, a regra do servidor.
-      const piece = boardPieces
-        .filter((p) => p.characterId === pickArmed.actorId)
-        .sort((a, b) => a.id.localeCompare(b.id))[0];
-      const z = piece?.coord.z ?? 0;
-      // Envio que não saiu (sem conexão) mantém a escolha: o toque pode ser repetido.
-      if (sendReaction(pickArmed.actorId, pickArmed.kind, { position: slotToTriple(slot, z) })) setPick(null);
+      setPick({ ...pickArmed, pending: slot });
       return true;
     },
-    [pickArmed, boardPieces, sendReaction],
+    [pickArmed],
   );
+
+  /** Envia a fuga para a casa escolhida. Um envio que não saiu (sem conexão) mantém a escolha. */
+  const confirmPick = useCallback(() => {
+    if (!pickArmed?.pending) return;
+    const z = pickPiece?.coord.z ?? 0;
+    if (sendReaction(pickArmed.actorId, pickArmed.kind, { position: slotToTriple(pickArmed.pending, z) })) setPick(null);
+  }, [pickArmed, pickPiece, sendReaction]);
 
   return {
     targets,
@@ -144,8 +151,20 @@ export function useReactionControls({
     dialog: dialogArmed ? { actorId: dialogArmed.actorId, initial: dialogArmed.initial } : null,
     closeDialog,
     sendFromDialog,
-    pick: pickArmed ? { actorId: pickArmed.actorId, kind: pickArmed.kind } : null,
+    pick: pickArmed
+      ? {
+          actorId: pickArmed.actorId,
+          kind: pickArmed.kind,
+          pending: pickArmed.pending,
+          from: pickPiece?.coord.slot,
+        }
+      : null,
+    // A casa escolhida desenhada como o destino de um movimento (o mesmo azul do compositor).
+    pickPreview: pickArmed?.pending
+      ? { from: pickPiece?.coord.slot, to: pickArmed.pending, auto: false, targets: [] }
+      : undefined,
     cancelPick,
     onSlotForPick,
+    confirmPick,
   };
 }

@@ -1,6 +1,8 @@
 import styled from "styled-components";
 import ReactionButtons from "./ReactionButtons";
+import { buttonOfKind } from "./reactionModel";
 import type { ReactionButton, ReactionStatus } from "./reactionModel";
+import type { ReactionKind } from "./combatMessages";
 import { PanelTitle } from "./panelStyles";
 
 /**
@@ -15,12 +17,17 @@ export default function ReactionPanel({
   onQuick,
   onConfigure,
   title = "Você é alvo",
+  pick,
+  onCancelPick,
 }: {
   targets: Array<{ actorId: string; status: ReactionStatus }>;
   nameOf: (id: string) => string;
   onQuick: (actorId: string, b: ReactionButton) => void;
   onConfigure: (actorId: string, b: ReactionButton) => void;
   title?: string;
+  /** A fuga armada (escolhendo a casa no mapa). */
+  pick?: { actorId: string; kind: ReactionKind } | null;
+  onCancelPick?: () => void;
 }) {
   if (targets.length === 0) return null;
   return (
@@ -34,6 +41,8 @@ export default function ReactionPanel({
           showName
           onQuick={(b) => onQuick(t.actorId, b)}
           onConfigure={(b) => onConfigure(t.actorId, b)}
+          armed={pick?.actorId === t.actorId ? buttonOfKind(pick.kind) : undefined}
+          onCancelArmed={onCancelPick}
         />
       ))}
     </Section>

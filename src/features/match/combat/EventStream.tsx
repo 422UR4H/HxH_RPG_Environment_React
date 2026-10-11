@@ -3,7 +3,7 @@ import styled from "styled-components";
 import { colors, fonts } from "../../../styles/tokens";
 import type { GridKind } from "../../../types/tacticalMap";
 import type { TableEvent } from "./combatReducer";
-import type { ResolutionTarget, SceneCategory } from "./combatMessages";
+import type { ResolutionTarget, SceneCategory, WallTurnResult } from "./combatMessages";
 import type { HistoryMasterAction, HistoryMove, HistoryTurn } from "../../../types/matchHistory";
 import type { HistoryRow } from "./historyRows";
 import { avoidedVerb, describeDeclared, describeHistoryAction, formatSlot, interactLabel, withWeapon, ROUND_MODE_LABELS } from "./combatText";
@@ -25,12 +25,35 @@ type Line = { icon: string; text: string; tone?: "turn" | "hp" | "muted"; detail
 function outcomeText(
   t: Pick<ResolutionTarget, "targetId" | "avoided" | "attackStopped" | "projectedDamage" | "reaction" | "escape">,
   nameOf: (id: string) => string,
-  gridKind: GridKind,
 ): string {
   if (t.avoided) return `${nameOf(t.targetId)} ${avoidedVerb(t)}`;
   const hit = t.projectedDamage > 0 ? `${nameOf(t.targetId)} ${MINUS}${t.projectedDamage}` : `${nameOf(t.targetId)} sem dano`;
-  const landing = t.escape && !t.escape.escaped ? t.escape.landing : undefined;
-  return landing ? `${hit} (caiu em ${formatSlot(landing, gridKind)})` : hit;
+  // Onde caiu já está no mapa; a casa em coluna/linha só polui a linha.
+  const landed = t.escape && !t.escape.escaped && t.escape.landing;
+  return landed ? `${hit} (a fuga falhou — caiu onde o mestre escolheu)` : hit;
+}
+
+/** O que o turno fez a uma parede, curto, para a linha do turno. */
+function wallText(w: WallTurnResult, nameOf: (id: string) => string): string {
+  const name = nameOf(w.wallId);
+  if (w.kind === "interact") {
+    if (w.failure === "locked") return `${name} trancada`;
+    if (w.failure === "noRoll") return `${name}: tentativa sem teste (o mestre decide)`;
+    return w.failure ? `${name} sem mudança` : `${name} ${w.open ? "aberta" : "fechada"}`;
+  }
+  if (w.destroyed) return `${name} ${MINUS}${w.effectiveDamage}, destruída`;
+  return w.effectiveDamage > 0 ? `${name} ${MINUS}${w.effectiveDamage}` : `${name} sem dano`;
+}
+
+/** Os desfechos de um turno: personagens, depois paredes. */
+function outcomesOf(
+  resolution: { targets?: ResolutionTarget[]; walls?: WallTurnResult[] } | undefined,
+  nameOf: (id: string) => string,
+): string[] {
+  return [
+    ...(resolution?.targets ?? []).map((t) => outcomeText(t, nameOf)),
+    ...(resolution?.walls ?? []).map((w) => wallText(w, nameOf)),
+  ];
 }
 
 function eventLine(event: TableEvent, nameOf: (id: string) => string, gridKind: GridKind): Line {
@@ -45,7 +68,7 @@ function eventLine(event: TableEvent, nameOf: (id: string) => string, gridKind: 
       };
     case "turn_closed": {
       const who = event.actorId ? ` de ${nameOf(event.actorId)}` : "";
-      const outcomes = (event.resolution?.targets ?? []).map((t) => outcomeText(t, nameOf, gridKind));
+      const outcomes = outcomesOf(event.resolution, nameOf);
       return { icon: "■", text: `Fim do turno${who}${outcomes.length ? ` — ${outcomes.join(", ")}` : ""}` };
     }
     case "hp_changed":
@@ -77,8 +100,10 @@ function masterActionText(ma: HistoryMasterAction, nameOf: (id: string) => strin
     case "removePiece":
       return `Mestre tirou ${nameOf(ma.content.characterId)} do mapa`;
     case "wallInteract":
-    case "revealWall":
-      return `Mestre: ${interactLabel(ma.content.interact)} na passagem`;
+    case "revealWall": {
+      const walls = ma.content.wallIds.map(nameOf).join(", ");
+      return `Mestre: ${interactLabel(ma.content.interact)} ${walls || "a passagem"}`;
+    }
     default:
       // `turnNote` e qualquer tipo que o servidor venha a acrescentar.
       return "Ação do mestre";
@@ -102,7 +127,7 @@ function turnLine(turn: HistoryTurn, nameOf: (id: string) => string, gridKind: G
     const what = (a.targetId ?? []).map(nameOf).join(", ");
     parts.push(`interagiu${what ? ` com ${what}` : ""} (${interactLabel(a.interact.kind)})`);
   }
-  const outcomes = (turn.resolution?.targets ?? []).map((t) => outcomeText(t, nameOf, gridKind));
+  const outcomes = outcomesOf(turn.resolution, nameOf);
   const what = parts.length ? ` — ${parts.join(" e ")}` : "";
   return {
     icon: "■",

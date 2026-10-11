@@ -327,15 +327,17 @@ describe("rascunho: parede como alvo", () => {
     expect(toggleWallTarget(emptyDraft(), door).act).toEqual({ targets: ["door"], kind: "open" });
   });
 
-  it("parede indestrutível não entra num golpe em área", () => {
-    const solid = { ...door, maxHp: 0 } as WallSegment;
+  it("parede indestrutível entra num golpe em área (só não recebe dano); terreno não", () => {
     const d = chooseTarget(emptyDraft(), "killua");
-    expect(toggleWallTarget(d, solid)).toBe(d);
+    const solid = { ...door, maxHp: 0 } as WallSegment;
+    expect(toggleWallTarget(d, solid).act).toEqual({ targets: ["killua", "door"] });
+    const terrain = { ...door, wallType: "terrain" } as WallSegment;
+    expect(toggleWallTarget(d, terrain)).toBe(d);
   });
 
-  it("com vários alvos, a parede que deixou de aceitar ataque sai e a ação segue ataque", () => {
+  it("com vários alvos, a parede que deixou de aceitar ataque (terreno) sai e a ação segue ataque", () => {
     const d = toggleWallTarget(chooseTarget(emptyDraft(), "killua"), door);
-    const r = resolveDraft(d, ctxWith({ ...door, maxHp: 0 }), "Dash");
+    const r = resolveDraft(d, ctxWith({ ...door, wallType: "terrain" } as WallSegment), "Dash");
     expect(r.act).toMatchObject({ targets: ["killua"], kind: "attack" });
   });
 

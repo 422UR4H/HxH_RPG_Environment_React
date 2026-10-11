@@ -33,6 +33,13 @@ export function reactionKindOf(b: ReactionButton, evasion: boolean): ReactionKin
   return b;
 }
 
+/** O botão de uma fuga armada (escolhendo a casa): a Evasão não muda qual botão foi. */
+export function buttonOfKind(kind: ReactionKind): ReactionButton | undefined {
+  if (kind === "escape" || kind === "closedEscape") return "escape";
+  if (kind === "escapeGuard") return "escapeGuard";
+  return undefined;
+}
+
 /** Fugas exigem a casa de destino; o resto reage no lugar. */
 export function needsDestination(kind: ReactionKind): boolean {
   return kind === "escape" || kind === "escapeGuard" || kind === "closedEscape";

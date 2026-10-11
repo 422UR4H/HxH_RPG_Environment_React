@@ -16,7 +16,7 @@ import MatchTopBar from "../features/match/combat/MatchTopBar";
 import {
   AddNpcPicker, ArrangePanel, NpcPicker, PanelSection, RegencyControls, RoundModeSwitch, WallMasterPanel,
 } from "../features/match/combat/MasterControls";
-import { actorWallVerbs, masterWallVerbs } from "../features/match/combat/wallVerbs";
+import { actorWallVerbs } from "../features/match/combat/wallVerbs";
 import { PanelTitle } from "../features/match/combat/panelStyles";
 import RailNav from "../features/match/combat/RailNav";
 import AsideTabs from "../features/match/combat/AsideTabs";
@@ -33,7 +33,7 @@ import CloseTurnRefusedDialog from "../features/match/combat/CloseTurnRefusedDia
 import SceneChangeDialog from "../features/match/combat/SceneChangeDialog";
 import ArrangeConfirmDialog from "../features/match/combat/ArrangeConfirmDialog";
 import type { ArrangePending } from "../features/match/combat/ArrangeConfirmDialog";
-import FallLandingDialog from "../features/match/combat/FallLandingDialog";
+import MapPickConfirm from "../features/match/combat/MapPickConfirm";
 import type { MasterActionPayload } from "../features/match/combat/combatMessages";
 import { SmallButton } from "../features/match/combat/MatchTopBar";
 import MatchErrorBanner from "../features/match/combat/MatchErrorBanner";
@@ -132,9 +132,9 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   const cancelPending =
     cancelling && state.declared.some((d) => d.id === cancelling.id && d.status === "queued") ? cancelling : null;
   const { panelOpen, setPanelOpen, asideOpen, setAsideOpen, closeAsideIfDrawer } = useStageOverlays();
-  // A porta/janela que o mestre tocou SEM NPC escolhido: o card "Ação do Mestre" no Agir.
-  // Guarda o id — o card lê a parede ao vivo (aberta/fechada muda por baixo dele).
-  const [masterWallId, setMasterWallId] = useState<string | undefined>(undefined);
+  // As paredes que o mestre tocou SEM NPC escolhido: o card "Ação do Mestre" no Agir. Tocar
+  // troca a seleção; segurar junta (o terremoto). Guarda ids — o card lê as paredes ao vivo.
+  const [masterWallIds, setMasterWallIds] = useState<string[]>([]);
   const [sceneDialog, setSceneDialog] = useState(false);
 
   // ─── Arrumar (F12) ─────────────────────────────────────────────────────────
@@ -275,7 +275,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   const chooseActor = useCallback((id: string | undefined) => {
     setActorId(id);
     setInspectedId(undefined);
-    setMasterWallId(undefined);
+    setMasterWallIds([]);
     if (id) {
       // Escolher um ator (pela lista do Agir) é voltar a jogar: sai da escolha de onde cai e
       // da casa da fuga (esta volta a "play" sozinha quando o `pick` some).
@@ -325,12 +325,12 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     },
     [actorId, composer],
   );
-  // Com NPC, a parede é alvo do compositor, como para o jogador. A mão do mestre fica no card
-  // "Ação do Mestre" do painel Agir (nada de modal) — com ou sem NPC.
+  // Com NPC, o mestre age só pelo NPC: a parede é alvo do compositor, como para o jogador. Sem NPC,
+  // é a mão do mestre: o card "Ação do Mestre" no Agir (nada de modal). Os dois nunca juntos.
   const handleWallTap = useCallback(
     (wall: WallSegment) => {
-      setMasterWallId(wall.id);
       if (actorId) composer.onWallTap(wall);
+      else setMasterWallIds([wall.id]);
       setRailActive("agir");
       setPanelOpen(true);
     },
@@ -338,25 +338,34 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   );
   const handleWallHold = useCallback(
     (wall: WallSegment) => {
-      if (actorId) composer.onWallHold(wall);
+      if (actorId) {
+        composer.onWallHold(wall);
+        return;
+      }
+      setMasterWallIds((ids) => (ids.includes(wall.id) ? ids.filter((id) => id !== wall.id) : [...ids, wall.id]));
+      setRailActive("agir");
+      setPanelOpen(true);
     },
-    [actorId, composer],
+    [actorId, composer, setPanelOpen],
   );
-  // Tocável: o que o NPC faz com ela, ou o que a mão do mestre faz (o card aparece junto).
+  // Com NPC: o que o NPC faz com ela. Sem NPC: toda parede — o mestre lê a vida até da destruída.
   const isWallTappable = useCallback(
-    (w: WallSegment) => (actorId && actorWallVerbs(w).length > 0) || masterWallVerbs(w).length > 0,
+    (w: WallSegment) => (actorId ? actorWallVerbs(w).length > 0 : true),
     [actorId],
   );
-  // A parede do card "Ação do Mestre": a última que ele tocou. Com NPC, só enquanto ela é o alvo
-  // único do compositor (trocar o alvo por alguém tira o card) — ou quando o NPC não tem o que
-  // fazer com ela, e o card é o único dono do toque.
-  const tappedWall = masterWallId ? live.liveWalls.find((w) => w.id === masterWallId) : undefined;
-  const composerTargets = composer.resolved.act?.targets ?? [];
-  const masterWall = tappedWall && (
-    !actorId ||
-    (composerTargets.length === 1 && composerTargets[0] === tappedWall.id) ||
-    actorWallVerbs(tappedWall).length === 0
-  ) ? tappedWall : undefined;
+  const masterWalls = useMemo(
+    () => (actorId
+      ? []
+      : masterWallIds.map((id) => live.liveWalls.find((w) => w.id === id)).filter((w): w is WallSegment => !!w)),
+    [actorId, masterWallIds, live.liveWalls],
+  );
+  // As paredes do card destacadas no mapa, como a parede-alvo do compositor.
+  const masterWallPreview = useMemo<IntentPreview | undefined>(
+    () => (masterWalls.length
+      ? { auto: false, targets: [], targetWalls: masterWalls.map((w) => ({ p1: w.p1, p2: w.p2 })) }
+      : undefined),
+    [masterWalls],
+  );
 
   useEffect(() => {
     if (!inspectedId) return;
@@ -502,6 +511,22 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     };
   }, [fallPending, fallPiece, gridKind]);
 
+  // Onde cai cada fuga que está falhando, já escolhido: marcado no mapa como o destino de um
+  // movimento (o mestre vê onde a peça vai parar), até o turno fechar. Na própria escolha, a
+  // casa nova é o pré-visualizar — a antiga sai para não confundir.
+  const intentGhosts = useMemo(() => {
+    const landings = (state.openResolution?.targets ?? [])
+      .filter((t) => t.escape && !t.escape.escaped && t.escape.landing && !(fallPicking && t.targetId === choosingFall))
+      .map((t) => {
+        const piece = game.pieceByCharacter.get(t.targetId);
+        return {
+          ...(piece ? { from: slotToTriple(piece.coord.slot, piece.coord.z) } : {}),
+          to: t.escape!.landing as SlotTriple,
+        };
+      });
+    return landings.length ? [...game.ghosts, ...landings] : game.ghosts;
+  }, [state.openResolution, game.ghosts, game.pieceByCharacter, fallPicking, choosingFall]);
+
   const inspectedPieceId = inspectedId
     ? game.boardPieces.find((p) => p.characterId === inspectedId)?.id
     : undefined;
@@ -521,12 +546,9 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     setRailActive("fila");
     setPanelOpen(true);
   }, [setPanelOpen]);
-  const mapHint = !map
+  // A casa da fuga e o onde cai têm a barra deles (MapPickConfirm), não a dica.
+  const mapHint = !map || (reactionPicking && reactionPick) || (fallPicking && choosingFall)
     ? undefined
-    : reactionPicking && reactionPick
-      ? `Toque na casa para onde ${nameOf(reactionPick.actorId)} escapa.`
-    : fallPicking && choosingFall
-      ? `Toque num slot vazio para escolher onde ${nameOf(choosingFall)} cai.`
       : arranging
       ? placingId
         ? `Toque num slot vazio para pôr ${nameOf(placingId)}.`
@@ -566,6 +588,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                 canChangeScene={state.openTurn == null}
                 queueLength={state.queue.length}
                 orderLength={state.bars?.order.length ?? 0}
+                roundTurns={state.bars?.roundTurns}
               />
             }
           />
@@ -609,6 +632,8 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                 nameOf={nameOf}
                 onQuick={controls.quick}
                 onConfigure={controls.configure}
+                pick={controls.pick}
+                onCancelPick={cancelPick}
               />
               <PanelSection>
                 <PanelTitle>Regime</PanelTitle>
@@ -647,13 +672,11 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
           ) : (
             <>
               <NpcPicker npcs={npcs} actorId={actorId} onChoose={chooseActor} />
-              {masterWall && !actorId && (
-                <WallMasterPanel
-                  wall={masterWall}
-                  onInteract={(kind) => combat.send.masterAction({ targetIds: [masterWall.id], interact: { kind } })}
-                  onDismiss={() => setMasterWallId(undefined)}
-                />
-              )}
+              <WallMasterPanel
+                walls={masterWalls}
+                onInteract={(kind, targetIds) => combat.send.masterAction({ targetIds, interact: { kind } })}
+                onDismiss={() => setMasterWallIds([])}
+              />
               {actorId && (
                 <>
                   <OwnBars bars={state.bars} characterId={actorId} hp={actorHp} />
@@ -672,14 +695,6 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                     canDeclare={game.canDeclare}
                     blockedReason={game.blockedReason}
                   />
-                  {masterWall && (
-                    <WallMasterPanel
-                      wall={masterWall}
-                      withActor
-                      onInteract={(kind) => combat.send.masterAction({ targetIds: [masterWall.id], interact: { kind } })}
-                      onDismiss={() => setMasterWallId(undefined)}
-                    />
-                  )}
                 </>
               )}
             </>
@@ -700,7 +715,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                   npcMap={live.npcMap}
                   // Só no modo de jogo: no Arrumar e nas escolhas de casa o toque é do modo.
                   onWallClick={boardMode === "play" ? handleWallTap : undefined}
-                  onWallLongPress={boardMode === "play" && actorId ? handleWallHold : undefined}
+                  onWallLongPress={boardMode === "play" ? handleWallHold : undefined}
                   isWallTappable={isWallTappable}
                   piecesInteractive
                   // Com um chip armado nada arrasta: a mesma soltura arrastaria E poria.
@@ -722,9 +737,9 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                   targetPieceIds={reactionPicking ? undefined : composer.targetPieceIds}
                   activePieceId={game.openTurnPieceId}
                   intentPreview={
-                    reactionPicking ? undefined : fallPicking ? fallPreview : arranging ? arrangePreview : composer.preview
+                    reactionPicking ? controls.pickPreview : fallPicking ? fallPreview : arranging ? arrangePreview : composer.preview ?? masterWallPreview
                   }
-                  intentGhosts={game.ghosts}
+                  intentGhosts={intentGhosts}
                   highlightHoverSlot={fallPicking || reactionPicking || (!arranging && !!actorId)}
                   fitRequest={game.fitRequest}
                   onEmptySlotClick={
@@ -767,6 +782,24 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                 onDismiss={combat.dismissLostDeclared}
               />
             </StageNotices>
+            {map && reactionPicking && reactionPick && (
+              <MapPickConfirm
+                prompt={`Toque na casa para onde ${nameOf(reactionPick.actorId)} escapa.`}
+                chosen={reactionPick.pending ? `${nameOf(reactionPick.actorId)} escapa para a casa marcada.` : undefined}
+                confirmLabel="Escapar para cá"
+                canConfirm={combat.status === "connected"}
+                onConfirm={controls.confirmPick}
+              />
+            )}
+            {map && fallPicking && choosingFall && (
+              <MapPickConfirm
+                prompt={`Toque na casa onde ${nameOf(choosingFall)} cai.`}
+                chosen={fallPending ? `${nameOf(choosingFall)} cai na casa marcada.` : undefined}
+                note="Vale se a fuga ainda falhar quando o turno fechar."
+                canConfirm={combat.status === "connected"}
+                onConfirm={confirmFall}
+              />
+            )}
             {mapHint ? (
               <MapHint>{mapHint}</MapHint>
             ) : (
@@ -871,14 +904,6 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
         canConfirm={combat.status === "connected"}
         onConfirm={confirmArrange}
         onCancel={() => setArrangePending(null)}
-      />
-      <FallLandingDialog
-        pending={fallPicking ? fallPending : null}
-        name={choosingFall ? nameOf(choosingFall) : ""}
-        gridKind={gridKind}
-        canConfirm={combat.status === "connected"}
-        onConfirm={confirmFall}
-        onCancel={() => setFallPending(null)}
       />
       <SceneChangeDialog
         open={sceneDialog}

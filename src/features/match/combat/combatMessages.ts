@@ -27,6 +27,8 @@ export type BarsPayload = {
   }>;
   /** Ordem projetada, maior `key` primeiro. Não identifica ação nenhuma. */
   order: Array<{ actorId: string; bars: Bar[]; key: number }>;
+  /** Turnos abertos na rodada atual. 0 = nada aconteceu: a rodada não se encerra. Ausente = servidor antigo. */
+  roundTurns?: number;
 };
 
 /**
@@ -89,7 +91,32 @@ export type HpChangedPayload = {
   damage: number;
 };
 
-export type PendingReaction = { reactionId: string; actorId: string; kind: string };
+export type PendingReaction = {
+  reactionId: string;
+  actorId: string;
+  kind: string;
+  /** A ordem em que foi anexada neste turno (1 = a primeira), contando as já abertas. */
+  arrival?: number;
+  /** A chave: o resultado da velocidade de ação da reação. Ausente quando não rola (esquiva, nada). */
+  speed?: number;
+};
+
+/**
+ * O que o turno fez a uma parede (`resolution.walls`). Ataque: o dano depois da resistência e a
+ * parede como o FECHAMENTO a deixará (o golpe cai no fechamento). Interação: a parede como a
+ * abertura a deixou; `failure` quando nada mudou.
+ */
+export type WallTurnResult = {
+  wallId: string;
+  kind: "attack" | "interact";
+  effectiveDamage: number;
+  /** `hp`/`maxHp`/`destroyed`/`open`: só ao vivo — o histórico (REST) guarda o desfecho, não a parede. */
+  hp?: number;
+  maxHp?: number;
+  destroyed?: boolean;
+  open?: boolean;
+  failure?: "locked" | "noRoll" | "notApplicable";
+};
 
 export type ReactionResult = {
   kind: string;
@@ -184,6 +211,8 @@ export type ResolutionPayload = {
   damageSkill?: string;
   /** As condições do mestre em vigor. Só o mestre, só com o turno aberto; ausente = nada editado. */
   conditions?: ConditionEntry[];
+  /** O que o turno fez a cada parede que mirou. Ausente sem parede. */
+  walls?: WallTurnResult[];
 };
 
 export type CloseTurnRefusedPayload = {

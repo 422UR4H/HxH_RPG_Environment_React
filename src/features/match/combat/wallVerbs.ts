@@ -37,26 +37,32 @@ export const ACT_NOUNS: Record<ActKind, string> = {
   lockpick: "arrombamento",
 };
 
-const isPassage = (w: WallSegment) => w.wallType === "door" || w.wallType === "window";
+/**
+ * Passagem para quem age no tabuleiro: porta, janela, e a porta secreta já revelada (encontrada,
+ * ela é uma porta como as outras). A não revelada, para o ator, é uma parede.
+ */
+const isActorPassage = (w: WallSegment) =>
+  w.wallType === "door" || w.wallType === "window" || (w.wallType === "secret_door" && !!w.revealed);
 
 /**
- * Os verbos de um ATOR (um personagem agindo): destrancada abre ou fecha conforme está; porta
- * trancada só se arromba (janela trancada, nada); destrutível se ataca. Destruída, nada. Ordem
+ * Os verbos de um ATOR (um personagem agindo): destrancada abre ou fecha conforme está; trancada
+ * se arromba (janela trancada, nada); toda parede em pé se ataca — a indestrutível também (num
+ * golpe em área ela só não recebe dano). Terreno é cenário; destruída é entulho: nada. Ordem
  * importa: o primeiro é o padrão de um toque, e passar pela porta vem antes de quebrá-la.
  */
 export function actorWallVerbs(w: WallSegment): ActKind[] {
   if (w.destroyed) return [];
   const out: ActKind[] = [];
-  if (isPassage(w)) {
+  if (isActorPassage(w)) {
     if (!w.locked) out.push(w.open ? "close" : "open");
-    else if (w.wallType === "door") out.push("lockpick");
+    else if (w.wallType !== "window") out.push("lockpick");
   }
-  if (w.wallType !== "terrain" && w.maxHp > 0) out.push("attack");
+  if (w.wallType !== "terrain") out.push("attack");
   return out;
 }
 
 /** A mão do mestre numa parede (`enqueue_master_action`): na hora, sem turno, sem alcance. */
-export type MasterWallKind = "open" | "close" | "lock" | "unlock" | "reveal";
+export type MasterWallKind = "open" | "close" | "lock" | "unlock" | "reveal" | "destroy";
 
 export const MASTER_WALL_LABELS: Record<MasterWallKind, string> = {
   open: "Abrir",
@@ -64,18 +70,31 @@ export const MASTER_WALL_LABELS: Record<MasterWallKind, string> = {
   lock: "Trancar",
   unlock: "Destrancar",
   reveal: "Revelar",
+  destroy: "Destruir",
 };
 
+const isPassage = (w: WallSegment) => w.wallType === "door" || w.wallType === "window" || w.wallType === "secret_door";
+
 /**
- * Os verbos do MESTRE agindo como mestre: abre e fecha qualquer passagem, trancada ou não; tranca
- * e destranca porta e janela; revela a porta secreta que ainda não foi revelada. Parede comum e
- * terreno, nada — o mestre ataca por um NPC.
+ * Os verbos do MESTRE agindo como mestre (sem NPC): abre e fecha qualquer passagem, trancada ou
+ * não; tranca e destranca; revela a porta secreta escondida; e destrói qualquer parede em pé — a
+ * indestrutível também (um terremoto não é um ataque). Destruída, nada (o card ainda mostra que
+ * ela caiu).
  */
 export function masterWallVerbs(w: WallSegment): MasterWallKind[] {
   if (w.destroyed) return [];
-  if (w.wallType === "secret_door") {
-    return [w.open ? "close" : "open", ...(w.revealed ? [] : ["reveal" as const])];
+  const out: MasterWallKind[] = [];
+  if (isPassage(w)) {
+    out.push(w.open ? "close" : "open", w.locked ? "unlock" : "lock");
+    if (w.wallType === "secret_door" && !w.revealed) out.push("reveal");
   }
-  if (!isPassage(w)) return [];
-  return [w.open ? "close" : "open", w.locked ? "unlock" : "lock"];
+  out.push("destroy");
+  return out;
+}
+
+/** A vida da parede como o mestre lê: "Vida 7/10", "Indestrutível", "Destruída". */
+export function wallLifeText(w: WallSegment): string {
+  if (w.destroyed) return "Destruída";
+  if (w.maxHp <= 0) return "Indestrutível";
+  return `Vida ${w.hp}/${w.maxHp}`;
 }

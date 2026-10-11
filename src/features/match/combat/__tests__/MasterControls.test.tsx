@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { RegencyControls } from "../MasterControls";
 import type { RoundMode } from "../combatMessages";
 
-function setup(mode: RoundMode, queueLength: number, orderLength: number) {
+function setup(mode: RoundMode, queueLength: number, orderLength: number, roundTurns?: number) {
   const onOpenNext = vi.fn();
   render(
     <RegencyControls
@@ -16,6 +16,7 @@ function setup(mode: RoundMode, queueLength: number, orderLength: number) {
       canChangeScene
       queueLength={queueLength}
       orderLength={orderLength}
+      roundTurns={roundTurns}
     />,
   );
   return onOpenNext;
@@ -27,6 +28,22 @@ describe("RegencyControls — Abrir próxima", () => {
     const btn = screen.getByRole("button", { name: "Encerrar rodada" });
     expect(btn).not.toHaveAttribute("aria-disabled");
     fireEvent.click(btn);
+    expect(onOpenNext).toHaveBeenCalledTimes(1);
+  });
+
+  it("Corrida sem nenhum turno na rodada: 'Encerrar rodada' travado, e o hover diz por quê", () => {
+    const onOpenNext = setup("Race", 0, 0, 0);
+    const btn = screen.getByRole("button", { name: "Encerrar rodada" });
+    expect(btn).toHaveAttribute("aria-disabled", "true");
+    fireEvent.click(btn);
+    expect(onOpenNext).not.toHaveBeenCalled();
+    fireEvent.pointerEnter(btn, { pointerType: "mouse" });
+    expect(screen.getByRole("tooltip", { hidden: true })).toHaveTextContent("Nenhum turno aconteceu nesta rodada ainda");
+  });
+
+  it("Corrida com turno na rodada: encerra", () => {
+    const onOpenNext = setup("Race", 0, 0, 2);
+    fireEvent.click(screen.getByRole("button", { name: "Encerrar rodada" }));
     expect(onOpenNext).toHaveBeenCalledTimes(1);
   });
 

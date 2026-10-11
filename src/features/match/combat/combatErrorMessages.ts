@@ -38,6 +38,7 @@ const byGameMessage: Record<string, string> = {
   "action queue is empty": "A fila de ações está vazia.",
   "action not found in queue": "A ação já não está na fila.",
   "action actor does not match player": "Essa ação não é sua.",
+  "validation error: no turn opened in this round yet": "Nenhum turno aconteceu nesta rodada ainda — não há o que encerrar.",
 };
 
 export function combatErrorText(code: string, message: string, sentType?: string): string {

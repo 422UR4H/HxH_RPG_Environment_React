@@ -11,7 +11,7 @@ import type { RoundMode } from "./combatMessages";
 import { ROUND_MODE_LABELS } from "./combatText";
 import { SmallButton } from "./MatchTopBar";
 import { PanelHint, PanelTitle } from "./panelStyles";
-import { MASTER_WALL_LABELS, WALL_TYPE_LABELS, masterWallVerbs } from "./wallVerbs";
+import { MASTER_WALL_LABELS, WALL_TYPE_LABELS, masterWallVerbs, wallLifeText } from "./wallVerbs";
 import type { MasterWallKind } from "./wallVerbs";
 
 /**
@@ -51,6 +51,7 @@ export function RegencyControls({
   canChangeScene,
   queueLength,
   orderLength,
+  roundTurns,
 }: {
   mode: RoundMode | "";
   onModeChange: (mode: RoundMode) => void;
@@ -62,11 +63,16 @@ export function RegencyControls({
   queueLength: number;
   /** Tamanho da ordem da Corrida (`bars.order`). */
   orderLength: number;
+  /** Turnos abertos na rodada (`bars.roundTurns`). 0 = nada aconteceu: não se encerra. Ausente = não sei. */
+  roundTurns?: number;
 }) {
   // Na Corrida o servidor encerra a rodada quando abrir a próxima não acha quem pague
   // (`bars_updated.order` vazio): este botão é como o mestre a encerra, nunca desabilita.
   const endsRound = mode === "Race" && orderLength === 0;
   const empty = !endsRound && queueLength === 0;
+  // Encerrar uma rodada em que nada aconteceu só abriria outra igual — o servidor recusa.
+  const idleRound = endsRound && roundTurns === 0;
+  const blocked = empty || idleRound;
   return (
     <Regency>
       <RoundModeSwitch mode={mode} onChange={onModeChange} placement="topbar" />
@@ -82,8 +88,11 @@ export function RegencyControls({
         Nova cena
       </NewSceneButton>
       {/* aria-disabled (e não disabled): o botão segue focável e o hover/foco mostram o porquê. */}
-      <Tooltip label="A fila de ações está vazia" enabled={empty}>
-        <PrimaryButton type="button" aria-disabled={empty || undefined} onClick={empty ? undefined : onOpenNext}>
+      <Tooltip
+        label={idleRound ? "Nenhum turno aconteceu nesta rodada ainda" : "A fila de ações está vazia"}
+        enabled={blocked}
+      >
+        <PrimaryButton type="button" aria-disabled={blocked || undefined} onClick={blocked ? undefined : onOpenNext}>
           {endsRound ? "Encerrar rodada" : "Abrir próxima"}
         </PrimaryButton>
       </Tooltip>
@@ -218,53 +227,115 @@ export function ArrangePanel({
  * (`enqueue_master_action`), trancada ou não. Mora no painel Agir, abaixo de "Agir por" — com
  * um NPC escolhido, a parede vira alvo do compositor e este card não aparece.
  */
+/**
+ * A mão do mestre nas paredes que ele tocou (sem NPC): o estado e a vida de cada uma, e os verbos
+ * dele, na hora (`enqueue_master_action`). Uma parede: os verbos dela. Várias (segurar junta mais
+ * uma): o que vale para todas — destruir as que ainda estão de pé (um terremoto).
+ */
 export function WallMasterPanel({
-  wall,
+  walls,
   onInteract,
   onDismiss,
-  withActor = false,
 }: {
-  wall: WallSegment;
-  onInteract: (kind: MasterWallKind) => void;
-  /** Ausente: a parede não é do card (é o alvo do NPC, no compositor) — sem ×. */
-  onDismiss?: () => void;
-  /** Um NPC está escolhido: a parede também é o alvo dele, e o card é o atalho do mestre. */
-  withActor?: boolean;
+  walls: WallSegment[];
+  onInteract: (kind: MasterWallKind, wallIds: string[]) => void;
+  onDismiss: () => void;
 }) {
-  const verbs = masterWallVerbs(wall);
-  if (verbs.length === 0) return null;
+  if (walls.length === 0) return null;
+  const single = walls.length === 1 ? walls[0] : undefined;
+  const standing = walls.filter((w) => !w.destroyed);
+  const verbs: MasterWallKind[] = single ? masterWallVerbs(single) : standing.length ? ["destroy"] : [];
+  const targetIds = single ? [single.id] : standing.map((w) => w.id);
   return (
     <Picker aria-label="Ação do Mestre">
       <WallHeader>
-        <PanelTitle>Ação do Mestre · {WALL_TYPE_LABELS[wall.wallType]}</PanelTitle>
-        {onDismiss && (
-          <DismissButton type="button" aria-label="Soltar a parede" title="Soltar a parede" onClick={onDismiss}>
-            ×
-          </DismissButton>
-        )}
+        <PanelTitle>
+          Ação do Mestre · {single ? WALL_TYPE_LABELS[single.wallType] : `${walls.length} paredes`}
+        </PanelTitle>
+        <DismissButton type="button" aria-label="Soltar as paredes" title="Soltar as paredes" onClick={onDismiss}>
+          ×
+        </DismissButton>
       </WallHeader>
+      {single ? (
+        <WallFacts wall={single} />
+      ) : (
+        <WallList>
+          {walls.map((w) => (
+            <li key={w.id}>
+              <strong>{WALL_TYPE_LABELS[w.wallType]}</strong> — {wallLifeText(w)}
+            </li>
+          ))}
+        </WallList>
+      )}
       <PanelHint>
-        {wallStateText(wall)} Acontece na hora, sem turno
-        {withActor ? " — o NPC não age." : ". Para agir por um NPC, escolha-o acima."}
+        Acontece na hora, sem turno. {single ? "Segure em outra parede para juntar mais." : "Destruir derruba todas as que estão de pé."}
       </PanelHint>
-      <PickerList>
-        {verbs.map((v) => (
-          <SmallButton key={v} type="button" onClick={() => onInteract(v)}>
-            {MASTER_WALL_LABELS[v]}
-          </SmallButton>
-        ))}
-      </PickerList>
+      {verbs.length > 0 && (
+        <PickerList>
+          {verbs.map((v) => (
+            <SmallButton key={v} type="button" onClick={() => onInteract(v, targetIds)}>
+              {v === "destroy" && !single ? `Destruir ${standing.length}` : MASTER_WALL_LABELS[v]}
+            </SmallButton>
+          ))}
+        </PickerList>
+      )}
     </Picker>
   );
 }
 
-/** "Fechada e trancada." — o estado que só o mestre lê por inteiro. */
-function wallStateText(w: WallSegment): string {
-  const parts = [w.open ? "Aberta" : "Fechada"];
-  if (w.locked) parts.push("trancada");
-  if (w.wallType === "secret_door") parts.push(w.revealed ? "revelada" : "escondida dos jogadores");
-  return `${parts.join(", ")}.`;
+function WallFacts({ wall }: { wall: WallSegment }) {
+  const state: string[] = [];
+  if (!wall.destroyed && (wall.wallType === "door" || wall.wallType === "window" || wall.wallType === "secret_door")) {
+    state.push(wall.open ? "Aberta" : "Fechada");
+    if (wall.locked) state.push("trancada");
+  }
+  if (wall.wallType === "secret_door") state.push(wall.revealed ? "revelada" : "escondida dos jogadores");
+  return (
+    <WallLife data-destroyed={wall.destroyed || undefined}>
+      <strong>{wallLifeText(wall)}</strong>
+      {!wall.destroyed && wall.maxHp > 0 && (
+        <LifeBar aria-hidden>
+          <LifeFill style={{ width: `${Math.max(0, Math.min(100, (wall.hp / wall.maxHp) * 100))}%` }} />
+        </LifeBar>
+      )}
+      {state.length > 0 && <span>{state.join(", ")}.</span>}
+      {wall.resistance > 0 && !wall.destroyed && <span>Resistência {wall.resistance}.</span>}
+    </WallLife>
+  );
 }
+
+const WallLife = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: ${fonts.sans};
+  font-size: 12px;
+  color: ${colors.textPrimary};
+
+  &[data-destroyed] strong {
+    color: ${colors.textMuted};
+  }
+`;
+
+const LifeBar = styled.div`
+  height: 6px;
+  border-radius: 3px;
+  background: ${colors.surfaceInput};
+  overflow: hidden;
+`;
+
+const LifeFill = styled.div`
+  height: 100%;
+  background: ${colors.brandAccent};
+`;
+
+const WallList = styled.ul`
+  margin: 0;
+  padding-left: 16px;
+  font-family: ${fonts.sans};
+  font-size: 12px;
+  color: ${colors.textPrimary};
+`;
 
 const WallHeader = styled.div`
   display: flex;

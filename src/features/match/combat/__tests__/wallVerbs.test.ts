@@ -19,9 +19,14 @@ describe("actorWallVerbs", () => {
     expect(actorWallVerbs(wall({ locked: true }))).toEqual(["lockpick", "attack"]);
     expect(actorWallVerbs(wall({ wallType: "window", locked: true }))).toEqual(["attack"]);
   });
-  it("a plain wall is only attacked, and only when destructible", () => {
+  it("a plain wall is only attacked — the indestructible too (it just takes no damage)", () => {
     expect(actorWallVerbs(wall({ wallType: "wall" }))).toEqual(["attack"]);
-    expect(actorWallVerbs(wall({ wallType: "wall", maxHp: 0 }))).toEqual([]);
+    expect(actorWallVerbs(wall({ wallType: "wall", maxHp: 0 }))).toEqual(["attack"]);
+  });
+  it("a revealed secret door is a door; a hidden one is a wall", () => {
+    expect(actorWallVerbs(wall({ wallType: "secret_door", revealed: true }))).toEqual(["open", "attack"]);
+    expect(actorWallVerbs(wall({ wallType: "secret_door", revealed: true, locked: true }))).toEqual(["lockpick", "attack"]);
+    expect(actorWallVerbs(wall({ wallType: "secret_door" }))).toEqual(["attack"]);
   });
   it("terrain and destroyed walls have no verb", () => {
     expect(actorWallVerbs(wall({ wallType: "terrain" }))).toEqual([]);
@@ -30,17 +35,17 @@ describe("actorWallVerbs", () => {
 });
 
 describe("masterWallVerbs", () => {
-  it("opens or closes a passage, locked or not, and locks or unlocks it", () => {
-    expect(masterWallVerbs(wall({ locked: true }))).toEqual(["open", "unlock"]);
-    expect(masterWallVerbs(wall({ wallType: "window", open: true }))).toEqual(["close", "lock"]);
+  it("opens or closes a passage, locked or not, locks or unlocks it, and destroys it", () => {
+    expect(masterWallVerbs(wall({ locked: true }))).toEqual(["open", "unlock", "destroy"]);
+    expect(masterWallVerbs(wall({ wallType: "window", open: true }))).toEqual(["close", "lock", "destroy"]);
   });
-  it("reveals a secret door until it is revealed, and opens it", () => {
-    expect(masterWallVerbs(wall({ wallType: "secret_door" }))).toEqual(["open", "reveal"]);
-    expect(masterWallVerbs(wall({ wallType: "secret_door", revealed: true, open: true }))).toEqual(["close"]);
+  it("reveals a secret door until it is revealed", () => {
+    expect(masterWallVerbs(wall({ wallType: "secret_door" }))).toEqual(["open", "lock", "reveal", "destroy"]);
+    expect(masterWallVerbs(wall({ wallType: "secret_door", revealed: true, open: true }))).toEqual(["close", "lock", "destroy"]);
   });
-  it("has nothing for a wall, terrain or a destroyed passage", () => {
-    expect(masterWallVerbs(wall({ wallType: "wall" }))).toEqual([]);
-    expect(masterWallVerbs(wall({ wallType: "terrain" }))).toEqual([]);
+  it("destroys any wall still standing — the indestructible and terrain too; nothing on rubble", () => {
+    expect(masterWallVerbs(wall({ wallType: "wall", maxHp: 0 }))).toEqual(["destroy"]);
+    expect(masterWallVerbs(wall({ wallType: "terrain" }))).toEqual(["destroy"]);
     expect(masterWallVerbs(wall({ destroyed: true }))).toEqual([]);
   });
 });

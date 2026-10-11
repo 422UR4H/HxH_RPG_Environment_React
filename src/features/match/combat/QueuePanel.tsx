@@ -126,7 +126,6 @@ export default function QueuePanel({
                 <ResolutionDetails
                   resolution={open.resolution}
                   nameOf={nameOf}
-                  gridKind={gridKind}
                   onChooseFallSlot={onChooseFallSlot}
                   onOpenReaction={onOpenReaction}
                   onEditAction={onEditAction}

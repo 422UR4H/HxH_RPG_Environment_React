@@ -1,14 +1,16 @@
 import { useState } from "react";
 import styled from "styled-components";
 import { colors, fonts } from "../../../styles/tokens";
-import type { GridKind } from "../../../types/tacticalMap";
 import type { EditActionPayload, ResolutionPayload } from "./combatMessages";
-import { avoidedVerb, formatSlot, REACTION_KIND_LABELS, RUNG_LABELS } from "./combatText";
+import { orderPending, wallOutcomeText } from "./resolutionText";
+import { avoidedVerb, REACTION_KIND_LABELS, RUNG_LABELS } from "./combatText";
 import { damageSkillPayload, describeCondition, editableRolls, type EditableRoll } from "./rollEdits";
 import RollConditionEditor from "./RollConditionEditor";
 
 /** As perícias que medem o dano de um ataque (o motor só conhece estas duas). */
 const DAMAGE_SKILLS = ["Push", "Grab"];
+/** "Nenhuma perícia mede o dano" (`edit_action damageSkill: "None"`): só os dados e o bônus da arma. */
+const NO_DAMAGE_SKILL = "None";
 
 /**
  * O cálculo do turno aberto, que só o mestre recebe (F7). Os botões são três, e só onde a
@@ -19,14 +21,12 @@ const DAMAGE_SKILLS = ["Push", "Grab"];
 export default function ResolutionDetails({
   resolution,
   nameOf,
-  gridKind,
   onChooseFallSlot,
   onOpenReaction,
   onEditAction,
 }: {
   resolution: ResolutionPayload;
   nameOf: (id: string) => string;
-  gridKind: GridKind;
   /** Põe o mapa em modo de escolha do slot onde cai o alvo cuja fuga está falhando. */
   onChooseFallSlot?: (targetId: string) => void;
   /** Dá a palavra a uma reação esperando (`open_reaction`). */
@@ -110,12 +110,15 @@ export default function ResolutionDetails({
                 key={name}
                 type="button"
                 aria-pressed={resolution.damageSkill === name}
-                onClick={() => resolution.damageSkill !== name && onEditAction(damageSkillPayload(name))}
+                // A marcada desmarca: nenhuma perícia mede o dano (uma arma de fogo, por exemplo).
+                onClick={() =>
+                  onEditAction(damageSkillPayload(resolution.damageSkill === name ? NO_DAMAGE_SKILL : name))}
               >
                 {name}
               </SkillToggle>
             ))}
-            {!DAMAGE_SKILLS.includes(resolution.damageSkill) && (
+            {resolution.damageSkill === NO_DAMAGE_SKILL && <Muted>nenhuma — só a arma</Muted>}
+            {!DAMAGE_SKILLS.includes(resolution.damageSkill) && resolution.damageSkill !== NO_DAMAGE_SKILL && (
               <SkillToggle type="button" disabled aria-pressed="true">
                 {resolution.damageSkill}
               </SkillToggle>
@@ -147,12 +150,12 @@ export default function ResolutionDetails({
               <strong>Escape falhou — posição final a critério do mestre</strong>
               <Line>
                 {t.escape.landing
-                  ? `Cai em ${formatSlot(t.escape.landing, gridKind)}.`
+                  ? "Você já escolheu onde cai — marcado no mapa."
                   : "Sem escolha, fica onde está."}
               </Line>
               {onChooseFallSlot && (
                 <ActionButton type="button" onClick={() => onChooseFallSlot(t.targetId)}>
-                  Escolher onde cai
+                  {t.escape.landing ? "Trocar onde cai" : "Escolher onde cai"}
                 </ActionButton>
               )}
             </FallBox>
@@ -171,15 +174,36 @@ export default function ResolutionDetails({
           ))}
         </Target>
       ))}
+      {!!resolution.walls?.length && (
+        <Block aria-label="Paredes">
+          <Label>Paredes</Label>
+          {!resolution.isSettled && resolution.walls.some((w) => w.kind === "attack") && (
+            <Muted>O golpe na parede cai quando o turno fechar.</Muted>
+          )}
+          {resolution.walls.map((w) => (
+            <Line key={w.wallId}>
+              <strong>{nameOf(w.wallId)}</strong>: {wallOutcomeText(w, resolution.isSettled)}
+            </Line>
+          ))}
+        </Block>
+      )}
       {!!pendingReactions?.length && (
         <Block>
           <Label>Reações esperando</Label>
-          {onOpenReaction && <Muted>A ordem em que você abre muda o resultado.</Muted>}
-          {pendingReactions.map((r) => (
+          {onOpenReaction && (
+            <Muted>Pela chave (velocidade), como a fila de ações. A ordem em que você abre é sua e muda o resultado.</Muted>
+          )}
+          {orderPending(pendingReactions).map((r, i) => (
             <PendingRow key={r.reactionId}>
-              <Line>
-                {nameOf(r.actorId)} — {REACTION_KIND_LABELS[r.kind] ?? r.kind}
-              </Line>
+              <PendingInfo>
+                <Line>
+                  <Rank>{i + 1}º</Rank> {nameOf(r.actorId)} — {REACTION_KIND_LABELS[r.kind] ?? r.kind}
+                </Line>
+                <Muted>
+                  {r.speed !== undefined ? `chave ${r.speed}` : "sem velocidade"}
+                  {r.arrival !== undefined && ` · chegou em ${r.arrival}º`}
+                </Muted>
+              </PendingInfo>
               {onOpenReaction && (
                 <ActionButton
                   type="button"
@@ -245,6 +269,14 @@ const FallBox = styled.div`
   border-radius: 6px;
   background: ${colors.warningBgDark};
   color: ${colors.warningText};
+`;
+const PendingInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+`;
+const Rank = styled.strong`
+  color: ${colors.brandAccent};
 `;
 const PendingRow = styled.div`
   display: flex;
