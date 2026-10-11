@@ -407,9 +407,10 @@ export default function WallsLayer({
         g.moveTo(a1.x, a1.y); g.lineTo(a2.x, a2.y); g.stroke();
       }
       if (w.wallType === "door" || w.wallType === "window") {
-        drawWallTypeSymbol(g, w.wallType, a1, a2, color, vpScale);
+        // A destruída ainda diz o que era, apagada como o entulho.
+        drawWallTypeSymbol(g, w.wallType, a1, a2, color, vpScale, isDestroyed ? 0.4 : 1);
       }
-      if (w.locked) {
+      if (w.locked && !isDestroyed) {
         drawLockedMarker(g, a1, a2, vpScale);
       }
     }
@@ -507,6 +508,7 @@ function drawWallTypeSymbol(
   a2: { x: number; y: number },
   color: number,
   vpScale: number,
+  alpha = 1,
 ) {
   const dx = a2.x - a1.x, dy = a2.y - a1.y;
   const len = Math.hypot(dx, dy);
@@ -517,7 +519,12 @@ function drawWallTypeSymbol(
     // Quarter-circle arc at a1 (hinge) showing the door swing toward a2
     const radius = Math.min(len * 0.85, 20 / vpScale);
     const angle = Math.atan2(dy, dx);
-    g.setStrokeStyle({ color, width: Math.max(1, 1.5 / vpScale), alpha: 0.9 });
+    g.setStrokeStyle({ color, width: Math.max(1, 1.5 / vpScale), alpha: alpha * 0.9 });
+    // O Pixi recomeça o caminho no último ponto do traço anterior e o `arc` liga esse ponto ao
+    // começo do arco. Na porta de pé o último ponto é a ponta da parede (a ligação some sobre
+    // ela); na destruída é a quina do "×", e a ligação virava uma diagonal torta que crescia
+    // com o zoom out. Mover para o começo do arco corta a ligação.
+    g.moveTo(a1.x + Math.cos(angle) * radius, a1.y + Math.sin(angle) * radius);
     g.arc(a1.x, a1.y, radius, angle, angle + Math.PI / 2);
     g.stroke();
   } else {
@@ -525,7 +532,7 @@ function drawWallTypeSymbol(
     const tickLen = 5 / vpScale;
     for (const t of [1 / 3, 2 / 3]) {
       const px = a1.x + t * dx, py = a1.y + t * dy;
-      g.setStrokeStyle({ color, width: Math.max(1, 1.5 / vpScale), alpha: 0.85 });
+      g.setStrokeStyle({ color, width: Math.max(1, 1.5 / vpScale), alpha: alpha * 0.85 });
       g.moveTo(px - nx * tickLen, py - ny * tickLen);
       g.lineTo(px + nx * tickLen, py + ny * tickLen);
       g.stroke();

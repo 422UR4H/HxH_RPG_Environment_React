@@ -102,7 +102,7 @@ describe("ReactionConfigDialog", () => {
     fireEvent.click(evasion());
     const cost = screen.getByText(/^Custo:/);
     expect(cost).toHaveTextContent(
-      "Custo: barra de movimento. Se você tinha uma ação na fila nessa barra, ela é consumida e a reação rola com Desvantagem.",
+      "Custo: barra de movimento. Se você tinha uma ação na fila nessa barra, ela é consumida e a reação rola com Desvantagem — menos se fugir para a mesma casa do movimento da fila.",
     );
     expect(cost).not.toHaveTextContent("ação +");
   });

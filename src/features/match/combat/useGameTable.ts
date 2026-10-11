@@ -21,7 +21,7 @@ import { defaultMoveCategory } from "./defaultMoveCategory";
 import { pendingMoves, resolveLostCandidates } from "./combatReducer";
 import type { DeclaredAction, DeclaredSource } from "./combatReducer";
 import { createViewportStore } from "./viewportStore";
-import { WALL_TYPE_LABELS } from "./wallVerbs";
+import { wallName } from "./wallVerbs";
 import { actionMechanicsText, actorResultText, reactionMechanicsText, targetResultText } from "./balloonText";
 import type { BalloonTone } from "./balloonText";
 
@@ -208,7 +208,7 @@ export function useGameTable({
   }, [state.declared, state.queue, state.openReactions, pieceByCharacter, arrivedKey]);
 
   // Personagens e paredes: uma parede é alvo como uma peça, e a fila, o histórico, as
-  // declaradas e os balões a nomeiam pelo tipo ("Porta", "Janela").
+  // declaradas e os balões a nomeiam pelo tipo e material ("Porta de madeira").
   const nameOf = useCallback(
     (id: string) => {
       const p = participants.find((x) => x.characterSheet.uuid === id);
@@ -216,7 +216,7 @@ export function useGameTable({
       const npc = live.npcMap.get(id)?.nickName;
       if (npc) return npc;
       const wall = live.liveWalls.find((w) => w.id === id);
-      return wall ? WALL_TYPE_LABELS[wall.wallType] : "?";
+      return wall ? wallName(wall) : "?";
     },
     [participants, live.npcMap, live.liveWalls],
   );

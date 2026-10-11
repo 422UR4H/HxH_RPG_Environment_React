@@ -65,8 +65,9 @@ da grade com um quarto de célula para cada lado — quadrado ou hex, qualquer r
 
 - `ActionComposer`: o 2º interruptor mostra o verbo (⚔ Atacar, 🚪 Abrir…). Com parede, o seletor
   "O que fazer"; armas e a dica "Ataque à distância?" só no ataque.
-- `useGameTable.nameOf` nomeia paredes pelo tipo: fila, histórico, declaradas e balões dizem
-  "Janela" em vez de `?`. `describeAction` e o balão nomeiam a passagem ("Abrir Janela").
+- `useGameTable.nameOf` nomeia paredes pelo tipo e material (`wallName`): fila, histórico,
+  declaradas, balões e o card do mestre dizem "Janela de madeira", "Parede de pedra" em vez de `?`
+  (o terreno não tem material). `describeAction` e o balão nomeiam a passagem ("Abrir Janela").
 - `IntentPreview.targetWalls`: a parede-alvo desenhada na cor do ataque, com a linha até o meio
   dela (some quando encostado, como a da peça adjacente).
 - `WallMasterPanel` ("Ação do Mestre", no Agir) — **só sem NPC**: com NPC o mestre age só pelo
@@ -124,7 +125,16 @@ rola as velocidades com Desvantagem do motor (`systemBias: -1`). O painel do mes
 na reação esperando, "desvantagem do sistema — trocou a ação da fila"; na aberta, a explicação e
 a etiqueta **desvantagem do sistema** na linha do Movimento (a esquiva, o aparo e a defesa não
 pioram). O editor da rolagem avisa que o viés do mestre **soma** com o do sistema: Vantagem deixa
-neutro, Normal mantém. "Ajuste" virou **Modificador**.
+neutro (o primeiro lance, não o melhor — o viés só decide o sinal), Normal mantém; vantagem
+líquida é o Modificador. "Ajuste" virou **Modificador**.
+
+**Fugir para a mesma casa do movimento da fila não é troca** (servidor, `sameMoveAsQueued`):
+consome o movimento, mas sem Desvantagem. Versão simples — vai ser enriquecida.
+
+**Desenho da porta destruída** (`WallsLayer.drawWallTypeSymbol`): o Pixi recomeça o caminho no
+último ponto do traço anterior e o `arc` liga esse ponto ao arco. Na porta destruída o último ponto
+era a quina do "×" (que cresce no zoom out) e saía uma diagonal torta; o arco agora começa com
+`moveTo` no lugar dele. Na destruída, o símbolo de porta/janela fica apagado e o cadeado some.
 
 ## Histórico ao vivo das ações do mestre
 

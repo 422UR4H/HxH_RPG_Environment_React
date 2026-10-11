@@ -14,7 +14,7 @@ import {
   Buttons, CancelButton, ConfirmButton, Dialog, DialogHint, DialogTitle, Overlay,
 } from "./dialogStyles";
 import { PanelHint, PanelTitle } from "./panelStyles";
-import { MASTER_WALL_LABELS, WALL_TYPE_LABELS, masterWallVerbs, wallLifeText } from "./wallVerbs";
+import { MASTER_WALL_LABELS, masterWallVerbs, wallLifeText, wallName } from "./wallVerbs";
 import type { MasterWallKind } from "./wallVerbs";
 
 /**
@@ -255,7 +255,7 @@ export function WallMasterPanel({
     <Picker aria-label="Ação do Mestre">
       <WallHeader>
         <PanelTitle>
-          Ação do Mestre · {single ? WALL_TYPE_LABELS[single.wallType] : `${walls.length} paredes`}
+          Ação do Mestre · {single ? wallName(single) : `${walls.length} paredes`}
         </PanelTitle>
         <DismissButton type="button" aria-label="Soltar as paredes" title="Soltar as paredes" onClick={onDismiss}>
           ×
@@ -267,7 +267,7 @@ export function WallMasterPanel({
         <WallList>
           {walls.map((w) => (
             <li key={w.id}>
-              <strong>{WALL_TYPE_LABELS[w.wallType]}</strong> — {wallLifeText(w)}
+              <strong>{wallName(w)}</strong> — {wallLifeText(w)}
             </li>
           ))}
         </WallList>
@@ -292,7 +292,7 @@ export function WallMasterPanel({
         <Overlay onClick={() => setConfirmDestroy(false)}>
           <Dialog role="dialog" aria-modal aria-label="Destruir" onClick={(e) => e.stopPropagation()}>
             <DialogTitle>
-              {single ? `Destruir ${WALL_TYPE_LABELS[single.wallType]}?` : `Destruir ${standing.length} paredes?`}
+              {single ? `Destruir ${wallName(single)}?` : `Destruir ${standing.length} paredes?`}
             </DialogTitle>
             <DialogHint>
               {single ? "Ela vai ao chão" : "Elas vão ao chão"} na hora, e não dá para desfazer: nenhuma ação da

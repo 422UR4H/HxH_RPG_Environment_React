@@ -22,7 +22,9 @@ import {
 function costText(kind: ReactionKind): string {
   const bars = REACTION_BARS[kind];
   if (bars.length === 0) return "Não cobra nada";
-  return `Custo: ${costLabel(bars)}. Se você tinha uma ação na fila nessa barra, ela é consumida e a reação rola com Desvantagem.`;
+  const base = `Custo: ${costLabel(bars)}. Se você tinha uma ação na fila nessa barra, ela é consumida e a reação rola com Desvantagem`;
+  // A fuga para a mesma casa do movimento que estava na fila não é troca (regra do servidor).
+  return needsDestination(kind) ? `${base} — menos se fugir para a mesma casa do movimento da fila.` : `${base}.`;
 }
 
 /**

@@ -1,7 +1,7 @@
 // O que se pode fazer com uma parede, por quem. Regra única para o compositor (o ator — jogador
 // ou NPC do mestre — via `enqueue_action`), o card do mestre (`enqueue_master_action`) e o
 // hit-test do mapa: uma parede sem verbo nenhum não é tocável.
-import type { WallSegment, WallType } from "../../../types/tacticalMap";
+import type { WallMaterial, WallSegment, WallType } from "../../../types/tacticalMap";
 
 /** O que a metade "mira em alguém" do rascunho faz. Personagem só aceita `attack`. */
 export type ActKind = "attack" | "open" | "close" | "lockpick";
@@ -14,6 +14,22 @@ export const WALL_TYPE_LABELS: Record<WallType, string> = {
   secret_door: "P. Secreta",
   wall: "Parede",
 };
+
+// "de pedra", "de madeira"… — todo tipo de parede é feminino menos o terreno, que não tem
+// material (o editor não lhe dá um).
+const MATERIAL_SUFFIX: Record<WallMaterial, string> = {
+  stone: "de pedra", wood: "de madeira", iron: "de ferro", magical: "mágica",
+};
+
+/**
+ * O nome de uma parede para a mesa: o tipo e o material ("Porta de madeira", "Parede de pedra").
+ * O material é visível para os personagens — sem ele, duas portas na mesma sala eram iguais.
+ */
+export function wallName(w: Pick<WallSegment, "wallType" | "material">): string {
+  const type = WALL_TYPE_LABELS[w.wallType];
+  if (w.wallType === "terrain" || !w.material) return type;
+  return `${type} ${MATERIAL_SUFFIX[w.material]}`;
+}
 
 export const ACT_LABELS: Record<ActKind, string> = {
   attack: "Atacar",

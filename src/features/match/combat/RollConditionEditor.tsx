@@ -43,8 +43,8 @@ export default function RollConditionEditor({
       {!!roll.systemBias && (
         <SystemNote role="note">
           O sistema já rola esta com {roll.systemBias < 0 ? "Desvantagem" : "Vantagem"} (a reação trocou a ação
-          da fila). O seu viés soma com o dele: {roll.systemBias < 0 ? "Vantagem" : "Desvantagem"} deixa neutro;
-          Normal mantém.
+          da fila). O seu viés soma com o dele: {roll.systemBias < 0 ? "Vantagem" : "Desvantagem"} deixa neutro
+          (vale o primeiro lance, não o melhor); Normal mantém. Para ir além, use o Modificador.
         </SystemNote>
       )}
       {roll.allowsBias && (

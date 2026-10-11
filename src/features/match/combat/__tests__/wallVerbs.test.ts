@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { actorWallVerbs, masterWallVerbs } from "../wallVerbs";
+import { actorWallVerbs, masterWallVerbs, wallName } from "../wallVerbs";
 import type { WallSegment } from "../../../../types/tacticalMap";
 
 const wall = (over: Partial<WallSegment> = {}): WallSegment => ({
@@ -47,5 +47,14 @@ describe("masterWallVerbs", () => {
     expect(masterWallVerbs(wall({ wallType: "wall", maxHp: 0 }))).toEqual(["destroy"]);
     expect(masterWallVerbs(wall({ wallType: "terrain" }))).toEqual(["destroy"]);
     expect(masterWallVerbs(wall({ destroyed: true }))).toEqual([]);
+  });
+});
+
+describe("wallName", () => {
+  it("diz o tipo e o material; o terreno não tem material", () => {
+    expect(wallName({ wallType: "door", material: "wood" })).toBe("Porta de madeira");
+    expect(wallName({ wallType: "wall", material: "stone" })).toBe("Parede de pedra");
+    expect(wallName({ wallType: "window", material: "magical" })).toBe("Janela mágica");
+    expect(wallName({ wallType: "terrain", material: "stone" })).toBe("Terreno");
   });
 });
