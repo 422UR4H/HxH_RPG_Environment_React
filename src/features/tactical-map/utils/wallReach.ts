@@ -1,5 +1,5 @@
 import type { GridShape, SlotCoord, WallSegment } from "../../../types/tacticalMap";
-import { isSameSlot, isSlotInBounds, localToSlot, slotToWorld } from "./coords";
+import { isSameSlot, isSlotInBounds, localToSlot, slotToLocal } from "./coords";
 import { isMovementBlocked } from "./walls";
 
 /**
@@ -38,11 +38,11 @@ export function wallContactSlots(wall: WallSegment, grid: GridShape): SlotCoord[
 
 /**
  * O servidor recusaria (`move_blocked`) andar em linha reta de `from` a `to`? Espelha a checagem
- * dele: centros dos slots pelo `SlotCenterToWorld` (com o transform) contra as paredes com `move`
- * e fechadas. Quem propõe um destino usa isto para não propor o que o servidor vai recusar.
+ * dele: centros dos slots no espaço LOCAL da grade (o das paredes) contra as paredes com `move` e
+ * fechadas. Quem propõe um destino usa isto para não propor o que o servidor vai recusar.
  */
 export function isPathClear(from: SlotCoord, to: SlotCoord, walls: WallSegment[], grid: GridShape): boolean {
-  const a = slotToWorld(from, grid);
-  const b = slotToWorld(to, grid);
+  const a = slotToLocal(from, grid);
+  const b = slotToLocal(to, grid);
   return !isMovementBlocked([a.x, a.y], [b.x, b.y], walls);
 }

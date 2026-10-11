@@ -30,11 +30,17 @@ describe("actorWallVerbs", () => {
 });
 
 describe("masterWallVerbs", () => {
-  it("opens or closes a passage, locked or not", () => {
-    expect(masterWallVerbs(wall({ locked: true }))).toEqual(["open"]);
-    expect(masterWallVerbs(wall({ wallType: "window", open: true }))).toEqual(["close"]);
+  it("opens or closes a passage, locked or not, and locks or unlocks it", () => {
+    expect(masterWallVerbs(wall({ locked: true }))).toEqual(["open", "unlock"]);
+    expect(masterWallVerbs(wall({ wallType: "window", open: true }))).toEqual(["close", "lock"]);
   });
-  it("has nothing for a wall", () => {
+  it("reveals a secret door until it is revealed, and opens it", () => {
+    expect(masterWallVerbs(wall({ wallType: "secret_door" }))).toEqual(["open", "reveal"]);
+    expect(masterWallVerbs(wall({ wallType: "secret_door", revealed: true, open: true }))).toEqual(["close"]);
+  });
+  it("has nothing for a wall, terrain or a destroyed passage", () => {
     expect(masterWallVerbs(wall({ wallType: "wall" }))).toEqual([]);
+    expect(masterWallVerbs(wall({ wallType: "terrain" }))).toEqual([]);
+    expect(masterWallVerbs(wall({ destroyed: true }))).toEqual([]);
   });
 });

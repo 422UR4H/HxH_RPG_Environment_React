@@ -55,7 +55,27 @@ export function actorWallVerbs(w: WallSegment): ActKind[] {
   return out;
 }
 
-/** Os verbos do MESTRE agindo como mestre (sem NPC): abre e fecha, trancada ou não. */
-export function masterWallVerbs(w: WallSegment): WallInteractKind[] {
-  return isPassage(w) ? [w.open ? "close" : "open"] : [];
+/** A mão do mestre numa parede (`enqueue_master_action`): na hora, sem turno, sem alcance. */
+export type MasterWallKind = "open" | "close" | "lock" | "unlock" | "reveal";
+
+export const MASTER_WALL_LABELS: Record<MasterWallKind, string> = {
+  open: "Abrir",
+  close: "Fechar",
+  lock: "Trancar",
+  unlock: "Destrancar",
+  reveal: "Revelar",
+};
+
+/**
+ * Os verbos do MESTRE agindo como mestre: abre e fecha qualquer passagem, trancada ou não; tranca
+ * e destranca porta e janela; revela a porta secreta que ainda não foi revelada. Parede comum e
+ * terreno, nada — o mestre ataca por um NPC.
+ */
+export function masterWallVerbs(w: WallSegment): MasterWallKind[] {
+  if (w.destroyed) return [];
+  if (w.wallType === "secret_door") {
+    return [w.open ? "close" : "open", ...(w.revealed ? [] : ["reveal" as const])];
+  }
+  if (!isPassage(w)) return [];
+  return [w.open ? "close" : "open", w.locked ? "unlock" : "lock"];
 }

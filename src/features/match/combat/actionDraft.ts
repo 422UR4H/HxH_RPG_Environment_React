@@ -3,16 +3,18 @@
 // e a ação declarada é o que estiver ligado: só movimento, só a ação sobre o alvo, ou os dois
 // juntos (a ação combinada de `barra-de-acao.md`, que cobra as duas barras num turno só).
 //
-// A metade de ação (`act`) MIRA: um personagem ou uma parede. Com personagem ela é sempre um
-// ataque; com parede ela pode ser também abrir, fechar ou arrombar (`wallVerbs.ts`). A parede é
-// um alvo como uma peça — tem alcance, e um alvo longe puxa a aproximação.
+// A metade de ação (`act`) MIRA: personagens e paredes, um ou vários (um golpe em área pega
+// vários de uma vez). Com personagem, ou com mais de um alvo, ela é sempre um ataque; com uma
+// parede só ela pode ser também abrir, fechar ou arrombar (`wallVerbs.ts`) — e aí exige estar
+// encostado nela. A parede é um alvo como uma peça: tem alcance, e um alvo longe puxa a
+// aproximação.
 //
 // Nada aqui calcula onde a peça PARA (isso é do servidor). O que se calcula é uma
 // proposta de destino — "anda até ficar ao lado do alvo" — que aparece destacada no mapa e
 // que o jogador troca ou desliga antes de declarar.
 import type { GridShape, SlotCoord, WallSegment } from "../../../types/tacticalMap";
 import type { SlotTriple } from "../../tactical-map/utils/coords";
-import { slotToTriple } from "../../tactical-map/utils/coords";
+import { isSameSlot, slotToTriple, tripleToSlot } from "../../tactical-map/utils/coords";
 import { approachReach, approachSlot, slotDistance, stepsToReach } from "../../tactical-map/utils/reach";
 import type { EnqueueActionPayload, MoveCategory } from "./combatMessages";
 import type { DeclaredAction } from "./combatReducer";
@@ -36,7 +38,7 @@ export type ActionDraft = {
   category?: MoveCategory;
   /**
    * Presente = a metade de ação ligada. `targets` vazio = alvo ainda não escolhido. `kind`
-   * ausente = ataque; um verbo de parede só vale com uma parede como alvo (único).
+   * ausente = ataque; um verbo de parede só vale com uma parede como alvo único.
    */
   act?: { targets: string[]; kind?: ActKind; weapon?: string };
 };
@@ -78,6 +80,21 @@ export function toggleTarget(draft: ActionDraft, characterId: string): ActionDra
     ? current.filter((t) => t !== characterId)
     : [...current, characterId];
   return withTargets(draft, next, "attack");
+}
+
+/**
+ * Segurar numa parede liga/desliga ela entre os alvos, junto de personagens e outras paredes (um
+ * golpe em área). Sozinha, é como o toque (o verbo dela). Junto de outros alvos é ataque — e uma
+ * parede que não se ataca (indestrutível) não entra.
+ */
+export function toggleWallTarget(draft: ActionDraft, wall: WallSegment): ActionDraft {
+  const current = draft.act?.targets ?? [];
+  if (current.includes(wall.id)) {
+    return withTargets(draft, current.filter((t) => t !== wall.id), draft.act?.kind);
+  }
+  if (current.length === 0) return chooseWallTarget(draft, wall);
+  if (!actorWallVerbs(wall).includes("attack")) return draft;
+  return withTargets(draft, [...current, wall.id], "attack");
 }
 
 export function removeTarget(draft: ActionDraft, targetId: string): ActionDraft {
@@ -177,6 +194,11 @@ export type ResolvedDraft = {
   targetSteps?: number;
   /** Aproximação pedida, mas todo vizinho do alvo está ocupado ou fora do mapa. */
   approachBlocked: boolean;
+  /**
+   * Um verbo de parede (abrir, fechar, arrombar) cuja parede não encosta na casa onde a ação
+   * deixa o ator — o destino do movimento, ou onde ele está. O servidor recusa (`out_of_reach`).
+   */
+  outOfReach?: boolean;
 };
 
 /**
@@ -190,18 +212,23 @@ export function defaultWeaponOf(names: string[]): string | undefined {
 
 /**
  * A metade de ação contra o tabuleiro de agora: uma parede que deixou de aceitar qualquer verbo
- * (destruída) sai dos alvos; um verbo que a parede deixou de aceitar (alguém abriu a porta) cai
- * no primeiro que ela aceita; personagem entre os alvos é sempre ataque.
+ * (destruída) sai dos alvos; com vários alvos é ataque, e a parede que não se ataca sai; um verbo
+ * que a parede deixou de aceitar (alguém abriu a porta) cai no primeiro que ela aceita;
+ * personagem entre os alvos é sempre ataque.
  */
 function resolveAct(
   draftAct: NonNullable<ActionDraft["act"]>,
   ctx: ReachContext,
   defaultWeapon: string | undefined,
 ): NonNullable<ResolvedDraft["act"]> {
-  const targets = draftAct.targets.filter((id) => {
+  const wallVerbsOf = (id: string) => {
     const t = ctx.targetOf(id);
-    return t?.kind !== "wall" || actorWallVerbs(t.wall).length > 0;
-  });
+    return t?.kind === "wall" ? actorWallVerbs(t.wall) : undefined;
+  };
+  const standing = draftAct.targets.filter((id) => wallVerbsOf(id)?.length !== 0);
+  const targets = standing.length > 1
+    ? standing.filter((id) => wallVerbsOf(id)?.includes("attack") ?? true)
+    : standing;
   const primary = targets[0] ? ctx.targetOf(targets[0]) : undefined;
   const verbs = primary?.kind === "wall" && targets.length === 1 ? actorWallVerbs(primary.wall) : undefined;
   const wanted = draftAct.kind ?? "attack";
@@ -233,7 +260,19 @@ export function resolveDraft(
       : stepsToReach(ctx.actorSlot, primary.reach);
 
   const base: ResolvedDraft = { act, targetSteps, approachBlocked: false };
+  const resolved = resolveMove(draft, ctx, base, category, primary);
+  return act && act.kind !== "attack" && primary?.kind === "wall"
+    ? { ...resolved, outOfReach: !touches(resolved, ctx, primary.reach) }
+    : resolved;
+}
 
+function resolveMove(
+  draft: ActionDraft,
+  ctx: ReachContext,
+  base: ResolvedDraft,
+  category: MoveCategory,
+  primary: DraftTarget | undefined,
+): ResolvedDraft {
   switch (draft.moveMode) {
     case "manual":
       return { ...base, move: { category, to: draft.to, auto: false } };
@@ -253,6 +292,16 @@ export function resolveDraft(
   }
 }
 
+/**
+ * A casa onde a ação deixa o ator encosta na parede? O destino do movimento, ou onde ele está.
+ * Um destino ainda não escolhido não reprova aqui — o "escolha o destino" vem antes.
+ */
+function touches(resolved: ResolvedDraft, ctx: ReachContext, reach: SlotCoord[]): boolean {
+  if (resolved.move && !resolved.move.to) return true;
+  const end = resolved.move?.to ? tripleToSlot(resolved.move.to, ctx.grid.kind) : ctx.actorSlot;
+  return !!end && reach.some((s) => isSameSlot(s, end));
+}
+
 function isMoveOn(draft: ActionDraft, resolved: ResolvedDraft): boolean {
   return draft.moveMode === "manual" || resolved.move !== undefined;
 }
@@ -263,7 +312,7 @@ export type DraftKind = "move" | "act" | "combined";
 
 export type DraftVerdict =
   | { ready: true; kind: DraftKind }
-  | { ready: false; reason: "empty" | "needs_destination" | "needs_target" };
+  | { ready: false; reason: "empty" | "needs_destination" | "needs_target" | "out_of_reach" };
 
 /**
  * Pronto quando toda metade LIGADA está completa — um "Mover" ligado sem destino não é
@@ -275,6 +324,7 @@ export function draftVerdict(resolved: ResolvedDraft): DraftVerdict {
   if (!moveOn && !actOn) return { ready: false, reason: "empty" };
   if (moveOn && !resolved.move!.to) return { ready: false, reason: "needs_destination" };
   if (actOn && resolved.act!.targets.length === 0) return { ready: false, reason: "needs_target" };
+  if (resolved.outOfReach) return { ready: false, reason: "out_of_reach" };
   return { ready: true, kind: moveOn && actOn ? "combined" : moveOn ? "move" : "act" };
 }
 

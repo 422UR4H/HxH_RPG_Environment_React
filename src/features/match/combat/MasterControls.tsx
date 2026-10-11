@@ -11,8 +11,8 @@ import type { RoundMode } from "./combatMessages";
 import { ROUND_MODE_LABELS } from "./combatText";
 import { SmallButton } from "./MatchTopBar";
 import { PanelHint, PanelTitle } from "./panelStyles";
-import { ACT_LABELS, WALL_TYPE_LABELS, masterWallVerbs } from "./wallVerbs";
-import type { WallInteractKind } from "./wallVerbs";
+import { MASTER_WALL_LABELS, WALL_TYPE_LABELS, masterWallVerbs } from "./wallVerbs";
+import type { MasterWallKind } from "./wallVerbs";
 
 /**
  * Livre × Disputado. Clicar no regime atual não manda nada: o servidor responderia com
@@ -222,30 +222,48 @@ export function WallMasterPanel({
   wall,
   onInteract,
   onDismiss,
+  withActor = false,
 }: {
   wall: WallSegment;
-  onInteract: (kind: WallInteractKind) => void;
-  onDismiss: () => void;
+  onInteract: (kind: MasterWallKind) => void;
+  /** Ausente: a parede não é do card (é o alvo do NPC, no compositor) — sem ×. */
+  onDismiss?: () => void;
+  /** Um NPC está escolhido: a parede também é o alvo dele, e o card é o atalho do mestre. */
+  withActor?: boolean;
 }) {
   const verbs = masterWallVerbs(wall);
+  if (verbs.length === 0) return null;
   return (
     <Picker aria-label="Ação do Mestre">
       <WallHeader>
         <PanelTitle>Ação do Mestre · {WALL_TYPE_LABELS[wall.wallType]}</PanelTitle>
-        <DismissButton type="button" aria-label="Soltar a parede" title="Soltar a parede" onClick={onDismiss}>
-          ×
-        </DismissButton>
+        {onDismiss && (
+          <DismissButton type="button" aria-label="Soltar a parede" title="Soltar a parede" onClick={onDismiss}>
+            ×
+          </DismissButton>
+        )}
       </WallHeader>
-      <PanelHint>Acontece na hora, sem turno. Para agir por um NPC, escolha-o acima.</PanelHint>
+      <PanelHint>
+        {wallStateText(wall)} Acontece na hora, sem turno
+        {withActor ? " — o NPC não age." : ". Para agir por um NPC, escolha-o acima."}
+      </PanelHint>
       <PickerList>
         {verbs.map((v) => (
           <SmallButton key={v} type="button" onClick={() => onInteract(v)}>
-            {ACT_LABELS[v]}
+            {MASTER_WALL_LABELS[v]}
           </SmallButton>
         ))}
       </PickerList>
     </Picker>
   );
+}
+
+/** "Fechada e trancada." — o estado que só o mestre lê por inteiro. */
+function wallStateText(w: WallSegment): string {
+  const parts = [w.open ? "Aberta" : "Fechada"];
+  if (w.locked) parts.push("trancada");
+  if (w.wallType === "secret_door") parts.push(w.revealed ? "revelada" : "escondida dos jogadores");
+  return `${parts.join(", ")}.`;
 }
 
 const WallHeader = styled.div`

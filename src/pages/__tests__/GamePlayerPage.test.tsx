@@ -27,6 +27,7 @@ vi.mock("../../features/tactical-map/TacticalMapViewer", () => ({
     onPieceSelect?: (pieceId: string) => void;
     onPieceLongPress?: (pieceId: string) => void;
     onWallClick?: (wall: { id: string }) => void;
+    onWallLongPress?: (wall: { id: string }) => void;
     onEmptySlotClick?: (slot: { kind: "square"; col: number; row: number }, x: number, y: number) => void;
     targetPieceIds?: Set<string>;
     intentPreview?: unknown;
@@ -57,7 +58,13 @@ vi.mock("../../features/tactical-map/TacticalMapViewer", () => ({
         </button>
       ))}
       {(props.map.walls ?? []).map((wall) => (
-        <button key={wall.id} data-testid={`wall-${wall.id}`} onClick={() => props.onWallClick?.(wall)}>
+        <button
+          key={wall.id}
+          data-testid={`wall-${wall.id}`}
+          onClick={() => props.onWallClick?.(wall)}
+          // Segurar = clique direito, como no WallsLayer.
+          onContextMenu={() => props.onWallLongPress?.(wall)}
+        >
           {wall.id}
         </button>
       ))}
@@ -702,6 +709,42 @@ describe("GamePlayerPage", () => {
 
     act(() => ws.emit("action_enqueued", { actionId: "action-wall-1" }));
     await waitFor(() => expect(storedDraft()).toBeNull());
+  });
+
+  // Golpe em área: segurar numa parede a junta aos alvos que já havia (um personagem aqui).
+  // Com mais de um alvo a ação é ataque — sai `attack`, nunca `interact`.
+  it("segurar numa parede a junta a um personagem: Declarar manda um ataque com os dois alvos", async () => {
+    renderPlayerPage();
+    const ws = await waitForSocket();
+    act(() => ws.onopen?.());
+    act(() =>
+      ws.emit("map_full_state", {
+        pieces: [
+          { pieceId: "piece-c1", slot: { kind: "square", col: 1, row: 1 }, characterId: "c1", visible: true, z: 0 },
+          { pieceId: "piece-c2", slot: { kind: "square", col: 2, row: 2 }, characterId: "c2", visible: true, z: 0 },
+        ],
+        walls: [
+          {
+            id: "wall-1", p1: [0, 0], p2: [1, 0], wallType: "door", material: "wood",
+            move: false, sense: "none", direction: "both", open: false, locked: false,
+            hp: 10, maxHp: 10, resistance: 0, destroyed: false,
+          },
+        ],
+        visiblePolygons: [],
+        fogMode: "explored",
+      }),
+    );
+
+    act(() => screen.getByTestId("select-actor-c2").click());
+    fireEvent.contextMenu(await screen.findByTestId("wall-wall-1"));
+    await waitFor(() => expect(storedDraft()?.act?.targets).toEqual(["c2", "wall-1"]));
+    expect(screen.queryByRole("radiogroup", { name: "O que fazer" })).not.toBeInTheDocument();
+
+    act(() => screen.getByRole("button", { name: /^declarar/i }).click());
+    const calls = ws.send.mock.calls.map((c) => JSON.parse(c[0] as string));
+    const sent = calls.find((m) => m.type === "enqueue_action");
+    expect(sent?.payload).toMatchObject({ actorId: "c1", targetId: ["c2", "wall-1"], attack: {} });
+    expect(sent?.payload).not.toHaveProperty("interact");
   });
 
   // Final review, Important 2(b): Declarar não pode ficar habilitado enquanto o socket

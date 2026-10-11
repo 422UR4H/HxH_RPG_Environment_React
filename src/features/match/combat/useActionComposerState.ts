@@ -8,7 +8,7 @@ import { isPathClear, wallContactSlots } from "../../tactical-map/utils/wallReac
 import type { IntentPreview } from "../../tactical-map/IntentLayer";
 import {
   buildEnqueuePayload, chooseDestination, chooseTarget, chooseWallTarget, clearDraft, draftVerdict,
-  emptyDraft, loadDraft, purgeLegacyMatchStorage, resolveDraft, saveDraft, toggleTarget,
+  emptyDraft, loadDraft, purgeLegacyMatchStorage, resolveDraft, saveDraft, toggleTarget, toggleWallTarget,
 } from "./actionDraft";
 import type { ActionDraft, DraftTarget, ReachContext } from "./actionDraft";
 import type { MoveCategory } from "./combatMessages";
@@ -170,6 +170,10 @@ export function useActionComposerState({
     (wall: WallSegment) => updateDraft(chooseWallTarget(draft, wall)),
     [draft, updateDraft],
   );
+  const onWallHold = useCallback(
+    (wall: WallSegment) => updateDraft(toggleWallTarget(draft, wall)),
+    [draft, updateDraft],
+  );
 
   return {
     draft,
@@ -185,6 +189,7 @@ export function useActionComposerState({
     onCharacterTap,
     onCharacterHold,
     onWallTap,
+    onWallHold,
     clearDraftFor,
     restoreDraftFor,
   };

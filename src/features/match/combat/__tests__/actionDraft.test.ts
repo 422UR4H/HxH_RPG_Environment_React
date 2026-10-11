@@ -3,7 +3,7 @@ import { act, renderHook } from "@testing-library/react";
 import {
   buildEnqueuePayload, chooseDestination, chooseTarget, chooseWallTarget, clearDraft, defaultWeaponOf, draftFromDeclared,
   draftVerdict, emptyDraft, loadDraft, purgeLegacyMatchStorage, removeTarget, resolveDraft, saveDraft, setActKind,
-  setMoveCategory, setWeapon, toggleAct, toggleMove, toggleTarget,
+  setMoveCategory, setWeapon, toggleAct, toggleMove, toggleTarget, toggleWallTarget,
 } from "../actionDraft";
 import type { ActionDraft, ReachContext } from "../actionDraft";
 import { useActionComposerState } from "../useActionComposerState";
@@ -288,6 +288,55 @@ describe("rascunho: parede como alvo", () => {
     const r = resolveDraft(d, wallCtx, "Dash");
     expect(r.act?.kind).toBe("attack");
     expect(r.act?.verbs).toBeUndefined();
+  });
+
+  it("abrir sem Mover, de longe: não declara (o servidor recusaria por alcance)", () => {
+    const d = toggleMove(chooseWallTarget(emptyDraft(), door), resolveDraft(chooseWallTarget(emptyDraft(), door), wallCtx, "Dash"));
+    expect(d.moveMode).toBe("stay");
+    const r = resolveDraft(d, wallCtx, "Dash");
+    expect(r.outOfReach).toBe(true);
+    expect(draftVerdict(r)).toEqual({ ready: false, reason: "out_of_reach" });
+  });
+
+  it("abrir indo a um destino que não encosta na porta: não declara", () => {
+    const d = chooseDestination(chooseWallTarget(emptyDraft(), door), [5, 4, 0]);
+    expect(draftVerdict(resolveDraft(d, wallCtx, "Dash"))).toEqual({ ready: false, reason: "out_of_reach" });
+    const touching = chooseDestination(chooseWallTarget(emptyDraft(), door), [8, 4, 0]);
+    expect(draftVerdict(resolveDraft(touching, wallCtx, "Dash"))).toEqual({ ready: true, kind: "combined" });
+  });
+
+  it("atacar a porta de longe, sem Mover, declara (ataque não exige alcance)", () => {
+    const attack = setActKind(chooseWallTarget(emptyDraft(), door), "attack");
+    const stay = toggleMove(attack, resolveDraft(attack, wallCtx, "Dash"));
+    const r = resolveDraft(stay, wallCtx, "Dash");
+    expect(r.outOfReach).toBeUndefined();
+    expect(draftVerdict(r)).toEqual({ ready: true, kind: "act" });
+  });
+
+  it("segurar numa parede junta ela a um personagem (golpe em área) — ataque", () => {
+    const d = toggleWallTarget(chooseTarget(emptyDraft(), "killua"), door);
+    expect(d.act).toEqual({ targets: ["killua", "door"] });
+    const r = resolveDraft(d, wallCtx, "Dash");
+    expect(r.act).toMatchObject({ targets: ["killua", "door"], kind: "attack" });
+    expect(buildEnqueuePayload(r, "gon", [2, 4, 0])).toMatchObject({ targetId: ["killua", "door"], attack: {} });
+  });
+
+  it("segurar de novo na parede a tira dos alvos; sozinha, segurar é como tocar", () => {
+    const both = toggleWallTarget(chooseTarget(emptyDraft(), "killua"), door);
+    expect(toggleWallTarget(both, door).act).toEqual({ targets: ["killua"] });
+    expect(toggleWallTarget(emptyDraft(), door).act).toEqual({ targets: ["door"], kind: "open" });
+  });
+
+  it("parede indestrutível não entra num golpe em área", () => {
+    const solid = { ...door, maxHp: 0 } as WallSegment;
+    const d = chooseTarget(emptyDraft(), "killua");
+    expect(toggleWallTarget(d, solid)).toBe(d);
+  });
+
+  it("com vários alvos, a parede que deixou de aceitar ataque sai e a ação segue ataque", () => {
+    const d = toggleWallTarget(chooseTarget(emptyDraft(), "killua"), door);
+    const r = resolveDraft(d, ctxWith({ ...door, maxHp: 0 }), "Dash");
+    expect(r.act).toMatchObject({ targets: ["killua"], kind: "attack" });
   });
 
   it("a aproximação nunca atravessa a própria parede", () => {

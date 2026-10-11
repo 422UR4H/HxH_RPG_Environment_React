@@ -563,7 +563,6 @@ describe("GameMasterPage", () => {
 
       act(() => screen.getByTestId("select-actor-npc1").click());
       act(() => screen.getByTestId("wall-door-1").click());
-      expect(screen.queryByRole("region", { name: "Ação do Mestre" })).not.toBeInTheDocument();
       expect(screen.getByRole("radiogroup", { name: "O que fazer" })).toBeInTheDocument();
       act(() => screen.getByRole("button", { name: /^declarar/i }).click());
 
@@ -571,6 +570,44 @@ describe("GameMasterPage", () => {
       expect(sent).toHaveLength(1);
       expect(sent[0]).toMatchObject({ actorId: "npc1", targetId: ["door-1"], interact: { kind: "open" } });
       expect(ws.sent("enqueue_master_action")).toEqual([]);
+    });
+
+    it("com NPC: o card do mestre continua junto da parede-alvo — Trancar sai na hora, sem o NPC", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws, piecesFixture, [wallFixture({ locked: false })]);
+
+      act(() => screen.getByTestId("select-actor-npc1").click());
+      act(() => screen.getByTestId("wall-door-1").click());
+      const card = screen.getByRole("region", { name: "Ação do Mestre" });
+      expect(card).toHaveTextContent("o NPC não age");
+      act(() => within(card).getByRole("button", { name: "Trancar" }).click());
+
+      expect(ws.sent("enqueue_master_action")).toEqual([{ targetIds: ["door-1"], interact: { kind: "lock" } }]);
+      expect(ws.sent("enqueue_action")).toEqual([]);
+    });
+
+    it("com NPC: trocar o alvo por um personagem tira o card do mestre", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws, piecesFixture, [wallFixture({ locked: false })]);
+
+      act(() => screen.getByTestId("select-actor-npc1").click());
+      act(() => screen.getByTestId("wall-door-1").click());
+      expect(screen.getByRole("region", { name: "Ação do Mestre" })).toBeInTheDocument();
+      act(() => screen.getByTestId("select-actor-c1").click());
+      expect(screen.queryByRole("region", { name: "Ação do Mestre" })).not.toBeInTheDocument();
+    });
+
+    it("sem NPC: uma porta secreta ainda escondida mostra Revelar", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws, piecesFixture, [wallFixture({ wallType: "secret_door", locked: false })]);
+
+      act(() => screen.getByTestId("wall-door-1").click());
+      const card = await screen.findByRole("region", { name: "Ação do Mestre" });
+      act(() => within(card).getByRole("button", { name: "Revelar" }).click());
+      expect(ws.sent("enqueue_master_action")).toEqual([{ targetIds: ["door-1"], interact: { kind: "reveal" } }]);
     });
   });
 

@@ -8,6 +8,7 @@ import { snapWallPoint, explodePolyline, newWallAttrs, isOpening } from "./utils
 import { findNearestWall } from "./utils/wallHit";
 import { drawStippledSegment } from "./utils/stipple";
 import { consumeTap, createTapTracker } from "./hooks/tapGesture";
+import { createHoldTracker } from "./hooks/useHoldGesture";
 import LosSplit from "./LosSplit";
 
 const MATERIAL_COLOR: Record<WallMaterial, number> = {
@@ -51,6 +52,11 @@ type Props = {
   onExitDrawMode: () => void;
   onWallClick?: (wall: WallSegment) => void;
   /**
+   * Segurar numa parede (ou clique direito): o mesmo gesto da peça — junta a parede aos alvos.
+   * O toque que encerra o segurar não vira `onWallClick` nem toque de slot.
+   */
+  onWallLongPress?: (wall: WallSegment) => void;
+  /**
    * Quais paredes um toque alcança (fora do editor). Ausente = todas. A que fica de fora não
    * existe para o toque: nem cursor de clique, nem `onWallClick` — o toque cai no slot embaixo.
    */
@@ -73,7 +79,7 @@ export default function WallsLayer({
   wallsInteractive, selectedWallId,
   activeWallType, activeMaterial,
   onWallSelect, onDrawComplete, onGestureStart, onGestureEnd,
-  drawingEnabled, onExitDrawMode, onWallClick, isWallTappable, losPolygons,
+  drawingEnabled, onExitDrawMode, onWallClick, onWallLongPress, isWallTappable, losPolygons,
 }: Props) {
   const [draw, setDraw] = useState<DrawState>({ polylinePoints: [], previewPoint: null });
 
@@ -105,6 +111,8 @@ export default function WallsLayer({
   vpScaleRef.current = vpScale;
   const onWallClickRef = useRef(onWallClick);
   onWallClickRef.current = onWallClick;
+  const onWallLongPressRef = useRef(onWallLongPress);
+  onWallLongPressRef.current = onWallLongPress;
   const isWallTappableRef = useRef(isWallTappable);
   isWallTappableRef.current = isWallTappable;
 
@@ -270,9 +278,46 @@ export default function WallsLayer({
     if (!canvasEl) return;
     const HIT = 8;
     const tracker = createTapTracker();
-    const handleDown = (e: PointerEvent) => tracker.down(e);
-    const handleMove = (e: PointerEvent) => tracker.move(e);
-    const handleCancel = () => tracker.cancel();
+    // Segurar: o mesmo rastreador da peça (tempo e tolerância). Guarda a parede apertada.
+    let heldWall: WallSegment | null = null;
+    let rightPressed: WallSegment | null = null;
+    const hold = createHoldTracker({
+      onHold: () => {
+        if (heldWall) onWallLongPressRef.current?.(heldWall);
+      },
+    });
+    const handleDown = (e: PointerEvent) => {
+      tracker.down(e);
+      hold.cancel();
+      heldWall = null;
+      rightPressed = null;
+      if (!onWallLongPressRef.current) return;
+      const hit = hitWallAt(e);
+      if (!hit) return;
+      if (e.button === 2) {
+        rightPressed = hit;
+      } else if (e.button === 0) {
+        heldWall = hit;
+        hold.start(hit.id, e.clientX, e.clientY);
+      }
+    };
+    const handleMove = (e: PointerEvent) => {
+      tracker.move(e);
+      hold.move(e.clientX, e.clientY);
+    };
+    const handleCancel = () => {
+      tracker.cancel();
+      hold.cancel();
+    };
+    // Clique direito = segurar na hora (como na peça). Resolve no `contextmenu`, venha ele antes
+    // ou depois do pointerup (Windows × Linux/macOS).
+    const handleContextMenu = (e: MouseEvent) => {
+      const wall = rightPressed;
+      rightPressed = null;
+      if (!wall) return;
+      e.preventDefault();
+      onWallLongPressRef.current?.(wall);
+    };
     // Parede que um toque abriria sob o ponteiro (mesmo teste de acerto do clique e do hover).
     const hitWallAt = (e: PointerEvent) => {
       if (wallsInteractiveRef.current) return null; // editor handles its own selection
@@ -287,7 +332,15 @@ export default function WallsLayer({
       return findNearestWall([rawPt.x, rawPt.y], walls, HIT / vpScaleRef.current);
     };
     const handleViewerClick = (e: PointerEvent) => {
-      if (!tracker.up(e)) return;
+      const held = hold.end() === "hold";
+      heldWall = null;
+      const tapped = tracker.up(e);
+      if (held) {
+        // A soltura de um segurar não é toque de ninguém: nem da parede, nem do slot embaixo.
+        consumeTap(e);
+        return;
+      }
+      if (!tapped) return;
       const hit = hitWallAt(e);
       if (hit) {
         // O toque é da parede: o slot vazio embaixo dela não vira destino (PiecesLayer pergunta).
@@ -309,6 +362,7 @@ export default function WallsLayer({
     canvasEl.addEventListener("pointerup", handleViewerClick);
     canvasEl.addEventListener("pointermove", handleHover);
     canvasEl.addEventListener("pointerleave", handleLeave);
+    canvasEl.addEventListener("contextmenu", handleContextMenu);
     window.addEventListener("pointermove", handleMove);
     window.addEventListener("pointercancel", handleCancel);
     return () => {
@@ -316,10 +370,12 @@ export default function WallsLayer({
       canvasEl.removeEventListener("pointerup", handleViewerClick);
       canvasEl.removeEventListener("pointermove", handleHover);
       canvasEl.removeEventListener("pointerleave", handleLeave);
+      canvasEl.removeEventListener("contextmenu", handleContextMenu);
       setCursor("");
       window.removeEventListener("pointermove", handleMove);
       window.removeEventListener("pointercancel", handleCancel);
       tracker.cancel();
+      hold.cancel();
     };
   }, [canvasEl, vpRef]);
 

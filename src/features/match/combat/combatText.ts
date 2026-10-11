@@ -42,6 +42,9 @@ const INTERACT_LABELS: Record<string, string> = {
   examine: "examinar",
   // Só o mestre revela (master action `revealWall`); o jogador nunca declara isto.
   reveal: "revelar",
+  // Só o mestre tranca e destranca (master action `wallInteract`).
+  lock: "trancar",
+  unlock: "destrancar",
 };
 
 export const interactLabel = (kind: string) => INTERACT_LABELS[kind] ?? kind;

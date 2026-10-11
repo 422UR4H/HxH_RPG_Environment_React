@@ -27,6 +27,7 @@ const NOT_READY_HINTS: Record<Exclude<DraftVerdict, { ready: true }>["reason"], 
   empty: "Toque num espaço vazio do mapa para se mover, ou em alguém (ou numa parede) para agir.",
   needs_destination: "Toque num espaço do mapa para escolher o destino — ou desligue Mover.",
   needs_target: "Toque em alguém ou numa parede para marcar o alvo — ou desligue Atacar.",
+  out_of_reach: "Para abrir, fechar ou arrombar é preciso estar encostado na parede — ligue Mover ou escolha um destino ao lado dela.",
 };
 
 /**

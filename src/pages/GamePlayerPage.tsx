@@ -158,6 +158,16 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
     },
     [actorId, composer, setPanelOpen],
   );
+  // Segurar numa parede a junta aos alvos (com personagens e outras paredes: golpe em área).
+  const handleWallHold = useCallback(
+    (wall: WallSegment) => {
+      if (!actorId) return;
+      composer.onWallHold(wall);
+      setRailActive("acao");
+      setPanelOpen(true);
+    },
+    [actorId, composer, setPanelOpen],
+  );
   const handleSlotTap = useCallback(
     (slot: SlotCoord) => {
       // A escolha da casa da fuga vem antes do compositor: o toque é dela.
@@ -300,6 +310,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
                   npcMap={live.npcMap}
                   // Na escolha da casa da fuga a parede não é tocável: o toque é da fuga.
                   onWallClick={actorId && !picking ? handleWallTap : undefined}
+                  onWallLongPress={actorId && !picking ? handleWallHold : undefined}
                   isWallTappable={isActorWallTappable}
                   piecesInteractive
                   draggablePieceIds={NO_DRAG}
