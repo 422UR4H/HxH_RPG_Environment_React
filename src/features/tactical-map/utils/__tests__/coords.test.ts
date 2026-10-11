@@ -12,6 +12,8 @@ import {
   offsetToAxial,
   slotToTriple,
   tripleToSlot,
+  polygonsToWorld,
+  gridWorldBounds,
 } from "../coords";
 import type { GridShape } from "../../../../types/tacticalMap";
 import { hexToPixel } from "../hex";
@@ -288,5 +290,45 @@ describe("slot ↔ wire triple", () => {
     expect(tripleToSlot([3, 4, 0], "square")).toEqual({ kind: "square", col: 3, row: 4 });
     expect(slotToTriple({ kind: "hex", q: 2, r: -1 }, 5)).toEqual([2, -1, 5]);
     expect(tripleToSlot([2, -1, 5], "hex")).toEqual({ kind: "hex", q: 2, r: -1 });
+  });
+});
+
+describe("polygonsToWorld", () => {
+  const rotated: GridShape = { ...squareGrid(40), rotation: 90, skewRatio: 0.5, originX: 30, originY: -10 };
+
+  it("aplica applyTransform em cada vértice", () => {
+    const out = polygonsToWorld([[[0, 0], [100, 20], [50, 80]]], rotated);
+    const expected = [[0, 0], [100, 20], [50, 80]].map(([x, y]) => applyTransform({ x, y }, rotated));
+    expect(out[0].map(([x, y]) => ({ x, y }))).toEqual(expected);
+  });
+
+  it("é identidade com rotation 0, skew 1 e sem origem", () => {
+    const poly: Array<[number, number]> = [[1, 2], [3, 4], [5, 9]];
+    expect(polygonsToWorld([poly], squareGrid(40))).toEqual([poly]);
+  });
+});
+
+describe("gridWorldBounds", () => {
+  it("quadrado sem transform é cols*cellSize x rows*cellSize", () => {
+    const g = squareGrid(40);
+    expect(gridWorldBounds(g)).toEqual({ minX: 0, minY: 0, maxX: g.cols * 40, maxY: g.rows * 40 });
+  });
+
+  it("cobre os 4 cantos transformados numa grade girada", () => {
+    const g: GridShape = { ...squareGrid(40), rotation: 90 };
+    const b = gridWorldBounds(g);
+    const l = gridLocalBounds(g);
+    for (const c of [[l.minX, l.minY], [l.maxX, l.minY], [l.maxX, l.maxY], [l.minX, l.maxY]]) {
+      const w = applyTransform({ x: c[0], y: c[1] }, g);
+      expect(w.x).toBeGreaterThanOrEqual(b.minX - 1e-9);
+      expect(w.x).toBeLessThanOrEqual(b.maxX + 1e-9);
+      expect(w.y).toBeGreaterThanOrEqual(b.minY - 1e-9);
+      expect(w.y).toBeLessThanOrEqual(b.maxY + 1e-9);
+    }
+  });
+
+  it("hex passa da caixa cols*cellSize (a borda direita não fica sem fog)", () => {
+    const g: GridShape = { ...squareGrid(55), kind: "hex" };
+    expect(gridWorldBounds(g).maxX).toBeGreaterThan(g.cols * g.cellSize);
   });
 });

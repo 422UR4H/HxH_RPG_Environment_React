@@ -1,4 +1,4 @@
-import type { GridShape, SlotCoord } from "../../../types/tacticalMap";
+import type { GridShape, SlotCoord, VisibilityPolygon } from "../../../types/tacticalMap";
 import { hexToPixel, pixelToHex } from "./hex";
 
 type XY = { x: number; y: number };
@@ -135,6 +135,33 @@ export function gridLocalBounds(grid: GridShape): {
     minY: -grid.cellSize,
     maxY: (grid.rows - 1) * hexH + grid.cellSize,
   };
+}
+
+// Axis-aligned bounds, in WORLD space, of the grid's real extent: the 4 corners
+// of gridLocalBounds run through applyTransform. Covers hex (wider than
+// cols*cellSize) and rotated/squashed grids. Shared by the camera fit and the fog.
+export function gridWorldBounds(grid: GridShape): {
+  minX: number; minY: number; maxX: number; maxY: number;
+} {
+  const b = gridLocalBounds(grid);
+  const corners = [
+    { x: b.minX, y: b.minY }, { x: b.maxX, y: b.minY },
+    { x: b.maxX, y: b.maxY }, { x: b.minX, y: b.maxY },
+  ].map((p) => applyTransform(p, grid));
+  const xs = corners.map((p) => p.x);
+  const ys = corners.map((p) => p.y);
+  return { minX: Math.min(...xs), minY: Math.min(...ys), maxX: Math.max(...xs), maxY: Math.max(...ys) };
+}
+
+// Visibility polygons arrive from the server in LOCAL grid space (same as wall
+// p1/p2). The transform is affine, so transforming each vertex is exact.
+export function polygonsToWorld(polys: VisibilityPolygon[], grid: GridShape): VisibilityPolygon[] {
+  return polys.map((poly) =>
+    poly.map((v): [number, number] => {
+      const w = applyTransform({ x: v[0], y: v[1] }, grid);
+      return [w.x, w.y];
+    }),
+  );
 }
 
 // Radius of the largest circle that fits inside one grid cell, in LOCAL
