@@ -261,7 +261,8 @@ export function isMovementBlocked(
   walls: WallSegment[],
 ): boolean {
   for (const w of walls) {
-    if (!w.move || w.open) continue;
+    // Destruída é entulho: não segura ninguém (o mesmo IsPathBlocked do servidor).
+    if (!w.move || w.open || w.destroyed) continue;
     if (!_segmentsIntersect(from, to, w.p1, w.p2)) continue;
     if (w.direction === "both") return true;
     // Cross product of wall vector (p2-p1) with (from-p1).

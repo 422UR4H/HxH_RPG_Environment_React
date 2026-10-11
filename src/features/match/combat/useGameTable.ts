@@ -21,6 +21,7 @@ import { defaultMoveCategory } from "./defaultMoveCategory";
 import { pendingMoves, resolveLostCandidates } from "./combatReducer";
 import type { DeclaredAction, DeclaredSource } from "./combatReducer";
 import { createViewportStore } from "./viewportStore";
+import { wallName } from "./wallVerbs";
 import { actionMechanicsText, actorResultText, reactionMechanicsText, targetResultText } from "./balloonText";
 import type { BalloonTone } from "./balloonText";
 
@@ -70,14 +71,10 @@ export function useGameTable({
     () => queryClient.invalidateQueries({ queryKey: ["matchHistory", token, matchId] }),
     [queryClient, token, matchId],
   );
-  // Peça e parede mexidas ENTRE turnos são master actions já gravadas — e o jogador não recebe
-  // `master_action_enqueued` de peça, nem ninguém o de parede: o tabuleiro é o único aviso.
-  // Com turno aberto nada é gravado até o fechamento (o turn_closed rebusca). O ref espelha o
-  // último render: o piece_moved da abertura chega antes do turn_opened e rebusca à toa — inofensivo.
-  const openTurnRef = useRef(false);
-  const onBoardChange = useCallback(() => {
-    if (!openTurnRef.current) void invalidateHistory();
-  }, [invalidateHistory]);
+  // Peça e parede mexidas ENTRE turnos são master actions: o histórico rebusca no
+  // `master_action_recorded` (useMatchCombat), que sai depois da gravação. A notícia do
+  // tabuleiro sai antes dela — rebuscar ali voltava sem a ação.
+
   // Conta os `match_full_state`: a página zera por ele o que não sobrevive a uma reconexão
   // (a confirmação pendente do Arrumar, F12).
   const [fullStateSeq, setFullStateSeq] = useState(0);
@@ -86,13 +83,13 @@ export function useGameTable({
     userUuid: user?.uuid,
     token,
     declaredSource,
-    onWallStateChanged: (...a) => { live.handleWallStateChanged(...a); onBoardChange(); },
+    onWallStateChanged: live.handleWallStateChanged,
     onWallHpChanged: live.handleWallHpChanged,
     onMapFullState: live.handleMapFullState,
     onVisibilityUpdated: live.handleVisibilityUpdated,
-    onWallRevealed: (...a) => { live.handleWallRevealed(...a); onBoardChange(); },
-    onPieceMoved: (...a) => { live.handlePieceMoved(...a); onBoardChange(); },
-    onPieceRemoved: (...a) => { live.handlePieceRemoved(...a); onBoardChange(); },
+    onWallRevealed: live.handleWallRevealed,
+    onPieceMoved: live.handlePieceMoved,
+    onPieceRemoved: live.handlePieceRemoved,
     onComposerSendAccepted: (a) => clearDraftForRef.current(a),
     onHistoryChanged: invalidateHistory,
     onNpcAdded: () => { void refetchParticipants(); },
@@ -105,7 +102,6 @@ export function useGameTable({
     },
   });
   const { state } = combat;
-  openTurnRef.current = state.openTurn !== null;
 
   // A mesma query das páginas (React Query reaproveita): daqui sai a arma padrão do ataque.
   const { data: catalogue } = useCombatCatalogue(token, actorId);
@@ -113,6 +109,7 @@ export function useGameTable({
     matchId,
     actorId,
     boardPieces,
+    walls: live.liveWalls,
     grid: map?.grid,
     defaultCategory: defaultMoveCategory(state),
     defaultWeapon: defaultWeaponOf(catalogue?.weapons.map((w) => w.name) ?? []),
@@ -124,8 +121,8 @@ export function useGameTable({
   // Uma candidata só vira perda depois do histórico buscado DEPOIS do match_full_state (o
   // `onFullState` acima o invalida): se ela abriu e fechou durante a queda, está lá, e
   // dizer "declare de novo" seria pedir uma re-rolagem. A perdida de verdade devolve o
-  // rascunho — várias do mesmo ator, a mais recente; uma só de parede (sem move nem ataque)
-  // não tem rascunho. O ref garante uma vez por id. Daqui NÃO sai envio nenhum (I7).
+  // rascunho — várias do mesmo ator, a mais recente (inclusive a de parede: abrir, fechar,
+  // arrombar). O ref garante uma vez por id. Daqui NÃO sai envio nenhum (I7).
   const { data: historyData } = useMatchHistory(token, matchId);
   const decidedLostIds = useRef(new Set<string>());
   const { restoreDraftFor } = composer;
@@ -138,7 +135,7 @@ export function useGameTable({
     const lostIds = new Set(decision.lost);
     const latestByActor = new Map<string, DeclaredAction>();
     for (const d of pending) {
-      if (!lostIds.has(d.id) || (!d.move && !d.attack)) continue;
+      if (!lostIds.has(d.id) || (!d.move && !d.attack && !d.interact)) continue;
       const prev = latestByActor.get(d.actorId);
       if (!prev || d.at > prev.at) latestByActor.set(d.actorId, d);
     }
@@ -210,13 +207,18 @@ export function useGameTable({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.declared, state.queue, state.openReactions, pieceByCharacter, arrivedKey]);
 
+  // Personagens e paredes: uma parede é alvo como uma peça, e a fila, o histórico, as
+  // declaradas e os balões a nomeiam pelo tipo e material ("Porta de madeira").
   const nameOf = useCallback(
     (id: string) => {
       const p = participants.find((x) => x.characterSheet.uuid === id);
       if (p) return p.characterSheet.nickName;
-      return live.npcMap.get(id)?.nickName ?? "?";
+      const npc = live.npcMap.get(id)?.nickName;
+      if (npc) return npc;
+      const wall = live.liveWalls.find((w) => w.id === id);
+      return wall ? wallName(wall) : "?";
     },
-    [participants, live.npcMap],
+    [participants, live.npcMap, live.liveWalls],
   );
 
   // ─── Balões (spec §4.9) ────────────────────────────────────────────────────

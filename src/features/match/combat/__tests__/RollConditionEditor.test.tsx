@@ -12,7 +12,7 @@ describe("RollConditionEditor", () => {
     const onClose = vi.fn();
     render(<RollConditionEditor roll={hit} onSend={onSend} onClose={onClose} />);
     fireEvent.click(screen.getByRole("button", { name: "Vantagem" }));
-    fireEvent.change(screen.getByLabelText("Ajuste"), { target: { value: "-2" } });
+    fireEvent.change(screen.getByLabelText("Modificador"), { target: { value: "-2" } });
     fireEvent.change(screen.getByLabelText("Motivo"), { target: { value: "escuridao" } });
     fireEvent.click(screen.getByRole("button", { name: "Aplicar" }));
     expect(onSend).toHaveBeenCalledWith({ conditions: [{ field: "hit", bias: 1, modifier: -2, description: "escuridao" }] });
@@ -29,7 +29,7 @@ describe("RollConditionEditor", () => {
       />,
     );
     expect(screen.getByRole("button", { name: "Desvantagem" })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByLabelText("Ajuste")).toHaveValue(3);
+    expect(screen.getByLabelText("Modificador")).toHaveValue(3);
     expect(screen.getByLabelText("Motivo")).toHaveValue("chuva");
     fireEvent.click(screen.getByRole("button", { name: "Desfazer edição" }));
     expect(onSend).toHaveBeenCalledWith({ conditions: [{ field: "hit" }] });
@@ -44,7 +44,7 @@ describe("RollConditionEditor", () => {
     const onSend = vi.fn();
     render(<RollConditionEditor roll={defense} onSend={onSend} onClose={() => {}} />);
     expect(screen.queryByRole("button", { name: "Vantagem" })).not.toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("Ajuste"), { target: { value: "4" } });
+    fireEvent.change(screen.getByLabelText("Modificador"), { target: { value: "4" } });
     fireEvent.click(screen.getByRole("button", { name: "Aplicar" }));
     expect(onSend).toHaveBeenCalledWith({ actionId: "r1", conditions: [{ field: "defense", modifier: 4 }] });
   });
@@ -61,7 +61,7 @@ describe("RollConditionEditor", () => {
   it("ajuste vazio ou inválido conta como zero", () => {
     const onSend = vi.fn();
     render(<RollConditionEditor roll={hit} onSend={onSend} onClose={() => {}} />);
-    fireEvent.change(screen.getByLabelText("Ajuste"), { target: { value: "" } });
+    fireEvent.change(screen.getByLabelText("Modificador"), { target: { value: "" } });
     fireEvent.click(screen.getByRole("button", { name: "Aplicar" }));
     expect(onSend).toHaveBeenCalledWith({ conditions: [{ field: "hit" }] });
   });

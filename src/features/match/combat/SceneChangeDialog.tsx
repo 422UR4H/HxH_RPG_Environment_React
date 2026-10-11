@@ -4,9 +4,10 @@ import { colors, fonts } from "../../../styles/tokens";
 import {
   Buttons, CancelButton, ConfirmButton, Dialog, DialogHint, DialogTitle, Overlay,
 } from "./dialogStyles";
+import { ChoiceLabel, Toggle, Toggles } from "./choiceStyles";
 import type { ChangeScenePayload, SceneCategory } from "./combatMessages";
 
-const CATEGORY_LABELS: Record<SceneCategory, string> = { battle: "Batalha", roleplay: "Interpretação" };
+const CATEGORY_LABELS: Record<SceneCategory, string> = { battle: "Batalha", roleplay: "Roleplay" };
 
 /** `change_scene`: fecha cena e round correntes e abre a nova. A categoria vai minúscula (contrato). */
 export default function SceneChangeDialog({
@@ -38,16 +39,27 @@ export default function SceneChangeDialog({
       <Dialog role="dialog" aria-modal aria-label="Nova cena" onClick={(e) => e.stopPropagation()}>
         <DialogTitle>Nova cena</DialogTitle>
         <DialogHint>Fecha a cena e o round atuais e abre uma cena nova.</DialogHint>
-        <Radios role="radiogroup" aria-label="Categoria">
-          {(Object.keys(CATEGORY_LABELS) as SceneCategory[]).map((c) => (
-            <label key={c}>
-              <input type="radio" name="scene-category" checked={category === c} onChange={() => setCategory(c)} />
-              {CATEGORY_LABELS[c]}
-            </label>
-          ))}
-        </Radios>
-        <label htmlFor="scene-desc">Descrição inicial</label>
-        <DescInput id="scene-desc" value={description} onChange={(e) => setDescription(e.target.value)} />
+        <Field>
+          <ChoiceLabel id="scene-category">Categoria</ChoiceLabel>
+          <Toggles role="radiogroup" aria-labelledby="scene-category">
+            {(Object.keys(CATEGORY_LABELS) as SceneCategory[]).map((c) => (
+              <Toggle
+                key={c}
+                type="button"
+                role="radio"
+                $tone="move"
+                aria-checked={category === c}
+                onClick={() => setCategory(c)}
+              >
+                {CATEGORY_LABELS[c]}
+              </Toggle>
+            ))}
+          </Toggles>
+        </Field>
+        <Field>
+          <ChoiceLabel as="label" htmlFor="scene-desc">Descrição inicial</ChoiceLabel>
+          <DescInput id="scene-desc" value={description} onChange={(e) => setDescription(e.target.value)} />
+        </Field>
         <Buttons>
           <CancelButton type="button" onClick={onCancel}>Cancelar</CancelButton>
           <ConfirmButton
@@ -62,17 +74,19 @@ export default function SceneChangeDialog({
   );
 }
 
-const Radios = styled.div`
+const Field = styled.div`
   display: flex;
-  gap: 12px;
+  flex-direction: column;
+  gap: 6px;
 `;
 
 const DescInput = styled.input`
   background: ${colors.surfaceInput};
   color: ${colors.textPrimary};
   border: 1px solid ${colors.surfaceInputHover};
-  border-radius: 6px;
+  border-radius: 8px;
   font-family: ${fonts.sans};
-  font-size: 13px;
-  padding: 4px 6px;
+  font-size: 14px;
+  min-height: 40px;
+  padding: 0 10px;
 `;

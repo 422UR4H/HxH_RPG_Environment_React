@@ -9,7 +9,7 @@ import type { CharacterPrivateSummary } from "../../../types/characterSheet";
 import type { Selection } from "../store/editorStore";
 import { worldToSlot, isSlotInBounds, slotCorners, isSameSlot, slotToWorld, slotInradius, stackOffsetToPx } from "../utils/coords";
 import { createHoldTracker, createRightPressTracker, shouldSelectOnRelease, HOLD_MS } from "../hooks/useHoldGesture";
-import { createTapTracker } from "../hooks/tapGesture";
+import { createTapTracker, isTapConsumed } from "../hooks/tapGesture";
 import { stackOffsets } from "../utils/stacking";
 import { colors } from "../../../styles/tokens";
 import PieceSprite from "./PieceSprite";
@@ -376,7 +376,8 @@ export default function PiecesLayer({
       const pending = emptySlotPendingRef.current;
       emptySlotPendingRef.current = null;
       const isTap = tracker.up(e);
-      if (!pending || !isTap) return;
+      // Uma parede tocável embaixo do ponteiro ficou com o toque (consumeTap, no canvas).
+      if (!pending || !isTap || isTapConsumed(e)) return;
       onEmptySlotClick(pending.slot, pending.clientX, pending.clientY);
     };
     const handleMove = (e: PointerEvent) => tracker.move(e);

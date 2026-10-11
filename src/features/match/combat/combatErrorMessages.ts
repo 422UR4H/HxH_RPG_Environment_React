@@ -12,6 +12,7 @@ const byCode: Record<string, string> = {
   match_not_started: "A partida ainda não começou.",
   invalid_action: "Ação inválida.",
   move_blocked: "O movimento esbarra numa parede.",
+  out_of_reach: "É preciso estar encostado na parede para abrir, fechar ou arrombar.",
   not_found: "Não encontrado.",
   invalid_npc: "Esse personagem não pode entrar como NPC desta partida.",
   not_participant: "Esse personagem não está na partida.",
@@ -37,6 +38,7 @@ const byGameMessage: Record<string, string> = {
   "action queue is empty": "A fila de ações está vazia.",
   "action not found in queue": "A ação já não está na fila.",
   "action actor does not match player": "Essa ação não é sua.",
+  "validation error: no turn opened in this round yet": "Nenhum turno aconteceu nesta rodada ainda — não há o que encerrar.",
 };
 
 export function combatErrorText(code: string, message: string, sentType?: string): string {

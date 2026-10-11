@@ -77,6 +77,11 @@ function baselineToSlot(b: XY, grid: GridShape): SlotCoord {
   return { kind: "hex", q, r };
 }
 
+/** Centro do slot no espaço LOCAL da grade (antes do transform) — o mesmo de `WallSegment.p1/p2`. */
+export const slotToLocal = slotToBaseline;
+/** O slot que contém um ponto do espaço LOCAL da grade. */
+export const localToSlot = baselineToSlot;
+
 export function slotToWorld(slot: SlotCoord, grid: GridShape): XY {
   return applyTransform(slotToBaseline(slot, grid), grid);
 }

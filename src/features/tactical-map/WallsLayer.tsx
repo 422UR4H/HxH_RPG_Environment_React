@@ -7,7 +7,8 @@ import { applyTransform, inverseTransform } from "./utils/coords";
 import { snapWallPoint, explodePolyline, newWallAttrs, isOpening } from "./utils/walls";
 import { findNearestWall } from "./utils/wallHit";
 import { drawStippledSegment } from "./utils/stipple";
-import { createTapTracker } from "./hooks/tapGesture";
+import { consumeTap, createTapTracker } from "./hooks/tapGesture";
+import { createHoldTracker } from "./hooks/useHoldGesture";
 import LosSplit from "./LosSplit";
 
 const MATERIAL_COLOR: Record<WallMaterial, number> = {
@@ -51,6 +52,16 @@ type Props = {
   onExitDrawMode: () => void;
   onWallClick?: (wall: WallSegment) => void;
   /**
+   * Segurar numa parede (ou clique direito): o mesmo gesto da peça — junta a parede aos alvos.
+   * O toque que encerra o segurar não vira `onWallClick` nem toque de slot.
+   */
+  onWallLongPress?: (wall: WallSegment) => void;
+  /**
+   * Quais paredes um toque alcança (fora do editor). Ausente = todas. A que fica de fora não
+   * existe para o toque: nem cursor de clique, nem `onWallClick` — o toque cai no slot embaixo.
+   */
+  isWallTappable?: (wall: WallSegment) => boolean;
+  /**
    * Player line of sight. When present, the walls are drawn in two passes — crisp
    * inside it, dimmed outside it. Absent for the master and for wall-editing mode,
    * where every wall renders once at full brightness.
@@ -68,7 +79,7 @@ export default function WallsLayer({
   wallsInteractive, selectedWallId,
   activeWallType, activeMaterial,
   onWallSelect, onDrawComplete, onGestureStart, onGestureEnd,
-  drawingEnabled, onExitDrawMode, onWallClick, losPolygons,
+  drawingEnabled, onExitDrawMode, onWallClick, onWallLongPress, isWallTappable, losPolygons,
 }: Props) {
   const [draw, setDraw] = useState<DrawState>({ polylinePoints: [], previewPoint: null });
 
@@ -100,6 +111,10 @@ export default function WallsLayer({
   vpScaleRef.current = vpScale;
   const onWallClickRef = useRef(onWallClick);
   onWallClickRef.current = onWallClick;
+  const onWallLongPressRef = useRef(onWallLongPress);
+  onWallLongPressRef.current = onWallLongPress;
+  const isWallTappableRef = useRef(isWallTappable);
+  isWallTappableRef.current = isWallTappable;
 
   const finishPolyline = useCallback(() => {
     const pts = drawRef.current.polylinePoints;
@@ -263,9 +278,46 @@ export default function WallsLayer({
     if (!canvasEl) return;
     const HIT = 8;
     const tracker = createTapTracker();
-    const handleDown = (e: PointerEvent) => tracker.down(e);
-    const handleMove = (e: PointerEvent) => tracker.move(e);
-    const handleCancel = () => tracker.cancel();
+    // Segurar: o mesmo rastreador da peça (tempo e tolerância). Guarda a parede apertada.
+    let heldWall: WallSegment | null = null;
+    let rightPressed: WallSegment | null = null;
+    const hold = createHoldTracker({
+      onHold: () => {
+        if (heldWall) onWallLongPressRef.current?.(heldWall);
+      },
+    });
+    const handleDown = (e: PointerEvent) => {
+      tracker.down(e);
+      hold.cancel();
+      heldWall = null;
+      rightPressed = null;
+      if (!onWallLongPressRef.current) return;
+      const hit = hitWallAt(e);
+      if (!hit) return;
+      if (e.button === 2) {
+        rightPressed = hit;
+      } else if (e.button === 0) {
+        heldWall = hit;
+        hold.start(hit.id, e.clientX, e.clientY);
+      }
+    };
+    const handleMove = (e: PointerEvent) => {
+      tracker.move(e);
+      hold.move(e.clientX, e.clientY);
+    };
+    const handleCancel = () => {
+      tracker.cancel();
+      hold.cancel();
+    };
+    // Clique direito = segurar na hora (como na peça). Resolve no `contextmenu`, venha ele antes
+    // ou depois do pointerup (Windows × Linux/macOS).
+    const handleContextMenu = (e: MouseEvent) => {
+      const wall = rightPressed;
+      rightPressed = null;
+      if (!wall) return;
+      e.preventDefault();
+      onWallLongPressRef.current?.(wall);
+    };
     // Parede que um toque abriria sob o ponteiro (mesmo teste de acerto do clique e do hover).
     const hitWallAt = (e: PointerEvent) => {
       if (wallsInteractiveRef.current) return null; // editor handles its own selection
@@ -275,12 +327,24 @@ export default function WallsLayer({
       const rect = canvasEl.getBoundingClientRect();
       const worldPt = vp.toWorld(e.clientX - rect.left, e.clientY - rect.top);
       const rawPt = inverseTransform({ x: worldPt.x, y: worldPt.y }, gridRef.current);
-      return findNearestWall([rawPt.x, rawPt.y], wallsRef.current, HIT / vpScaleRef.current);
+      const tappable = isWallTappableRef.current;
+      const walls = tappable ? wallsRef.current.filter(tappable) : wallsRef.current;
+      return findNearestWall([rawPt.x, rawPt.y], walls, HIT / vpScaleRef.current);
     };
     const handleViewerClick = (e: PointerEvent) => {
-      if (!tracker.up(e)) return;
+      const held = hold.end() === "hold";
+      heldWall = null;
+      const tapped = tracker.up(e);
+      if (held) {
+        // A soltura de um segurar não é toque de ninguém: nem da parede, nem do slot embaixo.
+        consumeTap(e);
+        return;
+      }
+      if (!tapped) return;
       const hit = hitWallAt(e);
       if (hit) {
+        // O toque é da parede: o slot vazio embaixo dela não vira destino (PiecesLayer pergunta).
+        consumeTap(e);
         onWallClickRef.current?.(hit);
       }
     };
@@ -298,6 +362,7 @@ export default function WallsLayer({
     canvasEl.addEventListener("pointerup", handleViewerClick);
     canvasEl.addEventListener("pointermove", handleHover);
     canvasEl.addEventListener("pointerleave", handleLeave);
+    canvasEl.addEventListener("contextmenu", handleContextMenu);
     window.addEventListener("pointermove", handleMove);
     window.addEventListener("pointercancel", handleCancel);
     return () => {
@@ -305,10 +370,12 @@ export default function WallsLayer({
       canvasEl.removeEventListener("pointerup", handleViewerClick);
       canvasEl.removeEventListener("pointermove", handleHover);
       canvasEl.removeEventListener("pointerleave", handleLeave);
+      canvasEl.removeEventListener("contextmenu", handleContextMenu);
       setCursor("");
       window.removeEventListener("pointermove", handleMove);
       window.removeEventListener("pointercancel", handleCancel);
       tracker.cancel();
+      hold.cancel();
     };
   }, [canvasEl, vpRef]);
 
@@ -340,9 +407,10 @@ export default function WallsLayer({
         g.moveTo(a1.x, a1.y); g.lineTo(a2.x, a2.y); g.stroke();
       }
       if (w.wallType === "door" || w.wallType === "window") {
-        drawWallTypeSymbol(g, w.wallType, a1, a2, color, vpScale);
+        // A destruída ainda diz o que era, apagada como o entulho.
+        drawWallTypeSymbol(g, w.wallType, a1, a2, color, vpScale, isDestroyed ? 0.4 : 1);
       }
-      if (w.locked) {
+      if (w.locked && !isDestroyed) {
         drawLockedMarker(g, a1, a2, vpScale);
       }
     }
@@ -440,6 +508,7 @@ function drawWallTypeSymbol(
   a2: { x: number; y: number },
   color: number,
   vpScale: number,
+  alpha = 1,
 ) {
   const dx = a2.x - a1.x, dy = a2.y - a1.y;
   const len = Math.hypot(dx, dy);
@@ -450,7 +519,12 @@ function drawWallTypeSymbol(
     // Quarter-circle arc at a1 (hinge) showing the door swing toward a2
     const radius = Math.min(len * 0.85, 20 / vpScale);
     const angle = Math.atan2(dy, dx);
-    g.setStrokeStyle({ color, width: Math.max(1, 1.5 / vpScale), alpha: 0.9 });
+    g.setStrokeStyle({ color, width: Math.max(1, 1.5 / vpScale), alpha: alpha * 0.9 });
+    // O Pixi recomeça o caminho no último ponto do traço anterior e o `arc` liga esse ponto ao
+    // começo do arco. Na porta de pé o último ponto é a ponta da parede (a ligação some sobre
+    // ela); na destruída é a quina do "×", e a ligação virava uma diagonal torta que crescia
+    // com o zoom out. Mover para o começo do arco corta a ligação.
+    g.moveTo(a1.x + Math.cos(angle) * radius, a1.y + Math.sin(angle) * radius);
     g.arc(a1.x, a1.y, radius, angle, angle + Math.PI / 2);
     g.stroke();
   } else {
@@ -458,7 +532,7 @@ function drawWallTypeSymbol(
     const tickLen = 5 / vpScale;
     for (const t of [1 / 3, 2 / 3]) {
       const px = a1.x + t * dx, py = a1.y + t * dy;
-      g.setStrokeStyle({ color, width: Math.max(1, 1.5 / vpScale), alpha: 0.85 });
+      g.setStrokeStyle({ color, width: Math.max(1, 1.5 / vpScale), alpha: alpha * 0.85 });
       g.moveTo(px - nx * tickLen, py - ny * tickLen);
       g.lineTo(px + nx * tickLen, py + ny * tickLen);
       g.stroke();

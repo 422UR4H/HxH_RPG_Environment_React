@@ -31,6 +31,9 @@ describe("actionMechanicsText", () => {
   });
   it("interação, capitalizada", () => {
     expect(actionMechanicsText({ ...base, interact: { kind: "open" } }, nameOf, "square")).toBe("Abrir");
+    expect(
+      actionMechanicsText({ ...base, targetId: ["w1"], interact: { kind: "open" } }, (id) => (id === "w1" ? "Porta" : id), "square"),
+    ).toBe("Abrir Porta");
   });
 });
 

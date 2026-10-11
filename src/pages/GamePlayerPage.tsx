@@ -33,13 +33,13 @@ import PieceAnchoredLayer from "../features/match/combat/PieceAnchoredLayer";
 import type { PieceAnchoredItem } from "../features/match/combat/PieceAnchoredLayer";
 import MatchCharactersSidebar from "../features/match/MatchCharactersSidebar";
 import { PanelMessage } from "../features/match/combat/panelStyles";
-import WallActionSheet from "../features/match/WallActionSheet";
 import TacticalMapViewer from "../features/tactical-map/TacticalMapViewer";
 import {
   CanvasWrapper, MapCornerStack, MapCornerStackButton, MapHint, MapHintButton, MapLoadingMessage, NoMapMessage,
   StageNotices,
 } from "../features/match/combat/mapCanvasStyles";
 import type { SlotCoord, WallSegment } from "../types/tacticalMap";
+import { actorWallVerbs } from "../features/match/combat/wallVerbs";
 
 type Props = {
   token: string;
@@ -52,6 +52,9 @@ type Props = {
 const NO_DRAG = new Set<string>();
 
 type RailTab = "acao" | "ficha";
+
+/** Só a parede com o que fazer é tocável — terreno e parede destruída deixam o toque cair no slot. */
+const isActorWallTappable = (w: WallSegment) => actorWallVerbs(w).length > 0;
 
 export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
@@ -87,8 +90,6 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
     [historyData, state.events, state.openTurn],
   );
   const actorName = myCharacters.find((p) => p.characterSheet.uuid === actorId)?.characterSheet.nickName ?? "Você";
-
-  const [wallPicker, setWallPicker] = useState<WallSegment | null>(null);
 
   // ─── Reações (spec §4.5, §4.6) ─────────────────────────────────────────────
   // O jogador reage pelos personagens dele que são alvo da ação aberta: botões ao lado da
@@ -147,6 +148,26 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
     },
     [pieceCharacter, actorId, composer, setPanelOpen],
   );
+  // A parede é alvo como uma peça: o toque vai ao compositor (aproximação, verbo, arma).
+  const handleWallTap = useCallback(
+    (wall: WallSegment) => {
+      if (!actorId) return;
+      composer.onWallTap(wall);
+      setRailActive("acao");
+      setPanelOpen(true);
+    },
+    [actorId, composer, setPanelOpen],
+  );
+  // Segurar numa parede a junta aos alvos (com personagens e outras paredes: golpe em área).
+  const handleWallHold = useCallback(
+    (wall: WallSegment) => {
+      if (!actorId) return;
+      composer.onWallHold(wall);
+      setRailActive("acao");
+      setPanelOpen(true);
+    },
+    [actorId, composer, setPanelOpen],
+  );
   const handleSlotTap = useCallback(
     (slot: SlotCoord) => {
       // A escolha da casa da fuga vem antes do compositor: o toque é dela.
@@ -161,7 +182,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
 
   // O Esc é da escolha da casa só quando não é de outra coisa: um diálogo aberto ou um campo
   // de texto com foco ficam com ele (o mesmo filtro do mestre).
-  const otherDialogOpen = wallPicker != null || controls.dialog != null;
+  const otherDialogOpen = controls.dialog != null;
   const picking = controls.pick != null;
   useEffect(() => {
     if (!picking || otherDialogOpen) return;
@@ -250,6 +271,8 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
                 nameOf={nameOf}
                 onQuick={controls.quick}
                 onConfigure={controls.configure}
+                pick={controls.pick}
+                onCancelPick={cancelPick}
               />
               <OwnBars bars={state.bars} characterId={actorId} hp={ownHp} />
               <ActionComposer
@@ -287,7 +310,10 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
                   width={width}
                   height={height}
                   npcMap={live.npcMap}
-                  onWallClick={setWallPicker}
+                  // Na escolha da casa da fuga a parede não é tocável: o toque é da fuga.
+                  onWallClick={actorId && !picking ? handleWallTap : undefined}
+                  onWallLongPress={actorId && !picking ? handleWallHold : undefined}
+                  isWallTappable={isActorWallTappable}
                   piecesInteractive
                   draggablePieceIds={NO_DRAG}
                   suppressPanOnPiecePress
@@ -407,29 +433,6 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
         }}
         onKeep={() => setCancelling(null)}
       />
-      {wallPicker && actorId && (
-        <WallActionSheet
-          wall={wallPicker}
-          isMaster={false}
-          onClose={() => setWallPicker(null)}
-          onInteract={(kind) => {
-            combat.send.enqueueAction(
-              { actorId, targetId: [wallPicker.id], interact: { kind } },
-              { fromComposer: false },
-            );
-            setWallPicker(null);
-          }}
-          onAttack={() => {
-            // Sem arma escolhida o servidor lê a proficiência de Fist; sem `hit`: o acerto é
-            // derivado (Accuracy + proficiência).
-            combat.send.enqueueAction(
-              { actorId, targetId: [wallPicker.id], attack: {} },
-              { fromComposer: false },
-            );
-            setWallPicker(null);
-          }}
-        />
-      )}
     </>
   );
 }

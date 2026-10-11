@@ -34,6 +34,7 @@ type WireBars = {
       >
     | null;
   order: Array<Omit<BarsPayload["order"][number], "bars"> & { bars: string[] | null }> | null;
+  roundTurns?: number;
 };
 
 /**
@@ -54,6 +55,7 @@ export function normalizeBars(raw: WireBars): BarsPayload {
       moveSpeeds: c.moveSpeeds ?? [],
     })),
     order: (raw.order ?? []).map((o) => ({ ...o, bars: (o.bars ?? []) as BarsPayload["order"][number]["bars"] })),
+    ...(raw.roundTurns !== undefined ? { roundTurns: raw.roundTurns } : {}),
   };
 }
 

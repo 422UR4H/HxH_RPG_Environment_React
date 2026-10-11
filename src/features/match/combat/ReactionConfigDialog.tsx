@@ -9,6 +9,9 @@ import {
 } from "./reactionModel";
 import type { ReactionButton } from "./reactionModel";
 import {
+  ChoiceLabel, Toggle, Toggles, Weapon, WeaponList, WeaponName,
+} from "./choiceStyles";
+import {
   AccentConfirmButton, Buttons, CancelButton, Dialog, DialogTitle, Overlay,
 } from "./dialogStyles";
 
@@ -19,7 +22,9 @@ import {
 function costText(kind: ReactionKind): string {
   const bars = REACTION_BARS[kind];
   if (bars.length === 0) return "Não cobra nada";
-  return `Custo: ${costLabel(bars)}. Se você tinha uma ação na fila nessa barra, ela é consumida e a reação rola com Desvantagem.`;
+  const base = `Custo: ${costLabel(bars)}. Se você tinha uma ação na fila nessa barra, ela é consumida e a reação rola com Desvantagem`;
+  // A fuga para a mesma casa do movimento que estava na fila não é troca (regra do servidor).
+  return needsDestination(kind) ? `${base} — menos se fugir para a mesma casa do movimento da fila.` : `${base}.`;
 }
 
 /**
@@ -68,37 +73,41 @@ export default function ReactionConfigDialog({
     <Overlay onClick={onCancel}>
       <Dialog role="dialog" aria-modal aria-label={title} onClick={(e) => e.stopPropagation()}>
         <DialogTitle>{title}</DialogTitle>
-        <Kinds role="radiogroup" aria-label="Tipo de reação">
+        <Toggles role="radiogroup" aria-label="Tipo de reação">
           {REACTION_BUTTONS.map((b) => (
-            <Choice key={b}>
-              <input
-                type="radio"
-                name="reaction-kind"
-                value={b}
-                checked={button === b}
-                onChange={() => setButton(b)}
-              />
+            <Toggle
+              key={b}
+              type="button"
+              role="radio"
+              $tone="move"
+              aria-checked={button === b}
+              onClick={() => setButton(b)}
+            >
               {REACTION_BUTTON_LABELS[b]}
-            </Choice>
+            </Toggle>
           ))}
-        </Kinds>
-        <Choice $disabled={!supportsEvasion(button)}>
-          <input
-            type="checkbox"
-            checked={evasionOn}
-            disabled={!supportsEvasion(button)}
-            onChange={(e) => setEvasion(e.target.checked)}
-          />
+        </Toggles>
+        {/* Fora do grupo: é um interruptor que refina Esquivar/Escapar, não um sexto tipo. */}
+        <Toggle
+          type="button"
+          $tone="move"
+          aria-pressed={evasionOn}
+          disabled={!supportsEvasion(button)}
+          title={supportsEvasion(button) ? undefined : "Só em Esquivar e Escapar"}
+          onClick={() => setEvasion(!evasion)}
+        >
           Evasão (fechada)
-        </Choice>
+        </Toggle>
         {button === "repel" && (
           <Field>
-            Arma
-            <Select aria-label="Arma" value={weapon} onChange={(e) => setWeapon(e.target.value)}>
+            <ChoiceLabel id="repel-weapon">Arma</ChoiceLabel>
+            <WeaponList role="radiogroup" aria-labelledby="repel-weapon">
               {options.map((w) => (
-                <option key={w} value={w}>{weaponLabel(w)}</option>
+                <Weapon key={w} type="button" role="radio" aria-checked={weapon === w} onClick={() => setWeapon(w)}>
+                  <WeaponName>{weaponLabel(w)}</WeaponName>
+                </Weapon>
               ))}
-            </Select>
+            </WeaponList>
           </Field>
         )}
         <Cost>{costText(kind)}</Cost>
@@ -113,47 +122,10 @@ export default function ReactionConfigDialog({
   );
 }
 
-const Kinds = styled.div`
+const Field = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
-`;
-
-// Fonte e cor declaradas, não herdadas: o `* { font-family }` do ResetStyle vence a herança
-// do Dialog e deixava os rótulos na serifa do navegador.
-const Choice = styled.label<{ $disabled?: boolean }>`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-family: ${fonts.sans};
-  font-size: 15px;
-  color: ${colors.textPrimary};
-  cursor: ${({ $disabled }) => ($disabled ? "not-allowed" : "pointer")};
-  opacity: ${({ $disabled }) => ($disabled ? 0.5 : 1)};
-`;
-
-const Field = styled.label`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-family: ${fonts.sans};
-  font-size: 14px;
-  color: ${colors.textPrimary};
-`;
-
-const Select = styled.select`
-  padding: 6px 8px;
-  border: 1px solid ${colors.borderInput};
-  border-radius: 6px;
-  background: ${colors.surfaceInput};
-  color: ${colors.textPrimary};
-  font-family: ${fonts.sans};
-  font-size: 14px;
-
-  & option {
-    font-family: ${fonts.sans};
-    color: ${colors.textPrimary};
-  }
+  gap: 6px;
 `;
 
 const Cost = styled.p`

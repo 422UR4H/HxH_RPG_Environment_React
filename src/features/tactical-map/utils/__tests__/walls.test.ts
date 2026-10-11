@@ -102,6 +102,11 @@ describe("isMovementBlocked", () => {
     expect(isMovementBlocked([0, 50], [100, 50], [w])).toBe(true);
   });
 
+  it("a destroyed wall is rubble: it blocks nobody (the server's IsPathBlocked)", () => {
+    const w = { ...seg([50, 0], [50, 100]), destroyed: true, hp: 0 };
+    expect(isMovementBlocked([0, 50], [100, 50], [w])).toBe(false);
+  });
+
   it("returns false for parallel wall", () => {
     const w = seg([0, 20], [100, 20]);
     expect(isMovementBlocked([0, 50], [100, 50], [w])).toBe(false);

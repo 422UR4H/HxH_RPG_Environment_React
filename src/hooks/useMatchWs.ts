@@ -164,6 +164,12 @@ type UseMatchWsOptions = {
    * Mesa inteira na nota de turno; só o mestre nas ações de peça (o eco carrega a posição).
    */
   onMasterActionEnqueued?: () => void;
+  /**
+   * `master_action_recorded` (s→c): uma ação do mestre fora de turno já é linha do histórico
+   * que eu posso ler — o sinal para rebuscá-lo. As notícias de tabuleiro (parede, peça) saem
+   * antes da gravação, e um refetch nelas voltava sem a ação.
+   */
+  onMasterActionRecorded?: () => void;
 };
 
 export function useMatchWs({
@@ -180,6 +186,7 @@ export function useMatchWs({
   onCombatMessage,
   onNpcAdded,
   onMasterActionEnqueued,
+  onMasterActionRecorded,
 }: UseMatchWsOptions) {
   const [status, setStatus] = useState<MatchWsStatus>("connecting");
   // Bumped by `reconnect()` — a new value re-runs the connection effect from scratch.
@@ -207,6 +214,8 @@ export function useMatchWs({
   onNpcAddedRef.current = onNpcAdded;
   const onMasterActionEnqueuedRef = useRef(onMasterActionEnqueued);
   onMasterActionEnqueuedRef.current = onMasterActionEnqueued;
+  const onMasterActionRecordedRef = useRef(onMasterActionRecorded);
+  onMasterActionRecordedRef.current = onMasterActionRecorded;
   const lastSentTypeRef = useRef<string | undefined>(undefined);
   /**
    * Final review, Important 2: retorna `true` só quando o socket estava OPEN de verdade e
@@ -335,6 +344,8 @@ export function useMatchWs({
             if (p.characterId) onNpcAddedRef.current?.(p.characterId);
           } else if (msg.type === "master_action_enqueued") {
             onMasterActionEnqueuedRef.current?.();
+          } else if (msg.type === "master_action_recorded") {
+            onMasterActionRecordedRef.current?.();
           } else if (msg.type === "error") {
             const p = msg.payload as { code?: string; message?: string };
             // Não responde a nada que esta aba enviou: não é erro de envio.

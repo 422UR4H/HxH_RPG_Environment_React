@@ -4,12 +4,14 @@ import useMediaQuery from "../../../hooks/useMediaQuery";
 import { breakpoints } from "../../../styles/breakpoints";
 import type { PieceAnchoredItem } from "./PieceAnchoredLayer";
 import ReactionButtons from "./ReactionButtons";
+import { buttonOfKind } from "./reactionModel";
 import ActionBalloon from "./ActionBalloon";
 import type { BalloonLine } from "./ActionBalloon";
 import type { TableBalloon } from "./useGameTable";
 import type { useReactionControls } from "./useReactionControls";
 
-type Controls = Pick<ReturnType<typeof useReactionControls>, "targets" | "quick" | "configure">;
+type Controls = Pick<ReturnType<typeof useReactionControls>, "targets" | "quick" | "configure"> &
+  Partial<Pick<ReturnType<typeof useReactionControls>, "pick" | "cancelPick">>;
 
 /**
  * Os botões de reação ao lado da peça de cada alvo meu (abaixo dela: acima fica o balão).
@@ -30,6 +32,8 @@ export function reactionAnchoredItems(controls: Controls, nameOf: (id: string) =
         showName={controls.targets.length > 1}
         onQuick={(b) => controls.quick(t.actorId, b)}
         onConfigure={(b) => controls.configure(t.actorId, b)}
+        armed={controls.pick?.actorId === t.actorId ? buttonOfKind(controls.pick.kind) : undefined}
+        onCancelArmed={controls.cancelPick}
       />
     ),
   }));

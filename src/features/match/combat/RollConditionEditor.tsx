@@ -11,7 +11,7 @@ const BIAS_OPTIONS = [
 ] as const;
 
 /**
- * O editor de uma rolagem do turno aberto (Fase 8): viés, ajuste e motivo. Inline, embaixo da
+ * O editor de uma rolagem do turno aberto (Fase 8): viés, modificador e motivo. Inline, embaixo da
  * linha, um por vez no painel. Não guarda nada: "Aplicar" manda o `edit_action` e fecha — o
  * número e o resumo em vigor voltam pelo `resolution_updated`. "Desfazer edição" manda a
  * entrada zerada (o servidor volta a "sem condição"). O viés some onde a leitura é passiva ou
@@ -40,6 +40,13 @@ export default function RollConditionEditor({
 
   return (
     <Editor role="group" aria-label={`Editar ${roll.label}`}>
+      {!!roll.systemBias && (
+        <SystemNote role="note">
+          O sistema já rola esta com {roll.systemBias < 0 ? "Desvantagem" : "Vantagem"} (a reação trocou a ação
+          da fila). O seu viés soma com o dele: {roll.systemBias < 0 ? "Vantagem" : "Desvantagem"} deixa neutro
+          (vale o primeiro lance, não o melhor); Normal mantém. Para ir além, use o Modificador.
+        </SystemNote>
+      )}
       {roll.allowsBias && (
         <BiasRow role="group" aria-label="Viés">
           {BIAS_OPTIONS.map((o) => (
@@ -55,7 +62,7 @@ export default function RollConditionEditor({
         </BiasRow>
       )}
       <Field>
-        <span>Ajuste</span>
+        <span>Modificador</span>
         <Input
           type="number"
           step={1}
@@ -94,6 +101,13 @@ const Editor = styled.div`
   border-radius: 6px;
   font-family: ${fonts.sans};
   color: ${colors.textPrimary};
+`;
+
+const SystemNote = styled.p`
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: ${colors.warningText};
 `;
 
 const BiasRow = styled.div`

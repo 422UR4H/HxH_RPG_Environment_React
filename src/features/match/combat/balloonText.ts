@@ -8,7 +8,7 @@ export type BalloonTone = "neutral" | "success" | "failure";
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-/** A mecânica da ação aberta: "Ataca A, B · Espada", "Dash → casa", "Abrir". */
+/** A mecânica da ação aberta: "Ataca A, B · Espada", "Dash → casa", "Abrir Porta". */
 export function actionMechanicsText(
   action: HistoryAction,
   nameOf: (id: string) => string,
@@ -23,7 +23,10 @@ export function actionMechanicsText(
     const to = action.move.position;
     parts.push(`${action.move.category}${to ? ` → ${formatSlot(to, gridKind)}` : ""}`);
   }
-  if (action.interact) parts.push(capitalize(interactLabel(action.interact.kind)));
+  if (action.interact) {
+    const what = (action.targetId ?? []).map(nameOf).join(", ");
+    parts.push(`${capitalize(interactLabel(action.interact.kind))}${what ? ` ${what}` : ""}`);
+  }
   return parts.join(" · ");
 }
 

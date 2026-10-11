@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createTapTracker } from "../tapGesture";
+import { consumeTap, createTapTracker, isTapConsumed } from "../tapGesture";
 
 const at = (clientX: number, clientY: number, pointerId = 1, button?: number) => ({
   pointerId,
@@ -67,5 +67,16 @@ describe("createTapTracker", () => {
     expect(t.up(at(0, 0))).toBe(false);
     t.down(at(5, 5));
     expect(t.up(at(5, 5))).toBe(true);
+  });
+});
+
+describe("consumeTap", () => {
+  it("marca só o evento consumido — o próximo pointerup chega livre", () => {
+    const first = new Event("pointerup");
+    const next = new Event("pointerup");
+    expect(isTapConsumed(first)).toBe(false);
+    consumeTap(first);
+    expect(isTapConsumed(first)).toBe(true);
+    expect(isTapConsumed(next)).toBe(false);
   });
 });

@@ -1,15 +1,21 @@
 // Os controles que só a tela do mestre monta: regência (regime, abrir, fechar), a escolha
-// do NPC por quem agir e o painel de arrumar o tabuleiro. Nenhum pergunta "sou mestre?" — a página é que decide montá-los.
+// do NPC por quem agir, a ação direta numa porta/janela e o painel de arrumar o tabuleiro. Nenhum pergunta "sou mestre?" — a página é que decide montá-los.
 import { useState } from "react";
 import styled, { css } from "styled-components";
 import Tooltip from "../../../components/ions/Tooltip";
 import { colors, fonts } from "../../../styles/tokens";
 import { media } from "../../../styles/breakpoints";
 import type { Participant } from "../../../types/match";
+import type { WallSegment } from "../../../types/tacticalMap";
 import type { RoundMode } from "./combatMessages";
 import { ROUND_MODE_LABELS } from "./combatText";
 import { SmallButton } from "./MatchTopBar";
+import {
+  Buttons, CancelButton, ConfirmButton, Dialog, DialogHint, DialogTitle, Overlay,
+} from "./dialogStyles";
 import { PanelHint, PanelTitle } from "./panelStyles";
+import { MASTER_WALL_LABELS, masterWallVerbs, wallLifeText, wallName } from "./wallVerbs";
+import type { MasterWallKind } from "./wallVerbs";
 
 /**
  * Livre × Disputado. Clicar no regime atual não manda nada: o servidor responderia com
@@ -48,6 +54,7 @@ export function RegencyControls({
   canChangeScene,
   queueLength,
   orderLength,
+  roundTurns,
 }: {
   mode: RoundMode | "";
   onModeChange: (mode: RoundMode) => void;
@@ -59,11 +66,16 @@ export function RegencyControls({
   queueLength: number;
   /** Tamanho da ordem da Corrida (`bars.order`). */
   orderLength: number;
+  /** Turnos abertos na rodada (`bars.roundTurns`). 0 = nada aconteceu: não se encerra. Ausente = não sei. */
+  roundTurns?: number;
 }) {
   // Na Corrida o servidor encerra a rodada quando abrir a próxima não acha quem pague
   // (`bars_updated.order` vazio): este botão é como o mestre a encerra, nunca desabilita.
   const endsRound = mode === "Race" && orderLength === 0;
   const empty = !endsRound && queueLength === 0;
+  // Encerrar uma rodada em que nada aconteceu só abriria outra igual — o servidor recusa.
+  const idleRound = endsRound && roundTurns === 0;
+  const blocked = empty || idleRound;
   return (
     <Regency>
       <RoundModeSwitch mode={mode} onChange={onModeChange} placement="topbar" />
@@ -79,8 +91,11 @@ export function RegencyControls({
         Nova cena
       </NewSceneButton>
       {/* aria-disabled (e não disabled): o botão segue focável e o hover/foco mostram o porquê. */}
-      <Tooltip label="A fila de ações está vazia" enabled={empty}>
-        <PrimaryButton type="button" aria-disabled={empty || undefined} onClick={empty ? undefined : onOpenNext}>
+      <Tooltip
+        label={idleRound ? "Nenhum turno aconteceu nesta rodada ainda" : "A fila de ações está vazia"}
+        enabled={blocked}
+      >
+        <PrimaryButton type="button" aria-disabled={blocked || undefined} onClick={blocked ? undefined : onOpenNext}>
           {endsRound ? "Encerrar rodada" : "Abrir próxima"}
         </PrimaryButton>
       </Tooltip>
@@ -209,6 +224,169 @@ export function ArrangePanel({
     </Picker>
   );
 }
+
+/**
+ * O mestre tocou numa porta ou janela sem NPC escolhido: a ação é DELE, na hora, sem turno
+ * (`enqueue_master_action`), trancada ou não. Mora no painel Agir, abaixo de "Agir por" — com
+ * um NPC escolhido, a parede vira alvo do compositor e este card não aparece.
+ */
+/**
+ * A mão do mestre nas paredes que ele tocou (sem NPC): o estado e a vida de cada uma, e os verbos
+ * dele, na hora (`enqueue_master_action`). Uma parede: os verbos dela. Várias (segurar junta mais
+ * uma): o que vale para todas — destruir as que ainda estão de pé (um terremoto).
+ */
+export function WallMasterPanel({
+  walls,
+  onInteract,
+  onDismiss,
+}: {
+  walls: WallSegment[];
+  onInteract: (kind: MasterWallKind, wallIds: string[]) => void;
+  onDismiss: () => void;
+}) {
+  // Destruir não tem volta: pede um segundo toque explícito (um clique errado derrubaria a parede).
+  const [confirmDestroy, setConfirmDestroy] = useState(false);
+  if (walls.length === 0) return null;
+  const single = walls.length === 1 ? walls[0] : undefined;
+  const standing = walls.filter((w) => !w.destroyed);
+  const verbs: MasterWallKind[] = single ? masterWallVerbs(single) : standing.length ? ["destroy"] : [];
+  const targetIds = single ? [single.id] : standing.map((w) => w.id);
+  return (
+    <Picker aria-label="Ação do Mestre">
+      <WallHeader>
+        <PanelTitle>
+          Ação do Mestre · {single ? wallName(single) : `${walls.length} paredes`}
+        </PanelTitle>
+        <DismissButton type="button" aria-label="Soltar as paredes" title="Soltar as paredes" onClick={onDismiss}>
+          ×
+        </DismissButton>
+      </WallHeader>
+      {single ? (
+        <WallFacts wall={single} />
+      ) : (
+        <WallList>
+          {walls.map((w) => (
+            <li key={w.id}>
+              <strong>{wallName(w)}</strong> — {wallLifeText(w)}
+            </li>
+          ))}
+        </WallList>
+      )}
+      <PanelHint>
+        Acontece na hora, sem turno. {single ? "Segure em outra parede para juntar mais." : "Destruir derruba todas as que estão de pé."}
+      </PanelHint>
+      {verbs.length > 0 && (
+        <PickerList>
+          {verbs.map((v) => (
+            <SmallButton
+              key={v}
+              type="button"
+              onClick={() => (v === "destroy" ? setConfirmDestroy(true) : onInteract(v, targetIds))}
+            >
+              {v === "destroy" && !single ? `Destruir ${standing.length}` : MASTER_WALL_LABELS[v]}
+            </SmallButton>
+          ))}
+        </PickerList>
+      )}
+      {confirmDestroy && (
+        <Overlay onClick={() => setConfirmDestroy(false)}>
+          <Dialog role="dialog" aria-modal aria-label="Destruir" onClick={(e) => e.stopPropagation()}>
+            <DialogTitle>
+              {single ? `Destruir ${wallName(single)}?` : `Destruir ${standing.length} paredes?`}
+            </DialogTitle>
+            <DialogHint>
+              {single ? "Ela vai ao chão" : "Elas vão ao chão"} na hora, e não dá para desfazer: nenhuma ação da
+              mesa levanta uma parede de novo.
+            </DialogHint>
+            <Buttons>
+              <CancelButton type="button" onClick={() => setConfirmDestroy(false)}>Cancelar</CancelButton>
+              <ConfirmButton
+                type="button"
+                onClick={() => {
+                  setConfirmDestroy(false);
+                  onInteract("destroy", targetIds);
+                }}
+              >
+                Destruir
+              </ConfirmButton>
+            </Buttons>
+          </Dialog>
+        </Overlay>
+      )}
+    </Picker>
+  );
+}
+
+function WallFacts({ wall }: { wall: WallSegment }) {
+  const state: string[] = [];
+  if (!wall.destroyed && (wall.wallType === "door" || wall.wallType === "window" || wall.wallType === "secret_door")) {
+    state.push(wall.open ? "Aberta" : "Fechada");
+    if (wall.locked) state.push("trancada");
+  }
+  if (wall.wallType === "secret_door") state.push(wall.revealed ? "revelada" : "escondida dos jogadores");
+  return (
+    <WallLife data-destroyed={wall.destroyed || undefined}>
+      <strong>{wallLifeText(wall)}</strong>
+      {wall.maxHp > 0 && (
+        <LifeBar aria-hidden>
+          <LifeFill style={{ width: `${Math.max(0, Math.min(100, (wall.hp / wall.maxHp) * 100))}%` }} />
+        </LifeBar>
+      )}
+      {state.length > 0 && <span>{state.join(", ")}.</span>}
+      {wall.resistance > 0 && !wall.destroyed && <span>Resistência {wall.resistance}.</span>}
+    </WallLife>
+  );
+}
+
+const WallLife = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: ${fonts.sans};
+  font-size: 12px;
+  color: ${colors.textPrimary};
+
+  &[data-destroyed] strong {
+    color: ${colors.textMuted};
+  }
+`;
+
+const LifeBar = styled.div`
+  height: 6px;
+  border-radius: 3px;
+  background: ${colors.surfaceInput};
+  overflow: hidden;
+`;
+
+const LifeFill = styled.div`
+  height: 100%;
+  background: ${colors.brandAccent};
+`;
+
+const WallList = styled.ul`
+  margin: 0;
+  padding-left: 16px;
+  font-family: ${fonts.sans};
+  font-size: 12px;
+  color: ${colors.textPrimary};
+`;
+
+const WallHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+`;
+
+const DismissButton = styled.button`
+  background: none;
+  border: none;
+  color: ${colors.textMuted};
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 4px;
+  cursor: pointer;
+`;
 
 /* Mora dentro da lista de cards (que já tem as margens): sem recuo lateral próprio. */
 const AddBlock = styled.section`

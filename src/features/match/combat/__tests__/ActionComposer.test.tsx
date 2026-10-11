@@ -2,10 +2,11 @@ import { describe, it, expect, vi } from "vitest";
 import { useState } from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import ActionComposer from "../ActionComposer";
-import { chooseDestination, chooseTarget, draftVerdict, emptyDraft, resolveDraft } from "../actionDraft";
+import { chooseDestination, chooseTarget, chooseWallTarget, draftVerdict, emptyDraft, resolveDraft } from "../actionDraft";
 import type { ActionDraft, ReachContext } from "../actionDraft";
 import { isSameSlot } from "../../../tactical-map/utils/coords";
-import type { GridShape, SlotCoord } from "../../../../types/tacticalMap";
+import { wallContactSlots } from "../../../tactical-map/utils/wallReach";
+import type { GridShape, SlotCoord, WallSegment } from "../../../../types/tacticalMap";
 
 const catalogue = {
   weapons: [
@@ -22,14 +23,23 @@ const grid: GridShape = {
 const sq = (col: number, row: number): SlotCoord => ({ kind: "square", col, row });
 // Gon (ator) em (2,4); Hisoka longe em (8,4); Killua colado em (3,4).
 const positions: Record<string, SlotCoord> = { gon: sq(2, 4), hisoka: sq(8, 4), killua: sq(3, 4) };
+// Porta na aresta entre (7,4) e (8,4).
+const door: WallSegment = {
+  id: "door", p1: [512, 256], p2: [512, 320], wallType: "door", material: "wood", move: true,
+  sense: "full", direction: "both", open: false, locked: false, hp: 10, maxHp: 10, resistance: 0,
+  destroyed: false,
+};
 const ctx: ReachContext = {
   grid,
   actorSlot: positions.gon,
   actorZ: 0,
-  slotOf: (id) => positions[id],
+  targetOf: (id) =>
+    id === "door"
+      ? { kind: "wall", wall: door, reach: wallContactSlots(door, grid) }
+      : positions[id] ? { kind: "character", slot: positions[id] } : undefined,
   isFree: (s) => !Object.values(positions).some((p) => isSameSlot(p, s)),
 };
-const nameOf = (id: string) => ({ gon: "Gon", hisoka: "Hisoka", killua: "Killua" }[id] ?? id);
+const nameOf = (id: string) => ({ gon: "Gon", hisoka: "Hisoka", killua: "Killua", door: "Porta" }[id] ?? id);
 
 /** O composer controlado de verdade: o rascunho vive aqui, como na página. */
 function Harness({
@@ -136,7 +146,7 @@ describe("ActionComposer", () => {
     expect(screen.getByRole("radio", { name: /Desarmado/ })).toHaveAttribute("aria-checked", "true");
     fireEvent.click(screen.getByRole("radio", { name: /Sword/ }));
     expect(spy).toHaveBeenLastCalledWith(
-      expect.objectContaining({ attack: { targets: ["killua"], weapon: "Sword" } }),
+      expect.objectContaining({ act: { targets: ["killua"], weapon: "Sword" } }),
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Remover Killua" }));
@@ -161,5 +171,32 @@ describe("ActionComposer", () => {
     );
     expect(declare()).toBeDisabled();
     expect(screen.getByTestId("composer-hint")).toHaveTextContent("Sem conexão com a mesa.");
+  });
+
+  it("parede como alvo: o botão vira o verbo, o seletor oferece o que a porta aceita, armas só no ataque", () => {
+    const spy = vi.fn();
+    render(<Harness initial={chooseWallTarget(emptyDraft(), door)} spy={spy} />);
+    const actToggle = screen.getByRole("button", { name: /Abrir/ });
+    expect(actToggle).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Remover Porta" })).toBeInTheDocument();
+    expect(screen.getByTestId("move-destination")).toHaveTextContent("ao lado de Porta");
+    expect(declare()).toHaveTextContent("Declarar movimento + abertura");
+    const verbs = screen.getByRole("radiogroup", { name: "O que fazer" });
+    expect(verbs).toHaveTextContent("Abrir");
+    expect(verbs).toHaveTextContent("Atacar");
+    expect(screen.queryByRole("radiogroup", { name: "Arma" })).toBeNull();
+    expect(screen.queryByText(/Ataque à distância/)).toBeNull();
+
+    fireEvent.click(screen.getByRole("radio", { name: "Atacar" }));
+    expect(screen.getByText(/Ataque à distância/)).toBeInTheDocument();
+    expect(spy).toHaveBeenLastCalledWith(expect.objectContaining({ act: { targets: ["door"] } }));
+    expect(attackToggle()).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("radiogroup", { name: "Arma" })).toBeInTheDocument();
+    expect(declare()).toHaveTextContent("Declarar movimento + ataque");
+  });
+
+  it("personagem como alvo não mostra o seletor de verbo", () => {
+    render(<Harness initial={chooseTarget(emptyDraft(), "killua")} />);
+    expect(screen.queryByRole("radiogroup", { name: "O que fazer" })).toBeNull();
   });
 });

@@ -52,17 +52,42 @@ export function approachSlot({
   target,
   grid,
   isFree,
+  isPathClear,
 }: {
   actor: SlotCoord;
   target: SlotCoord;
   grid: GridShape;
   isFree: (slot: SlotCoord) => boolean;
+  isPathClear?: (from: SlotCoord, to: SlotCoord) => boolean;
 }): Approach {
   if (slotDistance(actor, target) <= 1) return { kind: "in_reach" };
+  return approachReach({ actor, reach: neighborSlots(target), grid, isFree, isPathClear });
+}
+
+/**
+ * O caso geral: o alvo é alcançado de qualquer slot de `reach` (o vizinho de uma peça, o slot
+ * que encosta numa parede). Já estar num deles é `in_reach`; senão, o livre mais perto do ator.
+ * `isPathClear` tira o slot que o servidor recusaria alcançar em linha reta (`move_blocked`) —
+ * sem ele, o outro lado da própria parede-alvo seria proposto como "ao lado".
+ */
+export function approachReach({
+  actor,
+  reach,
+  grid,
+  isFree,
+  isPathClear,
+}: {
+  actor: SlotCoord;
+  reach: SlotCoord[];
+  grid: GridShape;
+  isFree: (slot: SlotCoord) => boolean;
+  isPathClear?: (from: SlotCoord, to: SlotCoord) => boolean;
+}): Approach {
+  if (reach.some((s) => isSameSlot(s, actor))) return { kind: "in_reach" };
 
   const actorPt = slotToWorld(actor, grid);
-  const candidates = neighborSlots(target)
-    .filter((s) => isSlotInBounds(s, grid) && (isSameSlot(s, actor) || isFree(s)))
+  const candidates = reach
+    .filter((s) => isSlotInBounds(s, grid) && isFree(s) && (isPathClear?.(actor, s) ?? true))
     .map((s) => {
       const p = slotToWorld(s, grid);
       return { s, steps: slotDistance(actor, s), dist: Math.hypot(p.x - actorPt.x, p.y - actorPt.y) };
@@ -71,4 +96,13 @@ export function approachSlot({
 
   const best = candidates[0];
   return best ? { kind: "approach", slot: best.s } : { kind: "no_room" };
+}
+
+/**
+ * Passos até alcançar o alvo: até o slot de `reach` mais perto, mais o passo do toque —
+ * encostado vale 1, como a peça adjacente. `undefined` sem alcance nenhum.
+ */
+export function stepsToReach(actor: SlotCoord, reach: SlotCoord[]): number | undefined {
+  if (reach.length === 0) return undefined;
+  return Math.min(...reach.map((s) => slotDistance(actor, s))) + 1;
 }

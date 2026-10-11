@@ -27,6 +27,7 @@ vi.mock("../../features/tactical-map/TacticalMapViewer", () => ({
     onPieceSelect?: (pieceId: string) => void;
     onPieceLongPress?: (pieceId: string) => void;
     onWallClick?: (wall: { id: string }) => void;
+    onWallLongPress?: (wall: { id: string }) => void;
     onEmptySlotClick?: (slot: { kind: "square"; col: number; row: number }, x: number, y: number) => void;
     targetPieceIds?: Set<string>;
     intentPreview?: unknown;
@@ -57,7 +58,13 @@ vi.mock("../../features/tactical-map/TacticalMapViewer", () => ({
         </button>
       ))}
       {(props.map.walls ?? []).map((wall) => (
-        <button key={wall.id} data-testid={`wall-${wall.id}`} onClick={() => props.onWallClick?.(wall)}>
+        <button
+          key={wall.id}
+          data-testid={`wall-${wall.id}`}
+          onClick={() => props.onWallClick?.(wall)}
+          // Segurar = clique direito, como no WallsLayer.
+          onContextMenu={() => props.onWallLongPress?.(wall)}
+        >
           {wall.id}
         </button>
       ))}
@@ -127,7 +134,7 @@ const participantsFixture = [
   },
 ];
 
-const DRAFT_KEY = "match-draft:v2:match-1:c1";
+const DRAFT_KEY = "match-draft:v3:match-1:c1";
 const storedDraft = () => {
   const raw = localStorage.getItem(DRAFT_KEY);
   return raw ? JSON.parse(raw) : null;
@@ -337,7 +344,7 @@ describe("GamePlayerPage", () => {
     const targetButton = await screen.findByTestId("select-actor-c2");
     act(() => targetButton.click());
 
-    await waitFor(() => expect(storedDraft()?.attack).toEqual({ targets: ["c2"] }));
+    await waitFor(() => expect(storedDraft()?.act).toEqual({ targets: ["c2"] }));
 
     const declareButton = await screen.findByRole("button", { name: /^declarar/i });
     act(() => declareButton.click());
@@ -443,7 +450,7 @@ describe("GamePlayerPage", () => {
 
       const notice = await screen.findByText(/o servidor perdeu 1 ação/i);
       expect(notice).toHaveTextContent(/o rascunho voltou para o compositor/i);
-      await waitFor(() => expect(storedDraft()?.attack).toEqual({ targets: ["c2"] }));
+      await waitFor(() => expect(storedDraft()?.act).toEqual({ targets: ["c2"] }));
       expect(ws.sent("enqueue_action")).toHaveLength(1);
 
       await user.click(screen.getByRole("button", { name: /fechar aviso/i }));
@@ -490,7 +497,7 @@ describe("GamePlayerPage", () => {
 
       release();
       expect(await screen.findByText(/o servidor perdeu 1 ação/i)).toBeInTheDocument();
-      await waitFor(() => expect(storedDraft()?.attack).toEqual({ targets: ["c2"] }));
+      await waitFor(() => expect(storedDraft()?.act).toEqual({ targets: ["c2"] }));
     });
 
     it("várias perdidas do mesmo ator: volta só a mais recente", async () => {
@@ -508,24 +515,21 @@ describe("GamePlayerPage", () => {
       const notice = await screen.findByText(/o servidor perdeu 2 ações/i);
       expect(notice).toHaveTextContent(/o rascunho de 1 delas voltou/i);
       await waitFor(() => expect(storedDraft()).toMatchObject({ moveMode: "manual", to: [9, 9, 0] }));
-      expect(storedDraft()?.attack).toBeUndefined();
+      expect(storedDraft()?.act).toBeUndefined();
     });
 
-    it("perdida só de parede: aviso sem prometer rascunho, e nenhum rascunho aparece", async () => {
+    it("perdida de parede: o rascunho volta como o verbo sobre a parede", async () => {
       renderPlayerPage();
       const ws = await waitForSocket();
       act(() => ws.onopen?.());
       board(ws);
-      act(() => screen.getByTestId("wall-wall-1").click());
-      act(() => screen.getByRole("button", { name: /^abrir$/i }).click());
-      act(() => ws.emit("action_enqueued", { actionId: "action-wall-1" }));
+      await declare(ws, () => screen.getByTestId("wall-wall-1").click(), "action-wall-1");
 
       fullState(ws);
 
       const notice = await screen.findByText(/o servidor perdeu 1 ação/i);
-      expect(notice).not.toHaveTextContent(/rascunho voltou/i);
-      expect(notice).toHaveTextContent(/declare de novo se ainda quiser/i);
-      expect(storedDraft()).toBeNull();
+      expect(notice).toHaveTextContent(/rascunho voltou/i);
+      await waitFor(() => expect(storedDraft()?.act).toEqual({ targets: ["wall-1"], kind: "open" }));
     });
 
     it("rascunho já começado não é atropelado, e o aviso não diz que voltou", async () => {
@@ -541,7 +545,7 @@ describe("GamePlayerPage", () => {
 
       const notice = await screen.findByText(/o servidor perdeu 1 ação/i);
       expect(notice).not.toHaveTextContent(/rascunho voltou/i);
-      expect(storedDraft()?.attack).toBeUndefined();
+      expect(storedDraft()?.act).toBeUndefined();
     });
 
     it("declarada que o servidor ainda tem continua, sem aviso", async () => {
@@ -582,7 +586,7 @@ describe("GamePlayerPage", () => {
 
     await waitFor(() => {
       const draft = storedDraft();
-      expect(draft.attack.targets).toEqual(["c2"]);
+      expect(draft.act.targets).toEqual(["c2"]);
       expect(draft.to).toEqual([9, 9, 0]);
     });
 
@@ -666,11 +670,10 @@ describe("GamePlayerPage", () => {
     expect(await screen.findByTestId("declared-row")).toHaveTextContent("na fila");
   });
 
-  // Final review, Important 3 / RULING R29: enqueue_action SEM actorId era sempre
-  // recusado pelo servidor (contrato exige actorId) — o menu de parede do jogador agora
-  // passa pelo mesmo send.enqueueAction do composer, com actorId = a própria sheet do
-  // jogador, e clearsDraft: false (não deve apagar um rascunho do composer em voo, R28).
-  it("clica numa parede e Abrir manda enqueue_action com meu actorId, sem apagar o rascunho do composer", async () => {
+  // A parede é alvo do compositor, como uma peça (o menu de parede saiu): o toque a marca, o
+  // verbo padrão de uma porta fechada é Abrir, e Declarar manda enqueue_action com meu actorId e
+  // `interact` — o ack, como qualquer envio do compositor, limpa o rascunho.
+  it("tocar numa parede faz dela o alvo do compositor; Declarar manda interact com meu actorId", async () => {
     renderPlayerPage();
     const ws = await waitForSocket();
     act(() => ws.onopen?.());
@@ -692,27 +695,56 @@ describe("GamePlayerPage", () => {
       }),
     );
 
-    // Um rascunho do composer em voo (alvo escolhido) não pode ser apagado pelo envio da
-    // parede — só o ack de um envio com clearsDraft:true (o composer) apaga.
-    const targetButton = await screen.findByTestId("select-actor-c2");
-    act(() => targetButton.click());
-    await waitFor(() => expect(storedDraft()?.attack).toEqual({ targets: ["c2"] }));
-
     const wallButton = await screen.findByTestId("wall-wall-1");
     act(() => wallButton.click());
-    const openButton = await screen.findByRole("button", { name: /^abrir$/i });
-    act(() => openButton.click());
+    await waitFor(() => expect(storedDraft()?.act).toEqual({ targets: ["wall-1"], kind: "open" }));
+    expect(screen.getByRole("radiogroup", { name: "O que fazer" })).toBeInTheDocument();
 
+    act(() => screen.getByRole("button", { name: /^declarar/i }).click());
     const calls = ws.send.mock.calls.map((c) => JSON.parse(c[0] as string));
     const wallSend = calls.find((m) => m.payload?.targetId?.[0] === "wall-1");
-    expect(wallSend).toEqual({
-      type: "enqueue_action",
-      payload: { actorId: "c1", targetId: ["wall-1"], interact: { kind: "open" } },
-    });
+    expect(wallSend?.type).toBe("enqueue_action");
+    expect(wallSend?.payload).toMatchObject({ actorId: "c1", targetId: ["wall-1"], interact: { kind: "open" } });
+    expect(wallSend?.payload).not.toHaveProperty("attack");
 
     act(() => ws.emit("action_enqueued", { actionId: "action-wall-1" }));
-    // O ack do envio da parede (clearsDraft:false) NÃO apaga o rascunho do composer.
-    expect(storedDraft()?.attack).toEqual({ targets: ["c2"] });
+    await waitFor(() => expect(storedDraft()).toBeNull());
+  });
+
+  // Golpe em área: segurar numa parede a junta aos alvos que já havia (um personagem aqui).
+  // Com mais de um alvo a ação é ataque — sai `attack`, nunca `interact`.
+  it("segurar numa parede a junta a um personagem: Declarar manda um ataque com os dois alvos", async () => {
+    renderPlayerPage();
+    const ws = await waitForSocket();
+    act(() => ws.onopen?.());
+    act(() =>
+      ws.emit("map_full_state", {
+        pieces: [
+          { pieceId: "piece-c1", slot: { kind: "square", col: 1, row: 1 }, characterId: "c1", visible: true, z: 0 },
+          { pieceId: "piece-c2", slot: { kind: "square", col: 2, row: 2 }, characterId: "c2", visible: true, z: 0 },
+        ],
+        walls: [
+          {
+            id: "wall-1", p1: [0, 0], p2: [1, 0], wallType: "door", material: "wood",
+            move: false, sense: "none", direction: "both", open: false, locked: false,
+            hp: 10, maxHp: 10, resistance: 0, destroyed: false,
+          },
+        ],
+        visiblePolygons: [],
+        fogMode: "explored",
+      }),
+    );
+
+    act(() => screen.getByTestId("select-actor-c2").click());
+    fireEvent.contextMenu(await screen.findByTestId("wall-wall-1"));
+    await waitFor(() => expect(storedDraft()?.act?.targets).toEqual(["c2", "wall-1"]));
+    expect(screen.queryByRole("radiogroup", { name: "O que fazer" })).not.toBeInTheDocument();
+
+    act(() => screen.getByRole("button", { name: /^declarar/i }).click());
+    const calls = ws.send.mock.calls.map((c) => JSON.parse(c[0] as string));
+    const sent = calls.find((m) => m.type === "enqueue_action");
+    expect(sent?.payload).toMatchObject({ actorId: "c1", targetId: ["c2", "wall-1"], attack: {} });
+    expect(sent?.payload).not.toHaveProperty("interact");
   });
 
   // Final review, Important 2(b): Declarar não pode ficar habilitado enquanto o socket
@@ -903,10 +935,10 @@ describe("GamePlayerPage", () => {
     await vi.waitFor(() => expect(calls).toBe(2));
   });
 
-  // F4 (follow-up da T15): a master action de peça entre turnos não chega ao jogador como
-  // `master_action_enqueued` — chega como piece_moved/piece_removed, e é gravada na hora.
-  // Com turno aberto nada é gravado até o fechamento, então não há o que rebuscar.
-  it("F4: peça mexida entre turnos rebusca o histórico; com turno aberto, não", async () => {
+  // A master action entre turnos chega ao jogador como notícia de tabuleiro (piece_moved,
+  // wall_state_changed…) ANTES de ser gravada: rebuscar ali voltava sem ela. Quem rebusca é o
+  // `master_action_recorded`, que o servidor manda depois do insert.
+  it("o histórico rebusca no master_action_recorded, não na peça mexida", async () => {
     let calls = 0;
     server.use(
       http.get(`${baseUrl}/matches/:id/history`, () => {
@@ -921,15 +953,12 @@ describe("GamePlayerPage", () => {
     const moved = { pieceId: "piece-c2", slot: { kind: "square", col: 3, row: 3 }, characterId: "c2", visible: true, z: 0 };
 
     act(() => ws.emit("piece_moved", moved));
-    await vi.waitFor(() => expect(calls).toBe(2));
-    act(() => ws.emit("piece_removed", { pieceId: "piece-c2" }));
-    await vi.waitFor(() => expect(calls).toBe(3));
-
-    act(() => ws.emit("turn_opened", { turnId: "t1", actorId: "c2" }));
-    act(() => ws.emit("piece_moved", moved));
-    act(() => ws.emit("piece_removed", { pieceId: "piece-c2" }));
+    act(() => ws.emit("wall_state_changed", { wallId: "w1", open: true, locked: false }));
     await act(async () => { await new Promise((r) => setTimeout(r, 50)); });
-    expect(calls).toBe(3);
+    expect(calls).toBe(1);
+
+    act(() => ws.emit("master_action_recorded", { kind: "movePiece" }));
+    await vi.waitFor(() => expect(calls).toBe(2));
   });
 
   // F4, fix round 1: o refetch do turn_closed roda no MESMO stack síncrono que carimba o

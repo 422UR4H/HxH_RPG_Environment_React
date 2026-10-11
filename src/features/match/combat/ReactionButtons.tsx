@@ -24,6 +24,8 @@ export default function ReactionButtons({
   compact,
   onQuick,
   onConfigure,
+  armed,
+  onCancelArmed,
 }: {
   status: ReactionStatus;
   name: string;
@@ -33,6 +35,9 @@ export default function ReactionButtons({
   compact?: boolean;
   onQuick: (b: ReactionButton) => void;
   onConfigure: (b: ReactionButton) => void;
+  /** A fuga escolhida, esperando a casa no mapa: o botão fica aceso e a instrução aparece. */
+  armed?: ReactionButton;
+  onCancelArmed?: () => void;
 }) {
   // O timer do tracker dispara fora do render: lê sempre o callback mais novo.
   const onConfigureRef = useRef(onConfigure);
@@ -117,11 +122,22 @@ export default function ReactionButtons({
             onContextMenu={handleContextMenu(b)}
             onKeyDown={handleKeyDown(b)}
             onClick={handleClick(b)}
+            aria-pressed={armed === b}
           >
             {REACTION_BUTTON_LABELS[b]}
           </Button>
         ))}
       </Row>
+      {armed && (
+        <Armed role="status">
+          <span>{REACTION_BUTTON_LABELS[armed]}: toque no mapa a casa para onde fugir.</span>
+          {onCancelArmed && (
+            <CancelArmed type="button" onClick={onCancelArmed}>
+              Cancelar
+            </CancelArmed>
+          )}
+        </Armed>
+      )}
     </Box>
   );
 }
@@ -171,4 +187,30 @@ const Button = styled.button<{ $compact: boolean }>`
     outline: 2px solid ${colors.brandAccentBright};
     outline-offset: 1px;
   }
+
+  /* A fuga armada: a mesma cor do destino que vai aparecer no mapa. */
+  &[aria-pressed="true"] {
+    border-color: ${colors.moveIntent};
+    background: ${colors.moveIntentBg};
+    font-weight: 700;
+  }
+`;
+
+const Armed = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: ${colors.moveIntent};
+`;
+
+const CancelArmed = styled.button`
+  background: none;
+  border: none;
+  padding: 0;
+  color: ${colors.textMuted};
+  font-family: ${fonts.sans};
+  font-size: inherit;
+  text-decoration: underline;
+  cursor: pointer;
 `;

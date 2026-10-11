@@ -56,6 +56,13 @@ describe("editableRolls", () => {
     });
   });
 
+  it("o viés do sistema marca só o movimento da fuga, não a esquiva", () => {
+    const t = target("c", "escape");
+    t.reaction!.systemBias = -1;
+    const by = Object.fromEntries(editableRolls(base({ damageSkill: undefined, targets: [t] })).map((r) => [r.field, r.systemBias]));
+    expect(by).toEqual({ dodge: undefined, moveSpeed: -1 });
+  });
+
   it("nas fechadas a esquiva se chama Reflexo", () => {
     const res = base({ damageSkill: undefined, targets: [target("a", "dodge"), target("b", "closedDodge")] });
     const labels = editableRolls(res).filter((r) => r.field === "dodge").map((r) => r.label);

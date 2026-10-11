@@ -89,6 +89,10 @@ export type TacticalMapStageProps = {
   drawingEnabled?: boolean;
   onExitWallsDrawMode?: () => void;
   onWallClick?: (wall: WallSegment) => void;
+  /** Segurar numa parede (ou clique direito): junta ela aos alvos. Mesmo gesto da peça. */
+  onWallLongPress?: (wall: WallSegment) => void;
+  /** Quais paredes o toque alcança (jogo); ausente = todas. Ver WallsLayer. */
+  isWallTappable?: (wall: WallSegment) => boolean;
   fog?: FogState;
   fogDisabled?: boolean; // true for master / editor
   worldWidth?: number;

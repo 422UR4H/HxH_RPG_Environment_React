@@ -322,7 +322,7 @@ describe("avoidedVerb (W1)", () => {
 
 describe("ResolutionDetails", () => {
   it("mostra acerto, alvo, reação, dano, reações pendentes e falta do motor", () => {
-    render(<ResolutionDetails resolution={res} nameOf={resolutionNameOf} gridKind="square" />);
+    render(<ResolutionDetails resolution={res} nameOf={resolutionNameOf} />);
     expect(screen.getByText(/Accuracy/)).toBeInTheDocument();
     expect(screen.getByText(/6 \+ 8/)).toBeInTheDocument();
     expect(screen.getByText("Hisoka")).toBeInTheDocument();
@@ -333,7 +333,7 @@ describe("ResolutionDetails", () => {
   });
 
   it("sem onOpenReaction, não tem botão nenhum fora de uma fuga que falhou", () => {
-    render(<ResolutionDetails resolution={res} nameOf={resolutionNameOf} gridKind="square" onChooseFallSlot={() => {}} />);
+    render(<ResolutionDetails resolution={res} nameOf={resolutionNameOf} onChooseFallSlot={() => {}} />);
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
@@ -351,29 +351,31 @@ describe("ResolutionDetails", () => {
 
     it("destaca o alvo e o botão manda o targetId", () => {
       const onChoose = vi.fn();
-      render(<ResolutionDetails resolution={failing} nameOf={resolutionNameOf} gridKind="square" onChooseFallSlot={onChoose} />);
+      render(<ResolutionDetails resolution={failing} nameOf={resolutionNameOf} onChooseFallSlot={onChoose} />);
       expect(screen.getByText("Escape falhou — posição final a critério do mestre")).toBeInTheDocument();
       expect(screen.getByText(/fica onde está/i)).toBeInTheDocument();
       fireEvent.click(screen.getByRole("button", { name: "Escolher onde cai" }));
       expect(onChoose).toHaveBeenCalledWith("c2");
     });
 
-    it("mostra o slot já escolhido", () => {
+    it("diz que a escolha já foi feita (marcada no mapa), sem coluna nem linha, e oferece trocar", () => {
       const chosen = escapeRes({ escaped: false, movePassed: false, dodgePassed: true, awaitsMaster: false, landing: [5, 2, 0] });
-      render(<ResolutionDetails resolution={chosen} nameOf={resolutionNameOf} gridKind="square" onChooseFallSlot={() => {}} />);
-      expect(screen.getByText(/cai em coluna 6, linha 3/i)).toBeInTheDocument();
+      render(<ResolutionDetails resolution={chosen} nameOf={resolutionNameOf} onChooseFallSlot={() => {}} />);
+      expect(screen.getByText(/já escolheu onde cai — marcado no mapa/i)).toBeInTheDocument();
+      expect(screen.queryByText(/coluna/i)).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Trocar onde cai" })).toBeInTheDocument();
       expect(screen.queryByText(/fica onde está/i)).not.toBeInTheDocument();
     });
 
     it("uma fuga que escapou não pede escolha", () => {
       const escaped = escapeRes({ escaped: true, movePassed: true, dodgePassed: true, awaitsMaster: false });
-      render(<ResolutionDetails resolution={escaped} nameOf={resolutionNameOf} gridKind="square" onChooseFallSlot={() => {}} />);
+      render(<ResolutionDetails resolution={escaped} nameOf={resolutionNameOf} onChooseFallSlot={() => {}} />);
       expect(screen.queryByText(/Escape falhou/)).not.toBeInTheDocument();
       expect(screen.queryByRole("button")).not.toBeInTheDocument();
     });
 
     it("sem onChooseFallSlot, o destaque fica e o botão não", () => {
-      render(<ResolutionDetails resolution={failing} nameOf={resolutionNameOf} gridKind="square" />);
+      render(<ResolutionDetails resolution={failing} nameOf={resolutionNameOf} />);
       expect(screen.getByText(/Escape falhou/)).toBeInTheDocument();
       expect(screen.queryByRole("button")).not.toBeInTheDocument();
     });
@@ -396,6 +398,72 @@ describe("ResolutionDetails", () => {
     });
   });
 
+  describe("reações esperando: ordem e chave", () => {
+    it("ordena pela chave (maior primeiro), sem velocidade por último, e mostra chave e chegada", () => {
+      const res: ResolutionPayload = {
+        turnId: "t1", isSettled: false, targets: [],
+        pendingReactions: [
+          { reactionId: "r1", actorId: "c1", kind: "dodge", arrival: 1 },
+          { reactionId: "r2", actorId: "c2", kind: "escape", arrival: 2, speed: 9 },
+          { reactionId: "r3", actorId: "c3", kind: "repel", arrival: 3, speed: 14 },
+        ],
+      };
+      render(<ResolutionDetails resolution={res} nameOf={resolutionNameOf} onOpenReaction={vi.fn()} />);
+      const rows = screen.getAllByRole("button", { name: "Dar a palavra" }).map((b) => b.parentElement!.textContent);
+      expect(rows[0]).toMatch(/1º.*chave 14 · chegou em 3º/);
+      expect(rows[1]).toMatch(/2º.*chave 9 · chegou em 2º/);
+      expect(rows[2]).toMatch(/3º.*sem velocidade · chegou em 1º/);
+    });
+  });
+
+  describe("o viés que o sistema aplicou sozinho", () => {
+    it("a reação que trocou a ação da fila diz que rola com desvantagem — esperando e aberta", () => {
+      const res: ResolutionPayload = {
+        turnId: "t1", isSettled: false,
+        targets: [{
+          targetId: "c2", avoided: false, defended: false, dodgeTotal: 11, defenseTotal: 11,
+          rawDamage: 10, defenseApplied: 0, projectedDamage: 10,
+          reaction: { kind: "escape", total: 12, reactionId: "r2", margin: 0, difference: 0, stopsAttack: false, systemBias: -1 },
+        }],
+        pendingReactions: [
+          { reactionId: "r3", actorId: "c3", kind: "repel", arrival: 2, speed: 14, systemBias: -1 },
+          { reactionId: "r4", actorId: "c4", kind: "dodge", arrival: 3 },
+        ],
+      };
+      const onEdit = vi.fn();
+      render(<ResolutionDetails resolution={res} nameOf={resolutionNameOf} onOpenReaction={vi.fn()} onEditAction={onEdit} />);
+      const rows = screen.getAllByRole("button", { name: "Dar a palavra" }).map((b) => b.parentElement!.textContent);
+      expect(rows[0]).toMatch(/desvantagem do sistema — trocou a ação da fila/);
+      expect(rows[1]).not.toMatch(/sistema/);
+      // Aberta: só o movimento da fuga leva a marca — a esquiva não piora.
+      expect(screen.getAllByText("desvantagem do sistema")).toHaveLength(1);
+      fireEvent.click(screen.getByRole("button", { name: /Editar Movimento/ }));
+      expect(screen.getByRole("note")).toHaveTextContent("O sistema já rola esta com Desvantagem");
+      expect(screen.getByRole("note")).toHaveTextContent("Vantagem deixa neutro");
+    });
+  });
+
+  describe("paredes do turno", () => {
+    it("com o turno aberto: quanto cada parede vai perder, e que cai no fechamento", () => {
+      const res: ResolutionPayload = {
+        turnId: "t1", isSettled: false, targets: [],
+        walls: [
+          { wallId: "w1", kind: "attack", effectiveDamage: 4, hp: 6, maxHp: 10, destroyed: false, open: false },
+          { wallId: "w2", kind: "attack", effectiveDamage: 3, hp: 0, maxHp: 3, destroyed: true, open: false },
+          { wallId: "w3", kind: "attack", effectiveDamage: 0, hp: 0, maxHp: 0, destroyed: false, open: false },
+          { wallId: "w4", kind: "interact", effectiveDamage: 0, hp: 10, maxHp: 10, destroyed: false, open: false, failure: "locked" },
+        ],
+      };
+      render(<ResolutionDetails resolution={res} nameOf={(id) => id} />);
+      const block = screen.getByLabelText("Paredes");
+      expect(block).toHaveTextContent("O golpe na parede cai quando o turno fechar.");
+      expect(block).toHaveTextContent("w1: vai perder 4 de vida — fica com 6/10");
+      expect(block).toHaveTextContent("w2: vai perder 3 de vida — fica destruída");
+      expect(block).toHaveTextContent("w3: indestrutível — sem dano");
+      expect(block).toHaveTextContent("w4: trancada — não abriu");
+    });
+  });
+
   describe("dar a palavra (Fase 7, §4.7)", () => {
     const pending: ResolutionPayload = {
       turnId: "t1", isSettled: false, targets: [],
@@ -404,8 +472,8 @@ describe("ResolutionDetails", () => {
 
     it("cada reação esperando tem o botão Dar a palavra, que manda o reactionId", () => {
       const onOpen = vi.fn();
-      render(<ResolutionDetails resolution={pending} nameOf={resolutionNameOf} gridKind="square" onOpenReaction={onOpen} />);
-      expect(screen.getByText("A ordem em que você abre muda o resultado.")).toBeInTheDocument();
+      render(<ResolutionDetails resolution={pending} nameOf={resolutionNameOf} onOpenReaction={onOpen} />);
+      expect(screen.getByText(/A ordem em que você abre é sua e muda o resultado/)).toBeInTheDocument();
       fireEvent.click(screen.getByRole("button", { name: "Dar a palavra" }));
       expect(onOpen).toHaveBeenCalledWith("r1");
     });
@@ -421,7 +489,7 @@ describe("ResolutionDetails", () => {
           { reactionId: "r2", actorId: "c1", kind: "repel" },
         ],
       };
-      render(<ResolutionDetails resolution={two} nameOf={resolutionNameOf} gridKind="square" onOpenReaction={onOpen} />);
+      render(<ResolutionDetails resolution={two} nameOf={resolutionNameOf} onOpenReaction={onOpen} />);
       const [first, second] = screen.getAllByRole("button", { name: "Dar a palavra" });
       fireEvent.click(first);
       fireEvent.click(first);
@@ -433,7 +501,7 @@ describe("ResolutionDetails", () => {
     it("a trava cai quando o cálculo é de outro turno", () => {
       const onOpen = vi.fn();
       const { rerender } = render(
-        <ResolutionDetails resolution={pending} nameOf={resolutionNameOf} gridKind="square" onOpenReaction={onOpen} />,
+        <ResolutionDetails resolution={pending} nameOf={resolutionNameOf} onOpenReaction={onOpen} />,
       );
       fireEvent.click(screen.getByRole("button", { name: "Dar a palavra" }));
       expect(screen.getByRole("button", { name: "Dar a palavra" })).toBeDisabled();
@@ -441,7 +509,7 @@ describe("ResolutionDetails", () => {
         <ResolutionDetails
           resolution={{ ...pending, turnId: "t2" }}
           nameOf={resolutionNameOf}
-          gridKind="square"
+         
           onOpenReaction={onOpen}
         />,
       );
@@ -459,7 +527,7 @@ describe("ResolutionDetails", () => {
     });
 
     it("sem onOpenReaction, nenhum botão", () => {
-      render(<ResolutionDetails resolution={pending} nameOf={resolutionNameOf} gridKind="square" />);
+      render(<ResolutionDetails resolution={pending} nameOf={resolutionNameOf} />);
       expect(screen.queryByRole("button")).not.toBeInTheDocument();
     });
 
@@ -476,7 +544,7 @@ describe("ResolutionDetails", () => {
         targets: [target("b", true), target("a", true), target("c", false)],
       };
       const names = (id: string) => ({ a: "Alfa", b: "Beta", c: "Gama" }[id] ?? id);
-      render(<ResolutionDetails resolution={ordered} nameOf={names} gridKind="square" />);
+      render(<ResolutionDetails resolution={ordered} nameOf={names} />);
       const card = (name: string) => screen.getByText(name).parentElement as HTMLElement;
       expect(within(card("Beta")).getByText(/aberta em 1º/)).toBeInTheDocument();
       expect(within(card("Alfa")).getByText(/aberta em 2º/)).toBeInTheDocument();
@@ -510,7 +578,7 @@ describe("ResolutionDetails", () => {
         reaction: { kind: "repel", total: 17, reactionId: "r1", margin: 2, difference: 2, stopsAttack: true },
       }],
     };
-    render(<ResolutionDetails resolution={avoided} nameOf={resolutionNameOf} gridKind="square" />);
+    render(<ResolutionDetails resolution={avoided} nameOf={resolutionNameOf} />);
     expect(screen.getByText("Hisoka")).toBeInTheDocument();
     expect(screen.getByText(/^aparou ·/)).toBeInTheDocument();
     expect(screen.queryByText(/evitou/)).not.toBeInTheDocument();
@@ -525,7 +593,7 @@ describe("ResolutionDetails", () => {
         reaction: { kind: "nothing", total: 0, reactionId: "r1", margin: 0, difference: 0, stopsAttack: false },
       }],
     };
-    render(<ResolutionDetails resolution={stopped} nameOf={resolutionNameOf} gridKind="square" />);
+    render(<ResolutionDetails resolution={stopped} nameOf={resolutionNameOf} />);
     expect(screen.getByText(/^ficou a salvo \(o golpe já tinha parado\) ·/)).toBeInTheDocument();
     expect(screen.queryByText(/esquivou/)).not.toBeInTheDocument();
   });
@@ -539,13 +607,13 @@ describe("ResolutionDetails", () => {
     };
 
     it("sem onEditAction não há nada de edição", () => {
-      render(<ResolutionDetails resolution={editable} nameOf={resolutionNameOf} gridKind="square" />);
+      render(<ResolutionDetails resolution={editable} nameOf={resolutionNameOf} />);
       expect(screen.queryByRole("button", { name: /Editar/ })).not.toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Grab" })).not.toBeInTheDocument();
     });
 
     it("mostra o resumo em vigor e os botões de cada rolagem editável", () => {
-      render(<ResolutionDetails resolution={editable} nameOf={resolutionNameOf} gridKind="square" onEditAction={() => {}} />);
+      render(<ResolutionDetails resolution={editable} nameOf={resolutionNameOf} onEditAction={() => {}} />);
       expect(screen.getByText("vantagem · −2 · escuridao")).toBeInTheDocument();
       for (const name of ["Editar Acerto", "Editar Dano", "Editar Esquiva de Hisoka", "Editar Defesa padrão de Hisoka"]) {
         expect(screen.getByRole("button", { name })).toBeInTheDocument();
@@ -554,7 +622,7 @@ describe("ResolutionDetails", () => {
 
     it("editar o acerto abre o editor e manda o edit_action da ação", () => {
       const onEdit = vi.fn();
-      render(<ResolutionDetails resolution={editable} nameOf={resolutionNameOf} gridKind="square" onEditAction={onEdit} />);
+      render(<ResolutionDetails resolution={editable} nameOf={resolutionNameOf} onEditAction={onEdit} />);
       fireEvent.click(screen.getByRole("button", { name: "Editar Acerto" }));
       fireEvent.click(screen.getByRole("button", { name: "Desfazer edição" }));
       expect(onEdit).toHaveBeenCalledWith({ conditions: [{ field: "hit" }] });
@@ -563,34 +631,41 @@ describe("ResolutionDetails", () => {
 
     it("editar a defesa padrão manda com o id da reação e sem viés", () => {
       const onEdit = vi.fn();
-      render(<ResolutionDetails resolution={editable} nameOf={resolutionNameOf} gridKind="square" onEditAction={onEdit} />);
+      render(<ResolutionDetails resolution={editable} nameOf={resolutionNameOf} onEditAction={onEdit} />);
       fireEvent.click(screen.getByRole("button", { name: "Editar Defesa padrão de Hisoka" }));
       expect(screen.queryByRole("button", { name: "Vantagem" })).not.toBeInTheDocument();
-      fireEvent.change(screen.getByLabelText("Ajuste"), { target: { value: "3" } });
+      fireEvent.change(screen.getByLabelText("Modificador"), { target: { value: "3" } });
       fireEvent.click(screen.getByRole("button", { name: "Aplicar" }));
       expect(onEdit).toHaveBeenCalledWith({ actionId: "r1", conditions: [{ field: "defense", modifier: 3 }] });
     });
 
-    it("Push/Grab manda damageSkill na hora; o atual não manda nada", () => {
+    it("Push/Grab manda damageSkill na hora; desmarcar o atual tira a perícia do dano (None)", () => {
       const onEdit = vi.fn();
-      render(<ResolutionDetails resolution={editable} nameOf={resolutionNameOf} gridKind="square" onEditAction={onEdit} />);
+      render(<ResolutionDetails resolution={editable} nameOf={resolutionNameOf} onEditAction={onEdit} />);
       expect(screen.getByRole("button", { name: "Push" })).toHaveAttribute("aria-pressed", "true");
-      fireEvent.click(screen.getByRole("button", { name: "Push" }));
-      expect(onEdit).not.toHaveBeenCalled();
       fireEvent.click(screen.getByRole("button", { name: "Grab" }));
-      expect(onEdit).toHaveBeenCalledWith({ damageSkill: "Grab" });
+      expect(onEdit).toHaveBeenLastCalledWith({ damageSkill: "Grab" });
+      fireEvent.click(screen.getByRole("button", { name: "Push" }));
+      expect(onEdit).toHaveBeenLastCalledWith({ damageSkill: "None" });
+    });
+
+    it("sem perícia no dano: nenhum marcado, e o painel diz que é só a arma", () => {
+      render(<ResolutionDetails resolution={{ ...editable, damageSkill: "None" }} nameOf={resolutionNameOf} onEditAction={vi.fn()} />);
+      expect(screen.getByRole("button", { name: "Push" })).toHaveAttribute("aria-pressed", "false");
+      expect(screen.getByRole("button", { name: "Grab" })).toHaveAttribute("aria-pressed", "false");
+      expect(screen.getByText("nenhuma — só a arma")).toBeInTheDocument();
     });
 
     it("sem ataque (sem damageSkill) não há bloco Dano nem acerto editável", () => {
       const noAttack = { ...editable, damageSkill: undefined };
-      render(<ResolutionDetails resolution={noAttack} nameOf={resolutionNameOf} gridKind="square" onEditAction={() => {}} />);
+      render(<ResolutionDetails resolution={noAttack} nameOf={resolutionNameOf} onEditAction={() => {}} />);
       expect(screen.queryByRole("button", { name: "Editar Acerto" })).not.toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Grab" })).not.toBeInTheDocument();
     });
 
     it("o editor fecha quando a rolagem some do cálculo", () => {
       const { rerender } = render(
-        <ResolutionDetails resolution={editable} nameOf={resolutionNameOf} gridKind="square" onEditAction={() => {}} />,
+        <ResolutionDetails resolution={editable} nameOf={resolutionNameOf} onEditAction={() => {}} />,
       );
       fireEvent.click(screen.getByRole("button", { name: "Editar Esquiva de Hisoka" }));
       expect(screen.getByRole("button", { name: "Aplicar" })).toBeInTheDocument();
@@ -598,7 +673,7 @@ describe("ResolutionDetails", () => {
         <ResolutionDetails
           resolution={{ ...editable, targets: [{ ...editable.targets[0], reaction: undefined }] }}
           nameOf={resolutionNameOf}
-          gridKind="square"
+         
           onEditAction={() => {}}
         />,
       );
@@ -607,12 +682,12 @@ describe("ResolutionDetails", () => {
 
     it("o editor fecha quando o turno muda", () => {
       const { rerender } = render(
-        <ResolutionDetails resolution={editable} nameOf={resolutionNameOf} gridKind="square" onEditAction={() => {}} />,
+        <ResolutionDetails resolution={editable} nameOf={resolutionNameOf} onEditAction={() => {}} />,
       );
       fireEvent.click(screen.getByRole("button", { name: "Editar Esquiva de Hisoka" }));
       expect(screen.getByRole("button", { name: "Aplicar" })).toBeInTheDocument();
       rerender(
-        <ResolutionDetails resolution={{ ...editable, turnId: "t2" }} nameOf={resolutionNameOf} gridKind="square" onEditAction={() => {}} />,
+        <ResolutionDetails resolution={{ ...editable, turnId: "t2" }} nameOf={resolutionNameOf} onEditAction={() => {}} />,
       );
       expect(screen.queryByRole("button", { name: "Aplicar" })).not.toBeInTheDocument();
     });
@@ -623,12 +698,12 @@ describe("ResolutionDetails", () => {
         targets: [{ ...editable.targets[0], reaction: { ...editable.targets[0].reaction!, kind } }],
       });
       const { rerender } = render(
-        <ResolutionDetails resolution={withKind("closedDodge")} nameOf={resolutionNameOf} gridKind="square" onEditAction={() => {}} />,
+        <ResolutionDetails resolution={withKind("closedDodge")} nameOf={resolutionNameOf} onEditAction={() => {}} />,
       );
       expect(screen.getByText("Reflexo")).toBeInTheDocument();
       expect(screen.queryByText(/Reflexo\s+\d/)).not.toBeInTheDocument();
       rerender(
-        <ResolutionDetails resolution={withKind("dodge")} nameOf={resolutionNameOf} gridKind="square" onEditAction={() => {}} />,
+        <ResolutionDetails resolution={withKind("dodge")} nameOf={resolutionNameOf} onEditAction={() => {}} />,
       );
       expect(screen.getByText("Esquiva 12")).toBeInTheDocument();
     });
@@ -867,7 +942,7 @@ describe("EventStream", () => {
     };
     render(<EventStream rows={historyRows(history, [], 0, undefined)} nameOf={nameOf} gridKind="square" />);
     expect(screen.getAllByTestId("event-row")[1]).toHaveTextContent(
-      `Turno de Hisoka — atacou Gon, Killua · Gon ${MINUS}8 (caiu em coluna 8, linha 7), Killua ${MINUS}8`,
+      `Turno de Hisoka — atacou Gon, Killua · Gon ${MINUS}8 (a fuga falhou — caiu onde o mestre escolheu), Killua ${MINUS}8`,
     );
   });
 
@@ -914,13 +989,13 @@ describe("EventStream", () => {
       expect.stringContaining("Cena: Taverna"),
       expect.stringContaining("Regime: Disputado"),
       // A master action de dentro do turno vai junto da linha dele.
-      expect.stringMatching(/Turno de Gon.*Mestre: abrir na passagem/),
+      expect.stringMatching(/Turno de Gon.*Mestre: abrir \S+/),
       expect.stringContaining("Mestre moveu Gon para coluna 3, linha 4"),
       // Este leitor só viu a peça sair: o REST já veio sem o destino.
       expect.stringMatching(/Mestre moveu Killua$/),
       expect.stringContaining("Mestre pôs Hisoka em coluna 6, linha 6"),
       expect.stringContaining("Mestre tirou Hisoka do mapa"),
-      expect.stringContaining("Mestre: revelar na passagem"),
+      expect.stringMatching(/Mestre: revelar \S+/),
       expect.stringContaining("Ação do mestre"),
       expect.stringContaining("Fim do round"),
       expect.stringContaining("Cena: Arena"),

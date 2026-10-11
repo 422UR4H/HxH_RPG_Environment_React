@@ -59,6 +59,8 @@ export default function TacticalMapStage({
   drawingEnabled,
   onExitWallsDrawMode,
   onWallClick,
+  onWallLongPress,
+  isWallTappable,
   fog,
   fogDisabled = true,
   worldWidth,
@@ -152,6 +154,8 @@ export default function TacticalMapStage({
           drawingEnabled={drawingEnabled}
           onExitWallsDrawMode={onExitWallsDrawMode}
           onWallClick={onWallClick}
+          onWallLongPress={onWallLongPress}
+          isWallTappable={isWallTappable}
           fog={fog}
           fogDisabled={fogDisabled}
           worldWidth={worldWidth}

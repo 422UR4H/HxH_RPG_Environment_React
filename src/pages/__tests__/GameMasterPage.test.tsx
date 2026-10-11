@@ -19,7 +19,10 @@ const user = userEvent.setup();
 // botão por peça e um botão de slot vazio (R13, mesmo padrão de GamePlayerPage.test.tsx).
 vi.mock("../../features/tactical-map/TacticalMapViewer", () => ({
   default: (props: {
-    map: { pieces: Array<{ id: string; characterId: string }> };
+    map: { pieces: Array<{ id: string; characterId: string }>; walls?: Array<{ id: string }> };
+    onWallClick?: (wall: { id: string }) => void;
+    onWallLongPress?: (wall: { id: string }) => void;
+    isWallTappable?: (wall: { id: string }) => boolean;
     draggablePieceIds?: Set<string>;
     onPieceSelect?: (pieceId: string) => void;
     onPieceLongPress?: (pieceId: string) => void;
@@ -85,6 +88,19 @@ vi.mock("../../features/tactical-map/TacticalMapViewer", () => ({
       <button data-testid="empty-slot" onClick={() => props.onEmptySlotClick?.({ kind: "square", col: 9, row: 9 }, 0, 0)}>
         empty-slot
       </button>
+      {/* Como o WallsLayer: só a parede tocável recebe o toque. */}
+      {(props.map.walls ?? []).map((wall) => (
+        <button
+          key={wall.id}
+          data-testid={`wall-${wall.id}`}
+          data-tappable={String(props.isWallTappable?.(wall) ?? true)}
+          onClick={() => { if (props.isWallTappable?.(wall) ?? true) props.onWallClick?.(wall); }}
+          // Segurar = clique direito, como no WallsLayer.
+          onContextMenu={() => { if (props.isWallTappable?.(wall) ?? true) props.onWallLongPress?.(wall); }}
+        >
+          {wall.id}
+        </button>
+      ))}
     </div>
   ),
 }));
@@ -169,12 +185,12 @@ const piecesFixture = [
  * O tabuleiro da partida chega como o servidor manda em todo registro com peças: num
  * `map_full_state` (F13) — o mapa do REST só dá fundo e grade.
  */
-function openWithServerBoard(ws: FakeWS, pieces: typeof piecesFixture = piecesFixture) {
+function openWithServerBoard(ws: FakeWS, pieces: typeof piecesFixture = piecesFixture, walls: unknown[] = []) {
   act(() => {
     ws.onopen?.();
     ws.emit("map_full_state", {
       pieces: pieces.map((p) => ({ pieceId: p.id, slot: p.coord.slot, characterId: p.characterId, visible: p.visible })),
-      walls: [],
+      walls,
       visiblePolygons: [],
       fogMode: "explored",
     });
@@ -512,6 +528,120 @@ describe("GameMasterPage", () => {
     expect(sent[sent.length - 1]?.payload.actorId).toBe("npc1");
   });
 
+  describe("parede", () => {
+    const wallFixture = (over: Record<string, unknown> = {}) => ({
+      id: "door-1", p1: [0, 0], p2: [1, 0], wallType: "door", material: "wood",
+      move: true, sense: "full", direction: "both", open: false, locked: true,
+      hp: 10, maxHp: 10, resistance: 0, destroyed: false, ...over,
+    });
+
+    it("sem NPC: tocar numa porta abre o card da Ação do Mestre, com a vida, que abre na hora (trancada ou não)", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws, piecesFixture, [wallFixture({ hp: 7 })]);
+
+      act(() => screen.getByTestId("wall-door-1").click());
+      const card = await screen.findByRole("region", { name: "Ação do Mestre" });
+      expect(card).toHaveTextContent("Porta");
+      expect(card).toHaveTextContent("Vida 7/10");
+      expect(card).toHaveTextContent("Fechada, trancada.");
+      act(() => within(card).getByRole("button", { name: "Abrir" }).click());
+
+      expect(ws.sent("enqueue_master_action")).toEqual([{ targetIds: ["door-1"], interact: { kind: "open" } }]);
+      expect(ws.sent("enqueue_action")).toEqual([]);
+
+      act(() => within(card).getByRole("button", { name: "Soltar as paredes" }).click());
+      expect(screen.queryByRole("region", { name: "Ação do Mestre" })).not.toBeInTheDocument();
+    });
+
+    it("sem NPC: toda parede é tocável — a comum ganha Destruir; a destruída mostra que caiu", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws, piecesFixture, [
+        wallFixture({ wallType: "wall", maxHp: 0, hp: 0 }),
+        wallFixture({ id: "wall-2", wallType: "wall", destroyed: true, hp: 0 }),
+      ]);
+      expect(screen.getByTestId("wall-door-1")).toHaveAttribute("data-tappable", "true");
+      expect(screen.getByTestId("wall-wall-2")).toHaveAttribute("data-tappable", "true");
+
+      act(() => screen.getByTestId("wall-door-1").click());
+      const card = await screen.findByRole("region", { name: "Ação do Mestre" });
+      expect(card).toHaveTextContent("Indestrutível");
+      act(() => within(card).getByRole("button", { name: "Destruir" }).click());
+      // Sem volta: um clique errado não derruba — pede confirmação, e Cancelar não manda nada.
+      expect(ws.sent("enqueue_master_action")).toEqual([]);
+      let confirm = screen.getByRole("dialog", { name: "Destruir" });
+      act(() => within(confirm).getByRole("button", { name: "Cancelar" }).click());
+      expect(screen.queryByRole("dialog", { name: "Destruir" })).not.toBeInTheDocument();
+      expect(ws.sent("enqueue_master_action")).toEqual([]);
+      act(() => within(card).getByRole("button", { name: "Destruir" }).click());
+      confirm = screen.getByRole("dialog", { name: "Destruir" });
+      act(() => within(confirm).getByRole("button", { name: "Destruir" }).click());
+      expect(ws.sent("enqueue_master_action")).toEqual([{ targetIds: ["door-1"], interact: { kind: "destroy" } }]);
+
+      act(() => screen.getByTestId("wall-wall-2").click());
+      expect(screen.getByRole("region", { name: "Ação do Mestre" })).toHaveTextContent("Destruída · vida 0/10");
+      expect(within(screen.getByRole("region", { name: "Ação do Mestre" })).queryByRole("button", { name: "Destruir" })).not.toBeInTheDocument();
+    });
+
+    it("sem NPC: segurar junta paredes, e Destruir derruba todas as de pé (o terremoto)", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws, piecesFixture, [
+        wallFixture({ wallType: "wall" }),
+        wallFixture({ id: "wall-2", wallType: "window" }),
+        wallFixture({ id: "wall-3", wallType: "wall", destroyed: true, hp: 0 }),
+      ]);
+      act(() => screen.getByTestId("wall-door-1").click());
+      fireEvent.contextMenu(screen.getByTestId("wall-wall-2"));
+      fireEvent.contextMenu(screen.getByTestId("wall-wall-3"));
+      const card = screen.getByRole("region", { name: "Ação do Mestre" });
+      expect(card).toHaveTextContent("3 paredes");
+      act(() => within(card).getByRole("button", { name: "Destruir 2" }).click());
+      const confirm = screen.getByRole("dialog", { name: "Destruir" });
+      expect(confirm).toHaveTextContent("Destruir 2 paredes?");
+      act(() => within(confirm).getByRole("button", { name: "Destruir" }).click());
+      expect(ws.sent("enqueue_master_action")).toEqual([{ targetIds: ["door-1", "wall-2"], interact: { kind: "destroy" } }]);
+    });
+
+    it("com NPC: a parede vai só ao compositor — a mão do mestre não aparece", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws, piecesFixture, [wallFixture({ locked: false })]);
+
+      act(() => screen.getByTestId("select-actor-npc1").click());
+      act(() => screen.getByTestId("wall-door-1").click());
+      expect(screen.getByRole("radiogroup", { name: "O que fazer" })).toBeInTheDocument();
+      expect(screen.queryByRole("region", { name: "Ação do Mestre" })).not.toBeInTheDocument();
+    });
+
+    it("com NPC: a parede é alvo do compositor e Declarar manda enqueue_action pelo NPC", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws, piecesFixture, [wallFixture({ locked: false })]);
+
+      act(() => screen.getByTestId("select-actor-npc1").click());
+      act(() => screen.getByTestId("wall-door-1").click());
+      act(() => screen.getByRole("button", { name: /^declarar/i }).click());
+
+      const sent = ws.sent("enqueue_action") as Array<Record<string, unknown>>;
+      expect(sent).toHaveLength(1);
+      expect(sent[0]).toMatchObject({ actorId: "npc1", targetId: ["door-1"], interact: { kind: "open" } });
+      expect(ws.sent("enqueue_master_action")).toEqual([]);
+    });
+
+    it("sem NPC: uma porta secreta ainda escondida mostra Revelar", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws, piecesFixture, [wallFixture({ wallType: "secret_door", locked: false })]);
+
+      act(() => screen.getByTestId("wall-door-1").click());
+      const card = await screen.findByRole("region", { name: "Ação do Mestre" });
+      act(() => within(card).getByRole("button", { name: "Revelar" }).click());
+      expect(ws.sent("enqueue_master_action")).toEqual([{ targetIds: ["door-1"], interact: { kind: "reveal" } }]);
+    });
+  });
+
   it("escolhe o NPC pelo painel Agir e tocar de novo o solta", async () => {
     renderMasterPage();
     const ws = await waitForSocket();
@@ -767,7 +897,7 @@ describe("GameMasterPage", () => {
     openWithServerBoard(ws);
 
     await user.click(screen.getAllByRole("button", { name: "Nova cena" })[0]);
-    await user.click(screen.getByRole("radio", { name: "Interpretação" }));
+    await user.click(screen.getByRole("radio", { name: "Roleplay" }));
     await user.type(screen.getByLabelText("Descrição inicial"), "Taverna");
     await user.click(screen.getByRole("button", { name: "Trocar de cena" }));
     expect(ws.sent("change_scene")).toEqual([{ category: "roleplay", briefInitialDescription: "Taverna" }]);
@@ -781,7 +911,7 @@ describe("GameMasterPage", () => {
     openWithServerBoard(ws);
 
     await user.click(screen.getAllByRole("button", { name: "Nova cena" })[0]);
-    await user.click(screen.getByRole("radio", { name: "Interpretação" }));
+    await user.click(screen.getByRole("radio", { name: "Roleplay" }));
     await user.type(screen.getByLabelText("Descrição inicial"), "Taverna");
     await user.click(screen.getByRole("button", { name: "Cancelar" }));
 
@@ -1185,7 +1315,8 @@ describe("GameMasterPage", () => {
 
   describe("F14: o mestre escolhe onde cai a fuga que falhou", () => {
     const mapStub = () => screen.getByTestId("map-stub");
-    const dialog = () => screen.queryByRole("dialog", { name: "Onde cai" });
+    // Sem modal: a confirmação mora no mapa, no lugar da dica (MapPickConfirm).
+    const dialog = () => screen.queryByRole("group", { name: "Confirmar a casa escolhida" });
     const chooseFall = () =>
       act(() => within(screen.getByTestId("queue-open")).getByRole("button", { name: "Escolher onde cai" }).click());
 
@@ -1224,8 +1355,10 @@ describe("GameMasterPage", () => {
       expect(mapStub()).toHaveAttribute("data-has-empty-slot-click", "true");
       expect(screen.getByRole("button", { name: "Arrumar" })).toHaveAttribute("aria-pressed", "false");
 
+      expect(screen.getByText("Toque na casa onde Gon cai.")).toBeInTheDocument();
       act(() => screen.getByTestId("empty-slot").click());
-      expect(dialog()).toHaveTextContent("Gon cai em coluna 10, linha 10?");
+      expect(dialog()).toHaveTextContent("Gon cai na casa marcada.");
+      expect(dialog()).not.toHaveTextContent(/coluna/);
       expect(JSON.parse(mapStub().getAttribute("data-intent-preview") ?? "null")).toEqual({
         from: { kind: "square", col: 1, row: 1 },
         to: { kind: "square", col: 9, row: 9 },
@@ -1337,6 +1470,9 @@ describe("GameMasterPage", () => {
       expect(mapStub()).toHaveAttribute("data-has-empty-slot-click", "true");
       expect(mapStub()).toHaveAttribute("data-selected-piece-id", "piece-npc1");
 
+      // O botão da fuga fica aceso enquanto se escolhe.
+      expect(screen.getAllByRole("button", { name: /^Escapar —/ })[0]).toHaveAttribute("aria-pressed", "true");
+      // O toque já envia, sem confirmar: a reação tem de ser rápida.
       act(() => screen.getByTestId("empty-slot").click());
       expect(ws.sent("attach_reaction")).toEqual([
         expect.objectContaining({ actorId: "npc1", reactToId: "a1", reactionKind: "escape", move: expect.objectContaining({ position: [9, 9, 0] }) }),

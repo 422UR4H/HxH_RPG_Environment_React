@@ -72,8 +72,9 @@ export function useReactionControls({
     [turnId, reactToId, canReact, attachReaction],
   );
 
-  // A fuga precisa da casa: arma a escolha no mapa em vez de enviar (decisão 6 — o toque na
-  // casa envia, sem diálogo). O resto sai na hora.
+  // A fuga precisa da casa: arma a escolha no mapa em vez de enviar. O toque na casa já envia,
+  // sem confirmar — a reação tem de ser rápida, e um toque errado faz parte do jogo. O resto
+  // sai na hora.
   const reactWith = useCallback(
     (actorId: string, kind: ReactionKind, weapon?: string) => {
       if (!turnId || !canReact(actorId)) return;
@@ -121,7 +122,7 @@ export function useReactionControls({
 
   const cancelPick = useCallback(() => setPick(null), []);
 
-  /** `true` quando o toque era da escolha da casa (consumido, o compositor não o vê). */
+  /** `true` quando o toque era da escolha da casa (consumido, o compositor não o vê). Envia. */
   const onSlotForPick = useCallback(
     (slot: SlotCoord): boolean => {
       if (!pickArmed) return false;

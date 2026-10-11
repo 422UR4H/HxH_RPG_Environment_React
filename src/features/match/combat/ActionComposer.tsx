@@ -1,11 +1,13 @@
 import type { CombatCatalogue } from "../../../services/characterSheetsService";
 import type { GridKind } from "../../../types/tacticalMap";
 import {
-  removeTarget, setMoveCategory, setWeapon, toggleAttack, toggleMove,
+  removeTarget, setActKind, setMoveCategory, setWeapon, toggleAct, toggleMove,
 } from "./actionDraft";
-import type { ActionDraft, DraftKind, DraftVerdict, ResolvedDraft } from "./actionDraft";
+import type { ActionDraft, DraftVerdict, ResolvedDraft } from "./actionDraft";
 import type { MoveCategory } from "./combatMessages";
 import { formatSlot, weaponLabel } from "./combatText";
+import { ACT_ICONS, ACT_LABELS, ACT_NOUNS } from "./wallVerbs";
+import type { ActKind } from "./wallVerbs";
 import * as S from "./ActionComposer.styles";
 
 const MOVE_CATEGORIES: Array<{ value: MoveCategory; label: string; hint: string }> = [
@@ -13,23 +15,28 @@ const MOVE_CATEGORIES: Array<{ value: MoveCategory; label: string; hint: string 
   { value: "Shift", label: "Shift", hint: "passo firme — não rola" },
 ];
 
-const DECLARE_LABELS: Record<DraftKind, string> = {
-  move: "Declarar movimento",
-  attack: "Declarar ataque",
-  combined: "Declarar movimento + ataque",
-};
+/** "Declarar movimento", "Declarar ataque", "Declarar movimento + abertura". */
+function declareLabel(verdict: DraftVerdict, kind: ActKind): string {
+  if (!verdict.ready) return "Declarar";
+  if (verdict.kind === "move") return "Declarar movimento";
+  if (verdict.kind === "act") return `Declarar ${ACT_NOUNS[kind]}`;
+  return `Declarar movimento + ${ACT_NOUNS[kind]}`;
+}
 
 const NOT_READY_HINTS: Record<Exclude<DraftVerdict, { ready: true }>["reason"], string> = {
-  empty: "Toque num espaço vazio do mapa para se mover, ou em alguém para atacar.",
+  empty: "Toque num espaço vazio do mapa para se mover, ou em alguém (ou numa parede) para agir.",
   needs_destination: "Toque num espaço do mapa para escolher o destino — ou desligue Mover.",
-  needs_target: "Toque em alguém no mapa para marcar o alvo — ou desligue Atacar.",
+  needs_target: "Toque em alguém ou numa parede para marcar o alvo — ou desligue Atacar.",
+  out_of_reach: "Para abrir, fechar ou arrombar é preciso estar encostado na parede — ligue Mover ou escolha um destino ao lado dela.",
 };
 
 /**
  * O painel de compor uma ação. Mover e Atacar são interruptores independentes — nenhum vem
  * ligado: a ação declarada é o que estiver ligado (só movimento, só ataque, ou os dois numa
  * ação combinada). O mapa liga cada um sozinho: tocar num espaço vazio escolhe o destino,
- * tocar em alguém escolhe o alvo. Sem campo de perícia — o servidor deriva o acerto.
+ * tocar em alguém (ou numa parede) escolhe o alvo. Com parede como alvo, "Atacar" vira o
+ * verbo escolhido no seletor "O que fazer" (Abrir, Fechar, Arrombar…), e as armas só aparecem
+ * no ataque. Sem campo de perícia — o servidor deriva o acerto.
  *
  * Nenhum `isMaster` aqui: a página decide quem pode compor e para qual ator.
  */
@@ -72,14 +79,15 @@ export default function ActionComposer({
   blockedReason?: string;
 }) {
   const move = resolved.move;
-  const attack = resolved.attack;
+  const act = resolved.act;
   const moveOn = move !== undefined;
-  const attackOn = attack !== undefined;
+  const actOn = act !== undefined;
+  const actKind: ActKind = act?.kind ?? "attack";
   const category = move?.category ?? draft.category ?? defaultCategory;
-  const selectedWeapon = attack?.weapon ?? "Fist";
-  const primaryTarget = attack?.targets[0];
+  const selectedWeapon = act?.weapon ?? "Fist";
+  const primaryTarget = act?.targets[0];
   const farTarget =
-    attackOn && primaryTarget && resolved.targetSteps !== undefined && resolved.targetSteps > 1;
+    actOn && primaryTarget && resolved.targetSteps !== undefined && resolved.targetSteps > 1;
 
   return (
     <S.Sheet aria-label="Compor ação">
@@ -117,14 +125,15 @@ export default function ActionComposer({
           <S.ToggleIcon aria-hidden>➜</S.ToggleIcon>
           Mover
         </S.Toggle>
+        {/* A metade que mira: com parede como alvo, mostra o verbo escolhido (Abrir, Fechar…). */}
         <S.Toggle
           type="button"
           $tone="attack"
-          aria-pressed={attackOn}
-          onClick={() => onDraftChange(toggleAttack(draft))}
+          aria-pressed={actOn}
+          onClick={() => onDraftChange(toggleAct(draft))}
         >
-          <S.ToggleIcon aria-hidden>⚔</S.ToggleIcon>
-          Atacar
+          <S.ToggleIcon aria-hidden>{ACT_ICONS[actKind]}</S.ToggleIcon>
+          {ACT_LABELS[actKind]}
         </S.Toggle>
       </S.Toggles>
 
@@ -156,17 +165,18 @@ export default function ActionComposer({
               </S.Segment>
             ))}
           </S.Segmented>
-          {move.auto && (
+          {/* Só o ataque tem "à distância": abrir ou arrombar pede estar encostado. */}
+          {move.auto && actKind === "attack" && (
             <S.Muted>Ataque à distância? Desligue Mover e ataque de onde está.</S.Muted>
           )}
         </S.Section>
       )}
 
-      {attackOn && (
-        <S.Section $tone="attack" aria-label="Ataque">
-          {attack.targets.length > 0 ? (
+      {actOn && (
+        <S.Section $tone="attack" aria-label={actKind === "attack" ? "Ataque" : ACT_LABELS[actKind]}>
+          {act.targets.length > 0 ? (
             <S.Chips aria-label="Alvos">
-              {attack.targets.map((id) => {
+              {act.targets.map((id) => {
                 const label = nameOf(id);
                 return (
                   <S.Chip key={id}>
@@ -183,16 +193,33 @@ export default function ActionComposer({
               })}
             </S.Chips>
           ) : (
-            <S.Hint>Toque em alguém no mapa para marcar o alvo · segure para marcar vários.</S.Hint>
+            <S.Hint>Toque em alguém ou numa parede para marcar o alvo · segure para marcar vários.</S.Hint>
+          )}
+          {act.verbs && (
+            <S.Segmented role="radiogroup" aria-label="O que fazer">
+              {act.verbs.map((v) => (
+                <S.Segment
+                  key={v}
+                  type="button"
+                  role="radio"
+                  aria-checked={actKind === v}
+                  onClick={() => onDraftChange(setActKind(draft, v))}
+                >
+                  {ACT_LABELS[v]}
+                </S.Segment>
+              ))}
+            </S.Segmented>
           )}
           {farTarget && !moveOn && (
             <S.Muted>
               {resolved.approachBlocked
                 ? `Não há espaço livre ao lado de ${nameOf(primaryTarget)} — escolha um destino no mapa, ou ataque à distância.`
-                : `${nameOf(primaryTarget)} está a ${resolved.targetSteps} espaços — ataque à distância.`}
+                : actKind === "attack"
+                  ? `${nameOf(primaryTarget)} está a ${resolved.targetSteps} espaços — ataque à distância.`
+                  : `${nameOf(primaryTarget)} está a ${resolved.targetSteps} espaços — ligue Mover para chegar até lá.`}
             </S.Muted>
           )}
-          {catalogue && (
+          {catalogue && actKind === "attack" && (
             <S.WeaponList role="radiogroup" aria-label="Arma">
               {catalogue.weapons.map((w) => (
                 <S.Weapon
@@ -220,9 +247,9 @@ export default function ActionComposer({
           disabled={!verdict.ready || !canDeclare}
           onClick={onDeclare}
         >
-          {verdict.ready ? DECLARE_LABELS[verdict.kind] : "Declarar"}
+          {declareLabel(verdict, actKind)}
         </S.DeclareButton>
-        {(moveOn || attackOn) && (
+        {(moveOn || actOn) && (
           <S.ClearButton type="button" onClick={() => onDraftChange({ moveMode: "none" })}>
             Limpar
           </S.ClearButton>

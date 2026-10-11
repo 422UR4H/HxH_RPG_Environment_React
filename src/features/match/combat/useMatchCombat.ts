@@ -88,6 +88,7 @@ export function useMatchCombat({
     },
     onNpcAdded: (id) => onNpcAddedRef.current?.(id),
     onMasterActionEnqueued: () => onHistoryChangedRef.current?.(),
+    onMasterActionRecorded: () => onHistoryChangedRef.current?.(),
     onWsError: (e) => {
       if (e.sentType === "enqueue_action") unackedRef.current.shift();
       dispatch({ type: "WS_ERROR", payload: { ...e, at: Date.now() } });
