@@ -2,7 +2,7 @@
 import type { GridKind } from "../../../types/tacticalMap";
 import type { HistoryAction } from "../../../types/matchHistory";
 import type { ResolutionPayload, ResolutionTarget } from "./combatMessages";
-import { REACTION_KIND_LABELS, avoidedVerb, formatSlot, humanWeapon, interactLabel } from "./combatText";
+import { REACTION_KIND_LABELS, avoidedVerb, formatSlot, weaponLabel, interactLabel } from "./combatText";
 
 export type BalloonTone = "neutral" | "success" | "failure";
 
@@ -17,7 +17,7 @@ export function actionMechanicsText(
   const parts: string[] = [];
   if (action.attack) {
     const who = (action.targetId ?? []).map(nameOf).join(", ");
-    parts.push(`Ataca${who ? ` ${who}` : ""}${action.attack.weapon ? ` · ${humanWeapon(action.attack.weapon)}` : ""}`);
+    parts.push(`Ataca${who ? ` ${who}` : ""}${action.attack.weapon ? ` · ${weaponLabel(action.attack.weapon)}` : ""}`);
   }
   if (action.move) {
     const to = action.move.position;
@@ -34,7 +34,7 @@ export function reactionMechanicsText(reaction: HistoryAction, gridKind: GridKin
   // `repel` vem `unknown` no tipo do histórico: só a arma, e só se o servidor a mostrou.
   const weapon = (reaction.repel as { weapon?: string } | undefined)?.weapon;
   if (to) return `${label} → ${formatSlot(to, gridKind)}`;
-  if (weapon) return `${label} · ${humanWeapon(weapon)}`;
+  if (weapon) return `${label} · ${weaponLabel(weapon)}`;
   return label;
 }
 

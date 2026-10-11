@@ -9,6 +9,7 @@ import type { CharacterPrivateSummary } from "../../../types/characterSheet";
 import type { Selection } from "../store/editorStore";
 import { worldToSlot, isSlotInBounds, slotCorners, isSameSlot, slotToWorld, slotInradius, stackOffsetToPx } from "../utils/coords";
 import { createHoldTracker, createRightPressTracker, shouldSelectOnRelease, HOLD_MS } from "../hooks/useHoldGesture";
+import { createTapTracker } from "../hooks/tapGesture";
 import { stackOffsets } from "../utils/stacking";
 import { colors } from "../../../styles/tokens";
 import PieceSprite from "./PieceSprite";
@@ -126,9 +127,9 @@ export default function PiecesLayer({
     slot: SlotCoord;
     clientX: number;
     clientY: number;
-    startClientX: number;
-    startClientY: number;
   } | null>(null);
+  // Decide toque × arraste do slot vazio (mesma fronteira da caixa da parede).
+  const emptySlotTapRef = useRef(createTapTracker());
 
   useEffect(() => {
     const stage = app?.stage;
@@ -365,27 +366,30 @@ export default function PiecesLayer({
   );
 
   // Resolve empty-slot click on pointerup: fires onEmptySlotClick only if the
-  // pointer moved less than CLICK_THRESHOLD pixels since pointerdown (i.e. it was
+  // pointer never left the tap tolerance since pointerdown (i.e. it was
   // a tap/click, not a map pan). This lets the viewport pan normally on drag while
   // still triggering the placement overlay on a clean click.
   useEffect(() => {
     if (!onEmptySlotClick) return;
-    const CLICK_THRESHOLD = 6;
+    const tracker = emptySlotTapRef.current;
     const handleUp = (e: PointerEvent) => {
       const pending = emptySlotPendingRef.current;
       emptySlotPendingRef.current = null;
-      if (!pending) return;
-      const dx = e.clientX - pending.startClientX;
-      const dy = e.clientY - pending.startClientY;
-      if (Math.hypot(dx, dy) <= CLICK_THRESHOLD) {
-        onEmptySlotClick(pending.slot, pending.clientX, pending.clientY);
-      }
+      const isTap = tracker.up(e);
+      if (!pending || !isTap) return;
+      onEmptySlotClick(pending.slot, pending.clientX, pending.clientY);
     };
-    const handleCancel = () => { emptySlotPendingRef.current = null; };
+    const handleMove = (e: PointerEvent) => tracker.move(e);
+    const handleCancel = () => {
+      tracker.cancel();
+      emptySlotPendingRef.current = null;
+    };
     window.addEventListener("pointerup", handleUp);
+    window.addEventListener("pointermove", handleMove);
     window.addEventListener("pointercancel", handleCancel);
     return () => {
       window.removeEventListener("pointerup", handleUp);
+      window.removeEventListener("pointermove", handleMove);
       window.removeEventListener("pointercancel", handleCancel);
     };
   }, [onEmptySlotClick]);
@@ -487,7 +491,8 @@ export default function PiecesLayer({
             const world = vp.toWorld(e.global.x, e.global.y);
             const slot = worldToSlot(world, map.grid);
             if (isSlotInBounds(slot, map.grid)) {
-              emptySlotPendingRef.current = { slot, clientX, clientY, startClientX: clientX, startClientY: clientY };
+              emptySlotPendingRef.current = { slot, clientX, clientY };
+              emptySlotTapRef.current.down({ pointerId: e.pointerId, clientX, clientY, button: e.button });
             }
           }
         }

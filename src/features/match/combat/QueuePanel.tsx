@@ -1,50 +1,35 @@
-import { useState } from "react";
 import styled from "styled-components";
 import { colors, fonts } from "../../../styles/tokens";
 import type { GridKind } from "../../../types/tacticalMap";
-import type { Bar, BarsPayload, EditActionPayload, QueuedAction, QueuedActionDetail, ResolutionPayload } from "./combatMessages";
-import { BAR_ICONS, BAR_LABELS, formatSlot, humanWeapon } from "./combatText";
+import type { Bar, BarsPayload, EditActionPayload, QueuedAction, QueuedActionDetail, ResolutionPayload, RoundMode } from "./combatMessages";
+import { BAR_ICONS, BAR_LABELS, costLabel, formatSlot, weaponLabel } from "./combatText";
+import { orderQueue } from "./queueOrder";
 import ResolutionDetails from "./ResolutionDetails";
-
-const sameBars = (a: readonly Bar[], b: readonly Bar[]) => [...a].sort().join(",") === [...b].sort().join(",");
-
-/**
- * A primeira entrada da ordem geral com o mesmo ator E as mesmas barras desta ação (T13) —
- * `bars_updated.order` não carrega identidade de ação, então é assim que o card acha "a
- * chave desta ação" sem o servidor precisar mandar mais nada.
- */
-function orderKeyFor(action: Pick<QueuedAction, "actorId" | "bars">, order: BarsPayload["order"]): number | undefined {
-  return order.find((o) => o.actorId === action.actorId && sameBars(o.bars, action.bars))?.key;
-}
 
 /**
  * O detalhe de uma ação (T13/F1) — tudo que a declaração carrega, no nível Full que só o
  * mestre recebe. Sem declaração (servidor antigo), quem chama nem monta este componente.
- * `bars` falta no card em andamento depois de uma reconexão (`openQueued` não volta): aí
- * não há como achar a chave nem dizer o que cobra, e as duas linhas somem.
+ * `orderKey` é a chave da entrada da ordem que `orderQueue` casou com ESTA ação (a em
+ * andamento já saiu da ordem: não tem). `bars` falta no card em andamento depois de uma
+ * reconexão (`openQueued` não volta): aí não há o que ela cobra, e a linha some.
  */
 function QueueRowDetails({
-  id,
-  actorId,
   bars,
   detail,
-  order,
+  orderKey,
   gridKind,
   nameOf,
 }: {
-  id?: string;
-  actorId: string;
   bars?: Bar[];
   detail: QueuedActionDetail;
-  order: BarsPayload["order"];
+  orderKey?: number;
   gridKind: GridKind;
   nameOf: (characterId: string) => string;
 }) {
-  const key = bars ? orderKeyFor({ actorId, bars }, order) : undefined;
   return (
-    <Details id={id} aria-label="Detalhes da ação">
+    <Details aria-label="Detalhes da ação">
       {!!detail.targetId?.length && <DetailLine>Alvos: {detail.targetId.map(nameOf).join(", ")}</DetailLine>}
-      {detail.attack?.weapon && <DetailLine>Arma: {humanWeapon(detail.attack.weapon)}</DetailLine>}
+      {detail.attack?.weapon && <DetailLine>Arma: {weaponLabel(detail.attack.weapon)}</DetailLine>}
       {detail.move && (
         <DetailLine>
           Movimento: {detail.move.category}
@@ -66,23 +51,25 @@ function QueueRowDetails({
           {detail.move.speed.result !== undefined && ` = ${detail.move.speed.result}`}
         </DetailLine>
       )}
-      {key !== undefined && <DetailLine>Ordem geral: chave {key}</DetailLine>}
-      {!!bars?.length && <DetailLine>Cobra: {bars.map((b) => BAR_LABELS[b]).join(" + ")}</DetailLine>}
+      {orderKey !== undefined && <DetailLine>Ordem geral: chave {orderKey}</DetailLine>}
+      {!!bars?.length && <DetailLine>Custo: {costLabel(bars)}</DetailLine>}
     </Details>
   );
 }
 
 /**
- * A fila secreta — só o mestre recebe. Em ordem de chegada (a ordem de EXECUÇÃO é a barra
- * geral). Mostra também, no topo, a ação em andamento (`open`) — o turno aberto tirou essa
- * linha da fila de verdade, mas o mestre ainda precisa vê-la, com a declaração (I1) e o
- * cálculo que só ele recebe (F7). Cada linha da fila é expansível (T13/F1): com `action.action` (B1), "Detalhes"
- * mostra a declaração inteira; sem ele (servidor antigo), a linha fica como sempre foi.
+ * A fila secreta — só o mestre recebe. Na ordem em que as ações vão abrir (`orderQueue`, a
+ * partir de `bars_updated.order`); o que não cabe na rodada vai ao fim, marcado. Mostra
+ * também, no topo, a ação em andamento (`open`) — o turno aberto tirou essa linha da fila de
+ * verdade, mas o mestre ainda precisa vê-la, com a declaração (I1) e o cálculo que só ele
+ * recebe (F7). Cada linha da fila mostra sempre a declaração inteira (T13/F1) quando
+ * `action.action` (B1) vem; sem ele (servidor antigo), a linha fica como sempre foi.
  */
 export default function QueuePanel({
   queue,
   open,
   order,
+  mode,
   gridKind,
   nameOf,
   onPull,
@@ -93,8 +80,10 @@ export default function QueuePanel({
   queue: QueuedAction[];
   /** A ação do turno aberto — já não está em `queue`, mas continua na tela, marcada. */
   open?: { actorId: string; bars?: Bar[]; action?: QueuedActionDetail; resolution: ResolutionPayload | null };
-  /** `bars_updated.order` — para achar a chave desta ação na ordem geral (ver `orderKeyFor`). */
-  order: BarsPayload["order"];
+  /** `bars_updated.order`; undefined antes do primeiro `bars_updated` (ver `orderQueue`). */
+  order?: BarsPayload["order"];
+  /** O regime: no Race, ordem vazia com fila cheia quer dizer que ninguém paga. */
+  mode?: RoundMode | "";
   gridKind: GridKind;
   nameOf: (characterId: string) => string;
   onPull: (actionId: string) => void;
@@ -105,15 +94,6 @@ export default function QueuePanel({
   /** Fase 8: repassado ao cálculo do card em andamento. */
   onEditAction?: (payload: EditActionPayload) => void;
 }) {
-  const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
-  const toggle = (actionId: string) =>
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(actionId)) next.delete(actionId);
-      else next.add(actionId);
-      return next;
-    });
-
   return (
     <Panel aria-label="Fila">
       <Title>Fila de ações</Title>
@@ -136,10 +116,8 @@ export default function QueuePanel({
               </Info>
               {open.action && (
                 <QueueRowDetails
-                  actorId={open.actorId}
                   bars={open.bars}
                   detail={open.action}
-                  order={order}
                   gridKind={gridKind}
                   nameOf={nameOf}
                 />
@@ -156,10 +134,8 @@ export default function QueuePanel({
               )}
             </OpenRow>
           )}
-          {queue.map((action) => {
+          {orderQueue(queue, order, mode).map(({ action, inOrder, key }) => {
             const detail = action.action;
-            const isExpanded = expanded.has(action.actionId);
-            const detailsId = `queue-details-${action.actionId}`;
             return (
               <Row key={action.actionId} data-testid="queue-row">
                 <RowHeader>
@@ -169,29 +145,18 @@ export default function QueuePanel({
                       <Bars title={action.bars.map((b) => BAR_LABELS[b]).join(" + ")}>
                         {action.bars.map((b) => BAR_ICONS[b]).join("")}
                       </Bars>
+                      {!inOrder && <NextRoundBadge title="Não cabe mais nesta rodada; abre na próxima">próxima rodada</NextRoundBadge>}
                     </Name>
                   </Info>
-                  {detail && (
-                    <DetailsButton
-                      type="button"
-                      aria-expanded={isExpanded}
-                      aria-controls={detailsId}
-                      onClick={() => toggle(action.actionId)}
-                    >
-                      Detalhes
-                    </DetailsButton>
-                  )}
                   <PullButton type="button" onClick={() => onPull(action.actionId)} title="Abrir esta ação agora, fora da ordem">
                     Abrir agora
                   </PullButton>
                 </RowHeader>
-                {isExpanded && detail && (
+                {detail && (
                   <QueueRowDetails
-                    id={detailsId}
-                    actorId={action.actorId}
                     bars={action.bars}
                     detail={detail}
-                    order={order}
+                    orderKey={key}
                     gridKind={gridKind}
                     nameOf={nameOf}
                   />
@@ -273,6 +238,10 @@ const OpenBadge = styled.span`
   color: ${colors.pieceActiveTurn};
 `;
 
+const NextRoundBadge = styled(OpenBadge)`
+  color: ${colors.textPlaceholderStrong};
+`;
+
 const Info = styled.div`
   flex: 1;
   min-width: 0;
@@ -297,19 +266,6 @@ const PullButton = styled.button`
   font-weight: 600;
   padding: 6px 10px;
   border: 1px solid ${colors.brandAccent};
-  border-radius: 6px;
-  cursor: pointer;
-  background: transparent;
-  color: ${colors.textPrimary};
-`;
-
-const DetailsButton = styled.button`
-  flex-shrink: 0;
-  font-family: ${fonts.sans};
-  font-size: 12px;
-  font-weight: 600;
-  padding: 6px 10px;
-  border: 1px solid ${colors.textPlaceholderStrong};
   border-radius: 6px;
   cursor: pointer;
   background: transparent;

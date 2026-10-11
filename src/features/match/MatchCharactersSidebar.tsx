@@ -1,4 +1,5 @@
 // src/features/match/MatchCharactersSidebar.tsx
+import type { ReactNode } from "react";
 import type { Enrollment, Participant } from "../../types/match";
 import CharactersSidebar from "../../components/organisms/CharactersSidebar";
 import CharacterSidebarItem from "../../components/molecules/CharacterSidebarItem";
@@ -15,6 +16,10 @@ interface MatchCharactersSidebarProps {
   onReject: (enrollmentId: string) => void;
   onSelectCharacterSheet: (sheetUuid: string) => void;
   ownPlayerUuid?: string;
+  /** Cards na largura toda do painel (a aba Personagens da mesa). */
+  fluid?: boolean;
+  /** Depois dos cards, dentro da lista (ex.: "Adicionar à partida" do mestre). */
+  footer?: ReactNode;
 }
 
 export default function MatchCharactersSidebar({
@@ -27,10 +32,14 @@ export default function MatchCharactersSidebar({
   onReject,
   onSelectCharacterSheet,
   ownPlayerUuid,
+  fluid,
+  footer,
 }: MatchCharactersSidebarProps) {
   if (!gameStarted) {
     return (
       <CharactersSidebar
+        fluid={fluid}
+        footer={footer}
         items={enrollments}
         renderItem={(enrollment) => (
           <EnrollmentSidebarItem
@@ -49,6 +58,8 @@ export default function MatchCharactersSidebar({
 
   return (
     <CharactersSidebar
+      fluid={fluid}
+      footer={footer}
       items={participants}
       renderItem={(participant) => (
         <CharacterSidebarItem

@@ -9,7 +9,8 @@ import { colors } from "../../styles/tokens";
 export type { IntentPreview } from "./utils/intentGeometry";
 
 const toPixiColor = (hex: string) => parseInt(hex.replace("#", ""), 16);
-const MOVE_COLOR = toPixiColor(colors.pieceGhost);
+const MOVE_COLOR = toPixiColor(colors.moveIntent);
+const OUTLINE_COLOR = toPixiColor(colors.intentOutline);
 const ATTACK_COLOR = toPixiColor(colors.pieceAttackIntent);
 
 type XY = { x: number; y: number };
@@ -44,6 +45,24 @@ function arrowHead(g: PixiGraphics, arrow: Arrow) {
 }
 
 /**
+ * Traço de movimento em duas passadas: primeiro o contorno escuro (mais largo, `alpha` fixo),
+ * depois a cor — assim a linha azul lê sobre grama, água ou piso claro. `draw` redesenha o
+ * mesmo caminho a cada passada. Preenchimentos não passam por aqui (não levam contorno).
+ */
+function strokeTwice(
+  g: PixiGraphics,
+  draw: () => void,
+  style: { color: number; width: number; alpha: number },
+) {
+  g.setStrokeStyle({ color: OUTLINE_COLOR, width: style.width + 2, alpha: 0.55 });
+  draw();
+  g.stroke();
+  g.setStrokeStyle(style);
+  draw();
+  g.stroke();
+}
+
+/**
  * A intenção no mapa: o que está sendo composto (destino destacado, token tracejado, seta;
  * linha até cada alvo) e os movimentos já declarados que ainda não aconteceram (token
  * translúcido + seta). Nunca intercepta ponteiro — é só desenho; a geometria vem de
@@ -69,11 +88,16 @@ export default function IntentLayer({
         g.circle(ghost.center.x, ghost.center.y, ghost.radius);
         g.fill();
         if (ghost.arrow) {
-          g.setStrokeStyle({ color: MOVE_COLOR, width: 2.5, alpha: 0.7 });
-          g.moveTo(ghost.arrow.from.x, ghost.arrow.from.y);
-          g.lineTo(ghost.arrow.to.x, ghost.arrow.to.y);
-          arrowHead(g, ghost.arrow);
-          g.stroke();
+          const arrow = ghost.arrow;
+          strokeTwice(
+            g,
+            () => {
+              g.moveTo(arrow.from.x, arrow.from.y);
+              g.lineTo(arrow.to.x, arrow.to.y);
+              arrowHead(g, arrow);
+            },
+            { color: MOVE_COLOR, width: 2.5, alpha: 0.7 },
+          );
         }
       }
 
@@ -84,19 +108,31 @@ export default function IntentLayer({
         for (let i = 1; i < dest.corners.length; i++) g.lineTo(dest.corners[i].x, dest.corners[i].y);
         g.closePath();
         g.fill();
-        g.setStrokeStyle({ color: MOVE_COLOR, width: 2, alpha: 0.95 });
-        g.moveTo(dest.corners[0].x, dest.corners[0].y);
-        for (let i = 1; i < dest.corners.length; i++) g.lineTo(dest.corners[i].x, dest.corners[i].y);
-        g.closePath();
-        g.stroke();
+        strokeTwice(
+          g,
+          () => {
+            g.moveTo(dest.corners[0].x, dest.corners[0].y);
+            for (let i = 1; i < dest.corners.length; i++) g.lineTo(dest.corners[i].x, dest.corners[i].y);
+            g.closePath();
+          },
+          { color: MOVE_COLOR, width: 2, alpha: 0.95 },
+        );
 
-        g.setStrokeStyle({ color: MOVE_COLOR, width: 2.5, alpha: 0.95 });
-        dashedCircle(g, dest.center, dest.radius);
-        g.stroke();
-        if (dest.arrow) {
-          dashedLine(g, dest.arrow.from, dest.arrow.to);
-          arrowHead(g, dest.arrow);
-          g.stroke();
+        strokeTwice(g, () => dashedCircle(g, dest.center, dest.radius), {
+          color: MOVE_COLOR,
+          width: 2.5,
+          alpha: 0.95,
+        });
+        const destArrow = dest.arrow;
+        if (destArrow) {
+          strokeTwice(
+            g,
+            () => {
+              dashedLine(g, destArrow.from, destArrow.to);
+              arrowHead(g, destArrow);
+            },
+            { color: MOVE_COLOR, width: 2.5, alpha: 0.95 },
+          );
         }
       }
 

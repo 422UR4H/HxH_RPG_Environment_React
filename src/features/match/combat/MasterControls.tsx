@@ -2,6 +2,7 @@
 // do NPC por quem agir e o painel de arrumar o tabuleiro. Nenhum pergunta "sou mestre?" — a página é que decide montá-los.
 import { useState } from "react";
 import styled, { css } from "styled-components";
+import Tooltip from "../../../components/ions/Tooltip";
 import { colors, fonts } from "../../../styles/tokens";
 import { media } from "../../../styles/breakpoints";
 import type { Participant } from "../../../types/match";
@@ -45,6 +46,8 @@ export function RegencyControls({
   canCloseTurn,
   onNewScene,
   canChangeScene,
+  queueLength,
+  orderLength,
 }: {
   mode: RoundMode | "";
   onModeChange: (mode: RoundMode) => void;
@@ -53,7 +56,14 @@ export function RegencyControls({
   canCloseTurn: boolean;
   onNewScene: () => void;
   canChangeScene: boolean;
+  queueLength: number;
+  /** Tamanho da ordem da Corrida (`bars.order`). */
+  orderLength: number;
 }) {
+  // Na Corrida o servidor encerra a rodada quando abrir a próxima não acha quem pague
+  // (`bars_updated.order` vazio): este botão é como o mestre a encerra, nunca desabilita.
+  const endsRound = mode === "Race" && orderLength === 0;
+  const empty = !endsRound && queueLength === 0;
   return (
     <Regency>
       <RoundModeSwitch mode={mode} onChange={onModeChange} placement="topbar" />
@@ -68,9 +78,12 @@ export function RegencyControls({
       >
         Nova cena
       </NewSceneButton>
-      <PrimaryButton type="button" onClick={onOpenNext}>
-        Abrir próxima
-      </PrimaryButton>
+      {/* aria-disabled (e não disabled): o botão segue focável e o hover/foco mostram o porquê. */}
+      <Tooltip label="A fila de ações está vazia" enabled={empty}>
+        <PrimaryButton type="button" aria-disabled={empty || undefined} onClick={empty ? undefined : onOpenNext}>
+          {endsRound ? "Encerrar rodada" : "Abrir próxima"}
+        </PrimaryButton>
+      </Tooltip>
       <SmallButton type="button" onClick={onCloseTurn} disabled={!canCloseTurn}>
         Fechar turno
       </SmallButton>
@@ -93,7 +106,7 @@ export function NpcPicker({
       <PanelTitle>Agir por</PanelTitle>
       {npcs.length === 0 ? (
         <PanelHint>
-          Nenhum NPC nesta partida. Ponha um NPC no mapa ou escolha abaixo.
+          Nenhum NPC nesta partida. Ponha um NPC no mapa ou em Personagens → Adicionar à partida.
         </PanelHint>
       ) : (
         <PickerList>
@@ -117,7 +130,7 @@ export function NpcPicker({
 }
 
 /**
- * Pôr na partida um NPC da campanha que ainda não está nela (`add_npc`). Ele vira
+ * Adiciona à partida um NPC da campanha que ainda não está nela (`add_npc`). Ele vira
  * participante quando `npc_added` chegar e o REST for rebuscado.
  */
 export function AddNpcPicker({
@@ -130,20 +143,18 @@ export function AddNpcPicker({
   const [chosen, setChosen] = useState("");
   if (candidates.length === 0) return null;
   return (
-    <Picker>
-      <PanelTitle as="label" htmlFor="add-npc-select">Pôr na partida</PanelTitle>
-      <AddRow>
-        <NpcSelect id="add-npc-select" value={chosen} onChange={(e) => setChosen(e.target.value)}>
-          <option value="">Escolha um NPC da campanha</option>
-          {candidates.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </NpcSelect>
-        <SmallButton type="button" disabled={!chosen} onClick={() => { onAdd(chosen); setChosen(""); }}>
-          Pôr
-        </SmallButton>
-      </AddRow>
-    </Picker>
+    <AddBlock>
+      <PanelTitle as="label" htmlFor="add-npc-select">Adicionar à partida</PanelTitle>
+      <NpcSelect id="add-npc-select" value={chosen} onChange={(e) => setChosen(e.target.value)}>
+        <option value="">Escolha um NPC da campanha</option>
+        {candidates.map((c) => (
+          <option key={c.id} value={c.id}>{c.name}</option>
+        ))}
+      </NpcSelect>
+      <SmallButton type="button" disabled={!chosen} onClick={() => { onAdd(chosen); setChosen(""); }}>
+        Adicionar
+      </SmallButton>
+    </AddBlock>
   );
 }
 
@@ -199,13 +210,15 @@ export function ArrangePanel({
   );
 }
 
-const AddRow = styled.div`
+/* Mora dentro da lista de cards (que já tem as margens): sem recuo lateral próprio. */
+const AddBlock = styled.section`
   display: flex;
+  flex-direction: column;
   gap: 6px;
 `;
 
 const NpcSelect = styled.select`
-  flex: 1;
+  width: 100%;
   min-width: 0;
   background: ${colors.surfaceInput};
   color: ${colors.textPrimary};
@@ -277,6 +290,11 @@ const ModeButton = styled.button`
 const PrimaryButton = styled(SmallButton)`
   border-color: ${colors.brandAccentBright};
   background: ${colors.brandAccent};
+
+  &[aria-disabled="true"] {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
 `;
 
 /* BF5: some da topbar abaixo de tabletUp — o painel da Fila (PanelSection) já tem o dela. */

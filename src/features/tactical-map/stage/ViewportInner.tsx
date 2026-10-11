@@ -206,6 +206,8 @@ export default function ViewportInner({
   // pan can skip starting when a piece was the actual target.
   const pieceDragActiveRef = useRef(false);
   const isPanningRef = useRef(false);
+  // O pan só começa no próximo quadro; se o dedo/botão já subiu até lá, não começa.
+  const pointerHeldRef = useRef(false);
   const panStartClientRef = useRef({ x: 0, y: 0 });
   const panStartVpRef = useRef({ x: 0, y: 0 });
 
@@ -213,15 +215,14 @@ export default function ViewportInner({
     const onWindowDown = (e: PointerEvent) => {
       const canvas = app?.renderer ? app.canvas : null;
       if (!canvas || placingNpcId || e.button !== 0) return;
-      const rect = canvas.getBoundingClientRect();
-      if (
-        e.clientX < rect.left || e.clientX > rect.right ||
-        e.clientY < rect.top  || e.clientY > rect.bottom
-      ) return;
+      // Só o alvo ser o canvas conta: um card, a aba Histórico ou a camada HTML por cima
+      // recebem o toque, e o retângulo sozinho começava pan por baixo deles.
+      if (e.target !== canvas) return;
       const vp = vpRef.current;
       if (!vp) return;
       const snapX = e.clientX;
       const snapY = e.clientY;
+      pointerHeldRef.current = true;
       requestAnimationFrame(() => {
         if (pieceDragActiveRef.current) {
           pieceDragActiveRef.current = false;
@@ -233,6 +234,9 @@ export default function ViewportInner({
         if (bgInteractive && bgDragState.current) return;
         // Suppress pan only while a wall is being drawn; clicks outside snap area still pan.
         if (wallGestureActiveRef.current) return;
+        // Um toque rápido (soltou antes deste quadro) deixava o pan ligado: no toque não
+        // há hover para desligá-lo, e o toque seguinte fazia o mapa pular.
+        if (!pointerHeldRef.current) return;
         isPanningRef.current = true;
         panStartClientRef.current = { x: snapX, y: snapY };
         panStartVpRef.current = { x: vp.x, y: vp.y };
@@ -253,6 +257,9 @@ export default function ViewportInner({
         return;
       }
       if (!isPanningRef.current) return;
+      // Um pointerup perdido (arraste nativo, soltar fora da janela) deixava o mapa
+      // seguindo o mouse: sem o botão principal pressionado, o pan acabou.
+      if ((e.buttons & 1) === 0) { isPanningRef.current = false; return; }
       const vp = vpRef.current;
       if (!vp) return;
       userMovedRef.current = true;
@@ -261,6 +268,7 @@ export default function ViewportInner({
     };
 
     const onWindowUp = () => {
+      pointerHeldRef.current = false;
       isPanningRef.current = false;
       const wasBgDrag = !!bgDragState.current;
       bgDragState.current = null;

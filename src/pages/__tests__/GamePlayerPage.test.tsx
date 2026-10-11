@@ -409,6 +409,28 @@ describe("GamePlayerPage", () => {
       return calls;
     };
 
+    it("cancelar: Cancelar → confirmar envia cancel_action e a linha só some com o action_cancelled", async () => {
+      renderPlayerPage();
+      const ws = await waitForSocket();
+      act(() => ws.onopen?.());
+      board(ws);
+      await declare(ws, attackC2, "action-1");
+      expect(screen.getAllByTestId("declared-row")).toHaveLength(1);
+
+      // A linha mora no Histórico, atrás do painel recolhido.
+      act(() => screen.getByRole("button", { name: "Ver histórico" }).click());
+      await user.click(await screen.findByRole("button", { name: "Cancelar" }));
+      await user.click(await screen.findByRole("button", { name: "Cancelar ação" }));
+
+      expect(ws.sent("cancel_action")).toHaveLength(1);
+      expect(ws.sent("cancel_action")[0]).toEqual({ actionId: "action-1" });
+      // Sem estado otimista: a linha espera a confirmação do servidor.
+      expect(screen.getAllByTestId("declared-row")).toHaveLength(1);
+
+      act(() => ws.emit("action_cancelled", { actionId: "action-1" }));
+      await waitFor(() => expect(screen.queryAllByTestId("declared-row")).toHaveLength(0));
+    });
+
     it("perdida de verdade: aviso, o rascunho volta e nada é reenviado", async () => {
       renderPlayerPage();
       const ws = await waitForSocket();
@@ -842,7 +864,8 @@ describe("GamePlayerPage", () => {
       ws.emit("character_hp_changed", { characterId: "c1", hp: 7, maxHp: 30, damage: 3 });
     });
     const sheet = screen.getByTestId("match-sheet");
-    expect(await within(sheet).findByText(/7\/30/)).toBeInTheDocument();
+    // a barra repete o texto em duas camadas (clara e escura recortada)
+    expect((await within(sheet).findAllByText(/7\/30/)).length).toBeGreaterThan(0);
   });
 
   // F4: a aba Histórico vem do REST; cada turn_closed invalida e rebusca a mesma query.

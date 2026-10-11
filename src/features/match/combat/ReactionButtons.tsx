@@ -105,7 +105,8 @@ export default function ReactionButtons({
             key={b}
             type="button"
             $compact={!!compact}
-            aria-label={`${REACTION_BUTTON_LABELS[b]} — segure para configurar`}
+            // Repelir sempre abre a caixa (a arma muda o resultado): o toque já configura.
+            aria-label={`${REACTION_BUTTON_LABELS[b]} — ${b === "repel" ? "abre a configuração" : "segure para configurar"}`}
             onPointerDown={handlePointerDown(b)}
             onPointerMove={(e) => tracker.move(e.clientX, e.clientY)}
             onPointerUp={handlePointerUp(b)}

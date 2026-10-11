@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { PointerEvent, ReactNode } from "react";
 import styled from "styled-components";
 import { media } from "../../styles/breakpoints";
 import { colors, fonts } from "../../styles/tokens";
@@ -13,6 +13,11 @@ type Props = {
   asideOpen?: boolean;
   /** O painel mostra algo largo (a ficha): a coluna alarga a partir de `railUp`. */
   panelWide?: boolean;
+  /** O conteúdo do painel não pede toque no mapa: abaixo de railUp, um véu cobre o palco e o toque nele fecha o painel. */
+  panelDismissible?: boolean;
+  onDismissPanel?: () => void;
+  /** Abaixo de asideUp, com a gaveta aberta, um véu cobre o resto e o toque nele a fecha. */
+  onDismissAside?: () => void;
 };
 
 /** Altura do rail quando ele deita e vira rodapé (abaixo de `railUp`). */
@@ -24,7 +29,10 @@ export const RAIL_BAR_HEIGHT = 56;
 // barra geral e do botão de enquadrar (30).
 // Sem isso a barra geral fica desenhada por cima da gaveta e esconde as abas Histórico/
 // Personagens quando ela está aberta em telas estreitas.
+// Os véus (painel e gaveta, `SCRIM_Z_INDEX`) ficam entre os dois: acima dos avisos do palco
+// (50) — o toque fora de uma folha aberta não pode cair num aviso — e abaixo da gaveta (60).
 const ASIDE_DRAWER_Z_INDEX = 60;
+const SCRIM_Z_INDEX = 55;
 
 /**
  * As cinco zonas da partida. O template decide ONDE cada zona aparece em cada largura; a
@@ -32,9 +40,12 @@ const ASIDE_DRAWER_Z_INDEX = 60;
  *
  * - Abaixo de `railUp` (celular, tablet em pé) é uma coluna: mapa, painel (quando aberto)
  *   e o rail deitado no rodapé. O painel EMPURRA o mapa em vez de cobri-lo — quem compõe
- *   uma ação precisa tocar no mapa com o painel aberto.
+ *   uma ação precisa tocar no mapa com o painel aberto. Quando o conteúdo NÃO pede toque
+ *   no mapa (`panelDismissible`), o painel também vira modal: um véu cobre o palco e tocar
+ *   nele fecha o painel sem selecionar nada.
  * - A partir de `railUp` o rail fica em pé à esquerda e o painel vira coluna ao lado dele.
- * - O `aside` é gaveta sobre o mapa até `asideUp`, e coluna a partir dali.
+ * - O `aside` é gaveta sobre o mapa até `asideUp` (com véu: tocar fora a fecha), e coluna
+ *   a partir dali.
  *
  * O rail e o rodapé são o MESMO componente: quem deita o rail é o CSS, não um ramo de
  * JavaScript. O `stage` nunca colapsa — é a única faixa flexível.
@@ -48,12 +59,20 @@ export default function MatchStageTemplate({
   panelOpen = true,
   asideOpen = true,
   panelWide = false,
+  panelDismissible = false,
+  onDismissPanel,
+  onDismissAside,
 }: Props) {
   return (
     <Shell>
       <TopBarZone>{topbar}</TopBarZone>
       <Middle>
-        <StageZone>{stage}</StageZone>
+        <StageZone>
+          {stage}
+          {panel && panelOpen && panelDismissible && (
+            <PanelScrim data-testid="panel-scrim" aria-hidden onPointerDown={stopPointerDown} onClick={onDismissPanel} />
+          )}
+        </StageZone>
         {panel && (
           <PanelZone
             data-testid="match-panel"
@@ -71,10 +90,18 @@ export default function MatchStageTemplate({
             {aside}
           </AsideZone>
         )}
+        {aside && asideOpen && onDismissAside && (
+          <AsideScrim data-testid="aside-scrim" aria-hidden onPointerDown={stopPointerDown} onClick={onDismissAside} />
+        )}
       </Middle>
     </Shell>
   );
 }
+
+// O pan do mapa escuta `pointerdown` na `window` e o véu dispensa no `click`, não no
+// pointerdown: dispensar no pointerdown desmontaria o véu no meio do gesto e o soltar cairia
+// no canvas recém-descoberto. Por isso o pointerdown morre aqui.
+const stopPointerDown = (e: PointerEvent<HTMLElement>) => e.stopPropagation();
 
 // O reset global põe `font-family: 'Lato'` em TODO elemento, e Lato não é carregada (o
 // index.html só traz Roboto): qualquer <span> sem fonte própria cairia na serifada padrão.
@@ -87,6 +114,16 @@ const Shell = styled.div`
   background: ${colors.surfaceSidebar};
   color: ${colors.textPrimary};
   font-family: ${fonts.sans};
+  /* Spec §13: arrastar no mapa/HUD não pode virar seleção de texto. Campos continuam selecionáveis. */
+  user-select: none;
+  -webkit-user-select: none;
+
+  & input,
+  & textarea,
+  & select {
+    user-select: text;
+    -webkit-user-select: text;
+  }
 
   & * {
     font-family: inherit;
@@ -188,5 +225,29 @@ const AsideZone = styled.aside<{ $open: boolean }>`
     grid-area: aside;
     width: 320px;
     box-shadow: none;
+  }
+`;
+
+/* Véu sobre o palco inteiro: só existe como modal abaixo de railUp (a partir dali o painel é coluna). */
+const PanelScrim = styled.div`
+  position: absolute;
+  inset: 0;
+  z-index: ${SCRIM_Z_INDEX};
+  background: ${colors.scrim};
+
+  ${media.railUp} {
+    display: none;
+  }
+`;
+
+/* Véu sobre o resto da partida (filho do Middle), por baixo da gaveta; some quando ela vira coluna. */
+const AsideScrim = styled.div`
+  position: absolute;
+  inset: 0;
+  z-index: ${SCRIM_Z_INDEX};
+  background: ${colors.scrim};
+
+  ${media.asideUp} {
+    display: none;
   }
 `;

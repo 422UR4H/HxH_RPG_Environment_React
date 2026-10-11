@@ -148,6 +148,7 @@ export function useMatchCombat({
       enqueueAction,
       openNextAction: ws.sendOpenNextAction,
       pullAction: ws.sendPullAction,
+      cancelAction: ws.sendCancelAction,
       closeTurn: ws.sendCloseTurn,
       changeRoundMode: ws.sendChangeRoundMode,
       masterAction,

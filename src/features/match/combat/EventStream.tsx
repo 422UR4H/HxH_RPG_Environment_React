@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import styled from "styled-components";
 import { colors, fonts } from "../../../styles/tokens";
 import type { GridKind } from "../../../types/tacticalMap";
@@ -6,7 +6,7 @@ import type { TableEvent } from "./combatReducer";
 import type { ResolutionTarget, SceneCategory } from "./combatMessages";
 import type { HistoryMasterAction, HistoryMove, HistoryTurn } from "../../../types/matchHistory";
 import type { HistoryRow } from "./historyRows";
-import { avoidedVerb, describeDeclared, formatSlot, humanWeapon, interactLabel, ROUND_MODE_LABELS } from "./combatText";
+import { avoidedVerb, describeDeclared, describeHistoryAction, formatSlot, interactLabel, withWeapon, ROUND_MODE_LABELS } from "./combatText";
 
 /** U+2212 MINUS SIGN — não é hífen. */
 const MINUS = "−";
@@ -96,7 +96,7 @@ function turnLine(turn: HistoryTurn, nameOf: (id: string) => string, gridKind: G
   if (a.move) parts.push(moveText(a.move, gridKind));
   if (a.attack) {
     const who = (a.targetId ?? []).map(nameOf).join(", ");
-    parts.push(`atacou ${who}${a.attack.weapon ? ` com ${humanWeapon(a.attack.weapon)}` : ""}`);
+    parts.push(`atacou ${who}${a.attack.weapon ? withWeapon(a.attack.weapon) : ""}`);
   }
   if (a.interact) parts.push(`interagiu (${interactLabel(a.interact.kind)})`);
   const outcomes = (turn.resolution?.targets ?? []).map((t) => outcomeText(t, nameOf, gridKind));
@@ -121,6 +121,12 @@ function rowLine(row: HistoryRow, nameOf: (id: string) => string, gridKind: Grid
       return { icon: "⇄", tone: "muted", text: `Regime: ${ROUND_MODE_LABELS[row.mode]}` };
     case "master_action":
       return { icon: "⚑", text: masterActionText(row.masterAction, nameOf, gridKind) };
+    case "action_cancelled": {
+      // Sem `action` (quem não é mestre nem dono) o contrato só entrega quem cancelou; uma
+      // ação sem nada descritível (ex.: só uma perícia) cai no mesmo texto genérico.
+      const what = row.action ? describeHistoryAction(row.action, nameOf, gridKind) : "";
+      return { icon: "✕", text: what ? `${nameOf(row.actorId)} cancelou: ${lowerFirst(what)}` : `${nameOf(row.actorId)} cancelou uma ação` };
+    }
   }
 }
 
@@ -136,59 +142,88 @@ export default function EventStream({
   nameOf,
   gridKind,
   loadFailed = false,
+  footer,
+  pinKey,
 }: {
   rows: HistoryRow[];
   nameOf: (characterId: string) => string;
   gridKind: GridKind;
   /** O GET /history falhou (já depois da nova tentativa): as linhas são só as ao vivo. */
   loadFailed?: boolean;
+  /** Vai depois da última linha, dentro do que rola — o histórico e o rodapé sobem juntos. */
+  footer?: ReactNode;
+  /** O que muda quando só o rodapé muda (ex.: as ações declaradas) — refaz o pin-ao-fim. */
+  pinKey?: string;
 }) {
-  const containerRef = useRef<HTMLOListElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // jsdom não tem layout (scrollTo pode nem existir) — o pin-ao-fim só se verifica no browser.
     containerRef.current?.scrollTo?.({ top: containerRef.current?.scrollHeight ?? 0 });
-  }, [rows]);
+  }, [rows, pinKey]);
 
   const loadError = loadFailed && <LoadError role="alert">Não foi possível carregar o histórico.</LoadError>;
 
   if (rows.length === 0) {
-    return loadError || <Empty>Nada aconteceu ainda. Turnos, dano e trocas de regime aparecem aqui.</Empty>;
+    return (
+      <Wrapper>
+        {loadError}
+        <Container ref={containerRef}>
+          {!loadError && <Empty>Nada aconteceu ainda. Turnos, dano e trocas de regime aparecem aqui.</Empty>}
+          {footer}
+        </Container>
+      </Wrapper>
+    );
   }
 
   return (
-    <>
+    <Wrapper>
       {loadError}
       <Container ref={containerRef}>
-      {rows.map((row) => {
-        const line = rowLine(row, nameOf, gridKind);
-        return (
-          <Row key={row.key} data-testid="event-row" $tone={line.tone}>
-            <Icon aria-hidden>{line.icon}</Icon>
-            <span>
-              {line.text}
-              {line.details?.map((d, i) => <Detail key={i}>{d}</Detail>)}
-            </span>
-          </Row>
-        );
-      })}
+        <Lines>
+          {rows.map((row) => {
+            const line = rowLine(row, nameOf, gridKind);
+            return (
+              <Row key={row.key} data-testid="event-row" $tone={line.tone}>
+                <Icon aria-hidden>{line.icon}</Icon>
+                <span>
+                  {line.text}
+                  {line.details?.map((d, i) => <Detail key={i}>{d}</Detail>)}
+                </span>
+              </Row>
+            );
+          })}
+        </Lines>
+        {footer}
       </Container>
-    </>
+    </Wrapper>
   );
 }
 
-const Container = styled.ol`
-  list-style: none;
-  margin: 0;
+/** O aviso de falha fica fora do que rola — continua à vista com o histórico no fim. */
+const Wrapper = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 2px;
   height: 100%;
+`;
+
+const Container = styled.div`
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 8px;
   color: ${colors.textPrimary};
   font-family: ${fonts.sans};
   font-size: 12px;
+`;
+
+const Lines = styled.ol`
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 `;
 
 const Row = styled.li<{ $tone?: Line["tone"] }>`

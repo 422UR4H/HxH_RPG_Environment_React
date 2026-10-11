@@ -78,6 +78,10 @@ export type TurnClosedPayload = { turnId: string };
 export type RoundClosedPayload = { roundMode: RoundMode };
 export type RoundModeChangedPayload = { mode: RoundMode };
 export type ActionEnqueuedPayload = { actionId: string };
+/** `action_cancelled`: só o mestre e quem pediu recebem — a fila é secreta. */
+export type ActionCancelledPayload = { actionId: string };
+/** `cancel_action`: só ação ainda na fila; a autorização é por ação (cada um cancela o que declarou). */
+export type CancelActionPayload = { actionId: string };
 export type HpChangedPayload = {
   characterId: string;
   hp: number;
@@ -231,6 +235,7 @@ export type CombatServerMessage =
   | { type: "bars_updated"; payload: BarsPayload }
   | { type: "action_enqueued"; payload: ActionEnqueuedPayload }
   | { type: "action_queued"; payload: QueuedAction }
+  | { type: "action_cancelled"; payload: ActionCancelledPayload }
   | { type: "turn_opened"; payload: TurnOpenedPayload }
   | { type: "turn_closed"; payload: TurnClosedPayload }
   | { type: "resolution_updated"; payload: ResolutionPayload }

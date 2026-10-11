@@ -133,7 +133,7 @@ describe("ActionComposer", () => {
   it("escolhe a arma e remove o alvo pelo chip", () => {
     const spy = vi.fn();
     render(<Harness initial={chooseTarget(emptyDraft(), "killua")} spy={spy} />);
-    expect(screen.getByRole("radio", { name: /Fist/ })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("radio", { name: /Desarmado/ })).toHaveAttribute("aria-checked", "true");
     fireEvent.click(screen.getByRole("radio", { name: /Sword/ }));
     expect(spy).toHaveBeenLastCalledWith(
       expect.objectContaining({ attack: { targets: ["killua"], weapon: "Sword" } }),

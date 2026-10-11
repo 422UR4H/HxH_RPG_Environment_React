@@ -32,10 +32,10 @@ describe("ExpBar", () => {
       expect(screen.queryByText("50/100")).not.toBeInTheDocument();
     });
 
-    it("does NOT show tooltip on mouseenter when currExp is 0", () => {
+    it("shows tooltip on mouseenter even when currExp is 0", () => {
       const { container } = render(<ExpBar currExp={0} maxExp={100} />);
       fireEvent.mouseEnter(container.firstChild!);
-      expect(screen.queryByText("0/100")).not.toBeInTheDocument();
+      expect(screen.getByText("0/100")).toBeInTheDocument();
     });
   });
 
@@ -69,11 +69,11 @@ describe("ExpBar", () => {
       expect(screen.queryByText("30/200")).not.toBeInTheDocument();
     });
 
-    it("does NOT show tooltip on long press when currExp is 0", () => {
+    it("shows tooltip on long press even when currExp is 0", () => {
       const { container } = render(<ExpBar currExp={0} maxExp={200} />);
       fireEvent.touchStart(container.firstChild!);
       act(() => { vi.advanceTimersByTime(400); });
-      expect(screen.queryByText("0/200")).not.toBeInTheDocument();
+      expect(screen.getByText("0/200")).toBeInTheDocument();
     });
   });
 });

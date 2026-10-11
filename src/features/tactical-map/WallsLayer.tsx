@@ -7,6 +7,7 @@ import { applyTransform, inverseTransform } from "./utils/coords";
 import { snapWallPoint, explodePolyline, newWallAttrs, isOpening } from "./utils/walls";
 import { findNearestWall } from "./utils/wallHit";
 import { drawStippledSegment } from "./utils/stipple";
+import { createTapTracker } from "./hooks/tapGesture";
 import LosSplit from "./LosSplit";
 
 const MATERIAL_COLOR: Record<WallMaterial, number> = {
@@ -256,27 +257,58 @@ export default function WallsLayer({
   }, [wallsInteractive, finishPolyline]);
 
   // ─── Viewer-mode door click (fires when not in wall-editing mode) ─────────
+  // Só um TOQUE abre a caixa da parede; arrastar o mapa por cima dela não. O pointermove
+  // fica na window porque o ponteiro sai do canvas durante um arraste.
   useEffect(() => {
     if (!canvasEl) return;
     const HIT = 8;
-    const handleViewerClick = (e: PointerEvent) => {
-      if (wallsInteractiveRef.current) return; // editor handles its own selection
-      if (!onWallClickRef.current) return;
+    const tracker = createTapTracker();
+    const handleDown = (e: PointerEvent) => tracker.down(e);
+    const handleMove = (e: PointerEvent) => tracker.move(e);
+    const handleCancel = () => tracker.cancel();
+    // Parede que um toque abriria sob o ponteiro (mesmo teste de acerto do clique e do hover).
+    const hitWallAt = (e: PointerEvent) => {
+      if (wallsInteractiveRef.current) return null; // editor handles its own selection
+      if (!onWallClickRef.current) return null;
       const vp = vpRef.current;
-      if (!vp) return;
-      const rect = (e.target as HTMLElement).getBoundingClientRect();
-      const screenX = e.clientX - rect.left;
-      const screenY = e.clientY - rect.top;
-      const worldPt = vp.toWorld(screenX, screenY);
+      if (!vp) return null;
+      const rect = canvasEl.getBoundingClientRect();
+      const worldPt = vp.toWorld(e.clientX - rect.left, e.clientY - rect.top);
       const rawPt = inverseTransform({ x: worldPt.x, y: worldPt.y }, gridRef.current);
-      const hit = findNearestWall([rawPt.x, rawPt.y], wallsRef.current, HIT / vpScaleRef.current);
+      return findNearestWall([rawPt.x, rawPt.y], wallsRef.current, HIT / vpScaleRef.current);
+    };
+    const handleViewerClick = (e: PointerEvent) => {
+      if (!tracker.up(e)) return;
+      const hit = hitWallAt(e);
       if (hit) {
         onWallClickRef.current?.(hit);
       }
     };
+    // O cursor vai no PAI do canvas: o Pixi reescreve canvas.style.cursor a cada movimento
+    // (`inherit` fora de objeto interativo, `pointer` na peça); no pai ele herda e não briga.
+    const setCursor = (value: string) => {
+      if (canvasEl.parentElement) canvasEl.parentElement.style.cursor = value;
+    };
+    const handleHover = (e: PointerEvent) => {
+      if (e.pointerType !== "mouse" || e.buttons !== 0) return;
+      setCursor(hitWallAt(e) ? "pointer" : "");
+    };
+    const handleLeave = () => setCursor("");
+    canvasEl.addEventListener("pointerdown", handleDown);
     canvasEl.addEventListener("pointerup", handleViewerClick);
+    canvasEl.addEventListener("pointermove", handleHover);
+    canvasEl.addEventListener("pointerleave", handleLeave);
+    window.addEventListener("pointermove", handleMove);
+    window.addEventListener("pointercancel", handleCancel);
     return () => {
+      canvasEl.removeEventListener("pointerdown", handleDown);
       canvasEl.removeEventListener("pointerup", handleViewerClick);
+      canvasEl.removeEventListener("pointermove", handleHover);
+      canvasEl.removeEventListener("pointerleave", handleLeave);
+      setCursor("");
+      window.removeEventListener("pointermove", handleMove);
+      window.removeEventListener("pointercancel", handleCancel);
+      tracker.cancel();
     };
   }, [canvasEl, vpRef]);
 

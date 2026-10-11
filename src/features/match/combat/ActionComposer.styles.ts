@@ -3,7 +3,7 @@ import { colors, fonts } from "../../../styles/tokens";
 
 type Tone = "move" | "attack";
 
-const toneColor = (tone: Tone) => (tone === "move" ? colors.pieceGhost : colors.pieceAttackIntent);
+const toneColor = (tone: Tone) => (tone === "move" ? colors.moveIntent : colors.pieceAttackIntent);
 const toneBg = (tone: Tone) => (tone === "move" ? colors.moveIntentBg : colors.attackIntentBg);
 
 export const Sheet = styled.section`

@@ -2,7 +2,8 @@ import { useState } from "react";
 import styled from "styled-components";
 import { colors, fonts } from "../../../styles/tokens";
 import type { ReactionKind } from "./combatMessages";
-import { BAR_LABELS, humanWeapon } from "./combatText";
+import { costLabel, weaponLabel } from "./combatText";
+import { defaultWeaponOf } from "./actionDraft";
 import {
   REACTION_BARS, REACTION_BUTTONS, REACTION_BUTTON_LABELS, needsDestination, reactionKindOf, supportsEvasion,
 } from "./reactionModel";
@@ -18,7 +19,7 @@ import {
 function costText(kind: ReactionKind): string {
   const bars = REACTION_BARS[kind];
   if (bars.length === 0) return "Não cobra nada";
-  return `Cobra: ${bars.map((b) => BAR_LABELS[b]).join(" + ")}. Se você tinha uma ação na fila nessa barra, ela é consumida e a reação rola com Desvantagem.`;
+  return `Custo: ${costLabel(bars)}. Se você tinha uma ação na fila nessa barra, ela é consumida e a reação rola com Desvantagem.`;
 }
 
 /**
@@ -46,9 +47,12 @@ export default function ReactionConfigDialog({
 }) {
   const [button, setButton] = useState<ReactionButton>(initial);
   const [evasion, setEvasion] = useState(false);
-  // "" = Desarmado. Uma arma padrão fora do catálogo (o soco do rascunho) cai em Desarmado.
+  // Fist é o Desarmado (o catálogo sempre o traz, então não há opção vazia à parte). Vale a arma
+  // do rascunho, se está no catálogo; senão a primeira arma real (`defaultWeaponOf`); sem
+  // nenhuma — ou catálogo ainda vazio — Desarmado.
+  const options = weapons.length > 0 ? weapons : ["Fist"];
   const [weapon, setWeapon] = useState(() =>
-    defaultWeapon && weapons.includes(defaultWeapon) ? defaultWeapon : "",
+    defaultWeapon && weapons.includes(defaultWeapon) ? defaultWeapon : (defaultWeaponOf(weapons) ?? "Fist"),
   );
 
   const evasionOn = supportsEvasion(button) && evasion;
@@ -56,7 +60,7 @@ export default function ReactionConfigDialog({
   const title = `Reagir — ${name}`;
 
   const send = () => {
-    if (kind === "repel") onSend({ kind, weapon: weapon || undefined });
+    if (kind === "repel") onSend({ kind, weapon });
     else onSend({ kind });
   };
 
@@ -91,9 +95,8 @@ export default function ReactionConfigDialog({
           <Field>
             Arma
             <Select aria-label="Arma" value={weapon} onChange={(e) => setWeapon(e.target.value)}>
-              <option value="">Desarmado</option>
-              {weapons.map((w) => (
-                <option key={w} value={w}>{humanWeapon(w)}</option>
+              {options.map((w) => (
+                <option key={w} value={w}>{weaponLabel(w)}</option>
               ))}
             </Select>
           </Field>

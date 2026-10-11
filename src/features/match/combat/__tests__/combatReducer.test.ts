@@ -418,6 +418,13 @@ describe("resolveLostCandidates (F10)", () => {
     expect(out).toEqual({ ran: ["a1", "a3"], lost: ["a2"] });
   });
 
+  it("cancelada (evento actionCancelled) não é perdida", () => {
+    const h = history([]);
+    h.scenes![0].rounds[0].events = [{ uuid: "a1", kind: "actionCancelled", createdAt: "", actorId: "c1" }];
+    const out = resolveLostCandidates([cand("a1", 100), cand("a2", 100)], { history: h, fetchStartedAt: 100 });
+    expect(out).toEqual({ ran: ["a1"], lost: ["a2"] });
+  });
+
   it("só decide as candidatas que o fetch cobre", () => {
     const out = resolveLostCandidates([cand("a1", 100), cand("a2", 300)], { history: history([]), fetchStartedAt: 200 });
     expect(out).toEqual({ ran: [], lost: ["a1"] });
@@ -593,5 +600,21 @@ describe("combatReducer — reações (Fase 7)", () => {
     expect(afterScene.openReactions).toEqual([]);
     expect(afterScene.ownReactions).toEqual([]);
     expect(afterScene.lastSettled).toBeNull();
+  });
+});
+
+describe("combatReducer — action_cancelled", () => {
+  const queued = (actionId: string): CombatAction => ({ type: "action_queued", payload: { actionId, actorId: "c1", bars: ["action"] } });
+  const cancelled = (actionId: string): CombatAction => ({ type: "action_cancelled", payload: { actionId } });
+
+  it("tira a ação da fila do mestre e de declared", () => {
+    const s = run([queued("a1"), queued("a2"), sent("local-1", moveTo), acked("a1"), cancelled("a1")]);
+    expect(s.queue.map((q) => q.actionId)).toEqual(["a2"]);
+    expect(s.declared).toEqual([]);
+  });
+
+  it("id desconhecido não muda nada", () => {
+    const before = run([queued("a1")]);
+    expect(run([cancelled("zzz")], before)).toBe(before);
   });
 });

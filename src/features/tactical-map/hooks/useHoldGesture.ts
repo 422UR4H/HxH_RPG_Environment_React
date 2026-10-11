@@ -6,8 +6,11 @@
  * Fica fora do React de propósito: o PiecesLayer o dirige imperativamente dentro do mesmo
  * par pointerdown/pointerup que já discrimina clique de arraste.
  */
+import { TAP_TOLERANCE_PX } from "./tapGesture";
+
 export const HOLD_MS = 450;
-const MOVE_TOLERANCE_PX = 6;
+// Mesma fronteira toque × arraste do reconhecedor de toque (tapGesture) — uma só.
+const MOVE_TOLERANCE_PX = TAP_TOLERANCE_PX;
 
 export type HoldOutcome = "hold" | "click" | "none";
 

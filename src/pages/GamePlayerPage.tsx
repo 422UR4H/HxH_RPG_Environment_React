@@ -10,6 +10,7 @@ import { useCharacterSheet } from "../hooks/useCharacterSheet";
 import { useGameTable } from "../features/match/combat/useGameTable";
 import { defaultMoveCategory } from "../features/match/combat/defaultMoveCategory";
 import { useReactionControls } from "../features/match/combat/useReactionControls";
+import { playerPanelDismissible, useStageOverlays } from "../features/match/combat/useStageOverlays";
 import MatchStageTemplate from "../components/templates/MatchStageTemplate";
 import MatchTopBar from "../features/match/combat/MatchTopBar";
 import RailNav from "../features/match/combat/RailNav";
@@ -19,6 +20,8 @@ import OwnBars from "../features/match/combat/OwnBars";
 import EventStream from "../features/match/combat/EventStream";
 import { historyRows } from "../features/match/combat/historyRows";
 import ActionComposer from "../features/match/combat/ActionComposer";
+import type { DeclaredAction } from "../features/match/combat/combatReducer";
+import CancelDeclaredDialog from "../features/match/combat/CancelDeclaredDialog";
 import DeclaredActions from "../features/match/combat/DeclaredActions";
 import MatchErrorBanner from "../features/match/combat/MatchErrorBanner";
 import LostDeclaredNotice from "../features/match/combat/LostDeclaredNotice";
@@ -47,9 +50,6 @@ type Props = {
 // No jogo nenhuma peça é arrastável: quem decide onde a peça para é o servidor. Um Set
 // vazio (e não `undefined`, que o PiecesLayer lê como "tudo arrastável", o modo editor).
 const NO_DRAG = new Set<string>();
-
-const initialAsideOpen = () =>
-  typeof window !== "undefined" && window.matchMedia?.("(min-width: 1280px)").matches === true;
 
 type RailTab = "acao" | "ficha";
 
@@ -98,14 +98,17 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
     state,
     mine: myActorIds,
     boardPieces: game.boardPieces,
-    matchId,
     send: combat.send,
     fullStateSeq: game.fullStateSeq,
   });
   const { onSlotForPick, cancelPick } = controls;
   const [railActive, setRailActive] = useState<RailTab>("acao");
-  const [panelOpen, setPanelOpen] = useState(true);
-  const [asideOpen, setAsideOpen] = useState(initialAsideOpen);
+  // Cancelar uma ação declarada: o pedido espera a confirmação; se a linha deixa de estar
+  // "na fila" com o diálogo aberto (abriu no meio-tempo), o diálogo fecha sozinho.
+  const [cancelling, setCancelling] = useState<DeclaredAction | null>(null);
+  const cancelPending =
+    cancelling && state.declared.some((d) => d.id === cancelling.id && d.status === "queued") ? cancelling : null;
+  const { panelOpen, setPanelOpen, asideOpen, setAsideOpen, closeAsideIfDrawer } = useStageOverlays();
 
   const handleRailSelect = useCallback(
     (id: string) => {
@@ -116,7 +119,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
       setRailActive(id as RailTab);
       setPanelOpen(true);
     },
-    [railActive],
+    [railActive, setPanelOpen],
   );
 
   const pieceCharacter = useCallback(
@@ -132,7 +135,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
       setRailActive("acao");
       setPanelOpen(true);
     },
-    [pieceCharacter, actorId, composer],
+    [pieceCharacter, actorId, composer, setPanelOpen],
   );
   const handlePieceHold = useCallback(
     (pieceId: string) => {
@@ -142,7 +145,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
       setRailActive("acao");
       setPanelOpen(true);
     },
-    [pieceCharacter, actorId, composer],
+    [pieceCharacter, actorId, composer, setPanelOpen],
   );
   const handleSlotTap = useCallback(
     (slot: SlotCoord) => {
@@ -153,7 +156,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
       setRailActive("acao");
       setPanelOpen(true);
     },
-    [onSlotForPick, actorId, composer],
+    [onSlotForPick, actorId, composer, setPanelOpen],
   );
 
   // O Esc é da escolha da casa só quando não é de outra coisa: um diálogo aberto ou um campo
@@ -181,7 +184,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
   const showReactionSection = useCallback(() => {
     setRailActive("acao");
     setPanelOpen(true);
-  }, []);
+  }, [setPanelOpen]);
 
   // Botões de reação (abaixo da peça) e balões (acima): a mesma camada, os mesmos helpers nas duas telas.
   const anchoredItems: PieceAnchoredItem[] = useCombatAnchoredItems(controls, nameOf, game.balloons);
@@ -212,6 +215,10 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
         panelOpen={panelOpen}
         asideOpen={asideOpen}
         panelWide={railActive === "ficha"}
+        // Spec §4: véu só quando o painel não pede toque no mapa (regra em playerPanelDismissible).
+        panelDismissible={playerPanelDismissible({ railActive, hasActor: !!actorId, picking })}
+        onDismissPanel={() => setPanelOpen(false)}
+        onDismissAside={() => setAsideOpen(false)}
         topbar={
           <MatchTopBar
             scene={state.scene}
@@ -261,12 +268,6 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
                 onDeclare={game.declare}
                 canDeclare={game.canDeclare}
                 blockedReason={game.blockedReason}
-              />
-              <DeclaredActions
-                declared={state.declared}
-                nameOf={nameOf}
-                gridKind={map?.grid.kind ?? "square"}
-                onHide={(id) => combat.dismissDeclared([id])}
               />
             </>
           ) : (
@@ -355,10 +356,25 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
           <AsideTabs
             defaultTab="historico"
             historico={
-              <EventStream rows={rows} nameOf={nameOf} gridKind={map?.grid.kind ?? "square"} loadFailed={historyFailed} />
+              <EventStream
+                rows={rows}
+                nameOf={nameOf}
+                gridKind={map?.grid.kind ?? "square"}
+                loadFailed={historyFailed}
+                pinKey={state.declared.map((d) => `${d.id}:${d.status}`).join(",")}
+                footer={
+                  <DeclaredActions
+                    declared={state.declared}
+                    nameOf={nameOf}
+                    gridKind={map?.grid.kind ?? "square"}
+                    onCancel={(id) => setCancelling(state.declared.find((d) => d.id === id) ?? null)}
+                  />
+                }
+              />
             }
             personagens={
               <MatchCharactersSidebar
+                fluid
                 gameStarted
                 enrollments={[]}
                 participants={visibleParticipants}
@@ -371,6 +387,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
                   setChosenActor(sheetUuid);
                   setRailActive("ficha");
                   setPanelOpen(true);
+                  closeAsideIfDrawer();
                 }}
               />
             }
@@ -378,6 +395,18 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
         }
       />
       <ReactionDialogHost token={token} matchId={matchId} controls={controls} nameOf={nameOf} />
+      <CancelDeclaredDialog
+        pending={cancelPending}
+        nameOf={nameOf}
+        gridKind={map?.grid.kind ?? "square"}
+        showSwapCost={state.roundMode === "Race"}
+        canConfirm={combat.status === "connected"}
+        onConfirm={() => {
+          if (cancelPending) combat.send.cancelAction(cancelPending.id);
+          setCancelling(null);
+        }}
+        onKeep={() => setCancelling(null)}
+      />
       {wallPicker && actorId && (
         <WallActionSheet
           wall={wallPicker}

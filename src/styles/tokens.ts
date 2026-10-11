@@ -81,7 +81,11 @@ export const colors = {
   pieceSelectionRing: "#ffd700", // selected piece ring (gold, matches prior inline hex)
   pieceTargetRing: "#ff6b4a", // combat target ring — the attack hue (pieceAttackIntent), distinct from the gold selection
   pieceInspectRing: "#9ca3af", // "just looking" ring (F7) — neutral gray, never the actor's own gold
-  pieceGhost: "#9d7bff", // declared-intent ghost (§8) — translucent copy + arrow; also the "move" tint in the composer
+  // movimento = azul-ciano: complementar do laranja do ataque (pieceAttackIntent) e seguro p/ daltonismo
+  // vs laranja-avermelhado; é a convenção do gênero; o verde já significa "turno aberto" (pieceActiveTurn)
+  // e some em mapas de grama. Também é o tint de "mover" no composer e do fantasma de intenção declarada (§8).
+  moveIntent: "#38bdf8",
+  intentOutline: "#0b1220", // contorno escuro sob os traços de movimento no mapa (legível sobre qualquer terreno)
   pieceStackBadge: "#1c1c1c", // ×N cascade badge background (§7.2)
   pieceAttackIntent: "#ff6b4a", // attack being composed: line actor→target, "attack" tint in the composer
   pieceActiveTurn: "#34d399", // ring on the piece whose turn is open
@@ -89,12 +93,13 @@ export const colors = {
 
   // surfaces — translucent
   rowHighlight: "rgba(8, 142, 59, 0.25)", // GeneralBar: highlighted actor's order row (brandAccentBright tint)
-  moveIntentBg: "rgba(157, 123, 255, 0.16)", // composer "Mover" pressed (pieceGhost tint)
+  moveIntentBg: "rgba(56, 189, 248, 0.16)", // composer "Mover" pressed (moveIntent tint)
   attackIntentBg: "rgba(255, 107, 74, 0.16)", // composer "Atacar" pressed (pieceAttackIntent tint)
   overlay: "rgba(0, 0, 0, 0.7)",
   overlaySoft: "rgba(0, 0, 0, 0.44)",
   overlayMedium: "rgba(0, 0, 0, 0.6)",
   overlayDark: "rgba(0, 0, 0, 0.85)",
+  scrim: "rgba(0, 0, 0, 0.32)", // véu do painel/gaveta em tela estreita
 
   // shadows
   shadowSoft: "rgba(0, 0, 0, 0.3)",

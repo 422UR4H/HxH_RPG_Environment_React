@@ -10,6 +10,7 @@ import { useMatchHistory } from "../hooks/useMatchHistory";
 import { useGameTable } from "../features/match/combat/useGameTable";
 import { defaultMoveCategory } from "../features/match/combat/defaultMoveCategory";
 import { useReactionControls } from "../features/match/combat/useReactionControls";
+import { masterPanelDismissible, useStageOverlays } from "../features/match/combat/useStageOverlays";
 import MatchStageTemplate from "../components/templates/MatchStageTemplate";
 import MatchTopBar from "../features/match/combat/MatchTopBar";
 import {
@@ -23,6 +24,8 @@ import OwnBars from "../features/match/combat/OwnBars";
 import EventStream from "../features/match/combat/EventStream";
 import { historyRows } from "../features/match/combat/historyRows";
 import ActionComposer from "../features/match/combat/ActionComposer";
+import type { DeclaredAction } from "../features/match/combat/combatReducer";
+import CancelDeclaredDialog from "../features/match/combat/CancelDeclaredDialog";
 import DeclaredActions from "../features/match/combat/DeclaredActions";
 import QueuePanel from "../features/match/combat/QueuePanel";
 import CloseTurnRefusedDialog from "../features/match/combat/CloseTurnRefusedDialog";
@@ -79,9 +82,6 @@ function arrangePayload(p: ArrangePending): MasterActionPayload {
     : { targetIds: [p.characterId], move: { position: p.to } };
 }
 
-const initialAsideOpen = () =>
-  typeof window !== "undefined" && window.matchMedia?.("(min-width: 1280px)").matches === true;
-
 export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const { width, height } = useResizeObserver(canvasRef);
@@ -120,15 +120,18 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     state,
     mine: npcIds,
     boardPieces: game.boardPieces,
-    matchId,
     send: combat.send,
     fullStateSeq: game.fullStateSeq,
   });
   const { onSlotForPick, cancelPick } = controls;
 
   const [railActive, setRailActive] = useState<RailTab>("fila");
-  const [panelOpen, setPanelOpen] = useState(true);
-  const [asideOpen, setAsideOpen] = useState(initialAsideOpen);
+  // Cancelar uma ação declarada: o pedido espera a confirmação; se a linha deixa de estar
+  // "na fila" com o diálogo aberto (abriu no meio-tempo), o diálogo fecha sozinho.
+  const [cancelling, setCancelling] = useState<DeclaredAction | null>(null);
+  const cancelPending =
+    cancelling && state.declared.some((d) => d.id === cancelling.id && d.status === "queued") ? cancelling : null;
+  const { panelOpen, setPanelOpen, asideOpen, setAsideOpen, closeAsideIfDrawer } = useStageOverlays();
   const [wallPicker, setWallPicker] = useState<WallSegment | null>(null);
   const [sceneDialog, setSceneDialog] = useState(false);
 
@@ -170,7 +173,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     setInspectedId(undefined);
     setBoardMode("arrange");
     setPanelOpen(true);
-  }, [arranging, exitBoardMode]);
+  }, [arranging, exitBoardMode, setPanelOpen]);
   const chooseFallSlot = useCallback(
     (targetId: string) => {
       exitBoardMode();
@@ -264,7 +267,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
       setRailActive(id as RailTab);
       setPanelOpen(true);
     },
-    [railActive, arranging, exitBoardMode],
+    [railActive, arranging, exitBoardMode, setPanelOpen],
   );
 
   const chooseActor = useCallback((id: string | undefined) => {
@@ -280,7 +283,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
       setRailActive("agir");
       setPanelOpen(true);
     }
-  }, [cancelPick]);
+  }, [cancelPick, setPanelOpen]);
 
   const pieceCharacter = useCallback(
     (pieceId: string) => game.boardPieces.find((p) => p.id === pieceId)?.characterId,
@@ -482,7 +485,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   const showReactionSection = useCallback(() => {
     setRailActive("fila");
     setPanelOpen(true);
-  }, []);
+  }, [setPanelOpen]);
   const mapHint = !map
     ? undefined
     : reactionPicking && reactionPick
@@ -505,6 +508,10 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
         panelOpen={panelOpen}
         asideOpen={asideOpen}
         panelWide={!arranging && railActive === "ficha"}
+        // Spec §4: véu só quando o painel não pede toque no mapa (regra em masterPanelDismissible).
+        panelDismissible={masterPanelDismissible({ railActive, mapPicking: arranging || fallPicking || reactionPicking })}
+        onDismissPanel={() => setPanelOpen(false)}
+        onDismissAside={() => setAsideOpen(false)}
         topbar={
           <MatchTopBar
             scene={state.scene}
@@ -522,6 +529,8 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                 canCloseTurn={canCloseTurn}
                 onNewScene={() => setSceneDialog(true)}
                 canChangeScene={state.openTurn == null}
+                queueLength={state.queue.length}
+                orderLength={state.bars?.order.length ?? 0}
               />
             }
           />
@@ -556,7 +565,6 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
               token={token}
               sheetUuid={sheetId}
               liveHp={sheetId ? state.hp[sheetId] : undefined}
-              onClose={() => setSheetId(undefined)}
             />
           ) : railActive === "fila" ? (
             <>
@@ -591,7 +599,8 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                       }
                     : undefined
                 }
-                order={state.bars?.order ?? []}
+                order={state.bars?.order}
+                mode={state.roundMode}
                 gridKind={gridKind}
                 nameOf={nameOf}
                 onPull={combat.send.pullAction}
@@ -603,7 +612,6 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
           ) : (
             <>
               <NpcPicker npcs={npcs} actorId={actorId} onChoose={chooseActor} />
-              <AddNpcPicker candidates={npcCandidates} onAdd={(id) => combat.send.addNpc(id)} />
               {actorId && (
                 <>
                   <OwnBars bars={state.bars} characterId={actorId} hp={actorHp} />
@@ -624,13 +632,6 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                   />
                 </>
               )}
-              <DeclaredActions
-                declared={state.declared}
-                nameOf={nameOf}
-                gridKind={gridKind}
-                showActor
-                onHide={(id) => combat.dismissDeclared([id])}
-              />
             </>
           )
         }
@@ -745,9 +746,28 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
         aside={
           <AsideTabs
             defaultTab="historico"
-            historico={<EventStream rows={rows} nameOf={nameOf} gridKind={gridKind} loadFailed={historyFailed} />}
+            historico={
+              <EventStream
+                rows={rows}
+                nameOf={nameOf}
+                gridKind={gridKind}
+                loadFailed={historyFailed}
+                pinKey={state.declared.map((d) => `${d.id}:${d.status}`).join(",")}
+                footer={
+                  <DeclaredActions
+                    declared={state.declared}
+                    nameOf={nameOf}
+                    gridKind={gridKind}
+                    showActor
+                    onCancel={(id) => setCancelling(state.declared.find((d) => d.id === id) ?? null)}
+                  />
+                }
+              />
+            }
             personagens={
               <MatchCharactersSidebar
+                fluid
+                footer={<AddNpcPicker candidates={npcCandidates} onAdd={(id) => combat.send.addNpc(id)} />}
                 gameStarted
                 enrollments={[]}
                 participants={participantsWithLiveHp}
@@ -761,6 +781,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                   setSheetId(sheetUuid);
                   setRailActive("ficha");
                   setPanelOpen(true);
+                  closeAsideIfDrawer();
                 }}
               />
             }
@@ -776,6 +797,19 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
           combat.dismissCloseTurnDialog();
         }}
         onCancel={combat.dismissCloseTurnDialog}
+      />
+      <CancelDeclaredDialog
+        pending={cancelPending}
+        nameOf={nameOf}
+        gridKind={gridKind}
+        showActor
+        showSwapCost={state.roundMode === "Race"}
+        canConfirm={combat.status === "connected"}
+        onConfirm={() => {
+          if (cancelPending) combat.send.cancelAction(cancelPending.id);
+          setCancelling(null);
+        }}
+        onKeep={() => setCancelling(null)}
       />
       <ArrangeConfirmDialog
         pending={arrangePending}

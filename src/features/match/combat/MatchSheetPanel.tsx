@@ -3,7 +3,6 @@ import { useMemo } from "react";
 import CharacterSheetTemplate from "../../sheet/CharacterSheetTemplate";
 import { MATCH_SHEET_MODE } from "../../sheet/types/sheetMode";
 import { useCharacterSheet } from "../../../hooks/useCharacterSheet";
-import { colors, fonts } from "../../../styles/tokens";
 import { PanelHint } from "./panelStyles";
 
 /**
@@ -15,12 +14,10 @@ export default function MatchSheetPanel({
   token,
   sheetUuid,
   liveHp,
-  onClose,
 }: {
   token: string;
   sheetUuid: string | undefined;
   liveHp?: { hp: number; maxHp: number };
-  onClose?: () => void;
 }) {
   const { data, isLoading, error } = useCharacterSheet(token, sheetUuid);
   const charSheet = useMemo(() => {
@@ -35,14 +32,6 @@ export default function MatchSheetPanel({
 
   return (
     <Wrapper data-testid="match-sheet">
-      {onClose && (
-        <Head>
-          <span>{charSheet?.profile.nickname ?? "Ficha"}</span>
-          <Close type="button" aria-label="Fechar ficha" onClick={onClose}>
-            ×
-          </Close>
-        </Head>
-      )}
       <CharacterSheetTemplate
         sheetMode={MATCH_SHEET_MODE}
         data={{ charSheet, isLoading, error: error ? "Não foi possível carregar a ficha." : null }}
@@ -56,22 +45,4 @@ export default function MatchSheetPanel({
 // largura de conteúdo (media 0px). Bloco dá ao template a largura do painel.
 const Wrapper = styled.div`
   min-height: 0;
-`;
-
-const Head = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  color: ${colors.textPrimary};
-  font-family: ${fonts.sans};
-  font-size: 13px;
-`;
-
-const Close = styled.button`
-  background: transparent;
-  border: none;
-  color: ${colors.textPlaceholderStrong};
-  font-size: 18px;
-  cursor: pointer;
 `;

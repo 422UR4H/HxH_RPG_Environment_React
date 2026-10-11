@@ -78,7 +78,9 @@ export type HistoryMasterAction = MasterActionBase & (
 /** `rounds[].events[]`: o que aconteceu no round sem ser turno, em ordem de tempo. */
 export type HistoryRoundEvent =
   | { uuid: string; kind: "roundModeChanged"; createdAt: string; payload: { from: RoundMode; to: RoundMode } }
-  | { uuid: string; kind: "masterAction"; createdAt: string; masterAction: HistoryMasterAction };
+  | { uuid: string; kind: "masterAction"; createdAt: string; masterAction: HistoryMasterAction }
+  /** `action` só vem para o mestre e o dono do personagem; para os outros a chave não existe. */
+  | { uuid: string; kind: "actionCancelled"; createdAt: string; actorId: string; action?: HistoryAction };
 
 export type HistoryTurn = {
   uuid: string;

@@ -5,7 +5,7 @@ import {
 } from "./actionDraft";
 import type { ActionDraft, DraftKind, DraftVerdict, ResolvedDraft } from "./actionDraft";
 import type { MoveCategory } from "./combatMessages";
-import { formatSlot, humanWeapon } from "./combatText";
+import { formatSlot, weaponLabel } from "./combatText";
 import * as S from "./ActionComposer.styles";
 
 const MOVE_CATEGORIES: Array<{ value: MoveCategory; label: string; hint: string }> = [
@@ -202,7 +202,7 @@ export default function ActionComposer({
                   aria-checked={selectedWeapon === w.name}
                   onClick={() => onDraftChange(setWeapon(draft, w.name))}
                 >
-                  <S.WeaponName>{humanWeapon(w.name)}</S.WeaponName>
+                  <S.WeaponName>{weaponLabel(w.name)}</S.WeaponName>
                   <S.WeaponStats>
                     {w.dice.map((d) => `d${d}`).join("+")}
                     {w.flatDamage ? ` +${w.flatDamage}` : ""} · prof. {w.proficiencyLevel}

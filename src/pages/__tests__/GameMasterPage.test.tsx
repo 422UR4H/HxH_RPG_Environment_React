@@ -473,7 +473,7 @@ describe("GameMasterPage", () => {
     expect(within(openRow).getByText(/em andamento/i)).toBeInTheDocument();
     expect(within(openRow).getByText(/Arma: Sword/)).toBeInTheDocument();
     expect(within(openRow).getByText(/Alvos: Capanga/)).toBeInTheDocument();
-    expect(within(openRow).queryByText(/Cobra:/)).not.toBeInTheDocument();
+    expect(within(openRow).queryByText(/Custo:/)).not.toBeInTheDocument();
   });
 
   it("mostra o diálogo que o servidor computou e reenvia com confirm", async () => {
@@ -567,7 +567,8 @@ describe("GameMasterPage", () => {
 
     // Continua mostrando os participantes normais.
     expect(await screen.findByText("Gon")).toBeInTheDocument();
-    expect(screen.queryByText("NPC Só no Mapa")).not.toBeInTheDocument();
+    // Só como candidato do "Adicionar à partida" (option) — nunca como card de personagem.
+    expect(screen.queryAllByText("NPC Só no Mapa").filter((el) => el.tagName !== "OPTION")).toHaveLength(0);
   });
 
   it("F11: inspecionar uma peça que o mestre não controla não troca a aba da direita", async () => {
@@ -688,9 +689,11 @@ describe("GameMasterPage", () => {
     const ws = await waitForSocket();
     openWithServerBoard(ws);
 
-    act(() => screen.getByRole("button", { name: "Agir" }).click());
-    await user.selectOptions(await screen.findByLabelText("Pôr na partida"), npcFixture.uuid);
-    await user.click(screen.getByRole("button", { name: "Pôr" }));
+    // "Adicionar à partida" mora no fim da aba Personagens.
+    act(() => screen.getByRole("button", { name: "Ver histórico" }).click());
+    act(() => screen.getByRole("button", { name: "Personagens" }).click());
+    await user.selectOptions(await screen.findByLabelText("Adicionar à partida"), npcFixture.uuid);
+    await user.click(screen.getByRole("button", { name: "Adicionar" }));
     expect(ws.sent("add_npc")).toEqual([{ characterSheetUuid: npcFixture.uuid }]);
   });
 
@@ -749,9 +752,11 @@ describe("GameMasterPage", () => {
     const ws = await waitForSocket();
     openWithServerBoard(ws);
 
-    act(() => screen.getByRole("button", { name: "Agir" }).click());
-    await user.selectOptions(await screen.findByLabelText("Pôr na partida"), npcFixture.uuid);
-    await user.click(screen.getByRole("button", { name: "Pôr" }));
+    // "Adicionar à partida" mora no fim da aba Personagens.
+    act(() => screen.getByRole("button", { name: "Ver histórico" }).click());
+    act(() => screen.getByRole("button", { name: "Personagens" }).click());
+    await user.selectOptions(await screen.findByLabelText("Adicionar à partida"), npcFixture.uuid);
+    await user.click(screen.getByRole("button", { name: "Adicionar" }));
     act(() => { ws.emit("error", { code: "npc_already_in_match", message: "npc already in match" }); });
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
@@ -802,9 +807,10 @@ describe("GameMasterPage", () => {
     await user.click(screen.getByRole("button", { name: "Personagens" }));
     await user.click(await screen.findByTestId("character-row-c1"));
     expect(await screen.findByTestId("match-sheet")).toBeInTheDocument();
-    // o painel alarga só para a ficha, e a aba da direita continua em Personagens
+    // o painel alarga só para a ficha; em tela estreita (o jsdom é sempre estreito) a gaveta
+    // cobre o mapa e fecha ao escolher o card — a ficha abre no painel, que ela não encobre
     expect(screen.getByTestId("match-panel")).toHaveAttribute("data-wide", "true");
-    expect(screen.getByRole("button", { name: "Personagens", pressed: true })).toBeInTheDocument();
+    expect(screen.getByTestId("match-aside")).toHaveAttribute("data-open", "false");
     await user.click(screen.getByRole("button", { name: /Fila/ }));
     expect(screen.getByTestId("match-panel")).toHaveAttribute("data-wide", "false");
   });

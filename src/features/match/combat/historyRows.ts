@@ -1,6 +1,6 @@
 import type { TableEvent } from "./combatReducer";
 import type { RoundMode } from "./combatMessages";
-import type { HistoryMasterAction, HistoryScene, HistoryTurn, MatchHistory } from "../../../types/matchHistory";
+import type { HistoryAction, HistoryMasterAction, HistoryScene, HistoryTurn, MatchHistory } from "../../../types/matchHistory";
 
 type RestBase = { source: "rest"; key: string; at: number };
 
@@ -10,6 +10,7 @@ export type HistoryRow =
   | (RestBase & { kind: "round_closed" })
   | (RestBase & { kind: "round_mode_changed"; mode: RoundMode })
   | (RestBase & { kind: "master_action"; masterAction: HistoryMasterAction })
+  | (RestBase & { kind: "action_cancelled"; actorId: string; action?: HistoryAction })
   | { source: "live"; key: string; at: number; event: TableEvent };
 
 /**
@@ -39,6 +40,7 @@ export function historyRows(
         const key = `rest:event:${ev.uuid}`;
         if (ev.kind === "roundModeChanged") rest.push({ source: "rest", kind: "round_mode_changed", key, at, mode: ev.payload.to });
         else if (ev.kind === "masterAction") rest.push({ source: "rest", kind: "master_action", key, at, masterAction: ev.masterAction });
+        else if (ev.kind === "actionCancelled") rest.push({ source: "rest", kind: "action_cancelled", key, at, actorId: ev.actorId, action: ev.action });
         // Um `kind` que o servidor venha a acrescentar não tem linha aqui: some, sem quebrar a aba.
       }
       for (const turn of round.turns) {

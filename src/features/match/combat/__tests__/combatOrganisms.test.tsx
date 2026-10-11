@@ -8,6 +8,7 @@ import QueuePanel from "../QueuePanel";
 import CloseTurnRefusedDialog from "../CloseTurnRefusedDialog";
 import EventStream from "../EventStream";
 import DeclaredActions from "../DeclaredActions";
+import CancelDeclaredDialog from "../CancelDeclaredDialog";
 import MatchTopBar from "../MatchTopBar";
 import { RoundModeSwitch } from "../MasterControls";
 import ResolutionDetails from "../ResolutionDetails";
@@ -15,7 +16,7 @@ import { avoidedVerb } from "../combatText";
 import type { BarsPayload, ResolutionPayload } from "../combatMessages";
 import type { DeclaredAction, TableEvent } from "../combatReducer";
 import { historyRows } from "../historyRows";
-import type { HistoryMasterAction, HistoryTurn, MatchHistory } from "../../../../types/matchHistory";
+import type { HistoryAction, HistoryMasterAction, HistoryTurn, MatchHistory } from "../../../../types/matchHistory";
 
 const nameOf = (id: string) => ({ c1: "Gon", c2: "Killua", n1: "Hisoka" }[id] ?? id);
 
@@ -201,28 +202,38 @@ describe("QueuePanel", () => {
     expect(onPull).toHaveBeenCalledWith("a2");
   });
 
+  it("mostra as linhas na ordem do servidor, não da chegada; fora da ordem leva a etiqueta", () => {
+    render(
+      <QueuePanel
+        nameOf={nameOf}
+        gridKind="square"
+        order={[
+          { actorId: "n1", bars: ["move"], key: 9 },
+          { actorId: "c1", bars: ["action"], key: 5 },
+        ]}
+        queue={[
+          { actionId: "a1", actorId: "c1", bars: ["action"] },
+          { actionId: "a2", actorId: "n1", bars: ["move"] },
+          { actionId: "a3", actorId: "c2", bars: ["action"] },
+        ]}
+        onPull={() => {}}
+      />,
+    );
+    const rows = screen.getAllByTestId("queue-row");
+    expect(rows[0]).toHaveTextContent("Hisoka");
+    expect(rows[1]).toHaveTextContent("Gon");
+    expect(rows[2]).toHaveTextContent("Killua");
+    expect(within(rows[0]).queryByText("próxima rodada")).not.toBeInTheDocument();
+    expect(within(rows[2]).getByText("próxima rodada")).toBeInTheDocument();
+  });
+
   it("fila vazia diz o que vai aparecer ali", () => {
     render(<QueuePanel nameOf={nameOf} queue={[]} order={[]} gridKind="square" onPull={() => {}} />);
     expect(screen.getByText(/Ninguém declarou nada ainda/)).toBeInTheDocument();
   });
 
-  it("sem `action` (servidor antigo), a linha não ganha botão Detalhes", () => {
-    render(
-      <QueuePanel
-        nameOf={nameOf}
-        order={[]}
-        gridKind="square"
-        queue={[{ actionId: "a1", actorId: "c1", bars: ["action"] }]}
-        onPull={() => {}}
-      />,
-    );
-    expect(screen.queryByRole("button", { name: "Detalhes" })).not.toBeInTheDocument();
-  });
-
-  // Fix round 1: `aria-expanded` mora no BOTÃO "Detalhes", não na `<li>` — `role="listitem"`
-  // não aceita esse atributo (Important 1 da revisão). `aria-controls` liga o botão ao bloco
-  // expandido pelo id.
-  it("com `action`: Detalhes expande e mostra arma, destino e o total da velocidade", () => {
+  // §10: sem "Detalhes" — a declaração da fila fica sempre à vista.
+  it("com `action`: mostra arma, destino e o total da velocidade sem clique, e não há botão Detalhes", () => {
     render(
       <QueuePanel
         nameOf={nameOf}
@@ -233,26 +244,14 @@ describe("QueuePanel", () => {
       />,
     );
     const row = screen.getByTestId("queue-row");
-    const detailsButton = screen.getByRole("button", { name: "Detalhes" });
-    expect(detailsButton).toHaveAttribute("aria-expanded", "false");
-    expect(screen.queryByText(/Arma:/)).not.toBeInTheDocument();
-
-    fireEvent.click(detailsButton);
-
-    expect(detailsButton).toHaveAttribute("aria-expanded", "true");
-    const detailsId = detailsButton.getAttribute("aria-controls");
-    expect(detailsId).toBeTruthy();
-    expect(document.getElementById(detailsId!)).toHaveAttribute("aria-label", "Detalhes da ação");
+    expect(screen.queryByRole("button", { name: "Detalhes" })).not.toBeInTheDocument();
+    expect(within(row).getByLabelText("Detalhes da ação")).toBeInTheDocument();
     expect(within(row).getByText(/Arma: Throwing Dagger/)).toBeInTheDocument();
     expect(within(row).getByText(/Movimento: Dash.*coluna 3, linha 1/)).toBeInTheDocument();
     expect(within(row).getByText(/Velocidade de movimento: Accelerate.*= 12/)).toBeInTheDocument();
     expect(within(row).getByText(/Velocidade de ação: Legerity.*= 14/)).toBeInTheDocument();
     expect(within(row).getByText(/Ordem geral: chave 9/)).toBeInTheDocument();
     expect(within(row).getByText(/Alvos: Gon/)).toBeInTheDocument(); // alvo, por nome
-
-    fireEvent.click(detailsButton);
-    expect(detailsButton).toHaveAttribute("aria-expanded", "false");
-    expect(screen.queryByText(/Arma:/)).not.toBeInTheDocument();
   });
 
   // I1 (spec §5 F7): o card "em andamento" mostra a declaração (`openTurn.action`, B2) com o
@@ -272,7 +271,7 @@ describe("QueuePanel", () => {
     expect(within(open).getByText(/Arma: Throwing Dagger/)).toBeInTheDocument();
     expect(within(open).getByText(/Alvos: Gon/)).toBeInTheDocument();
     expect(within(open).getByText(/Movimento: Dash.*coluna 3, linha 1/)).toBeInTheDocument();
-    expect(within(open).queryByText(/Cobra:/)).not.toBeInTheDocument();
+    expect(within(open).queryByText(/Custo:/)).not.toBeInTheDocument();
     expect(within(open).queryByRole("button", { name: "Detalhes" })).not.toBeInTheDocument();
   });
 
@@ -287,7 +286,7 @@ describe("QueuePanel", () => {
         onPull={() => {}}
       />,
     );
-    expect(within(screen.getByTestId("queue-open")).getByText(/Cobra: movimento/)).toBeInTheDocument();
+    expect(within(screen.getByTestId("queue-open")).getByText("Custo: barra de movimento")).toBeInTheDocument();
   });
 });
 
@@ -696,11 +695,44 @@ describe("CloseTurnRefusedDialog", () => {
 });
 
 describe("EventStream", () => {
+  it("mudar só o rodapé (pinKey) prende a rolagem ao fim de novo", () => {
+    const scrollTo = vi.fn();
+    Object.defineProperty(HTMLElement.prototype, "scrollTo", { configurable: true, value: scrollTo });
+    try {
+      const rows = historyRows(undefined, [], undefined, undefined);
+      const { rerender } = render(<EventStream rows={rows} nameOf={nameOf} gridKind="square" pinKey="a" footer={<p>f1</p>} />);
+      const before = scrollTo.mock.calls.length;
+      rerender(<EventStream rows={rows} nameOf={nameOf} gridKind="square" pinKey="a:queued" footer={<p>f2</p>} />);
+      expect(scrollTo.mock.calls.length).toBe(before + 1);
+    } finally {
+      delete (HTMLElement.prototype as { scrollTo?: unknown }).scrollTo;
+    }
+  });
+
   it("histórico que não carregou: avisa por cima das linhas ao vivo", () => {
     const events: TableEvent[] = [{ kind: "round_mode_changed", at: 1, receivedAt: 1, mode: "Free" }];
     render(<EventStream rows={historyRows(undefined, events, undefined, undefined)} nameOf={nameOf} gridKind="square" loadFailed />);
     expect(screen.getByRole("alert")).toHaveTextContent("Não foi possível carregar o histórico.");
     expect(screen.getAllByTestId("event-row")).toHaveLength(1);
+  });
+
+  it("o `footer` aparece depois da última linha do histórico", () => {
+    const events: TableEvent[] = [{ kind: "round_mode_changed", at: 1, receivedAt: 1, mode: "Free" }];
+    render(
+      <EventStream
+        rows={historyRows(undefined, events, undefined, undefined)}
+        nameOf={nameOf}
+        gridKind="square"
+        footer={<p>rodapé</p>}
+      />,
+    );
+    const row = screen.getByTestId("event-row");
+    expect(row.compareDocumentPosition(screen.getByText("rodapé")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("o `footer` também aparece com o histórico vazio", () => {
+    render(<EventStream rows={[]} nameOf={nameOf} gridKind="square" footer={<p>rodapé</p>} />);
+    expect(screen.getByText("rodapé")).toBeInTheDocument();
   });
 
   it("histórico que não carregou e nada ao vivo: só o aviso, sem o \"nada aconteceu\"", () => {
@@ -897,16 +929,17 @@ describe("EventStream", () => {
 });
 
 describe("DeclaredActions", () => {
-  it("lista o que foi declarado com o status, e oculta sem cancelar", () => {
-    const onHide = vi.fn();
+  it("lista o que foi declarado com o status; só a linha na fila tem Cancelar", () => {
+    const onCancel = vi.fn();
     render(
       <DeclaredActions
         nameOf={nameOf}
         gridKind="square"
-        onHide={onHide}
+        onCancel={onCancel}
         declared={[
           { id: "a1", actorId: "c1", status: "queued", fromComposer: true, at: 0, attack: { targets: ["n1"] } },
           { id: "local-2", actorId: "c1", status: "sending", fromComposer: true, at: 1, move: { category: "Shift", to: [0, 0, 0] } },
+          { id: "a3", actorId: "c1", status: "open", fromComposer: true, at: 2, attack: { targets: ["n1"] } },
         ]}
       />,
     );
@@ -915,12 +948,54 @@ describe("DeclaredActions", () => {
     expect(rows[0]).toHaveTextContent("na fila");
     expect(rows[1]).toHaveTextContent("Mover para coluna 1, linha 1 (Shift)");
     expect(rows[1]).toHaveTextContent("enviando…");
-    fireEvent.click(screen.getByRole("button", { name: "Ocultar da lista" }));
-    expect(onHide).toHaveBeenCalledWith("a1");
+    expect(screen.queryByRole("button", { name: "Ocultar da lista" })).toBeNull();
+    expect(screen.getAllByRole("button", { name: "Cancelar" })).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(onCancel).toHaveBeenCalledWith("a1");
   });
 
   it("não ocupa espaço quando não há nada", () => {
-    const { container } = render(<DeclaredActions nameOf={nameOf} gridKind="square" declared={[]} onHide={() => {}} />);
+    const { container } = render(<DeclaredActions nameOf={nameOf} gridKind="square" declared={[]} onCancel={() => {}} />);
+    expect(container).toBeEmptyDOMElement();
+  });
+});
+
+describe("CancelDeclaredDialog", () => {
+  const pending: DeclaredAction = { id: "a1", actorId: "c1", status: "queued", fromComposer: true, at: 0, attack: { targets: ["n1"] } };
+  const base = { nameOf, gridKind: "square" as const, canConfirm: true, onConfirm: () => {}, onKeep: () => {} };
+
+  it("pergunta, descreve a ação e diz o que acontece", () => {
+    render(<CancelDeclaredDialog {...base} pending={pending} />);
+    expect(screen.getByText("Cancelar esta ação?")).toBeInTheDocument();
+    expect(screen.getByText(/Atacar Hisoka/i)).toBeInTheDocument();
+    expect(screen.getByText("Ela sai da fila e não acontece.")).toBeInTheDocument();
+  });
+
+  it("Manter e Cancelar ação chamam cada um o seu", () => {
+    const onKeep = vi.fn();
+    const onConfirm = vi.fn();
+    render(<CancelDeclaredDialog {...base} pending={pending} onKeep={onKeep} onConfirm={onConfirm} />);
+    fireEvent.click(screen.getByRole("button", { name: "Manter" }));
+    expect(onKeep).toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar ação" }));
+    expect(onConfirm).toHaveBeenCalled();
+  });
+
+  it("sem conexão não dá para confirmar", () => {
+    render(<CancelDeclaredDialog {...base} pending={pending} canConfirm={false} />);
+    expect(screen.getByRole("button", { name: "Cancelar ação" })).toBeDisabled();
+  });
+
+  it("com showSwapCost avisa da Desvantagem; sem ele, não", () => {
+    const aviso = "Até o fim da rodada, o que este personagem fizer de novo rola a velocidade com Desvantagem.";
+    const { rerender } = render(<CancelDeclaredDialog {...base} pending={pending} showSwapCost />);
+    expect(screen.getByText(aviso)).toBeInTheDocument();
+    rerender(<CancelDeclaredDialog {...base} pending={pending} />);
+    expect(screen.queryByText(aviso)).not.toBeInTheDocument();
+  });
+
+  it("sem pedido não renderiza", () => {
+    const { container } = render(<CancelDeclaredDialog {...base} pending={null} />);
     expect(container).toBeEmptyDOMElement();
   });
 });
@@ -954,6 +1029,34 @@ describe("MatchTopBar", () => {
   it("diz que está esperando o mestre quando a sala não abriu", () => {
     render(<MatchTopBar roundMode="" status="waiting" asideOpen={false} onToggleAside={() => {}} />);
     expect(screen.getByTestId("ws-status")).toHaveAttribute("title", "Aguardando o mestre abrir a sala…");
+  });
+});
+
+describe("EventStream: ação cancelada", () => {
+  const cancelled = (action?: HistoryAction): MatchHistory => ({
+    scenes: [{
+      uuid: "s1", category: "battle", briefDesc: "", createdAt: "2026-01-01T00:00:00Z",
+      rounds: [{
+        uuid: "r1", mode: "Race", createdAt: "2026-01-01T00:00:00Z", turns: [],
+        events: [{ uuid: "x1", kind: "actionCancelled", createdAt: "2026-01-01T00:01:00Z", actorId: "c1", ...(action && { action }) }],
+      }],
+    }],
+  });
+  const lastRow = (h: MatchHistory) => {
+    render(<EventStream rows={historyRows(h, [], 0, undefined)} nameOf={nameOf} gridKind="square" />);
+    return screen.getAllByTestId("event-row")[1];
+  };
+
+  it("com a ação (mestre/dono): 'cancelou: <descrição>'; destino e alvos vêm do wire", () => {
+    const row = lastRow(cancelled({
+      uuid: "x1", actorId: "c1", reactionKind: "", targetId: ["n1"],
+      move: { category: "Dash", position: [4, 7, 0] }, attack: { weapon: "Sword" },
+    }));
+    expect(row).toHaveTextContent("Gon cancelou: mover para coluna 5, linha 8 (Dash) e atacar Hisoka com Sword");
+  });
+
+  it("sem a ação (os outros): só 'cancelou uma ação'", () => {
+    expect(lastRow(cancelled())).toHaveTextContent("Gon cancelou uma ação");
   });
 });
 
