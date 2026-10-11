@@ -95,6 +95,4 @@ export type TacticalMapStageProps = {
   isWallTappable?: (wall: WallSegment) => boolean;
   fog?: FogState;
   fogDisabled?: boolean; // true for master / editor
-  worldWidth?: number;
-  worldHeight?: number;
 };

@@ -63,8 +63,6 @@ export default function TacticalMapStage({
   isWallTappable,
   fog,
   fogDisabled = true,
-  worldWidth,
-  worldHeight,
 }: TacticalMapStageProps) {
   const [isBgLoading, setIsBgLoading] = useState(() => !!map.bg?.url);
   // @pixi/react (8.0.5) renders the Pixi tree from an async root: its FIRST render awaits
@@ -158,8 +156,6 @@ export default function TacticalMapStage({
           isWallTappable={isWallTappable}
           fog={fog}
           fogDisabled={fogDisabled}
-          worldWidth={worldWidth}
-          worldHeight={worldHeight}
         />
       </Application>
       {(isBgLoading || uploading) && (
