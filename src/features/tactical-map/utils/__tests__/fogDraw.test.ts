@@ -160,10 +160,11 @@ describe("drawLosMask", () => {
 describe("drawFog", () => {
   const w = grid.cols * grid.cellSize;
   const h = grid.rows * grid.cellSize;
+  const bounds = { minX: 0, minY: 0, maxX: w, maxY: h };
 
   it("paints one single region at one single alpha", () => {
     const { g, calls } = recorder();
-    drawFog(g, w, h);
+    drawFog(g, bounds);
 
     const fills = fillsOf(calls);
     expect(fills.length).toBe(1);
@@ -176,7 +177,7 @@ describe("drawFog", () => {
 
   it("pads the fog well beyond the board so panning never exposes a bare edge", () => {
     const { g, calls } = recorder();
-    drawFog(g, w, h);
+    drawFog(g, bounds);
 
     const pts = points(calls);
     const minX = pts.reduce((m, p) => Math.min(m, p.x), Infinity);
@@ -189,9 +190,19 @@ describe("drawFog", () => {
     expect(maxY).toBeGreaterThanOrEqual(h + FOG_PADDING);
   });
 
+  it("cobre uma caixa que não começa na origem (hex/girada)", () => {
+    const { g, calls } = recorder();
+    drawFog(g, { minX: -50, minY: -80, maxX: 900, maxY: 700 });
+    const pts = points(calls);
+    expect(Math.min(...pts.map((p) => p.x))).toBe(-50 - FOG_PADDING);
+    expect(Math.max(...pts.map((p) => p.x))).toBe(900 + FOG_PADDING);
+    expect(Math.min(...pts.map((p) => p.y))).toBe(-80 - FOG_PADDING);
+    expect(Math.max(...pts.map((p) => p.y))).toBe(700 + FOG_PADDING);
+  });
+
   it("clears before drawing so repeated frames do not accumulate geometry", () => {
     const { g, calls } = recorder();
-    drawFog(g, w, h);
+    drawFog(g, bounds);
     expect(calls[0].op).toBe("clear");
   });
 });
