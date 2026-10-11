@@ -15,18 +15,22 @@ function HomePage() {
 
   return (
     <PageContainer>
-      <PageHeader showBack={false} trailing={<LogoutButton />} />
+      <PageHeader
+        backgroundColor={colors.surfaceHeaderDark}
+        showBack={false}
+        trailing={<LogoutButton />}
+      />
       <Cards>
         <NavigationCard
           to="/charactersheets"
           title="Personagens"
-          description="Crie e gerencie suas fichas de personagem."
+          description="Crie e gerencie suas fichas de personagem de jogador."
           bgImage={space}
         />
         <NavigationCard
           to="/campaigns"
           title="Campanhas"
-          description="Mestre ou participe de campanhas e partidas."
+          description="Crie e gerencie campanhas e partidas como mestre."
           bgImage={worldMap}
         />
       </Cards>

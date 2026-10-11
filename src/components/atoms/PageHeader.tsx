@@ -38,11 +38,13 @@ const StyledPageHeader = styled.div<{ $backgroundColor?: string }>`
   padding-bottom: 0.4vw;
 `;
 
+// Centrado sem transform: um transform aqui viraria o bloco de contenção de filhos
+// position: fixed (a bolha do Tooltip) e os jogaria para fora da tela.
 const Trailing = styled.div`
   position: absolute;
-  top: 50%;
+  top: 0;
+  bottom: 0;
   right: min(24px, 3vw);
-  transform: translateY(-50%);
   display: flex;
   align-items: center;
   gap: 12px;

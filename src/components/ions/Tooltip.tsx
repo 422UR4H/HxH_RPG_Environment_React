@@ -5,9 +5,13 @@ import { colors, fonts } from "../../styles/tokens";
 
 /** Quanto a dica fica de pé depois de um toque (no toque não há "sair" para esconder). */
 const TOUCH_MS = 2500;
+/** Segurar o dedo por isto mostra a dica sem acionar o filho. */
+const LONG_PRESS_MS = 500;
 
 /**
- * Dica não clicável: hover (mouse) e foco mostram; toque mostra por `TOUCH_MS`.
+ * Dica não clicável: hover (mouse) e foco mostram; toque mostra por `TOUCH_MS`. Segurar o
+ * dedo (`LONG_PRESS_MS`) também mostra, e o clique que vem ao soltar é engolido — é assim
+ * que um botão que age no toque (ex.: sair) se explica no touch sem ser acionado.
  * A bolha é `position: fixed`, medida a partir do filho ao abrir: um ancestral com
  * `overflow` (a Regência da topbar rola na horizontal) cortaria uma bolha absoluta.
  */
@@ -25,11 +29,19 @@ export default function Tooltip({
   const wrapRef = useRef<HTMLSpanElement>(null);
   const lastPointer = useRef("mouse");
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const pressTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const longPressed = useRef(false);
   const [pos, setPos] = useState<CSSProperties | null>(null);
 
   const bubbleRef = useRef<HTMLSpanElement>(null);
 
-  useEffect(() => () => clearTimeout(timer.current), []);
+  useEffect(
+    () => () => {
+      clearTimeout(timer.current);
+      clearTimeout(pressTimer.current);
+    },
+    [],
+  );
 
   // Se a dica for desligada com a bolha aberta, ela não pode reaparecer velha depois.
   useEffect(() => {
@@ -73,6 +85,13 @@ export default function Tooltip({
     setPos(null);
   };
 
+  const showForTouch = () => {
+    show();
+    clearTimeout(timer.current);
+    timer.current = setTimeout(hide, TOUCH_MS);
+  };
+  const cancelPress = () => clearTimeout(pressTimer.current);
+
   const open = enabled && pos !== null;
   return (
     <Wrap
@@ -81,12 +100,30 @@ export default function Tooltip({
       onPointerLeave={(e) => { if (e.pointerType === "mouse") hide(); }}
       onFocus={show}
       onBlur={hide}
-      onPointerDown={(e) => { lastPointer.current = e.pointerType; }}
+      onPointerDown={(e) => {
+        lastPointer.current = e.pointerType;
+        if (e.pointerType === "mouse" || !enabled) return;
+        longPressed.current = false;
+        cancelPress();
+        pressTimer.current = setTimeout(() => {
+          longPressed.current = true;
+          showForTouch();
+        }, LONG_PRESS_MS);
+      }}
+      onPointerUp={cancelPress}
+      onPointerCancel={cancelPress}
+      // Android abre o menu de contexto no mesmo segurar.
+      onContextMenu={(e) => { if (lastPointer.current !== "mouse" && enabled) e.preventDefault(); }}
+      onClickCapture={(e) => {
+        cancelPress();
+        if (!longPressed.current) return;
+        longPressed.current = false;
+        e.preventDefault();
+        e.stopPropagation();
+      }}
       onClick={() => {
         if (lastPointer.current === "mouse") return;
-        show();
-        clearTimeout(timer.current);
-        timer.current = setTimeout(hide, TOUCH_MS);
+        showForTouch();
       }}
     >
       {/* A descrição existe desde o foco (o botão aria-disabled só se explica por ela);
@@ -113,6 +150,7 @@ const SrOnly = styled.span`
 
 const Wrap = styled.span`
   display: inline-flex;
+  -webkit-touch-callout: none;
 `;
 
 // z-index acima da topbar e do painel; sem eventos de ponteiro para nunca roubar o hover.

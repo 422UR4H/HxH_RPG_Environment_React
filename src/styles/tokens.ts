@@ -17,6 +17,7 @@ export const colors = {
   surfaceMuted: "#333", // fallback dark card (participant without private data)
   surfaceControl: "#444", // inner control surface: progress bar fill bg, attribute card bg
   surfaceHeaderDefault: "#252525", // PageHeader default background
+  surfaceHeaderDark: "black", // PageHeader on dark pages (home, character sheets)
 
   // surfaces — neutral scale (top-bar/menu/modal panels)
   grayBgDark: "#222", // ExpBar dark background
