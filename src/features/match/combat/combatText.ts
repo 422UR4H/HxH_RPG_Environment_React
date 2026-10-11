@@ -84,7 +84,8 @@ export type ActionSummary = {
   /** `to` ausente: o leitor não viu a casa (a projeção do histórico corta). */
   move?: { category: string; to?: SlotTriple };
   attack?: { targets: string[]; weapon?: string };
-  interact?: { kind: string };
+  /** `targets` ausente ou vazio: o texto cai em "a passagem". */
+  interact?: { kind: string; targets?: string[] };
 };
 
 /** "Mover para coluna 8, linha 5 (Dash) e atacar Hisoka com Sword". */
@@ -95,7 +96,10 @@ export function describeAction(d: ActionSummary, nameOf: (id: string) => string,
     const who = d.attack.targets.map(nameOf).join(", ");
     parts.push(`atacar ${who}${d.attack.weapon ? withWeapon(d.attack.weapon) : ""}`);
   }
-  if (d.interact) parts.push(`${interactLabel(d.interact.kind)} a passagem`);
+  if (d.interact) {
+    const what = d.interact.targets?.length ? d.interact.targets.map(nameOf).join(", ") : "a passagem";
+    parts.push(`${interactLabel(d.interact.kind)} ${what}`);
+  }
   const text = parts.join(" e ");
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
@@ -115,7 +119,7 @@ export function describeHistoryAction(a: HistoryAction, nameOf: (id: string) => 
     {
       move: a.move && { category: a.move.category, to: a.move.position },
       attack: a.attack && { targets: a.targetId ?? [], weapon: a.attack.weapon },
-      interact: a.interact,
+      interact: a.interact && { kind: a.interact.kind, targets: a.targetId ?? [] },
     },
     nameOf,
     gridKind,

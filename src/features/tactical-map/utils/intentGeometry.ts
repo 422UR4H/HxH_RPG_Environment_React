@@ -1,6 +1,6 @@
 import type { GridShape, SlotCoord } from "../../../types/tacticalMap";
 import type { SlotTriple } from "./coords";
-import { slotCorners, slotInradius, slotToWorld, tripleToSlot } from "./coords";
+import { applyTransform, slotCorners, slotInradius, slotToWorld, tripleToSlot } from "./coords";
 
 type XY = { x: number; y: number };
 
@@ -12,6 +12,8 @@ export type IntentShapes = {
   destination?: { corners: XY[]; center: XY; radius: number; auto: boolean; arrow?: Arrow };
   /** Uma linha de ataque por alvo, saindo de onde o ator vai estar quando atacar. */
   attacks: Arrow[];
+  /** Paredes-alvo, no mundo: o segmento inteiro destacado (o anel da peça, para uma parede). */
+  wallTargets: Array<{ a: XY; b: XY }>;
   /** Movimentos já declarados que ainda não aconteceram: token translúcido + seta. */
   ghosts: Array<{ center: XY; radius: number; arrow?: Arrow }>;
 };
@@ -21,6 +23,8 @@ export type IntentPreview = {
   to?: SlotCoord;
   auto: boolean;
   targets: SlotCoord[];
+  /** Paredes-alvo, em coordenadas LOCAIS da grade (as de `WallSegment.p1/p2`). */
+  targetWalls?: Array<{ p1: [number, number]; p2: [number, number] }>;
 };
 
 /** Mesmo raio de token que `PieceSprite` usa: 90% do inradius do slot. */
@@ -62,7 +66,7 @@ export function intentGeometry(
   grid: GridShape,
 ): IntentShapes {
   const radius = tokenRadius(grid);
-  const shapes: IntentShapes = { attacks: [], ghosts: [] };
+  const shapes: IntentShapes = { attacks: [], wallTargets: [], ghosts: [] };
 
   for (const g of ghosts) {
     const center = slotToWorld(tripleToSlot(g.to, grid.kind), grid);
@@ -91,6 +95,15 @@ export function intentGeometry(
       const arrow = arrowBetween(strikeFrom, slotToWorld(t, grid), radius * 0.6, radius);
       if (arrow) shapes.attacks.push(arrow);
     }
+  }
+  for (const w of preview.targetWalls ?? []) {
+    const a = applyTransform({ x: w.p1[0], y: w.p1[1] }, grid);
+    const b = applyTransform({ x: w.p2[0], y: w.p2[1] }, grid);
+    shapes.wallTargets.push({ a, b });
+    // A linha vai até o meio da parede; encostado nela, não há linha (como na peça adjacente).
+    const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    const arrow = strikeFrom ? arrowBetween(strikeFrom, mid, radius * 0.6, 4) : undefined;
+    if (arrow) shapes.attacks.push(arrow);
   }
   return shapes;
 }

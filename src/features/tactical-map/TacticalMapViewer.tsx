@@ -11,6 +11,7 @@ type Props = {
   height: number;
   npcMap?: Map<string, CharacterPrivateSummary>;
   onWallClick?: (wall: WallSegment) => void;
+  isWallTappable?: (wall: WallSegment) => boolean;
   fog?: FogState;
   isMaster?: boolean;
   // Combat interaction (game pages only). Left undefined by any other caller —
@@ -39,7 +40,7 @@ type Props = {
 };
 
 export default function TacticalMapViewer({
-  map, width, height, npcMap, onWallClick, fog, isMaster,
+  map, width, height, npcMap, onWallClick, isWallTappable, fog, isMaster,
   piecesInteractive, draggablePieceIds, onPieceSelect, onPieceLongPress,
   selectedPieceId, inspectedPieceId, targetPieceIds, activePieceId, onEmptySlotClick,
   suppressPanOnPiecePress, intentPreview, intentGhosts, highlightHoverSlot, fitRequest,
@@ -53,6 +54,7 @@ export default function TacticalMapViewer({
       npcMap={npcMap}
       walls={map.walls}
       onWallClick={onWallClick}
+      isWallTappable={isWallTappable}
       fog={fog}
       fogDisabled={!!isMaster || !fog}
       piecesInteractive={piecesInteractive}

@@ -98,7 +98,10 @@ function turnLine(turn: HistoryTurn, nameOf: (id: string) => string, gridKind: G
     const who = (a.targetId ?? []).map(nameOf).join(", ");
     parts.push(`atacou ${who}${a.attack.weapon ? withWeapon(a.attack.weapon) : ""}`);
   }
-  if (a.interact) parts.push(`interagiu (${interactLabel(a.interact.kind)})`);
+  if (a.interact) {
+    const what = (a.targetId ?? []).map(nameOf).join(", ");
+    parts.push(`interagiu${what ? ` com ${what}` : ""} (${interactLabel(a.interact.kind)})`);
+  }
   const outcomes = (turn.resolution?.targets ?? []).map((t) => outcomeText(t, nameOf, gridKind));
   const what = parts.length ? ` — ${parts.join(" e ")}` : "";
   return {

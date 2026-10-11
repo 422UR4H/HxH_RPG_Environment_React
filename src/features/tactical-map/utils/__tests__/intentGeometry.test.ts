@@ -25,7 +25,7 @@ describe("arrowBetween", () => {
 
 describe("intentGeometry", () => {
   it("draws nothing without a preview or ghosts", () => {
-    expect(intentGeometry(undefined, [], grid)).toEqual({ attacks: [], ghosts: [] });
+    expect(intentGeometry(undefined, [], grid)).toEqual({ attacks: [], wallTargets: [], ghosts: [] });
   });
 
   it("highlights the destination slot and links it to the actor", () => {
@@ -62,5 +62,18 @@ describe("intentGeometry", () => {
   it("a ghost without origin has no arrow", () => {
     const s = intentGeometry(undefined, [{ to: [4, 1, 0] }], grid);
     expect(s.ghosts[0].arrow).toBeUndefined();
+  });
+
+  it("highlights a target wall and strikes at its middle", () => {
+    // Parede na aresta de baixo de (4,4): de (256,320) a (320,320).
+    const s = intentGeometry(
+      { from: sq(4, 1), auto: false, targets: [], targetWalls: [{ p1: [256, 320], p2: [320, 320] }] },
+      [],
+      grid,
+    );
+    expect(s.wallTargets).toEqual([{ a: { x: 256, y: 320 }, b: { x: 320, y: 320 } }]);
+    expect(s.attacks).toHaveLength(1);
+    expect(s.attacks[0].to.x).toBeCloseTo(288);
+    expect(s.attacks[0].to.y).toBeCloseTo(316);
   });
 });

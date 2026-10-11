@@ -136,6 +136,19 @@ export default function IntentLayer({
         }
       }
 
+      // A parede-alvo: o segmento inteiro na cor do ataque, com contorno — o anel da peça, para
+      // uma parede.
+      for (const w of shapes.wallTargets) {
+        strokeTwice(
+          g,
+          () => {
+            g.moveTo(w.a.x, w.a.y);
+            g.lineTo(w.b.x, w.b.y);
+          },
+          { color: ATTACK_COLOR, width: 6, alpha: 0.9 },
+        );
+      }
+
       if (shapes.attacks.length) {
         g.setStrokeStyle({ color: ATTACK_COLOR, width: 2.5, alpha: 0.95 });
         for (const a of shapes.attacks) {

@@ -79,6 +79,7 @@ export default function ViewportInner({
   drawingEnabled,
   onExitWallsDrawMode,
   onWallClick,
+  isWallTappable,
   fog,
   fogDisabled = true,
   worldWidth,
@@ -438,6 +439,7 @@ export default function ViewportInner({
         drawingEnabled={drawingEnabled ?? false}
         onExitDrawMode={onExitWallsDrawMode ?? (() => {})}
         onWallClick={onWallClick}
+        isWallTappable={isWallTappable}
         losPolygons={fog && !fogDisabled ? fog.visiblePolygons : undefined}
       />
       {/* Above fog and walls: it is the viewer's own intention, always legible. */}

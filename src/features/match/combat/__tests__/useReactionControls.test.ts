@@ -128,7 +128,7 @@ describe("useReactionControls", () => {
   });
 
   it("quick em Repelir não envia: abre a caixa (a arma muda o resultado), pré-escolhida pelo botão", () => {
-    saveDraft("m1", "c2", { moveMode: "none", attack: { targets: [], weapon: "Sword" } });
+    saveDraft("m1", "c2", { moveMode: "none", act: { targets: [], weapon: "Sword" } });
     const { result, attachReaction } = mount();
     act(() => result.current.quick("c2", "repel"));
     expect(attachReaction).not.toHaveBeenCalled();

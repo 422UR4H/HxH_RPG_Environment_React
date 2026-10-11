@@ -14,8 +14,9 @@ import { masterPanelDismissible, useStageOverlays } from "../features/match/comb
 import MatchStageTemplate from "../components/templates/MatchStageTemplate";
 import MatchTopBar from "../features/match/combat/MatchTopBar";
 import {
-  AddNpcPicker, ArrangePanel, NpcPicker, PanelSection, RegencyControls, RoundModeSwitch,
+  AddNpcPicker, ArrangePanel, NpcPicker, PanelSection, RegencyControls, RoundModeSwitch, WallMasterPanel,
 } from "../features/match/combat/MasterControls";
+import { actorWallVerbs, masterWallVerbs } from "../features/match/combat/wallVerbs";
 import { PanelTitle } from "../features/match/combat/panelStyles";
 import RailNav from "../features/match/combat/RailNav";
 import AsideTabs from "../features/match/combat/AsideTabs";
@@ -44,7 +45,6 @@ import { useCombatAnchoredItems } from "../features/match/combat/anchoredItems";
 import PieceAnchoredLayer from "../features/match/combat/PieceAnchoredLayer";
 import type { PieceAnchoredItem } from "../features/match/combat/PieceAnchoredLayer";
 import MatchCharactersSidebar from "../features/match/MatchCharactersSidebar";
-import WallActionSheet from "../features/match/WallActionSheet";
 import TacticalMapViewer from "../features/tactical-map/TacticalMapViewer";
 import {
   CanvasWrapper, MapCornerStack, MapCornerStackButton, MapHint, MapHintButton, MapLoadingMessage, NoMapMessage,
@@ -132,7 +132,9 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   const cancelPending =
     cancelling && state.declared.some((d) => d.id === cancelling.id && d.status === "queued") ? cancelling : null;
   const { panelOpen, setPanelOpen, asideOpen, setAsideOpen, closeAsideIfDrawer } = useStageOverlays();
-  const [wallPicker, setWallPicker] = useState<WallSegment | null>(null);
+  // A porta/janela que o mestre tocou SEM NPC escolhido: o card "Ação do Mestre" no Agir.
+  // Guarda o id — o card lê a parede ao vivo (aberta/fechada muda por baixo dele).
+  const [masterWallId, setMasterWallId] = useState<string | undefined>(undefined);
   const [sceneDialog, setSceneDialog] = useState(false);
 
   // ─── Arrumar (F12) ─────────────────────────────────────────────────────────
@@ -210,7 +212,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   // O Esc é do modo só quando não é de outra coisa: outro diálogo aberto ou um campo de texto
   // com foco ficam com ele. Os diálogos de confirmação do próprio modo não contam.
   const otherDialogOpen =
-    sceneDialog || wallPicker != null || state.pendingCloseTurn != null || controls.dialog != null;
+    sceneDialog || state.pendingCloseTurn != null || controls.dialog != null;
   useEffect(() => {
     if (boardMode === "play" || otherDialogOpen) return;
     const onKey = (e: KeyboardEvent) => {
@@ -273,6 +275,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   const chooseActor = useCallback((id: string | undefined) => {
     setActorId(id);
     setInspectedId(undefined);
+    setMasterWallId(undefined);
     if (id) {
       // Escolher um ator (pela lista do Agir) é voltar a jogar: sai da escolha de onde cai e
       // da casa da fuga (esta volta a "play" sozinha quando o `pick` some).
@@ -322,6 +325,22 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     },
     [actorId, composer],
   );
+  // Com NPC, a parede é alvo do compositor, como para o jogador. Sem NPC, a porta/janela abre o
+  // card da ação direta do mestre (nada de modal: o painel Agir).
+  const handleWallTap = useCallback(
+    (wall: WallSegment) => {
+      if (actorId) composer.onWallTap(wall);
+      else setMasterWallId(wall.id);
+      setRailActive("agir");
+      setPanelOpen(true);
+    },
+    [actorId, composer, setPanelOpen],
+  );
+  const isWallTappable = useCallback(
+    (w: WallSegment) => (actorId ? actorWallVerbs(w) : masterWallVerbs(w)).length > 0,
+    [actorId],
+  );
+  const masterWall = !actorId && masterWallId ? live.liveWalls.find((w) => w.id === masterWallId) : undefined;
 
   useEffect(() => {
     if (!inspectedId) return;
@@ -612,6 +631,13 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
           ) : (
             <>
               <NpcPicker npcs={npcs} actorId={actorId} onChoose={chooseActor} />
+              {masterWall && (
+                <WallMasterPanel
+                  wall={masterWall}
+                  onInteract={(kind) => combat.send.masterAction({ targetIds: [masterWall.id], interact: { kind } })}
+                  onDismiss={() => setMasterWallId(undefined)}
+                />
+              )}
               {actorId && (
                 <>
                   <OwnBars bars={state.bars} characterId={actorId} hp={actorHp} />
@@ -648,7 +674,9 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                   width={width}
                   height={height}
                   npcMap={live.npcMap}
-                  onWallClick={setWallPicker}
+                  // Só no modo de jogo: no Arrumar e nas escolhas de casa o toque é do modo.
+                  onWallClick={boardMode === "play" ? handleWallTap : undefined}
+                  isWallTappable={isWallTappable}
                   piecesInteractive
                   // Com um chip armado nada arrasta: a mesma soltura arrastaria E poria.
                   draggablePieceIds={arranging && !placingId ? allPieceIds : NO_DRAG}
@@ -832,29 +860,6 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
         onCancel={() => setSceneDialog(false)}
         onConfirm={(p) => { combat.send.changeScene(p); setSceneDialog(false); }}
       />
-      {wallPicker && (
-        <WallActionSheet
-          wall={wallPicker}
-          isMaster
-          onClose={() => setWallPicker(null)}
-          onInteract={(kind) => {
-            combat.send.masterAction({ targetIds: [wallPicker.id], interact: { kind } });
-            setWallPicker(null);
-          }}
-          // O mestre ataca uma parede POR um NPC: `enqueue_master_action` recusa `attack` (B9).
-          onAttack={
-            actorId
-              ? () => {
-                  combat.send.enqueueAction(
-                    { actorId, targetId: [wallPicker.id], attack: {} },
-                    { fromComposer: false },
-                  );
-                  setWallPicker(null);
-                }
-              : undefined
-          }
-        />
-      )}
     </>
   );
 }

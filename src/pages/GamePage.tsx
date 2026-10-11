@@ -9,7 +9,8 @@ import GameMasterPage from "./GameMasterPage";
 /**
  * A rota (Tarefas 12/13, spec §3.4): lê o papel uma vez e monta a página certa. Daí para
  * baixo nenhum componente recebe `isMaster` (I2) — as exceções declaradas são
- * `WallActionSheet` (R23), `TacticalMapStage.fogDisabled` e `MatchCharactersSidebar` (R25).
+ * `TacticalMapStage.fogDisabled` e `MatchCharactersSidebar` (R25). (O `WallActionSheet` de R23
+ * saiu: a parede é alvo do compositor — `docs/dev/match/combate-parede-alvo.md`.)
  *
  * A rota não muda de caminho — continua `/campaigns/:campaignId/matches/:matchId/game`.
  */

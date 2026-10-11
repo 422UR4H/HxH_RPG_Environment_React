@@ -2,15 +2,18 @@
 // A diferença entre os dois papéis (quem pode ser ator, o que um toque sem ator faz) fica na
 // página; daqui para baixo é o mesmo rascunho, a mesma resolução e o mesmo envio.
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { GridShape, Piece, SlotCoord } from "../../../types/tacticalMap";
+import type { GridShape, Piece, SlotCoord, WallSegment } from "../../../types/tacticalMap";
 import { isSameSlot, slotToTriple, tripleToSlot } from "../../tactical-map/utils/coords";
+import { isPathClear, wallContactSlots } from "../../tactical-map/utils/wallReach";
 import type { IntentPreview } from "../../tactical-map/IntentLayer";
 import {
-  buildEnqueuePayload, chooseDestination, chooseTarget, clearDraft, draftVerdict, emptyDraft,
-  loadDraft, purgeLegacyMatchStorage, resolveDraft, saveDraft, toggleTarget,
+  buildEnqueuePayload, chooseDestination, chooseTarget, chooseWallTarget, clearDraft, draftVerdict,
+  emptyDraft, loadDraft, purgeLegacyMatchStorage, resolveDraft, saveDraft, toggleTarget,
 } from "./actionDraft";
-import type { ActionDraft, ReachContext } from "./actionDraft";
+import type { ActionDraft, DraftTarget, ReachContext } from "./actionDraft";
 import type { MoveCategory } from "./combatMessages";
+
+const NO_WALLS: WallSegment[] = [];
 
 const FALLBACK_GRID: GridShape = {
   kind: "square", cols: 0, rows: 0, cellSize: 1, skewRatio: 1, rotation: 0,
@@ -21,6 +24,7 @@ export function useActionComposerState({
   matchId,
   actorId,
   boardPieces,
+  walls = NO_WALLS,
   grid,
   defaultCategory,
   defaultWeapon,
@@ -28,6 +32,8 @@ export function useActionComposerState({
   matchId: string | undefined;
   actorId: string | undefined;
   boardPieces: Piece[];
+  /** As paredes ao vivo do tabuleiro: alvos possíveis, e o que bloqueia a aproximação. */
+  walls?: WallSegment[];
   grid: GridShape | undefined;
   defaultCategory: MoveCategory;
   /** A arma com que o ataque abre quando o rascunho não escolheu uma. */
@@ -72,7 +78,7 @@ export function useActionComposerState({
   const restoreDraftFor = useCallback(
     (actor: string, next: ActionDraft): boolean => {
       if (!matchId) return false;
-      const isEmpty = (d: ActionDraft) => d.moveMode === "none" && !d.attack;
+      const isEmpty = (d: ActionDraft) => d.moveMode === "none" && !d.act;
       if (actor === actorId) {
         if (!isEmpty(draft)) return false;
         updateDraft(next);
@@ -97,16 +103,24 @@ export function useActionComposerState({
 
   const actorPiece = actorId ? pieceByCharacter.get(actorId) : undefined;
 
-  const ctx = useMemo<ReachContext>(
-    () => ({
-      grid: grid ?? FALLBACK_GRID,
+  const wallById = useMemo(() => new Map(walls.map((w) => [w.id, w])), [walls]);
+
+  const ctx = useMemo<ReachContext>(() => {
+    const g = grid ?? FALLBACK_GRID;
+    return {
+      grid: g,
       actorSlot: actorPiece?.coord.slot,
       actorZ: actorPiece?.coord.z ?? 0,
-      slotOf: (id) => pieceByCharacter.get(id)?.coord.slot,
+      targetOf: (id): DraftTarget | undefined => {
+        const slot = pieceByCharacter.get(id)?.coord.slot;
+        if (slot) return { kind: "character", slot };
+        const wall = wallById.get(id);
+        return wall ? { kind: "wall", wall, reach: wallContactSlots(wall, g) } : undefined;
+      },
       isFree: (slot) => !boardPieces.some((p) => p.characterId !== actorId && isSameSlot(p.coord.slot, slot)),
-    }),
-    [grid, actorPiece, pieceByCharacter, boardPieces, actorId],
-  );
+      isPathClear: (from, to) => isPathClear(from, to, walls, g),
+    };
+  }, [grid, actorPiece, pieceByCharacter, wallById, walls, boardPieces, actorId]);
 
   const resolved = useMemo(
     () => resolveDraft(draft, ctx, defaultCategory, defaultWeapon),
@@ -118,22 +132,27 @@ export function useActionComposerState({
 
   const targetPieceIds = useMemo(() => {
     const ids = new Set<string>();
-    resolved.attack?.targets.forEach((id) => {
+    resolved.act?.targets.forEach((id) => {
       const p = pieceByCharacter.get(id);
       if (p) ids.add(p.id);
     });
     return ids;
-  }, [resolved.attack, pieceByCharacter]);
+  }, [resolved.act, pieceByCharacter]);
 
   const preview = useMemo<IntentPreview | undefined>(() => {
     if (!actorId || !grid) return undefined;
     const to = resolved.move?.to ? tripleToSlot(resolved.move.to, grid.kind) : undefined;
-    const targets = (resolved.attack?.targets ?? [])
+    const ids = resolved.act?.targets ?? [];
+    const targets = ids
       .map((id) => pieceByCharacter.get(id)?.coord.slot)
       .filter((s): s is SlotCoord => !!s);
-    if (!to && targets.length === 0) return undefined;
-    return { from: actorPiece?.coord.slot, to, auto: resolved.move?.auto ?? false, targets };
-  }, [actorId, grid, resolved, pieceByCharacter, actorPiece]);
+    const targetWalls = ids
+      .map((id) => wallById.get(id))
+      .filter((w): w is WallSegment => !!w)
+      .map((w) => ({ p1: w.p1, p2: w.p2 }));
+    if (!to && targets.length === 0 && targetWalls.length === 0) return undefined;
+    return { from: actorPiece?.coord.slot, to, auto: resolved.move?.auto ?? false, targets, targetWalls };
+  }, [actorId, grid, resolved, pieceByCharacter, wallById, actorPiece]);
 
   const onSlotTap = useCallback(
     (slot: SlotCoord) => updateDraft(chooseDestination(draft, slotToTriple(slot, actorPiece?.coord.z ?? 0))),
@@ -145,6 +164,10 @@ export function useActionComposerState({
   );
   const onCharacterHold = useCallback(
     (characterId: string) => updateDraft(toggleTarget(draft, characterId)),
+    [draft, updateDraft],
+  );
+  const onWallTap = useCallback(
+    (wall: WallSegment) => updateDraft(chooseWallTarget(draft, wall)),
     [draft, updateDraft],
   );
 
@@ -161,6 +184,7 @@ export function useActionComposerState({
     onSlotTap,
     onCharacterTap,
     onCharacterHold,
+    onWallTap,
     clearDraftFor,
     restoreDraftFor,
   };

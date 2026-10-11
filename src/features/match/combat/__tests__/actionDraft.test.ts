@@ -1,14 +1,15 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 import {
-  buildEnqueuePayload, chooseDestination, chooseTarget, clearDraft, defaultWeaponOf, draftFromDeclared, draftVerdict, emptyDraft,
-  loadDraft, purgeLegacyMatchStorage, removeTarget, resolveDraft, saveDraft, setMoveCategory,
-  setWeapon, toggleAttack, toggleMove, toggleTarget,
+  buildEnqueuePayload, chooseDestination, chooseTarget, chooseWallTarget, clearDraft, defaultWeaponOf, draftFromDeclared,
+  draftVerdict, emptyDraft, loadDraft, purgeLegacyMatchStorage, removeTarget, resolveDraft, saveDraft, setActKind,
+  setMoveCategory, setWeapon, toggleAct, toggleMove, toggleTarget,
 } from "../actionDraft";
 import type { ActionDraft, ReachContext } from "../actionDraft";
 import { useActionComposerState } from "../useActionComposerState";
 import { isSameSlot } from "../../../tactical-map/utils/coords";
-import type { GridShape, SlotCoord } from "../../../../types/tacticalMap";
+import { isPathClear, wallContactSlots } from "../../../tactical-map/utils/wallReach";
+import type { GridShape, SlotCoord, WallSegment } from "../../../../types/tacticalMap";
 
 const grid: GridShape = {
   kind: "square", cols: 14, rows: 10, cellSize: 64, skewRatio: 1, rotation: 0,
@@ -22,7 +23,7 @@ const ctx: ReachContext = {
   grid,
   actorSlot: positions.gon,
   actorZ: 0,
-  slotOf: (id) => positions[id],
+  targetOf: (id) => (positions[id] ? { kind: "character", slot: positions[id] } : undefined),
   isFree: (s) => !Object.values(positions).some((p) => isSameSlot(p, s)),
 };
 const resolve = (d: ActionDraft) => resolveDraft(d, ctx, "Dash");
@@ -33,7 +34,7 @@ describe("rascunho: padrão", () => {
   it("nasce sem movimento e sem ataque — nada a declarar", () => {
     const r = resolve(emptyDraft());
     expect(r.move).toBeUndefined();
-    expect(r.attack).toBeUndefined();
+    expect(r.act).toBeUndefined();
     expect(draftVerdict(r)).toEqual({ ready: false, reason: "empty" });
     expect(buildEnqueuePayload(r, "gon", [2, 4, 0])).toBeNull();
   });
@@ -82,7 +83,7 @@ describe("rascunho: só ataque", () => {
     const r = resolve(chooseTarget(emptyDraft(), "killua"));
     expect(r.move).toBeUndefined();
     expect(r.targetSteps).toBe(1);
-    expect(draftVerdict(r)).toEqual({ ready: true, kind: "attack" });
+    expect(draftVerdict(r)).toEqual({ ready: true, kind: "act" });
     expect(buildEnqueuePayload(r, "gon", [2, 4, 0])).toEqual({
       actorId: "gon", targetId: ["killua"], attack: {},
     });
@@ -96,13 +97,13 @@ describe("rascunho: só ataque", () => {
   });
 
   it("ligar Atacar sem alvo trava o envio até tocar em alguém", () => {
-    const d = toggleAttack(emptyDraft());
+    const d = toggleAct(emptyDraft());
     expect(draftVerdict(resolve(d))).toEqual({ ready: false, reason: "needs_target" });
   });
 
   it("desligar Atacar tira alvos e arma", () => {
-    const d = toggleAttack(setWeapon(chooseTarget(emptyDraft(), "killua"), "Sword"));
-    expect(d.attack).toBeUndefined();
+    const d = toggleAct(setWeapon(chooseTarget(emptyDraft(), "killua"), "Sword"));
+    expect(d.act).toBeUndefined();
   });
 });
 
@@ -126,7 +127,7 @@ describe("rascunho: alvo longe vira mover e atacar", () => {
     expect(ranged.moveMode).toBe("stay");
     const r = resolve(ranged);
     expect(r.move).toBeUndefined();
-    expect(draftVerdict(r)).toEqual({ ready: true, kind: "attack" });
+    expect(draftVerdict(r)).toEqual({ ready: true, kind: "act" });
   });
 
   it("depois de desmarcar, trocar de alvo longe não religa o movimento", () => {
@@ -159,7 +160,10 @@ describe("rascunho: alvo longe vira mover e atacar", () => {
 
   it("o destino da aproximação acompanha o alvo se ele andar antes do envio", () => {
     const d = chooseTarget(emptyDraft(), "hisoka");
-    const moved: ReachContext = { ...ctx, slotOf: (id) => (id === "hisoka" ? sq(8, 7) : positions[id]) };
+    const moved: ReachContext = {
+      ...ctx,
+      targetOf: (id) => ({ kind: "character", slot: id === "hisoka" ? sq(8, 7) : positions[id] }),
+    };
     expect(resolveDraft(d, moved, "Dash").move?.to).toEqual([7, 6, 0]);
   });
 
@@ -167,7 +171,7 @@ describe("rascunho: alvo longe vira mover e atacar", () => {
     const noPiece: ReachContext = { ...ctx, actorSlot: undefined };
     const r = resolveDraft(chooseTarget(emptyDraft(), "hisoka"), noPiece, "Dash");
     expect(r.move).toBeUndefined();
-    expect(draftVerdict(r)).toEqual({ ready: true, kind: "attack" });
+    expect(draftVerdict(r)).toEqual({ ready: true, kind: "act" });
   });
 });
 
@@ -175,10 +179,10 @@ describe("rascunho: vários alvos", () => {
   it("segurar adiciona e remove alvos; a aproximação segue o primeiro", () => {
     let d = chooseTarget(emptyDraft(), "killua");
     d = toggleTarget(d, "hisoka");
-    expect(d.attack?.targets).toEqual(["killua", "hisoka"]);
+    expect(d.act?.targets).toEqual(["killua", "hisoka"]);
     expect(resolve(d).move).toBeUndefined(); // Killua (primeiro) está ao alcance
     d = toggleTarget(d, "killua");
-    expect(d.attack?.targets).toEqual(["hisoka"]);
+    expect(d.act?.targets).toEqual(["hisoka"]);
     expect(resolve(d).move?.auto).toBe(true);
   });
 
@@ -193,6 +197,108 @@ describe("rascunho: vários alvos", () => {
   });
 });
 
+describe("rascunho: parede como alvo", () => {
+  // Porta na aresta vertical entre (7,4) e (8,4): x = 8 × 64, y de 4 × 64 a 5 × 64.
+  const door: WallSegment = {
+    id: "door", p1: [512, 256], p2: [512, 320], wallType: "door", material: "wood", move: true,
+    sense: "full", direction: "both", open: false, locked: false, hp: 10, maxHp: 10, resistance: 0,
+    destroyed: false,
+  } as WallSegment;
+  const ctxWith = (w: WallSegment): ReachContext => ({
+    ...ctx,
+    targetOf: (id) =>
+      id === w.id
+        ? { kind: "wall", wall: w, reach: wallContactSlots(w, grid) }
+        : positions[id] ? { kind: "character", slot: positions[id] } : undefined,
+    isPathClear: (a, b) => isPathClear(a, b, [w], grid),
+  });
+  const wallCtx = ctxWith(door);
+
+  it("tocar numa porta longe: aproxima do lado do ator e o verbo é abrir", () => {
+    const d = chooseWallTarget(emptyDraft(), door);
+    expect(d.act).toEqual({ targets: ["door"], kind: "open" });
+    const r = resolveDraft(d, wallCtx, "Dash");
+    expect(r.targetSteps).toBe(6);
+    expect(r.move).toEqual({ category: "Dash", to: [7, 4, 0], auto: true });
+    expect(r.act).toEqual({ targets: ["door"], kind: "open", verbs: ["open", "attack"] });
+    expect(draftVerdict(r)).toEqual({ ready: true, kind: "combined" });
+    expect(buildEnqueuePayload(r, "gon", [2, 4, 0])).toEqual({
+      actorId: "gon",
+      targetId: ["door"],
+      interact: { kind: "open" },
+      move: { category: "Dash", from: [2, 4, 0], position: [7, 4, 0] },
+    });
+  });
+
+  it("encostado na porta: só a interação, sem movimento", () => {
+    const near: ReachContext = { ...wallCtx, actorSlot: sq(7, 4) };
+    const r = resolveDraft(chooseWallTarget(emptyDraft(), door), near, "Dash");
+    expect(r.targetSteps).toBe(1);
+    expect(r.move).toBeUndefined();
+    expect(buildEnqueuePayload(r, "gon", [7, 4, 0])).toEqual({
+      actorId: "gon", targetId: ["door"], interact: { kind: "open" },
+    });
+  });
+
+  it("um ataque em curso continua ataque ao tocar numa parede que aceita ataque — com a arma", () => {
+    const d = chooseWallTarget(setWeapon(chooseTarget(emptyDraft(), "hisoka"), "Sword"), door);
+    expect(d.act).toEqual({ targets: ["door"], weapon: "Sword" });
+    const r = resolveDraft(d, wallCtx, "Dash", "Katana");
+    expect(r.act?.kind).toBe("attack");
+    expect(buildEnqueuePayload(r, "gon", [2, 4, 0])?.attack).toEqual({ weapon: "Sword" });
+  });
+
+  it("trocar o verbo para atacar usa a arma padrão; voltar a abrir não manda arma", () => {
+    const attack = setActKind(chooseWallTarget(emptyDraft(), door), "attack");
+    expect(resolveDraft(attack, wallCtx, "Dash", "Katana").act).toMatchObject({ kind: "attack", weapon: "Katana" });
+    const open = setActKind(attack, "open");
+    const r = resolveDraft(open, wallCtx, "Dash", "Katana");
+    expect(r.act).toEqual({ targets: ["door"], kind: "open", verbs: ["open", "attack"] });
+    expect(buildEnqueuePayload(r, "gon", [2, 4, 0])).not.toHaveProperty("attack");
+  });
+
+  it("a porta mudou por baixo (alguém abriu): o verbo segue o estado", () => {
+    const d = chooseWallTarget(emptyDraft(), door);
+    const opened = ctxWith({ ...door, open: true });
+    expect(resolveDraft(d, opened, "Dash").act?.kind).toBe("close");
+  });
+
+  it("porta trancada: arrombar", () => {
+    const d = chooseWallTarget(emptyDraft(), { ...door, locked: true });
+    expect(d.act?.kind).toBe("lockpick");
+  });
+
+  it("parede destruída sai dos alvos; sem verbo nenhum, o toque não muda nada", () => {
+    const d = chooseWallTarget(emptyDraft(), door);
+    const r = resolveDraft(d, ctxWith({ ...door, destroyed: true }), "Dash");
+    expect(r.act?.targets).toEqual([]);
+    expect(draftVerdict(r)).toEqual({ ready: false, reason: "needs_target" });
+    expect(chooseWallTarget(emptyDraft(), { ...door, destroyed: true })).toEqual(emptyDraft());
+  });
+
+  it("tocar num personagem depois da porta volta a ser ataque", () => {
+    const d = chooseTarget(chooseWallTarget(emptyDraft(), door), "killua");
+    expect(d.act).toEqual({ targets: ["killua"] });
+    expect(resolveDraft(d, wallCtx, "Dash").act?.kind).toBe("attack");
+  });
+
+  it("segurar num personagem com a porta como alvo junta os dois num ataque", () => {
+    const d = toggleTarget(chooseWallTarget(emptyDraft(), door), "killua");
+    expect(d.act).toEqual({ targets: ["door", "killua"] });
+    const r = resolveDraft(d, wallCtx, "Dash");
+    expect(r.act?.kind).toBe("attack");
+    expect(r.act?.verbs).toBeUndefined();
+  });
+
+  it("a aproximação nunca atravessa a própria parede", () => {
+    // Do lado de lá, com o slot de cá ocupado: não há para onde ir.
+    const crowded: ReachContext = { ...wallCtx, isFree: (slot) => !isSameSlot(slot, sq(7, 4)) };
+    const r = resolveDraft(chooseWallTarget(emptyDraft(), door), crowded, "Dash");
+    expect(r.move).toBeUndefined();
+    expect(r.approachBlocked).toBe(true);
+  });
+});
+
 describe("rascunho: persistência", () => {
   it("guarda e recupera por partida + ator", () => {
     const d = setWeapon(chooseTarget(emptyDraft(), "hisoka"), "Sword");
@@ -204,7 +310,7 @@ describe("rascunho: persistência", () => {
   it("um rascunho vazio não ocupa espaço", () => {
     saveDraft("m1", "gon", chooseDestination(emptyDraft(), [1, 1, 0]));
     saveDraft("m1", "gon", emptyDraft());
-    expect(localStorage.getItem("match-draft:v2:m1:gon")).toBeNull();
+    expect(localStorage.getItem("match-draft:v3:m1:gon")).toBeNull();
   });
 
   it("limpa", () => {
@@ -214,21 +320,23 @@ describe("rascunho: persistência", () => {
   });
 
   it("ignora um rascunho corrompido ou de outro formato", () => {
-    localStorage.setItem("match-draft:v2:m1:gon", JSON.stringify({ targets: ["x"] }));
+    localStorage.setItem("match-draft:v3:m1:gon", JSON.stringify({ targets: ["x"] }));
     expect(loadDraft("m1", "gon")).toEqual(emptyDraft());
-    localStorage.setItem("match-draft:v2:m1:gon", "{nope");
+    localStorage.setItem("match-draft:v3:m1:gon", "{nope");
     expect(loadDraft("m1", "gon")).toEqual(emptyDraft());
   });
 
-  it("apaga as chaves do formato anterior", () => {
+  it("apaga as chaves dos formatos anteriores (sem versão e v2, de quando a ação era `attack`)", () => {
     localStorage.setItem("match-draft:m1:gon", "{}");
     localStorage.setItem("match-ghosts:m1:u1", "{}");
-    localStorage.setItem("match-draft:v2:m1:gon", JSON.stringify(emptyDraft()));
+    localStorage.setItem("match-draft:v2:m1:gon", JSON.stringify({ moveMode: "none", attack: { targets: ["x"] } }));
+    localStorage.setItem("match-draft:v3:m1:gon", JSON.stringify(emptyDraft()));
     localStorage.setItem("token", "x");
     purgeLegacyMatchStorage();
     expect(localStorage.getItem("match-draft:m1:gon")).toBeNull();
     expect(localStorage.getItem("match-ghosts:m1:u1")).toBeNull();
-    expect(localStorage.getItem("match-draft:v2:m1:gon")).not.toBeNull();
+    expect(localStorage.getItem("match-draft:v2:m1:gon")).toBeNull();
+    expect(localStorage.getItem("match-draft:v3:m1:gon")).not.toBeNull();
     expect(localStorage.getItem("token")).toBe("x");
   });
 
@@ -256,23 +364,28 @@ describe("rascunho de volta de uma declarada perdida (F10)", () => {
   });
 
   it("só ataque: alvos e arma, sem movimento", () => {
-    expect(draftFromDeclared({ attack })).toEqual({ moveMode: "none", attack: { targets: ["hisoka"], weapon: "Sword" } });
+    expect(draftFromDeclared({ attack })).toEqual({ moveMode: "none", act: { targets: ["hisoka"], weapon: "Sword" } });
   });
 
   it("os dois juntos", () => {
     expect(draftFromDeclared({ move, attack })).toEqual({
-      moveMode: "manual", to: [3, 1, 0], category: "Shift", attack: { targets: ["hisoka"], weapon: "Sword" },
+      moveMode: "manual", to: [3, 1, 0], category: "Shift", act: { targets: ["hisoka"], weapon: "Sword" },
     });
   });
 
-  it("interact é ignorado — não vem do compositor", () => {
-    const d = { interact: { kind: "open", targets: ["w1"] } } as Parameters<typeof draftFromDeclared>[0];
-    expect(draftFromDeclared(d)).toEqual(emptyDraft());
+  it("interact de parede volta como o verbo sobre a parede", () => {
+    expect(draftFromDeclared({ interact: { kind: "open", targets: ["w1"] } })).toEqual({
+      moveMode: "none", act: { targets: ["w1"], kind: "open" },
+    });
+  });
+
+  it("interact que o compositor não faz (revelar) não vira rascunho", () => {
+    expect(draftFromDeclared({ interact: { kind: "reveal", targets: ["w1"] } })).toEqual(emptyDraft());
   });
 
   it("não compartilha o array de alvos da declarada", () => {
     const out = draftFromDeclared({ attack });
-    expect(out.attack!.targets).not.toBe(attack.targets);
+    expect(out.act!.targets).not.toBe(attack.targets);
   });
 });
 
@@ -321,19 +434,19 @@ describe("arma padrão", () => {
   });
 
   it("resolveDraft aplica o padrão e o envio manda a mesma arma", () => {
-    const d: ActionDraft = { ...emptyDraft(), attack: { targets: ["hisoka"] } };
+    const d: ActionDraft = { ...emptyDraft(), act: { targets: ["hisoka"] } };
     const r = resolveDraft(d, ctx, "Dash", "Katana");
-    expect(r.attack?.weapon).toBe("Katana");
+    expect(r.act?.weapon).toBe("Katana");
     expect(buildEnqueuePayload(r, "gon", [2, 4, 0])?.attack).toEqual({ weapon: "Katana" });
   });
 
   it("escolha explícita de Fist não é atropelada pelo padrão", () => {
-    const d: ActionDraft = { ...emptyDraft(), attack: { targets: ["hisoka"], weapon: "Fist" } };
-    expect(resolveDraft(d, ctx, "Dash", "Katana").attack?.weapon).toBe("Fist");
+    const d: ActionDraft = { ...emptyDraft(), act: { targets: ["hisoka"], weapon: "Fist" } };
+    expect(resolveDraft(d, ctx, "Dash", "Katana").act?.weapon).toBe("Fist");
   });
 
   it("sem padrão, a arma segue ausente", () => {
-    const d: ActionDraft = { ...emptyDraft(), attack: { targets: ["hisoka"] } };
-    expect(resolveDraft(d, ctx, "Dash").attack).toEqual({ targets: ["hisoka"] });
+    const d: ActionDraft = { ...emptyDraft(), act: { targets: ["hisoka"] } };
+    expect(resolveDraft(d, ctx, "Dash").act).toEqual({ targets: ["hisoka"], kind: "attack" });
   });
 });

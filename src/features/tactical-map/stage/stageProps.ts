@@ -89,6 +89,8 @@ export type TacticalMapStageProps = {
   drawingEnabled?: boolean;
   onExitWallsDrawMode?: () => void;
   onWallClick?: (wall: WallSegment) => void;
+  /** Quais paredes o toque alcança (jogo); ausente = todas. Ver WallsLayer. */
+  isWallTappable?: (wall: WallSegment) => boolean;
   fog?: FogState;
   fogDisabled?: boolean; // true for master / editor
   worldWidth?: number;

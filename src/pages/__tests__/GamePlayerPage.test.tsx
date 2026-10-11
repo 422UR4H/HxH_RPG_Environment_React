@@ -127,7 +127,7 @@ const participantsFixture = [
   },
 ];
 
-const DRAFT_KEY = "match-draft:v2:match-1:c1";
+const DRAFT_KEY = "match-draft:v3:match-1:c1";
 const storedDraft = () => {
   const raw = localStorage.getItem(DRAFT_KEY);
   return raw ? JSON.parse(raw) : null;
@@ -337,7 +337,7 @@ describe("GamePlayerPage", () => {
     const targetButton = await screen.findByTestId("select-actor-c2");
     act(() => targetButton.click());
 
-    await waitFor(() => expect(storedDraft()?.attack).toEqual({ targets: ["c2"] }));
+    await waitFor(() => expect(storedDraft()?.act).toEqual({ targets: ["c2"] }));
 
     const declareButton = await screen.findByRole("button", { name: /^declarar/i });
     act(() => declareButton.click());
@@ -443,7 +443,7 @@ describe("GamePlayerPage", () => {
 
       const notice = await screen.findByText(/o servidor perdeu 1 ação/i);
       expect(notice).toHaveTextContent(/o rascunho voltou para o compositor/i);
-      await waitFor(() => expect(storedDraft()?.attack).toEqual({ targets: ["c2"] }));
+      await waitFor(() => expect(storedDraft()?.act).toEqual({ targets: ["c2"] }));
       expect(ws.sent("enqueue_action")).toHaveLength(1);
 
       await user.click(screen.getByRole("button", { name: /fechar aviso/i }));
@@ -490,7 +490,7 @@ describe("GamePlayerPage", () => {
 
       release();
       expect(await screen.findByText(/o servidor perdeu 1 ação/i)).toBeInTheDocument();
-      await waitFor(() => expect(storedDraft()?.attack).toEqual({ targets: ["c2"] }));
+      await waitFor(() => expect(storedDraft()?.act).toEqual({ targets: ["c2"] }));
     });
 
     it("várias perdidas do mesmo ator: volta só a mais recente", async () => {
@@ -508,24 +508,21 @@ describe("GamePlayerPage", () => {
       const notice = await screen.findByText(/o servidor perdeu 2 ações/i);
       expect(notice).toHaveTextContent(/o rascunho de 1 delas voltou/i);
       await waitFor(() => expect(storedDraft()).toMatchObject({ moveMode: "manual", to: [9, 9, 0] }));
-      expect(storedDraft()?.attack).toBeUndefined();
+      expect(storedDraft()?.act).toBeUndefined();
     });
 
-    it("perdida só de parede: aviso sem prometer rascunho, e nenhum rascunho aparece", async () => {
+    it("perdida de parede: o rascunho volta como o verbo sobre a parede", async () => {
       renderPlayerPage();
       const ws = await waitForSocket();
       act(() => ws.onopen?.());
       board(ws);
-      act(() => screen.getByTestId("wall-wall-1").click());
-      act(() => screen.getByRole("button", { name: /^abrir$/i }).click());
-      act(() => ws.emit("action_enqueued", { actionId: "action-wall-1" }));
+      await declare(ws, () => screen.getByTestId("wall-wall-1").click(), "action-wall-1");
 
       fullState(ws);
 
       const notice = await screen.findByText(/o servidor perdeu 1 ação/i);
-      expect(notice).not.toHaveTextContent(/rascunho voltou/i);
-      expect(notice).toHaveTextContent(/declare de novo se ainda quiser/i);
-      expect(storedDraft()).toBeNull();
+      expect(notice).toHaveTextContent(/rascunho voltou/i);
+      await waitFor(() => expect(storedDraft()?.act).toEqual({ targets: ["wall-1"], kind: "open" }));
     });
 
     it("rascunho já começado não é atropelado, e o aviso não diz que voltou", async () => {
@@ -541,7 +538,7 @@ describe("GamePlayerPage", () => {
 
       const notice = await screen.findByText(/o servidor perdeu 1 ação/i);
       expect(notice).not.toHaveTextContent(/rascunho voltou/i);
-      expect(storedDraft()?.attack).toBeUndefined();
+      expect(storedDraft()?.act).toBeUndefined();
     });
 
     it("declarada que o servidor ainda tem continua, sem aviso", async () => {
@@ -582,7 +579,7 @@ describe("GamePlayerPage", () => {
 
     await waitFor(() => {
       const draft = storedDraft();
-      expect(draft.attack.targets).toEqual(["c2"]);
+      expect(draft.act.targets).toEqual(["c2"]);
       expect(draft.to).toEqual([9, 9, 0]);
     });
 
@@ -666,11 +663,10 @@ describe("GamePlayerPage", () => {
     expect(await screen.findByTestId("declared-row")).toHaveTextContent("na fila");
   });
 
-  // Final review, Important 3 / RULING R29: enqueue_action SEM actorId era sempre
-  // recusado pelo servidor (contrato exige actorId) — o menu de parede do jogador agora
-  // passa pelo mesmo send.enqueueAction do composer, com actorId = a própria sheet do
-  // jogador, e clearsDraft: false (não deve apagar um rascunho do composer em voo, R28).
-  it("clica numa parede e Abrir manda enqueue_action com meu actorId, sem apagar o rascunho do composer", async () => {
+  // A parede é alvo do compositor, como uma peça (o menu de parede saiu): o toque a marca, o
+  // verbo padrão de uma porta fechada é Abrir, e Declarar manda enqueue_action com meu actorId e
+  // `interact` — o ack, como qualquer envio do compositor, limpa o rascunho.
+  it("tocar numa parede faz dela o alvo do compositor; Declarar manda interact com meu actorId", async () => {
     renderPlayerPage();
     const ws = await waitForSocket();
     act(() => ws.onopen?.());
@@ -692,27 +688,20 @@ describe("GamePlayerPage", () => {
       }),
     );
 
-    // Um rascunho do composer em voo (alvo escolhido) não pode ser apagado pelo envio da
-    // parede — só o ack de um envio com clearsDraft:true (o composer) apaga.
-    const targetButton = await screen.findByTestId("select-actor-c2");
-    act(() => targetButton.click());
-    await waitFor(() => expect(storedDraft()?.attack).toEqual({ targets: ["c2"] }));
-
     const wallButton = await screen.findByTestId("wall-wall-1");
     act(() => wallButton.click());
-    const openButton = await screen.findByRole("button", { name: /^abrir$/i });
-    act(() => openButton.click());
+    await waitFor(() => expect(storedDraft()?.act).toEqual({ targets: ["wall-1"], kind: "open" }));
+    expect(screen.getByRole("radiogroup", { name: "O que fazer" })).toBeInTheDocument();
 
+    act(() => screen.getByRole("button", { name: /^declarar/i }).click());
     const calls = ws.send.mock.calls.map((c) => JSON.parse(c[0] as string));
     const wallSend = calls.find((m) => m.payload?.targetId?.[0] === "wall-1");
-    expect(wallSend).toEqual({
-      type: "enqueue_action",
-      payload: { actorId: "c1", targetId: ["wall-1"], interact: { kind: "open" } },
-    });
+    expect(wallSend?.type).toBe("enqueue_action");
+    expect(wallSend?.payload).toMatchObject({ actorId: "c1", targetId: ["wall-1"], interact: { kind: "open" } });
+    expect(wallSend?.payload).not.toHaveProperty("attack");
 
     act(() => ws.emit("action_enqueued", { actionId: "action-wall-1" }));
-    // O ack do envio da parede (clearsDraft:false) NÃO apaga o rascunho do composer.
-    expect(storedDraft()?.attack).toEqual({ targets: ["c2"] });
+    await waitFor(() => expect(storedDraft()).toBeNull());
   });
 
   // Final review, Important 2(b): Declarar não pode ficar habilitado enquanto o socket

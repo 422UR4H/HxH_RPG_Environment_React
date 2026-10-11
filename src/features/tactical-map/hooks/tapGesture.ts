@@ -48,3 +48,22 @@ export function createTapTracker(tolerance: number = TAP_TOLERANCE_PX) {
     },
   };
 }
+
+// ─── Um toque, um dono ───────────────────────────────────────────────────────
+//
+// O mesmo `pointerup` chega a mais de um ouvinte: a parede ouve no canvas, o slot vazio na
+// `window` (o canvas vem antes, na subida do evento). Quem trata o toque o marca; quem vem
+// depois e tem menos prioridade pergunta. Nunca `stopPropagation`: os outros ouvintes de
+// `pointerup` (pan, hold, os próprios trackers) precisam da soltura para desarmar — uma soltura
+// perdida é o pan que fica preso.
+
+const consumedTaps = new WeakSet<Event>();
+
+/** Este `pointerup` já virou um toque de alguém (a parede). */
+export function consumeTap(e: Event): void {
+  consumedTaps.add(e);
+}
+
+export function isTapConsumed(e: Event): boolean {
+  return consumedTaps.has(e);
+}

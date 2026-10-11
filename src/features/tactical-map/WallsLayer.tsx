@@ -7,7 +7,7 @@ import { applyTransform, inverseTransform } from "./utils/coords";
 import { snapWallPoint, explodePolyline, newWallAttrs, isOpening } from "./utils/walls";
 import { findNearestWall } from "./utils/wallHit";
 import { drawStippledSegment } from "./utils/stipple";
-import { createTapTracker } from "./hooks/tapGesture";
+import { consumeTap, createTapTracker } from "./hooks/tapGesture";
 import LosSplit from "./LosSplit";
 
 const MATERIAL_COLOR: Record<WallMaterial, number> = {
@@ -51,6 +51,11 @@ type Props = {
   onExitDrawMode: () => void;
   onWallClick?: (wall: WallSegment) => void;
   /**
+   * Quais paredes um toque alcança (fora do editor). Ausente = todas. A que fica de fora não
+   * existe para o toque: nem cursor de clique, nem `onWallClick` — o toque cai no slot embaixo.
+   */
+  isWallTappable?: (wall: WallSegment) => boolean;
+  /**
    * Player line of sight. When present, the walls are drawn in two passes — crisp
    * inside it, dimmed outside it. Absent for the master and for wall-editing mode,
    * where every wall renders once at full brightness.
@@ -68,7 +73,7 @@ export default function WallsLayer({
   wallsInteractive, selectedWallId,
   activeWallType, activeMaterial,
   onWallSelect, onDrawComplete, onGestureStart, onGestureEnd,
-  drawingEnabled, onExitDrawMode, onWallClick, losPolygons,
+  drawingEnabled, onExitDrawMode, onWallClick, isWallTappable, losPolygons,
 }: Props) {
   const [draw, setDraw] = useState<DrawState>({ polylinePoints: [], previewPoint: null });
 
@@ -100,6 +105,8 @@ export default function WallsLayer({
   vpScaleRef.current = vpScale;
   const onWallClickRef = useRef(onWallClick);
   onWallClickRef.current = onWallClick;
+  const isWallTappableRef = useRef(isWallTappable);
+  isWallTappableRef.current = isWallTappable;
 
   const finishPolyline = useCallback(() => {
     const pts = drawRef.current.polylinePoints;
@@ -275,12 +282,16 @@ export default function WallsLayer({
       const rect = canvasEl.getBoundingClientRect();
       const worldPt = vp.toWorld(e.clientX - rect.left, e.clientY - rect.top);
       const rawPt = inverseTransform({ x: worldPt.x, y: worldPt.y }, gridRef.current);
-      return findNearestWall([rawPt.x, rawPt.y], wallsRef.current, HIT / vpScaleRef.current);
+      const tappable = isWallTappableRef.current;
+      const walls = tappable ? wallsRef.current.filter(tappable) : wallsRef.current;
+      return findNearestWall([rawPt.x, rawPt.y], walls, HIT / vpScaleRef.current);
     };
     const handleViewerClick = (e: PointerEvent) => {
       if (!tracker.up(e)) return;
       const hit = hitWallAt(e);
       if (hit) {
+        // O toque é da parede: o slot vazio embaixo dela não vira destino (PiecesLayer pergunta).
+        consumeTap(e);
         onWallClickRef.current?.(hit);
       }
     };

@@ -1,15 +1,18 @@
 // Os controles que só a tela do mestre monta: regência (regime, abrir, fechar), a escolha
-// do NPC por quem agir e o painel de arrumar o tabuleiro. Nenhum pergunta "sou mestre?" — a página é que decide montá-los.
+// do NPC por quem agir, a ação direta numa porta/janela e o painel de arrumar o tabuleiro. Nenhum pergunta "sou mestre?" — a página é que decide montá-los.
 import { useState } from "react";
 import styled, { css } from "styled-components";
 import Tooltip from "../../../components/ions/Tooltip";
 import { colors, fonts } from "../../../styles/tokens";
 import { media } from "../../../styles/breakpoints";
 import type { Participant } from "../../../types/match";
+import type { WallSegment } from "../../../types/tacticalMap";
 import type { RoundMode } from "./combatMessages";
 import { ROUND_MODE_LABELS } from "./combatText";
 import { SmallButton } from "./MatchTopBar";
 import { PanelHint, PanelTitle } from "./panelStyles";
+import { ACT_LABELS, WALL_TYPE_LABELS, masterWallVerbs } from "./wallVerbs";
+import type { WallInteractKind } from "./wallVerbs";
 
 /**
  * Livre × Disputado. Clicar no regime atual não manda nada: o servidor responderia com
@@ -209,6 +212,58 @@ export function ArrangePanel({
     </Picker>
   );
 }
+
+/**
+ * O mestre tocou numa porta ou janela sem NPC escolhido: a ação é DELE, na hora, sem turno
+ * (`enqueue_master_action`), trancada ou não. Mora no painel Agir, abaixo de "Agir por" — com
+ * um NPC escolhido, a parede vira alvo do compositor e este card não aparece.
+ */
+export function WallMasterPanel({
+  wall,
+  onInteract,
+  onDismiss,
+}: {
+  wall: WallSegment;
+  onInteract: (kind: WallInteractKind) => void;
+  onDismiss: () => void;
+}) {
+  const verbs = masterWallVerbs(wall);
+  return (
+    <Picker aria-label="Ação do Mestre">
+      <WallHeader>
+        <PanelTitle>Ação do Mestre · {WALL_TYPE_LABELS[wall.wallType]}</PanelTitle>
+        <DismissButton type="button" aria-label="Soltar a parede" title="Soltar a parede" onClick={onDismiss}>
+          ×
+        </DismissButton>
+      </WallHeader>
+      <PanelHint>Acontece na hora, sem turno. Para agir por um NPC, escolha-o acima.</PanelHint>
+      <PickerList>
+        {verbs.map((v) => (
+          <SmallButton key={v} type="button" onClick={() => onInteract(v)}>
+            {ACT_LABELS[v]}
+          </SmallButton>
+        ))}
+      </PickerList>
+    </Picker>
+  );
+}
+
+const WallHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+`;
+
+const DismissButton = styled.button`
+  background: none;
+  border: none;
+  color: ${colors.textMuted};
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 4px;
+  cursor: pointer;
+`;
 
 /* Mora dentro da lista de cards (que já tem as margens): sem recuo lateral próprio. */
 const AddBlock = styled.section`
