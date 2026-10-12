@@ -124,15 +124,15 @@ export function hexDistance(a: HexCoord, b: HexCoord): number {
 - `0.5` = isométrico 2:1 (clássico)
 - `0.33` = "achatado" (3:1)
 
-`GridShape.rotation` = graus pra rotacionar a malha inteira (em torno do centro da grade).
+`GridShape.rotation` = graus pra rotacionar a malha inteira (em torno do centro da grade: o pivô `gridPivot`, centro de `gridLocalBounds`; no quadrado é `cols·cellSize/2`, `rows·cellSize/2`).
 
 A ordem importa. `applyTransform` (`utils/coords.ts`) leva um ponto do espaço LOCAL
 (`col * cellSize`, `row * cellSize`) pro espaço do mundo assim:
 
 ```ts
 export function applyTransform(p: XY, grid: GridShape): XY {
-  const pivotX = (grid.cols * grid.cellSize) / 2;   // centro da grade, em LOCAL
-  const pivotY = (grid.rows * grid.cellSize) / 2;
+  const { x: pivotX, y: pivotY } = gridPivot(grid); // centro de gridLocalBounds, em LOCAL
+                                                    // (quadrado: cols·cellSize/2, rows·cellSize/2)
   const dx = p.x - pivotX;
   const dy = p.y - pivotY;
   // 1. gira em torno do centro
@@ -200,7 +200,7 @@ describe('slotToWorld', () => {
 
   it('aplica skewRatio', () => {
     expect(slotToWorld({ kind: 'square', col: 0, row: 1 }, { ...baseGrid, skewRatio: 0.5 }))
-      .toEqual({ x: 50, y: 75 });  // y * 0.5 + cellSize/2
+      .toEqual({ x: 50, y: 325 });  // pivô (500,500): 500 + (150 - 500) * 0.5
   });
 });
 ```
