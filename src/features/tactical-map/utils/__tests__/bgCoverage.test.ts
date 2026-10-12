@@ -21,6 +21,8 @@ const bg = (x: number, y: number, width: number, height: number, rotation = 0): 
 
 const lines = (left: number, right: number, top: number, bottom: number) => ({ left, right, top, bottom });
 
+const HEX_HALF_W = (20 * Math.sqrt(3)) / 2; // 17,3205…; 9·HEX_HALF_W = 155,8845… (borda direita em 138,564)
+
 describe("uncoveredGridLines", () => {
   it("quadrado sem transform: mesmos números da fórmula antiga", () => {
     expect(uncoveredGridLines(grid(), bg(0, 0, 330, 400))).toEqual(lines(0, 1, 0, 0));
@@ -48,7 +50,7 @@ describe("uncoveredGridLines", () => {
     // Coluna 4 em linhas pares: centro 138,56, aresta esquerda 121,24 < 138,56 → coberta.
     const g = grid({ kind: "hex", cols: 6, rows: 6, cellSize: 20 });
     expect(
-      uncoveredGridLines(g, bg(-17.32050807568877, -20, 155.88457268119894, 190)),
+      uncoveredGridLines(g, bg(-HEX_HALF_W, -20, 9 * HEX_HALF_W, 190)),
     ).toEqual(lines(0, 1, 0, 0));
   });
 
