@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -109,5 +110,42 @@ describe("GridConfigPanel", () => {
     await userEvent.click(skew);
     await userEvent.paste("0.1");
     expect(onChange).not.toHaveBeenCalled();
+  });
+
+  describe("input não fica com rascunho velho quando a grade muda por fora", () => {
+    // Painel controlado: reflete o onChange como o toolbar real faz.
+    function Harness({ initial }: { initial: GridShape }) {
+      const [g, setG] = useState(initial);
+      return <GridConfigPanel grid={g} onChange={setG} />;
+    }
+
+    it("predefinição depois de digitar Rotação mostra 45 no input", async () => {
+      render(<Harness initial={defaultGrid} />);
+      const rot = screen.getByLabelText(/rotação/i);
+      await userEvent.clear(rot);
+      await userEvent.type(rot, "30.5");
+      await userEvent.click(screen.getByRole("button", { name: /isométrico/i }));
+      expect(screen.getByLabelText(/rotação/i)).toHaveValue(45);
+    });
+
+    it("rotação vinda de fora (arraste da esfera) substitui o rascunho", async () => {
+      const onChange = vi.fn();
+      const { rerender } = render(<GridConfigPanel grid={defaultGrid} onChange={onChange} />);
+      const rot = screen.getByLabelText(/rotação/i);
+      await userEvent.clear(rot);
+      await userEvent.type(rot, "30.5");
+      rerender(<GridConfigPanel grid={{ ...defaultGrid, rotation: 12 }} onChange={onChange} />);
+      expect(screen.getByLabelText(/rotação/i)).toHaveValue(12);
+    });
+
+    it("perspectiva vinda de fora substitui o rascunho do número", async () => {
+      const onChange = vi.fn();
+      const { rerender } = render(<GridConfigPanel grid={defaultGrid} onChange={onChange} />);
+      const skew = screen.getByLabelText(/valor da perspectiva/i);
+      await userEvent.clear(skew);
+      await userEvent.type(skew, "0.42");
+      rerender(<GridConfigPanel grid={{ ...defaultGrid, skewRatio: 0.7 }} onChange={onChange} />);
+      expect(screen.getByLabelText(/valor da perspectiva/i)).toHaveValue(0.7);
+    });
   });
 });

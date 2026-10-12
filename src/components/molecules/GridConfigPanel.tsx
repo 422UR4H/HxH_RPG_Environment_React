@@ -13,10 +13,16 @@ type Props = {
   canRefit?: boolean;
 };
 
+// Texto digitado + os valores de grid[key] que o explicam: o de antes da digitação
+// (`prev`, enquanto o pai ainda não aplicou) e o que o texto produziu (`parsed`,
+// ausente se foi rejeitado). Se grid[key] sair desses dois, a mudança veio de fora
+// do input (predefinição, arraste no mapa) e o input volta a mostrar o valor vivo.
+type Draft = { raw: string; prev: number; parsed?: number };
+
 type NumField = "cols" | "rows" | "cellSize" | "rotation" | "skewRatio";
 
 export default function GridConfigPanel({ grid, onChange, onRefit, canRefit }: Props) {
-  const [drafts, setDrafts] = useState<Partial<Record<NumField, string>>>({});
+  const [drafts, setDrafts] = useState<Partial<Record<NumField, Draft>>>({});
 
   const update = (patch: Partial<GridShape>) =>
     onChange({ ...grid, ...patch });
@@ -25,13 +31,16 @@ export default function GridConfigPanel({ grid, onChange, onRefit, canRefit }: P
     (key: NumField, min: number, max: number) =>
     (e: ChangeEvent<HTMLInputElement>) => {
       const raw = e.target.value;
-      setDrafts((prev) => ({ ...prev, [key]: raw }));
       const v = parseInt(raw, 10);
-      if (!isNaN(v) && v >= min && v <= max) update({ [key]: v });
+      const ok = !isNaN(v) && v >= min && v <= max;
+      setDrafts((prev) => ({ ...prev, [key]: { raw, prev: grid[key], parsed: ok ? v : undefined } }));
+      if (ok) update({ [key]: v });
     };
 
-  const inputValue = (key: NumField): string | number =>
-    drafts[key] !== undefined ? (drafts[key] as string) : grid[key];
+  const inputValue = (key: NumField): string | number => {
+    const d = drafts[key];
+    return d !== undefined && (grid[key] === d.prev || grid[key] === d.parsed) ? d.raw : grid[key];
+  };
 
   // Like handleInt but keeps decimals — needed for precise isometric tuning
   // (rotation angle and perspective ratio differ per map).
@@ -39,9 +48,10 @@ export default function GridConfigPanel({ grid, onChange, onRefit, canRefit }: P
     (key: NumField, min: number, max: number) =>
     (e: ChangeEvent<HTMLInputElement>) => {
       const raw = e.target.value;
-      setDrafts((prev) => ({ ...prev, [key]: raw }));
       const v = parseFloat(raw);
-      if (!isNaN(v) && v >= min && v <= max) update({ [key]: v });
+      const ok = !isNaN(v) && v >= min && v <= max;
+      setDrafts((prev) => ({ ...prev, [key]: { raw, prev: grid[key], parsed: ok ? v : undefined } }));
+      if (ok) update({ [key]: v });
     };
 
   const fmtDeg = (v: number) => (Number.isInteger(v) ? `${v}` : v.toFixed(1));
