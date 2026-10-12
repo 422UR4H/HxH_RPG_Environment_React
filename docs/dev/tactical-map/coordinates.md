@@ -124,33 +124,45 @@ export function hexDistance(a: HexCoord, b: HexCoord): number {
 - `0.5` = isométrico 2:1 (clássico)
 - `0.33` = "achatado" (3:1)
 
-`GridShape.rotation` = graus pra rotacionar a malha inteira.
+`GridShape.rotation` = graus pra rotacionar a malha inteira (em torno do centro da grade).
 
-Como isso entra no math? Aplicamos uma **matriz de transformação** afim depois de calcular o `(x, y)` "base":
+A ordem importa. `applyTransform` (`utils/coords.ts`) leva um ponto do espaço LOCAL
+(`col * cellSize`, `row * cellSize`) pro espaço do mundo assim:
 
 ```ts
-function slotToWorld(slot: SlotCoord, grid: GridShape): { x: number; y: number } {
-  // 1. coord base (sem distorção)
-  const base = slot.kind === 'square'
-    ? squareToWorldBase(slot, grid)
-    : hexToWorldBase(slot, grid);
-
-  // 2. aplica skew vertical
-  const skewed = { x: base.x, y: base.y * grid.skewRatio };
-
-  // 3. aplica rotação
-  if (grid.rotation === 0) return skewed;
-  const rad = (grid.rotation * Math.PI) / 180;
-  return {
-    x: skewed.x * Math.cos(rad) - skewed.y * Math.sin(rad),
-    y: skewed.x * Math.sin(rad) + skewed.y * Math.cos(rad),
-  };
+export function applyTransform(p: XY, grid: GridShape): XY {
+  const pivotX = (grid.cols * grid.cellSize) / 2;   // centro da grade, em LOCAL
+  const pivotY = (grid.rows * grid.cellSize) / 2;
+  const dx = p.x - pivotX;
+  const dy = p.y - pivotY;
+  // 1. gira em torno do centro
+  const t = grid.rotation * DEG_TO_RAD;
+  const rx = dx * Math.cos(t) - dy * Math.sin(t);
+  let ry = dx * Math.sin(t) + dy * Math.cos(t);
+  // 2. achata y em espaço de TELA (depois de girar)
+  ry *= grid.skewRatio;
+  // 3. volta ao pivô e soma a origem
+  return { x: rx + pivotX + (grid.originX ?? 0), y: ry + pivotY + (grid.originY ?? 0) };
 }
 ```
 
-E o `worldToSlot` faz o **inverso** (rotação inversa primeiro, depois undo do skew, depois conversão base).
+Achatar **depois** de girar é o que faz o isométrico: girar 45° e comprimir y vira losangos 2:1.
+Achatar antes só comprimiria o eixo vertical local. `inverseTransform` desfaz na ordem inversa
+(tira a origem, divide por `skewRatio`, desgira).
 
-**Importante**: essas transformações estão no math **desde a Fase 0** com defaults `1.0` e `0`. Quando a Fase 9 ligar a UI (sliders pro mestre), o math já está pronto e testado.
+**O servidor nunca transforma.** Paredes, posições e fog trafegam em espaço LOCAL; `rotation` e
+`skewRatio` só afetam o desenho e a entrada de ponteiro no cliente (`applyTransform` pra desenhar,
+`inverseTransform` pra converter o clique em slot).
+
+### Onde o mestre controla
+
+- **Painel Grade** (`GridConfigPanel`): Predefinições (Isométrico = rotação 45 + `skewRatio` 0.5;
+  Top-down = 0 / 1), campo numérico de Rotação e Perspectiva (slider + número, 0.3 a 1.0).
+- **No mapa** (`MapHandlesLayer`, `gridFromHandleDrag`): a esfera dourada gira a grade;
+  Shift + alça de cima/baixo (`TC`/`BC`) achata (`skewRatio`).
+- **Encaixar Grade** (`fitGridToImage`) usa a caixa da grade no MUNDO (com rotação e perspectiva) e
+  preserva ambas. O aviso "colunas/linhas não cobertas pela imagem" ao salvar
+  (`uncoveredGridLines`, `utils/bgCoverage.ts`) também testa a grade transformada, quadrada ou hex.
 
 ## Onde isto é usado
 
