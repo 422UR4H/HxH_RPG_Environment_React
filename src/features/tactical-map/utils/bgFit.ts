@@ -1,5 +1,12 @@
 import type { BgImage, GridShape } from "../../../types/tacticalMap";
-import { gridLocalBounds } from "./coords";
+import { gridWorldBounds } from "./coords";
+
+// Caixa WORLD da grade com origem zero: inclui rotação/achatamento (e a largura extra do
+// hex). As extensões escalam linearmente com cellSize. A origem de edição é somada por
+// quem chama (fitGridAndCover), então aqui nunca entra.
+function worldBox(grid: GridShape) {
+  return gridWorldBounds({ ...grid, originX: 0, originY: 0 });
+}
 
 const MIN_CELL = 8;
 const MAX_CELL = 256;
@@ -9,11 +16,11 @@ export function computeCoverFit(
   naturalHeight: number,
   grid: GridShape,
 ): NonNullable<BgImage> {
-  // Use the grid's REAL local bounds (square tiles from origin; hex spans wider
-  // by √3 and taller by the half-hex margins). For square this is identical to
-  // cols*cellSize × rows*cellSize, so square behavior is unchanged; for hex it
-  // makes the image actually cover the whole grid.
-  const b = gridLocalBounds(grid);
+  // Use the grid's REAL world bounds at origin 0 (rotation/squash applied; hex spans
+  // wider by √3). Untransformed square is identical to cols*cellSize × rows*cellSize,
+  // so that behavior is unchanged; rotated/isometric grids get the box of the drawn
+  // diamond instead of the "upright" one.
+  const b = worldBox(grid);
   const gridW = b.maxX - b.minX;
   const gridH = b.maxY - b.minY;
 
@@ -73,9 +80,9 @@ export function deriveGridFromImage(
 // cell beyond the cap) so the grid covers the rest of the image at full
 // resolution.
 //
-// Works for square and hex via gridLocalBounds (the real extent); rotation and
-// skew (isometric) are preserved and don't affect the fit, since the bg is fit
-// to the grid's untransformed bounds (as it always has been).
+// Works for square and hex via the grid's WORLD bounds at origin 0 (rotation and
+// skew included, so an isometric grid is fit by its drawn diamond); rotation and
+// skew themselves are preserved.
 export function fitGridToImage(
   naturalWidth: number,
   naturalHeight: number,
@@ -83,7 +90,7 @@ export function fitGridToImage(
 ): GridShape {
   // Unit extents (the grid's bounds at cellSize = 1) for the current cols/rows.
   // Every bound scales linearly with cellSize, so cellSize × unit = real extent.
-  const unit = gridLocalBounds({ ...grid, cellSize: 1 });
+  const unit = worldBox({ ...grid, cellSize: 1 });
   const unitW = unit.maxX - unit.minX;
   const unitH = unit.maxY - unit.minY;
   const ideal = Math.max(naturalWidth / unitW, naturalHeight / unitH);
@@ -99,13 +106,13 @@ export function fitGridToImage(
   const cellSize = MAX_CELL;
   let rows = Math.max(1, grid.rows);
   while (rows < 200) {
-    const b = gridLocalBounds({ ...grid, cellSize, rows });
+    const b = worldBox({ ...grid, cellSize, rows });
     if (b.maxY - b.minY >= naturalHeight) break;
     rows++;
   }
   let cols = Math.max(1, grid.cols);
   while (cols < 200) {
-    const b = gridLocalBounds({ ...grid, cellSize, cols, rows });
+    const b = worldBox({ ...grid, cellSize, cols, rows });
     if (b.maxX - b.minX >= naturalWidth) break;
     cols++;
   }
