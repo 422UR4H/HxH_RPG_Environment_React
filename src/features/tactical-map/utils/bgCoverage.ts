@@ -1,5 +1,5 @@
 import type { BgImage, GridShape, SlotCoord } from "../../../types/tacticalMap";
-import { offsetToAxial, slotCorners } from "./coords";
+import { applyTransform, offsetToAxial, slotCorners } from "./coords";
 
 type XY = { x: number; y: number };
 
@@ -88,4 +88,19 @@ export function uncoveredGridLines(
     top: firstRow,
     bottom: grid.rows - 1 - rowCovered.lastIndexOf(true),
   };
+}
+
+// Apara `right` colunas e `bottom` linhas da grade e move o bg pelo deslocamento que o
+// pivô novo causa no canto local (0,0), para as células sobreviventes ficarem no mesmo
+// lugar sobre a imagem (a grade salva mantém a origem recebida).
+export function trimUncoveredGrid(
+  grid: GridShape,
+  bg: NonNullable<BgImage>,
+  right: number,
+  bottom: number,
+): { grid: GridShape; bg: NonNullable<BgImage> } {
+  const trimmed: GridShape = { ...grid, cols: grid.cols - right, rows: grid.rows - bottom };
+  const a = applyTransform({ x: 0, y: 0 }, grid);
+  const b = applyTransform({ x: 0, y: 0 }, trimmed);
+  return { grid: trimmed, bg: { ...bg, x: bg.x + (b.x - a.x), y: bg.y + (b.y - a.y) } };
 }

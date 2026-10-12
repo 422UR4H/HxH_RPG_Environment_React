@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { uncoveredGridLines } from "../bgCoverage";
+import { uncoveredGridLines, trimUncoveredGrid } from "../bgCoverage";
+import { slotToWorld } from "../coords";
 import type { BgImage, GridShape } from "../../../../types/tacticalMap";
 
 const grid = (over: Partial<GridShape> = {}): GridShape => ({
@@ -65,5 +66,22 @@ describe("uncoveredGridLines", () => {
     // Linhas: a imagem vai de y=−100 a 300, então a linha 0 já cobre (top 0); a 7 (280–320) cobre
     // e 8, 9 ficam além → bottom 2.
     expect(uncoveredGridLines(grid(), bg(0, 0, 400, 200, 90))).toEqual(lines(2, 2, 0, 2));
+  });
+});
+
+describe("trimUncoveredGrid", () => {
+  it("grade 45°/0.5: slots sobreviventes mantêm a posição relativa à imagem", () => {
+    const g = grid({ cols: 16, rows: 12, cellSize: 64, rotation: 45, skewRatio: 0.5 });
+    const b = bg(10, 20, 900, 400);
+    const { grid: tg, bg: tb } = trimUncoveredGrid(g, b, 2, 1);
+    expect(tg.cols).toBe(14);
+    expect(tg.rows).toBe(11);
+    for (let r = 0; r < 11; r++) for (let c = 0; c < 14; c++) {
+      const s = { kind: "square" as const, col: c, row: r };
+      const before = slotToWorld(s, g);
+      const after = slotToWorld(s, tg);
+      expect(after.x - tb.x).toBeCloseTo(before.x - b.x, 6);
+      expect(after.y - tb.y).toBeCloseTo(before.y - b.y, 6);
+    }
   });
 });

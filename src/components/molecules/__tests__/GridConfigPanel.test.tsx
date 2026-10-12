@@ -4,6 +4,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import GridConfigPanel from "../GridConfigPanel";
 import type { GridShape } from "../../../types/tacticalMap";
+import { applyTransform } from "../../../features/tactical-map/utils/coords";
 
 const defaultGrid: GridShape = {
   kind: "square",
@@ -171,5 +172,20 @@ describe("GridConfigPanel", () => {
       rerender(<GridConfigPanel grid={{ ...defaultGrid, skewRatio: 0.7 }} onChange={onChange} />);
       expect(screen.getByLabelText(/valor da perspectiva/i)).toHaveValue(0.7);
     });
+  });
+
+  it("em grade 45°/0.5, mudar Colunas mantém a grade ancorada (origem compensada)", async () => {
+    const iso: GridShape = { ...defaultGrid, cols: 16, rows: 12, cellSize: 64, rotation: 45, skewRatio: 0.5 };
+    const onChange = vi.fn();
+    render(<GridConfigPanel grid={iso} onChange={onChange} />);
+    const input = screen.getByLabelText(/colunas/i);
+    await userEvent.clear(input);
+    await userEvent.type(input, "17");
+    const next = onChange.mock.calls[onChange.mock.calls.length - 1][0] as GridShape;
+    expect(next.cols).toBe(17);
+    const a = applyTransform({ x: 0, y: 0 }, iso);
+    const b = applyTransform({ x: 0, y: 0 }, next);
+    expect(b.x).toBeCloseTo(a.x, 6);
+    expect(b.y).toBeCloseTo(a.y, 6);
   });
 });

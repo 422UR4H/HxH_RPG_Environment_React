@@ -3,6 +3,7 @@ import type { ChangeEvent } from "react";
 import styled from "styled-components";
 import type { GridShape } from "../../types/tacticalMap";
 import { colors, fonts } from "../../styles/tokens";
+import { keepGridAnchored } from "../../features/tactical-map/utils/coords";
 
 type Props = {
   grid: GridShape;
@@ -28,7 +29,13 @@ export default function GridConfigPanel({ grid, onChange, onRefit, canRefit }: P
       const v = parseInt(raw, 10);
       const ok = !isNaN(v) && v >= min && v <= max;
       setDrafts((prev) => ({ ...prev, [key]: raw }));
-      if (ok) update({ [key]: v });
+      if (!ok) return;
+      // cols/rows/cellSize movem o pivô: compensa a origem para a grade não "andar".
+      if (key === "cols" || key === "rows" || key === "cellSize") {
+        onChange(keepGridAnchored(grid, { ...grid, [key]: v }));
+      } else {
+        update({ [key]: v });
+      }
     };
 
   // O rascunho só vale enquanto o input está em edição: ao perder o foco ele é

@@ -16,7 +16,7 @@ import type { CharacterPrivateSummary } from "../../types/characterSheet";
 import { useEditorHistory, useGestureHistory } from "./hooks/useEditorHistory";
 import { useRosterDrag } from "./hooks/useRosterDrag";
 import { isSlotInBounds, isSameSlot } from "./utils/coords";
-import { uncoveredGridLines } from "./utils/bgCoverage";
+import { uncoveredGridLines, trimUncoveredGrid } from "./utils/bgCoverage";
 import { getApiErrorDetail } from "../../utils/apiError";
 
 // Over the ~400-line guideline (docs/superpowers/specs/2026-08-06-tactical-map-refactor-design.md
@@ -313,14 +313,9 @@ export default function TacticalMapEditor({
         const ok = await askTruncConfirm(msg);
         if (!ok) return;
 
-        mapToSave = {
-          ...normalized,
-          grid: {
-            ...normalized.grid,
-            cols: normalized.grid.cols - uncoveredCols,   // only trim right side
-            rows: normalized.grid.rows - uncoveredRows,   // only trim bottom side
-          },
-        };
+        // Only trim right/bottom; the bg moves so the surviving cells keep their place on the image.
+        const trimmed = trimUncoveredGrid(normalized.grid, normalized.bg, uncoveredCols, uncoveredRows);
+        mapToSave = { ...normalized, grid: trimmed.grid, bg: trimmed.bg };
       }
     }
 
