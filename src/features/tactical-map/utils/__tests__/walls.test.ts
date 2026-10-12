@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import { hexToPixel } from "../hex";
+import { gridLocalBounds, offsetToAxial } from "../coords";
 import { collectGridSnapPoints, snapWallPoint, explodePolyline, isMovementBlocked, newWallAttrs, isOpening } from "../walls";
 import type { GridShape, WallMaterial, WallSegment } from "../../../../types/tacticalMap";
 
@@ -27,6 +29,41 @@ describe("collectGridSnapPoints — square", () => {
   it("includes vertical edge midpoints", () => {
     const pts = collectGridSnapPoints(sq(64));
     expect(pts.some(([x, y]) => x === 0 && y === 32)).toBe(true);
+  });
+});
+
+describe("collectGridSnapPoints — hex", () => {
+  const hexGrid: GridShape = {
+    kind: "hex", cols: 6, rows: 6, cellSize: 40,
+    skewRatio: 1, rotation: 0, color: "#fff", opacity: 1, lineStyle: "solid",
+  };
+  const near = (pts: [number, number][], x: number, y: number) =>
+    pts.some(([px, py]) => Math.abs(px - x) < 1e-9 && Math.abs(py - y) < 1e-9);
+
+  it("snaps to every vertex of every drawn hexagon (odd-r offset)", () => {
+    const pts = collectGridSnapPoints(hexGrid);
+    for (let row = 0; row < hexGrid.rows; row++) {
+      for (let col = 0; col < hexGrid.cols; col++) {
+        const c = hexToPixel(offsetToAxial(col, row), 40);
+        for (let i = 0; i < 6; i++) {
+          const a = ((60 * i - 30) * Math.PI) / 180;
+          const x = c.x + 40 * Math.cos(a), y = c.y + 40 * Math.sin(a);
+          expect(near(pts, x, y), `vertex ${i} of (${col},${row})`).toBe(true);
+        }
+      }
+    }
+  });
+  it("keeps every snap point inside the grid's local bounds", () => {
+    const b = gridLocalBounds(hexGrid);
+    for (const [x, y] of collectGridSnapPoints(hexGrid)) {
+      expect(x).toBeGreaterThanOrEqual(b.minX - 1e-9);
+      expect(x).toBeLessThanOrEqual(b.maxX + 1e-9);
+      expect(y).toBeGreaterThanOrEqual(b.minY - 1e-9);
+      expect(y).toBeLessThanOrEqual(b.maxY + 1e-9);
+    }
+  });
+  it("includes the center of column 0, row 4 (axial -2,4 -> 0,240)", () => {
+    expect(near(collectGridSnapPoints(hexGrid), 0, 240)).toBe(true);
   });
 });
 

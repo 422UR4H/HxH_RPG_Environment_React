@@ -1,5 +1,6 @@
 import type { GridShape, WallMaterial, WallSegment, WallType } from "../../../types/tacticalMap";
 import { hexToPixel } from "./hex";
+import { offsetToAxial } from "./coords";
 
 const HP_DEFAULTS: Record<WallMaterial, number> = {
   stone: 100, wood: 40, iron: 500, magical: 80,
@@ -54,9 +55,10 @@ export function collectGridSnapPoints(grid: GridShape): [number, number][] {
         pts.push([c * cellSize, (r + 0.5) * cellSize]);
   } else {
     const { cols, rows, cellSize } = grid;
-    for (let r = 0; r < rows; r++) {
-      for (let q = 0; q < cols; q++) {
-        const center = hexToPixel({ q, r }, cellSize);
+    // The grid stores cols/rows in odd-r offset, like GridLayer draws it.
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
+        const center = hexToPixel(offsetToAxial(col, row), cellSize);
         pts.push([center.x, center.y]);
         for (let i = 0; i < 6; i++) {
           const angle = ((60 * i - 30) * Math.PI) / 180;
