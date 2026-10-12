@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { approachSlot, neighborSlots, slotDistance } from "../reach";
+import { approachReach, approachSlot, neighborSlots, slotDistance } from "../reach";
 import { isSameSlot } from "../coords";
 import type { GridShape, SlotCoord } from "../../../../types/tacticalMap";
 
@@ -89,5 +89,20 @@ describe("approachSlot", () => {
   it("works on hex grids", () => {
     const r = approachSlot({ actor: hx(0, 2), target: hx(4, 2), grid: grid("hex"), isFree: allFree });
     expect(r).toEqual({ kind: "approach", slot: hx(3, 2) });
+  });
+});
+
+describe("approachReach tie-break", () => {
+  it("breaks ties by board (LOCAL) distance, not screen distance", () => {
+    // Isometric grid: in LOCAL, (2,0) is 80 away and (2,2) is 113; on screen,
+    // (2,0) is ~63 and (2,2) ~57, so a WORLD tie-break would wrongly pick the diagonal.
+    const iso: GridShape = { ...grid("square"), rotation: 45, skewRatio: 0.5 };
+    const r = approachReach({
+      actor: sq(0, 0),
+      reach: [sq(2, 2), sq(2, 0)],
+      grid: iso,
+      isFree: allFree,
+    });
+    expect(r).toEqual({ kind: "approach", slot: sq(2, 0) });
   });
 });

@@ -1,6 +1,6 @@
 import type { GridShape, SlotCoord } from "../../../types/tacticalMap";
 import { hexDistance } from "./hex";
-import { isSameSlot, isSlotInBounds, slotToWorld } from "./coords";
+import { isSameSlot, isSlotInBounds, slotToLocal } from "./coords";
 
 /**
  * Distância em passos de slot. Quadrado conta a diagonal como um passo (Chebyshev) — é a
@@ -85,11 +85,11 @@ export function approachReach({
 }): Approach {
   if (reach.some((s) => isSameSlot(s, actor))) return { kind: "in_reach" };
 
-  const actorPt = slotToWorld(actor, grid);
+  const actorPt = slotToLocal(actor, grid);
   const candidates = reach
     .filter((s) => isSlotInBounds(s, grid) && isFree(s) && (isPathClear?.(actor, s) ?? true))
     .map((s) => {
-      const p = slotToWorld(s, grid);
+      const p = slotToLocal(s, grid);
       return { s, steps: slotDistance(actor, s), dist: Math.hypot(p.x - actorPt.x, p.y - actorPt.y) };
     })
     .sort((a, b) => a.steps - b.steps || a.dist - b.dist);
