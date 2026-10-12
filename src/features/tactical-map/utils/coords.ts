@@ -137,17 +137,23 @@ export function gridLocalBounds(grid: GridShape): {
   };
 }
 
+// Contorno da grade em WORLD: os 4 cantos de gridLocalBounds (TL, TR, BR, BL) por
+// applyTransform. A caixa de gridWorldBounds envolve este contorno.
+export function gridWorldCorners(grid: GridShape): XY[] {
+  const b = gridLocalBounds(grid);
+  return [
+    { x: b.minX, y: b.minY }, { x: b.maxX, y: b.minY },
+    { x: b.maxX, y: b.maxY }, { x: b.minX, y: b.maxY },
+  ].map((p) => applyTransform(p, grid));
+}
+
 // Axis-aligned bounds, in WORLD space, of the grid's real extent: the 4 corners
 // of gridLocalBounds run through applyTransform. Covers hex (wider than
 // cols*cellSize) and rotated/squashed grids. Shared by the camera fit and the fog.
 export function gridWorldBounds(grid: GridShape): {
   minX: number; minY: number; maxX: number; maxY: number;
 } {
-  const b = gridLocalBounds(grid);
-  const corners = [
-    { x: b.minX, y: b.minY }, { x: b.maxX, y: b.minY },
-    { x: b.maxX, y: b.maxY }, { x: b.minX, y: b.maxY },
-  ].map((p) => applyTransform(p, grid));
+  const corners = gridWorldCorners(grid);
   const xs = corners.map((p) => p.x);
   const ys = corners.map((p) => p.y);
   return { minX: Math.min(...xs), minY: Math.min(...ys), maxX: Math.max(...xs), maxY: Math.max(...ys) };

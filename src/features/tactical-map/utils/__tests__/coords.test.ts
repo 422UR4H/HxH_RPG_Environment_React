@@ -14,6 +14,7 @@ import {
   tripleToSlot,
   polygonsToWorld,
   gridWorldBounds,
+  gridWorldCorners,
 } from "../coords";
 import type { GridShape } from "../../../../types/tacticalMap";
 import { hexToPixel } from "../hex";
@@ -330,5 +331,61 @@ describe("gridWorldBounds", () => {
   it("hex passa da caixa cols*cellSize (a borda direita não fica sem fog)", () => {
     const g: GridShape = { ...squareGrid(55), kind: "hex" };
     expect(gridWorldBounds(g).maxX).toBeGreaterThan(g.cols * g.cellSize);
+  });
+});
+
+describe("gridWorldCorners", () => {
+  const transform = { rotation: 30, skewRatio: 0.6, originX: 15, originY: -20 };
+
+  // Ponto em polígono convexo: todos os produtos vetoriais com o mesmo sinal.
+  const insideConvex = (p: { x: number; y: number }, poly: { x: number; y: number }[]) => {
+    let pos = false;
+    let neg = false;
+    for (let i = 0; i < poly.length; i++) {
+      const a = poly[i];
+      const b = poly[(i + 1) % poly.length];
+      const cross = (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x);
+      if (cross > 1e-9) pos = true;
+      if (cross < -1e-9) neg = true;
+    }
+    return !(pos && neg);
+  };
+
+  it("são os 4 cantos de gridLocalBounds por applyTransform (TL, TR, BR, BL)", () => {
+    const g: GridShape = { ...squareGrid(40), ...transform };
+    const b = gridLocalBounds(g);
+    const expected = [
+      { x: b.minX, y: b.minY }, { x: b.maxX, y: b.minY },
+      { x: b.maxX, y: b.maxY }, { x: b.minX, y: b.maxY },
+    ].map((p) => applyTransform(p, g));
+    const got = gridWorldCorners(g);
+    expect(got).toHaveLength(4);
+    got.forEach((p, i) => {
+      expect(p.x).toBeCloseTo(expected[i].x, 9);
+      expect(p.y).toBeCloseTo(expected[i].y, 9);
+    });
+  });
+
+  it("hex transformada: o centro de todo slot cai dentro do contorno", () => {
+    const g: GridShape = { ...hexGrid(64), ...transform };
+    const poly = gridWorldCorners(g);
+    for (let col = 0; col < 10; col++) {
+      for (let row = 0; row < 10; row++) {
+        const c = slotToWorld({ kind: "hex", ...offsetToAxial(col, row) }, g);
+        expect(insideConvex(c, poly), `slot ${col},${row}`).toBe(true);
+      }
+    }
+  });
+
+  it("premissa: na hex sem transform o retângulo cols*cellSize não cobre todo centro", () => {
+    const g = hexGrid(64);
+    let outside = false;
+    for (let col = 0; col < g.cols; col++) {
+      for (let row = 0; row < g.rows; row++) {
+        const c = slotToWorld({ kind: "hex", ...offsetToAxial(col, row) }, g);
+        if (c.x > g.cols * g.cellSize || c.x < 0 || c.y < 0) outside = true;
+      }
+    }
+    expect(outside).toBe(true);
   });
 });

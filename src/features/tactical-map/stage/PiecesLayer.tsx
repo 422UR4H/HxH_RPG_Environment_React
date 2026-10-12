@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useApplication } from "@pixi/react";
-import { Rectangle } from "pixi.js";
+import { Polygon } from "pixi.js";
 import type { FederatedPointerEvent } from "pixi.js";
 import type { Graphics as PixiGraphics } from "pixi.js";
 import type { Viewport } from "pixi-viewport";
 import type { TacticalMap, SlotCoord } from "../../../types/tacticalMap";
 import type { CharacterPrivateSummary } from "../../../types/characterSheet";
 import type { Selection } from "../store/editorStore";
-import { worldToSlot, isSlotInBounds, slotCorners, isSameSlot, slotToWorld, slotInradius, stackOffsetToPx } from "../utils/coords";
+import { worldToSlot, isSlotInBounds, slotCorners, isSameSlot, slotToWorld, slotInradius, gridWorldCorners, stackOffsetToPx } from "../utils/coords";
 import { createHoldTracker, createRightPressTracker, shouldSelectOnRelease, HOLD_MS } from "../hooks/useHoldGesture";
 import { createTapTracker, isTapConsumed } from "../hooks/tapGesture";
 import { stackOffsets } from "../utils/stacking";
@@ -395,12 +395,15 @@ export default function PiecesLayer({
     };
   }, [onEmptySlotClick]);
 
-  // Hit area covering the entire grid — gives the pieces-layer container real bounds
-  // so PixiJS delivers pointerdown even when no pieces are rendered yet.
+  // Hit area = contorno real da grade em WORLD (hex, girada, achatada, com origem). O Pixi
+  // poda o container e todos os filhos quando o ponteiro cai fora da hitArea; um retângulo
+  // cols*cellSize deixaria peças e slots vazios sem clique. Também dá bounds reais ao
+  // container para o pointerdown chegar mesmo sem peças.
   const gridHitArea = useMemo(
-    () => new Rectangle(0, 0, map.grid.cols * map.grid.cellSize, map.grid.rows * map.grid.cellSize),
-    [map.grid.cols, map.grid.rows, map.grid.cellSize],
+    () => new Polygon(gridWorldCorners(map.grid).flatMap((p) => [p.x, p.y])),
+    [map.grid],
   );
+
 
   const drawHoverSlot = useCallback(
     (g: PixiGraphics) => {

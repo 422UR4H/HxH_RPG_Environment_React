@@ -129,14 +129,15 @@ export default function ViewportInner({
   useEffect(() => {
     const vp = vpRef.current;
     if (!vp || !clampToGrid) return;
+    const wb = gridWorldBounds(map.grid);
     vp.clamp({
-      left: 0,
-      right: map.grid.cols * map.grid.cellSize,
-      top: 0,
-      bottom: map.grid.rows * map.grid.cellSize,
+      left: wb.minX,
+      right: wb.maxX,
+      top: wb.minY,
+      bottom: wb.maxY,
       underflow: "center",
     });
-  }, [clampToGrid, map.grid.cols, map.grid.cellSize, map.grid.rows]);
+  }, [clampToGrid, map.grid]);
 
   useEffect(() => {
     if (!app.renderer || width <= 0 || height <= 0) return;
