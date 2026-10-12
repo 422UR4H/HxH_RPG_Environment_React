@@ -239,16 +239,22 @@ export function gridFromHandleDrag(
   const cy = (startGrid.rows * startGrid.cellSize) / 2 + (startGrid.originY ?? 0);
 
   if (handle === "rotate") {
-    const angle = Math.atan2(worldY - cy, worldX - cx) * (180 / Math.PI) + 90;
+    // O desenho da esfera fica no raio centro→TC já achatado; desfaz o achatamento
+    // (÷ skewRatio) para medir o ângulo no espaço da rotação e evitar o "pulo".
+    const angle = Math.atan2((worldY - cy) / startGrid.skewRatio, worldX - cx) * (180 / Math.PI) + 90;
     return { ...startGrid, rotation: angle };
   }
 
   if (shiftKey && (handle === "TC" || handle === "BC")) {
-    const b = gridLocalBounds(startGrid);
-    const gh = b.maxY - b.minY;
-    const local = inverseTransform({ x: worldX, y: worldY }, startGrid);
-    const newH = handle === "TC" ? b.maxY - local.y : local.y - b.minY;
-    const ratio = Math.max(0.3, Math.min(1.0, newH / gh));
+    // A alça fica sob o cursor em y: world.y = originY + pivôY + ry·s, onde ry é o
+    // y da alça girada (antes do achatamento) em relação ao pivô.
+    const pivotX = (startGrid.cols * startGrid.cellSize) / 2;
+    const pivotY = (startGrid.rows * startGrid.cellSize) / 2;
+    const h = gridHandleLocal(handle, startGrid);
+    const t = startGrid.rotation * (Math.PI / 180);
+    const ry = (h.x - pivotX) * Math.sin(t) + (h.y - pivotY) * Math.cos(t);
+    if (Math.abs(ry) < 1e-9) return null;
+    const ratio = Math.max(0.3, Math.min(1.0, (worldY - (startGrid.originY ?? 0) - pivotY) / ry));
     return { ...startGrid, skewRatio: ratio };
   }
 

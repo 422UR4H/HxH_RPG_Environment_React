@@ -245,9 +245,8 @@ function GridHandles({
   });
 
   const hs = HANDLE_SIZE / vpScale;
-  // OCULTO POR ORA — esfera de rotação do grid desabilitada no canvas.
-  // const rr = ROTATE_RADIUS / vpScale;
-  // const ro = ROTATE_OFFSET / vpScale;
+  const rr = ROTATE_RADIUS / vpScale;
+  const ro = ROTATE_OFFSET / vpScale;
 
   // World-space anchor positions for every handle, following the grid's
   // rotation + skew. The container itself is NOT transformed, so the handle
@@ -267,14 +266,13 @@ function GridHandles({
     const BC = at("BC");
     const ML = at("ML");
     const MR = at("MR");
-    // OCULTO POR ORA — posição da esfera de rotação do grid.
-    // const center = at("center");
-    // const dx = TC.x - center.x;
-    // const dy = TC.y - center.y;
-    // const len = Math.hypot(dx, dy) || 1;
-    // const rot: XY = { x: TC.x + (dx / len) * ro, y: TC.y + (dy / len) * ro };
-    return { TL, TR, BR, BL, TC, BC, ML, MR };
-  }, [grid]);
+    const center = at("center");
+    const dx = TC.x - center.x;
+    const dy = TC.y - center.y;
+    const len = Math.hypot(dx, dy) || 1;
+    const rot: XY = { x: TC.x + (dx / len) * ro, y: TC.y + (dy / len) * ro };
+    return { TL, TR, BR, BL, TC, BC, ML, MR, rot };
+  }, [grid, ro]);
 
   const drawBorder = useCallback((g: PixiGraphics) => {
     g.clear();
@@ -288,8 +286,6 @@ function GridHandles({
     g.stroke();
   }, [pts, vpScale, shiftPressed]);
 
-  /* OCULTO POR ORA — esfera/linha de rotação do grid (ver JSX abaixo).
-     Reativar junto com rr/ro e pts.rot quando liberar a rotação do grid.
   const drawRotate = useCallback((g: PixiGraphics) => {
     g.clear();
     g.setStrokeStyle({ width: 1 / vpScale, color: 0xffd700, alpha: 0.8 });
@@ -300,7 +296,6 @@ function GridHandles({
     g.circle(pts.rot.x, pts.rot.y, rr);
     g.fill();
   }, [pts, rr, vpScale]);
-  */
 
   const corners: Array<{ id: string; p: XY; cursor: string }> = [
     { id: "TL", p: pts.TL, cursor: "nw-resize" },
@@ -348,9 +343,6 @@ function GridHandles({
         />
       ))}
 
-      {/* OCULTO POR ORA — esfera de rotação do grid não disponível ao usuário.
-          A lógica de rotação (gridFromHandleDrag "rotate") permanece e segue
-          funcionando se grid.rotation vier do backend (GridLayer aplica).
       <pixiGraphics
         draw={drawRotate}
         eventMode="static"
@@ -360,7 +352,6 @@ function GridHandles({
           startDrag("rotate", false, e.global.x, e.global.y);
         }}
       />
-      */}
     </pixiContainer>
   );
 }

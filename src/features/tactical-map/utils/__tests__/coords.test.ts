@@ -170,6 +170,58 @@ describe("gridFromHandleDrag — resize anchors the opposite corner", () => {
     const out = gridFromHandleDrag("rotate", g, 200, 0, false)!;
     expect(typeof out.rotation).toBe("number");
   });
+
+  describe("rotate numa grade achatada e com origem", () => {
+    const g: GridShape = { ...squareGrid(40), rotation: 45, skewRatio: 0.5, originX: 15, originY: -20 };
+    const tc = applyTransform(gridHandleLocal("TC", g), g);
+    const cx = (g.cols * g.cellSize) / 2 + 15;
+    const cy = (g.rows * g.cellSize) / 2 - 20;
+
+    it("cursor sobre a esfera (TC) mantém a rotação atual, sem pulo", () => {
+      const out = gridFromHandleDrag("rotate", g, tc.x, tc.y, false)!;
+      expect(out.rotation).toBeCloseTo(45, 6);
+    });
+
+    it("cursor mais longe no mesmo raio centro→TC mantém a rotação", () => {
+      const out = gridFromHandleDrag("rotate", g, cx + (tc.x - cx) * 2.5, cy + (tc.y - cy) * 2.5, false)!;
+      expect(out.rotation).toBeCloseTo(45, 6);
+    });
+  });
+});
+
+describe("gridFromHandleDrag — perspectiva (Shift + TC/BC)", () => {
+  const iso: GridShape = { ...squareGrid(40), rotation: 45, skewRatio: 0.5, originX: 15, originY: -20 };
+
+  it("cursor exatamente sobre a alça TC não faz a perspectiva pular", () => {
+    const p = applyTransform(gridHandleLocal("TC", iso), iso);
+    const out = gridFromHandleDrag("TC", iso, p.x, p.y, true)!;
+    expect(out.skewRatio).toBeCloseTo(0.5, 6);
+  });
+
+  it("cursor exatamente sobre a alça BC não faz a perspectiva pular", () => {
+    const p = applyTransform(gridHandleLocal("BC", iso), iso);
+    const out = gridFromHandleDrag("BC", iso, p.x, p.y, true)!;
+    expect(out.skewRatio).toBeCloseTo(0.5, 6);
+  });
+
+  it("a alça TC segue o cursor em y numa grade top-down", () => {
+    const g = squareGrid(40); // pivô y = 200, ry da TC = -200
+    const at = (y: number) => gridFromHandleDrag("TC", g, 0, y, true)!;
+    const r1 = at(100);
+    expect(r1.skewRatio).toBeCloseTo(0.5, 6);
+    expect(applyTransform(gridHandleLocal("TC", r1), r1).y).toBeCloseTo(100, 6);
+    const r2 = at(50);
+    expect(r2.skewRatio).toBeCloseTo(0.75, 6);
+    expect(applyTransform(gridHandleLocal("TC", r2), r2).y).toBeCloseTo(50, 6);
+    expect(at(-100).skewRatio).toBe(1);
+    expect(at(190).skewRatio).toBe(0.3);
+  });
+
+  it("devolve null quando a alça está na horizontal do pivô", () => {
+    // rotação 90: o y girado da TC é ~0
+    const g: GridShape = { ...squareGrid(40), rotation: 90 };
+    expect(gridFromHandleDrag("TC", g, 0, 0, true)).toBeNull();
+  });
 });
 
 describe("coords — skew + rotation", () => {
