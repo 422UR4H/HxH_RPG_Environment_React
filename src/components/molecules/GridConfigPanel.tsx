@@ -33,9 +33,6 @@ export default function GridConfigPanel({ grid, onChange, onRefit, canRefit }: P
   const inputValue = (key: NumField): string | number =>
     drafts[key] !== undefined ? (drafts[key] as string) : grid[key];
 
-  /* OCULTO POR ORA — Predefinições / Rotação / Perspectiva (ver JSX abaixo).
-     Estes helpers só eram usados por esses campos. Reativar junto com eles.
-
   // Like handleInt but keeps decimals — needed for precise isometric tuning
   // (rotation angle and perspective ratio differ per map).
   const handleFloat =
@@ -48,7 +45,6 @@ export default function GridConfigPanel({ grid, onChange, onRefit, canRefit }: P
     };
 
   const fmtDeg = (v: number) => (Number.isInteger(v) ? `${v}` : v.toFixed(1));
-  */
 
   return (
     <Panel>
@@ -137,12 +133,6 @@ export default function GridConfigPanel({ grid, onChange, onRefit, canRefit }: P
         />
       </Field>
 
-      {/* OCULTO POR ORA — Predefinições, Rotação e Perspectiva não estão
-          disponíveis para o usuário ainda. O código permanece funcionando: se
-          rotation/skewRatio vierem do backend, o GridLayer os aplica no render.
-          Reexpor (e reativar handleFloat/fmtDeg + SkewRow/SkewInput/SkewLabels)
-          quando liberar essas features.
-
       <Field>
         <FieldLabel>Predefinições</FieldLabel>
         <KindRow>
@@ -215,8 +205,11 @@ export default function GridConfigPanel({ grid, onChange, onRefit, canRefit }: P
           <span>Isométrico</span>
           <span>Top-down</span>
         </SkewLabels>
+        <HelpText>
+          No mapa: arraste a esfera dourada para girar; segure Shift e arraste a
+          alça de cima ou de baixo para achatar.
+        </HelpText>
       </Field>
-      */}
 
       <RefitButton
         type="button"
@@ -326,7 +319,6 @@ const RefitButton = styled.button`
   }
 `;
 
-/* OCULTO POR ORA — usados apenas pelo campo Perspectiva (ver JSX comentado).
 const SkewRow = styled.div`
   display: flex;
   align-items: center;
@@ -357,4 +349,11 @@ const SkewLabels = styled.div`
   font-size: 11px;
   color: ${colors.textDisabled};
 `;
-*/
+
+const HelpText = styled.p`
+  margin: 0;
+  font-family: ${fonts.sans};
+  font-size: 11px;
+  line-height: 1.4;
+  color: ${colors.textDisabled};
+`;

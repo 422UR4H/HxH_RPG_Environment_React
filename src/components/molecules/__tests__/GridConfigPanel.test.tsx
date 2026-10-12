@@ -64,9 +64,50 @@ describe("GridConfigPanel", () => {
     expect(onRefit).toHaveBeenCalledOnce();
   });
 
-  it("não expõe Rotação nem Perspectiva ao usuário (ocultos por ora)", () => {
-    render(<GridConfigPanel grid={defaultGrid} onChange={() => {}} />);
-    expect(screen.queryByLabelText(/rotação/i)).not.toBeInTheDocument();
-    expect(screen.queryByLabelText(/perspectiva/i)).not.toBeInTheDocument();
+  it("clicar em Isométrico aplica rotation 45 e skewRatio 0.5 mantendo o resto", async () => {
+    const onChange = vi.fn();
+    render(<GridConfigPanel grid={defaultGrid} onChange={onChange} />);
+    await userEvent.click(screen.getByRole("button", { name: /isométrico/i }));
+    expect(onChange).toHaveBeenCalledWith({ ...defaultGrid, rotation: 45, skewRatio: 0.5 });
+  });
+
+  it("clicar em Top-down aplica rotation 0 e skewRatio 1", async () => {
+    const onChange = vi.fn();
+    const iso = { ...defaultGrid, rotation: 45, skewRatio: 0.5 };
+    render(<GridConfigPanel grid={iso} onChange={onChange} />);
+    await userEvent.click(screen.getByRole("button", { name: /top-down/i }));
+    expect(onChange).toHaveBeenCalledWith({ ...iso, rotation: 0, skewRatio: 1 });
+  });
+
+  it("digitar 30.5 em Rotação chama onChange com rotation 30.5", async () => {
+    const onChange = vi.fn();
+    render(<GridConfigPanel grid={defaultGrid} onChange={onChange} />);
+    const input = screen.getByLabelText(/rotação/i);
+    await userEvent.clear(input);
+    await userEvent.type(input, "30.5");
+    expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ rotation: 30.5 }));
+  });
+
+  it("o número da Perspectiva aceita 0.42", async () => {
+    const onChange = vi.fn();
+    render(<GridConfigPanel grid={defaultGrid} onChange={onChange} />);
+    const input = screen.getByLabelText(/valor da perspectiva/i);
+    await userEvent.clear(input);
+    await userEvent.type(input, "0.42");
+    expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ skewRatio: 0.42 }));
+  });
+
+  it("valores fora da faixa (Rotação 200, Perspectiva 0.1) não chamam onChange", async () => {
+    const onChange = vi.fn();
+    render(<GridConfigPanel grid={defaultGrid} onChange={onChange} />);
+    const rot = screen.getByLabelText(/rotação/i);
+    await userEvent.clear(rot);
+    await userEvent.click(rot);
+    await userEvent.paste("200");
+    const skew = screen.getByLabelText(/valor da perspectiva/i);
+    await userEvent.clear(skew);
+    await userEvent.click(skew);
+    await userEvent.paste("0.1");
+    expect(onChange).not.toHaveBeenCalled();
   });
 });
