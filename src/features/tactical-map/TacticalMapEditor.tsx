@@ -16,6 +16,7 @@ import type { CharacterPrivateSummary } from "../../types/characterSheet";
 import { useEditorHistory, useGestureHistory } from "./hooks/useEditorHistory";
 import { useRosterDrag } from "./hooks/useRosterDrag";
 import { isSlotInBounds, isSameSlot } from "./utils/coords";
+import { uncoveredGridLines } from "./utils/bgCoverage";
 import { getApiErrorDetail } from "../../utils/apiError";
 
 // Over the ~400-line guideline (docs/superpowers/specs/2026-08-06-tactical-map-refactor-design.md
@@ -298,22 +299,8 @@ export default function TacticalMapEditor({
     // Truncation check
     let mapToSave = normalized;
     if (normalized.bg) {
-      const gridW = normalized.grid.cols * normalized.grid.cellSize;
-      const gridH = normalized.grid.rows * normalized.grid.cellSize;
-      const bgRight = normalized.bg.x + normalized.bg.width;
-      const bgBottom = normalized.bg.y + normalized.bg.height;
-      const uncoveredCols = bgRight < gridW
-        ? Math.floor((gridW - bgRight) / normalized.grid.cellSize)
-        : 0;
-      const uncoveredRows = bgBottom < gridH
-        ? Math.floor((gridH - bgBottom) / normalized.grid.cellSize)
-        : 0;
-      const uncoveredLeftCols = normalized.bg.x > 0
-        ? Math.floor(normalized.bg.x / normalized.grid.cellSize)
-        : 0;
-      const uncoveredTopRows = normalized.bg.y > 0
-        ? Math.floor(normalized.bg.y / normalized.grid.cellSize)
-        : 0;
+      const { left: uncoveredLeftCols, right: uncoveredCols, top: uncoveredTopRows, bottom: uncoveredRows } =
+        uncoveredGridLines(normalized.grid, normalized.bg);
 
       const totalUncoveredCols = uncoveredLeftCols + uncoveredCols;
       const totalUncoveredRows = uncoveredTopRows + uncoveredRows;
