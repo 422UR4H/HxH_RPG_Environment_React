@@ -128,12 +128,34 @@ describe("GridConfigPanel", () => {
       expect(screen.getByLabelText(/rotação/i)).toHaveValue(45);
     });
 
+    it("Top-down depois de digitar Rotação (que já era 0) mostra 0 no input", async () => {
+      render(<Harness initial={defaultGrid} />);
+      const rot = screen.getByLabelText(/rotação/i);
+      await userEvent.clear(rot);
+      await userEvent.click(rot);
+      await userEvent.paste("30.5"); // um único onChange: prev=0
+      await userEvent.click(screen.getByRole("button", { name: /top-down/i }));
+      expect(screen.getByLabelText(/rotação/i)).toHaveValue(0);
+    });
+
+    it("Top-down depois de digitar Perspectiva (que já era 1) mostra 1 no input", async () => {
+      render(<Harness initial={defaultGrid} />);
+      const skew = screen.getByLabelText(/valor da perspectiva/i);
+      await userEvent.clear(skew);
+      await userEvent.click(skew);
+      await userEvent.paste("0.42"); // um único onChange: prev=1
+      await userEvent.click(screen.getByRole("button", { name: /top-down/i }));
+      expect(screen.getByLabelText(/valor da perspectiva/i)).toHaveValue(1);
+    });
+
     it("rotação vinda de fora (arraste da esfera) substitui o rascunho", async () => {
       const onChange = vi.fn();
       const { rerender } = render(<GridConfigPanel grid={defaultGrid} onChange={onChange} />);
       const rot = screen.getByLabelText(/rotação/i);
       await userEvent.clear(rot);
       await userEvent.type(rot, "30.5");
+      // Arrastar no canvas tira o foco do input antes de a grade mudar.
+      await userEvent.tab();
       rerender(<GridConfigPanel grid={{ ...defaultGrid, rotation: 12 }} onChange={onChange} />);
       expect(screen.getByLabelText(/rotação/i)).toHaveValue(12);
     });
@@ -144,6 +166,8 @@ describe("GridConfigPanel", () => {
       const skew = screen.getByLabelText(/valor da perspectiva/i);
       await userEvent.clear(skew);
       await userEvent.type(skew, "0.42");
+      // Arrastar no canvas tira o foco do input antes de a grade mudar.
+      await userEvent.tab();
       rerender(<GridConfigPanel grid={{ ...defaultGrid, skewRatio: 0.7 }} onChange={onChange} />);
       expect(screen.getByLabelText(/valor da perspectiva/i)).toHaveValue(0.7);
     });

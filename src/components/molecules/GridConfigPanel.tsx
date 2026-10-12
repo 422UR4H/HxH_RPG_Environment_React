@@ -13,16 +13,10 @@ type Props = {
   canRefit?: boolean;
 };
 
-// Texto digitado + os valores de grid[key] que o explicam: o de antes da digitação
-// (`prev`, enquanto o pai ainda não aplicou) e o que o texto produziu (`parsed`,
-// ausente se foi rejeitado). Se grid[key] sair desses dois, a mudança veio de fora
-// do input (predefinição, arraste no mapa) e o input volta a mostrar o valor vivo.
-type Draft = { raw: string; prev: number; parsed?: number };
-
 type NumField = "cols" | "rows" | "cellSize" | "rotation" | "skewRatio";
 
 export default function GridConfigPanel({ grid, onChange, onRefit, canRefit }: Props) {
-  const [drafts, setDrafts] = useState<Partial<Record<NumField, Draft>>>({});
+  const [drafts, setDrafts] = useState<Partial<Record<NumField, string>>>({});
 
   const update = (patch: Partial<GridShape>) =>
     onChange({ ...grid, ...patch });
@@ -33,14 +27,18 @@ export default function GridConfigPanel({ grid, onChange, onRefit, canRefit }: P
       const raw = e.target.value;
       const v = parseInt(raw, 10);
       const ok = !isNaN(v) && v >= min && v <= max;
-      setDrafts((prev) => ({ ...prev, [key]: { raw, prev: grid[key], parsed: ok ? v : undefined } }));
+      setDrafts((prev) => ({ ...prev, [key]: raw }));
       if (ok) update({ [key]: v });
     };
 
-  const inputValue = (key: NumField): string | number => {
-    const d = drafts[key];
-    return d !== undefined && (grid[key] === d.prev || grid[key] === d.parsed) ? d.raw : grid[key];
-  };
+  // O rascunho só vale enquanto o input está em edição: ao perder o foco ele é
+  // descartado e o input volta a mostrar a grade (predefinição, arraste no mapa
+  // ou qualquer outro controle tiram o foco antes de mudar a grade).
+  const inputValue = (key: NumField): string | number =>
+    drafts[key] !== undefined ? (drafts[key] as string) : grid[key];
+
+  const clearDraft = (key: NumField) => () =>
+    setDrafts((prev) => ({ ...prev, [key]: undefined }));
 
   // Like handleInt but keeps decimals — needed for precise isometric tuning
   // (rotation angle and perspective ratio differ per map).
@@ -50,7 +48,7 @@ export default function GridConfigPanel({ grid, onChange, onRefit, canRefit }: P
       const raw = e.target.value;
       const v = parseFloat(raw);
       const ok = !isNaN(v) && v >= min && v <= max;
-      setDrafts((prev) => ({ ...prev, [key]: { raw, prev: grid[key], parsed: ok ? v : undefined } }));
+      setDrafts((prev) => ({ ...prev, [key]: raw }));
       if (ok) update({ [key]: v });
     };
 
@@ -91,6 +89,7 @@ export default function GridConfigPanel({ grid, onChange, onRefit, canRefit }: P
           min={1}
           max={200}
           onChange={handleInt("cols", 1, 200)}
+          onBlur={clearDraft("cols")}
         />
       </Field>
 
@@ -103,6 +102,7 @@ export default function GridConfigPanel({ grid, onChange, onRefit, canRefit }: P
           min={1}
           max={200}
           onChange={handleInt("rows", 1, 200)}
+          onBlur={clearDraft("rows")}
         />
       </Field>
 
@@ -115,6 +115,7 @@ export default function GridConfigPanel({ grid, onChange, onRefit, canRefit }: P
           min={8}
           max={256}
           onChange={handleInt("cellSize", 8, 256)}
+          onBlur={clearDraft("cellSize")}
         />
       </Field>
 
@@ -175,6 +176,7 @@ export default function GridConfigPanel({ grid, onChange, onRefit, canRefit }: P
           step={0.1}
           value={inputValue("rotation")}
           onChange={handleFloat("rotation", -180, 180)}
+          onBlur={clearDraft("rotation")}
         />
       </Field>
 
@@ -209,6 +211,7 @@ export default function GridConfigPanel({ grid, onChange, onRefit, canRefit }: P
             step={0.01}
             value={inputValue("skewRatio")}
             onChange={handleFloat("skewRatio", 0.3, 1.0)}
+            onBlur={clearDraft("skewRatio")}
           />
         </SkewRow>
         <SkewLabels>
