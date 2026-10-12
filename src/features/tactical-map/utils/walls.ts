@@ -253,8 +253,9 @@ export function resolveOverlaps(
 // ─── Movement blocking ────────────────────────────────────────────────────────
 
 /**
- * Returns true if the straight path from→to (world coords) is blocked by any wall
- * with move=true and open=false. Respects WallDirection: "left" blocks only movement
+ * Returns true if the straight path from→to (LOCAL grid coords — the space of p1/p2; callers
+ * pass LOCAL slot centers, see isPathClear in wallReach.ts) is blocked by any wall, mirroring
+ * the server's IsPathBlocked. A wall blocks when it has move=true and open=false. Respects WallDirection: "left" blocks only movement
  * coming from the left side of the wall vector p1→p2; "right" from the right; "both" always.
  */
 export function isMovementBlocked(

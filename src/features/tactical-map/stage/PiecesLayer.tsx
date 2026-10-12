@@ -404,7 +404,6 @@ export default function PiecesLayer({
     [map.grid],
   );
 
-
   const drawHoverSlot = useCallback(
     (g: PixiGraphics) => {
       g.clear();
