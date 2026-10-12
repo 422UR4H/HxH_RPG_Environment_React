@@ -308,3 +308,20 @@ function _onSeg(a: [number, number], b: [number, number], p: [number, number]): 
   return p[0] >= Math.min(a[0], b[0]) - EPS && p[0] <= Math.max(a[0], b[0]) + EPS &&
          p[1] >= Math.min(a[1], b[1]) - EPS && p[1] <= Math.max(a[1], b[1]) + EPS;
 }
+
+// Paredes e células vivem no mesmo espaço LOCAL e as células escalam com cellSize em torno do
+// (0,0) LOCAL; sem isto, redimensionar a grade deixaria as paredes na escala antiga.
+// Troca de tipo (quadrado↔hex) não tem correspondência geométrica: paredes ficam como estão.
+export function scaleWallsToGrid(
+  walls: WallSegment[],
+  prev: GridShape,
+  next: GridShape,
+): WallSegment[] {
+  if (next.kind !== prev.kind || next.cellSize === prev.cellSize || prev.cellSize === 0) return walls;
+  const k = next.cellSize / prev.cellSize;
+  return walls.map((w) => ({
+    ...w,
+    p1: [w.p1[0] * k, w.p1[1] * k],
+    p2: [w.p2[0] * k, w.p2[1] * k],
+  }));
+}

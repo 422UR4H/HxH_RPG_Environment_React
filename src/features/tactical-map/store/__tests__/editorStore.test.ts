@@ -239,3 +239,27 @@ describe("editorStore — wall tool UI state", () => {
     vi.useRealTimers();
   });
 });
+
+describe("editorStore — paredes acompanham o cellSize", () => {
+  beforeEach(() => { vi.useFakeTimers(); });
+  afterEach(() => { vi.useRealTimers(); });
+
+  const withWall = () => createEditorStore({ ...mapFixture, walls: [mockWall()] });
+
+  it("setGrid com cellSize 64→80 escala as paredes; desfazer volta as duas coisas", () => {
+    const store = withWall();
+    store.getState().setGrid({ ...mapFixture.grid, cellSize: 80 });
+    vi.advanceTimersByTime(400);
+    expect(store.getState().map.walls[0].p2).toEqual([80, 0]);
+    store.temporal.getState().undo();
+    expect(store.getState().map.walls[0].p2).toEqual([64, 0]);
+    expect(store.getState().map.grid.cellSize).toBe(64);
+  });
+
+  it("setBgWithGrid também escala as paredes", () => {
+    const store = withWall();
+    const bg = { url: "blob:x", x: 0, y: 0, width: 800, height: 600, rotation: 0, opacity: 1 };
+    store.getState().setBgWithGrid(bg, { ...mapFixture.grid, cellSize: 128 });
+    expect(store.getState().map.walls[0].p2).toEqual([128, 0]);
+  });
+});

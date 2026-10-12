@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { temporal } from "zundo";
 import { immer } from "zustand/middleware/immer";
+import { scaleWallsToGrid } from "../utils/walls";
 import { debounce } from "../../../utils/debounce";
 import type {
   BgImage,
@@ -70,6 +71,7 @@ export function createEditorStore(initialMap: TacticalMap) {
 
         setGrid: (grid) =>
           set((s) => {
+            s.map.walls = scaleWallsToGrid(s.map.walls, s.map.grid, grid);
             s.map.grid = grid;
             s.isDirty = true;
           }),
@@ -95,6 +97,7 @@ export function createEditorStore(initialMap: TacticalMap) {
         setBgWithGrid: (bg, grid) =>
           set((s) => {
             s.map.bg = bg;
+            s.map.walls = scaleWallsToGrid(s.map.walls, s.map.grid, grid);
             s.map.grid = grid;
             s.isDirty = true;
           }),

@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { hexToPixel } from "../hex";
 import { gridLocalBounds, offsetToAxial } from "../coords";
-import { collectGridSnapPoints, snapWallPoint, explodePolyline, isMovementBlocked, newWallAttrs, isOpening } from "../walls";
+import { collectGridSnapPoints, snapWallPoint, explodePolyline, isMovementBlocked, newWallAttrs, isOpening, scaleWallsToGrid } from "../walls";
 import type { GridShape, WallMaterial, WallSegment } from "../../../../types/tacticalMap";
 
 const sq = (cellSize = 64): GridShape => ({
@@ -217,5 +217,45 @@ describe("isOpening", () => {
   it("is false for wall and terrain", () => {
     expect(isOpening("wall")).toBe(false);
     expect(isOpening("terrain")).toBe(false);
+  });
+});
+
+describe("scaleWallsToGrid", () => {
+  const w = (p1: [number, number], p2: [number, number]): WallSegment => ({ ...wallAttrs, id: "w", p1, p2 });
+  const hx = (cellSize: number): GridShape => ({ ...sq(cellSize), kind: "hex" });
+
+  it("multiplica p1/p2 por k = next/prev (1,25)", () => {
+    const [s] = scaleWallsToGrid([w([64, 128], [128, 128])], sq(64), sq(80));
+    expect(s.p1).toEqual([80, 160]);
+    expect(s.p2).toEqual([160, 160]);
+  });
+  it("tipo diferente devolve as paredes como estão", () => {
+    const walls = [w([64, 0], [128, 0])];
+    expect(scaleWallsToGrid(walls, sq(64), hx(80))).toBe(walls);
+  });
+  it("mesmo cellSize (cols/rows diferentes) devolve as paredes como estão", () => {
+    const walls = [w([64, 0], [128, 0])];
+    expect(scaleWallsToGrid(walls, sq(64), { ...sq(64), cols: 9, rows: 9 })).toBe(walls);
+  });
+  it("não muta a entrada", () => {
+    const walls = [w([64, 0], [128, 0])];
+    scaleWallsToGrid(walls, sq(64), sq(80));
+    expect(walls[0].p1).toEqual([64, 0]);
+  });
+  it("parede sobre a aresta (2,0)-(3,0) continua na aresta (quadrado e hex)", () => {
+    for (const kind of ["square", "hex"] as const) {
+      const prev = { ...sq(64), kind }, next = { ...sq(80), kind };
+      const edge = (g: GridShape): [number, number][] => {
+        const pts = collectGridSnapPoints(g);
+        return kind === "square"
+          ? [[2 * g.cellSize, 0], [3 * g.cellSize, 0]]
+          : [pts[1], pts[2]]; // dois vértices do hexágono do centro (0,0)
+      };
+      const [a, b] = edge(prev);
+      const [s] = scaleWallsToGrid([w(a, b)], prev, next);
+      const [na, nb] = edge(next);
+      expect(s.p1[0]).toBeCloseTo(na[0], 6); expect(s.p1[1]).toBeCloseTo(na[1], 6);
+      expect(s.p2[0]).toBeCloseTo(nb[0], 6); expect(s.p2[1]).toBeCloseTo(nb[1], 6);
+    }
   });
 });
