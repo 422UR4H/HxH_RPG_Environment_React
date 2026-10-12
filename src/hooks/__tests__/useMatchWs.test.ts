@@ -35,6 +35,24 @@ describe("useMatchWs fog events", () => {
     expect(arg.visiblePolygons[0]).toEqual([[0, 0], [10, 0], [10, 10]]);
   });
 
+  it("passes grid and bg of map_full_state (null bg stays null, absent stays undefined)", () => {
+    const onMapFullState = vi.fn();
+    renderHook(() => useMatchWs({ matchUuid: "m1", token: "t", onMapFullState }));
+    const ws = flushConnect();
+    ws.onopen?.();
+    const grid = { kind: "square", cols: 2, rows: 2, cellSize: 64, skewRatio: 1, rotation: 0 };
+    const bg = { url: "x", x: 0, y: 0, width: 1, height: 1, rotation: 0, opacity: 1 };
+    ws.emit("map_full_state", { pieces: [], walls: [], visiblePolygons: [], fogMode: "live", grid, bg });
+    ws.emit("map_full_state", { pieces: [], walls: [], visiblePolygons: [], fogMode: "live", grid, bg: null });
+    ws.emit("map_full_state", { pieces: [], walls: [], visiblePolygons: [], fogMode: "live" });
+    const calls = onMapFullState.mock.calls.map((c) => c[0]);
+    expect(calls[0].grid).toEqual(grid);
+    expect(calls[0].bg).toEqual(bg);
+    expect(calls[1].bg).toBeNull();
+    expect(calls[2].grid).toBeUndefined();
+    expect(calls[2].bg).toBeUndefined();
+  });
+
   it("parses visibility_updated", () => {
     const onVisibilityUpdated = vi.fn();
     renderHook(() =>

@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { CampaignMaster } from "../../../types/campaign";
 import type { CharacterPrivateSummary } from "../../../types/characterSheet";
-import type { FogState, Piece, SlotCoord, TacticalMap, WallSegment } from "../../../types/tacticalMap";
+import type { BgImage, FogState, GridShape, Piece, SlotCoord, TacticalMap, WallSegment } from "../../../types/tacticalMap";
 
 type Options = {
   map: TacticalMap | undefined;
@@ -17,6 +17,10 @@ type Options = {
 export function useLiveMapSync({ map, campaign }: Options) {
   const [liveWalls, setLiveWalls] = useState<WallSegment[]>([]);
   const [livePieces, setLivePieces] = useState<Piece[] | null>(null);
+  // Grade e fundo do tabuleiro da PARTIDA, do último `map_full_state` — a mesa desenha com
+  // eles, não com os do mapa da campanha (REST). `undefined` = ainda não chegou.
+  const [boardGrid, setBoardGrid] = useState<GridShape | undefined>(undefined);
+  const [boardBg, setBoardBg] = useState<BgImage | undefined>(undefined);
   const [fog, setFog] = useState<FogState>({ fogMode: "explored", visiblePolygons: [] });
 
   useEffect(() => {
@@ -43,7 +47,11 @@ export function useLiveMapSync({ map, campaign }: Options) {
       walls: WallSegment[];
       visiblePolygons: Array<Array<[number, number]>>;
       fogMode: "live" | "explored";
+      grid?: GridShape;
+      bg?: BgImage;
     }) => {
+      setBoardGrid(s.grid);
+      setBoardBg(s.bg);
       setLiveWalls(s.walls);
       setLivePieces(s.pieces);
       setFog({ fogMode: s.fogMode, visiblePolygons: s.visiblePolygons });
@@ -109,6 +117,8 @@ export function useLiveMapSync({ map, campaign }: Options) {
   return {
     liveWalls,
     livePieces,
+    boardGrid,
+    boardBg,
     fog,
     npcMap,
     handleWallStateChanged,

@@ -83,3 +83,16 @@ describe("useLiveMapSync handlePieceMoved/handlePieceRemoved", () => {
     expect(result.current.livePieces).toEqual([]);
   });
 });
+
+describe("useLiveMapSync board grid/bg", () => {
+  it("keeps grid and bg of the last map_full_state", () => {
+    const { result } = setup();
+    expect(result.current.boardGrid).toBeUndefined();
+    const grid = { kind: "square", cols: 2, rows: 2, cellSize: 64 } as never;
+    act(() => {
+      result.current.handleMapFullState({ pieces: [], walls: [], visiblePolygons: [], fogMode: "live", grid, bg: null });
+    });
+    expect(result.current.boardGrid).toBe(grid);
+    expect(result.current.boardBg).toBeNull();
+  });
+});

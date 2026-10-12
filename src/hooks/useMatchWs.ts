@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Piece, SlotCoord, WallSegment } from "../types/tacticalMap";
+import type { BgImage, GridShape, Piece, SlotCoord, WallSegment } from "../types/tacticalMap";
 import type {
   AttachReactionPayload, ChangeScenePayload, CombatServerMessage, EditActionPayload, EnqueueActionPayload, MasterActionPayload, RoundMode,
 } from "../features/match/combat/combatMessages";
@@ -122,6 +122,10 @@ type UseMatchWsOptions = {
     walls: WallSegment[];
     visiblePolygons: Array<Array<[number, number]>>;
     fogMode: "live" | "explored";
+    /** Grade do tabuleiro da partida; ausente só quando a sala não tem tabuleiro. */
+    grid?: GridShape;
+    /** Fundo do tabuleiro: `null` = sem fundo; `undefined` = o payload não trouxe o campo. */
+    bg?: BgImage;
   }) => void;
   /** Called when visibility polygons change after a move. */
   onVisibilityUpdated?: (
@@ -301,12 +305,16 @@ export function useMatchWs({
               walls?: unknown[];
               visiblePolygons?: Array<Array<{ x: number; y: number }>>;
               fogMode?: string;
+              grid?: GridShape;
+              bg?: BgImage;
             };
             onMapFullStateRef.current?.({
               pieces: (p.pieces ?? []).map(fromPiecePayload),
               walls: (p.walls ?? []) as unknown as WallSegment[],
               visiblePolygons: parsePolys(p.visiblePolygons ?? []),
               fogMode: p.fogMode === "explored" ? "explored" : "live",
+              grid: p.grid ?? undefined,
+              bg: p.bg === null ? null : (p.bg ?? undefined),
             });
           } else if (msg.type === "visibility_updated") {
             const p = msg.payload as {

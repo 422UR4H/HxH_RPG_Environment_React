@@ -11,6 +11,7 @@ import { useCampaignDetails } from "../../../hooks/useCampaignDetails";
 import { isSameSlot, slotToTriple, tripleToSlot } from "../../tactical-map/utils/coords";
 import type { SlotTriple } from "../../tactical-map/utils/coords";
 import type { QueuedAction } from "./combatMessages";
+import { tableMap } from "./tableMap";
 import { useLiveMapSync } from "./useLiveMapSync";
 import { useMatchCombat } from "./useMatchCombat";
 import { useMatchHistory } from "../../../hooks/useMatchHistory";
@@ -48,7 +49,7 @@ export function useGameTable({
 }) {
   const { user } = useUser();
   const { data: matchMap, isPending: matchMapPending } = useMatchMap(token, matchId);
-  const { data: map, isPending: mapPending } = useMap(token, matchMap?.mapUuid);
+  const { data: restMap, isPending: mapPending } = useMap(token, matchMap?.mapUuid);
   const { data: participants = [], isSuccess: participantsLoaded } = useMatchParticipants(token, matchId, true);
   const { data: campaign } = useCampaignDetails(token, campaignId);
 
@@ -60,7 +61,10 @@ export function useGameTable({
 
   // O tabuleiro (peças, paredes, fog) é do servidor, para os dois papéis (F13): do REST vem
   // só o mapa em si — fundo e grade. As peças do mapa da campanha não são as da partida.
-  const live = useLiveMapSync({ map, campaign });
+  const live = useLiveMapSync({ map: restMap, campaign });
+  // A mesa desenha com a grade e o fundo do tabuleiro da partida, não os do mapa da campanha.
+  const { boardGrid, boardBg } = live;
+  const map = useMemo(() => tableMap(restMap, boardGrid, boardBg), [restMap, boardGrid, boardBg]);
   // Peças só do servidor — é também o que mantém fora da vista do jogador as peças que o fog esconde.
   const boardPieces = live.livePieces ?? [];
 
