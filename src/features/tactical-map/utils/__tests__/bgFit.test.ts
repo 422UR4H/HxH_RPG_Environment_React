@@ -167,7 +167,7 @@ describe("fitGridToImage / computeCoverFit com grade isométrica", () => {
     const cover = computeCoverFit(1000, 500, fitted);
     expect(cover.x).toBeCloseTo(b.minX + (b.maxX - b.minX - cover.width) / 2, 6);
     expect(cover.y).toBeCloseTo(b.minY + (b.maxY - b.minY - cover.height) / 2, 6);
-    expect(cover.width).toBeGreaterThanOrEqual(b.maxX - b.minX - 1e-6);
-    expect(cover.height).toBeGreaterThanOrEqual(b.maxY - b.minY - 1e-6);
+    expect(cover.width).toBeCloseTo(b.maxX - b.minX, 6);
+    expect(cover.height).toBeCloseTo(b.maxY - b.minY, 6);
   });
 });
