@@ -7,6 +7,7 @@ import {
   applyTransform,
   gridHandleLocal,
   gridFromHandleDrag,
+  gridRotateHandleWorld,
 } from "./utils/coords";
 import { computeNewBgFromDrag } from "./utils/bgHandles";
 import { useShiftPressed } from "./hooks/useShiftPressed";
@@ -266,11 +267,7 @@ function GridHandles({
     const BC = at("BC");
     const ML = at("ML");
     const MR = at("MR");
-    const center = at("center");
-    const dx = TC.x - center.x;
-    const dy = TC.y - center.y;
-    const len = Math.hypot(dx, dy) || 1;
-    const rot: XY = { x: TC.x + (dx / len) * ro, y: TC.y + (dy / len) * ro };
+    const rot: XY = gridRotateHandleWorld(grid, ro);
     return { TL, TR, BR, BL, TC, BC, ML, MR, rot };
   }, [grid, ro]);
 

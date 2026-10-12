@@ -7,8 +7,9 @@ const DEG_TO_RAD = Math.PI / 180;
 
 // Maps a point from local grid space to world space.
 //
-// The transform is built around the grid CENTER (pivot = cols*cellSize/2,
-// rows*cellSize/2) and applies, in order:
+// The transform is built around the grid CENTER (pivot = gridPivot: the center
+// of gridLocalBounds — cols*cellSize/2, rows*cellSize/2 for square; for hex the
+// bounds are offset, so it is NOT that) and applies, in order:
 //   1. rotation (degrees)
 //   2. vertical squash by skewRatio — in SCREEN space, AFTER rotation
 //
@@ -18,8 +19,7 @@ const DEG_TO_RAD = Math.PI / 180;
 // own axes). Squashing before rotation would only ever compress the local
 // vertical axis, which is the bug we're fixing.
 export function applyTransform(p: XY, grid: GridShape): XY {
-  const pivotX = (grid.cols * grid.cellSize) / 2;
-  const pivotY = (grid.rows * grid.cellSize) / 2;
+  const { x: pivotX, y: pivotY } = gridPivot(grid);
   const dx = p.x - pivotX;
   const dy = p.y - pivotY;
   let rx = dx;
@@ -38,8 +38,7 @@ export function applyTransform(p: XY, grid: GridShape): XY {
 // Inverse of applyTransform: world → local grid space.
 // Undo in reverse order: remove origin, un-squash (÷ skewRatio), then un-rotate.
 export function inverseTransform(p: XY, grid: GridShape): XY {
-  const pivotX = (grid.cols * grid.cellSize) / 2;
-  const pivotY = (grid.rows * grid.cellSize) / 2;
+  const { x: pivotX, y: pivotY } = gridPivot(grid);
   const rx = p.x - (grid.originX ?? 0) - pivotX;
   const ry = (p.y - (grid.originY ?? 0) - pivotY) / grid.skewRatio;
   if (grid.rotation === 0) {
@@ -134,6 +133,37 @@ export function gridLocalBounds(grid: GridShape): {
     maxX: maxCx + hexW / 2,
     minY: -grid.cellSize,
     maxY: (grid.rows - 1) * hexH + grid.cellSize,
+  };
+}
+
+// Pivô do transform: o centro REAL da grade no espaço LOCAL (centro de
+// gridLocalBounds). No quadrado é (cols·cellSize/2, rows·cellSize/2); no hex os
+// limites são deslocados, então o pivô antigo ficava fora do centro.
+export function gridPivot(grid: GridShape): XY {
+  const b = gridLocalBounds(grid);
+  return { x: (b.minX + b.maxX) / 2, y: (b.minY + b.maxY) / 2 };
+}
+
+// Posição WORLD da esfera de rotação: no raio centro→TC (já transformado), a
+// `offset` px além do TC. Compartilhada por MapHandlesLayer e pelos testes do arrasto.
+export function gridRotateHandleWorld(grid: GridShape, offset: number): XY {
+  const TC = applyTransform(gridHandleLocal("TC", grid), grid);
+  const center = applyTransform(gridHandleLocal("center", grid), grid);
+  const dx = TC.x - center.x;
+  const dy = TC.y - center.y;
+  const len = Math.hypot(dx, dy) || 1;
+  return { x: TC.x + (dx / len) * offset, y: TC.y + (dy / len) * offset };
+}
+
+// Mudar cols/rows/cellSize move o pivô e, numa grade girada/achatada, translada
+// todas as células. Compensa a origem para que o canto local (0,0) fique onde estava.
+export function keepGridAnchored(prev: GridShape, next: GridShape): GridShape {
+  const a = applyTransform({ x: 0, y: 0 }, prev);
+  const b = applyTransform({ x: 0, y: 0 }, next);
+  return {
+    ...next,
+    originX: (next.originX ?? 0) - (b.x - a.x),
+    originY: (next.originY ?? 0) - (b.y - a.y),
   };
 }
 
@@ -235,27 +265,31 @@ export function gridFromHandleDrag(
 ): GridShape | null {
   const MIN_CELL = 8;
   const MAX_CELL = 256;
-  const cx = (startGrid.cols * startGrid.cellSize) / 2 + (startGrid.originX ?? 0);
-  const cy = (startGrid.rows * startGrid.cellSize) / 2 + (startGrid.originY ?? 0);
+  const pivot = gridPivot(startGrid);
+  const cx = pivot.x + (startGrid.originX ?? 0);
+  const cy = pivot.y + (startGrid.originY ?? 0);
 
   if (handle === "rotate") {
     // O desenho da esfera fica no raio centro→TC já achatado; desfaz o achatamento
     // (÷ skewRatio) para medir o ângulo no espaço da rotação e evitar o "pulo".
     const angle = Math.atan2((worldY - cy) / startGrid.skewRatio, worldX - cx) * (180 / Math.PI) + 90;
-    return { ...startGrid, rotation: angle };
+    // Normaliza para (-180, 180] (faixa do painel) e arredonda a 0.1°.
+    let rotation = Math.round(angle * 10) / 10;
+    rotation = ((((rotation + 180) % 360) + 360) % 360) - 180;
+    if (rotation === -180) rotation = 180;
+    return { ...startGrid, rotation: Math.round(rotation * 10) / 10 };
   }
 
   if (shiftKey && (handle === "TC" || handle === "BC")) {
     // A alça fica sob o cursor em y: world.y = originY + pivôY + ry·s, onde ry é o
     // y da alça girada (antes do achatamento) em relação ao pivô.
-    const pivotX = (startGrid.cols * startGrid.cellSize) / 2;
-    const pivotY = (startGrid.rows * startGrid.cellSize) / 2;
+    const { x: pivotX, y: pivotY } = gridPivot(startGrid);
     const h = gridHandleLocal(handle, startGrid);
     const t = startGrid.rotation * (Math.PI / 180);
     const ry = (h.x - pivotX) * Math.sin(t) + (h.y - pivotY) * Math.cos(t);
     if (Math.abs(ry) < 1e-9) return null;
     const ratio = Math.max(0.3, Math.min(1.0, (worldY - (startGrid.originY ?? 0) - pivotY) / ry));
-    return { ...startGrid, skewRatio: ratio };
+    return { ...startGrid, skewRatio: Math.round(ratio * 100) / 100 };
   }
 
   const anchorId = OPPOSITE_HANDLE[handle];
