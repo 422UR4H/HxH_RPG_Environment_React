@@ -171,6 +171,12 @@ para não repetir:
   limpeza do canvas. A área "iluminada" sai preta sólida em vez de revelar o mapa.
 - `isRenderGroup` **não** resolve: ele não cria render target isolado.
 
+**Espaços de coordenadas.** O polígono de visibilidade chega do servidor em LOCAL (pré-transform,
+o mesmo espaço de `WallSegment.p1/p2`). O `ViewportInner` o converte **uma vez** para WORLD
+(`polygonsToWorld`) e entrega o resultado ao `FogLayer` e ao `LosSplit`; nenhum dos dois
+aplica `applyTransform` de novo (seria transformar duas vezes). O retângulo do fog é o
+`gridWorldBounds` da grade mais `FOG_PADDING`.
+
 O que funciona é stencil, em dois usos do mesmo polígono de visibilidade:
 
 1. **Fog** — um retângulo único (tabuleiro + padding) com máscara **invertida**:
@@ -193,7 +199,7 @@ Não existe classificação por célula em lugar nenhum. A memória do personage
 **estrutura estática**, resolvida no backend por id de parede — o cliente desenha o que
 recebeu e deixa o stencil decidir o brilho.
 
-Quatro armadilhas do Pixi v8 nesse caminho:
+Cinco armadilhas do Pixi v8 nesse caminho:
 
 - Os filhos de `LosSplit` são montados **duas vezes**, então precisam ser puramente
   apresentacionais. Um componente que registra listener de DOM em efeito registraria
@@ -206,6 +212,10 @@ Quatro armadilhas do Pixi v8 nesse caminho:
   esconde tudo. Nenhum dos dois emite erro.
 - `inverse` só se liga por `setMask({ mask, inverse: true })`. `_maskOptions` é objeto
   compartilhado no protótipo do mixin; mutá-lo direto vaza para outros containers.
+- A `hitArea` de um container **poda os filhos fora dela** (eles deixam de receber eventos).
+  A do `PiecesLayer` é o contorno WORLD da grade (`gridWorldCorners`), não
+  `cols·cellSize × rows·cellSize`: numa grade hex (fileiras deslocadas), esse retângulo deixa
+  de fora peças na direita do hex, que ficam sem clique e sem erro.
 
 `Graphics.cut()` foi avaliado e descartado: earcut não define comportamento para furos
 sobrepostos (jogador com duas peças), e `cut()` anexa o segundo furo em diante também à
