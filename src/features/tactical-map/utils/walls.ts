@@ -1,6 +1,6 @@
 import type { GridShape, WallMaterial, WallSegment, WallType } from "../../../types/tacticalMap";
 import { hexToPixel } from "./hex";
-import { offsetToAxial } from "./coords";
+import { applyTransform, offsetToAxial } from "./coords";
 
 const HP_DEFAULTS: Record<WallMaterial, number> = {
   stone: 100, wood: 40, iron: 500, magical: 80,
@@ -82,6 +82,25 @@ export function snapWallPoint(
   let best: [number, number] | null = null;
   for (const c of candidates) {
     const dx = c[0] - localPos[0], dy = c[1] - localPos[1];
+    const dSq = dx * dx + dy * dy;
+    if (dSq < bestSq) { bestSq = dSq; best = c; }
+  }
+  return best;
+}
+
+// Versão em tela do encaixe: `world` é o ponteiro em WORLD e `thresholdWorld` a tolerância em
+// pixels de mundo (já dividida pelo zoom). Os candidatos são comparados depois de applyTransform,
+// então o encaixe não encolhe no eixo achatado. Devolve o ponto LOCAL (o espaço de p1/p2).
+export function snapWallPointWorld(
+  world: { x: number; y: number },
+  grid: GridShape,
+  thresholdWorld = 15,
+): [number, number] | null {
+  let bestSq = thresholdWorld * thresholdWorld;
+  let best: [number, number] | null = null;
+  for (const c of collectGridSnapPoints(grid)) {
+    const w = applyTransform({ x: c[0], y: c[1] }, grid);
+    const dx = w.x - world.x, dy = w.y - world.y;
     const dSq = dx * dx + dy * dy;
     if (dSq < bestSq) { bestSq = dSq; best = c; }
   }

@@ -4,8 +4,8 @@ import type { Graphics as PixiGraphics } from "pixi.js";
 import type { Viewport } from "pixi-viewport";
 import type { GridShape, VisibilityPolygon, WallMaterial, WallSegment, WallType } from "../../types/tacticalMap";
 import { applyTransform, inverseTransform } from "./utils/coords";
-import { snapWallPoint, explodePolyline, newWallAttrs, isOpening } from "./utils/walls";
-import { findNearestWall } from "./utils/wallHit";
+import { snapWallPointWorld, explodePolyline, newWallAttrs, isOpening } from "./utils/walls";
+import { findNearestWallWorld } from "./utils/wallHit";
 import { drawStippledSegment } from "./utils/stipple";
 import { consumeTap, createTapTracker } from "./hooks/tapGesture";
 import { createHoldTracker } from "./hooks/useHoldGesture";
@@ -146,11 +146,12 @@ export default function WallsLayer({
     if (!vp || !canvasEl) return null;
     const rect = canvasEl.getBoundingClientRect();
     const world = vp.toWorld(e.clientX - rect.left, e.clientY - rect.top);
-    const local = inverseTransform({ x: world.x, y: world.y }, gridRef.current);
-    const raw: [number, number] = [local.x, local.y];
-    if (freeMode) return raw;
-    const threshold = SNAP_THRESHOLD_SCREEN / vpScale;
-    return snapWallPoint(raw, gridRef.current, threshold);
+    if (freeMode) {
+      const local = inverseTransform({ x: world.x, y: world.y }, gridRef.current);
+      return [local.x, local.y];
+    }
+    // Encaixe medido em tela (WORLD): não encolhe no eixo achatado de uma grade isométrica.
+    return snapWallPointWorld({ x: world.x, y: world.y }, gridRef.current, SNAP_THRESHOLD_SCREEN / vpScale);
   }, [vpRef, canvasEl, vpScale]);
 
   useEffect(() => {
@@ -184,7 +185,7 @@ export default function WallsLayer({
 
       if (!drawingEnabledRef.current) {
         const HIT = 8 / vpScale;
-        const hit = findNearestWall(rawPt, wallsRef.current, HIT);
+        const hit = findNearestWallWorld(world, wallsRef.current, gridRef.current, HIT);
         onWallSelect(hit ? hit.id : null);
         return;
       }
@@ -192,13 +193,13 @@ export default function WallsLayer({
       // Draw mode: Shift = free position; no Shift = snap to grid
       const pt: [number, number] | null = e.shiftKey
         ? rawPt
-        : snapWallPoint(rawPt, gridRef.current, SNAP_THRESHOLD_SCREEN / vpScale);
+        : snapWallPointWorld(world, gridRef.current, SNAP_THRESHOLD_SCREEN / vpScale);
 
       // When NOT yet drawing: need a valid snap/free point to start; otherwise select or pan
       if (drawRef.current.polylinePoints.length === 0) {
         if (!pt) {
           const HIT = 8 / vpScale;
-          const hit = findNearestWall(rawPt, wallsRef.current, HIT);
+          const hit = findNearestWallWorld(world, wallsRef.current, gridRef.current, HIT);
           if (hit) { onWallSelect(hit.id); return; }
           onWallSelect(null);
           return;
@@ -326,10 +327,9 @@ export default function WallsLayer({
       if (!vp) return null;
       const rect = canvasEl.getBoundingClientRect();
       const worldPt = vp.toWorld(e.clientX - rect.left, e.clientY - rect.top);
-      const rawPt = inverseTransform({ x: worldPt.x, y: worldPt.y }, gridRef.current);
       const tappable = isWallTappableRef.current;
       const walls = tappable ? wallsRef.current.filter(tappable) : wallsRef.current;
-      return findNearestWall([rawPt.x, rawPt.y], walls, HIT / vpScaleRef.current);
+      return findNearestWallWorld({ x: worldPt.x, y: worldPt.y }, walls, gridRef.current, HIT / vpScaleRef.current);
     };
     const handleViewerClick = (e: PointerEvent) => {
       const held = hold.end() === "hold";

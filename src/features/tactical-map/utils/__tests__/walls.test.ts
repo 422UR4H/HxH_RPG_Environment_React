@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { hexToPixel } from "../hex";
 import { gridLocalBounds, offsetToAxial } from "../coords";
-import { collectGridSnapPoints, snapWallPoint, explodePolyline, isMovementBlocked, newWallAttrs, isOpening, scaleWallsToGrid } from "../walls";
+import { collectGridSnapPoints, snapWallPoint, explodePolyline, isMovementBlocked, newWallAttrs, isOpening, scaleWallsToGrid, snapWallPointWorld } from "../walls";
 import type { GridShape, WallMaterial, WallSegment } from "../../../../types/tacticalMap";
 
 const sq = (cellSize = 64): GridShape => ({
@@ -256,6 +256,23 @@ describe("scaleWallsToGrid", () => {
       const [na, nb] = edge(next);
       expect(s.p1[0]).toBeCloseTo(na[0], 6); expect(s.p1[1]).toBeCloseTo(na[1], 6);
       expect(s.p2[0]).toBeCloseTo(nb[0], 6); expect(s.p2[1]).toBeCloseTo(nb[1], 6);
+    }
+  });
+});
+
+describe("snapWallPointWorld", () => {
+  const flat: GridShape = { ...sq(40), cols: 10, rows: 10, skewRatio: 0.3 };
+  // pivô (200,200): local (0,0) → mundo (0,140)
+  it("encaixa a 10 px de tela no eixo achatado (tolerância 15) e devolve o ponto LOCAL", () => {
+    expect(snapWallPointWorld({ x: 0, y: 130 }, flat, 15)).toEqual([0, 0]);
+  });
+  it("a 16 px de tela não encaixa", () => {
+    expect(snapWallPointWorld({ x: 0, y: 124 }, flat, 15)).toBeNull();
+  });
+  it("sem transform equivale a snapWallPoint", () => {
+    const g = sq(64);
+    for (const p of [[3, 4], [70, 60], [100, 100], [32, 5]] as [number, number][]) {
+      expect(snapWallPointWorld({ x: p[0], y: p[1] }, g, 15)).toEqual(snapWallPoint(p, g, 15));
     }
   });
 });
