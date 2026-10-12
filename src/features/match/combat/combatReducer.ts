@@ -285,8 +285,17 @@ export function combatReducer(state: CombatState, action: CombatAction): CombatS
     case "LOST_DECLARED_DISMISSED":
       return { ...state, lostDeclared: [] };
 
-    case "action_queued":
-      return { ...state, queue: [...state.queue, action.payload] };
+    case "action_queued": {
+      // Um `actionId` já conhecido é a mesma ação redescrita (o mestre a editou na fila):
+      // substitui no lugar, para a ordem de inserção — que desempata a fila — não mudar.
+      const known = state.queue.some((q) => q.actionId === action.payload.actionId);
+      return {
+        ...state,
+        queue: known
+          ? state.queue.map((q) => (q.actionId === action.payload.actionId ? action.payload : q))
+          : [...state.queue, action.payload],
+      };
+    }
 
     case "action_cancelled": {
       // Sem estado otimista: a linha só some quando o servidor confirma. O fantasma do mapa

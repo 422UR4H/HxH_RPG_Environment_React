@@ -39,7 +39,19 @@ export type BarsPayload = {
  */
 export type QueuedActionDetail = HistoryAction;
 
-export type QueuedAction = { actionId: string; actorId: string; bars: Bar[]; action?: QueuedActionDetail };
+/**
+ * `conditions`/`damageSkill`: o que o mestre editou nela ainda na fila (`edit_action` com o
+ * `actionId` dela). `conditions` no formato de `resolution.conditions` (ausente sem nenhuma);
+ * `damageSkill` só com ataque. Um `action_queued` de um `actionId` já conhecido substitui a entrada.
+ */
+export type QueuedAction = {
+  actionId: string;
+  actorId: string;
+  bars: Bar[];
+  action?: QueuedActionDetail;
+  conditions?: ConditionEntry[];
+  damageSkill?: string;
+};
 
 /** `actionId` liga action_enqueued → action_queued → turn_opened (B1). */
 export type TurnOpenedPayload = {
@@ -55,7 +67,11 @@ export type TurnOpenedPayload = {
   action?: HistoryAction;
 };
 
-export type ReactionKind = "nothing" | "dodge" | "closedDodge" | "escape" | "escapeGuard" | "closedEscape" | "repel";
+/**
+ * `default` é a reação padrão: esquiva por reflexo e defesa padrão, passivas. O servidor a senta
+ * para todo alvo de um ataque quando o turno abre; o que o alvo mandar a substitui.
+ */
+export type ReactionKind = "nothing" | "default" | "dodge" | "closedDodge" | "escape" | "escapeGuard" | "closedEscape" | "repel";
 
 /** `attach_reaction` (c→s). Payload mínimo do contrato — o servidor deriva as perícias. */
 export type AttachReactionPayload = {
@@ -101,6 +117,8 @@ export type PendingReaction = {
   speed?: number;
   /** A Desvantagem que o próprio sistema pôs nas velocidades (-1: trocou a ação da fila). Ausente = nenhuma. */
   systemBias?: number;
+  /** A reação padrão que o servidor sentou para um alvo que ainda não respondeu. Ausente = ele respondeu. */
+  seated?: boolean;
 };
 
 /**
@@ -131,6 +149,11 @@ export type ReactionResult = {
   stopsAttack: boolean;
   /** Como `PendingReaction.systemBias`: Desvantagem do sistema nas velocidades da reação. */
   systemBias?: number;
+  /**
+   * O mestre deu a palavra a ela. Uma não aberta entra no cálculo do mesmo jeito, depois das
+   * abertas. Ausente só num servidor anterior ao campo (lá só as abertas vinham aqui).
+   */
+  opened?: boolean;
 };
 
 export type Payout = {
@@ -307,7 +330,9 @@ export type MasterActionPayload =
 
 /**
  * `edit_action` (c→s, só o mestre). Toda seção é opcional. `actionId` ausente = a ação
- * própria do turno; senão, o id de uma reação. `conditions` se aplica POR ROLAGEM, e uma
+ * própria do turno; senão, o id de uma reação (aberta ou não, a padrão sentada inclusive) ou de
+ * uma ação ainda NA FILA — aí só `conditions` e `damageSkill`, e a resposta é o `action_queued`
+ * que a redescreve, não um `resolution_updated`. `conditions` se aplica POR ROLAGEM, e uma
  * entrada zerada (`{ field }`) desfaz a edição daquela rolagem. `damageSkill` troca a perícia
  * do dano. `escapeLanding` (F14): `actionId` é o da reação de fuga; `position: null` limpa.
  * `skills`/`targetIds` existem no contrato e ficam fora: editar perícias espera a corrente de

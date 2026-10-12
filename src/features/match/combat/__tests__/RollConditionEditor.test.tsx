@@ -3,8 +3,9 @@ import { describe, expect, it, vi } from "vitest";
 import RollConditionEditor from "../RollConditionEditor";
 import type { EditableRoll } from "../rollEdits";
 
-const hit: EditableRoll = { key: "action:hit", field: "hit", label: "Acerto", allowsBias: true };
-const defense: EditableRoll = { key: "r1:defense", actionId: "r1", field: "defense", label: "Defesa padrão", allowsBias: false };
+const hit: EditableRoll = { key: "action:hit", field: "hit", label: "Acerto", bias: "rolled" };
+const defense: EditableRoll = { key: "r1:defense", actionId: "r1", field: "defense", label: "Defesa padrão", bias: "passive" };
+const damage: EditableRoll = { key: "action:damage", field: "damage", label: "Dano", bias: "none" };
 
 describe("RollConditionEditor", () => {
   it("aplica viés, ajuste e motivo e fecha", () => {
@@ -40,13 +41,47 @@ describe("RollConditionEditor", () => {
     expect(screen.queryByRole("button", { name: "Desfazer edição" })).not.toBeInTheDocument();
   });
 
-  it("leitura passiva: sem botões de viés, e o envio não leva viés", () => {
+  it("dano: sem viés nenhum, e o envio não leva viés", () => {
     const onSend = vi.fn();
-    render(<RollConditionEditor roll={defense} onSend={onSend} onClose={() => {}} />);
+    render(<RollConditionEditor roll={damage} onSend={onSend} onClose={() => {}} />);
+    expect(screen.queryByRole("button", { name: /Viés/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Vantagem" })).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Modificador"), { target: { value: "4" } });
     fireEvent.click(screen.getByRole("button", { name: "Aplicar" }));
-    expect(onSend).toHaveBeenCalledWith({ actionId: "r1", conditions: [{ field: "defense", modifier: 4 }] });
+    expect(onSend).toHaveBeenCalledWith({ conditions: [{ field: "damage", modifier: 4 }] });
+  });
+
+  describe("leitura passiva: o viés fica atrás de Viés", () => {
+    it("fechado de início, sem viés em vigor; abrir mostra o aviso acima dos botões", () => {
+      render(<RollConditionEditor roll={defense} onSend={() => {}} onClose={() => {}} />);
+      const toggle = screen.getByRole("button", { name: /Viés/ });
+      expect(toggle).toHaveAttribute("aria-expanded", "false");
+      expect(screen.queryByRole("button", { name: "Vantagem" })).not.toBeInTheDocument();
+      fireEvent.click(toggle);
+      expect(toggle).toHaveAttribute("aria-expanded", "true");
+      const note = screen.getByText(/passa a ser rolado/);
+      const advantage = screen.getByRole("button", { name: "Vantagem" });
+      expect(note.compareDocumentPosition(advantage) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    it("escolher Vantagem manda o viés, e o botão diz a escolha mesmo fechado", () => {
+      const onSend = vi.fn();
+      render(<RollConditionEditor roll={defense} onSend={onSend} onClose={() => {}} />);
+      fireEvent.click(screen.getByRole("button", { name: /Viés/ }));
+      fireEvent.click(screen.getByRole("button", { name: "Vantagem" }));
+      fireEvent.click(screen.getByRole("button", { name: /Viés/ }));
+      expect(screen.getByRole("button", { name: /Viés · Vantagem/ })).toHaveAttribute("aria-expanded", "false");
+      fireEvent.click(screen.getByRole("button", { name: "Aplicar" }));
+      expect(onSend).toHaveBeenCalledWith({ actionId: "r1", conditions: [{ field: "defense", bias: 1 }] });
+    });
+
+    it("com viés em vigor, abre com o cartão aberto e a escolha marcada", () => {
+      render(
+        <RollConditionEditor roll={{ ...defense, current: { bias: -1, modifier: 0 } }} onSend={() => {}} onClose={() => {}} />,
+      );
+      expect(screen.getByRole("button", { name: /Viés · Desvantagem/ })).toHaveAttribute("aria-expanded", "true");
+      expect(screen.getByRole("button", { name: "Desvantagem" })).toHaveAttribute("aria-pressed", "true");
+    });
   });
 
   it("Cancelar fecha sem mandar", () => {

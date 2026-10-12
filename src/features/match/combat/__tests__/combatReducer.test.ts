@@ -139,6 +139,23 @@ describe("combatReducer — turno aberto e fila", () => {
     expect(s.openTurn).toEqual({ turnId: "t1", actorId: "c1", actionId: "a1", actionType: "" });
   });
 
+  it("action_queued de um actionId conhecido substitui a entrada no lugar (edição do mestre na fila)", () => {
+    const s = run([
+      { type: "action_queued", payload: { actionId: "a1", actorId: "c1", bars: ["action"] } },
+      { type: "action_queued", payload: { actionId: "a2", actorId: "c2", bars: ["move"] } },
+      {
+        type: "action_queued",
+        payload: {
+          actionId: "a1", actorId: "c1", bars: ["action"], damageSkill: "Grab",
+          conditions: [{ actionId: "a1", field: "hit", bias: 1, modifier: 0 }],
+        },
+      },
+    ]);
+    expect(s.queue.map((q) => q.actionId)).toEqual(["a1", "a2"]);
+    expect(s.queue[0].damageSkill).toBe("Grab");
+    expect(s.queue[0].conditions).toHaveLength(1);
+  });
+
   it("turn_closed só limpa o turno que fechou", () => {
     const s = run([opened("t1", "a1"), closed("t0")]);
     expect(s.openTurn?.turnId).toBe("t1");

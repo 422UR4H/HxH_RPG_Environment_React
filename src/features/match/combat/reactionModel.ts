@@ -13,6 +13,7 @@ export const REACTION_BUTTON_LABELS: Record<ReactionButton, string> = {
 /** Barras que cada tipo de reação consome (tabela do contrato). */
 export const REACTION_BARS: Record<ReactionKind, Bar[]> = {
   nothing: [],
+  default: [],
   dodge: [],
   closedDodge: [],
   escape: ["action", "move"],
