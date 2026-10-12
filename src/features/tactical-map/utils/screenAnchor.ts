@@ -1,5 +1,5 @@
 import type { GridShape, SlotCoord } from "../../../types/tacticalMap";
-import { slotInradius, slotToWorld } from "./coords";
+import { slotScreenInradius, slotToWorld } from "./coords";
 
 /**
  * O enquadramento do viewport do Pixi visto de fora: a origem do mundo na tela (`x`, `y`)
@@ -19,5 +19,5 @@ export function pieceScreenAnchor(
 
 /** O raio da peça na tela — para o balão nascer na borda dela, não por cima. */
 export function pieceScreenRadius(grid: GridShape, t: ViewportTransform): number {
-  return slotInradius(grid) * t.scale;
+  return slotScreenInradius(grid) * t.scale;
 }

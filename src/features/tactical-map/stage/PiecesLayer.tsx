@@ -7,7 +7,7 @@ import type { Viewport } from "pixi-viewport";
 import type { TacticalMap, SlotCoord } from "../../../types/tacticalMap";
 import type { CharacterPrivateSummary } from "../../../types/characterSheet";
 import type { Selection } from "../store/editorStore";
-import { worldToSlot, isSlotInBounds, slotCorners, isSameSlot, slotToWorld, slotInradius, gridWorldCorners, stackOffsetToPx } from "../utils/coords";
+import { worldToSlot, isSlotInBounds, slotCorners, isSameSlot, slotToWorld, slotScreenInradius, gridWorldCorners, stackOffsetToPx } from "../utils/coords";
 import { createHoldTracker, createRightPressTracker, shouldSelectOnRelease, HOLD_MS } from "../hooks/useHoldGesture";
 import { createTapTracker, isTapConsumed } from "../hooks/tapGesture";
 import { stackOffsets } from "../utils/stacking";
@@ -464,7 +464,7 @@ export default function PiecesLayer({
       if (!piece) return;
       const center = slotToWorld(piece.coord.slot, map.grid);
       const stackPx = stackOffsetToPx(stacks.get(piece.id), map.grid);
-      const tokenRadius = slotInradius(map.grid) * 0.9;
+      const tokenRadius = slotScreenInradius(map.grid) * 0.9;
       const zOffsetPx = piece.coord.z * 10;
       const radius = tokenRadius + 16;
       const startAngle = -Math.PI / 2;

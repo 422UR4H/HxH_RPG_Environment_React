@@ -8,6 +8,8 @@ import {
   inverseTransform,
   gridFromHandleDrag,
   slotInradius,
+  slotScreenInradius,
+  stackOffsetToPx,
   isSameSlot,
   offsetToAxial,
   slotToTriple,
@@ -546,5 +548,27 @@ describe("F3 — arrasto dá valores limpos e dentro do intervalo", () => {
     expect(out.rotation).toBeLessThanOrEqual(180);
     const sk = gridFromHandleDrag("TC", g, 512, 77.777, true)!;
     expect(Math.round(sk.skewRatio * 100) / 100).toBe(sk.skewRatio);
+  });
+});
+
+describe("slotScreenInradius — a ficha cabe na casa como aparece na tela", () => {
+  it("sem transform: igual ao slotInradius (quadrado e hex)", () => {
+    expect(slotScreenInradius(squareGrid(40))).toBeCloseTo(20, 6);
+    expect(slotScreenInradius(hexGrid(40))).toBeCloseTo(slotInradius(hexGrid(40)), 6);
+  });
+  it("quadrado cs40 a 45 graus / 0,5 vira o losango achatado", () => {
+    const g: GridShape = { ...squareGrid(40), rotation: 45, skewRatio: 0.5 };
+    expect(slotScreenInradius(g)).toBeCloseTo(12.649110640673518, 6);
+  });
+  it("rotação 90 sem achatamento mantém cs/2", () => {
+    const g: GridShape = { ...squareGrid(40), rotation: 90, skewRatio: 1 };
+    expect(slotScreenInradius(g)).toBeCloseTo(20, 6);
+  });
+  it("stackOffsetToPx numa grade iso usa o raio da tela", () => {
+    const g: GridShape = { ...squareGrid(40), rotation: 45, skewRatio: 0.5 };
+    const r = slotScreenInradius(g);
+    const px = stackOffsetToPx({ dx: 0.5, dy: -1 }, g);
+    expect(px.x).toBeCloseTo(0.5 * r, 6);
+    expect(px.y).toBeCloseTo(-r, 6);
   });
 });

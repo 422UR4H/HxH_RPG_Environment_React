@@ -6,7 +6,7 @@ import gungiFrameUrl from "../../../assets/icons/gungi.svg";
 import avatarPlaceholderUrl from "../../../assets/placeholder/avatar.png";
 import type { GridShape, Piece } from "../../../types/tacticalMap";
 import type { CharacterPrivateSummary } from "../../../types/characterSheet";
-import { slotToWorld, slotInradius, stackOffsetToPx } from "../utils/coords";
+import { slotToWorld, slotScreenInradius, stackOffsetToPx } from "../utils/coords";
 import { getAvatarBlobUrl, getAvatarInsetShadowTexture } from "../utils/avatarTexture";
 import { colors } from "../../../styles/tokens";
 
@@ -51,8 +51,8 @@ export default function PieceSprite({
   const center = useMemo(() => slotToWorld(piece.coord.slot, grid), [piece.coord.slot, grid]);
   // 90% of the slot's inscribed-circle radius. Square keeps the original
   // 0.45·cellSize; hex tokens grow to fill their (much larger) cell by the same
-  // proportion. See slotInradius.
-  const tokenRadius = slotInradius(grid) * 0.9;
+  // proportion. See slotScreenInradius.
+  const tokenRadius = slotScreenInradius(grid) * 0.9;
   const avatarRadius = tokenRadius * 0.7;
   const z = piece.coord.z;
   const zOffsetPx = z * 10;

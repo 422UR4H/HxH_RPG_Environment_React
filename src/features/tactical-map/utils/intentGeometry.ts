@@ -1,6 +1,6 @@
 import type { GridShape, SlotCoord } from "../../../types/tacticalMap";
 import type { SlotTriple } from "./coords";
-import { applyTransform, slotCorners, slotInradius, slotToWorld, tripleToSlot } from "./coords";
+import { applyTransform, slotCorners, slotScreenInradius, slotToWorld, tripleToSlot } from "./coords";
 
 type XY = { x: number; y: number };
 
@@ -28,7 +28,7 @@ export type IntentPreview = {
 };
 
 /** Mesmo raio de token que `PieceSprite` usa: 90% do inradius do slot. */
-export const tokenRadius = (grid: GridShape) => slotInradius(grid) * 0.9;
+export const tokenRadius = (grid: GridShape) => slotScreenInradius(grid) * 0.9;
 
 export function arrowBetween(a: XY, b: XY, startInset: number, endInset: number): Arrow | undefined {
   const dx = b.x - a.x;

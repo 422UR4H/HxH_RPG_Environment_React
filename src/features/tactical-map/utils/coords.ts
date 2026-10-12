@@ -210,6 +210,30 @@ export function slotInradius(grid: GridShape): number {
   return grid.kind === "square" ? grid.cellSize / 2 : (grid.cellSize * Math.sqrt(3)) / 2;
 }
 
+// Raio do maior círculo que cabe na casa (0,0) COMO ELA APARECE NA TELA: a menor distância
+// do centro transformado até cada aresta transformada. Numa grade rotacionada/achatada
+// (isométrica) a casa vira um losango mais baixo e o raio LOCAL (`slotInradius`) a deixaria
+// vazar sobre as vizinhas. Sem transform é igual a `slotInradius`. Medida em WORLD — é o
+// raio de desenho/toque da ficha; `slotInradius` fica para quem mede em LOCAL.
+export function slotScreenInradius(grid: GridShape): number {
+  const slot: SlotCoord =
+    grid.kind === "square" ? { kind: "square", col: 0, row: 0 } : { kind: "hex", q: 0, r: 0 };
+  const c = slotToWorld(slot, grid);
+  const corners = slotCorners(slot, grid);
+  let min = Infinity;
+  for (let i = 0; i < corners.length; i++) {
+    const a = corners[i];
+    const b = corners[(i + 1) % corners.length];
+    const ex = b.x - a.x;
+    const ey = b.y - a.y;
+    const len = Math.hypot(ex, ey);
+    if (len === 0) continue;
+    const d = Math.abs(ex * (c.y - a.y) - ey * (c.x - a.x)) / len;
+    if (d < min) min = d;
+  }
+  return Number.isFinite(min) ? min : slotInradius(grid);
+}
+
 // Converts a stack-cascade offset (§7.2 — dx/dy as a FRACTION of the inradius,
 // from `stackOffsets`) to px, scaled to this grid's cell size. `PieceSprite`
 // (its container position) and `PiecesLayer`'s hold-progress ring both call
@@ -219,7 +243,7 @@ export function stackOffsetToPx(
   offset: { dx: number; dy: number } | undefined,
   grid: GridShape,
 ): XY {
-  const inradius = slotInradius(grid);
+  const inradius = slotScreenInradius(grid);
   return { x: (offset?.dx ?? 0) * inradius, y: (offset?.dy ?? 0) * inradius };
 }
 
