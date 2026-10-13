@@ -20,6 +20,7 @@ import {
   gridPivot,
   gridRotateHandleWorld,
   keepGridAnchored,
+  skewHandlePair,
 } from "../coords";
 import type { GridShape } from "../../../../types/tacticalMap";
 import { hexToPixel } from "../hex";
@@ -222,10 +223,52 @@ describe("gridFromHandleDrag — perspectiva (Shift + TC/BC)", () => {
     expect(at(190).skewRatio).toBe(0.3);
   });
 
-  it("devolve null quando a alça está na horizontal do pivô", () => {
-    // rotação 90: o y girado da TC é ~0
+  it("Shift+TC em 90° não achata: cai no redimensionamento normal (ML/MR é o par)", () => {
+    // rotação 90: ry da TC ≈ 0 (e da ML = -200) → o par que achata é ML/MR.
+    // TC com Shift redimensiona: devolve grade com skewRatio intacto e cellSize novo.
     const g: GridShape = { ...squareGrid(40), rotation: 90 };
-    expect(gridFromHandleDrag("TC", g, 0, 0, true)).toBeNull();
+    const out = gridFromHandleDrag("TC", g, 0, 0, true)!;
+    expect(out).not.toBeNull();
+    expect(out.skewRatio).toBe(1);
+  });
+});
+
+describe("skewHandlePair / Shift + ML/MR", () => {
+  it("rotação 0: par TC/BC (comportamento atual)", () => {
+    expect(skewHandlePair(squareGrid(40))).toBe("TC/BC");
+  });
+
+  it("rotação 90: par ML/MR; 45° empata e fica com TC/BC", () => {
+    expect(skewHandlePair({ ...squareGrid(40), rotation: 90 })).toBe("ML/MR");
+    expect(skewHandlePair({ ...squareGrid(40), rotation: -90 })).toBe("ML/MR");
+    expect(skewHandlePair({ ...squareGrid(40), rotation: 45 })).toBe("TC/BC");
+  });
+
+  it("90° com skew 0,5: Shift+ML com cursor sobre a alça mantém o achatamento", () => {
+    // pivô (200,200); ML local (0,200) → offset (-200,0); ry = -200·sin90 = -200.
+    const g: GridShape = { ...squareGrid(40), rotation: 90, skewRatio: 0.5 };
+    const p = applyTransform(gridHandleLocal("ML", g), g);
+    const out = gridFromHandleDrag("ML", g, p.x, p.y, true)!;
+    expect(out.skewRatio).toBeCloseTo(0.5, 6);
+  });
+
+  it("90°: a alça ML segue o cursor em y", () => {
+    // sem achatar: y = 200 + ry·s = 200 - 200·s. Cursor y=100 → s=0,5; y=50 → s=0,75.
+    const g: GridShape = { ...squareGrid(40), rotation: 90 };
+    const r1 = gridFromHandleDrag("ML", g, 0, 100, true)!;
+    expect(r1.skewRatio).toBeCloseTo(0.5, 6);
+    expect(applyTransform(gridHandleLocal("ML", r1), r1).y).toBeCloseTo(100, 6);
+    const r2 = gridFromHandleDrag("ML", g, 0, 50, true)!;
+    expect(r2.skewRatio).toBeCloseTo(0.75, 6);
+    // MR: ry = +200 → cursor y=300 → s=0,5.
+    expect(gridFromHandleDrag("MR", g, 0, 300, true)!.skewRatio).toBeCloseTo(0.5, 6);
+  });
+
+  it("rotação 0: Shift+ML redimensiona normalmente (não achata)", () => {
+    const g = squareGrid(40);
+    const out = gridFromHandleDrag("ML", g, -200, 200, true)!;
+    expect(out.skewRatio).toBe(1);
+    expect(out.cellSize).not.toBe(40);
   });
 });
 

@@ -271,10 +271,35 @@ const OPPOSITE_HANDLE: Record<string, string> = {
   TC: "BC", BC: "TC", ML: "MR", MR: "ML",
 };
 
+// y da alça depois de girar e ANTES de achatar, relativo ao pivô.
+function handleRotatedY(handle: string, grid: GridShape): number {
+  const { x: pivotX, y: pivotY } = gridPivot(grid);
+  const h = gridHandleLocal(handle, grid);
+  const t = grid.rotation * (Math.PI / 180);
+  return (h.x - pivotX) * Math.sin(t) + (h.y - pivotY) * Math.cos(t);
+}
+
+function handlePairOf(handle: string): "TC/BC" | "ML/MR" | null {
+  if (handle === "TC" || handle === "BC") return "TC/BC";
+  if (handle === "ML" || handle === "MR") return "ML/MR";
+  return null;
+}
+
+/**
+ * Par de alças que o Shift usa para achatar: o mais vertical na tela, isto é, o de maior
+ * |ry|. Perto de 90° TC/BC ficam na horizontal da tela e ML/MR assumem. Empate (45°) fica
+ * com TC/BC. O outro par, com Shift, faz o redimensionamento normal.
+ */
+export function skewHandlePair(grid: GridShape): "TC/BC" | "ML/MR" {
+  return Math.abs(handleRotatedY("ML", grid)) > Math.abs(handleRotatedY("TC", grid)) + 1e-9
+    ? "ML/MR"
+    : "TC/BC";
+}
+
 // Computes the new grid from dragging an edit handle to a world point.
 // Pure geometry, shared by MapHandlesLayer. Handles:
 //  - "rotate": angle from grid center (incl. origin) to cursor.
-//  - shift + TC/BC: perspective (skewRatio).
+//  - shift + par TC/BC ou ML/MR (`skewHandlePair`): perspective (skewRatio).
 //  - any resize handle: scales cellSize while pinning the OPPOSITE anchor in
 //    world space (so the grid grows toward the dragged handle, not always to the
 //    bottom-right). The pin is achieved by solving originX/originY. cellSize is
@@ -304,15 +329,12 @@ export function gridFromHandleDrag(
     return { ...startGrid, rotation: Math.round(rotation * 10) / 10 };
   }
 
-  if (shiftKey && (handle === "TC" || handle === "BC")) {
+  if (shiftKey && handlePairOf(handle) === skewHandlePair(startGrid)) {
     // A alça fica sob o cursor em y: world.y = originY + pivôY + ry·s, onde ry é o
     // y da alça girada (antes do achatamento) em relação ao pivô.
-    const { x: pivotX, y: pivotY } = gridPivot(startGrid);
-    const h = gridHandleLocal(handle, startGrid);
-    const t = startGrid.rotation * (Math.PI / 180);
-    const ry = (h.x - pivotX) * Math.sin(t) + (h.y - pivotY) * Math.cos(t);
+    const ry = handleRotatedY(handle, startGrid);
     if (Math.abs(ry) < 1e-9) return null;
-    const ratio = Math.max(0.3, Math.min(1.0, (worldY - (startGrid.originY ?? 0) - pivotY) / ry));
+    const ratio = Math.max(0.3, Math.min(1.0, (worldY - (startGrid.originY ?? 0) - gridPivot(startGrid).y) / ry));
     return { ...startGrid, skewRatio: Math.round(ratio * 100) / 100 };
   }
 

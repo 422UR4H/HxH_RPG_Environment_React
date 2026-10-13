@@ -7,6 +7,7 @@ import {
   applyTransform,
   gridHandleLocal,
   gridFromHandleDrag,
+  skewHandlePair,
   gridRotateHandleWorld,
 } from "./utils/coords";
 import { computeNewBgFromDrag } from "./utils/bgHandles";
@@ -301,13 +302,14 @@ function GridHandles({
     { id: "BR", p: pts.BR, cursor: "se-resize" },
   ];
 
-  // Vertical edges (TC/BC) tune perspective on Shift; horizontal edges (ML/MR)
-  // are plain cellSize resize, so they don't show the Shift/skew affordance.
-  const edgeHandles: Array<{ id: string; p: XY; vertical: boolean }> = [
-    { id: "TC", p: pts.TC, vertical: true },
-    { id: "BC", p: pts.BC, vertical: true },
-    { id: "ML", p: pts.ML, vertical: false },
-    { id: "MR", p: pts.MR, vertical: false },
+  // O par mais vertical na tela (`skewHandlePair`) ajusta a perspectiva com Shift;
+  // o outro par é redimensionamento comum e não mostra a marca de Shift.
+  const skewPair = skewHandlePair(grid);
+  const edgeHandles: Array<{ id: string; p: XY; vertical: boolean; skew: boolean }> = [
+    { id: "TC", p: pts.TC, vertical: true, skew: skewPair === "TC/BC" },
+    { id: "BC", p: pts.BC, vertical: true, skew: skewPair === "TC/BC" },
+    { id: "ML", p: pts.ML, vertical: false, skew: skewPair === "ML/MR" },
+    { id: "MR", p: pts.MR, vertical: false, skew: skewPair === "ML/MR" },
   ];
 
   return (
@@ -327,7 +329,7 @@ function GridHandles({
         />
       ))}
 
-      {edgeHandles.map(({ id, p, vertical }) => (
+      {edgeHandles.map(({ id, p, vertical, skew }) => (
         <GridEdgeHandle
           key={id}
           id={id}
@@ -335,6 +337,7 @@ function GridHandles({
           hy={p.y}
           hs={hs}
           vertical={vertical}
+          skew={skew}
           shiftPressed={shiftPressed}
           onStartDrag={startDrag}
         />
@@ -354,21 +357,19 @@ function GridHandles({
 }
 
 function GridEdgeHandle({
-  id, hx, hy, hs, vertical, shiftPressed, onStartDrag,
+  id, hx, hy, hs, vertical, skew, shiftPressed, onStartDrag,
 }: {
   id: string; hx: number; hy: number; hs: number;
   vertical: boolean;
+  skew: boolean;
   shiftPressed: boolean;
   onStartDrag: (id: string, shift: boolean, ex: number, ey: number) => void;
 }) {
-  // Only vertical edges (TC/BC) react to Shift (perspective/skew). Horizontal
-  // edges (ML/MR) are plain resize handles regardless of Shift.
-  const skewAffordance = vertical && shiftPressed;
+  // Só o par `skew` (o mais vertical na tela) reage ao Shift (perspectiva).
+  const skewAffordance = skew && shiftPressed;
   const actualHs = skewAffordance ? hs * 1.25 : hs;
   const fillColor = skewAffordance ? 0xffaa00 : 0xffffff;
-  const cursor = vertical
-    ? (skewAffordance ? "row-resize" : "ns-resize")
-    : "ew-resize";
+  const cursor = skewAffordance ? "row-resize" : vertical ? "ns-resize" : "ew-resize";
 
   const draw = useCallback((g: PixiGraphics) => {
     g.clear();
