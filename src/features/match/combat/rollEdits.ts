@@ -204,10 +204,13 @@ export function systemBiasText(bias: number | undefined): string {
 
 /**
  * O aviso do cartão de viés numa leitura passiva: o que muda quando o mestre escolhe Vantagem ou
- * Desvantagem.
+ * Desvantagem. `base` é o valor base dos dados (`match_full_state.passiveValue`); sem ele, o
+ * aviso não inventa número.
  */
-export const PASSIVE_BIAS_NOTE =
-  "Este teste não rola: usa o valor base dos dados. Com Vantagem ou Desvantagem, ele passa a ser rolado — a Vantagem fica com o melhor entre o dado e o valor base; a Desvantagem, com o pior.";
+export function passiveBiasNote(base?: number): string {
+  const value = base ? ` (${base})` : "";
+  return `Este teste usa o dado base${value}. Vantagem/Desvantagem passa a rolar contra o dado base.`;
+}
 
 /** Por que o sistema pôs o viés: hoje só a troca (a reação consumiu uma ação da fila, ou cancelou antes). */
 export const SYSTEM_BIAS_REASON =

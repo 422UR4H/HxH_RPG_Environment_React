@@ -162,6 +162,10 @@ describe("combatReducer — turno aberto e fila", () => {
     expect(run([closed("t1")], s).openTurn).toBeNull();
   });
 
+  it("o snapshot guarda o valor base dos dados (o aviso do viés numa passiva o nomeia)", () => {
+    expect(run([{ type: "match_full_state", payload: { roundMode: "Race", passiveValue: 11 } }]).passiveValue).toBe(11);
+  });
+
   it("a fila é substituída inteira no snapshot", () => {
     const s = run([
       { type: "action_queued", payload: { actionId: "a1", actorId: "c1", bars: ["action"] } },

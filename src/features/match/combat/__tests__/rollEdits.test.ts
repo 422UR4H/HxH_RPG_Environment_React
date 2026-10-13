@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import type { ResolutionPayload, ResolutionTarget } from "../combatMessages";
 import type { QueuedAction } from "../combatMessages";
 import {
-  clearPayload, conditionPayload, damageSkillPayload, describeCondition, editableRolls, isNeutral, queuedRolls,
+  clearPayload, conditionPayload, damageSkillPayload, describeCondition, editableRolls, isNeutral, passiveBiasNote,
+  queuedRolls,
 } from "../rollEdits";
 
 const target = (targetId: string, kind?: string, reactionId = `r-${targetId}`): ResolutionTarget => ({
@@ -197,5 +198,14 @@ describe("queuedRolls", () => {
   it("o payload de uma rolagem da fila leva o id da ação", () => {
     const [hit] = queuedRolls(queued(), "Race");
     expect(conditionPayload(hit, { bias: 1, modifier: 0 })).toEqual({ actionId: "q1", conditions: [{ field: "hit", bias: 1 }] });
+  });
+});
+
+describe("passiveBiasNote", () => {
+  it("nomeia o dado base que o servidor mandou", () => {
+    expect(passiveBiasNote(11)).toBe("Este teste usa o dado base (11). Vantagem/Desvantagem passa a rolar contra o dado base.");
+  });
+  it("sem o valor, não inventa número", () => {
+    expect(passiveBiasNote()).toBe("Este teste usa o dado base. Vantagem/Desvantagem passa a rolar contra o dado base.");
   });
 });

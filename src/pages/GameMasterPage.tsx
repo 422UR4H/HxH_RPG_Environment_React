@@ -669,6 +669,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                 onChooseFallSlot={chooseFallSlot}
                 onOpenReaction={combat.send.openReaction}
                 onEditAction={combat.send.editAction}
+                passiveValue={state.passiveValue}
               />
             </>
           ) : (

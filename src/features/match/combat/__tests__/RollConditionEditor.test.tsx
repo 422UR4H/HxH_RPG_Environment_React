@@ -52,14 +52,16 @@ describe("RollConditionEditor", () => {
   });
 
   describe("leitura passiva: o viés fica atrás de Viés", () => {
-    it("fechado de início, sem viés em vigor; abrir mostra o aviso acima dos botões", () => {
-      render(<RollConditionEditor roll={defense} onSend={() => {}} onClose={() => {}} />);
+    it("fechado de início, sem viés em vigor; abrir mostra o aviso, com o dado base, acima dos botões", () => {
+      render(<RollConditionEditor roll={defense} passiveValue={11} onSend={() => {}} onClose={() => {}} />);
       const toggle = screen.getByRole("button", { name: /Viés/ });
       expect(toggle).toHaveAttribute("aria-expanded", "false");
       expect(screen.queryByRole("button", { name: "Vantagem" })).not.toBeInTheDocument();
       fireEvent.click(toggle);
       expect(toggle).toHaveAttribute("aria-expanded", "true");
-      const note = screen.getByText(/passa a ser rolado/);
+      const note = screen.getByText(
+        "Este teste usa o dado base (11). Vantagem/Desvantagem passa a rolar contra o dado base.",
+      );
       const advantage = screen.getByRole("button", { name: "Vantagem" });
       expect(note.compareDocumentPosition(advantage) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     });

@@ -260,6 +260,8 @@ export type MatchFullStatePayload = {
   scene?: ScenePayload;
   /** "" quando não há round ativo. */
   roundMode: RoundMode | "";
+  /** O valor base dos dados — o que um teste passivo lê em vez de rolar (11 no 2D10). Ausente sem sessão. */
+  passiveValue?: number;
   bars?: BarsPayload;
   /**
    * Ausente em "fechado e nada aberto". `actionId` (B2) é a ação que abriu este turno — é

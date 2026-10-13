@@ -69,6 +69,8 @@ export type TableEvent =
 export type CombatState = {
   scene?: ScenePayload;
   roundMode: RoundMode | "";
+  /** `match_full_state.passiveValue`: o valor base dos dados, que o aviso do viés numa passiva nomeia. */
+  passiveValue?: number;
   bars: BarsPayload | null;
   openTurn: { turnId: string; actorId: string; actionId?: string; action?: HistoryAction } | null;
   /** A fila secreta — só chega ao mestre. */
@@ -220,6 +222,7 @@ export function combatReducer(state: CombatState, action: CombatAction): CombatS
         ...state,
         scene: p.scene,
         roundMode: p.roundMode,
+        passiveValue: p.passiveValue,
         bars: acceptBars(state, p.bars),
         openTurn,
         queue: p.queue ?? [],

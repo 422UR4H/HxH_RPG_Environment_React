@@ -18,10 +18,12 @@ import { damageSkillPayload, describeCondition, queuedRolls } from "./rollEdits"
 function QueuedActionEdits({
   queued,
   mode,
+  passiveValue,
   onEditAction,
 }: {
   queued: QueuedAction;
   mode?: RoundMode | "";
+  passiveValue?: number;
   onEditAction: (payload: EditActionPayload) => void;
 }) {
   const [editingKey, setEditingKey] = useState<string | null>(null);
@@ -35,6 +37,7 @@ function QueuedActionEdits({
           tail=""
           ariaLabel={`Editar ${roll.label}`}
           open={editingKey === roll.key}
+          passiveValue={passiveValue}
           onOpen={() => setEditingKey(roll.key)}
           onClose={() => setEditingKey(null)}
           onSend={onEditAction}
@@ -121,6 +124,7 @@ export default function QueuePanel({
   onChooseFallSlot,
   onOpenReaction,
   onEditAction,
+  passiveValue,
 }: {
   queue: QueuedAction[];
   /** A ação do turno aberto — já não está em `queue`, mas continua na tela, marcada. */
@@ -136,8 +140,10 @@ export default function QueuePanel({
   onChooseFallSlot?: (targetId: string) => void;
   /** Fase 7: repassado ao cálculo do card em andamento (dar a palavra a uma reação). */
   onOpenReaction?: (reactionId: string) => void;
-  /** Fase 8: repassado ao cálculo do card em andamento. */
+  /** Fase 8: repassado ao cálculo do card em andamento — e aos ajustes da fila. */
   onEditAction?: (payload: EditActionPayload) => void;
+  /** `match_full_state.passiveValue`: o valor base dos dados, para o aviso do viés numa passiva. */
+  passiveValue?: number;
 }) {
   // A linha da fila com os ajustes abertos (uma por vez). Derivado: some quando a ação sai da fila.
   const [adjusting, setAdjusting] = useState<string | null>(null);
@@ -177,6 +183,7 @@ export default function QueuePanel({
                   onChooseFallSlot={onChooseFallSlot}
                   onOpenReaction={onOpenReaction}
                   onEditAction={onEditAction}
+                  passiveValue={passiveValue}
                 />
               )}
             </OpenRow>
@@ -227,7 +234,7 @@ export default function QueuePanel({
                   </AppliedLine>
                 )}
                 {onEditAction && adjustingId === action.actionId && (
-                  <QueuedActionEdits queued={action} mode={mode} onEditAction={onEditAction} />
+                  <QueuedActionEdits queued={action} mode={mode} passiveValue={passiveValue} onEditAction={onEditAction} />
                 )}
               </Row>
             );

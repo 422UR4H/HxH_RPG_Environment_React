@@ -19,11 +19,14 @@ export function RollEditLine({
   tail,
   ariaLabel,
   open,
+  passiveValue,
   onOpen,
   onClose,
   onSend,
 }: {
   roll: EditableRoll;
+  /** O valor base dos dados (`match_full_state.passiveValue`), para o aviso do viés numa passiva. */
+  passiveValue?: number;
   /** Com `tail`, a linha mostra o rótulo da rolagem seguido dele (o total, por exemplo). */
   tail?: string;
   ariaLabel: string;
@@ -42,7 +45,7 @@ export function RollEditLine({
           Editar
         </EditButton>
       </RollRow>
-      {open && <RollConditionEditor roll={roll} onSend={onSend} onClose={onClose} />}
+      {open && <RollConditionEditor roll={roll} passiveValue={passiveValue} onSend={onSend} onClose={onClose} />}
     </>
   );
 }

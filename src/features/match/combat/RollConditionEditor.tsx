@@ -2,7 +2,7 @@ import { useId, useState } from "react";
 import styled from "styled-components";
 import { colors, fonts } from "../../../styles/tokens";
 import type { EditActionPayload } from "./combatMessages";
-import { PASSIVE_BIAS_NOTE, clearPayload, conditionPayload, type EditableRoll } from "./rollEdits";
+import { clearPayload, conditionPayload, passiveBiasNote, type EditableRoll } from "./rollEdits";
 
 const BIAS_OPTIONS = [
   { value: -1, label: "Desvantagem" },
@@ -23,10 +23,13 @@ const BIAS_OPTIONS = [
  */
 export default function RollConditionEditor({
   roll,
+  passiveValue,
   onSend,
   onClose,
 }: {
   roll: EditableRoll;
+  /** O valor base dos dados, que o aviso do viés numa passiva nomeia. */
+  passiveValue?: number;
   onSend: (payload: EditActionPayload) => void;
   onClose: () => void;
 }) {
@@ -68,7 +71,7 @@ export default function RollConditionEditor({
           </BiasDisclosure>
           {biasOpen && (
             <BiasCard id={biasCardId}>
-              <PassiveNote>{PASSIVE_BIAS_NOTE}</PassiveNote>
+              <PassiveNote>{passiveBiasNote(passiveValue)}</PassiveNote>
               <BiasButtons bias={bias} onChange={setBias} />
             </BiasCard>
           )}

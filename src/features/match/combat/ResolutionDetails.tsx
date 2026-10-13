@@ -19,6 +19,7 @@ export default function ResolutionDetails({
   onChooseFallSlot,
   onOpenReaction,
   onEditAction,
+  passiveValue,
 }: {
   resolution: ResolutionPayload;
   nameOf: (id: string) => string;
@@ -28,6 +29,8 @@ export default function ResolutionDetails({
   onOpenReaction?: (reactionId: string) => void;
   /** Edita uma rolagem ou a perícia do dano (`edit_action`, Fase 8). */
   onEditAction?: (payload: EditActionPayload) => void;
+  /** O valor base dos dados, que o aviso do viés numa passiva nomeia. */
+  passiveValue?: number;
 }) {
   const { turnId, action, targets, pendingReactions, errors } = resolution;
   // "Dar a palavra" já clicado: a linha trava até a reação sair de `pendingReactions` (o
@@ -56,6 +59,7 @@ export default function ResolutionDetails({
         tail={tail}
         ariaLabel={roll.targetId ? `Editar ${roll.label} de ${nameOf(roll.targetId)}` : `Editar ${roll.label}`}
         open={editingKey === roll.key}
+        passiveValue={passiveValue}
         onOpen={() => setEditing({ turnId, key: roll.key })}
         onClose={() => setEditing(null)}
         onSend={onEditAction}

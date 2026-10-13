@@ -14,8 +14,9 @@ discordam, vale este.
 |---|---|
 | Todo alvo de um ataque ganha uma reação `default` (esquiva por reflexo + defesa padrão, passivas) quando o turno abre. O que o alvo mandar a substitui. | `ReactionKind` ganhou `"default"`; rótulo "reação padrão" (`REACTION_KIND_LABELS`), verbo "esquivou" (`avoidedVerb`, ramo padrão), sem barra (`REACTION_BARS`). |
 | A reação **não aberta entra no cálculo**, depois das abertas. `targets[].reaction` vem para toda reação, com `opened`. | `ResolutionDetails` numera "aberta em Nº" só entre as abertas e escreve "não aberta" nas outras. `opened` ausente (servidor antigo) lê como aberta — lá só as abertas vinham. |
-| `pendingReactions` lista as não abertas que narram (todas menos `nothing`), com `seated` na padrão de quem ainda não respondeu. | A lista "Reações esperando" mostra a padrão como qualquer outra ("Dar a palavra" fica: narrar a esquiva padrão é decisão do mestre) e marca "ainda não respondeu". |
-| `nothing` não se abre e não segura o fechamento; a padrão sentada também não segura. | Nada a fazer: o `close_turn_refused` já vem filtrado. |
+| `pendingReactions` lista toda reação não aberta (a padrão sentada e o `nothing` inclusive), com `seated` na padrão de quem ainda não respondeu. | A lista "Reações esperando" mostra a padrão como qualquer outra ("Dar a palavra" fica: narrar a esquiva padrão é decisão do mestre) e marca "ainda não respondeu". |
+| `nothing` nunca precisa ser aberto e não segura o fechamento; a padrão sentada também não segura. Os dois continuam abríveis: abrir também posiciona na cadeia, e é assim que o mestre controla o tempo de resolução dessa escolha. | "Dar a palavra" aparece para os dois. O `close_turn_refused` já vem filtrado. |
+| `match_full_state.passiveValue`: o valor base dos dados (11 no 2D10). | O reducer guarda em `state.passiveValue`; `GameMasterPage` → `QueuePanel` → `ResolutionDetails`/`QueuedActionEdits` → `RollEditLine` → `RollConditionEditor` o levam até o aviso. |
 | Viés do mestre num teste passivo o torna rolado: vantagem = melhor entre o dado e o valor base; desvantagem = pior. | Ver "O viés de uma leitura passiva". |
 | `edit_action` aceita o id de uma ação **na fila** (condições e `damageSkill`), e o servidor responde com o `action_queued` que a redescreve, com `conditions` e `damageSkill`. | Ver "Ajustar na fila". O reducer trata um `action_queued` de `actionId` conhecido como atualização (substitui no lugar). |
 | `ownReactions` não lista a padrão sentada. | Nada a fazer: os botões de reação continuam disponíveis para quem não respondeu. |
@@ -45,10 +46,10 @@ entra no cálculo (a F1 da Fase 8, "só as abertas", caiu).
 
 - os botões de viés não ficam à vista: há um botão **Viés** (`aria-expanded`, `aria-controls`)
   que abre um cartão;
-- no cartão, **o aviso vem antes dos botões** (`PASSIVE_BIAS_NOTE`): "Este teste não rola: usa o
-  valor base dos dados. Com Vantagem ou Desvantagem, ele passa a ser rolado — a Vantagem fica com o
-  melhor entre o dado e o valor base; a Desvantagem, com o pior." O mestre lê o efeito no caminho
-  do clique, sem ícone a decifrar;
+- no cartão, **o aviso vem antes dos botões** (`passiveBiasNote(passiveValue)`, texto do dono do
+  produto): "Este teste usa o dado base (11). Vantagem/Desvantagem passa a rolar contra o dado
+  base." Sem `passiveValue` (servidor antigo), o parêntese some — o aviso não inventa número. O
+  mestre lê o efeito no caminho do clique, sem ícone a decifrar;
 - o botão diz a escolha quando ela não é Normal ("Viés · Vantagem"), então fechar o cartão nunca
   esconde um viés em vigor; com viés em vigor o editor abre com o cartão aberto.
 
@@ -99,4 +100,5 @@ Mesmo setup de `combate-fase-8.md` (três contas, `test@`/`test2@`/`test3@mail.c
 - Só o browser prova a integração com o back real; os testes cobrem o modelo (`rollEdits`), o
   editor (cartão de Viés), o reducer (`action_queued` como atualização) e os painéis com payloads
   montados à mão.
-- O `nothing` não se abre: ele colide sempre depois das reações abertas (ver o spec, §3).
+- O `nothing` não aberto colide depois das abertas; para posicioná-lo antes (de um aparo, por
+  exemplo), o mestre o abre.
