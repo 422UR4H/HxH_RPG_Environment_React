@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { approachReach, approachSlot, neighborSlots, slotDistance } from "../reach";
+import { approachReach, approachSlot, neighborSlots, neighborTowardScreen, slotDistance } from "../reach";
 import { isSameSlot } from "../coords";
 import type { GridShape, SlotCoord } from "../../../../types/tacticalMap";
 
@@ -104,5 +104,37 @@ describe("approachReach tie-break", () => {
       isFree: allFree,
     });
     expect(r).toEqual({ kind: "approach", slot: sq(2, 0) });
+  });
+});
+
+describe("neighborTowardScreen", () => {
+  it("quadrado sem transform: setas andam como col/row", () => {
+    const g = grid("square");
+    expect(neighborTowardScreen(sq(3, 3), g, "up")).toEqual(sq(3, 2));
+    expect(neighborTowardScreen(sq(3, 3), g, "down")).toEqual(sq(3, 4));
+    expect(neighborTowardScreen(sq(3, 3), g, "left")).toEqual(sq(2, 3));
+    expect(neighborTowardScreen(sq(3, 3), g, "right")).toEqual(sq(4, 3));
+  });
+
+  it("quadrado 45°/0,5: a seta vai para a diagonal que aponta para lá na tela", () => {
+    // Passo (dc,dr) vira, na tela, (k·(dc−dr), 0,5·k·(dc+dr)) com k=cos45°.
+    // ↑ (0,−1): (−1,−1) → (0,−k): cosseno 1.   ↓: (1,1) → (0,+k).
+    // → (1,0):  (1,−1) → (2k, 0): cosseno 1.   ←: (−1,1) → (−2k, 0).
+    const g: GridShape = { ...grid("square"), rotation: 45, skewRatio: 0.5 };
+    expect(neighborTowardScreen(sq(3, 3), g, "up")).toEqual(sq(2, 2));
+    expect(neighborTowardScreen(sq(3, 3), g, "down")).toEqual(sq(4, 4));
+    expect(neighborTowardScreen(sq(3, 3), g, "right")).toEqual(sq(4, 2));
+    expect(neighborTowardScreen(sq(3, 3), g, "left")).toEqual(sq(2, 4));
+  });
+
+  it("hex sem transform: ← vai para (q−1, r); → para (q+1, r)", () => {
+    const g = grid("hex");
+    expect(neighborTowardScreen(hx(3, 3), g, "left")).toEqual(hx(2, 3));
+    expect(neighborTowardScreen(hx(3, 3), g, "right")).toEqual(hx(4, 3));
+  });
+
+  it("hex: ↑ empata entre os dois vizinhos de cima e fica com o primeiro de neighborSlots", () => {
+    // (1,−1) e (0,−1) estão a ±30° de cima: mesmo cosseno. (1,−1) vem primeiro na lista.
+    expect(neighborTowardScreen(hx(3, 3), grid("hex"), "up")).toEqual(hx(4, 2));
   });
 });

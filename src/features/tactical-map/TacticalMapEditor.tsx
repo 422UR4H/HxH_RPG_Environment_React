@@ -16,6 +16,7 @@ import type { CharacterPrivateSummary } from "../../types/characterSheet";
 import { useEditorHistory, useGestureHistory } from "./hooks/useEditorHistory";
 import { useRosterDrag } from "./hooks/useRosterDrag";
 import { isSlotInBounds, isSameSlot, slotScreenInradius } from "./utils/coords";
+import { neighborTowardScreen } from "./utils/reach";
 import { uncoveredGridLines, trimUncoveredGrid } from "./utils/bgCoverage";
 import { getApiErrorDetail } from "../../utils/apiError";
 
@@ -30,6 +31,13 @@ type Props = {
   onSave: (map: TacticalMap) => Promise<void>;
   onSaveSuccess?: () => void;
   saveLabel?: string;
+};
+
+const ARROW_DIRS: Record<string, "up" | "down" | "left" | "right"> = {
+  ArrowUp: "up",
+  ArrowDown: "down",
+  ArrowLeft: "left",
+  ArrowRight: "right",
 };
 
 export default function TacticalMapEditor({
@@ -197,32 +205,20 @@ export default function TacticalMapEditor({
       }
 
       const piece = store.getState().map.pieces.find((p) => p.id === currentSelection.id);
-      if (!piece || piece.coord.slot.kind !== "square") return;
+      if (!piece) return;
 
-      const grid = store.getState().map.grid;
-      if (grid.kind !== "square") return; // setas só para grade quadrada (hex = best-effort futuro)
-
-      const { col, row } = piece.coord.slot;
-      let newCol = col;
-      let newRow = row;
-
-      if (e.key === "ArrowLeft")  newCol = col - 1;
-      else if (e.key === "ArrowRight") newCol = col + 1;
-      else if (e.key === "ArrowUp")    newRow = row - 1;
-      else if (e.key === "ArrowDown")  newRow = row + 1;
-      else return;
+      const dir = ARROW_DIRS[e.key];
+      if (!dir) return;
 
       e.preventDefault();
 
-      const newSlot = { kind: "square" as const, col: newCol, row: newRow };
+      // A seta escolhe o vizinho que fica mais na direção dela NA TELA (grade girada/achatada).
+      const grid = store.getState().map.grid;
+      const newSlot = neighborTowardScreen(piece.coord.slot, grid, dir);
       if (!isSlotInBounds(newSlot, grid)) return;
 
       const occupied = store.getState().map.pieces.some(
-        (p) =>
-          p.id !== currentSelection.id &&
-          p.coord.slot.kind === "square" &&
-          p.coord.slot.col === newCol &&
-          p.coord.slot.row === newRow,
+        (p) => p.id !== currentSelection.id && isSameSlot(p.coord.slot, newSlot),
       );
       if (!occupied) store.getState().movePiece(currentSelection.id, newSlot);
     };

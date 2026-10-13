@@ -1,6 +1,6 @@
 import type { GridShape, SlotCoord } from "../../../types/tacticalMap";
 import { hexDistance } from "./hex";
-import { isSameSlot, isSlotInBounds, slotToLocal } from "./coords";
+import { isSameSlot, isSlotInBounds, slotToLocal, slotToWorld } from "./coords";
 
 /**
  * Distância em passos de slot. Quadrado conta a diagonal como um passo (Chebyshev) — é a
@@ -30,6 +30,42 @@ export function neighborSlots(slot: SlotCoord): SlotCoord[] {
     return SQUARE_STEPS.map(([dc, dr]) => ({ kind: "square", col: slot.col + dc, row: slot.row + dr }));
   }
   return HEX_STEPS.map(([dq, dr]) => ({ kind: "hex", q: slot.q + dq, r: slot.r + dr }));
+}
+
+const SCREEN_DIR = {
+  up: { x: 0, y: -1 },
+  down: { x: 0, y: 1 },
+  left: { x: -1, y: 0 },
+  right: { x: 1, y: 0 },
+} as const;
+
+/**
+ * O vizinho da casa que fica mais na direção da seta NA TELA (maior cosseno entre o passo
+ * em coordenadas de mundo e a direção, y para baixo). Numa grade girada/achatada, ↑ deixa de
+ * ser `row − 1`. Empate: o primeiro de `neighborSlots`. Não filtra limites nem ocupação.
+ */
+export function neighborTowardScreen(
+  slot: SlotCoord,
+  grid: GridShape,
+  dir: keyof typeof SCREEN_DIR,
+): SlotCoord {
+  const d = SCREEN_DIR[dir];
+  const from = slotToWorld(slot, grid);
+  let best = slot;
+  let bestCos = -Infinity;
+  for (const n of neighborSlots(slot)) {
+    const w = slotToWorld(n, grid);
+    const vx = w.x - from.x;
+    const vy = w.y - from.y;
+    const len = Math.hypot(vx, vy);
+    if (len === 0) continue;
+    const cos = (vx * d.x + vy * d.y) / len;
+    if (cos > bestCos + 1e-9) {
+      bestCos = cos;
+      best = n;
+    }
+  }
+  return best;
 }
 
 export type Approach =
