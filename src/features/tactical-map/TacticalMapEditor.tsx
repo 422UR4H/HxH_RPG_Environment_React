@@ -15,7 +15,7 @@ import { useCampaignDetails } from "../../hooks/useCampaignDetails";
 import type { CharacterPrivateSummary } from "../../types/characterSheet";
 import { useEditorHistory, useGestureHistory } from "./hooks/useEditorHistory";
 import { useRosterDrag } from "./hooks/useRosterDrag";
-import { isSlotInBounds, isSameSlot } from "./utils/coords";
+import { isSlotInBounds, isSameSlot, slotScreenInradius } from "./utils/coords";
 import { uncoveredGridLines, trimUncoveredGrid } from "./utils/bgCoverage";
 import { getApiErrorDetail } from "../../utils/apiError";
 
@@ -346,12 +346,12 @@ export default function TacticalMapEditor({
     }
   };
 
-  // On-screen token diameter = world token size (cellSize * 0.9) × current zoom.
+  // On-screen token diameter = world token size (slotScreenInradius × 0.9 × 2, as drawn on screen) × current zoom.
   // Clamped so the ghost stays grabbable when zoomed far out. Same formula as
   // TacticalMapPlacer — kept local rather than extracted since it depends on
   // caller-local values (map.grid.cellSize, viewportScale); a one-line
   // function shared by two callers would trade duplication for indirection.
-  const dragGhostSize = Math.max(44, map.grid.cellSize * 0.9 * viewportScale);
+  const dragGhostSize = Math.max(44, slotScreenInradius(map.grid) * 2 * 0.9 * viewportScale);
 
   // Memoized so a future React.memo(MapEditorToolbar) isn't silently defeated
   // by a fresh object literal on every render.
