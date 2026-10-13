@@ -77,6 +77,15 @@ describe("RollConditionEditor", () => {
       expect(onSend).toHaveBeenCalledWith({ actionId: "r1", conditions: [{ field: "defense", bias: 1 }] });
     });
 
+    it("com viés do sistema, já rola: aviso explícito com o dado base e botões à vista, sem o toggle", () => {
+      render(
+        <RollConditionEditor roll={{ ...defense, systemBias: -1 }} passiveValue={11} onSend={() => {}} onClose={() => {}} />,
+      );
+      expect(screen.getByRole("note")).toHaveTextContent("Este teste rola contra o dado base (11): o sistema pôs Desvantagem");
+      expect(screen.queryByRole("button", { name: /Viés/ })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Vantagem" })).toBeInTheDocument();
+    });
+
     it("com viés em vigor, abre com o cartão aberto e a escolha marcada", () => {
       render(
         <RollConditionEditor roll={{ ...defense, current: { bias: -1, modifier: 0 } }} onSend={() => {}} onClose={() => {}} />,

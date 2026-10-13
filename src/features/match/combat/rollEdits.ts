@@ -27,10 +27,11 @@ export type EditableRoll = {
   /** O alvo cuja reação é dona da rolagem; ausente na ação. */
   targetId?: string;
   /**
-   * O viés que o próprio sistema já pôs nesta rolagem (-1: a reação trocou a ação da fila).
-   * Só nas velocidades roladas — o movimento de uma fuga; a esquiva, o aparo e a defesa não
-   * pioram, e numa leitura passiva o viés do sistema não vale. Soma com o do mestre: Vantagem do
-   * mestre anula.
+   * O viés que o próprio sistema já pôs nesta rolagem (-1: trocou uma ação declarada — a reação
+   * consumiu a da fila, ou o personagem cancelou antes nesta rodada). Só nas velocidades — o
+   * movimento de uma fuga, as velocidades de uma ação na fila; a esquiva, o aparo e a defesa não
+   * pioram. Numa leitura passiva ele vale como o do mestre: o teste rola contra o dado base. Soma
+   * com o do mestre: Vantagem do mestre anula.
    */
   systemBias?: number;
 };
@@ -113,7 +114,7 @@ export function editableRolls(res: ResolutionPayload): EditableRoll[] {
       out.push({
         ...spec, key: `${reactionId}:${spec.field}`, actionId: reactionId, targetId: t.targetId,
         current: currentOf(reactionId, spec.field),
-        ...(spec.field === "moveSpeed" && spec.bias === "rolled" && systemBias !== 0 && { systemBias }),
+        ...(spec.field === "moveSpeed" && systemBias !== 0 && { systemBias }),
       });
     }
   }
@@ -128,9 +129,12 @@ export function editableRolls(res: ResolutionPayload): EditableRoll[] {
  */
 export function queuedRolls(q: QueuedAction, mode: RoundMode | ""): EditableRoll[] {
   const conditions = q.conditions ?? [];
+  // O viés do sistema (a marca de quem cancelou nesta rodada) só pesa nas velocidades.
+  const systemBias = q.action?.systemBias ?? 0;
   const roll = (spec: RollSpec): EditableRoll => ({
     ...spec, key: `${q.actionId}:${spec.field}`, actionId: q.actionId,
     current: conditionOf(conditions, q.actionId, spec.field),
+    ...((spec.field === "speed" || spec.field === "moveSpeed") && systemBias !== 0 && { systemBias }),
   });
   const out: EditableRoll[] = [];
   if (q.damageSkill !== undefined || q.action?.attack) out.push(...ACTION_ROLLS.map(roll));
@@ -208,8 +212,23 @@ export function systemBiasText(bias: number | undefined): string {
  * aviso não inventa número.
  */
 export function passiveBiasNote(base?: number): string {
-  const value = base ? ` (${base})` : "";
-  return `Este teste usa o dado base${value}. Vantagem/Desvantagem passa a rolar contra o dado base.`;
+  return `Este teste usa o dado base${baseValue(base)}. Vantagem/Desvantagem passa a rolar contra o dado base.`;
+}
+
+const baseValue = (base?: number) => (base ? ` (${base})` : "");
+
+/**
+ * O aviso do editor quando o sistema já pôs viés na rolagem. Numa passiva, diz que o teste já
+ * rola contra o dado base — o mesmo efeito que o viés do mestre teria; numa rolada, que o
+ * sistema já escolhe o conjunto. Nos dois, o viés do mestre soma com o dele.
+ */
+export function systemBiasNote(roll: EditableRoll, base?: number): string {
+  const sys = (roll.systemBias ?? 0) < 0 ? "Desvantagem" : "Vantagem";
+  const opposite = sys === "Desvantagem" ? "Vantagem" : "Desvantagem";
+  if (roll.bias === "passive") {
+    return `Este teste rola contra o dado base${baseValue(base)}: o sistema pôs ${sys} (trocou uma ação declarada). O seu viés soma com o dele: ${opposite} volta ao dado base; Normal mantém. Para ir além, use o Modificador.`;
+  }
+  return `O sistema já rola esta com ${sys} (trocou uma ação declarada). O seu viés soma com o dele: ${opposite} deixa neutro (vale o primeiro lance, não o melhor); Normal mantém. Para ir além, use o Modificador.`;
 }
 
 /** Por que o sistema pôs o viés: hoje só a troca (a reação consumiu uma ação da fila, ou cancelou antes). */

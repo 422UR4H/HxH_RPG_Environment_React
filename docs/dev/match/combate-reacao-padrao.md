@@ -34,8 +34,10 @@ Cada `EditableRoll` diz como a leitura usa os dados (`BiasMode`):
 A tabela por reação (`REACTION_ROLLS`) agora inclui `default` (Esquiva e Defesa padrão, as duas
 `passive`), e a defesa padrão de `dodge`/`closedDodge`/`escapeGuard` e o Movimento do
 `closedEscape` passaram de "sem viés" para `passive`. `allowsBias(roll)` é o atalho (`bias !==
-"none"`). O viés do sistema (`systemBias`) só é anexado ao movimento quando ele é rolado: numa
-leitura passiva o viés do sistema não vale.
+"none"`). O viés do sistema (`systemBias`, a Desvantagem de quem trocou uma ação declarada) vai
+no movimento das fugas e nas velocidades de uma ação na fila (`queuedRolls` o lê de
+`action.systemBias`). Desde 2026-10-13 ele **vale numa leitura passiva**, como o do mestre: o
+servidor faz o teste rolar contra o dado base.
 
 `editableRolls` gera linhas para **toda** reação em `targets[]` — aberta ou não —, porque toda ela
 entra no cálculo (a F1 da Fase 8, "só as abertas", caiu).
@@ -52,6 +54,12 @@ entra no cálculo (a F1 da Fase 8, "só as abertas", caiu).
   mestre lê o efeito no caminho do clique, sem ícone a decifrar;
 - o botão diz a escolha quando ela não é Normal ("Viés · Vantagem"), então fechar o cartão nunca
   esconde um viés em vigor; com viés em vigor o editor abre com o cartão aberto.
+
+**Passiva com viés do sistema.** Ela já está rolando, então o editor não usa o botão Viés: os
+três botões ficam à vista, como numa rolada, e o aviso de cima (`systemBiasNote`) diz isso com o
+número — "Este teste rola contra o dado base (11): o sistema pôs Desvantagem (trocou uma ação
+declarada). O seu viés soma com o dele: Vantagem volta ao dado base; Normal mantém. Para ir além,
+use o Modificador." Numa rolada, o aviso continua sendo o de que o sistema já escolhe o conjunto.
 
 O resto do editor é o da Fase 8 (Modificador, Motivo, Aplicar / Desfazer / Cancelar), sem estado
 otimista.

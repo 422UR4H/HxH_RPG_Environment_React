@@ -3,7 +3,7 @@ import type { ResolutionPayload, ResolutionTarget } from "../combatMessages";
 import type { QueuedAction } from "../combatMessages";
 import {
   clearPayload, conditionPayload, damageSkillPayload, describeCondition, editableRolls, isNeutral, passiveBiasNote,
-  queuedRolls,
+  queuedRolls, systemBiasNote,
 } from "../rollEdits";
 
 const target = (targetId: string, kind?: string, reactionId = `r-${targetId}`): ResolutionTarget => ({
@@ -75,6 +75,13 @@ describe("editableRolls", () => {
     t.reaction!.systemBias = -1;
     const by = Object.fromEntries(editableRolls(base({ damageSkill: undefined, targets: [t] })).map((r) => [r.field, r.systemBias]));
     expect(by).toEqual({ dodge: undefined, moveSpeed: -1 });
+  });
+
+  it("o viés do sistema marca também o movimento passivo do closedEscape", () => {
+    const t = target("e", "closedEscape");
+    t.reaction!.systemBias = -1;
+    const move = editableRolls(base({ damageSkill: undefined, targets: [t] })).find((r) => r.field === "moveSpeed")!;
+    expect([move.bias, move.systemBias]).toEqual(["passive", -1]);
   });
 
   it("nas fechadas a esquiva se chama Reflexo", () => {
@@ -207,5 +214,28 @@ describe("passiveBiasNote", () => {
   });
   it("sem o valor, não inventa número", () => {
     expect(passiveBiasNote()).toBe("Este teste usa o dado base. Vantagem/Desvantagem passa a rolar contra o dado base.");
+  });
+});
+
+describe("systemBiasNote", () => {
+  const passive = { key: "k", field: "moveSpeed" as const, label: "Movimento", bias: "passive" as const, systemBias: -1 };
+  it("numa passiva, diz que o teste já rola contra o dado base", () => {
+    expect(systemBiasNote(passive, 11)).toMatch(/^Este teste rola contra o dado base \(11\): o sistema pôs Desvantagem/);
+    expect(systemBiasNote(passive, 11)).toMatch(/Vantagem volta ao dado base/);
+  });
+  it("numa rolada, que o sistema já escolhe o conjunto", () => {
+    expect(systemBiasNote({ ...passive, bias: "rolled" })).toMatch(/^O sistema já rola esta com Desvantagem/);
+  });
+});
+
+describe("queuedRolls — viés do sistema", () => {
+  it("a marca de quem cancelou pesa nas velocidades, não no acerto", () => {
+    const rolls = queuedRolls({
+      actionId: "q1", actorId: "a", bars: ["action"], damageSkill: "Push",
+      action: { uuid: "q1", actorId: "a", reactionKind: "", systemBias: -1, attack: {}, move: { category: "Shift" } },
+    }, "Race");
+    expect(Object.fromEntries(rolls.map((r) => [r.field, r.systemBias]))).toEqual({
+      hit: undefined, damage: undefined, speed: -1, moveSpeed: -1,
+    });
   });
 });

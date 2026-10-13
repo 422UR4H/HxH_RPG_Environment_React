@@ -2,7 +2,7 @@ import { useId, useState } from "react";
 import styled from "styled-components";
 import { colors, fonts } from "../../../styles/tokens";
 import type { EditActionPayload } from "./combatMessages";
-import { clearPayload, conditionPayload, passiveBiasNote, type EditableRoll } from "./rollEdits";
+import { clearPayload, conditionPayload, passiveBiasNote, systemBiasNote, type EditableRoll } from "./rollEdits";
 
 const BIAS_OPTIONS = [
   { value: -1, label: "Desvantagem" },
@@ -19,7 +19,9 @@ const BIAS_OPTIONS = [
  * O viés depende da leitura (`roll.bias`): numa rolada, os três botões ficam à vista; no dano,
  * não há viés. Numa **passiva** o viés muda a natureza do teste — ele passa a ser rolado —, então
  * os botões ficam atrás de "Viés", num cartão que diz isso antes de o mestre escolher. O botão
- * mostra a escolha quando ela não é Normal, para que fechar o cartão nunca esconda um viés.
+ * mostra a escolha quando ela não é Normal, para que fechar o cartão nunca esconda um viés. Uma
+ * passiva com viés do **sistema** já está rolando contra o dado base: o aviso diz isso, e os
+ * botões ficam à vista como numa rolada.
  */
 export default function RollConditionEditor({
   roll,
@@ -50,15 +52,12 @@ export default function RollConditionEditor({
 
   return (
     <Editor role="group" aria-label={`Editar ${roll.label}`}>
-      {!!roll.systemBias && (
-        <SystemNote role="note">
-          O sistema já rola esta com {roll.systemBias < 0 ? "Desvantagem" : "Vantagem"} (a reação trocou a ação
-          da fila). O seu viés soma com o dele: {roll.systemBias < 0 ? "Vantagem" : "Desvantagem"} deixa neutro
-          (vale o primeiro lance, não o melhor); Normal mantém. Para ir além, use o Modificador.
-        </SystemNote>
+      {!!roll.systemBias && <SystemNote role="note">{systemBiasNote(roll, passiveValue)}</SystemNote>}
+      {/* Com viés do sistema, a passiva já está rolando: os botões ficam à vista, como numa rolada. */}
+      {(roll.bias === "rolled" || (roll.bias === "passive" && !!roll.systemBias)) && (
+        <BiasButtons bias={bias} onChange={setBias} />
       )}
-      {roll.bias === "rolled" && <BiasButtons bias={bias} onChange={setBias} />}
-      {roll.bias === "passive" && (
+      {roll.bias === "passive" && !roll.systemBias && (
         <>
           <BiasDisclosure
             type="button"
