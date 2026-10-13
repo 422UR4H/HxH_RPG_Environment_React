@@ -142,8 +142,10 @@ ele só era enviado pelo socket da página.
 
 ## O tabuleiro é do servidor (F13, F16)
 
-- As duas páginas da partida desenham só as peças do `map_full_state`. Do REST vêm o fundo e
-  a grade do mapa, mais nada. As peças do mapa da campanha não são as da partida.
+- As duas páginas da partida desenham peças, grade e fundo do `map_full_state` (`boardGrid`/`boardBg`
+  em `useLiveMapSync`, aplicados por `tableMap`). O mapa da campanha (REST) só serve de base antes
+  do primeiro `map_full_state` chegar: editar grade ou fundo dele depois de iniciada a partida não
+  muda a mesa. As peças do mapa da campanha não são as da partida.
 - O mestre no lobby também lê o `map_full_state` do servidor, e o lobby parou de mandar
   `map_state_sync` (Ruling 15).
 - Iniciar a partida não grava mais no mapa da campanha.

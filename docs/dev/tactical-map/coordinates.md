@@ -159,10 +159,29 @@ Achatar antes só comprimiria o eixo vertical local. `inverseTransform` desfaz n
 - **Painel Grade** (`GridConfigPanel`): Predefinições (Isométrico = rotação 45 + `skewRatio` 0.5;
   Top-down = 0 / 1), campo numérico de Rotação e Perspectiva (slider + número, 0.3 a 1.0).
 - **No mapa** (`MapHandlesLayer`, `gridFromHandleDrag`): a esfera dourada gira a grade;
-  Shift + alça de cima/baixo (`TC`/`BC`) achata (`skewRatio`).
+  Shift + alça do par mais vertical na tela achata (`skewRatio`): `TC`/`BC` perto de 0°,
+  `ML`/`MR` perto de 90° (`skewHandlePair`, empate fica com `TC`/`BC`). O outro par, com Shift,
+  redimensiona normalmente.
 - **Encaixar Grade** (`fitGridToImage`) usa a caixa da grade no MUNDO (com rotação e perspectiva) e
   preserva ambas. O aviso "colunas/linhas não cobertas pela imagem" ao salvar
   (`uncoveredGridLines`, `utils/bgCoverage.ts`) também testa a grade transformada, quadrada ou hex.
+
+## O que se mede em LOCAL e o que se mede na tela
+
+Com rotação e perspectiva, "um passo" e "um pixel" deixam de ser a mesma coisa nos dois espaços.
+A regra: **geometria do jogo em LOCAL; o que o olho ou o dedo mede, na tela (WORLD).**
+
+| Medida | Espaço | Por quê |
+|---|---|---|
+| Posição de peça, parede, fog, alcance, distância em casas | LOCAL (slot) | É o que o servidor guarda e valida |
+| Tamanho da ficha | Tela: `slotScreenInradius` | A ficha tem de caber na casa como ela aparece (losango achatado), não no quadrado LOCAL |
+| Tolerância de clique/encaixe em parede (`findNearestWallWorld`, `snapWallPointWorld`) | WORLD | Pixels que o usuário vê; medir em LOCAL encolheria o acerto no eixo achatado |
+| Setas do teclado (`neighborTowardScreen`, `utils/reach.ts`) | Tela | Escolhe, entre os vizinhos da casa (8 no quadrado, 6 no hex), o de maior cosseno com a direção da seta (y para baixo); empate fica com o primeiro de `neighborSlots`. Na grade girada 45° e achatada, ↑ vai para `(col−1, row−1)` |
+| Alças de edição | Tela | Seguem o cursor em y depois de girar e achatar |
+
+**Paredes escalam com o tamanho da célula.** Paredes e células vivem no mesmo espaço LOCAL; ao mudar
+`cellSize` (mesmo `kind`), `scaleWallsToGrid` multiplica as pontas pela razão `next/prev` em torno do
+(0,0) LOCAL. Trocar quadrado↔hex não tem correspondência geométrica: as paredes ficam como estão.
 
 ## Onde isto é usado
 
