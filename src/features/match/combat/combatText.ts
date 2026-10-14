@@ -26,6 +26,7 @@ export const RUNG_LABELS: Record<string, string> = {
 
 export const REACTION_KIND_LABELS: Record<string, string> = {
   nothing: "nada",
+  default: "reação padrão",
   dodge: "esquiva",
   closedDodge: "esquiva fechada",
   escape: "fuga",
@@ -53,7 +54,8 @@ export const interactLabel = (kind: string) => INTERACT_LABELS[kind] ?? kind;
 /**
  * W1: o verbo de "evitou" depende de COMO o alvo evitou, não de um texto fixo — o contrato
  * (`targets[].avoided`) diz que `avoided` vale por qualquer meio; pergunte a `reaction.kind`.
- * Com `attackStopped`, ninguém "evitou": o golpe já tinha parado. Sem reação, o alvo usou o reflexo passivo de esquiva.
+ * Com `attackStopped`, ninguém "evitou": o golpe já tinha parado. Sem reação, ou na reação padrão, o alvo usou o
+ * reflexo passivo de esquiva.
  */
 export function avoidedVerb(t: { reaction?: { kind: string }; attackStopped?: boolean }): string {
   // Um aparo anterior já tinha parado o golpe: nem esquiva nem fuga foi o que salvou o alvo.

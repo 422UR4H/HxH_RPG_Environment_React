@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import styled from "styled-components";
 import { colors, fonts } from "../../../styles/tokens";
 import type { EditActionPayload } from "./combatMessages";
-import { clearPayload, conditionPayload, type EditableRoll } from "./rollEdits";
+import { clearPayload, conditionPayload, passiveBiasNote, systemBiasNote, type EditableRoll } from "./rollEdits";
 
 const BIAS_OPTIONS = [
   { value: -1, label: "Desvantagem" },
@@ -11,22 +11,34 @@ const BIAS_OPTIONS = [
 ] as const;
 
 /**
- * O editor de uma rolagem do turno aberto (Fase 8): viés, modificador e motivo. Inline, embaixo da
- * linha, um por vez no painel. Não guarda nada: "Aplicar" manda o `edit_action` e fecha — o
- * número e o resumo em vigor voltam pelo `resolution_updated`. "Desfazer edição" manda a
- * entrada zerada (o servidor volta a "sem condição"). O viés some onde a leitura é passiva ou
- * é o dano: lá não há dado para escolher.
+ * O editor de uma rolagem (Fase 8; também a de uma ação na fila): viés, modificador e motivo.
+ * Inline, embaixo da linha, um por vez no painel. Não guarda nada: "Aplicar" manda o
+ * `edit_action` e fecha — o número e o resumo em vigor voltam do servidor. "Desfazer edição"
+ * manda a entrada zerada (o servidor volta a "sem condição").
+ *
+ * O viés depende da leitura (`roll.bias`): numa rolada, os três botões ficam à vista; no dano,
+ * não há viés. Numa **passiva** o viés muda a natureza do teste — ele passa a ser rolado —, então
+ * os botões ficam atrás de "Viés", num cartão que diz isso antes de o mestre escolher. O botão
+ * mostra a escolha quando ela não é Normal, para que fechar o cartão nunca esconda um viés. Uma
+ * passiva com viés do **sistema** já está rolando contra o dado base: o aviso diz isso, e os
+ * botões ficam à vista como numa rolada.
  */
 export default function RollConditionEditor({
   roll,
+  passiveValue,
   onSend,
   onClose,
 }: {
   roll: EditableRoll;
+  /** O valor base dos dados, que o aviso do viés numa passiva nomeia. */
+  passiveValue?: number;
   onSend: (payload: EditActionPayload) => void;
   onClose: () => void;
 }) {
   const [bias, setBias] = useState(roll.current?.bias ?? 0);
+  // O cartão do viés de uma passiva abre sozinho quando já há viés em vigor.
+  const [biasOpen, setBiasOpen] = useState(bias !== 0);
+  const biasCardId = useId();
   const [modifier, setModifier] = useState(String(roll.current?.modifier ?? 0));
   const [description, setDescription] = useState(roll.current?.description ?? "");
   const send = (payload: EditActionPayload) => {
@@ -40,26 +52,29 @@ export default function RollConditionEditor({
 
   return (
     <Editor role="group" aria-label={`Editar ${roll.label}`}>
-      {!!roll.systemBias && (
-        <SystemNote role="note">
-          O sistema já rola esta com {roll.systemBias < 0 ? "Desvantagem" : "Vantagem"} (a reação trocou a ação
-          da fila). O seu viés soma com o dele: {roll.systemBias < 0 ? "Vantagem" : "Desvantagem"} deixa neutro
-          (vale o primeiro lance, não o melhor); Normal mantém. Para ir além, use o Modificador.
-        </SystemNote>
+      {!!roll.systemBias && <SystemNote role="note">{systemBiasNote(roll, passiveValue)}</SystemNote>}
+      {/* Com viés do sistema, a passiva já está rolando: os botões ficam à vista, como numa rolada. */}
+      {(roll.bias === "rolled" || (roll.bias === "passive" && !!roll.systemBias)) && (
+        <BiasButtons bias={bias} onChange={setBias} />
       )}
-      {roll.allowsBias && (
-        <BiasRow role="group" aria-label="Viés">
-          {BIAS_OPTIONS.map((o) => (
-            <Toggle
-              key={o.value}
-              type="button"
-              aria-pressed={bias === o.value}
-              onClick={() => setBias(o.value)}
-            >
-              {o.label}
-            </Toggle>
-          ))}
-        </BiasRow>
+      {roll.bias === "passive" && !roll.systemBias && (
+        <>
+          <BiasDisclosure
+            type="button"
+            aria-expanded={biasOpen}
+            aria-controls={biasCardId}
+            onClick={() => setBiasOpen((o) => !o)}
+          >
+            Viés{bias !== 0 && ` · ${BIAS_OPTIONS.find((o) => o.value === bias)?.label}`}
+            <Chevron aria-hidden="true">{biasOpen ? "▴" : "▾"}</Chevron>
+          </BiasDisclosure>
+          {biasOpen && (
+            <BiasCard id={biasCardId}>
+              <PassiveNote>{passiveBiasNote(passiveValue)}</PassiveNote>
+              <BiasButtons bias={bias} onChange={setBias} />
+            </BiasCard>
+          )}
+        </>
       )}
       <Field>
         <span>Modificador</span>
@@ -92,6 +107,18 @@ export default function RollConditionEditor({
   );
 }
 
+function BiasButtons({ bias, onChange }: { bias: number; onChange: (bias: number) => void }) {
+  return (
+    <BiasRow role="group" aria-label="Viés">
+      {BIAS_OPTIONS.map((o) => (
+        <Toggle key={o.value} type="button" aria-pressed={bias === o.value} onClick={() => onChange(o.value)}>
+          {o.label}
+        </Toggle>
+      ))}
+    </BiasRow>
+  );
+}
+
 const Editor = styled.div`
   display: flex;
   flex-direction: column;
@@ -108,6 +135,50 @@ const SystemNote = styled.p`
   font-size: 12px;
   line-height: 1.4;
   color: ${colors.warningText};
+`;
+
+const BiasDisclosure = styled.button`
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: ${fonts.sans};
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border: 1px solid ${colors.borderInput};
+  border-radius: 4px;
+  cursor: pointer;
+  background: transparent;
+  color: ${colors.textPrimary};
+
+  &[aria-expanded="true"] {
+    border-color: ${colors.brandAccent};
+  }
+`;
+
+const Chevron = styled.span`
+  font-size: 10px;
+  color: ${colors.textPlaceholderStrong};
+`;
+
+// O cartão do viés numa passiva: o aviso fica acima dos botões, que é onde o olho passa antes do
+// clique.
+const BiasCard = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid ${colors.borderInput};
+  border-radius: 6px;
+  background: ${colors.surfaceInput};
+`;
+
+const PassiveNote = styled.p`
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: ${colors.textPlaceholderStrong};
 `;
 
 const BiasRow = styled.div`

@@ -4,15 +4,8 @@ import { colors, fonts } from "../../../styles/tokens";
 import type { EditActionPayload, ResolutionPayload } from "./combatMessages";
 import { orderPending, wallOutcomeText } from "./resolutionText";
 import { avoidedVerb, REACTION_KIND_LABELS, RUNG_LABELS } from "./combatText";
-import {
-  SYSTEM_BIAS_REASON, damageSkillPayload, describeCondition, editableRolls, systemBiasText, type EditableRoll,
-} from "./rollEdits";
-import RollConditionEditor from "./RollConditionEditor";
-
-/** As perícias que medem o dano de um ataque (o motor só conhece estas duas). */
-const DAMAGE_SKILLS = ["Push", "Grab"];
-/** "Nenhuma perícia mede o dano" (`edit_action damageSkill: "None"`): só os dados e o bônus da arma. */
-const NO_DAMAGE_SKILL = "None";
+import { SYSTEM_BIAS_REASON, damageSkillPayload, editableRolls, systemBiasText, type EditableRoll } from "./rollEdits";
+import { DamageSkillPicker, RollEditLine } from "./RollEditLine";
 
 /**
  * O cálculo do turno aberto, que só o mestre recebe (F7). Os botões são três, e só onde a
@@ -26,6 +19,7 @@ export default function ResolutionDetails({
   onChooseFallSlot,
   onOpenReaction,
   onEditAction,
+  passiveValue,
 }: {
   resolution: ResolutionPayload;
   nameOf: (id: string) => string;
@@ -35,6 +29,8 @@ export default function ResolutionDetails({
   onOpenReaction?: (reactionId: string) => void;
   /** Edita uma rolagem ou a perícia do dano (`edit_action`, Fase 8). */
   onEditAction?: (payload: EditActionPayload) => void;
+  /** O valor base dos dados, que o aviso do viés numa passiva nomeia. */
+  passiveValue?: number;
 }) {
   const { turnId, action, targets, pendingReactions, errors } = resolution;
   // "Dar a palavra" já clicado: a linha trava até a reação sair de `pendingReactions` (o
@@ -56,25 +52,19 @@ export default function ResolutionDetails({
   const editingKey =
     editing && editing.turnId === turnId && rolls.some((r) => r.key === editing.key) ? editing.key : null;
   const rollOf = (key: string) => rolls.find((r) => r.key === key);
-  const renderRoll = (roll: EditableRoll, tail?: string) => (
-    <>
-      <RollRow>
-        {tail !== undefined && <Line>{roll.label}{tail}</Line>}
-        {roll.systemBias ? <SystemApplied title={SYSTEM_BIAS_REASON}>{systemBiasText(roll.systemBias)}</SystemApplied> : null}
-        {roll.current && <Applied>{describeCondition(roll.current)}</Applied>}
-        <ActionButton
-          type="button"
-          aria-label={roll.targetId ? `Editar ${roll.label} de ${nameOf(roll.targetId)}` : `Editar ${roll.label}`}
-          onClick={() => setEditing({ turnId, key: roll.key })}
-        >
-          Editar
-        </ActionButton>
-      </RollRow>
-      {editingKey === roll.key && onEditAction && (
-        <RollConditionEditor roll={roll} onSend={onEditAction} onClose={() => setEditing(null)} />
-      )}
-    </>
-  );
+  const renderRoll = (roll: EditableRoll, tail?: string) =>
+    onEditAction && (
+      <RollEditLine
+        roll={roll}
+        tail={tail}
+        ariaLabel={roll.targetId ? `Editar ${roll.label} de ${nameOf(roll.targetId)}` : `Editar ${roll.label}`}
+        open={editingKey === roll.key}
+        passiveValue={passiveValue}
+        onOpen={() => setEditing({ turnId, key: roll.key })}
+        onClose={() => setEditing(null)}
+        onSend={onEditAction}
+      />
+    );
   const hitRoll = rollOf("action:hit");
   const damageRoll = rollOf("action:damage");
   // Nas reações fechadas a linha `dodge` é só o Reflexo, mas `dodgeTotal` é o pior entre Reflexo e
@@ -82,11 +72,12 @@ export default function ResolutionDetails({
   const totalOf = (t: ResolutionPayload["targets"][number], field: string) =>
     field === "dodge" ? (t.reaction?.kind === "closedDodge" || t.reaction?.kind === "closedEscape" ? "" : ` ${t.dodgeTotal}`) : field === "defense" ? ` ${t.defenseTotal}`
       : field === "repel" && t.reaction ? ` ${t.reaction.total}` : "";
-  // `targets[]` vem na ordem da cadeia (contrato): a posição de um alvo entre os que já têm
-  // reação aberta É a ordem em que o mestre deu a palavra — e, por vir do servidor, sobrevive
-  // à reconexão.
+  // `targets[]` vem na ordem da cadeia (contrato): as abertas primeiro, na ordem em que o mestre
+  // deu a palavra — por vir do servidor, sobrevive à reconexão —, depois as não abertas, que
+  // entram no cálculo do mesmo jeito. `opened` ausente é servidor antigo: lá só as abertas vinham.
+  const isOpened = (r: NonNullable<ResolutionPayload["targets"][number]["reaction"]>) => r.opened ?? true;
   const openedOrder = new Map(
-    targets.filter((t) => t.reaction).map((t, i) => [t.targetId, i + 1] as const),
+    targets.filter((t) => t.reaction && isOpened(t.reaction)).map((t, i) => [t.targetId, i + 1] as const),
   );
   return (
     <Wrap aria-label="Cálculo do turno">
@@ -106,27 +97,10 @@ export default function ResolutionDetails({
       {resolution.damageSkill !== undefined && onEditAction && (
         <Block>
           <Label>Dano</Label>
-          <RollRow>
-            <Line>medido por</Line>
-            {DAMAGE_SKILLS.map((name) => (
-              <SkillToggle
-                key={name}
-                type="button"
-                aria-pressed={resolution.damageSkill === name}
-                // A marcada desmarca: nenhuma perícia mede o dano (uma arma de fogo, por exemplo).
-                onClick={() =>
-                  onEditAction(damageSkillPayload(resolution.damageSkill === name ? NO_DAMAGE_SKILL : name))}
-              >
-                {name}
-              </SkillToggle>
-            ))}
-            {resolution.damageSkill === NO_DAMAGE_SKILL && <Muted>nenhuma — só a arma</Muted>}
-            {!DAMAGE_SKILLS.includes(resolution.damageSkill) && resolution.damageSkill !== NO_DAMAGE_SKILL && (
-              <SkillToggle type="button" disabled aria-pressed="true">
-                {resolution.damageSkill}
-              </SkillToggle>
-            )}
-          </RollRow>
+          <DamageSkillPicker
+            current={resolution.damageSkill}
+            onPick={(skill) => onEditAction(damageSkillPayload(skill))}
+          />
           {damageRoll && renderRoll(damageRoll)}
         </Block>
       )}
@@ -142,7 +116,7 @@ export default function ResolutionDetails({
               reação: {REACTION_KIND_LABELS[t.reaction.kind] ?? t.reaction.kind} {t.reaction.total}
               {t.reaction.rung && ` · ${RUNG_LABELS[t.reaction.rung] ?? t.reaction.rung}`}
               {t.reaction.stopsAttack && " · para o ataque"}
-              {` · aberta em ${openedOrder.get(t.targetId)}º`}
+              {isOpened(t.reaction) ? ` · aberta em ${openedOrder.get(t.targetId)}º` : " · não aberta"}
             </Line>
           )}
           {!!t.reaction?.systemBias && <Muted>{SYSTEM_BIAS_REASON}</Muted>}
@@ -195,7 +169,10 @@ export default function ResolutionDetails({
         <Block>
           <Label>Reações esperando</Label>
           {onOpenReaction && (
-            <Muted>Pela chave (velocidade), como a fila de ações. A ordem em que você abre é sua e muda o resultado.</Muted>
+            <Muted>
+              Pela chave (velocidade), como a fila de ações. A ordem em que você abre é sua e muda o resultado: quem
+              não ganhar a palavra entra no cálculo depois das abertas.
+            </Muted>
           )}
           {orderPending(pendingReactions).map((r, i) => (
             <PendingRow key={r.reactionId}>
@@ -203,6 +180,7 @@ export default function ResolutionDetails({
                 <Line>
                   <Rank>{i + 1}º</Rank> {nameOf(r.actorId)} — {REACTION_KIND_LABELS[r.kind] ?? r.kind}
                 </Line>
+                {r.seated && <Muted>ainda não respondeu</Muted>}
                 <Muted>
                   {r.speed !== undefined ? `chave ${r.speed}` : "sem velocidade"}
                   {r.arrival !== undefined && ` · chegou em ${r.arrival}º`}
@@ -309,34 +287,9 @@ const ActionButton = styled.button`
     cursor: not-allowed;
   }
 `;
-// Mesmo visual do Toggle de viés em RollConditionEditor: o ativo vira preenchido.
-const SkillToggle = styled(ActionButton)`
-  &[aria-pressed="true"] {
-    background: ${colors.brandAccent};
-    border-color: ${colors.brandAccent};
-  }
-`;
-const RollRow = styled.div`
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-`;
-const Applied = styled.span`
-  color: ${colors.warningText};
-`;
 const SystemLine = styled.span`
   color: ${colors.warningText};
   font-size: 12px;
-`;
-// O que o sistema aplicou sozinho: contornado, para não se confundir com a condição do mestre.
-const SystemApplied = styled.span`
-  align-self: flex-start;
-  padding: 1px 6px;
-  border: 1px solid ${colors.warningText};
-  border-radius: 999px;
-  color: ${colors.warningText};
-  font-size: 11px;
 `;
 const Muted = styled.span`
   color: ${colors.textPlaceholderStrong};

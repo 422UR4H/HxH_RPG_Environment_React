@@ -1,3 +1,4 @@
+import { useState } from "react";
 import styled from "styled-components";
 import { colors, fonts } from "../../../styles/tokens";
 import type { GridKind } from "../../../types/tacticalMap";
@@ -5,6 +6,53 @@ import type { Bar, BarsPayload, EditActionPayload, QueuedAction, QueuedActionDet
 import { BAR_ICONS, BAR_LABELS, costLabel, formatSlot, weaponLabel } from "./combatText";
 import { orderQueue } from "./queueOrder";
 import ResolutionDetails from "./ResolutionDetails";
+import { DamageSkillPicker, RollEditLine } from "./RollEditLine";
+import { damageSkillPayload, describeCondition, queuedRolls } from "./rollEdits";
+
+/**
+ * Os ajustes do mestre numa ação ainda na fila: as rolagens que `queuedRolls` oferece, cada uma
+ * com o editor inline (um aberto por vez), e a perícia do dano. Sem estado otimista: o que está em
+ * vigor volta no `action_queued` que o servidor reenvia depois de cada edição. Mexer na velocidade
+ * muda o lugar da ação na fila.
+ */
+function QueuedActionEdits({
+  queued,
+  mode,
+  passiveValue,
+  onEditAction,
+}: {
+  queued: QueuedAction;
+  mode?: RoundMode | "";
+  passiveValue?: number;
+  onEditAction: (payload: EditActionPayload) => void;
+}) {
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+  const rolls = queuedRolls(queued, mode ?? "");
+  return (
+    <Edits aria-label="Ajustes do mestre">
+      {rolls.map((roll) => (
+        <RollEditLine
+          key={roll.key}
+          roll={roll}
+          tail=""
+          ariaLabel={`Editar ${roll.label}`}
+          open={editingKey === roll.key}
+          passiveValue={passiveValue}
+          onOpen={() => setEditingKey(roll.key)}
+          onClose={() => setEditingKey(null)}
+          onSend={onEditAction}
+        />
+      ))}
+      {queued.damageSkill !== undefined && (
+        <DamageSkillPicker
+          current={queued.damageSkill}
+          onPick={(skill) => onEditAction(damageSkillPayload(skill, queued.actionId))}
+        />
+      )}
+      <EditsNote>Mexer na velocidade muda o lugar na fila. O jogador não vê estes ajustes.</EditsNote>
+    </Edits>
+  );
+}
 
 /**
  * O detalhe de uma ação (T13/F1) — tudo que a declaração carrega, no nível Full que só o
@@ -76,6 +124,7 @@ export default function QueuePanel({
   onChooseFallSlot,
   onOpenReaction,
   onEditAction,
+  passiveValue,
 }: {
   queue: QueuedAction[];
   /** A ação do turno aberto — já não está em `queue`, mas continua na tela, marcada. */
@@ -91,9 +140,14 @@ export default function QueuePanel({
   onChooseFallSlot?: (targetId: string) => void;
   /** Fase 7: repassado ao cálculo do card em andamento (dar a palavra a uma reação). */
   onOpenReaction?: (reactionId: string) => void;
-  /** Fase 8: repassado ao cálculo do card em andamento. */
+  /** Fase 8: repassado ao cálculo do card em andamento — e aos ajustes da fila. */
   onEditAction?: (payload: EditActionPayload) => void;
+  /** `match_full_state.passiveValue`: o valor base dos dados, para o aviso do viés numa passiva. */
+  passiveValue?: number;
 }) {
+  // A linha da fila com os ajustes abertos (uma por vez). Derivado: some quando a ação sai da fila.
+  const [adjusting, setAdjusting] = useState<string | null>(null);
+  const adjustingId = adjusting && queue.some((q) => q.actionId === adjusting) ? adjusting : null;
   return (
     <Panel aria-label="Fila">
       <Title>Fila de ações</Title>
@@ -129,6 +183,7 @@ export default function QueuePanel({
                   onChooseFallSlot={onChooseFallSlot}
                   onOpenReaction={onOpenReaction}
                   onEditAction={onEditAction}
+                  passiveValue={passiveValue}
                 />
               )}
             </OpenRow>
@@ -147,6 +202,16 @@ export default function QueuePanel({
                       {!inOrder && <NextRoundBadge title="Não cabe mais nesta rodada; abre na próxima">próxima rodada</NextRoundBadge>}
                     </Name>
                   </Info>
+                  {onEditAction && (
+                    <PullButton
+                      type="button"
+                      aria-expanded={adjustingId === action.actionId}
+                      onClick={() => setAdjusting(adjustingId === action.actionId ? null : action.actionId)}
+                      title="Ajustar as rolagens desta ação antes de ela agir"
+                    >
+                      Ajustar
+                    </PullButton>
+                  )}
                   <PullButton type="button" onClick={() => onPull(action.actionId)} title="Abrir esta ação agora, fora da ordem">
                     Abrir agora
                   </PullButton>
@@ -160,6 +225,17 @@ export default function QueuePanel({
                     nameOf={nameOf}
                   />
                 )}
+                {!!action.conditions?.length && (
+                  <AppliedLine>
+                    Ajustada:{" "}
+                    {action.conditions
+                      .map((c) => `${FIELD_LABELS[c.field ?? ""] ?? c.skillName ?? c.field} ${describeCondition(c)}`)
+                      .join(" · ")}
+                  </AppliedLine>
+                )}
+                {onEditAction && adjustingId === action.actionId && (
+                  <QueuedActionEdits queued={action} mode={mode} passiveValue={passiveValue} onEditAction={onEditAction} />
+                )}
               </Row>
             );
           })}
@@ -168,6 +244,30 @@ export default function QueuePanel({
     </Panel>
   );
 }
+
+/** O nome de cada rolagem no resumo "Ajustada:" de uma linha da fila. */
+const FIELD_LABELS: Record<string, string> = {
+  hit: "acerto", damage: "dano", speed: "velocidade de ação", moveSpeed: "velocidade de movimento",
+};
+
+const Edits = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 6px;
+  border-top: 1px solid ${colors.surfaceInput};
+  font-size: 12px;
+`;
+
+const EditsNote = styled.span`
+  font-size: 12px;
+  color: ${colors.textPlaceholderStrong};
+`;
+
+const AppliedLine = styled.span`
+  font-size: 12px;
+  color: ${colors.warningText};
+`;
 
 const Panel = styled.section`
   display: flex;

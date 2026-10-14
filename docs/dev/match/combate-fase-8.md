@@ -6,7 +6,13 @@
 > `resolution_updated` (`damageSkill`, `conditions`) e `match_full_state.resolution`
 > (PR #85 do back, branch `feat/combat-phase-8-regency-back`).
 
-Este documento vem **depois** de `combate-fase-7.md`. Onde discordam, vale este. A Fase 8 só
+Este documento vem **depois** de `combate-fase-7.md`. Onde discordam, vale este.
+
+> **Atualizado por [`combate-reacao-padrao.md`](combate-reacao-padrao.md) (2026-10-12).** Lá vale:
+> toda reação — aberta ou não, e a padrão que o servidor senta para quem não respondeu — ganha
+> linhas (F1 abaixo caiu: a não aberta entra no cálculo); `allowsBias` virou `bias`
+> (`rolled`/`passive`/`none`), e a defesa padrão e o movimento do `closedEscape` aceitam viés
+> (o teste passa a ser rolado); a ação na fila também se edita. A Fase 8 só
 existe na página do **mestre**: o jogador nunca recebe nada disso antes de o turno fechar.
 
 ## O que o mestre vê

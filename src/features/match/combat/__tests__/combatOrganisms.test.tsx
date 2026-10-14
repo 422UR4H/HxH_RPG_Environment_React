@@ -227,6 +227,39 @@ describe("QueuePanel", () => {
     expect(within(rows[2]).getByText("próxima rodada")).toBeInTheDocument();
   });
 
+  describe("ajustes do mestre na fila", () => {
+    const queued = {
+      actionId: "a2", actorId: "n1", bars: ["move" as const], action: fullAction, damageSkill: "Push",
+      conditions: [{ actionId: "a2", field: "speed" as const, bias: 0, modifier: 3 }],
+    };
+
+    it("sem onEditAction não há Ajustar", () => {
+      render(<QueuePanel nameOf={nameOf} order={[]} gridKind="square" queue={[queued]} onPull={() => {}} />);
+      expect(screen.queryByRole("button", { name: "Ajustar" })).not.toBeInTheDocument();
+    });
+
+    it("Ajustar abre as rolagens da ação; editar manda o edit_action com o id dela", () => {
+      const onEdit = vi.fn();
+      render(
+        <QueuePanel nameOf={nameOf} order={[]} gridKind="square" mode="Race" queue={[queued]} onPull={() => {}} onEditAction={onEdit} />,
+      );
+      expect(screen.getByText(/Ajustada: velocidade de ação \+3/)).toBeInTheDocument();
+      const adjust = screen.getByRole("button", { name: "Ajustar" });
+      fireEvent.click(adjust);
+      expect(adjust).toHaveAttribute("aria-expanded", "true");
+      const edits = screen.getByLabelText("Ajustes do mestre");
+      for (const label of ["Acerto", "Dano", "Velocidade de ação", "Velocidade de movimento"]) {
+        expect(within(edits).getByRole("button", { name: `Editar ${label}` })).toBeInTheDocument();
+      }
+      fireEvent.click(within(edits).getByRole("button", { name: "Editar Acerto" }));
+      fireEvent.click(within(edits).getByRole("button", { name: "Vantagem" }));
+      fireEvent.click(within(edits).getByRole("button", { name: "Aplicar" }));
+      expect(onEdit).toHaveBeenCalledWith({ actionId: "a2", conditions: [{ field: "hit", bias: 1 }] });
+      fireEvent.click(within(edits).getByRole("button", { name: "Grab" }));
+      expect(onEdit).toHaveBeenCalledWith({ actionId: "a2", damageSkill: "Grab" });
+    });
+  });
+
   it("fila vazia diz o que vai aparecer ali", () => {
     render(<QueuePanel nameOf={nameOf} queue={[]} order={[]} gridKind="square" onPull={() => {}} />);
     expect(screen.getByText(/Ninguém declarou nada ainda/)).toBeInTheDocument();
@@ -549,6 +582,33 @@ describe("ResolutionDetails", () => {
       expect(within(card("Beta")).getByText(/aberta em 1º/)).toBeInTheDocument();
       expect(within(card("Alfa")).getByText(/aberta em 2º/)).toBeInTheDocument();
       expect(within(card("Gama")).queryByText(/aberta em/)).not.toBeInTheDocument();
+    });
+
+    it("uma reação não aberta diz que não foi aberta, sem ocupar posição na ordem", () => {
+      const reaction = (id: string, opened: boolean) => ({
+        kind: "dodge", total: 11, reactionId: `r-${id}`, margin: 0, difference: 0, stopsAttack: false, opened,
+      });
+      const target = (targetId: string, opened: boolean): ResolutionPayload["targets"][number] => ({
+        targetId, avoided: false, defended: false, dodgeTotal: 10, defenseTotal: 0,
+        rawDamage: 5, defenseApplied: 0, projectedDamage: 5, reaction: reaction(targetId, opened),
+      });
+      const mixed: ResolutionPayload = { turnId: "t1", isSettled: false, targets: [target("b", true), target("a", false)] };
+      const names = (id: string) => ({ a: "Alfa", b: "Beta" }[id] ?? id);
+      render(<ResolutionDetails resolution={mixed} nameOf={names} />);
+      const card = (name: string) => screen.getByText(name).parentElement as HTMLElement;
+      expect(within(card("Beta")).getByText(/aberta em 1º/)).toBeInTheDocument();
+      expect(within(card("Alfa")).getByText(/não aberta/)).toBeInTheDocument();
+    });
+
+    it("a reação padrão sentada aparece entre as que esperam, marcada como sem resposta", () => {
+      const seated: ResolutionPayload = {
+        turnId: "t1", isSettled: false, targets: [],
+        pendingReactions: [{ reactionId: "r-s", actorId: "c1", kind: "default", seated: true }],
+      };
+      render(<ResolutionDetails resolution={seated} nameOf={resolutionNameOf} onOpenReaction={() => {}} />);
+      expect(screen.getByText(/reação padrão/)).toBeInTheDocument();
+      expect(screen.getByText("ainda não respondeu")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Dar a palavra" })).toBeInTheDocument();
     });
 
     it("QueuePanel repassa onOpenReaction ao cálculo do card em andamento", () => {
