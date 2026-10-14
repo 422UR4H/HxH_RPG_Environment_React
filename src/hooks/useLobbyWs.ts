@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import type { SlotCoord } from "../types/tacticalMap";
+import type { BgImage, GridShape, SlotCoord, WallSegment } from "../types/tacticalMap";
 
 export type WsStatus =
   | "connecting"
@@ -28,6 +28,16 @@ export type LobbyPieceFullState = {
   visible?: boolean;
 };
 
+// The lobby's map_full_state: the match BOARD (not the campaign map) — its pieces, walls
+// (secret doors masked for players by the server), grid and background. `grid` undefined =
+// the room has no board; `bg` null = a board with no background, undefined = no board.
+export type LobbyFullState = {
+  pieces: LobbyPieceFullState[];
+  walls: WallSegment[];
+  grid: GridShape | undefined;
+  bg: BgImage | undefined;
+};
+
 interface UseLobbyWsParams {
   matchUuid: string;
   token: string;
@@ -39,7 +49,7 @@ interface UseLobbyWsParams {
   onPieceMoved?: (pieceId: string, slot: SlotCoord, characterId?: string, visible?: boolean, z?: number) => void;
   onPieceRemoved?: (pieceId: string) => void;
   // Fires when the server sends the full current board to a newly joined client.
-  onFullState?: (pieces: LobbyPieceFullState[]) => void;
+  onFullState?: (state: LobbyFullState) => void;
 }
 
 interface UseLobbyWsResult {
@@ -238,7 +248,12 @@ export function useLobbyWs({
               }
               pieces.push({ pieceId: p.pieceId, characterId: p.characterId, slot, visible: p.visible });
             }
-            onFullStateRef.current?.(pieces);
+            onFullStateRef.current?.({
+              pieces,
+              walls: (payload.walls as WallSegment[] | undefined) ?? [],
+              grid: (payload.grid as GridShape | undefined) ?? undefined,
+              bg: payload.bg === null ? null : ((payload.bg as BgImage | undefined) ?? undefined),
+            });
             break;
           }
           default:

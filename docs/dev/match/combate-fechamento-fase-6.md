@@ -143,11 +143,15 @@ ele só era enviado pelo socket da página.
 ## O tabuleiro é do servidor (F13, F16)
 
 - As duas páginas da partida desenham peças, grade e fundo do `map_full_state` (`boardGrid`/`boardBg`
-  em `useLiveMapSync`, aplicados por `tableMap`). O mapa da campanha (REST) só serve de base antes
-  do primeiro `map_full_state` chegar: editar grade ou fundo dele depois de iniciada a partida não
-  muda a mesa. As peças do mapa da campanha não são as da partida.
-- O mestre no lobby também lê o `map_full_state` do servidor, e o lobby parou de mandar
-  `map_state_sync` (Ruling 15).
+  em `useLiveMapSync`, aplicados por `tableMap`). O mapa da campanha (REST) não dá geometria
+  nenhuma — só o nome: até o primeiro `map_full_state` com grade a mesa mostra "Carregando o
+  tabuleiro…" (`useGameTable().boardPending`, separado de "nenhum mapa anexado"), inclusive para o
+  jogador esperando o mestre (`lobby_not_open`). Editar o mapa da campanha não muda a mesa. O
+  `fogMode` também vem só do `map_full_state`.
+- O lobby (mestre e jogador) desenha o mesmo tabuleiro: `useLobbyWs` lê grade, fundo e paredes do
+  `map_full_state` e o `LobbyPage` monta o mapa pelo mesmo `tableMap`, com a mesma espera. As
+  paredes do jogador no lobby chegam vazias hoje — o servidor as desliga de propósito
+  (`room.go`, `buildMapFullState`). O lobby parou de mandar `map_state_sync` (Ruling 15).
 - Iniciar a partida não grava mais no mapa da campanha.
 
 ## Continuar o tabuleiro de outra partida (F15)

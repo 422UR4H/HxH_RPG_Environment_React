@@ -1,5 +1,6 @@
-// O fio que faz a mesa desenhar com a grade e o fundo do TABULEIRO da partida: o `map` que
-// `useGameTable` devolve às páginas troca grid/bg do REST pelos do `map_full_state`.
+// O fio que faz a mesa desenhar só com a grade e o fundo do TABULEIRO da partida: o `map` que
+// `useGameTable` devolve às páginas só existe depois do `map_full_state`; até lá a mesa espera
+// (`boardPending`) em vez de desenhar o mapa da campanha.
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { http, HttpResponse } from "msw";
 import { act, screen } from "@testing-library/react";
@@ -16,7 +17,7 @@ function Probe() {
   const game = useGameTable({
     token: "fake-jwt-token", matchId: "match-1", declaredSource: "queue", actorId: undefined,
   });
-  if (!game.map) return <div data-testid="probe">loading</div>;
+  if (!game.map) return <div data-testid="probe" data-pending={String(game.boardPending)}>loading</div>;
   return (
     <div data-testid="probe" data-cell-size={game.map.grid.cellSize} data-bg={game.map.bg?.url ?? "null"} />
   );
@@ -43,12 +44,13 @@ afterEach(() => {
 });
 
 describe("useGameTable — mapa da mesa", () => {
-  it("é o do REST até o map_full_state e passa a ter grade e fundo do tabuleiro depois", async () => {
+  it("espera o tabuleiro — nunca o mapa da campanha — e depois desenha a grade e o fundo dele", async () => {
     renderWithProviders(<Probe />);
     const ws = await waitForSocket();
     act(() => ws.onopen?.());
-    await vi.waitFor(() => expect(screen.getByTestId("probe")).toHaveAttribute("data-cell-size", "64"));
-    expect(screen.getByTestId("probe")).toHaveAttribute("data-bg", "rest.png");
+    // O mapa REST (64px, rest.png) carregou, mas o tabuleiro não chegou: nada para desenhar.
+    await vi.waitFor(() => expect(screen.getByTestId("probe")).toHaveAttribute("data-pending", "true"));
+    expect(screen.getByTestId("probe")).not.toHaveAttribute("data-cell-size");
 
     act(() =>
       ws.emit("map_full_state", {
@@ -59,5 +61,13 @@ describe("useGameTable — mapa da mesa", () => {
     );
     expect(screen.getByTestId("probe")).toHaveAttribute("data-cell-size", "40");
     expect(screen.getByTestId("probe")).toHaveAttribute("data-bg", "null");
+  });
+
+  it("sem mapa anexado não fica esperando tabuleiro nenhum", async () => {
+    server.use(http.get(`${baseUrl}/matches/:id/map`, () => new HttpResponse(null, { status: 204 })));
+    renderWithProviders(<Probe />);
+    const ws = await waitForSocket();
+    act(() => ws.onopen?.());
+    await vi.waitFor(() => expect(screen.getByTestId("probe")).toHaveAttribute("data-pending", "false"));
   });
 });

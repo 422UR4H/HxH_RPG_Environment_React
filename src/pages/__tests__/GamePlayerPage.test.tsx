@@ -176,6 +176,17 @@ afterEach(() => {
 });
 
 describe("GamePlayerPage", () => {
+  // O mestre fora (lobby_not_open → esperando): o tabuleiro não chega, e o jogador não vê o
+  // mapa da campanha no lugar — a mesa espera.
+  it("com o mestre fora, não desenha o mapa da campanha: espera o tabuleiro", async () => {
+    renderPlayerPage();
+    const ws = await waitForSocket();
+    act(() => ws.onopen?.());
+    act(() => ws.emit("lobby_not_open", {}));
+    await screen.findByText("Carregando o tabuleiro…");
+    expect(screen.queryByTestId("map-stub")).not.toBeInTheDocument();
+  });
+
   it("mostra o erro do servidor em vez de engoli-lo", async () => {
     renderPlayerPage();
     const ws = await waitForSocket();
@@ -236,6 +247,7 @@ describe("GamePlayerPage", () => {
     act(() => ws.onopen?.());
     act(() =>
       ws.emit("map_full_state", {
+        grid: mapApiFixture.grid, bg: null,
         pieces: [
           { pieceId: "piece-c1", slot: { kind: "square", col: 1, row: 1 }, characterId: "c1", visible: true, z: 0 },
           { pieceId: "piece-c2", slot: { kind: "square", col: 2, row: 2 }, characterId: "c2", visible: true, z: 0 },
@@ -271,6 +283,7 @@ describe("GamePlayerPage", () => {
     act(() => ws.onopen?.());
     act(() =>
       ws.emit("map_full_state", {
+        grid: mapApiFixture.grid, bg: null,
         pieces: [
           { pieceId: "piece-c1", slot: { kind: "square", col: 1, row: 1 }, characterId: "c1", visible: true, z: 0 },
         ],
@@ -331,6 +344,7 @@ describe("GamePlayerPage", () => {
     act(() => ws.onopen?.());
     act(() =>
       ws.emit("map_full_state", {
+        grid: mapApiFixture.grid, bg: null,
         pieces: [
           { pieceId: "piece-c1", slot: { kind: "square", col: 1, row: 1 }, characterId: "c1", visible: true, z: 0 },
           { pieceId: "piece-c2", slot: { kind: "square", col: 2, row: 2 }, characterId: "c2", visible: true, z: 0 },
@@ -366,6 +380,7 @@ describe("GamePlayerPage", () => {
     const board = (ws: FakeWS) =>
       act(() =>
         ws.emit("map_full_state", {
+          grid: mapApiFixture.grid, bg: null,
           pieces: [
             { pieceId: "piece-c1", slot: { kind: "square", col: 1, row: 1 }, characterId: "c1", visible: true, z: 0 },
             { pieceId: "piece-c2", slot: { kind: "square", col: 2, row: 2 }, characterId: "c2", visible: true, z: 0 },
@@ -552,6 +567,7 @@ describe("GamePlayerPage", () => {
       renderPlayerPage();
       const ws = await waitForSocket();
       act(() => ws.onopen?.());
+      board(ws);
       await declare(ws, () => screen.getByTestId("empty-slot").click(), "action-1");
 
       fullState(ws, { ownQueue: [{ actionId: "action-1", action: { uuid: "action-1", actorId: "c1" } }] });
@@ -571,6 +587,7 @@ describe("GamePlayerPage", () => {
     act(() => ws.onopen?.());
     act(() =>
       ws.emit("map_full_state", {
+        grid: mapApiFixture.grid, bg: null,
         pieces: [
           { pieceId: "piece-c1", slot: { kind: "square", col: 1, row: 1 }, characterId: "c1", visible: true, z: 0 },
           { pieceId: "piece-c2", slot: { kind: "square", col: 2, row: 2 }, characterId: "c2", visible: true, z: 0 },
@@ -621,6 +638,7 @@ describe("GamePlayerPage", () => {
     act(() => ws.onopen?.());
     act(() =>
       ws.emit("map_full_state", {
+        grid: mapApiFixture.grid, bg: null,
         pieces: [
           { pieceId: "piece-c1", slot: { kind: "square", col: 1, row: 1 }, characterId: "c1", visible: true, z: 0 },
           { pieceId: "piece-c2", slot: { kind: "square", col: 6, row: 1 }, characterId: "c2", visible: true, z: 0 },
@@ -650,6 +668,7 @@ describe("GamePlayerPage", () => {
     act(() => ws.onopen?.());
     act(() =>
       ws.emit("map_full_state", {
+        grid: mapApiFixture.grid, bg: null,
         pieces: [
           { pieceId: "piece-c1", slot: { kind: "square", col: 1, row: 1 }, characterId: "c1", visible: true, z: 0 },
         ],
@@ -679,6 +698,7 @@ describe("GamePlayerPage", () => {
     act(() => ws.onopen?.());
     act(() =>
       ws.emit("map_full_state", {
+        grid: mapApiFixture.grid, bg: null,
         pieces: [
           { pieceId: "piece-c1", slot: { kind: "square", col: 1, row: 1 }, characterId: "c1", visible: true, z: 0 },
           { pieceId: "piece-c2", slot: { kind: "square", col: 2, row: 2 }, characterId: "c2", visible: true, z: 0 },
@@ -719,6 +739,7 @@ describe("GamePlayerPage", () => {
     act(() => ws.onopen?.());
     act(() =>
       ws.emit("map_full_state", {
+        grid: mapApiFixture.grid, bg: null,
         pieces: [
           { pieceId: "piece-c1", slot: { kind: "square", col: 1, row: 1 }, characterId: "c1", visible: true, z: 0 },
           { pieceId: "piece-c2", slot: { kind: "square", col: 2, row: 2 }, characterId: "c2", visible: true, z: 0 },
@@ -755,6 +776,7 @@ describe("GamePlayerPage", () => {
     // Sem chamar ws.onopen(): status continua "connecting", nunca "connected".
     act(() =>
       ws.emit("map_full_state", {
+        grid: mapApiFixture.grid, bg: null,
         pieces: [
           { pieceId: "piece-c1", slot: { kind: "square", col: 1, row: 1 }, characterId: "c1", visible: true, z: 0 },
           { pieceId: "piece-c2", slot: { kind: "square", col: 2, row: 2 }, characterId: "c2", visible: true, z: 0 },
@@ -781,6 +803,7 @@ describe("GamePlayerPage", () => {
     act(() => ws.onopen?.());
     act(() =>
       ws.emit("map_full_state", {
+        grid: mapApiFixture.grid, bg: null,
         pieces: [
           { pieceId: "piece-c1", slot: { kind: "square", col: 1, row: 1 }, characterId: "c1", visible: true, z: 0 },
           { pieceId: "piece-c2", slot: { kind: "square", col: 2, row: 2 }, characterId: "c2", visible: true, z: 0 },
@@ -810,6 +833,11 @@ describe("GamePlayerPage", () => {
 
   it("passa draggablePieceIds vazio ao mapa — o servidor decide onde a peça para (I1)", async () => {
     renderPlayerPage();
+    const ws = await waitForSocket();
+    act(() => {
+      ws.onopen?.();
+      ws.emit("map_full_state", { pieces: [], walls: [], visiblePolygons: [], fogMode: "explored", grid: mapApiFixture.grid, bg: null });
+    });
     expect(await screen.findByTestId("map-stub")).toHaveAttribute(
       "data-draggable-piece-ids",
       "[]",
@@ -827,6 +855,7 @@ describe("GamePlayerPage", () => {
     // projetada para este jogador (fog escondeu).
     act(() =>
       ws.emit("map_full_state", {
+        grid: mapApiFixture.grid, bg: null,
         pieces: [
           { pieceId: "piece-c1", slot: { kind: "square", col: 1, row: 1 }, characterId: "c1", visible: true, z: 0 },
         ],
@@ -1044,6 +1073,7 @@ describe("GamePlayerPage", () => {
     // (mesmo filtro de visibilidade do F6).
     act(() =>
       ws.emit("map_full_state", {
+        grid: mapApiFixture.grid, bg: null,
         pieces: [
           { pieceId: "piece-npc", slot: { kind: "square", col: 5, row: 5 }, characterId: "npc-1", visible: true, z: 0 },
         ],
@@ -1072,6 +1102,7 @@ describe("GamePlayerPage", () => {
       act(() => ws.onopen?.());
       act(() =>
         ws.emit("map_full_state", {
+          grid: mapApiFixture.grid, bg: null,
           pieces: [
             { pieceId: "piece-c1", slot: { kind: "square", col: 1, row: 1 }, characterId: "c1", visible: true, z: 0 },
             { pieceId: "piece-c2", slot: { kind: "square", col: 6, row: 1 }, characterId: "c2", visible: true, z: 0 },

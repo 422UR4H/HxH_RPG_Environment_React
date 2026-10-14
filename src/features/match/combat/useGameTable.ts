@@ -59,12 +59,14 @@ export function useGameTable({
     [queryClient, token, matchId],
   );
 
-  // O tabuleiro (peças, paredes, fog) é do servidor, para os dois papéis (F13): do REST vem
-  // só o mapa em si — fundo e grade. As peças do mapa da campanha não são as da partida.
-  const live = useLiveMapSync({ map: restMap, campaign });
-  // A mesa desenha com a grade e o fundo do tabuleiro da partida, não os do mapa da campanha.
+  // O tabuleiro (grade, fundo, peças, paredes, fog) é do servidor, para os dois papéis (F13):
+  // do REST vem só o que não é geometria (o nome). Nada do mapa da campanha é desenhado.
+  const live = useLiveMapSync({ campaign });
   const { boardGrid, boardBg } = live;
+  // `undefined` até o primeiro `map_full_state` com grade — a mesa espera em vez de desenhar
+  // o mapa da campanha. `boardPending` separa isso de "nenhum mapa anexado" (`restMap` ausente).
   const map = useMemo(() => tableMap(restMap, boardGrid, boardBg), [restMap, boardGrid, boardBg]);
+  const boardPending = !!restMap && !map;
   // Peças só do servidor — é também o que mantém fora da vista do jogador as peças que o fog esconde.
   const boardPieces = live.livePieces ?? [];
 
@@ -282,6 +284,7 @@ export function useGameTable({
     user,
     map,
     isLoading: matchMapPending || (!!matchMap && mapPending),
+    boardPending,
     participants,
     participantsLoaded,
     refetchParticipants,

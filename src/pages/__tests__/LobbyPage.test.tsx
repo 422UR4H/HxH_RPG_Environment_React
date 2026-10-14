@@ -18,12 +18,27 @@ vi.mock("react-router-dom", async () => {
   return { ...actual, useNavigate: () => mockNavigate };
 });
 
-// O placer real desenha no Pixi (mockado); o stub expõe as peças que a página lhe entrega.
+// O placer real desenha no Pixi (mockado); o stub expõe as peças que a página lhe entrega e a
+// geometria do mapa que ele desenharia (grade, fundo, paredes).
 vi.mock("../../features/tactical-map/TacticalMapPlacer", () => ({
-  default: (props: { pieces: Array<{ id: string }> }) => (
-    <div data-testid="tactical-map-placer" data-piece-ids={JSON.stringify(props.pieces.map((p) => p.id))} />
+  default: (props: {
+    pieces: Array<{ id: string }>;
+    map: { grid: { cellSize: number }; bg: { url: string } | null; walls: Array<{ id: string }> };
+  }) => (
+    <div
+      data-testid="tactical-map-placer"
+      data-piece-ids={JSON.stringify(props.pieces.map((p) => p.id))}
+      data-cell-size={props.map.grid.cellSize}
+      data-bg={props.map.bg?.url ?? "null"}
+      data-wall-ids={JSON.stringify(props.map.walls.map((w) => w.id))}
+    />
   ),
 }));
+
+// A grade do TABULEIRO, diferente da do mapa da campanha (fixture: 64px).
+const boardGrid = {
+  kind: "square", cols: 8, rows: 8, cellSize: 40, skewRatio: 1, rotation: 0, color: "#000", opacity: 0.5, lineStyle: "solid",
+};
 
 const baseUrl = "http://localhost:5000";
 
@@ -255,8 +270,8 @@ describe("LobbyPage", () => {
 
   describe("LobbyPage — mapa", () => {
     // B14: o tabuleiro do lobby é do servidor (carregado de `match_boards` ou de um retrato do
-    // mapa anexado) e chega em `map_full_state` — para o mestre também. O mapa da campanha
-    // (REST) só dá fundo e grade.
+    // mapa anexado) e chega em `map_full_state` — para o mestre também. Grade, fundo e paredes
+    // vêm dele; do mapa da campanha (REST) não vem geometria nenhuma.
     describe("o tabuleiro é do servidor, também para o mestre", () => {
       const restPiece = { ...pieceFixture, id: "rest-piece", characterId: "sheet-1" };
       function withAttachedMap() {
@@ -283,10 +298,39 @@ describe("LobbyPage", () => {
         sendFromServer("room_state", { matchUuid: "match-1", state: "lobby", players: [] });
         sendFromServer("map_full_state", {
           pieces: [{ pieceId: "server-piece", slot: { kind: "square", col: 4, row: 4 }, characterId: "sheet-1" }],
-          walls: [], visiblePolygons: [], fogMode: "explored",
+          walls: [], visiblePolygons: [], fogMode: "explored", grid: boardGrid, bg: null,
         });
         await screen.findByTestId("tactical-map-placer");
         await waitFor(() => expect(placedIds()).toEqual(["server-piece"]));
+      });
+
+      it("espera o tabuleiro em vez de desenhar o mapa da campanha", async () => {
+        withAttachedMap();
+        renderPage({ user: masterUserFixture });
+        await waitForWsConnect();
+        simulateWsOpen();
+        sendFromServer("room_state", { matchUuid: "match-1", state: "lobby", players: [] });
+        await screen.findByText(/Carregando o tabuleiro/i);
+        expect(screen.queryByTestId("tactical-map-placer")).not.toBeInTheDocument();
+      });
+
+      it("desenha a grade, o fundo e as paredes do tabuleiro", async () => {
+        withAttachedMap();
+        renderPage({ user: masterUserFixture });
+        await waitForWsConnect();
+        simulateWsOpen();
+        sendFromServer("room_state", { matchUuid: "match-1", state: "lobby", players: [] });
+        sendFromServer("map_full_state", {
+          pieces: [],
+          walls: [{ id: "board-wall", p1: [0, 0], p2: [40, 0], wallType: "wall", material: "stone", sense: "full", hp: 10, maxHp: 10 }],
+          fogMode: "explored",
+          grid: boardGrid,
+          bg: { url: "board.png", x: 0, y: 0, width: 320, height: 320, rotation: 0, opacity: 1 },
+        });
+        const placer = await screen.findByTestId("tactical-map-placer");
+        expect(placer).toHaveAttribute("data-cell-size", "40");
+        expect(placer).toHaveAttribute("data-bg", "board.png");
+        expect(placer).toHaveAttribute("data-wall-ids", JSON.stringify(["board-wall"]));
       });
 
       it("tabuleiro vazio no servidor: não desenha as peças do REST nem manda map_state_sync", async () => {
@@ -295,6 +339,7 @@ describe("LobbyPage", () => {
         await waitForWsConnect();
         simulateWsOpen();
         sendFromServer("room_state", { matchUuid: "match-1", state: "lobby", players: [] });
+        sendFromServer("map_full_state", { pieces: [], walls: [], fogMode: "explored", grid: boardGrid, bg: null });
         await screen.findByTestId("tactical-map-placer");
         await screen.findByRole("button", { name: /Iniciar Partida/i });
 
@@ -353,6 +398,7 @@ describe("LobbyPage", () => {
         state: "lobby",
         players: [],
       });
+      sendFromServer("map_full_state", { pieces: [], walls: [], fogMode: "explored", grid: boardGrid, bg: null });
 
       await waitFor(() => {
         expect(screen.getByTestId("tactical-map-placer")).toBeInTheDocument();
