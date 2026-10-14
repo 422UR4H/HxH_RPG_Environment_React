@@ -226,10 +226,12 @@ describe("gridFromHandleDrag — perspectiva (Shift + TC/BC)", () => {
   it("Shift+TC em 90° não achata: cai no redimensionamento normal (ML/MR é o par)", () => {
     // rotação 90: ry da TC ≈ 0 (e da ML = -200) → o par que achata é ML/MR.
     // TC com Shift redimensiona: devolve grade com skewRatio intacto e cellSize novo.
+    // Em 90° a TC está em (400,200) e a âncora BC em (0,200): o cursor em (200,0) projeta na
+    // metade da diagonal → cellSize 40 → 20.
     const g: GridShape = { ...squareGrid(40), rotation: 90 };
-    const out = gridFromHandleDrag("TC", g, 0, 0, true)!;
-    expect(out).not.toBeNull();
+    const out = gridFromHandleDrag("TC", g, 200, 0, true)!;
     expect(out.skewRatio).toBe(1);
+    expect(out.cellSize).toBeCloseTo(20, 6);
   });
 });
 
@@ -242,6 +244,29 @@ describe("skewHandlePair / Shift + ML/MR", () => {
     expect(skewHandlePair({ ...squareGrid(40), rotation: 90 })).toBe("ML/MR");
     expect(skewHandlePair({ ...squareGrid(40), rotation: -90 })).toBe("ML/MR");
     expect(skewHandlePair({ ...squareGrid(40), rotation: 45 })).toBe("TC/BC");
+  });
+
+  // O par depende só do ângulo, não da proporção da grade: |cos θ| >= |sin θ| → TC/BC.
+  it("só o ângulo decide: 30×10 em 20° é TC/BC, hex 10×10 em 45° é TC/BC", () => {
+    const wide: GridShape = { ...squareGrid(40), cols: 30, rows: 10, rotation: 20 };
+    expect(skewHandlePair(wide)).toBe("TC/BC");
+    const hex: GridShape = { ...squareGrid(40), kind: "hex", rotation: 45 };
+    expect(skewHandlePair(hex)).toBe("TC/BC");
+    for (const r of [45, -45, 135, -135]) {
+      expect(skewHandlePair({ ...wide, rotation: r })).toBe("TC/BC");
+    }
+  });
+
+  it("qualquer grade em 90° usa ML/MR", () => {
+    for (const g of [
+      { ...squareGrid(40), cols: 30, rows: 10 },
+      { ...squareGrid(40), cols: 5, rows: 40 },
+      { ...squareGrid(40), kind: "hex" as const },
+    ]) {
+      expect(skewHandlePair({ ...g, rotation: 90 })).toBe("ML/MR");
+      expect(skewHandlePair({ ...g, rotation: -90 })).toBe("ML/MR");
+    }
+    expect(skewHandlePair({ ...squareGrid(40), cols: 30, rows: 10, rotation: 50 })).toBe("ML/MR");
   });
 
   it("90° com skew 0,5: Shift+ML com cursor sobre a alça mantém o achatamento", () => {

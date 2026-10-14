@@ -159,9 +159,10 @@ Achatar antes só comprimiria o eixo vertical local. `inverseTransform` desfaz n
 - **Painel Grade** (`GridConfigPanel`): Predefinições (Isométrico = rotação 45 + `skewRatio` 0.5;
   Top-down = 0 / 1), campo numérico de Rotação e Perspectiva (slider + número, 0.3 a 1.0).
 - **No mapa** (`MapHandlesLayer`, `gridFromHandleDrag`): a esfera dourada gira a grade;
-  Shift + alça do par mais vertical na tela achata (`skewRatio`): `TC`/`BC` perto de 0°,
-  `ML`/`MR` perto de 90° (`skewHandlePair`, empate fica com `TC`/`BC`). O outro par, com Shift,
-  redimensiona normalmente.
+  Shift + alça do par mais vertical na tela achata (`skewRatio`). Só o ângulo decide
+  (`skewHandlePair`): `|cos θ| >= |sin θ|` → `TC`/`BC`, senão `ML`/`MR` — empate (45°) fica com
+  `TC`/`BC`, e a proporção da grade (colunas × linhas, quadrada ou hex) não entra. O outro par,
+  com Shift, redimensiona normalmente.
 - **Encaixar Grade** (`fitGridToImage`) usa a caixa da grade no MUNDO (com rotação e perspectiva) e
   preserva ambas. O aviso "colunas/linhas não cobertas pela imagem" ao salvar
   (`uncoveredGridLines`, `utils/bgCoverage.ts`) também testa a grade transformada, quadrada ou hex.

@@ -286,14 +286,14 @@ function handlePairOf(handle: string): "TC/BC" | "ML/MR" | null {
 }
 
 /**
- * Par de alças que o Shift usa para achatar: o mais vertical na tela, isto é, o de maior
- * |ry|. Perto de 90° TC/BC ficam na horizontal da tela e ML/MR assumem. Empate (45°) fica
- * com TC/BC. O outro par, com Shift, faz o redimensionamento normal.
+ * Par de alças que o Shift usa para achatar: o da direção mais vertical na tela, decidido só
+ * pelo ângulo — |cos θ| >= |sin θ| → TC/BC, senão ML/MR (empate em 45° fica com TC/BC). Não
+ * compara |ry| das alças: isso dependia da proporção da grade (uma 30×10 em 20° escolhia ML/MR
+ * com a TC visivelmente no topo). O outro par, com Shift, faz o redimensionamento normal.
  */
 export function skewHandlePair(grid: GridShape): "TC/BC" | "ML/MR" {
-  return Math.abs(handleRotatedY("ML", grid)) > Math.abs(handleRotatedY("TC", grid)) + 1e-9
-    ? "ML/MR"
-    : "TC/BC";
+  const t = grid.rotation * (Math.PI / 180);
+  return Math.abs(Math.cos(t)) + 1e-9 >= Math.abs(Math.sin(t)) ? "TC/BC" : "ML/MR";
 }
 
 // Computes the new grid from dragging an edit handle to a world point.
