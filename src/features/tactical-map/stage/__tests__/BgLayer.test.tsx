@@ -29,13 +29,26 @@ describe("BgLayer — falha de carga", () => {
   });
 
   it("retryKey novo dispara nova carga da mesma URL", async () => {
+    // Callbacks estáveis: identidade nova a cada render já reexecutaria o efeito sozinha.
     const onError = vi.fn();
-    const { rerender } = render(<BgLayer bg={bg} onError={onError} onLoadingChange={() => {}} retryKey={0} />);
+    const onLoadingChange = vi.fn();
+    const { rerender } = render(<BgLayer bg={bg} onError={onError} onLoadingChange={onLoadingChange} retryKey={0} />);
     await waitFor(() => expect(onError).toHaveBeenCalledTimes(1));
     expect(calls).toHaveLength(1);
-    rerender(<BgLayer bg={bg} onError={onError} onLoadingChange={() => {}} retryKey={1} />);
+    rerender(<BgLayer bg={bg} onError={onError} onLoadingChange={onLoadingChange} retryKey={0} />);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(calls).toHaveLength(1);
+    rerender(<BgLayer bg={bg} onError={onError} onLoadingChange={onLoadingChange} retryKey={1} />);
     await waitFor(() => expect(calls).toHaveLength(2));
     // Mesma URL, sem query string (URLs do R2 podem ser assinadas).
     expect(calls).toEqual([bg.url, bg.url]);
+  });
+
+  it("não chama onError se desmontar antes da rejeição", async () => {
+    const onError = vi.fn();
+    const { unmount } = render(<BgLayer bg={bg} onError={onError} onLoadingChange={vi.fn()} />);
+    unmount();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(onError).not.toHaveBeenCalled();
   });
 });

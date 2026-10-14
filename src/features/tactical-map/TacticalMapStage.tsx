@@ -107,6 +107,7 @@ export default function TacticalMapStage({
   const handleBgError = useCallback(() => setBgFailed(true), []);
   const handleBgRetry = useCallback(() => {
     setBgFailed(false);
+    setIsBgLoading(true); // overlay entra no mesmo commit em que o aviso some
     setBgRetryKey((k) => k + 1);
   }, []);
 
