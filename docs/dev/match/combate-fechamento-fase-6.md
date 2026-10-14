@@ -149,9 +149,8 @@ ele só era enviado pelo socket da página.
   jogador esperando o mestre (`lobby_not_open`). Editar o mapa da campanha não muda a mesa. O
   `fogMode` também vem só do `map_full_state`.
 - O lobby (mestre e jogador) desenha o mesmo tabuleiro: `useLobbyWs` lê grade, fundo e paredes do
-  `map_full_state` e o `LobbyPage` monta o mapa pelo mesmo `tableMap`, com a mesma espera. As
-  paredes do jogador no lobby chegam vazias hoje — o servidor as desliga de propósito
-  (`room.go`, `buildMapFullState`). O lobby parou de mandar `map_state_sync` (Ruling 15).
+  `map_full_state` e o `LobbyPage` monta o mapa pelo mesmo `tableMap`, com a mesma espera. O
+  jogador recebe as paredes mascaradas (porta secreta não revelada vira parede comum). O lobby parou de mandar `map_state_sync` (Ruling 15).
 - Iniciar a partida não grava mais no mapa da campanha.
 
 ## Continuar o tabuleiro de outra partida (F15)
