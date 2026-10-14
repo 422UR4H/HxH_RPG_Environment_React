@@ -60,6 +60,8 @@ export type EditorState = {
 export function createEditorStore(initialMap: TacticalMap) {
   // Preenchido pelo handleSet do temporal; descarrega a rajada pendente.
   let flushHistory: () => void = () => {};
+  // Reativo p/ a toolbar: rajada pendente habilita Desfazer (ligado abaixo).
+  let setPending: (pending: boolean) => void = () => {};
   const store = create<EditorState>()(
     temporal(
       immer((set) => ({
@@ -198,7 +200,7 @@ export function createEditorStore(initialMap: TacticalMap) {
         // Efeito colateral: ações discretas entram no histórico após ~400ms;
         // undo/redo/pause descarregam a rajada pendente (ver abaixo).
         handleSet: (handleSet) => {
-          const burst = debounceBurst(handleSet, 400);
+          const burst = debounceBurst(handleSet, 400, (p) => setPending(p));
           flushHistory = burst.flush;
           return burst;
         },
@@ -208,6 +210,8 @@ export function createEditorStore(initialMap: TacticalMap) {
   );
   // Rajada pendente vira passo ANTES de desfazer/refazer/pausar; senão o passo
   // chegaria depois e bagunçaria a pilha (ou se misturaria ao gesto).
+  setPending = (pending) =>
+    store.temporal.setState({ hasPendingHistory: pending } as object);
   const { undo, redo, pause } = store.temporal.getState();
   store.temporal.setState({
     undo: (...a) => {

@@ -74,3 +74,24 @@ describe("useEditorHistory", () => {
     expect(store.getState().isDirty).toBe(true);
   });
 });
+
+describe("useEditorHistory — rajada pendente", () => {
+  beforeEach(() => { vi.useFakeTimers(); });
+  afterEach(() => { vi.useRealTimers(); });
+
+  it("logo após uma edição canUndo é true e canRedo false; undo restaura o original", () => {
+    const store = createEditorStore(mapFixture);
+    const { result } = renderHook(() => useEditorHistory(store));
+    act(() => {
+      store.getState().setName("novo");
+    });
+    expect(result.current.canUndo).toBe(true);
+    expect(result.current.canRedo).toBe(false);
+    act(() => {
+      result.current.undo();
+    });
+    expect(store.getState().map.name).toBe(mapFixture.name);
+    expect(result.current.canRedo).toBe(true);
+    expect(result.current.canUndo).toBe(false);
+  });
+});

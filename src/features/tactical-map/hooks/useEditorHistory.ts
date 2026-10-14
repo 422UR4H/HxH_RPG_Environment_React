@@ -7,8 +7,20 @@ import type { TacticalMap } from "../../../types/tacticalMap";
 export function useEditorHistory(store: EditorStore) {
   const temporalUndo = useStore(store.temporal, (s) => s.undo);
   const temporalRedo = useStore(store.temporal, (s) => s.redo);
-  const canUndo = useStore(store.temporal, (s) => s.pastStates.length > 0);
-  const canRedo = useStore(store.temporal, (s) => s.futureStates.length > 0);
+  // Rajada ainda no debounce (pastStates vazio): undo a descarrega primeiro;
+  // o redo ficaria inútil, pois a rajada limpa o futuro ao ser gravada.
+  const hasPending = useStore(
+    store.temporal,
+    (s) => (s as { hasPendingHistory?: boolean }).hasPendingHistory === true,
+  );
+  const canUndo = useStore(
+    store.temporal,
+    (s) => s.pastStates.length > 0 || hasPending,
+  );
+  const canRedo = useStore(
+    store.temporal,
+    (s) => s.futureStates.length > 0 && !hasPending,
+  );
   const markDirty = store((s) => s.markDirty);
 
   const undo = () => {

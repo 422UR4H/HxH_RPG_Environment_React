@@ -20,17 +20,21 @@ export function debounce<Args extends unknown[]>(
 export function debounceBurst<First, Rest extends unknown[]>(
   fn: (first: First, ...rest: Rest) => void,
   ms: number,
+  onPending?: (pending: boolean) => void,
 ): ((first: First, ...rest: Rest) => void) & { flush: () => void } {
   let timer: ReturnType<typeof setTimeout> | null = null;
   let first: First;
   let rest: Rest;
   const fire = () => {
     timer = null;
+    onPending?.(false);
     fn(first, ...rest);
   };
   const wrapped = (f: First, ...r: Rest) => {
-    if (timer === null) first = f;
-    else clearTimeout(timer);
+    if (timer === null) {
+      first = f;
+      onPending?.(true);
+    } else clearTimeout(timer);
     rest = r;
     timer = setTimeout(fire, ms);
   };
