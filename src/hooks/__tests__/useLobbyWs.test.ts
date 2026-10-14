@@ -242,6 +242,15 @@ describe("useLobbyWs", () => {
     expect(result.current.status).toBe("replaced");
   });
 
+  it("board_unavailable: chama onBoardUnavailable e não muda o status", () => {
+    const onBoardUnavailable = vi.fn();
+    const { result } = renderHook(() => useLobbyWs({ ...defaultParams, onBoardUnavailable }));
+    simulateOpen();
+    sendFromServer("error", { code: "board_unavailable", message: "the match board could not be loaded; reconnect to try again" });
+    expect(onBoardUnavailable).toHaveBeenCalledTimes(1);
+    expect(result.current.status).toBe("connected");
+  });
+
   it("reconnects after unexpected close with backoff", () => {
     renderHook(() => useLobbyWs(defaultParams));
     simulateOpen();

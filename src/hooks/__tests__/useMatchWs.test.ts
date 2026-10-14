@@ -695,6 +695,21 @@ describe("useMatchWs connection lifecycle", () => {
     expect(FakeWS.instances).toHaveLength(2);
   });
 
+  // Task 2: o servidor avisa, ao conectar, que a sala não conseguiu carregar o tabuleiro. Não
+  // responde a nada que a aba enviou (sem toast) e a conexão continua aberta.
+  it("board_unavailable: chama onBoardUnavailable, não onWsError, e a conexão segue", () => {
+    const onWsError = vi.fn();
+    const onBoardUnavailable = vi.fn();
+    const { result } = renderHook(() => useMatchWs({ matchUuid: "m1", token: "t", onWsError, onBoardUnavailable }));
+    const ws = flushConnect();
+    act(() => { ws.onopen?.(); });
+    act(() => { ws.emit("error", { code: "board_unavailable", message: "the match board could not be loaded; reconnect to try again" }); });
+
+    expect(onBoardUnavailable).toHaveBeenCalledTimes(1);
+    expect(onWsError).not.toHaveBeenCalled();
+    expect(result.current.status).not.toBe("replaced");
+  });
+
   it("reconnect() opens a fresh socket after giving up", () => {
     const { result } = renderHook(() => useMatchWs({ matchUuid: "m1", token: "t" }));
     const ws = flushConnect();

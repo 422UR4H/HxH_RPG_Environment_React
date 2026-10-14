@@ -314,6 +314,42 @@ describe("LobbyPage", () => {
         expect(screen.queryByTestId("tactical-map-placer")).not.toBeInTheDocument();
       });
 
+      it("board_unavailable: avisa a falha no lugar do mapa; o map_full_state seguinte desenha", async () => {
+        withAttachedMap();
+        renderPage({ user: masterUserFixture });
+        await waitForWsConnect();
+        simulateWsOpen();
+        sendFromServer("room_state", { matchUuid: "match-1", state: "lobby", players: [] });
+        sendFromServer("error", { code: "board_unavailable", message: "the match board could not be loaded; reconnect to try again" });
+        await screen.findByText("Não foi possível carregar o tabuleiro da partida. Atualize a página para tentar de novo.");
+        expect(screen.queryByText("Carregando o tabuleiro…")).not.toBeInTheDocument();
+
+        sendFromServer("map_full_state", { pieces: [], walls: [], visiblePolygons: [], fogMode: "explored", grid: boardGrid, bg: null });
+        await screen.findByTestId("tactical-map-placer");
+        expect(screen.queryByText(/Não foi possível carregar o tabuleiro/)).not.toBeInTheDocument();
+      });
+
+      it("sem conexão: diz que o tabuleiro volta com a conexão", async () => {
+        withAttachedMap();
+        renderPage({ user: masterUserFixture });
+        await waitForWsConnect();
+        simulateWsOpen();
+        sendFromServer("room_state", { matchUuid: "match-1", state: "lobby", players: [] });
+        wsInstance.onclose?.({ code: 1006 } as CloseEvent);
+        await screen.findByText("Sem conexão com a sala. O tabuleiro aparece quando a conexão voltar.");
+      });
+
+      it("o tabuleiro chegou e o REST do mapa falhou: desenha mesmo assim", async () => {
+        withAttachedMap();
+        server.use(http.get(`${baseUrl}/maps/:id`, () => new HttpResponse(null, { status: 500 })));
+        renderPage({ user: masterUserFixture });
+        await waitForWsConnect();
+        simulateWsOpen();
+        sendFromServer("room_state", { matchUuid: "match-1", state: "lobby", players: [] });
+        sendFromServer("map_full_state", { pieces: [], walls: [], visiblePolygons: [], fogMode: "explored", grid: boardGrid, bg: null });
+        await screen.findByTestId("tactical-map-placer");
+      });
+
       it("desenha a grade, o fundo e as paredes do tabuleiro", async () => {
         withAttachedMap();
         renderPage({ user: masterUserFixture });

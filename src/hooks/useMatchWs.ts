@@ -156,6 +156,12 @@ type UseMatchWsOptions = {
   /** Server refusal (`error`). Never broadcast: it is always about our own last send. */
   onWsError?: (e: { code: string; message: string; sentType?: string }) => void;
   /**
+   * `error` `board_unavailable` (s→c, ao conectar): a sala não conseguiu carregar o tabuleiro
+   * da partida. NÃO é resposta a um envio — por isso não vai ao `onWsError` — e a conexão segue
+   * aberta; um `map_full_state` posterior o supera (o servidor tenta de novo na próxima conexão).
+   */
+  onBoardUnavailable?: () => void;
+  /**
    * Called when a combat message is received from the server. `serverAt` is the
    * envelope's own `timestamp` (`Date.parse`d), when the server sent one — `undefined`
    * otherwise. Server time, not `Date.now()`, so a client clock skew never leaks in.
@@ -187,6 +193,7 @@ export function useMatchWs({
   onPieceMoved,
   onPieceRemoved,
   onWsError,
+  onBoardUnavailable,
   onCombatMessage,
   onNpcAdded,
   onMasterActionEnqueued,
@@ -212,6 +219,8 @@ export function useMatchWs({
   onPieceRemovedRef.current = onPieceRemoved;
   const onWsErrorRef = useRef(onWsError);
   onWsErrorRef.current = onWsError;
+  const onBoardUnavailableRef = useRef(onBoardUnavailable);
+  onBoardUnavailableRef.current = onBoardUnavailable;
   const onCombatMessageRef = useRef(onCombatMessage);
   onCombatMessageRef.current = onCombatMessage;
   const onNpcAddedRef = useRef(onNpcAdded);
@@ -359,6 +368,10 @@ export function useMatchWs({
             // Não responde a nada que esta aba enviou: não é erro de envio.
             if (p.code === "connection_replaced") {
               replaced = true;
+              return;
+            }
+            if (p.code === "board_unavailable") {
+              onBoardUnavailableRef.current?.();
               return;
             }
             onWsErrorRef.current?.({

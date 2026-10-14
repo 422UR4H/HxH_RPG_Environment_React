@@ -50,6 +50,8 @@ interface UseLobbyWsParams {
   onPieceRemoved?: (pieceId: string) => void;
   // Fires when the server sends the full current board to a newly joined client.
   onFullState?: (state: LobbyFullState) => void;
+  /** `error` `board_unavailable` (s→c, ao conectar): a sala não carregou o tabuleiro; um `map_full_state` posterior o supera. */
+  onBoardUnavailable?: () => void;
 }
 
 interface UseLobbyWsResult {
@@ -86,6 +88,7 @@ export function useLobbyWs({
   onPieceMoved,
   onPieceRemoved,
   onFullState,
+  onBoardUnavailable,
 }: UseLobbyWsParams): UseLobbyWsResult {
   const [status, setStatus] = useState<WsStatus>("connecting");
   const [participants, setParticipants] = useState<LobbyParticipant[]>([]);
@@ -104,6 +107,8 @@ export function useLobbyWs({
   onPieceRemovedRef.current = onPieceRemoved;
   const onFullStateRef = useRef(onFullState);
   onFullStateRef.current = onFullState;
+  const onBoardUnavailableRef = useRef(onBoardUnavailable);
+  onBoardUnavailableRef.current = onBoardUnavailable;
   const userUuidRef = useRef(userUuid);
   userUuidRef.current = userUuid;
 
@@ -199,6 +204,7 @@ export function useLobbyWs({
             break;
           case "error":
             if (payload.code === "connection_replaced") updateStatus("replaced");
+            else if (payload.code === "board_unavailable") onBoardUnavailableRef.current?.();
             break;
           case "match_started":
             onMatchStartedRef.current();

@@ -10,7 +10,7 @@ import { useMatchMap } from "../hooks/useMatchMap";
 import { useMap } from "../hooks/useMap";
 import TacticalMapPlacer from "../features/tactical-map/TacticalMapPlacer";
 import { tableMap } from "../features/match/combat/tableMap";
-import { MapLoadingMessage } from "../features/match/combat/mapCanvasStyles";
+import { BoardWaitNotice } from "../features/match/combat/BoardWaitNotice";
 import {
   LoadingContainer,
   ErrorContainer,
@@ -63,6 +63,7 @@ export default function LobbyPage() {
 
   const { data: matchMap } = useMatchMap(token, matchId);
   const { data: fullMap } = useMap(token, matchMap?.mapUuid);
+  const attachedMapId = matchMap?.mapUuid;
 
   // O lobby desenha o TABULEIRO da partida, para os dois papéis: peças (do `map_full_state` e
   // das mensagens de peça), paredes, grade e fundo vêm do servidor. Do mapa da campanha (REST)
@@ -72,7 +73,13 @@ export default function LobbyPage() {
   const [boardGrid, setBoardGrid] = useState<GridShape | undefined>(undefined);
   const [boardBg, setBoardBg] = useState<BgImage | undefined>(undefined);
   // `undefined` até o tabuleiro chegar — a mesma regra da mesa (`tableMap`).
-  const lobbyMap = useMemo(() => tableMap(fullMap, boardGrid, boardBg), [fullMap, boardGrid, boardBg]);
+  // O tabuleiro que chegou sempre desenha, mesmo que o REST do mapa tenha falhado.
+  const lobbyMap = useMemo(
+    () => tableMap(fullMap, boardGrid, boardBg, attachedMapId),
+    [fullMap, boardGrid, boardBg, attachedMapId],
+  );
+  // `board_unavailable`: a sala não carregou o tabuleiro; vale até o próximo `map_full_state`.
+  const [boardUnavailable, setBoardUnavailable] = useState(false);
 
   const handleWsPieceMoved = useCallback(
     (pieceId: string, slot: SlotCoord, characterId?: string, visible?: boolean) => {
@@ -102,6 +109,7 @@ export default function LobbyPage() {
   // Desde B14 o servidor é dono do tabuleiro do lobby também para o mestre: o que ele manda
   // substitui o que estiver na tela.
   const handleWsFullState = useCallback(({ pieces, walls, grid, bg }: LobbyFullState) => {
+    setBoardUnavailable(false);
     setBoardWalls(walls);
     setBoardGrid(grid);
     setBoardBg(bg);
@@ -128,6 +136,7 @@ export default function LobbyPage() {
       onPieceMoved: handleWsPieceMoved,
       onPieceRemoved: handleWsPieceRemoved,
       onFullState: handleWsFullState,
+      onBoardUnavailable: () => setBoardUnavailable(true),
     });
 
   // All character sheet UUIDs the current player is enrolled with (accepted enrollments).
@@ -273,9 +282,9 @@ export default function LobbyPage() {
           )}
         </ActionsList>
 
-        {fullMap && !lobbyMap && (
+        {attachedMapId && !lobbyMap && (
           <LobbyMapWaiting>
-            <MapLoadingMessage>Carregando o tabuleiro…</MapLoadingMessage>
+            <BoardWaitNotice boardUnavailable={boardUnavailable} status={status} />
           </LobbyMapWaiting>
         )}
         {lobbyMap && (

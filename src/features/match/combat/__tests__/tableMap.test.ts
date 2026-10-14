@@ -11,8 +11,22 @@ const rest = {
 } as unknown as TacticalMap;
 
 describe("tableMap", () => {
-  it("no map attached: undefined", () => {
-    expect(tableMap(undefined, grid(1), bg)).toBeUndefined();
+  it("sem grade do tabuleiro: undefined, com ou sem o mapa do REST", () => {
+    expect(tableMap(undefined, undefined, bg)).toBeUndefined();
+    expect(tableMap(undefined, undefined, undefined, "uuid")).toBeUndefined();
+  });
+  it("o tabuleiro chegou e o REST não: desenha, com campos neutros", () => {
+    const m = tableMap(undefined, grid(1), bg)!;
+    expect(m.grid).toEqual(grid(1));
+    expect(m.bg).toEqual(bg);
+    expect(m).toMatchObject({
+      id: "", campaignId: "", name: "", pieces: [], walls: [], decorations: [], items: [],
+      createdAt: "", updatedAt: "",
+    });
+  });
+  it("sem o mapa do REST, o id é o mapUuid do mapa anexado", () => {
+    expect(tableMap(undefined, grid(1), undefined, "map-uuid")!.id).toBe("map-uuid");
+    expect(tableMap(undefined, grid(1), undefined, "map-uuid")!.bg).toBeNull();
   });
   it("board not arrived yet: undefined — never the campaign map's geometry", () => {
     expect(tableMap(rest, undefined, undefined)).toBeUndefined();

@@ -183,8 +183,53 @@ describe("GamePlayerPage", () => {
     const ws = await waitForSocket();
     act(() => ws.onopen?.());
     act(() => ws.emit("lobby_not_open", {}));
-    await screen.findByText("Carregando o tabuleiro…");
+    act(() => ws.onclose?.({ code: 4001 } as CloseEvent));
+    await screen.findByText("O tabuleiro aparece quando o mestre abrir a sala.");
     expect(screen.queryByTestId("map-stub")).not.toBeInTheDocument();
+  });
+
+  it("conectando: diz que carrega o tabuleiro", async () => {
+    renderPlayerPage();
+    await screen.findByText("Carregando o tabuleiro…");
+  });
+
+  it("sem conexão: diz que o tabuleiro volta com a conexão", async () => {
+    renderPlayerPage();
+    const ws = await waitForSocket();
+    act(() => ws.onopen?.());
+    act(() => ws.onclose?.({ code: 1000 } as CloseEvent));
+    await screen.findByText("Sem conexão com a sala. O tabuleiro aparece quando a conexão voltar.");
+  });
+
+  it("board_unavailable: avisa a falha e sem toast; o map_full_state seguinte desenha", async () => {
+    renderPlayerPage();
+    const ws = await waitForSocket();
+    act(() => ws.onopen?.());
+    act(() => ws.emit("error", { code: "board_unavailable", message: "the match board could not be loaded; reconnect to try again" }));
+    await screen.findByText("Não foi possível carregar o tabuleiro da partida. Atualize a página para tentar de novo.");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("map-stub")).not.toBeInTheDocument();
+
+    act(() =>
+      ws.emit("map_full_state", {
+        grid: mapApiFixture.grid, bg: null, pieces: [], walls: [], visiblePolygons: [], fogMode: "explored",
+      }),
+    );
+    await screen.findByTestId("map-stub");
+    expect(screen.queryByText(/Não foi possível carregar o tabuleiro/)).not.toBeInTheDocument();
+  });
+
+  it("o tabuleiro chegou e o REST do mapa falhou: desenha mesmo assim", async () => {
+    server.use(http.get(`${baseUrl}/maps/:id`, () => new HttpResponse(null, { status: 500 })));
+    renderPlayerPage();
+    const ws = await waitForSocket();
+    act(() => ws.onopen?.());
+    act(() =>
+      ws.emit("map_full_state", {
+        grid: mapApiFixture.grid, bg: null, pieces: [], walls: [], visiblePolygons: [], fogMode: "explored",
+      }),
+    );
+    await screen.findByTestId("map-stub");
   });
 
   it("mostra o erro do servidor em vez de engoli-lo", async () => {

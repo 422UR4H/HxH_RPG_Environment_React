@@ -253,6 +253,23 @@ describe("GameMasterPage", () => {
       expect(screen.queryByText("Carregando o tabuleiro…")).not.toBeInTheDocument();
     });
 
+    it("board_unavailable: avisa a falha em vez de ficar carregando", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      act(() => ws.onopen?.());
+      act(() => ws.emit("error", { code: "board_unavailable", message: "the match board could not be loaded; reconnect to try again" }));
+      await screen.findByText("Não foi possível carregar o tabuleiro da partida. Atualize a página para tentar de novo.");
+      expect(screen.queryByText("Carregando o tabuleiro…")).not.toBeInTheDocument();
+    });
+
+    it("o tabuleiro chegou e o REST do mapa falhou: desenha mesmo assim", async () => {
+      server.use(http.get(`${baseUrl}/maps/:id`, () => new HttpResponse(null, { status: 500 })));
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws, []);
+      await screen.findByTestId("map-stub");
+    });
+
     it("tabuleiro vazio no servidor: não desenha as peças do REST nem manda map_state_sync", async () => {
       renderMasterPage();
       const ws = await waitForSocket();
