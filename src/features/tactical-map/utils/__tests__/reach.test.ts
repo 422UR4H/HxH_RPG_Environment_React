@@ -133,8 +133,32 @@ describe("neighborTowardScreen", () => {
     expect(neighborTowardScreen(hx(3, 3), g, "right")).toEqual(hx(4, 3));
   });
 
-  it("hex: ↑ empata entre os dois vizinhos de cima e fica com o primeiro de neighborSlots", () => {
-    // (1,−1) e (0,−1) estão a ±30° de cima: mesmo cosseno. (1,−1) vem primeiro na lista.
-    expect(neighborTowardScreen(hx(3, 3), grid("hex"), "up")).toEqual(hx(4, 2));
+  // ↑/↓ no hex sem transform empatam entre os dois vizinhos (±30° da vertical). O desempate
+  // fica com o que mantém a coluna de offset (col = q + floor(r/2)), para a peça subir a
+  // própria coluna em vez de derivar para a direita.
+  it("hex: ↑ de uma linha par vai para (q+1, r−1)", () => {
+    expect(neighborTowardScreen(hx(3, 2), grid("hex"), "up")).toEqual(hx(4, 1));
+  });
+
+  it("hex: ↑ de uma linha ímpar vai para (q, r−1)", () => {
+    expect(neighborTowardScreen(hx(3, 3), grid("hex"), "up")).toEqual(hx(3, 2));
+  });
+
+  it("hex: ↑ duas vezes volta à mesma coluna de offset, duas linhas acima", () => {
+    const g = grid("hex");
+    const col = (s: SlotCoord) => (s.kind === "hex" ? s.q + Math.floor(s.r / 2) : NaN);
+    for (const start of [hx(3, 3), hx(3, 2), hx(0, -1)]) {
+      const once = neighborTowardScreen(start, g, "up");
+      const twice = neighborTowardScreen(once, g, "up");
+      expect(col(once)).toBe(col(start));
+      expect(col(twice)).toBe(col(start));
+      expect(twice.kind === "hex" && start.kind === "hex" && twice.r).toBe(start.kind === "hex" && start.r - 2);
+    }
+  });
+
+  it("hex: ↓ também fica na coluna de offset", () => {
+    const g = grid("hex");
+    expect(neighborTowardScreen(hx(3, 3), g, "down")).toEqual(hx(2, 4));
+    expect(neighborTowardScreen(hx(3, 2), g, "down")).toEqual(hx(3, 3));
   });
 });

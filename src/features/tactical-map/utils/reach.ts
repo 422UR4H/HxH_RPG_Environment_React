@@ -39,10 +39,19 @@ const SCREEN_DIR = {
   right: { x: 1, y: 0 },
 } as const;
 
+/** A coluna de offset (odd-r) de uma casa hex — o inverso de `offsetToAxial`. */
+function hexOffsetCol(s: SlotCoord): number | undefined {
+  return s.kind === "hex" ? s.q + Math.floor(s.r / 2) : undefined;
+}
+
 /**
  * O vizinho da casa que fica mais na direção da seta NA TELA (maior cosseno entre o passo
  * em coordenadas de mundo e a direção, y para baixo). Numa grade girada/achatada, ↑ deixa de
- * ser `row − 1`. Empate: o primeiro de `neighborSlots`. Não filtra limites nem ocupação.
+ * ser `row − 1`. Empate: no hex, o que mantém a coluna de offset da casa atual
+ * (`q + floor(r/2)`) — num hex sem giro, ↑/↓ empatam entre os dois vizinhos a ±30° e assim a
+ * peça sobe a própria coluna, alternando (q+1, r−1) e (q, r−1) pela paridade da linha, em vez
+ * de derivar para a direita. Persistindo o empate, o primeiro de `neighborSlots`. Não filtra
+ * limites nem ocupação.
  */
 export function neighborTowardScreen(
   slot: SlotCoord,
@@ -51,6 +60,7 @@ export function neighborTowardScreen(
 ): SlotCoord {
   const d = SCREEN_DIR[dir];
   const from = slotToWorld(slot, grid);
+  const col = hexOffsetCol(slot);
   let best = slot;
   let bestCos = -Infinity;
   for (const n of neighborSlots(slot)) {
@@ -60,7 +70,9 @@ export function neighborTowardScreen(
     const len = Math.hypot(vx, vy);
     if (len === 0) continue;
     const cos = (vx * d.x + vy * d.y) / len;
-    if (cos > bestCos + 1e-9) {
+    const tied = Math.abs(cos - bestCos) <= 1e-9;
+    const keepsColumn = col !== undefined && hexOffsetCol(n) === col && hexOffsetCol(best) !== col;
+    if (cos > bestCos + 1e-9 || (tied && keepsColumn)) {
       bestCos = cos;
       best = n;
     }

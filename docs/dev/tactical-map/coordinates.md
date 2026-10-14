@@ -177,7 +177,7 @@ A regra: **geometria do jogo em LOCAL; o que o olho ou o dedo mede, na tela (WOR
 | Posição de peça, parede, fog, alcance, distância em casas | LOCAL (slot) | É o que o servidor guarda e valida |
 | Tamanho da ficha | Tela: `slotScreenInradius` | A ficha tem de caber na casa como ela aparece (losango achatado), não no quadrado LOCAL |
 | Tolerância de clique/encaixe em parede (`findNearestWallWorld`, `snapWallPointWorld`) | WORLD | Pixels que o usuário vê; medir em LOCAL encolheria o acerto no eixo achatado |
-| Setas do teclado (`neighborTowardScreen`, `utils/reach.ts`) | Tela | Escolhe, entre os vizinhos da casa (8 no quadrado, 6 no hex), o de maior cosseno com a direção da seta (y para baixo); empate fica com o primeiro de `neighborSlots`. Na grade girada 45° e achatada, ↑ vai para `(col−1, row−1)` |
+| Setas do teclado (`neighborTowardScreen`, `utils/reach.ts`) | Tela | Escolhe, entre os vizinhos da casa (8 no quadrado, 6 no hex), o de maior cosseno com a direção da seta (y para baixo); empate fica, no hex, com o que mantém a coluna de offset (`q + floor(r/2)`) — ↑/↓ num hex sem giro sobem/descem a própria coluna, alternando `(q+1, r−1)` e `(q, r−1)` pela paridade da linha —, e depois com o primeiro de `neighborSlots`. Na grade girada 45° e achatada, ↑ vai para `(col−1, row−1)` |
 | Alças de edição | Tela | Seguem o cursor em y depois de girar e achatar |
 
 **Paredes escalam com o tamanho da célula.** Paredes e células vivem no mesmo espaço LOCAL; ao mudar
