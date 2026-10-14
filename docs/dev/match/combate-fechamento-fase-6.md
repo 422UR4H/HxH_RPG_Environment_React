@@ -149,7 +149,7 @@ ele só era enviado pelo socket da página.
   1. falha do tabuleiro (`board_unavailable`): "Não foi possível carregar o tabuleiro da partida.
      Atualize a página para tentar de novo." — **só vale com o socket `connected`** (todo novo
      registro numa sala que ainda falha reenvia o erro, então nada se perde); some no próximo
-     `map_full_state`. Contrato: [`match-combat-ws.md` § `board_unavailable`](../../../../System_X_System/docs/dev/api/match-combat-ws.md#board_unavailable);
+     `map_full_state`. Contrato: `System_X_System/docs/dev/api/match-combat-ws.md` § `board_unavailable`;
   2. `waiting` (mestre ainda não abriu a sala, `lobby_not_open`): "O tabuleiro aparece quando o
      mestre abrir a sala.";
   3. sem conexão (`disconnected`, `error`, `throttled`, `replaced`, `kicked`, `lobby_closed`):

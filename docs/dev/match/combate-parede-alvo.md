@@ -136,7 +136,7 @@ consome o movimento, mas sem Desvantagem. Versão simples — vai ser enriquecid
 A regra do `moveTo` inicial abaixo continua valendo.
 
 **Desenho da porta destruída** (`WallsLayer.drawWallTypeSymbol`): o Pixi recomeça o caminho no
-último ponto do traço anterior e o `arc` liga esse ponto ao arco. Na porta destruída o último ponto
+último ponto do traço anterior e o primeiro `lineTo` (antes, o `arc`) liga esse ponto ao arco. Na porta destruída o último ponto
 era a quina do "×" (que cresce no zoom out) e saía uma diagonal torta; o arco agora começa com
 `moveTo` no lugar dele. Na destruída, o símbolo de porta/janela fica apagado e o cadeado some.
 
