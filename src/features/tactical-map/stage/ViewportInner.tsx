@@ -27,6 +27,8 @@ type BgDragState = {
 // own wrapper (which also updates the overlay state) instead of the raw prop.
 type ViewportInnerProps = Omit<TacticalMapStageProps, "uploading"> & {
   onBgLoadingChange?: (loading: boolean) => void;
+  onBgError?: () => void;
+  bgRetryKey?: number;
 };
 
 export default function ViewportInner({
@@ -37,6 +39,8 @@ export default function ViewportInner({
   bgInteractive,
   onBgPositionChange,
   onBgLoadingChange,
+  onBgError,
+  bgRetryKey,
   piecesInteractive,
   draggablePieceIds,
   suppressPanOnPiecePress,
@@ -391,6 +395,8 @@ export default function ViewportInner({
           onDragGestureStart?.();
         }}
         onLoadingChange={onBgLoadingChange}
+        onError={onBgError}
+        retryKey={bgRetryKey}
       />
       <GridLayer grid={map.grid} vpScale={vpScale} />
       <pixiContainer label="decorations-layer" />

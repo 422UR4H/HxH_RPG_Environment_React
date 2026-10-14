@@ -1,0 +1,47 @@
+import styled from "styled-components";
+import { colors, fonts } from "../../../styles/tokens";
+
+// Aviso discreto no topo do mapa quando a imagem de fundo falha. O fundo é só
+// experiência (não mecânica): o contêiner não bloqueia o mapa (pointer-events: none)
+// e só o botão recebe clique.
+export default function BgFailedNotice({ onRetry }: { onRetry: () => void }) {
+  return (
+    <Notice role="status">
+      <span>Não foi possível carregar a imagem de fundo. O mapa funciona normalmente sem ela.</span>
+      <RetryButton type="button" onClick={onRetry}>Tentar de novo</RetryButton>
+    </Notice>
+  );
+}
+
+const Notice = styled.div`
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
+  max-width: calc(100% - 16px);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 12px;
+  background: ${colors.overlayDark};
+  border: 1px solid ${colors.grayMid};
+  border-radius: 6px;
+  color: ${colors.textPrimary};
+  font-family: ${fonts.sans};
+  font-size: 13px;
+  pointer-events: none;
+`;
+
+const RetryButton = styled.button`
+  flex-shrink: 0;
+  padding: 4px 10px;
+  background: ${colors.brandAccent};
+  border: none;
+  border-radius: 4px;
+  color: ${colors.textPrimary};
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  pointer-events: auto;
+`;

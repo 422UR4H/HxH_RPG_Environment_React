@@ -7,6 +7,7 @@ import { Viewport } from "pixi-viewport";
 import type { WallType, WallMaterial } from "../../types/tacticalMap";
 import type { TacticalMapStageProps } from "./stage/stageProps";
 import ViewportInner from "./stage/ViewportInner";
+import BgFailedNotice from "./stage/BgFailedNotice";
 
 extend({ Container, Graphics, Sprite, Text, Viewport });
 
@@ -65,6 +66,9 @@ export default function TacticalMapStage({
   fogDisabled = true,
 }: TacticalMapStageProps) {
   const [isBgLoading, setIsBgLoading] = useState(() => !!map.bg?.url);
+  // Falha ao carregar o fundo não bloqueia o mapa: só mostra aviso com "Tentar de novo".
+  const [bgFailed, setBgFailed] = useState(false);
+  const [bgRetryKey, setBgRetryKey] = useState(0);
   // @pixi/react (8.0.5) renders the Pixi tree from an async root: its FIRST render awaits
   // `app.init()` and then commits the children it captured back then — overwriting every
   // newer render that happened while the renderer was initializing. Whatever arrived in
@@ -92,12 +96,19 @@ export default function TacticalMapStage({
   // img.onload fires from cache before React would otherwise flush the update.
   useLayoutEffect(() => {
     setIsBgLoading(!!bgUrl);
+    setBgFailed(false);
   }, [bgUrl]);
 
   const handleBgLoadingChange = useCallback((loading: boolean) => {
     setIsBgLoading(loading);
     onBgLoadingChange?.(loading);
   }, [onBgLoadingChange]);
+
+  const handleBgError = useCallback(() => setBgFailed(true), []);
+  const handleBgRetry = useCallback(() => {
+    setBgFailed(false);
+    setBgRetryKey((k) => k + 1);
+  }, []);
 
   return (
     <div ref={containerRef} style={{ position: "relative", width, height, overflow: "hidden", isolation: "isolate" }}>
@@ -110,6 +121,8 @@ export default function TacticalMapStage({
           bgInteractive={bgInteractive}
           onBgPositionChange={onBgPositionChange}
           onBgLoadingChange={handleBgLoadingChange}
+          onBgError={handleBgError}
+          bgRetryKey={bgRetryKey}
           piecesInteractive={piecesInteractive}
           draggablePieceIds={draggablePieceIds}
           suppressPanOnPiecePress={suppressPanOnPiecePress}
@@ -158,6 +171,7 @@ export default function TacticalMapStage({
           fogDisabled={fogDisabled}
         />
       </Application>
+      {bgFailed && !isBgLoading && <BgFailedNotice onRetry={handleBgRetry} />}
       {(isBgLoading || uploading) && (
         <BgLoadingOverlay>
           <Spinner />
