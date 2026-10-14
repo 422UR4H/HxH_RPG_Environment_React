@@ -20,6 +20,16 @@ const iso = grid({ rotation: 45, skewRatio: 0.5 });
 const P1: [number, number] = [80, 120];
 const P2: [number, number] = [160, 120]; // 80 de comprimento LOCAL
 
+const wallLens = (p1: [number, number], p2: [number, number], g: GridShape) => {
+  const a1 = applyTransform({ x: p1[0], y: p1[1] }, g);
+  const a2 = applyTransform({ x: p2[0], y: p2[1] }, g);
+  return {
+    a1,
+    lenLocal: Math.hypot(p2[0] - p1[0], p2[1] - p1[1]),
+    lenWorld: Math.hypot(a2.x - a1.x, a2.y - a1.y),
+  };
+};
+
 describe("doorArcWorld", () => {
   it("grade plana: pontos a distância r de a1, da parede até +90°", () => {
     const g = grid();
@@ -72,5 +82,70 @@ describe("windowTicksWorld", () => {
 
   it("parede degenerada devolve nada", () => {
     expect(windowTicksWorld(P1, P1, iso, 1)).toEqual([]);
+  });
+});
+
+describe("doorArcWorld — raio, ângulo e ramos do min", () => {
+  it("isométrica: primeiro ponto na direção da parede, último perpendicular, raio pela fórmula", () => {
+    const p2: [number, number] = [150, 170];
+    const vp = 1;
+    const arc = doorArcWorld(P1, p2, iso, vp);
+    const { lenLocal, lenWorld } = wallLens(P1, p2, iso);
+    const wx = p2[0] - P1[0], wy = p2[1] - P1[1];
+    const first = inverseTransform(arc[0], iso);
+    const last = inverseTransform(arc[arc.length - 1], iso);
+    const f = { x: first.x - P1[0], y: first.y - P1[1] };
+    const l = { x: last.x - P1[0], y: last.y - P1[1] };
+    expect(f.x * wy - f.y * wx).toBeCloseTo(0, 6);
+    expect(f.x * wx + f.y * wy).toBeGreaterThan(0);
+    expect(l.x * wx + l.y * wy).toBeCloseTo(0, 6);
+    const d0 = Math.hypot(f.x, f.y);
+    expect(Math.hypot(l.x, l.y)).toBeCloseTo(d0, 6);
+    expect(d0).toBeCloseTo(Math.min(0.85, 20 / vp / lenWorld) * lenLocal, 6);
+  });
+
+  it("isométrica com vpScale 2: mesmo tamanho de tela ao longo da parede", () => {
+    const p2: [number, number] = [150, 170];
+    const vp = 2;
+    const arc = doorArcWorld(P1, p2, iso, vp);
+    const { a1, lenWorld } = wallLens(P1, p2, iso);
+    expect(Math.hypot(arc[0].x - a1.x, arc[0].y - a1.y)).toBeCloseTo(Math.min(0.85 * lenWorld, 20 / vp), 6);
+  });
+
+  it("grade plana, parede diagonal: começa no ângulo da parede", () => {
+    const g = grid();
+    const p2: [number, number] = [P1[0] + 60, P1[1] + 60];
+    const arc = doorArcWorld(P1, p2, g, 1);
+    const a1 = applyTransform({ x: P1[0], y: P1[1] }, g);
+    const ang = Math.atan2(arc[0].y - a1.y, arc[0].x - a1.x);
+    expect(ang).toBeCloseTo(Math.atan2(60, 60), 6);
+    const end = Math.atan2(arc[arc.length - 1].y - a1.y, arc[arc.length - 1].x - a1.x);
+    expect(end).toBeCloseTo(Math.atan2(60, 60) + Math.PI / 2, 6);
+  });
+
+  it("grade plana, parede curta: vence o ramo de 0,85", () => {
+    const g = grid();
+    const p2: [number, number] = [P1[0] + 10, P1[1]];
+    const arc = doorArcWorld(P1, p2, g, 1);
+    const a1 = applyTransform({ x: P1[0], y: P1[1] }, g);
+    expect(Math.hypot(arc[0].x - a1.x, arc[0].y - a1.y)).toBeCloseTo(8.5, 6);
+  });
+
+  it("isométrica, parede no eixo achatado: t chega a 0,85", () => {
+    const p2: [number, number] = [P1[0] + 21.2132, P1[1] + 21.2132];
+    const { lenLocal, lenWorld } = wallLens(P1, p2, iso);
+    expect(20 / lenWorld).toBeGreaterThan(0.85);
+    const first = inverseTransform(doorArcWorld(P1, p2, iso, 1)[0], iso);
+    expect(Math.hypot(first.x - P1[0], first.y - P1[1])).toBeCloseTo(0.85 * lenLocal, 6);
+  });
+});
+
+describe("windowTicksWorld — comprimento", () => {
+  it("isométrica com vpScale 2: meio comprimento LOCAL = (5/vp)*lenLocal/lenWorld", () => {
+    const p2: [number, number] = [140, 180];
+    const vp = 2;
+    const { lenLocal, lenWorld } = wallLens(P1, p2, iso);
+    const [a, b] = windowTicksWorld(P1, p2, iso, vp)[0].map((p) => inverseTransform(p, iso));
+    expect(Math.hypot(b.x - a.x, b.y - a.y) / 2).toBeCloseTo((5 / vp) * lenLocal / lenWorld, 6);
   });
 });
