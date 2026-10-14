@@ -131,6 +131,10 @@ líquida é o Modificador. "Ajuste" virou **Modificador**.
 **Fugir para a mesma casa do movimento da fila não é troca** (servidor, `sameMoveAsQueued`):
 consome o movimento, mas sem Desvantagem. Versão simples — vai ser enriquecida.
 
+**Arco da porta** (`utils/wallSymbols.ts`): a porta é uma polilinha projetada no plano do chão
+(coordenadas LOCAL → WORLD), não mais um `arc` do Pixi — acompanha a inclinação da grade.
+A regra do `moveTo` inicial abaixo continua valendo.
+
 **Desenho da porta destruída** (`WallsLayer.drawWallTypeSymbol`): o Pixi recomeça o caminho no
 último ponto do traço anterior e o `arc` liga esse ponto ao arco. Na porta destruída o último ponto
 era a quina do "×" (que cresce no zoom out) e saía uma diagonal torta; o arco agora começa com
