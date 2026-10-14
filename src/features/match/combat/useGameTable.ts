@@ -64,7 +64,7 @@ export function useGameTable({
   const live = useLiveMapSync({ campaign });
   const { boardGrid, boardBg } = live;
   // `undefined` até o primeiro `map_full_state` com grade — a mesa espera em vez de desenhar
-  // o mapa da campanha. `boardPending` separa isso de "nenhum mapa anexado" (`restMap` ausente).
+  // o mapa da campanha. `boardPending` separa isso de "nenhum mapa anexado" (sem `mapUuid` no `useMatchMap`).
   // O tabuleiro que chegou sempre desenha, mesmo que o REST do mapa tenha falhado: "há mapa
   // anexado" vem do `useMatchMap` (`mapUuid`), não do `useMap`.
   const attachedMapId = matchMap?.mapUuid;

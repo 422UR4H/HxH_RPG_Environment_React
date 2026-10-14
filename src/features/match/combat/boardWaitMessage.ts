@@ -1,10 +1,13 @@
 // O que a área do mapa diz enquanto o tabuleiro da partida ainda não chegou (mesa e lobby).
 // Função pura: as três páginas usam a mesma, só mudam o status do socket que passam.
 
+import type { MatchWsStatus } from "../../../hooks/useMatchWs";
+import type { WsStatus } from "../../../hooks/useLobbyWs";
+
 export type BoardWaitMessage = { text: string; tone: "muted" | "error" };
 
 // Status de mesa e de lobby em que o socket não está (e não vai estar sozinho) servindo a sala.
-const NO_CONNECTION = new Set(["disconnected", "error", "throttled", "replaced", "kicked", "lobby_closed"]);
+const NO_CONNECTION = new Set<MatchWsStatus | WsStatus>(["disconnected", "error", "throttled", "replaced", "kicked", "lobby_closed"]);
 
 /** Por ordem de prioridade: falha do tabuleiro, mestre ausente, sem conexão, carregando. */
 export function boardWaitMessage({
@@ -12,7 +15,7 @@ export function boardWaitMessage({
   status,
 }: {
   boardUnavailable: boolean;
-  status: string;
+  status: MatchWsStatus | WsStatus;
 }): BoardWaitMessage {
   if (boardUnavailable) {
     return {

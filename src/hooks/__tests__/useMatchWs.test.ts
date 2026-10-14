@@ -707,7 +707,7 @@ describe("useMatchWs connection lifecycle", () => {
 
     expect(onBoardUnavailable).toHaveBeenCalledTimes(1);
     expect(onWsError).not.toHaveBeenCalled();
-    expect(result.current.status).not.toBe("replaced");
+    expect(result.current.status).toBe("connected");
   });
 
   it("reconnect() opens a fresh socket after giving up", () => {
