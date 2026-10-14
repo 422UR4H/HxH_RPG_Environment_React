@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { useStore } from "zustand";
-import type { EditorStore } from "../store/editorStore";
+import type { StoreApi } from "zustand";
+import type { EditorStore, EditorTemporalState } from "../store/editorStore";
 import { HISTORY_LIMIT } from "../store/editorStore";
 import type { TacticalMap } from "../../../types/tacticalMap";
 
@@ -10,8 +11,8 @@ export function useEditorHistory(store: EditorStore) {
   // Rajada ainda no debounce (pastStates vazio): undo a descarrega primeiro;
   // o redo ficaria inútil, pois a rajada limpa o futuro ao ser gravada.
   const hasPending = useStore(
-    store.temporal,
-    (s) => (s as { hasPendingHistory?: boolean }).hasPendingHistory === true,
+    store.temporal as StoreApi<EditorTemporalState>,
+    (s) => s.hasPendingHistory === true,
   );
   const canUndo = useStore(
     store.temporal,

@@ -1,5 +1,7 @@
 import { create } from "zustand";
 import { temporal } from "zundo";
+import type { TemporalState } from "zundo";
+import type { StoreApi } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import { scaleWallsToGrid } from "../utils/walls";
 import { debounceBurst } from "../../../utils/debounce";
@@ -211,7 +213,7 @@ export function createEditorStore(initialMap: TacticalMap) {
   // Rajada pendente vira passo ANTES de desfazer/refazer/pausar; senão o passo
   // chegaria depois e bagunçaria a pilha (ou se misturaria ao gesto).
   setPending = (pending) =>
-    store.temporal.setState({ hasPendingHistory: pending } as object);
+    (store.temporal as StoreApi<EditorTemporalState>).setState({ hasPendingHistory: pending });
   const { undo, redo, pause } = store.temporal.getState();
   store.temporal.setState({
     undo: (...a) => {
@@ -229,5 +231,9 @@ export function createEditorStore(initialMap: TacticalMap) {
   });
   return store;
 }
+
+// TemporalState do zundo + a flag de rajada pendente que este store acrescenta; tipar a flag
+// faz uma chave errada falhar no tsc em vez de passar por cast.
+export type EditorTemporalState = TemporalState<{ map: TacticalMap }> & { hasPendingHistory?: boolean };
 
 export type EditorStore = ReturnType<typeof createEditorStore>;

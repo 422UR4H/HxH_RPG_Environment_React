@@ -1,10 +1,12 @@
 import styled from "styled-components";
 import { colors, fonts } from "../../../styles/tokens";
 
-// Aviso discreto no canto inferior esquerdo do mapa quando a imagem de fundo falha. O fundo é só
-// experiência (não mecânica): o contêiner não bloqueia o mapa (pointer-events: none)
-// e só o botão recebe clique. Fica embaixo à esquerda porque o topo é da faixa de turno/barras
-// da mesa, o centro inferior é do MapHint e o canto inferior direito dos botões (Enquadrar).
+// Aviso discreto à esquerda do mapa, acima da fileira inferior, quando a imagem de fundo falha.
+// O fundo é só experiência (não mecânica): o contêiner não bloqueia o mapa (pointer-events: none)
+// e só o botão recebe clique. Sobe para bottom: 56px porque o topo é da faixa de turno/barras da
+// mesa e a fileira inferior (bottom: 10px) é dos MapHint/MapHintButton da página (centrados, fora
+// do contexto de empilhamento do stage, z-index 29 — em stage estreito cobririam o aviso e
+// engoliriam o clique) e dos botões de canto (Enquadrar).
 export default function BgFailedNotice({ onRetry }: { onRetry: () => void }) {
   return (
     <Notice role="status">
@@ -17,7 +19,7 @@ export default function BgFailedNotice({ onRetry }: { onRetry: () => void }) {
 const Notice = styled.div`
   position: absolute;
   left: 10px;
-  bottom: 10px;
+  bottom: 56px;
   z-index: 1;
   max-width: min(360px, calc(100% - 150px));
   display: flex;

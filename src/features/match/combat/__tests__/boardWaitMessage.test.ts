@@ -8,13 +8,22 @@ type S = MatchWsStatus | WsStatus;
 const NO_CONNECTION = "Sem conexão com a sala. O tabuleiro aparece quando a conexão voltar.";
 
 describe("boardWaitMessage", () => {
-  it("board_unavailable vence qualquer status, em tom de erro", () => {
-    for (const status of ["waiting", "disconnected", "connected", "connecting"] as S[]) {
-      expect(boardWaitMessage({ boardUnavailable: true, status })).toEqual({
-        text: "Não foi possível carregar o tabuleiro da partida. Atualize a página para tentar de novo.",
-        tone: "error",
-      });
-    }
+  it("board_unavailable conectado: texto de falha, em tom de erro", () => {
+    expect(boardWaitMessage({ boardUnavailable: true, status: "connected" })).toEqual({
+      text: "Não foi possível carregar o tabuleiro da partida. Atualize a página para tentar de novo.",
+      tone: "error",
+    });
+  });
+  it("board_unavailable só vale conectado: fora disso o status decide", () => {
+    expect(boardWaitMessage({ boardUnavailable: true, status: "waiting" })).toEqual({
+      text: "O tabuleiro aparece quando o mestre abrir a sala.",
+      tone: "muted",
+    });
+    expect(boardWaitMessage({ boardUnavailable: true, status: "disconnected" })).toEqual({ text: NO_CONNECTION, tone: "muted" });
+    expect(boardWaitMessage({ boardUnavailable: true, status: "connecting" })).toEqual({
+      text: "Carregando o tabuleiro…",
+      tone: "muted",
+    });
   });
   it("mesa aguardando o mestre", () => {
     expect(boardWaitMessage({ boardUnavailable: false, status: "waiting" })).toEqual({
