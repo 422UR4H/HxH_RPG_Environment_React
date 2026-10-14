@@ -140,12 +140,26 @@ describe("doorArcWorld — raio, ângulo e ramos do min", () => {
   });
 });
 
-describe("windowTicksWorld — comprimento", () => {
-  it("isométrica com vpScale 2: meio comprimento LOCAL = (5/vp)*lenLocal/lenWorld", () => {
+describe("windowTicksWorld — afastamento através da parede", () => {
+  const perpDist = (pt: { x: number; y: number }, a1: { x: number; y: number }, a2: { x: number; y: number }) => {
+    const L = Math.hypot(a2.x - a1.x, a2.y - a1.y);
+    return Math.abs(((a2.x - a1.x) * (pt.y - a1.y) - (a2.y - a1.y) * (pt.x - a1.x)) / L);
+  };
+
+  it("grade plana: tracinho inalterado (meio comprimento 5/vpScale)", () => {
+    const g = grid();
+    const [a, b] = windowTicksWorld(P1, P2, g, 2)[0];
+    expect(Math.hypot(b.x - a.x, b.y - a.y) / 2).toBeCloseTo(2.5, 6);
+  });
+
+  it.each([1, 2])("isométrica vpScale %i: pontas a 5/vpScale da linha da parede, perpendicular em LOCAL", (vp) => {
     const p2: [number, number] = [140, 180];
-    const vp = 2;
-    const { lenLocal, lenWorld } = wallLens(P1, p2, iso);
-    const [a, b] = windowTicksWorld(P1, p2, iso, vp)[0].map((p) => inverseTransform(p, iso));
-    expect(Math.hypot(b.x - a.x, b.y - a.y) / 2).toBeCloseTo((5 / vp) * lenLocal / lenWorld, 6);
+    const a1 = applyTransform({ x: P1[0], y: P1[1] }, iso);
+    const a2 = applyTransform({ x: p2[0], y: p2[1] }, iso);
+    for (const tick of windowTicksWorld(P1, p2, iso, vp)) {
+      for (const p of tick) expect(perpDist(p, a1, a2)).toBeCloseTo(5 / vp, 6);
+      const [a, b] = tick.map((p) => inverseTransform(p, iso));
+      expect((b.x - a.x) * (p2[0] - P1[0]) + (b.y - a.y) * (p2[1] - P1[1])).toBeCloseTo(0, 6);
+    }
   });
 });
