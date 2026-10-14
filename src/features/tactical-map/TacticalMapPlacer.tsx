@@ -92,7 +92,7 @@ export default function TacticalMapPlacer({
   // On-screen token diameter = world token size (slotScreenInradius × 0.9 × 2, as drawn on screen) × current zoom.
   // Clamped so the ghost stays grabbable when zoomed far out. Same formula as
   // TacticalMapEditor — kept local rather than extracted since it depends on
-  // caller-local values (map.grid.cellSize, viewportScale); a one-line
+  // caller-local values (map.grid — its shape, not just cellSize — and viewportScale); a one-line
   // function shared by two callers would trade duplication for indirection.
   const dragGhostSize = Math.max(44, slotScreenInradius(map.grid) * 2 * 0.9 * viewportScale);
 
