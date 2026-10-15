@@ -5,7 +5,7 @@ import { drawLosMask } from "./utils/fogDraw";
 import { applyLosMask, type MaskableContainer, type MaskSource } from "./utils/losMask";
 
 type Props = {
-  /** Visibility polygons in world space, straight from the backend. */
+  /** Visibility polygons already in WORLD space (the caller converts the server's LOCAL ones with polygonsToWorld). */
   polygons: VisibilityPolygon[];
   /** Alpha for the remembered (out of sight) copy. */
   dimAlpha: number;

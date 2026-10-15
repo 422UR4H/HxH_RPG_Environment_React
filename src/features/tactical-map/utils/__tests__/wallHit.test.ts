@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import type { WallSegment } from "../../../../types/tacticalMap";
-import { ptSegDist, findNearestWall } from "../wallHit";
+import { ptSegDist, findNearestWall, findNearestWallWorld } from "../wallHit";
+import type { GridShape } from "../../../../types/tacticalMap";
 
 // ─── Mock helper ───────────────────────────────────────────────────────────
 const mockWall = (p1: [number, number], p2: [number, number]): WallSegment => ({
@@ -75,5 +76,24 @@ describe("findNearestWall", () => {
     const result = findNearestWall([5, 5], [wall1, wall2], 100);
     expect(result).toBe(wall1); // First wall should win on tie
     expect(result?.id).toBe("w1");
+  });
+});
+
+describe("findNearestWallWorld", () => {
+  const base: GridShape = {
+    kind: "square", cols: 10, rows: 10, cellSize: 40, skewRatio: 0.3, rotation: 0,
+    color: "#fff", opacity: 1, lineStyle: "solid",
+  };
+  const wall = mockWall([0, 0], [400, 0]); // mundo: y = 140
+  it("a 10 px de tela acerta com tolerância 12; a 14 px não", () => {
+    expect(findNearestWallWorld({ x: 200, y: 130 }, [wall], base, 12)).toBe(wall);
+    expect(findNearestWallWorld({ x: 200, y: 126 }, [wall], base, 12)).toBeNull();
+  });
+  it("sem transform equivale a findNearestWall", () => {
+    const g = { ...base, skewRatio: 1 };
+    for (const p of [[200, 5], [200, 9], [-3, 2], [200, 7.9]] as [number, number][]) {
+      expect(findNearestWallWorld({ x: p[0], y: p[1] }, [wall], g, 8))
+        .toBe(findNearestWall(p, [wall], 8));
+    }
   });
 });

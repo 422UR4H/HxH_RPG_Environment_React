@@ -182,10 +182,15 @@ const piecesFixture = [
 ];
 
 /**
- * O tabuleiro da partida chega como o servidor manda em todo registro com peças: num
- * `map_full_state` (F13) — o mapa do REST só dá fundo e grade.
+ * O tabuleiro da partida chega como o servidor manda em todo registro com mapa anexado: num
+ * `map_full_state` (F13) — peças, paredes, grade e fundo. Do mapa do REST não vem geometria.
  */
-function openWithServerBoard(ws: FakeWS, pieces: typeof piecesFixture = piecesFixture, walls: unknown[] = []) {
+function openWithServerBoard(
+  ws: FakeWS,
+  pieces: typeof piecesFixture = piecesFixture,
+  walls: unknown[] = [],
+  grid: unknown = mapApiFixture.grid,
+) {
   act(() => {
     ws.onopen?.();
     ws.emit("map_full_state", {
@@ -193,6 +198,8 @@ function openWithServerBoard(ws: FakeWS, pieces: typeof piecesFixture = piecesFi
       walls,
       visiblePolygons: [],
       fogMode: "explored",
+      grid,
+      bg: null,
     });
   });
 }
@@ -231,12 +238,42 @@ afterEach(() => {
 
 describe("GameMasterPage", () => {
   // F13: as peças vêm só do servidor. O mapa da campanha (REST) tem duas peças; o tabuleiro
-  // da partida pode ter outras — ou nenhuma, e aí o registro nem traz `map_full_state`.
+  // da partida pode ter outras — ou nenhuma: o registro traz o `map_full_state` mesmo assim.
   describe("o tabuleiro é do servidor (F13)", () => {
-    it("tabuleiro vazio no servidor: não desenha as peças do REST nem manda map_state_sync", async () => {
+    it("antes do tabuleiro chegar espera — não desenha o mapa da campanha", async () => {
       renderMasterPage();
       const ws = await waitForSocket();
       act(() => ws.onopen?.());
+      await screen.findByText("Carregando o tabuleiro…");
+      expect(screen.queryByTestId("map-stub")).not.toBeInTheDocument();
+      expect(screen.queryByText(/Nenhum mapa anexado/)).not.toBeInTheDocument();
+
+      openWithServerBoard(ws, []);
+      await screen.findByTestId("map-stub");
+      expect(screen.queryByText("Carregando o tabuleiro…")).not.toBeInTheDocument();
+    });
+
+    it("board_unavailable: avisa a falha em vez de ficar carregando", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      act(() => ws.onopen?.());
+      act(() => ws.emit("error", { code: "board_unavailable", message: "the match board could not be loaded; reconnect to try again" }));
+      await screen.findByText("Não foi possível carregar o tabuleiro da partida. Atualize a página para tentar de novo.");
+      expect(screen.queryByText("Carregando o tabuleiro…")).not.toBeInTheDocument();
+    });
+
+    it("o tabuleiro chegou e o REST do mapa falhou: desenha mesmo assim", async () => {
+      server.use(http.get(`${baseUrl}/maps/:id`, () => new HttpResponse(null, { status: 500 })));
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws, []);
+      await screen.findByTestId("map-stub");
+    });
+
+    it("tabuleiro vazio no servidor: não desenha as peças do REST nem manda map_state_sync", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws, []);
       await screen.findByTestId("map-stub");
       act(() => ws.emit("match_full_state", { roundMode: "", bars: { seq: 0, prices: null, characters: null, order: null } }));
 
@@ -249,13 +286,13 @@ describe("GameMasterPage", () => {
       renderMasterPage();
       const ws = await waitForSocket();
       act(() => ws.onopen?.());
-      await screen.findByTestId("map-stub");
       act(() =>
         ws.emit("map_full_state", {
           pieces: [{ pieceId: "server-piece", slot: { kind: "square", col: 7, row: 2 }, characterId: "c1" }],
-          walls: [], visiblePolygons: [], fogMode: "explored",
+          walls: [], visiblePolygons: [], fogMode: "explored", grid: mapApiFixture.grid, bg: null,
         }),
       );
+      await screen.findByTestId("map-stub");
 
       expect(screen.getByTestId("select-actor-c1")).toHaveTextContent("server-piece");
       expect(screen.queryByTestId("select-actor-npc1")).not.toBeInTheDocument();
@@ -659,6 +696,7 @@ describe("GameMasterPage", () => {
 
   it("passa draggablePieceIds vazio ao mapa — o servidor decide onde a peça para (I1)", async () => {
     renderMasterPage();
+    openWithServerBoard(await waitForSocket());
     expect(await screen.findByTestId("map-stub")).toHaveAttribute(
       "data-draggable-piece-ids",
       "[]",
@@ -1238,16 +1276,12 @@ describe("GameMasterPage", () => {
     });
 
     it("em grade hex, o move vai como [q, r, z]", async () => {
-      server.use(
-        http.get(`${baseUrl}/maps/:id`, () =>
-          HttpResponse.json({ map: { ...mapApiFixture, grid: { ...(mapApiFixture.grid as object), kind: "hex" } } }),
-        ),
-      );
       renderMasterPage();
       const ws = await waitForSocket();
+      // A grade é a do tabuleiro: hex no `map_full_state`, por mais que o mapa da campanha seja quadrado.
       openWithServerBoard(ws, [
         { id: "piece-c1", characterId: "c1", coord: { slot: { kind: "hex", q: 0, r: 0 } as never, z: 0 }, visible: true },
-      ]);
+      ], [], { ...(mapApiFixture.grid as object), kind: "hex" });
       enterArrange();
 
       act(() => screen.getByTestId("move-piece-hex-piece-c1").click());

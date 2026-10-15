@@ -151,7 +151,7 @@ export type TacticalMap = {
 export type FogMode = "live" | "explored";
 
 // A single visibility polygon's vertices, in LOCAL (pre-transform) coords —
-// same space as WallSegment.p1/p2. FogLayer applies applyTransform per vertex.
+// same space as WallSegment.p1/p2. ViewportInner converts them to WORLD once, with polygonsToWorld.
 export type VisibilityPolygon = Array<[number, number]>;
 
 // Viewer-side fog state (not persisted in the editor; arrives via WS/REST).

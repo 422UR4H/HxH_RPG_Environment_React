@@ -9,6 +9,8 @@ import { useLobbyWs } from "../hooks/useLobbyWs";
 import { useMatchMap } from "../hooks/useMatchMap";
 import { useMap } from "../hooks/useMap";
 import TacticalMapPlacer from "../features/tactical-map/TacticalMapPlacer";
+import { tableMap } from "../features/match/combat/tableMap";
+import { BoardWaitNotice } from "../features/match/combat/BoardWaitNotice";
 import {
   LoadingContainer,
   ErrorContainer,
@@ -21,8 +23,8 @@ import RulesSidebar from "../components/organisms/RulesSidebar";
 import RuleSection from "../components/molecules/RuleSection";
 import LobbyConnectionSidebarItem from "../features/match/LobbyConnectionSidebarItem";
 import { colors, fonts } from "../styles/tokens";
-import type { WsStatus, LobbyPieceFullState } from "../hooks/useLobbyWs";
-import type { Piece, SlotCoord } from "../types/tacticalMap";
+import type { WsStatus, LobbyFullState } from "../hooks/useLobbyWs";
+import type { BgImage, GridShape, Piece, SlotCoord, WallSegment } from "../types/tacticalMap";
 
 const ERROR_STATUSES: WsStatus[] = [
   "lobby_not_open",
@@ -61,10 +63,23 @@ export default function LobbyPage() {
 
   const { data: matchMap } = useMatchMap(token, matchId);
   const { data: fullMap } = useMap(token, matchMap?.mapUuid);
+  const attachedMapId = matchMap?.mapUuid;
 
-  // As peças vêm só do servidor (`map_full_state` e as mensagens de peça), para os dois
-  // papéis; do mapa da campanha (REST) vem só fundo e grade. Tabuleiro vazio: nada chega.
+  // O lobby desenha o TABULEIRO da partida, para os dois papéis: peças (do `map_full_state` e
+  // das mensagens de peça), paredes, grade e fundo vêm do servidor. Do mapa da campanha (REST)
+  // não vem geometria nenhuma — só o que não é desenho (o nome).
   const [lobbyPieces, setLobbyPieces] = useState<Piece[]>([]);
+  const [boardWalls, setBoardWalls] = useState<WallSegment[]>([]);
+  const [boardGrid, setBoardGrid] = useState<GridShape | undefined>(undefined);
+  const [boardBg, setBoardBg] = useState<BgImage | undefined>(undefined);
+  // `undefined` até o tabuleiro chegar — a mesma regra da mesa (`tableMap`).
+  // O tabuleiro que chegou sempre desenha, mesmo que o REST do mapa tenha falhado.
+  const lobbyMap = useMemo(
+    () => tableMap(fullMap, boardGrid, boardBg, attachedMapId),
+    [fullMap, boardGrid, boardBg, attachedMapId],
+  );
+  // `board_unavailable`: a sala não carregou o tabuleiro; vale até o próximo `map_full_state`.
+  const [boardUnavailable, setBoardUnavailable] = useState(false);
 
   const handleWsPieceMoved = useCallback(
     (pieceId: string, slot: SlotCoord, characterId?: string, visible?: boolean) => {
@@ -93,7 +108,11 @@ export default function LobbyPage() {
 
   // Desde B14 o servidor é dono do tabuleiro do lobby também para o mestre: o que ele manda
   // substitui o que estiver na tela.
-  const handleWsFullState = useCallback((pieces: LobbyPieceFullState[]) => {
+  const handleWsFullState = useCallback(({ pieces, walls, grid, bg }: LobbyFullState) => {
+    setBoardUnavailable(false);
+    setBoardWalls(walls);
+    setBoardGrid(grid);
+    setBoardBg(bg);
     setLobbyPieces(
       pieces.map((p) => ({
         id: p.pieceId,
@@ -117,6 +136,7 @@ export default function LobbyPage() {
       onPieceMoved: handleWsPieceMoved,
       onPieceRemoved: handleWsPieceRemoved,
       onFullState: handleWsFullState,
+      onBoardUnavailable: () => setBoardUnavailable(true),
     });
 
   // All character sheet UUIDs the current player is enrolled with (accepted enrollments).
@@ -262,10 +282,15 @@ export default function LobbyPage() {
           )}
         </ActionsList>
 
-        {fullMap && (
+        {attachedMapId && !lobbyMap && (
+          <LobbyMapWaiting>
+            <BoardWaitNotice boardUnavailable={boardUnavailable} status={status} />
+          </LobbyMapWaiting>
+        )}
+        {lobbyMap && (
           <LobbyMapSection>
             <TacticalMapPlacer
-              map={fullMap}
+              map={{ ...lobbyMap, walls: boardWalls }}
               campaignId={campaignId!}
               pieces={lobbyPieces}
               onPiecesChange={setLobbyPieces}
@@ -399,4 +424,9 @@ const LobbyMapSection = styled.div`
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid ${colors.borderInput};
+`;
+
+// O aviso de espera é absoluto (o mesmo da mesa): precisa de um bloco posicionado.
+const LobbyMapWaiting = styled(LobbyMapSection)`
+  position: relative;
 `;

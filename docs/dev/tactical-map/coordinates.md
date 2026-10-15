@@ -124,33 +124,65 @@ export function hexDistance(a: HexCoord, b: HexCoord): number {
 - `0.5` = isométrico 2:1 (clássico)
 - `0.33` = "achatado" (3:1)
 
-`GridShape.rotation` = graus pra rotacionar a malha inteira.
+`GridShape.rotation` = graus pra rotacionar a malha inteira (em torno do centro da grade: o pivô `gridPivot`, centro de `gridLocalBounds`; no quadrado é `cols·cellSize/2`, `rows·cellSize/2`).
 
-Como isso entra no math? Aplicamos uma **matriz de transformação** afim depois de calcular o `(x, y)` "base":
+A ordem importa. `applyTransform` (`utils/coords.ts`) leva um ponto do espaço LOCAL
+(`col * cellSize`, `row * cellSize`) pro espaço do mundo assim:
 
 ```ts
-function slotToWorld(slot: SlotCoord, grid: GridShape): { x: number; y: number } {
-  // 1. coord base (sem distorção)
-  const base = slot.kind === 'square'
-    ? squareToWorldBase(slot, grid)
-    : hexToWorldBase(slot, grid);
-
-  // 2. aplica skew vertical
-  const skewed = { x: base.x, y: base.y * grid.skewRatio };
-
-  // 3. aplica rotação
-  if (grid.rotation === 0) return skewed;
-  const rad = (grid.rotation * Math.PI) / 180;
-  return {
-    x: skewed.x * Math.cos(rad) - skewed.y * Math.sin(rad),
-    y: skewed.x * Math.sin(rad) + skewed.y * Math.cos(rad),
-  };
+export function applyTransform(p: XY, grid: GridShape): XY {
+  const { x: pivotX, y: pivotY } = gridPivot(grid); // centro de gridLocalBounds, em LOCAL
+                                                    // (quadrado: cols·cellSize/2, rows·cellSize/2)
+  const dx = p.x - pivotX;
+  const dy = p.y - pivotY;
+  // 1. gira em torno do centro
+  const t = grid.rotation * DEG_TO_RAD;
+  const rx = dx * Math.cos(t) - dy * Math.sin(t);
+  let ry = dx * Math.sin(t) + dy * Math.cos(t);
+  // 2. achata y em espaço de TELA (depois de girar)
+  ry *= grid.skewRatio;
+  // 3. volta ao pivô e soma a origem
+  return { x: rx + pivotX + (grid.originX ?? 0), y: ry + pivotY + (grid.originY ?? 0) };
 }
 ```
 
-E o `worldToSlot` faz o **inverso** (rotação inversa primeiro, depois undo do skew, depois conversão base).
+Achatar **depois** de girar é o que faz o isométrico: girar 45° e comprimir y vira losangos 2:1.
+Achatar antes só comprimiria o eixo vertical local. `inverseTransform` desfaz na ordem inversa
+(tira a origem, divide por `skewRatio`, desgira).
 
-**Importante**: essas transformações estão no math **desde a Fase 0** com defaults `1.0` e `0`. Quando a Fase 9 ligar a UI (sliders pro mestre), o math já está pronto e testado.
+**O servidor nunca transforma.** Paredes, posições e fog trafegam em espaço LOCAL; `rotation` e
+`skewRatio` só afetam o desenho e a entrada de ponteiro no cliente (`applyTransform` pra desenhar,
+`inverseTransform` pra converter o clique em slot).
+
+### Onde o mestre controla
+
+- **Painel Grade** (`GridConfigPanel`): Predefinições (Isométrico = rotação 45 + `skewRatio` 0.5;
+  Top-down = 0 / 1), campo numérico de Rotação e Perspectiva (slider + número, 0.3 a 1.0).
+- **No mapa** (`MapHandlesLayer`, `gridFromHandleDrag`): a esfera dourada gira a grade;
+  Shift + alça do par mais vertical na tela achata (`skewRatio`). Só o ângulo decide
+  (`skewHandlePair`): `|cos θ| >= |sin θ|` → `TC`/`BC`, senão `ML`/`MR` — empate (45°) fica com
+  `TC`/`BC`, e a proporção da grade (colunas × linhas, quadrada ou hex) não entra. O outro par,
+  com Shift, redimensiona normalmente.
+- **Encaixar Grade** (`fitGridToImage`) usa a caixa da grade no MUNDO (com rotação e perspectiva) e
+  preserva ambas. O aviso "colunas/linhas não cobertas pela imagem" ao salvar
+  (`uncoveredGridLines`, `utils/bgCoverage.ts`) também testa a grade transformada, quadrada ou hex.
+
+## O que se mede em LOCAL e o que se mede na tela
+
+Com rotação e perspectiva, "um passo" e "um pixel" deixam de ser a mesma coisa nos dois espaços.
+A regra: **geometria do jogo em LOCAL; o que o olho ou o dedo mede, na tela (WORLD).**
+
+| Medida | Espaço | Por quê |
+|---|---|---|
+| Posição de peça, parede, fog, alcance, distância em casas | LOCAL (slot) | É o que o servidor guarda e valida |
+| Tamanho da ficha | Tela: `slotScreenInradius` | A ficha tem de caber na casa como ela aparece (losango achatado), não no quadrado LOCAL |
+| Tolerância de clique/encaixe em parede (`findNearestWallWorld`, `snapWallPointWorld`) | WORLD | Pixels que o usuário vê; medir em LOCAL encolheria o acerto no eixo achatado |
+| Setas do teclado (`neighborTowardScreen`, `utils/reach.ts`) | Tela | Escolhe, entre os vizinhos da casa (8 no quadrado, 6 no hex), o de maior cosseno com a direção da seta (y para baixo); empate fica, no hex, com o que mantém a coluna de offset (`q + floor(r/2)`) — ↑/↓ num hex sem giro sobem/descem a própria coluna, alternando `(q+1, r−1)` e `(q, r−1)` pela paridade da linha —, e depois com o primeiro de `neighborSlots`. Na grade girada 45° e achatada, ↑ vai para `(col−1, row−1)` |
+| Alças de edição | Tela | Seguem o cursor em y depois de girar e achatar |
+
+**Paredes escalam com o tamanho da célula.** Paredes e células vivem no mesmo espaço LOCAL; ao mudar
+`cellSize` (mesmo `kind`), `scaleWallsToGrid` multiplica as pontas pela razão `next/prev` em torno do
+(0,0) LOCAL. Trocar quadrado↔hex não tem correspondência geométrica: as paredes ficam como estão.
 
 ## Onde isto é usado
 
@@ -188,7 +220,7 @@ describe('slotToWorld', () => {
 
   it('aplica skewRatio', () => {
     expect(slotToWorld({ kind: 'square', col: 0, row: 1 }, { ...baseGrid, skewRatio: 0.5 }))
-      .toEqual({ x: 50, y: 75 });  // y * 0.5 + cellSize/2
+      .toEqual({ x: 50, y: 325 });  // pivô (500,500): 500 + (150 - 500) * 0.5
   });
 });
 ```

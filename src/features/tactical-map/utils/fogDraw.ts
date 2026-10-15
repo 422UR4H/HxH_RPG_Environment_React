@@ -31,14 +31,17 @@ export type FogDrawTarget = {
  * inverse stencil mask (see LosSplit / FogLayer), which is why no cell classification
  * happens here and the fog edge is smooth rather than grid-aligned.
  */
-export function drawFog(g: FogDrawTarget, worldWidth: number, worldHeight: number): void {
+export function drawFog(
+  g: FogDrawTarget,
+  bounds: { minX: number; minY: number; maxX: number; maxY: number },
+): void {
   g.clear();
 
   const P = FOG_PADDING;
-  g.moveTo(-P, -P);
-  g.lineTo(worldWidth + P, -P);
-  g.lineTo(worldWidth + P, worldHeight + P);
-  g.lineTo(-P, worldHeight + P);
+  g.moveTo(bounds.minX - P, bounds.minY - P);
+  g.lineTo(bounds.maxX + P, bounds.minY - P);
+  g.lineTo(bounds.maxX + P, bounds.maxY + P);
+  g.lineTo(bounds.minX - P, bounds.maxY + P);
   g.closePath();
   g.fill({ color: FOG_COLOR, alpha: FOG_ALPHA });
 }
@@ -46,8 +49,9 @@ export function drawFog(g: FogDrawTarget, worldWidth: number, worldHeight: numbe
 /**
  * Draws the player's line of sight, used as a stencil mask over other layers.
  *
- * The points are written verbatim: the backend already produces them in world space,
- * so running them through applyTransform would displace the lit area.
+ * The points are written verbatim and must already be in WORLD space: the server
+ * sends them in the grid's LOCAL space and the caller (ViewportInner) converts them
+ * with polygonsToWorld. Running them through applyTransform here would transform twice.
  *
  * Overlapping polygons (a player with two pieces standing close together) are safe.
  * Pixi's stencil mask writes with `compare: equal` + `increment-clamp`, so a second

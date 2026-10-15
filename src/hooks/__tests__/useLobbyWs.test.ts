@@ -242,6 +242,15 @@ describe("useLobbyWs", () => {
     expect(result.current.status).toBe("replaced");
   });
 
+  it("board_unavailable: chama onBoardUnavailable e não muda o status", () => {
+    const onBoardUnavailable = vi.fn();
+    const { result } = renderHook(() => useLobbyWs({ ...defaultParams, onBoardUnavailable }));
+    simulateOpen();
+    sendFromServer("error", { code: "board_unavailable", message: "the match board could not be loaded; reconnect to try again" });
+    expect(onBoardUnavailable).toHaveBeenCalledTimes(1);
+    expect(result.current.status).toBe("connected");
+  });
+
   it("reconnects after unexpected close with backoff", () => {
     renderHook(() => useLobbyWs(defaultParams));
     simulateOpen();
@@ -371,10 +380,36 @@ describe("useLobbyWs", () => {
         { pieceId: "p2", slot: { kind: "hex", q: 0, r: 0 }, characterId: "c2" },
       ],
     });
-    expect(onFullState).toHaveBeenCalledWith([
-      { pieceId: "p1", characterId: "c1", slot: { kind: "square", col: 1, row: 2 }, visible: true },
-      { pieceId: "p2", characterId: "c2", slot: { kind: "hex", q: 0, r: 0 }, visible: undefined },
-    ]);
+    expect(onFullState).toHaveBeenCalledWith(expect.objectContaining({
+      pieces: [
+        { pieceId: "p1", characterId: "c1", slot: { kind: "square", col: 1, row: 2 }, visible: true },
+        { pieceId: "p2", characterId: "c2", slot: { kind: "hex", q: 0, r: 0 }, visible: undefined },
+      ],
+    }));
+  });
+
+  // O lobby desenha o TABULEIRO da partida, não o mapa da campanha: grade, fundo e paredes
+  // vêm do map_full_state.
+  it("parses the board's grid, bg and walls from map_full_state", () => {
+    const onFullState = vi.fn();
+    renderHook(() => useLobbyWs({ ...defaultParams, onFullState }));
+    simulateOpen();
+    const grid = { kind: "hex", cols: 9, rows: 9, cellSize: 48, skewRatio: 1, rotation: 15, color: "#fff", opacity: 0.4, lineStyle: "dashed" };
+    const bg = { url: "board.png", x: 1, y: 2, width: 300, height: 200, rotation: 0, opacity: 1 };
+    const wall = { id: "w1", p1: [0, 0], p2: [10, 0], wallType: "wall", material: "stone", sense: "full", hp: 10, maxHp: 10 };
+    sendFromServer("map_full_state", { pieces: [], walls: [wall], fogMode: "explored", grid, bg });
+    expect(onFullState).toHaveBeenCalledWith({ pieces: [], walls: [wall], grid, bg });
+  });
+
+  it("keeps bg null (no background) apart from an absent board (no grid, no bg)", () => {
+    const onFullState = vi.fn();
+    renderHook(() => useLobbyWs({ ...defaultParams, onFullState }));
+    simulateOpen();
+    const grid = { kind: "square", cols: 5, rows: 5, cellSize: 32, skewRatio: 1, rotation: 0, color: "#000", opacity: 0.5, lineStyle: "solid" };
+    sendFromServer("map_full_state", { pieces: [], grid, bg: null });
+    expect(onFullState).toHaveBeenLastCalledWith({ pieces: [], walls: [], grid, bg: null });
+    sendFromServer("map_full_state", { pieces: [] });
+    expect(onFullState).toHaveBeenLastCalledWith({ pieces: [], walls: [], grid: undefined, bg: undefined });
   });
 
   it("silently skips map_full_state pieces missing characterId", () => {
@@ -386,7 +421,7 @@ describe("useLobbyWs", () => {
     sendFromServer("map_full_state", {
       pieces: [{ pieceId: "orphan", slot: { kind: "square", col: 0, row: 0 } }],
     });
-    expect(onFullState).toHaveBeenCalledWith([]);
+    expect(onFullState).toHaveBeenCalledWith(expect.objectContaining({ pieces: [] }));
   });
 
   // ─── Outgoing board messages ────────────────────────────────────────────────

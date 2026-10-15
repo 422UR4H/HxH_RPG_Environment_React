@@ -4,9 +4,10 @@ import type { Graphics as PixiGraphics } from "pixi.js";
 import type { Viewport } from "pixi-viewport";
 import type { GridShape, VisibilityPolygon, WallMaterial, WallSegment, WallType } from "../../types/tacticalMap";
 import { applyTransform, inverseTransform } from "./utils/coords";
-import { snapWallPoint, explodePolyline, newWallAttrs, isOpening } from "./utils/walls";
-import { findNearestWall } from "./utils/wallHit";
+import { snapWallPointWorld, explodePolyline, newWallAttrs, isOpening } from "./utils/walls";
+import { findNearestWallWorld } from "./utils/wallHit";
 import { drawStippledSegment } from "./utils/stipple";
+import { doorArcWorld, windowTicksWorld } from "./utils/wallSymbols";
 import { consumeTap, createTapTracker } from "./hooks/tapGesture";
 import { createHoldTracker } from "./hooks/useHoldGesture";
 import LosSplit from "./LosSplit";
@@ -146,11 +147,12 @@ export default function WallsLayer({
     if (!vp || !canvasEl) return null;
     const rect = canvasEl.getBoundingClientRect();
     const world = vp.toWorld(e.clientX - rect.left, e.clientY - rect.top);
-    const local = inverseTransform({ x: world.x, y: world.y }, gridRef.current);
-    const raw: [number, number] = [local.x, local.y];
-    if (freeMode) return raw;
-    const threshold = SNAP_THRESHOLD_SCREEN / vpScale;
-    return snapWallPoint(raw, gridRef.current, threshold);
+    if (freeMode) {
+      const local = inverseTransform({ x: world.x, y: world.y }, gridRef.current);
+      return [local.x, local.y];
+    }
+    // Encaixe medido em tela (WORLD): não encolhe no eixo achatado de uma grade isométrica.
+    return snapWallPointWorld({ x: world.x, y: world.y }, gridRef.current, SNAP_THRESHOLD_SCREEN / vpScale);
   }, [vpRef, canvasEl, vpScale]);
 
   useEffect(() => {
@@ -184,7 +186,7 @@ export default function WallsLayer({
 
       if (!drawingEnabledRef.current) {
         const HIT = 8 / vpScale;
-        const hit = findNearestWall(rawPt, wallsRef.current, HIT);
+        const hit = findNearestWallWorld(world, wallsRef.current, gridRef.current, HIT);
         onWallSelect(hit ? hit.id : null);
         return;
       }
@@ -192,13 +194,13 @@ export default function WallsLayer({
       // Draw mode: Shift = free position; no Shift = snap to grid
       const pt: [number, number] | null = e.shiftKey
         ? rawPt
-        : snapWallPoint(rawPt, gridRef.current, SNAP_THRESHOLD_SCREEN / vpScale);
+        : snapWallPointWorld(world, gridRef.current, SNAP_THRESHOLD_SCREEN / vpScale);
 
       // When NOT yet drawing: need a valid snap/free point to start; otherwise select or pan
       if (drawRef.current.polylinePoints.length === 0) {
         if (!pt) {
           const HIT = 8 / vpScale;
-          const hit = findNearestWall(rawPt, wallsRef.current, HIT);
+          const hit = findNearestWallWorld(world, wallsRef.current, gridRef.current, HIT);
           if (hit) { onWallSelect(hit.id); return; }
           onWallSelect(null);
           return;
@@ -326,10 +328,9 @@ export default function WallsLayer({
       if (!vp) return null;
       const rect = canvasEl.getBoundingClientRect();
       const worldPt = vp.toWorld(e.clientX - rect.left, e.clientY - rect.top);
-      const rawPt = inverseTransform({ x: worldPt.x, y: worldPt.y }, gridRef.current);
       const tappable = isWallTappableRef.current;
       const walls = tappable ? wallsRef.current.filter(tappable) : wallsRef.current;
-      return findNearestWall([rawPt.x, rawPt.y], walls, HIT / vpScaleRef.current);
+      return findNearestWallWorld({ x: worldPt.x, y: worldPt.y }, walls, gridRef.current, HIT / vpScaleRef.current);
     };
     const handleViewerClick = (e: PointerEvent) => {
       const held = hold.end() === "hold";
@@ -408,7 +409,7 @@ export default function WallsLayer({
       }
       if (w.wallType === "door" || w.wallType === "window") {
         // A destruída ainda diz o que era, apagada como o entulho.
-        drawWallTypeSymbol(g, w.wallType, a1, a2, color, vpScale, isDestroyed ? 0.4 : 1);
+        drawWallTypeSymbol(g, w, grid, color, vpScale, isDestroyed ? 0.4 : 1);
       }
       if (w.locked && !isDestroyed) {
         drawLockedMarker(g, a1, a2, vpScale);
@@ -503,38 +504,31 @@ export default function WallsLayer({
 
 function drawWallTypeSymbol(
   g: import("pixi.js").Graphics,
-  wallType: "door" | "window",
-  a1: { x: number; y: number },
-  a2: { x: number; y: number },
+  w: WallSegment,
+  grid: GridShape,
   color: number,
   vpScale: number,
   alpha = 1,
 ) {
-  const dx = a2.x - a1.x, dy = a2.y - a1.y;
-  const len = Math.hypot(dx, dy);
-  if (len < 0.1) return;
-  const nx = -dy / len, ny = dx / len; // unit normal perpendicular to wall
-
+  const wallType = w.wallType;
   if (wallType === "door") {
-    // Quarter-circle arc at a1 (hinge) showing the door swing toward a2
-    const radius = Math.min(len * 0.85, 20 / vpScale);
-    const angle = Math.atan2(dy, dx);
+    // Arco da porta no chão da grade (LOCAL, projetado): acompanha a grade isométrica.
+    const arc = doorArcWorld(w.p1, w.p2, grid, vpScale);
+    if (arc.length === 0) return;
     g.setStrokeStyle({ color, width: Math.max(1, 1.5 / vpScale), alpha: alpha * 0.9 });
-    // O Pixi recomeça o caminho no último ponto do traço anterior e o `arc` liga esse ponto ao
-    // começo do arco. Na porta de pé o último ponto é a ponta da parede (a ligação some sobre
-    // ela); na destruída é a quina do "×", e a ligação virava uma diagonal torta que crescia
+    // O Pixi recomeça o caminho no último ponto do traço anterior e o primeiro `lineTo` liga esse
+    // ponto ao começo do arco. Na porta de pé o último ponto é a ponta da parede (a ligação some
+    // sobre ela); na destruída é a quina do "×", e a ligação virava uma diagonal torta que crescia
     // com o zoom out. Mover para o começo do arco corta a ligação.
-    g.moveTo(a1.x + Math.cos(angle) * radius, a1.y + Math.sin(angle) * radius);
-    g.arc(a1.x, a1.y, radius, angle, angle + Math.PI / 2);
+    g.moveTo(arc[0].x, arc[0].y);
+    for (let i = 1; i < arc.length; i++) g.lineTo(arc[i].x, arc[i].y);
     g.stroke();
   } else {
-    // Window: two perpendicular tick marks at 1/3 and 2/3
-    const tickLen = 5 / vpScale;
-    for (const t of [1 / 3, 2 / 3]) {
-      const px = a1.x + t * dx, py = a1.y + t * dy;
+    // Janela: dois tracinhos em 1/3 e 2/3, perpendiculares à parede no chão da grade
+    for (const [a, b] of windowTicksWorld(w.p1, w.p2, grid, vpScale)) {
       g.setStrokeStyle({ color, width: Math.max(1, 1.5 / vpScale), alpha: alpha * 0.85 });
-      g.moveTo(px - nx * tickLen, py - ny * tickLen);
-      g.lineTo(px + nx * tickLen, py + ny * tickLen);
+      g.moveTo(a.x, a.y);
+      g.lineTo(b.x, b.y);
       g.stroke();
     }
   }

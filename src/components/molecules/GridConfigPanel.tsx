@@ -3,6 +3,7 @@ import type { ChangeEvent } from "react";
 import styled from "styled-components";
 import type { GridShape } from "../../types/tacticalMap";
 import { colors, fonts } from "../../styles/tokens";
+import { keepGridAnchored } from "../../features/tactical-map/utils/coords";
 
 type Props = {
   grid: GridShape;
@@ -25,16 +26,26 @@ export default function GridConfigPanel({ grid, onChange, onRefit, canRefit }: P
     (key: NumField, min: number, max: number) =>
     (e: ChangeEvent<HTMLInputElement>) => {
       const raw = e.target.value;
-      setDrafts((prev) => ({ ...prev, [key]: raw }));
       const v = parseInt(raw, 10);
-      if (!isNaN(v) && v >= min && v <= max) update({ [key]: v });
+      const ok = !isNaN(v) && v >= min && v <= max;
+      setDrafts((prev) => ({ ...prev, [key]: raw }));
+      if (!ok) return;
+      // cols/rows/cellSize movem o pivô: compensa a origem para a grade não "andar".
+      if (key === "cols" || key === "rows" || key === "cellSize") {
+        onChange(keepGridAnchored(grid, { ...grid, [key]: v }));
+      } else {
+        update({ [key]: v });
+      }
     };
 
+  // O rascunho só vale enquanto o input está em edição: ao perder o foco ele é
+  // descartado e o input volta a mostrar a grade (predefinição, arraste no mapa
+  // ou qualquer outro controle tiram o foco antes de mudar a grade).
   const inputValue = (key: NumField): string | number =>
     drafts[key] !== undefined ? (drafts[key] as string) : grid[key];
 
-  /* OCULTO POR ORA — Predefinições / Rotação / Perspectiva (ver JSX abaixo).
-     Estes helpers só eram usados por esses campos. Reativar junto com eles.
+  const clearDraft = (key: NumField) => () =>
+    setDrafts((prev) => ({ ...prev, [key]: undefined }));
 
   // Like handleInt but keeps decimals — needed for precise isometric tuning
   // (rotation angle and perspective ratio differ per map).
@@ -42,13 +53,13 @@ export default function GridConfigPanel({ grid, onChange, onRefit, canRefit }: P
     (key: NumField, min: number, max: number) =>
     (e: ChangeEvent<HTMLInputElement>) => {
       const raw = e.target.value;
-      setDrafts((prev) => ({ ...prev, [key]: raw }));
       const v = parseFloat(raw);
-      if (!isNaN(v) && v >= min && v <= max) update({ [key]: v });
+      const ok = !isNaN(v) && v >= min && v <= max;
+      setDrafts((prev) => ({ ...prev, [key]: raw }));
+      if (ok) update({ [key]: v });
     };
 
   const fmtDeg = (v: number) => (Number.isInteger(v) ? `${v}` : v.toFixed(1));
-  */
 
   return (
     <Panel>
@@ -85,6 +96,7 @@ export default function GridConfigPanel({ grid, onChange, onRefit, canRefit }: P
           min={1}
           max={200}
           onChange={handleInt("cols", 1, 200)}
+          onBlur={clearDraft("cols")}
         />
       </Field>
 
@@ -97,6 +109,7 @@ export default function GridConfigPanel({ grid, onChange, onRefit, canRefit }: P
           min={1}
           max={200}
           onChange={handleInt("rows", 1, 200)}
+          onBlur={clearDraft("rows")}
         />
       </Field>
 
@@ -109,6 +122,7 @@ export default function GridConfigPanel({ grid, onChange, onRefit, canRefit }: P
           min={8}
           max={256}
           onChange={handleInt("cellSize", 8, 256)}
+          onBlur={clearDraft("cellSize")}
         />
       </Field>
 
@@ -136,12 +150,6 @@ export default function GridConfigPanel({ grid, onChange, onRefit, canRefit }: P
           onChange={(e) => update({ opacity: parseFloat(e.target.value) })}
         />
       </Field>
-
-      {/* OCULTO POR ORA — Predefinições, Rotação e Perspectiva não estão
-          disponíveis para o usuário ainda. O código permanece funcionando: se
-          rotation/skewRatio vierem do backend, o GridLayer os aplica no render.
-          Reexpor (e reativar handleFloat/fmtDeg + SkewRow/SkewInput/SkewLabels)
-          quando liberar essas features.
 
       <Field>
         <FieldLabel>Predefinições</FieldLabel>
@@ -175,6 +183,7 @@ export default function GridConfigPanel({ grid, onChange, onRefit, canRefit }: P
           step={0.1}
           value={inputValue("rotation")}
           onChange={handleFloat("rotation", -180, 180)}
+          onBlur={clearDraft("rotation")}
         />
       </Field>
 
@@ -209,14 +218,18 @@ export default function GridConfigPanel({ grid, onChange, onRefit, canRefit }: P
             step={0.01}
             value={inputValue("skewRatio")}
             onChange={handleFloat("skewRatio", 0.3, 1.0)}
+            onBlur={clearDraft("skewRatio")}
           />
         </SkewRow>
         <SkewLabels>
           <span>Isométrico</span>
           <span>Top-down</span>
         </SkewLabels>
+        <HelpText>
+          No mapa: arraste a esfera dourada para girar; segure Shift e arraste a
+          alça de cima ou de baixo para achatar.
+        </HelpText>
       </Field>
-      */}
 
       <RefitButton
         type="button"
@@ -326,7 +339,6 @@ const RefitButton = styled.button`
   }
 `;
 
-/* OCULTO POR ORA — usados apenas pelo campo Perspectiva (ver JSX comentado).
 const SkewRow = styled.div`
   display: flex;
   align-items: center;
@@ -357,4 +369,11 @@ const SkewLabels = styled.div`
   font-size: 11px;
   color: ${colors.textDisabled};
 `;
-*/
+
+const HelpText = styled.p`
+  margin: 0;
+  font-family: ${fonts.sans};
+  font-size: 11px;
+  line-height: 1.4;
+  color: ${colors.textDisabled};
+`;

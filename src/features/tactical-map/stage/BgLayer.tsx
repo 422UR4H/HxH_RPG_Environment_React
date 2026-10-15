@@ -11,12 +11,18 @@ export default function BgLayer({
   vpRef,
   onBgPointerDown,
   onLoadingChange,
+  onError,
+  retryKey = 0,
 }: {
   bg: TacticalMap["bg"];
   bgInteractive?: boolean;
   vpRef?: MutableRefObject<Viewport | null>;
   onBgPointerDown?: (startWorldX: number, startWorldY: number, startBgX: number, startBgY: number) => void;
   onLoadingChange?: (loading: boolean) => void;
+  // Chamado quando a imagem não carrega. O fundo é só experiência: quem chama decide o aviso.
+  onError?: () => void;
+  // Mudar o valor força uma nova tentativa de carga da mesma URL.
+  retryKey?: number;
 }) {
   const [texture, setTexture] = useState<Texture | null>(null);
 
@@ -36,7 +42,7 @@ export default function BgLayer({
         onLoadingChange?.(false);
       };
       img.onerror = () => {
-        if (!cancelled) { setTexture(null); onLoadingChange?.(false); }
+        if (!cancelled) { setTexture(null); onLoadingChange?.(false); onError?.(); }
       };
       img.src = bg.url;
     } else {
@@ -44,12 +50,14 @@ export default function BgLayer({
         .then((t: Texture) => {
           if (!cancelled) { setTexture(t); onLoadingChange?.(false); }
         })
+        // O Loader do Pixi 8 apaga a promessa rejeitada do promiseCache (e o Cache só
+        // guarda sucesso), então um novo Assets.load da mesma URL busca de novo.
         .catch(() => {
-          if (!cancelled) { setTexture(null); onLoadingChange?.(false); }
+          if (!cancelled) { setTexture(null); onLoadingChange?.(false); onError?.(); }
         });
     }
     return () => { cancelled = true; };
-  }, [bg?.url, onLoadingChange]);
+  }, [bg?.url, onLoadingChange, onError, retryKey]);
 
   if (!bg || !texture) return null;
 

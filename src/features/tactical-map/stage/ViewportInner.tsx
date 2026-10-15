@@ -1,5 +1,5 @@
 import "./pixiViewportTypes";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useApplication } from "@pixi/react";
 import type { Viewport } from "pixi-viewport";
 import type { Graphics as PixiGraphics } from "pixi.js";
@@ -7,7 +7,7 @@ import type { SlotCoord } from "../../../types/tacticalMap";
 import MapHandlesLayer from "../MapHandlesLayer";
 import WallsLayer from "../WallsLayer";
 import FogLayer from "../FogLayer";
-import { worldToSlot, isSlotInBounds, slotCorners, gridLocalBounds, applyTransform } from "../utils/coords";
+import { worldToSlot, isSlotInBounds, slotCorners, gridWorldBounds, polygonsToWorld } from "../utils/coords";
 import type { ViewportTransform } from "../utils/screenAnchor";
 import type { TacticalMapStageProps } from "./stageProps";
 import BgLayer from "./BgLayer";
@@ -27,6 +27,8 @@ type BgDragState = {
 // own wrapper (which also updates the overlay state) instead of the raw prop.
 type ViewportInnerProps = Omit<TacticalMapStageProps, "uploading"> & {
   onBgLoadingChange?: (loading: boolean) => void;
+  onBgError?: () => void;
+  bgRetryKey?: number;
 };
 
 export default function ViewportInner({
@@ -37,6 +39,8 @@ export default function ViewportInner({
   bgInteractive,
   onBgPositionChange,
   onBgLoadingChange,
+  onBgError,
+  bgRetryKey,
   piecesInteractive,
   draggablePieceIds,
   suppressPanOnPiecePress,
@@ -83,10 +87,19 @@ export default function ViewportInner({
   isWallTappable,
   fog,
   fogDisabled = true,
-  worldWidth,
-  worldHeight,
 }: ViewportInnerProps) {
   const { app } = useApplication();
+  // The only LOCAL→WORLD conversion of the server's visibility polygons: FogLayer and
+  // WallsLayer/LosSplit below both receive WORLD ones. fog.visiblePolygons stays as received.
+  const worldPolygons = useMemo(
+    () => polygonsToWorld(fog?.visiblePolygons ?? [], map.grid),
+    [fog?.visiblePolygons, map.grid],
+  );
+  const worldFog = useMemo(
+    () => (fog ? { ...fog, visiblePolygons: worldPolygons } : undefined),
+    [fog, worldPolygons],
+  );
+  const fogBounds = useMemo(() => gridWorldBounds(map.grid), [map.grid]);
   const canvasEl = app?.renderer ? (app.canvas as HTMLCanvasElement) : null;
   const vpRef = useRef<Viewport | null>(null);
   const bgDragState = useRef<BgDragState>(null);
@@ -120,14 +133,15 @@ export default function ViewportInner({
   useEffect(() => {
     const vp = vpRef.current;
     if (!vp || !clampToGrid) return;
+    const wb = gridWorldBounds(map.grid);
     vp.clamp({
-      left: 0,
-      right: map.grid.cols * map.grid.cellSize,
-      top: 0,
-      bottom: map.grid.rows * map.grid.cellSize,
+      left: wb.minX,
+      right: wb.maxX,
+      top: wb.minY,
+      bottom: wb.maxY,
       underflow: "center",
     });
-  }, [clampToGrid, map.grid.cols, map.grid.cellSize, map.grid.rows]);
+  }, [clampToGrid, map.grid]);
 
   useEffect(() => {
     if (!app.renderer || width <= 0 || height <= 0) return;
@@ -180,19 +194,13 @@ export default function ViewportInner({
     if (!newRequest && userMovedRef.current) return;
     fittedRequestRef.current = fitRequest;
     userMovedRef.current = false;
-    const b = gridLocalBounds(map.grid);
-    const corners = [
-      { x: b.minX, y: b.minY }, { x: b.maxX, y: b.minY },
-      { x: b.maxX, y: b.maxY }, { x: b.minX, y: b.maxY },
-    ].map((p) => applyTransform(p, map.grid));
-    const xs = corners.map((p) => p.x);
-    const ys = corners.map((p) => p.y);
-    const w = Math.max(...xs) - Math.min(...xs);
-    const h = Math.max(...ys) - Math.min(...ys);
+    const wb = gridWorldBounds(map.grid);
+    const w = wb.maxX - wb.minX;
+    const h = wb.maxY - wb.minY;
     if (w <= 0 || h <= 0) return;
     const scale = Math.min(Math.max(Math.min(width / w, height / h) * 0.94, 0.25), 1.75);
     vp.setZoom(scale, true);
-    vp.moveCenter((Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...ys) + Math.max(...ys)) / 2);
+    vp.moveCenter((wb.minX + wb.maxX) / 2, (wb.minY + wb.maxY) / 2);
     setVpScale(scale);
   }, [fitRequest, vpReady, width, height, map.grid]);
 
@@ -387,6 +395,8 @@ export default function ViewportInner({
           onDragGestureStart?.();
         }}
         onLoadingChange={onBgLoadingChange}
+        onError={onBgError}
+        retryKey={bgRetryKey}
       />
       <GridLayer grid={map.grid} vpScale={vpScale} />
       <pixiContainer label="decorations-layer" />
@@ -414,11 +424,10 @@ export default function ViewportInner({
         onStageDeselect={onStageDeselect}
         onEmptySlotClick={onEmptySlotClick}
       />
-      {fog && !fogDisabled && (
+      {worldFog && !fogDisabled && (
         <FogLayer
-          fog={fog}
-          worldWidth={worldWidth ?? map.grid.cols * map.grid.cellSize}
-          worldHeight={worldHeight ?? map.grid.rows * map.grid.cellSize}
+          fog={worldFog}
+          bounds={fogBounds}
           disabled={fogDisabled}
         />
       )}
@@ -442,7 +451,7 @@ export default function ViewportInner({
         onWallClick={onWallClick}
         onWallLongPress={onWallLongPress}
         isWallTappable={isWallTappable}
-        losPolygons={fog && !fogDisabled ? fog.visiblePolygons : undefined}
+        losPolygons={fog && !fogDisabled ? worldPolygons : undefined}
       />
       {/* Above fog and walls: it is the viewer's own intention, always legible. */}
       {(intentPreview || (intentGhosts && intentGhosts.length > 0)) && (

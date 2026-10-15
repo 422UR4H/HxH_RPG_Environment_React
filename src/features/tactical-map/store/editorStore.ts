@@ -1,7 +1,10 @@
 import { create } from "zustand";
 import { temporal } from "zundo";
+import type { TemporalState } from "zundo";
+import type { StoreApi } from "zustand";
 import { immer } from "zustand/middleware/immer";
-import { debounce } from "../../../utils/debounce";
+import { scaleWallsToGrid } from "../utils/walls";
+import { debounceBurst } from "../../../utils/debounce";
 import type {
   BgImage,
   GridShape,
@@ -57,7 +60,11 @@ export type EditorState = {
 };
 
 export function createEditorStore(initialMap: TacticalMap) {
-  return create<EditorState>()(
+  // Preenchido pelo handleSet do temporal; descarrega a rajada pendente.
+  let flushHistory: () => void = () => {};
+  // Reativo p/ a toolbar: rajada pendente habilita Desfazer (ligado abaixo).
+  let setPending: (pending: boolean) => void = () => {};
+  const store = create<EditorState>()(
     temporal(
       immer((set) => ({
         map: initialMap,
@@ -70,6 +77,7 @@ export function createEditorStore(initialMap: TacticalMap) {
 
         setGrid: (grid) =>
           set((s) => {
+            s.map.walls = scaleWallsToGrid(s.map.walls, s.map.grid, grid);
             s.map.grid = grid;
             s.isDirty = true;
           }),
@@ -95,6 +103,7 @@ export function createEditorStore(initialMap: TacticalMap) {
         setBgWithGrid: (bg, grid) =>
           set((s) => {
             s.map.bg = bg;
+            s.map.walls = scaleWallsToGrid(s.map.walls, s.map.grid, grid);
             s.map.grid = grid;
             s.isDirty = true;
           }),
@@ -188,14 +197,43 @@ export function createEditorStore(initialMap: TacticalMap) {
         // `map` não tenha mudado (ex: setActiveTool). Com equality por referência
         // de `map`, snapshots só são criados quando o conteúdo do mapa muda.
         equality: (a, b) => a.map === b.map,
-        // Trailing debounce de 400ms: agrupa mudanças contínuas (sliders)
-        // num único snapshot. Efeito colateral: ações discretas (placePiece,
-        // movePiece) entram no histórico após ~400ms. Aceito pelo spec.
-        handleSet: (handleSet) => debounce(handleSet, 400),
+        // Debounce de 400ms: agrupa mudanças contínuas (sliders, digitação)
+        // num único passo, cujo pastState é o de ANTES da rajada inteira.
+        // Efeito colateral: ações discretas entram no histórico após ~400ms;
+        // undo/redo/pause descarregam a rajada pendente (ver abaixo).
+        handleSet: (handleSet) => {
+          const burst = debounceBurst(handleSet, 400, (p) => setPending(p));
+          flushHistory = burst.flush;
+          return burst;
+        },
         limit: HISTORY_LIMIT,
       },
     ),
   );
+  // Rajada pendente vira passo ANTES de desfazer/refazer/pausar; senão o passo
+  // chegaria depois e bagunçaria a pilha (ou se misturaria ao gesto).
+  setPending = (pending) =>
+    (store.temporal as StoreApi<EditorTemporalState>).setState({ hasPendingHistory: pending });
+  const { undo, redo, pause } = store.temporal.getState();
+  store.temporal.setState({
+    undo: (...a) => {
+      flushHistory();
+      undo(...a);
+    },
+    redo: (...a) => {
+      flushHistory();
+      redo(...a);
+    },
+    pause: () => {
+      flushHistory();
+      pause();
+    },
+  });
+  return store;
 }
+
+// TemporalState do zundo + a flag de rajada pendente que este store acrescenta; tipar a flag
+// faz uma chave errada falhar no tsc em vez de passar por cast.
+export type EditorTemporalState = TemporalState<{ map: TacticalMap }> & { hasPendingHistory?: boolean };
 
 export type EditorStore = ReturnType<typeof createEditorStore>;

@@ -15,7 +15,9 @@ import { useCampaignDetails } from "../../hooks/useCampaignDetails";
 import type { CharacterPrivateSummary } from "../../types/characterSheet";
 import { useEditorHistory, useGestureHistory } from "./hooks/useEditorHistory";
 import { useRosterDrag } from "./hooks/useRosterDrag";
-import { isSlotInBounds, isSameSlot } from "./utils/coords";
+import { isSlotInBounds, isSameSlot, slotScreenInradius } from "./utils/coords";
+import { neighborTowardScreen } from "./utils/reach";
+import { uncoveredGridLines, trimUncoveredGrid } from "./utils/bgCoverage";
 import { getApiErrorDetail } from "../../utils/apiError";
 
 // Over the ~400-line guideline (docs/superpowers/specs/2026-08-06-tactical-map-refactor-design.md
@@ -29,6 +31,13 @@ type Props = {
   onSave: (map: TacticalMap) => Promise<void>;
   onSaveSuccess?: () => void;
   saveLabel?: string;
+};
+
+const ARROW_DIRS: Record<string, "up" | "down" | "left" | "right"> = {
+  ArrowUp: "up",
+  ArrowDown: "down",
+  ArrowLeft: "left",
+  ArrowRight: "right",
 };
 
 export default function TacticalMapEditor({
@@ -196,32 +205,20 @@ export default function TacticalMapEditor({
       }
 
       const piece = store.getState().map.pieces.find((p) => p.id === currentSelection.id);
-      if (!piece || piece.coord.slot.kind !== "square") return;
+      if (!piece) return;
 
-      const grid = store.getState().map.grid;
-      if (grid.kind !== "square") return; // setas só para grade quadrada (hex = best-effort futuro)
-
-      const { col, row } = piece.coord.slot;
-      let newCol = col;
-      let newRow = row;
-
-      if (e.key === "ArrowLeft")  newCol = col - 1;
-      else if (e.key === "ArrowRight") newCol = col + 1;
-      else if (e.key === "ArrowUp")    newRow = row - 1;
-      else if (e.key === "ArrowDown")  newRow = row + 1;
-      else return;
+      const dir = ARROW_DIRS[e.key];
+      if (!dir) return;
 
       e.preventDefault();
 
-      const newSlot = { kind: "square" as const, col: newCol, row: newRow };
+      // A seta escolhe o vizinho que fica mais na direção dela NA TELA (grade girada/achatada).
+      const grid = store.getState().map.grid;
+      const newSlot = neighborTowardScreen(piece.coord.slot, grid, dir);
       if (!isSlotInBounds(newSlot, grid)) return;
 
       const occupied = store.getState().map.pieces.some(
-        (p) =>
-          p.id !== currentSelection.id &&
-          p.coord.slot.kind === "square" &&
-          p.coord.slot.col === newCol &&
-          p.coord.slot.row === newRow,
+        (p) => p.id !== currentSelection.id && isSameSlot(p.coord.slot, newSlot),
       );
       if (!occupied) store.getState().movePiece(currentSelection.id, newSlot);
     };
@@ -298,22 +295,8 @@ export default function TacticalMapEditor({
     // Truncation check
     let mapToSave = normalized;
     if (normalized.bg) {
-      const gridW = normalized.grid.cols * normalized.grid.cellSize;
-      const gridH = normalized.grid.rows * normalized.grid.cellSize;
-      const bgRight = normalized.bg.x + normalized.bg.width;
-      const bgBottom = normalized.bg.y + normalized.bg.height;
-      const uncoveredCols = bgRight < gridW
-        ? Math.floor((gridW - bgRight) / normalized.grid.cellSize)
-        : 0;
-      const uncoveredRows = bgBottom < gridH
-        ? Math.floor((gridH - bgBottom) / normalized.grid.cellSize)
-        : 0;
-      const uncoveredLeftCols = normalized.bg.x > 0
-        ? Math.floor(normalized.bg.x / normalized.grid.cellSize)
-        : 0;
-      const uncoveredTopRows = normalized.bg.y > 0
-        ? Math.floor(normalized.bg.y / normalized.grid.cellSize)
-        : 0;
+      const { left: uncoveredLeftCols, right: uncoveredCols, top: uncoveredTopRows, bottom: uncoveredRows } =
+        uncoveredGridLines(normalized.grid, normalized.bg);
 
       const totalUncoveredCols = uncoveredLeftCols + uncoveredCols;
       const totalUncoveredRows = uncoveredTopRows + uncoveredRows;
@@ -326,14 +309,9 @@ export default function TacticalMapEditor({
         const ok = await askTruncConfirm(msg);
         if (!ok) return;
 
-        mapToSave = {
-          ...normalized,
-          grid: {
-            ...normalized.grid,
-            cols: normalized.grid.cols - uncoveredCols,   // only trim right side
-            rows: normalized.grid.rows - uncoveredRows,   // only trim bottom side
-          },
-        };
+        // Only trim right/bottom; the bg moves so the surviving cells keep their place on the image.
+        const trimmed = trimUncoveredGrid(normalized.grid, normalized.bg, uncoveredCols, uncoveredRows);
+        mapToSave = { ...normalized, grid: trimmed.grid, bg: trimmed.bg };
       }
     }
 
@@ -364,12 +342,12 @@ export default function TacticalMapEditor({
     }
   };
 
-  // On-screen token diameter = world token size (cellSize * 0.9) × current zoom.
+  // On-screen token diameter = world token size (slotScreenInradius × 0.9 × 2, as drawn on screen) × current zoom.
   // Clamped so the ghost stays grabbable when zoomed far out. Same formula as
   // TacticalMapPlacer — kept local rather than extracted since it depends on
-  // caller-local values (map.grid.cellSize, viewportScale); a one-line
+  // caller-local values (map.grid — its shape, not just cellSize — and viewportScale); a one-line
   // function shared by two callers would trade duplication for indirection.
-  const dragGhostSize = Math.max(44, map.grid.cellSize * 0.9 * viewportScale);
+  const dragGhostSize = Math.max(44, slotScreenInradius(map.grid) * 2 * 0.9 * viewportScale);
 
   // Memoized so a future React.memo(MapEditorToolbar) isn't silently defeated
   // by a fresh object literal on every render.

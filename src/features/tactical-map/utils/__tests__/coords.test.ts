@@ -8,10 +8,19 @@ import {
   inverseTransform,
   gridFromHandleDrag,
   slotInradius,
+  slotScreenInradius,
+  stackOffsetToPx,
   isSameSlot,
   offsetToAxial,
   slotToTriple,
   tripleToSlot,
+  polygonsToWorld,
+  gridWorldBounds,
+  gridWorldCorners,
+  gridPivot,
+  gridRotateHandleWorld,
+  keepGridAnchored,
+  skewHandlePair,
 } from "../coords";
 import type { GridShape } from "../../../../types/tacticalMap";
 import { hexToPixel } from "../hex";
@@ -167,6 +176,125 @@ describe("gridFromHandleDrag — resize anchors the opposite corner", () => {
     const out = gridFromHandleDrag("rotate", g, 200, 0, false)!;
     expect(typeof out.rotation).toBe("number");
   });
+
+  describe("rotate numa grade achatada e com origem", () => {
+    const g: GridShape = { ...squareGrid(40), rotation: 45, skewRatio: 0.5, originX: 15, originY: -20 };
+    const tc = applyTransform(gridHandleLocal("TC", g), g);
+    const cx = (g.cols * g.cellSize) / 2 + 15;
+    const cy = (g.rows * g.cellSize) / 2 - 20;
+
+    it("cursor sobre a esfera (TC) mantém a rotação atual, sem pulo", () => {
+      const out = gridFromHandleDrag("rotate", g, tc.x, tc.y, false)!;
+      expect(out.rotation).toBeCloseTo(45, 6);
+    });
+
+    it("cursor mais longe no mesmo raio centro→TC mantém a rotação", () => {
+      const out = gridFromHandleDrag("rotate", g, cx + (tc.x - cx) * 2.5, cy + (tc.y - cy) * 2.5, false)!;
+      expect(out.rotation).toBeCloseTo(45, 6);
+    });
+  });
+});
+
+describe("gridFromHandleDrag — perspectiva (Shift + TC/BC)", () => {
+  const iso: GridShape = { ...squareGrid(40), rotation: 45, skewRatio: 0.5, originX: 15, originY: -20 };
+
+  it("cursor exatamente sobre a alça TC não faz a perspectiva pular", () => {
+    const p = applyTransform(gridHandleLocal("TC", iso), iso);
+    const out = gridFromHandleDrag("TC", iso, p.x, p.y, true)!;
+    expect(out.skewRatio).toBeCloseTo(0.5, 6);
+  });
+
+  it("cursor exatamente sobre a alça BC não faz a perspectiva pular", () => {
+    const p = applyTransform(gridHandleLocal("BC", iso), iso);
+    const out = gridFromHandleDrag("BC", iso, p.x, p.y, true)!;
+    expect(out.skewRatio).toBeCloseTo(0.5, 6);
+  });
+
+  it("a alça TC segue o cursor em y numa grade top-down", () => {
+    const g = squareGrid(40); // pivô y = 200, ry da TC = -200
+    const at = (y: number) => gridFromHandleDrag("TC", g, 0, y, true)!;
+    const r1 = at(100);
+    expect(r1.skewRatio).toBeCloseTo(0.5, 6);
+    expect(applyTransform(gridHandleLocal("TC", r1), r1).y).toBeCloseTo(100, 6);
+    const r2 = at(50);
+    expect(r2.skewRatio).toBeCloseTo(0.75, 6);
+    expect(applyTransform(gridHandleLocal("TC", r2), r2).y).toBeCloseTo(50, 6);
+    expect(at(-100).skewRatio).toBe(1);
+    expect(at(190).skewRatio).toBe(0.3);
+  });
+
+  it("Shift+TC em 90° não achata: cai no redimensionamento normal (ML/MR é o par)", () => {
+    // rotação 90: ry da TC ≈ 0 (e da ML = -200) → o par que achata é ML/MR.
+    // TC com Shift redimensiona: devolve grade com skewRatio intacto e cellSize novo.
+    // Em 90° a TC está em (400,200) e a âncora BC em (0,200): o cursor em (200,0) projeta na
+    // metade da diagonal → cellSize 40 → 20.
+    const g: GridShape = { ...squareGrid(40), rotation: 90 };
+    const out = gridFromHandleDrag("TC", g, 200, 0, true)!;
+    expect(out.skewRatio).toBe(1);
+    expect(out.cellSize).toBeCloseTo(20, 6);
+  });
+});
+
+describe("skewHandlePair / Shift + ML/MR", () => {
+  it("rotação 0: par TC/BC (comportamento atual)", () => {
+    expect(skewHandlePair(squareGrid(40))).toBe("TC/BC");
+  });
+
+  it("rotação 90: par ML/MR; 45° empata e fica com TC/BC", () => {
+    expect(skewHandlePair({ ...squareGrid(40), rotation: 90 })).toBe("ML/MR");
+    expect(skewHandlePair({ ...squareGrid(40), rotation: -90 })).toBe("ML/MR");
+    expect(skewHandlePair({ ...squareGrid(40), rotation: 45 })).toBe("TC/BC");
+  });
+
+  // O par depende só do ângulo, não da proporção da grade: |cos θ| >= |sin θ| → TC/BC.
+  it("só o ângulo decide: 30×10 em 20° é TC/BC, hex 10×10 em 45° é TC/BC", () => {
+    const wide: GridShape = { ...squareGrid(40), cols: 30, rows: 10, rotation: 20 };
+    expect(skewHandlePair(wide)).toBe("TC/BC");
+    const hex: GridShape = { ...squareGrid(40), kind: "hex", rotation: 45 };
+    expect(skewHandlePair(hex)).toBe("TC/BC");
+    for (const r of [45, -45, 135, -135]) {
+      expect(skewHandlePair({ ...wide, rotation: r })).toBe("TC/BC");
+    }
+  });
+
+  it("qualquer grade em 90° usa ML/MR", () => {
+    for (const g of [
+      { ...squareGrid(40), cols: 30, rows: 10 },
+      { ...squareGrid(40), cols: 5, rows: 40 },
+      { ...squareGrid(40), kind: "hex" as const },
+    ]) {
+      expect(skewHandlePair({ ...g, rotation: 90 })).toBe("ML/MR");
+      expect(skewHandlePair({ ...g, rotation: -90 })).toBe("ML/MR");
+    }
+    expect(skewHandlePair({ ...squareGrid(40), cols: 30, rows: 10, rotation: 50 })).toBe("ML/MR");
+  });
+
+  it("90° com skew 0,5: Shift+ML com cursor sobre a alça mantém o achatamento", () => {
+    // pivô (200,200); ML local (0,200) → offset (-200,0); ry = -200·sin90 = -200.
+    const g: GridShape = { ...squareGrid(40), rotation: 90, skewRatio: 0.5 };
+    const p = applyTransform(gridHandleLocal("ML", g), g);
+    const out = gridFromHandleDrag("ML", g, p.x, p.y, true)!;
+    expect(out.skewRatio).toBeCloseTo(0.5, 6);
+  });
+
+  it("90°: a alça ML segue o cursor em y", () => {
+    // sem achatar: y = 200 + ry·s = 200 - 200·s. Cursor y=100 → s=0,5; y=50 → s=0,75.
+    const g: GridShape = { ...squareGrid(40), rotation: 90 };
+    const r1 = gridFromHandleDrag("ML", g, 0, 100, true)!;
+    expect(r1.skewRatio).toBeCloseTo(0.5, 6);
+    expect(applyTransform(gridHandleLocal("ML", r1), r1).y).toBeCloseTo(100, 6);
+    const r2 = gridFromHandleDrag("ML", g, 0, 50, true)!;
+    expect(r2.skewRatio).toBeCloseTo(0.75, 6);
+    // MR: ry = +200 → cursor y=300 → s=0,5.
+    expect(gridFromHandleDrag("MR", g, 0, 300, true)!.skewRatio).toBeCloseTo(0.5, 6);
+  });
+
+  it("rotação 0: Shift+ML redimensiona normalmente (não achata)", () => {
+    const g = squareGrid(40);
+    const out = gridFromHandleDrag("ML", g, -200, 200, true)!;
+    expect(out.skewRatio).toBe(1);
+    expect(out.cellSize).not.toBe(40);
+  });
 });
 
 describe("coords — skew + rotation", () => {
@@ -288,5 +416,227 @@ describe("slot ↔ wire triple", () => {
     expect(tripleToSlot([3, 4, 0], "square")).toEqual({ kind: "square", col: 3, row: 4 });
     expect(slotToTriple({ kind: "hex", q: 2, r: -1 }, 5)).toEqual([2, -1, 5]);
     expect(tripleToSlot([2, -1, 5], "hex")).toEqual({ kind: "hex", q: 2, r: -1 });
+  });
+});
+
+describe("polygonsToWorld", () => {
+  const rotated: GridShape = { ...squareGrid(40), rotation: 90, skewRatio: 0.5, originX: 30, originY: -10 };
+
+  it("aplica applyTransform em cada vértice", () => {
+    const out = polygonsToWorld([[[0, 0], [100, 20], [50, 80]]], rotated);
+    const expected = [[0, 0], [100, 20], [50, 80]].map(([x, y]) => applyTransform({ x, y }, rotated));
+    expect(out[0].map(([x, y]) => ({ x, y }))).toEqual(expected);
+  });
+
+  it("é identidade com rotation 0, skew 1 e sem origem", () => {
+    const poly: Array<[number, number]> = [[1, 2], [3, 4], [5, 9]];
+    expect(polygonsToWorld([poly], squareGrid(40))).toEqual([poly]);
+  });
+});
+
+describe("gridWorldBounds", () => {
+  it("quadrado sem transform é cols*cellSize x rows*cellSize", () => {
+    const g = squareGrid(40);
+    expect(gridWorldBounds(g)).toEqual({ minX: 0, minY: 0, maxX: g.cols * 40, maxY: g.rows * 40 });
+  });
+
+  it("cobre os 4 cantos transformados numa grade girada", () => {
+    const g: GridShape = { ...squareGrid(40), rotation: 90 };
+    const b = gridWorldBounds(g);
+    const l = gridLocalBounds(g);
+    for (const c of [[l.minX, l.minY], [l.maxX, l.minY], [l.maxX, l.maxY], [l.minX, l.maxY]]) {
+      const w = applyTransform({ x: c[0], y: c[1] }, g);
+      expect(w.x).toBeGreaterThanOrEqual(b.minX - 1e-9);
+      expect(w.x).toBeLessThanOrEqual(b.maxX + 1e-9);
+      expect(w.y).toBeGreaterThanOrEqual(b.minY - 1e-9);
+      expect(w.y).toBeLessThanOrEqual(b.maxY + 1e-9);
+    }
+  });
+
+  it("hex passa da caixa cols*cellSize (a borda direita não fica sem fog)", () => {
+    const g: GridShape = { ...squareGrid(55), kind: "hex" };
+    expect(gridWorldBounds(g).maxX).toBeGreaterThan(g.cols * g.cellSize);
+  });
+});
+
+describe("gridWorldCorners", () => {
+  const transform = { rotation: 30, skewRatio: 0.6, originX: 15, originY: -20 };
+
+  // Ponto em polígono convexo: todos os produtos vetoriais com o mesmo sinal.
+  const insideConvex = (p: { x: number; y: number }, poly: { x: number; y: number }[]) => {
+    let pos = false;
+    let neg = false;
+    for (let i = 0; i < poly.length; i++) {
+      const a = poly[i];
+      const b = poly[(i + 1) % poly.length];
+      const cross = (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x);
+      if (cross > 1e-9) pos = true;
+      if (cross < -1e-9) neg = true;
+    }
+    return !(pos && neg);
+  };
+
+  it("são os 4 cantos de gridLocalBounds por applyTransform (TL, TR, BR, BL)", () => {
+    const g: GridShape = { ...squareGrid(40), ...transform };
+    const b = gridLocalBounds(g);
+    const expected = [
+      { x: b.minX, y: b.minY }, { x: b.maxX, y: b.minY },
+      { x: b.maxX, y: b.maxY }, { x: b.minX, y: b.maxY },
+    ].map((p) => applyTransform(p, g));
+    const got = gridWorldCorners(g);
+    expect(got).toHaveLength(4);
+    got.forEach((p, i) => {
+      expect(p.x).toBeCloseTo(expected[i].x, 9);
+      expect(p.y).toBeCloseTo(expected[i].y, 9);
+    });
+  });
+
+  it("hex transformada: o centro de todo slot cai dentro do contorno", () => {
+    const g: GridShape = { ...hexGrid(64), ...transform };
+    const poly = gridWorldCorners(g);
+    for (let col = 0; col < 10; col++) {
+      for (let row = 0; row < 10; row++) {
+        const c = slotToWorld({ kind: "hex", ...offsetToAxial(col, row) }, g);
+        expect(insideConvex(c, poly), `slot ${col},${row}`).toBe(true);
+      }
+    }
+  });
+
+  it("premissa: na hex sem transform o retângulo cols*cellSize não cobre todo centro", () => {
+    const g = hexGrid(64);
+    let outside = false;
+    for (let col = 0; col < g.cols; col++) {
+      for (let row = 0; row < g.rows; row++) {
+        const c = slotToWorld({ kind: "hex", ...offsetToAxial(col, row) }, g);
+        if (c.x > g.cols * g.cellSize || c.x < 0 || c.y < 0) outside = true;
+      }
+    }
+    expect(outside).toBe(true);
+  });
+});
+
+const hexIso = (over: Partial<GridShape> = {}): GridShape => ({
+  ...squareGrid(64),
+  kind: "hex",
+  cols: 16,
+  rows: 12,
+  ...over,
+});
+
+describe("F1 — pivô = centro dos limites da grade", () => {
+  it("gridPivot de grade quadrada = (cols·cs/2, rows·cs/2)", () => {
+    const g = { ...squareGrid(64), cols: 16, rows: 12 };
+    expect(gridPivot(g)).toEqual({ x: 512, y: 384 });
+  });
+
+  it("hex 45°/0.5: o pivô não se move no applyTransform (só soma a origem)", () => {
+    const g = hexIso({ rotation: 45, skewRatio: 0.5, originX: 15, originY: -20 });
+    const p = gridPivot(g);
+    const w = applyTransform(p, g);
+    expect(w.x).toBeCloseTo(p.x + 15, 6);
+    expect(w.y).toBeCloseTo(p.y - 20, 6);
+  });
+
+  it.each([
+    [0, 1],
+    [45, 0.5],
+    [30, 0.7],
+  ])("hex: arrastar a esfera (rot %i, skew %f) devolve a mesma rotação", (rotation, skewRatio) => {
+    const g = hexIso({ rotation, skewRatio, originX: 15, originY: -20 });
+    const s = gridRotateHandleWorld(g, 24);
+    const out = gridFromHandleDrag("rotate", g, s.x, s.y, false)!;
+    expect(out.rotation).toBeCloseTo(rotation, 6);
+  });
+});
+
+describe("F2 — keepGridAnchored", () => {
+  const iso = (): GridShape => ({
+    ...squareGrid(64), cols: 16, rows: 12, rotation: 45, skewRatio: 0.5, originX: 15, originY: -20,
+  });
+
+  it("cols 16→17: todo slot da grade 16x12 mantém o slotToWorld", () => {
+    const prev = iso();
+    const next = keepGridAnchored(prev, { ...prev, cols: 17 });
+    for (let r = 0; r < 12; r++) for (let c = 0; c < 16; c++) {
+      const s = { kind: "square" as const, col: c, row: r };
+      const a = slotToWorld(s, prev);
+      const b = slotToWorld(s, next);
+      expect(b.x).toBeCloseTo(a.x, 6);
+      expect(b.y).toBeCloseTo(a.y, 6);
+    }
+  });
+
+  it("rows 12→10: slots sobreviventes mantêm o slotToWorld", () => {
+    const prev = iso();
+    const next = keepGridAnchored(prev, { ...prev, rows: 10 });
+    for (let r = 0; r < 10; r++) for (let c = 0; c < 16; c++) {
+      const s = { kind: "square" as const, col: c, row: r };
+      const a = slotToWorld(s, prev);
+      const b = slotToWorld(s, next);
+      expect(b.x).toBeCloseTo(a.x, 6);
+      expect(b.y).toBeCloseTo(a.y, 6);
+    }
+  });
+
+  it("cellSize 64→80: applyTransform({0,0}) não muda", () => {
+    const prev = iso();
+    const next = keepGridAnchored(prev, { ...prev, cellSize: 80 });
+    const a = applyTransform({ x: 0, y: 0 }, prev);
+    const b = applyTransform({ x: 0, y: 0 }, next);
+    expect(b.x).toBeCloseTo(a.x, 6);
+    expect(b.y).toBeCloseTo(a.y, 6);
+  });
+
+  it("grade sem transform: origem inalterada", () => {
+    const prev = { ...squareGrid(64), originX: 7, originY: 9 };
+    const next = keepGridAnchored(prev, { ...prev, cols: 12 });
+    expect(next.originX).toBe(7);
+    expect(next.originY).toBe(9);
+    const noOrigin = keepGridAnchored(squareGrid(64), { ...squareGrid(64), rows: 3 });
+    expect(noOrigin.originX).toBe(0);
+    expect(noOrigin.originY).toBe(0);
+  });
+});
+
+describe("F3 — arrasto dá valores limpos e dentro do intervalo", () => {
+  const g = { ...squareGrid(64), cols: 16, rows: 12 };
+  const center = { x: 512, y: 384 };
+
+  it("rotação normalizada para (-180, 180]", () => {
+    // cursor à esquerda-abaixo do centro → ~200° bruto → -160
+    const t = (200 - 90) * (Math.PI / 180);
+    const out = gridFromHandleDrag("rotate", g, center.x + 100 * Math.cos(t), center.y + 100 * Math.sin(t), false)!;
+    expect(out.rotation).toBe(-160);
+  });
+
+  it("rotação arredondada a 0.1° e skew a 0.01", () => {
+    const out = gridFromHandleDrag("rotate", g, center.x + 77, center.y - 31, false)!;
+    expect(Math.round(out.rotation * 10) / 10).toBe(out.rotation);
+    expect(out.rotation).toBeGreaterThan(-180);
+    expect(out.rotation).toBeLessThanOrEqual(180);
+    const sk = gridFromHandleDrag("TC", g, 512, 77.777, true)!;
+    expect(Math.round(sk.skewRatio * 100) / 100).toBe(sk.skewRatio);
+  });
+});
+
+describe("slotScreenInradius — a ficha cabe na casa como aparece na tela", () => {
+  it("sem transform: igual ao slotInradius (quadrado e hex)", () => {
+    expect(slotScreenInradius(squareGrid(40))).toBeCloseTo(20, 6);
+    expect(slotScreenInradius(hexGrid(40))).toBeCloseTo(slotInradius(hexGrid(40)), 6);
+  });
+  it("quadrado cs40 a 45 graus / 0,5 vira o losango achatado", () => {
+    const g: GridShape = { ...squareGrid(40), rotation: 45, skewRatio: 0.5 };
+    expect(slotScreenInradius(g)).toBeCloseTo(12.649110640673518, 6);
+  });
+  it("rotação 90 sem achatamento mantém cs/2", () => {
+    const g: GridShape = { ...squareGrid(40), rotation: 90, skewRatio: 1 };
+    expect(slotScreenInradius(g)).toBeCloseTo(20, 6);
+  });
+  it("stackOffsetToPx numa grade iso usa o raio da tela", () => {
+    const g: GridShape = { ...squareGrid(40), rotation: 45, skewRatio: 0.5 };
+    const r = slotScreenInradius(g);
+    const px = stackOffsetToPx({ dx: 0.5, dy: -1 }, g);
+    expect(px.x).toBeCloseTo(0.5 * r, 6);
+    expect(px.y).toBeCloseTo(-r, 6);
   });
 });

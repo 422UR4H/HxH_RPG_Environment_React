@@ -233,7 +233,7 @@ auditar.
 | `match_started` | servidor→cliente | sem payload | `useLobbyWs` | n/a |
 | `piece_moved` (eco) | servidor→cliente | `PieceMovedPayload` | `useLobbyWs` | passthrough; lê `pieceId`, `slot.*`, `characterId`, `visible`, `z ?? 0`, monta `SlotCoord` à mão |
 | `piece_removed` (eco) | servidor→cliente | `PieceRemovedPayload{pieceId}` | `useLobbyWs` | passthrough |
-| `map_full_state` (variante lobby) | servidor→cliente | `MapFullStatePayload` | `useLobbyWs` | só lê `.pieces`, ignora `walls`/`visiblePolygons`/`fogMode`; **descarta silenciosamente qualquer peça sem `characterId`** [8] |
+| `map_full_state` (variante lobby) | servidor→cliente | `MapFullStatePayload` | `useLobbyWs` | lê `.pieces`, `.walls`, `.grid` e `.bg` (o tabuleiro da partida, que o lobby desenha no lugar do mapa da campanha; `bg: null` = sem fundo, ausente = sem tabuleiro); ignora `visiblePolygons`/`fogMode`; **descarta silenciosamente qualquer peça sem `characterId`** [8] |
 | `wall_state_changed` | servidor→cliente | `WallStateChangedPayload{wallId, open, locked}` | `useMatchWs` | passthrough |
 | `wall_hp_changed` | servidor→cliente | `WallHpChangedPayload{wallId, hp, maxHp, destroyed}` | `useMatchWs` | passthrough |
 | `map_full_state` (variante partida) | servidor→cliente | `MapFullStatePayload` | `useMatchWs` | pieces via `fromPiecePayload` (à mão); walls repassadas como estão; `visiblePolygons` via `parsePolys` (mapeamento posicional `{x,y}` → `[x,y]`, não é case conversion); `fogMode` lido direto e normalizado para `"live"`/`"explored"` |

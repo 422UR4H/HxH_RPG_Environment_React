@@ -4,25 +4,24 @@
 // `liveWalls`/`livePieces`/`fog` que eles atualizam eram idênticos entre GamePlayerPage
 // e GameMasterPage — copiados verbatim. Centraliza aqui. Peças e paredes vêm só do
 // servidor (`map_full_state` e as mensagens de peça/parede), para os dois papéis (F13).
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { CampaignMaster } from "../../../types/campaign";
 import type { CharacterPrivateSummary } from "../../../types/characterSheet";
-import type { FogState, Piece, SlotCoord, TacticalMap, WallSegment } from "../../../types/tacticalMap";
+import type { BgImage, FogState, GridShape, Piece, SlotCoord, WallSegment } from "../../../types/tacticalMap";
 
 type Options = {
-  map: TacticalMap | undefined;
   campaign: CampaignMaster | undefined;
 };
 
-export function useLiveMapSync({ map, campaign }: Options) {
+export function useLiveMapSync({ campaign }: Options) {
   const [liveWalls, setLiveWalls] = useState<WallSegment[]>([]);
   const [livePieces, setLivePieces] = useState<Piece[] | null>(null);
+  // Grade e fundo do tabuleiro da PARTIDA, do último `map_full_state` — a mesa desenha com
+  // eles, não com os do mapa da campanha (REST). `undefined` = ainda não chegou.
+  const [boardGrid, setBoardGrid] = useState<GridShape | undefined>(undefined);
+  const [boardBg, setBoardBg] = useState<BgImage | undefined>(undefined);
+  // O `fogMode` vem só do `map_full_state`, que sempre o traz — nunca do mapa da campanha.
   const [fog, setFog] = useState<FogState>({ fogMode: "explored", visiblePolygons: [] });
-
-  useEffect(() => {
-    if (!map) return;
-    setFog((f) => ({ ...f, fogMode: map.fogMode ?? "explored" }));
-  }, [map]);
 
   const handleWallStateChanged = useCallback((wallId: string, open: boolean, locked: boolean) => {
     setLiveWalls((prev) => prev.map((w) => (w.id === wallId ? { ...w, open, locked } : w)));
@@ -43,7 +42,11 @@ export function useLiveMapSync({ map, campaign }: Options) {
       walls: WallSegment[];
       visiblePolygons: Array<Array<[number, number]>>;
       fogMode: "live" | "explored";
+      grid?: GridShape;
+      bg?: BgImage;
     }) => {
+      setBoardGrid(s.grid);
+      setBoardBg(s.bg);
       setLiveWalls(s.walls);
       setLivePieces(s.pieces);
       setFog({ fogMode: s.fogMode, visiblePolygons: s.visiblePolygons });
@@ -109,6 +112,8 @@ export function useLiveMapSync({ map, campaign }: Options) {
   return {
     liveWalls,
     livePieces,
+    boardGrid,
+    boardBg,
     fog,
     npcMap,
     handleWallStateChanged,

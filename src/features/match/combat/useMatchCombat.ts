@@ -28,7 +28,7 @@ type Options = {
 } & Pick<
   Parameters<typeof useMatchWs>[0],
   | "onWallStateChanged" | "onWallHpChanged" | "onMapFullState" | "onVisibilityUpdated"
-  | "onWallRevealed" | "onPieceMoved" | "onPieceRemoved"
+  | "onWallRevealed" | "onPieceMoved" | "onPieceRemoved" | "onBoardUnavailable"
 >;
 
 type SendOptions = {

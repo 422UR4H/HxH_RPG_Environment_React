@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { collectGridSnapPoints, snapWallPoint, explodePolyline, isMovementBlocked, newWallAttrs, isOpening } from "../walls";
+import { hexToPixel } from "../hex";
+import { gridLocalBounds, offsetToAxial } from "../coords";
+import { collectGridSnapPoints, snapWallPoint, explodePolyline, isMovementBlocked, newWallAttrs, isOpening, scaleWallsToGrid, snapWallPointWorld } from "../walls";
 import type { GridShape, WallMaterial, WallSegment } from "../../../../types/tacticalMap";
 
 const sq = (cellSize = 64): GridShape => ({
@@ -27,6 +29,41 @@ describe("collectGridSnapPoints — square", () => {
   it("includes vertical edge midpoints", () => {
     const pts = collectGridSnapPoints(sq(64));
     expect(pts.some(([x, y]) => x === 0 && y === 32)).toBe(true);
+  });
+});
+
+describe("collectGridSnapPoints — hex", () => {
+  const hexGrid: GridShape = {
+    kind: "hex", cols: 6, rows: 6, cellSize: 40,
+    skewRatio: 1, rotation: 0, color: "#fff", opacity: 1, lineStyle: "solid",
+  };
+  const near = (pts: [number, number][], x: number, y: number) =>
+    pts.some(([px, py]) => Math.abs(px - x) < 1e-9 && Math.abs(py - y) < 1e-9);
+
+  it("snaps to every vertex of every drawn hexagon (odd-r offset)", () => {
+    const pts = collectGridSnapPoints(hexGrid);
+    for (let row = 0; row < hexGrid.rows; row++) {
+      for (let col = 0; col < hexGrid.cols; col++) {
+        const c = hexToPixel(offsetToAxial(col, row), 40);
+        for (let i = 0; i < 6; i++) {
+          const a = ((60 * i - 30) * Math.PI) / 180;
+          const x = c.x + 40 * Math.cos(a), y = c.y + 40 * Math.sin(a);
+          expect(near(pts, x, y), `vertex ${i} of (${col},${row})`).toBe(true);
+        }
+      }
+    }
+  });
+  it("keeps every snap point inside the grid's local bounds", () => {
+    const b = gridLocalBounds(hexGrid);
+    for (const [x, y] of collectGridSnapPoints(hexGrid)) {
+      expect(x).toBeGreaterThanOrEqual(b.minX - 1e-9);
+      expect(x).toBeLessThanOrEqual(b.maxX + 1e-9);
+      expect(y).toBeGreaterThanOrEqual(b.minY - 1e-9);
+      expect(y).toBeLessThanOrEqual(b.maxY + 1e-9);
+    }
+  });
+  it("includes the center of column 0, row 4 (axial -2,4 -> 0,240)", () => {
+    expect(near(collectGridSnapPoints(hexGrid), 0, 240)).toBe(true);
   });
 });
 
@@ -180,5 +217,62 @@ describe("isOpening", () => {
   it("is false for wall and terrain", () => {
     expect(isOpening("wall")).toBe(false);
     expect(isOpening("terrain")).toBe(false);
+  });
+});
+
+describe("scaleWallsToGrid", () => {
+  const w = (p1: [number, number], p2: [number, number]): WallSegment => ({ ...wallAttrs, id: "w", p1, p2 });
+  const hx = (cellSize: number): GridShape => ({ ...sq(cellSize), kind: "hex" });
+
+  it("multiplica p1/p2 por k = next/prev (1,25)", () => {
+    const [s] = scaleWallsToGrid([w([64, 128], [128, 128])], sq(64), sq(80));
+    expect(s.p1).toEqual([80, 160]);
+    expect(s.p2).toEqual([160, 160]);
+  });
+  it("tipo diferente devolve as paredes como estão", () => {
+    const walls = [w([64, 0], [128, 0])];
+    expect(scaleWallsToGrid(walls, sq(64), hx(80))).toBe(walls);
+  });
+  it("mesmo cellSize (cols/rows diferentes) devolve as paredes como estão", () => {
+    const walls = [w([64, 0], [128, 0])];
+    expect(scaleWallsToGrid(walls, sq(64), { ...sq(64), cols: 9, rows: 9 })).toBe(walls);
+  });
+  it("não muta a entrada", () => {
+    const walls = [w([64, 0], [128, 0])];
+    scaleWallsToGrid(walls, sq(64), sq(80));
+    expect(walls[0].p1).toEqual([64, 0]);
+  });
+  it("parede sobre a aresta (2,0)-(3,0) continua na aresta (quadrado e hex)", () => {
+    for (const kind of ["square", "hex"] as const) {
+      const prev = { ...sq(64), kind }, next = { ...sq(80), kind };
+      const edge = (g: GridShape): [number, number][] => {
+        const pts = collectGridSnapPoints(g);
+        return kind === "square"
+          ? [[2 * g.cellSize, 0], [3 * g.cellSize, 0]]
+          : [pts[1], pts[2]]; // dois vértices do hexágono do centro (0,0)
+      };
+      const [a, b] = edge(prev);
+      const [s] = scaleWallsToGrid([w(a, b)], prev, next);
+      const [na, nb] = edge(next);
+      expect(s.p1[0]).toBeCloseTo(na[0], 6); expect(s.p1[1]).toBeCloseTo(na[1], 6);
+      expect(s.p2[0]).toBeCloseTo(nb[0], 6); expect(s.p2[1]).toBeCloseTo(nb[1], 6);
+    }
+  });
+});
+
+describe("snapWallPointWorld", () => {
+  const flat: GridShape = { ...sq(40), cols: 10, rows: 10, skewRatio: 0.3 };
+  // pivô (200,200): local (0,0) → mundo (0,140)
+  it("encaixa a 10 px de tela no eixo achatado (tolerância 15) e devolve o ponto LOCAL", () => {
+    expect(snapWallPointWorld({ x: 0, y: 130 }, flat, 15)).toEqual([0, 0]);
+  });
+  it("a 16 px de tela não encaixa", () => {
+    expect(snapWallPointWorld({ x: 0, y: 124 }, flat, 15)).toBeNull();
+  });
+  it("sem transform equivale a snapWallPoint", () => {
+    const g = sq(64);
+    for (const p of [[3, 4], [70, 60], [100, 100], [32, 5]] as [number, number][]) {
+      expect(snapWallPointWorld({ x: p[0], y: p[1] }, g, 15)).toEqual(snapWallPoint(p, g, 15));
+    }
   });
 });

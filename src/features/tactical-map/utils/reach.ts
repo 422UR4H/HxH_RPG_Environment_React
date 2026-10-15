@@ -1,6 +1,6 @@
 import type { GridShape, SlotCoord } from "../../../types/tacticalMap";
 import { hexDistance } from "./hex";
-import { isSameSlot, isSlotInBounds, slotToWorld } from "./coords";
+import { isSameSlot, isSlotInBounds, slotToLocal, slotToWorld } from "./coords";
 
 /**
  * Distância em passos de slot. Quadrado conta a diagonal como um passo (Chebyshev) — é a
@@ -30,6 +30,54 @@ export function neighborSlots(slot: SlotCoord): SlotCoord[] {
     return SQUARE_STEPS.map(([dc, dr]) => ({ kind: "square", col: slot.col + dc, row: slot.row + dr }));
   }
   return HEX_STEPS.map(([dq, dr]) => ({ kind: "hex", q: slot.q + dq, r: slot.r + dr }));
+}
+
+const SCREEN_DIR = {
+  up: { x: 0, y: -1 },
+  down: { x: 0, y: 1 },
+  left: { x: -1, y: 0 },
+  right: { x: 1, y: 0 },
+} as const;
+
+/** A coluna de offset (odd-r) de uma casa hex — o inverso de `offsetToAxial`. */
+function hexOffsetCol(s: SlotCoord): number | undefined {
+  return s.kind === "hex" ? s.q + Math.floor(s.r / 2) : undefined;
+}
+
+/**
+ * O vizinho da casa que fica mais na direção da seta NA TELA (maior cosseno entre o passo
+ * em coordenadas de mundo e a direção, y para baixo). Numa grade girada/achatada, ↑ deixa de
+ * ser `row − 1`. Empate: no hex, o que mantém a coluna de offset da casa atual
+ * (`q + floor(r/2)`) — num hex sem giro, ↑/↓ empatam entre os dois vizinhos a ±30° e assim a
+ * peça sobe a própria coluna, alternando (q+1, r−1) e (q, r−1) pela paridade da linha, em vez
+ * de derivar para a direita. Persistindo o empate, o primeiro de `neighborSlots`. Não filtra
+ * limites nem ocupação.
+ */
+export function neighborTowardScreen(
+  slot: SlotCoord,
+  grid: GridShape,
+  dir: keyof typeof SCREEN_DIR,
+): SlotCoord {
+  const d = SCREEN_DIR[dir];
+  const from = slotToWorld(slot, grid);
+  const col = hexOffsetCol(slot);
+  let best = slot;
+  let bestCos = -Infinity;
+  for (const n of neighborSlots(slot)) {
+    const w = slotToWorld(n, grid);
+    const vx = w.x - from.x;
+    const vy = w.y - from.y;
+    const len = Math.hypot(vx, vy);
+    if (len === 0) continue;
+    const cos = (vx * d.x + vy * d.y) / len;
+    const tied = Math.abs(cos - bestCos) <= 1e-9;
+    const keepsColumn = col !== undefined && hexOffsetCol(n) === col && hexOffsetCol(best) !== col;
+    if (cos > bestCos + 1e-9 || (tied && keepsColumn)) {
+      bestCos = cos;
+      best = n;
+    }
+  }
+  return best;
 }
 
 export type Approach =
@@ -85,11 +133,11 @@ export function approachReach({
 }): Approach {
   if (reach.some((s) => isSameSlot(s, actor))) return { kind: "in_reach" };
 
-  const actorPt = slotToWorld(actor, grid);
+  const actorPt = slotToLocal(actor, grid);
   const candidates = reach
     .filter((s) => isSlotInBounds(s, grid) && isFree(s) && (isPathClear?.(actor, s) ?? true))
     .map((s) => {
-      const p = slotToWorld(s, grid);
+      const p = slotToLocal(s, grid);
       return { s, steps: slotDistance(actor, s), dist: Math.hypot(p.x - actorPt.x, p.y - actorPt.y) };
     })
     .sort((a, b) => a.steps - b.steps || a.dist - b.dist);

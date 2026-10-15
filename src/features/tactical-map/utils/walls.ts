@@ -1,5 +1,6 @@
 import type { GridShape, WallMaterial, WallSegment, WallType } from "../../../types/tacticalMap";
 import { hexToPixel } from "./hex";
+import { applyTransform, offsetToAxial } from "./coords";
 
 const HP_DEFAULTS: Record<WallMaterial, number> = {
   stone: 100, wood: 40, iron: 500, magical: 80,
@@ -54,9 +55,10 @@ export function collectGridSnapPoints(grid: GridShape): [number, number][] {
         pts.push([c * cellSize, (r + 0.5) * cellSize]);
   } else {
     const { cols, rows, cellSize } = grid;
-    for (let r = 0; r < rows; r++) {
-      for (let q = 0; q < cols; q++) {
-        const center = hexToPixel({ q, r }, cellSize);
+    // The grid stores cols/rows in odd-r offset, like GridLayer draws it.
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
+        const center = hexToPixel(offsetToAxial(col, row), cellSize);
         pts.push([center.x, center.y]);
         for (let i = 0; i < 6; i++) {
           const angle = ((60 * i - 30) * Math.PI) / 180;
@@ -80,6 +82,25 @@ export function snapWallPoint(
   let best: [number, number] | null = null;
   for (const c of candidates) {
     const dx = c[0] - localPos[0], dy = c[1] - localPos[1];
+    const dSq = dx * dx + dy * dy;
+    if (dSq < bestSq) { bestSq = dSq; best = c; }
+  }
+  return best;
+}
+
+// Versão em tela do encaixe: `world` é o ponteiro em WORLD e `thresholdWorld` a tolerância em
+// pixels de mundo (já dividida pelo zoom). Os candidatos são comparados depois de applyTransform,
+// então o encaixe não encolhe no eixo achatado. Devolve o ponto LOCAL (o espaço de p1/p2).
+export function snapWallPointWorld(
+  world: { x: number; y: number },
+  grid: GridShape,
+  thresholdWorld = 15,
+): [number, number] | null {
+  let bestSq = thresholdWorld * thresholdWorld;
+  let best: [number, number] | null = null;
+  for (const c of collectGridSnapPoints(grid)) {
+    const w = applyTransform({ x: c[0], y: c[1] }, grid);
+    const dx = w.x - world.x, dy = w.y - world.y;
     const dSq = dx * dx + dy * dy;
     if (dSq < bestSq) { bestSq = dSq; best = c; }
   }
@@ -251,8 +272,9 @@ export function resolveOverlaps(
 // ─── Movement blocking ────────────────────────────────────────────────────────
 
 /**
- * Returns true if the straight path from→to (world coords) is blocked by any wall
- * with move=true and open=false. Respects WallDirection: "left" blocks only movement
+ * Returns true if the straight path from→to (LOCAL grid coords — the space of p1/p2; callers
+ * pass LOCAL slot centers, see isPathClear in wallReach.ts) is blocked by any wall, mirroring
+ * the server's IsPathBlocked. A wall blocks when it has move=true and open=false. Respects WallDirection: "left" blocks only movement
  * coming from the left side of the wall vector p1→p2; "right" from the right; "both" always.
  */
 export function isMovementBlocked(
@@ -304,4 +326,21 @@ function _onSeg(a: [number, number], b: [number, number], p: [number, number]): 
   const EPS = 1e-9;
   return p[0] >= Math.min(a[0], b[0]) - EPS && p[0] <= Math.max(a[0], b[0]) + EPS &&
          p[1] >= Math.min(a[1], b[1]) - EPS && p[1] <= Math.max(a[1], b[1]) + EPS;
+}
+
+// Paredes e células vivem no mesmo espaço LOCAL e as células escalam com cellSize em torno do
+// (0,0) LOCAL; sem isto, redimensionar a grade deixaria as paredes na escala antiga.
+// Troca de tipo (quadrado↔hex) não tem correspondência geométrica: paredes ficam como estão.
+export function scaleWallsToGrid(
+  walls: WallSegment[],
+  prev: GridShape,
+  next: GridShape,
+): WallSegment[] {
+  if (next.kind !== prev.kind || next.cellSize === prev.cellSize || prev.cellSize === 0) return walls;
+  const k = next.cellSize / prev.cellSize;
+  return walls.map((w) => ({
+    ...w,
+    p1: [w.p1[0] * k, w.p1[1] * k],
+    p2: [w.p2[0] * k, w.p2[1] * k],
+  }));
 }

@@ -6,28 +6,28 @@ import { applyLosMask, type MaskableContainer, type MaskSource } from "./utils/l
 
 type Props = {
   fog: FogState;
-  worldWidth: number;
-  worldHeight: number;
+  /** Real extent of the grid in WORLD space (see gridWorldBounds). */
+  bounds: { minX: number; minY: number; maxX: number; maxY: number };
   disabled: boolean;
 };
 
-export default function FogLayer({ fog, worldWidth, worldHeight, disabled }: Props) {
+export default function FogLayer({ fog, bounds, disabled }: Props) {
   if (disabled) return null;
 
-  return <FogLayerInner fog={fog} worldWidth={worldWidth} worldHeight={worldHeight} />;
+  return <FogLayerInner fog={fog} bounds={bounds} />;
 }
 
 // Inner component avoids calling hooks conditionally (hooks must not be called after
 // an early return that depends on a prop).
 type InnerProps = Omit<Props, "disabled">;
 
-function FogLayerInner({ fog, worldWidth, worldHeight }: InnerProps) {
+function FogLayerInner({ fog, bounds }: InnerProps) {
   const containerRef = useRef<PixiContainer>(null);
   const maskRef = useRef<PixiGraphics>(null);
 
   const draw = useCallback(
-    (g: PixiGraphics) => drawFog(g, worldWidth, worldHeight),
-    [worldWidth, worldHeight],
+    (g: PixiGraphics) => drawFog(g, bounds),
+    [bounds],
   );
 
   const drawMask = useCallback(

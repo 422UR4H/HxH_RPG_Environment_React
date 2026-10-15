@@ -7,6 +7,8 @@ import {
   applyTransform,
   gridHandleLocal,
   gridFromHandleDrag,
+  skewHandlePair,
+  gridRotateHandleWorld,
 } from "./utils/coords";
 import { computeNewBgFromDrag } from "./utils/bgHandles";
 import { useShiftPressed } from "./hooks/useShiftPressed";
@@ -245,9 +247,8 @@ function GridHandles({
   });
 
   const hs = HANDLE_SIZE / vpScale;
-  // OCULTO POR ORA — esfera de rotação do grid desabilitada no canvas.
-  // const rr = ROTATE_RADIUS / vpScale;
-  // const ro = ROTATE_OFFSET / vpScale;
+  const rr = ROTATE_RADIUS / vpScale;
+  const ro = ROTATE_OFFSET / vpScale;
 
   // World-space anchor positions for every handle, following the grid's
   // rotation + skew. The container itself is NOT transformed, so the handle
@@ -267,14 +268,9 @@ function GridHandles({
     const BC = at("BC");
     const ML = at("ML");
     const MR = at("MR");
-    // OCULTO POR ORA — posição da esfera de rotação do grid.
-    // const center = at("center");
-    // const dx = TC.x - center.x;
-    // const dy = TC.y - center.y;
-    // const len = Math.hypot(dx, dy) || 1;
-    // const rot: XY = { x: TC.x + (dx / len) * ro, y: TC.y + (dy / len) * ro };
-    return { TL, TR, BR, BL, TC, BC, ML, MR };
-  }, [grid]);
+    const rot: XY = gridRotateHandleWorld(grid, ro);
+    return { TL, TR, BR, BL, TC, BC, ML, MR, rot };
+  }, [grid, ro]);
 
   const drawBorder = useCallback((g: PixiGraphics) => {
     g.clear();
@@ -288,8 +284,6 @@ function GridHandles({
     g.stroke();
   }, [pts, vpScale, shiftPressed]);
 
-  /* OCULTO POR ORA — esfera/linha de rotação do grid (ver JSX abaixo).
-     Reativar junto com rr/ro e pts.rot quando liberar a rotação do grid.
   const drawRotate = useCallback((g: PixiGraphics) => {
     g.clear();
     g.setStrokeStyle({ width: 1 / vpScale, color: 0xffd700, alpha: 0.8 });
@@ -300,7 +294,6 @@ function GridHandles({
     g.circle(pts.rot.x, pts.rot.y, rr);
     g.fill();
   }, [pts, rr, vpScale]);
-  */
 
   const corners: Array<{ id: string; p: XY; cursor: string }> = [
     { id: "TL", p: pts.TL, cursor: "nw-resize" },
@@ -309,13 +302,14 @@ function GridHandles({
     { id: "BR", p: pts.BR, cursor: "se-resize" },
   ];
 
-  // Vertical edges (TC/BC) tune perspective on Shift; horizontal edges (ML/MR)
-  // are plain cellSize resize, so they don't show the Shift/skew affordance.
-  const edgeHandles: Array<{ id: string; p: XY; vertical: boolean }> = [
-    { id: "TC", p: pts.TC, vertical: true },
-    { id: "BC", p: pts.BC, vertical: true },
-    { id: "ML", p: pts.ML, vertical: false },
-    { id: "MR", p: pts.MR, vertical: false },
+  // O par mais vertical na tela (`skewHandlePair`) ajusta a perspectiva com Shift;
+  // o outro par é redimensionamento comum e não mostra a marca de Shift.
+  const skewPair = skewHandlePair(grid);
+  const edgeHandles: Array<{ id: string; p: XY; vertical: boolean; skew: boolean }> = [
+    { id: "TC", p: pts.TC, vertical: true, skew: skewPair === "TC/BC" },
+    { id: "BC", p: pts.BC, vertical: true, skew: skewPair === "TC/BC" },
+    { id: "ML", p: pts.ML, vertical: false, skew: skewPair === "ML/MR" },
+    { id: "MR", p: pts.MR, vertical: false, skew: skewPair === "ML/MR" },
   ];
 
   return (
@@ -335,7 +329,7 @@ function GridHandles({
         />
       ))}
 
-      {edgeHandles.map(({ id, p, vertical }) => (
+      {edgeHandles.map(({ id, p, vertical, skew }) => (
         <GridEdgeHandle
           key={id}
           id={id}
@@ -343,14 +337,12 @@ function GridHandles({
           hy={p.y}
           hs={hs}
           vertical={vertical}
+          skew={skew}
           shiftPressed={shiftPressed}
           onStartDrag={startDrag}
         />
       ))}
 
-      {/* OCULTO POR ORA — esfera de rotação do grid não disponível ao usuário.
-          A lógica de rotação (gridFromHandleDrag "rotate") permanece e segue
-          funcionando se grid.rotation vier do backend (GridLayer aplica).
       <pixiGraphics
         draw={drawRotate}
         eventMode="static"
@@ -360,27 +352,24 @@ function GridHandles({
           startDrag("rotate", false, e.global.x, e.global.y);
         }}
       />
-      */}
     </pixiContainer>
   );
 }
 
 function GridEdgeHandle({
-  id, hx, hy, hs, vertical, shiftPressed, onStartDrag,
+  id, hx, hy, hs, vertical, skew, shiftPressed, onStartDrag,
 }: {
   id: string; hx: number; hy: number; hs: number;
   vertical: boolean;
+  skew: boolean;
   shiftPressed: boolean;
   onStartDrag: (id: string, shift: boolean, ex: number, ey: number) => void;
 }) {
-  // Only vertical edges (TC/BC) react to Shift (perspective/skew). Horizontal
-  // edges (ML/MR) are plain resize handles regardless of Shift.
-  const skewAffordance = vertical && shiftPressed;
+  // Só o par `skew` (o mais vertical na tela) reage ao Shift (perspectiva).
+  const skewAffordance = skew && shiftPressed;
   const actualHs = skewAffordance ? hs * 1.25 : hs;
   const fillColor = skewAffordance ? 0xffaa00 : 0xffffff;
-  const cursor = vertical
-    ? (skewAffordance ? "row-resize" : "ns-resize")
-    : "ew-resize";
+  const cursor = skewAffordance ? "row-resize" : vertical ? "ns-resize" : "ew-resize";
 
   const draw = useCallback((g: PixiGraphics) => {
     g.clear();

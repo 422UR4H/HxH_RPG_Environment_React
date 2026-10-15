@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Piece, SlotCoord, WallSegment } from "../types/tacticalMap";
+import type { BgImage, GridShape, Piece, SlotCoord, WallSegment } from "../types/tacticalMap";
 import type {
   AttachReactionPayload, ChangeScenePayload, CombatServerMessage, EditActionPayload, EnqueueActionPayload, MasterActionPayload, RoundMode,
 } from "../features/match/combat/combatMessages";
@@ -122,6 +122,10 @@ type UseMatchWsOptions = {
     walls: WallSegment[];
     visiblePolygons: Array<Array<[number, number]>>;
     fogMode: "live" | "explored";
+    /** Grade do tabuleiro da partida; ausente só quando a sala não tem tabuleiro. */
+    grid?: GridShape;
+    /** Fundo do tabuleiro: `null` = sem fundo; `undefined` = o payload não trouxe o campo. */
+    bg?: BgImage;
   }) => void;
   /** Called when visibility polygons change after a move. */
   onVisibilityUpdated?: (
@@ -151,6 +155,12 @@ type UseMatchWsOptions = {
   onPieceRemoved?: (pieceId: string) => void;
   /** Server refusal (`error`). Never broadcast: it is always about our own last send. */
   onWsError?: (e: { code: string; message: string; sentType?: string }) => void;
+  /**
+   * `error` `board_unavailable` (s→c, ao conectar): a sala não conseguiu carregar o tabuleiro
+   * da partida. NÃO é resposta a um envio — por isso não vai ao `onWsError` — e a conexão segue
+   * aberta; um `map_full_state` posterior o supera (o servidor tenta de novo na próxima conexão).
+   */
+  onBoardUnavailable?: () => void;
   /**
    * Called when a combat message is received from the server. `serverAt` is the
    * envelope's own `timestamp` (`Date.parse`d), when the server sent one — `undefined`
@@ -183,6 +193,7 @@ export function useMatchWs({
   onPieceMoved,
   onPieceRemoved,
   onWsError,
+  onBoardUnavailable,
   onCombatMessage,
   onNpcAdded,
   onMasterActionEnqueued,
@@ -208,6 +219,8 @@ export function useMatchWs({
   onPieceRemovedRef.current = onPieceRemoved;
   const onWsErrorRef = useRef(onWsError);
   onWsErrorRef.current = onWsError;
+  const onBoardUnavailableRef = useRef(onBoardUnavailable);
+  onBoardUnavailableRef.current = onBoardUnavailable;
   const onCombatMessageRef = useRef(onCombatMessage);
   onCombatMessageRef.current = onCombatMessage;
   const onNpcAddedRef = useRef(onNpcAdded);
@@ -301,12 +314,16 @@ export function useMatchWs({
               walls?: unknown[];
               visiblePolygons?: Array<Array<{ x: number; y: number }>>;
               fogMode?: string;
+              grid?: GridShape;
+              bg?: BgImage;
             };
             onMapFullStateRef.current?.({
               pieces: (p.pieces ?? []).map(fromPiecePayload),
               walls: (p.walls ?? []) as unknown as WallSegment[],
               visiblePolygons: parsePolys(p.visiblePolygons ?? []),
               fogMode: p.fogMode === "explored" ? "explored" : "live",
+              grid: p.grid ?? undefined,
+              bg: p.bg === null ? null : (p.bg ?? undefined),
             });
           } else if (msg.type === "visibility_updated") {
             const p = msg.payload as {
@@ -351,6 +368,10 @@ export function useMatchWs({
             // Não responde a nada que esta aba enviou: não é erro de envio.
             if (p.code === "connection_replaced") {
               replaced = true;
+              return;
+            }
+            if (p.code === "board_unavailable") {
+              onBoardUnavailableRef.current?.();
               return;
             }
             onWsErrorRef.current?.({

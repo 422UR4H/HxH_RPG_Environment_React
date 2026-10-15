@@ -151,3 +151,23 @@ describe("computeCoverFit — hex covers the full grid bounds", () => {
     expect(result.y + result.height).toBeGreaterThanOrEqual(b.maxY - 0.01);
   });
 });
+
+describe("fitGridToImage / computeCoverFit com grade isométrica", () => {
+  it("45°/0.5: a caixa WORLD da grade cobre a imagem e o bg coincide com ela", async () => {
+    const { gridWorldBounds } = await import("../coords");
+    const iso = { ...grid(10, 10, 40), rotation: 45, skewRatio: 0.5 };
+    const fitted = fitGridToImage(1000, 500, iso);
+    // Extensão World unitária: largura 10·√2 = 14,142; altura 7,071 → ideal = 1000/14,142 = 70,71 → 71.
+    expect(fitted.cellSize).toBe(71);
+    expect(fitted.rotation).toBe(45);
+    expect(fitted.skewRatio).toBe(0.5);
+    const b = gridWorldBounds({ ...fitted, originX: 0, originY: 0 });
+    expect(b.maxX - b.minX).toBeGreaterThanOrEqual(1000);
+    expect(b.maxY - b.minY).toBeGreaterThanOrEqual(500);
+    const cover = computeCoverFit(1000, 500, fitted);
+    expect(cover.x).toBeCloseTo(b.minX + (b.maxX - b.minX - cover.width) / 2, 6);
+    expect(cover.y).toBeCloseTo(b.minY + (b.maxY - b.minY - cover.height) / 2, 6);
+    expect(cover.width).toBeCloseTo(b.maxX - b.minX, 6);
+    expect(cover.height).toBeCloseTo(b.maxY - b.minY, 6);
+  });
+});

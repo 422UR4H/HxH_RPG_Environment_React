@@ -11,6 +11,7 @@ import { useCampaignDetails } from "../../../hooks/useCampaignDetails";
 import { isSameSlot, slotToTriple, tripleToSlot } from "../../tactical-map/utils/coords";
 import type { SlotTriple } from "../../tactical-map/utils/coords";
 import type { QueuedAction } from "./combatMessages";
+import { tableMap } from "./tableMap";
 import { useLiveMapSync } from "./useLiveMapSync";
 import { useMatchCombat } from "./useMatchCombat";
 import { useMatchHistory } from "../../../hooks/useMatchHistory";
@@ -48,7 +49,7 @@ export function useGameTable({
 }) {
   const { user } = useUser();
   const { data: matchMap, isPending: matchMapPending } = useMatchMap(token, matchId);
-  const { data: map, isPending: mapPending } = useMap(token, matchMap?.mapUuid);
+  const { data: restMap } = useMap(token, matchMap?.mapUuid);
   const { data: participants = [], isSuccess: participantsLoaded } = useMatchParticipants(token, matchId, true);
   const { data: campaign } = useCampaignDetails(token, campaignId);
 
@@ -58,9 +59,31 @@ export function useGameTable({
     [queryClient, token, matchId],
   );
 
-  // O tabuleiro (peças, paredes, fog) é do servidor, para os dois papéis (F13): do REST vem
-  // só o mapa em si — fundo e grade. As peças do mapa da campanha não são as da partida.
-  const live = useLiveMapSync({ map, campaign });
+  // O tabuleiro (grade, fundo, peças, paredes, fog) é do servidor, para os dois papéis (F13):
+  // do REST vem só o que não é geometria (o nome). Nada do mapa da campanha é desenhado.
+  const live = useLiveMapSync({ campaign });
+  const { boardGrid, boardBg } = live;
+  // `undefined` até o primeiro `map_full_state` com grade — a mesa espera em vez de desenhar
+  // o mapa da campanha. `boardPending` separa isso de "nenhum mapa anexado" (sem `mapUuid` no `useMatchMap`).
+  // O tabuleiro que chegou sempre desenha, mesmo que o REST do mapa tenha falhado: "há mapa
+  // anexado" vem do `useMatchMap` (`mapUuid`), não do `useMap`.
+  const attachedMapId = matchMap?.mapUuid;
+  const map = useMemo(
+    () => tableMap(restMap, boardGrid, boardBg, attachedMapId),
+    [restMap, boardGrid, boardBg, attachedMapId],
+  );
+  const boardPending = !!attachedMapId && !map;
+  // `board_unavailable`: a sala não carregou o tabuleiro. Vale até o próximo `map_full_state`.
+  const [boardUnavailable, setBoardUnavailable] = useState(false);
+  const { handleMapFullState } = live;
+  const onMapFullState = useCallback(
+    (s: Parameters<typeof handleMapFullState>[0]) => {
+      setBoardUnavailable(false);
+      handleMapFullState(s);
+    },
+    [handleMapFullState],
+  );
+  const onBoardUnavailable = useCallback(() => setBoardUnavailable(true), []);
   // Peças só do servidor — é também o que mantém fora da vista do jogador as peças que o fog esconde.
   const boardPieces = live.livePieces ?? [];
 
@@ -85,7 +108,8 @@ export function useGameTable({
     declaredSource,
     onWallStateChanged: live.handleWallStateChanged,
     onWallHpChanged: live.handleWallHpChanged,
-    onMapFullState: live.handleMapFullState,
+    onMapFullState,
+    onBoardUnavailable,
     onVisibilityUpdated: live.handleVisibilityUpdated,
     onWallRevealed: live.handleWallRevealed,
     onPieceMoved: live.handlePieceMoved,
@@ -277,7 +301,10 @@ export function useGameTable({
   return {
     user,
     map,
-    isLoading: matchMapPending || (!!matchMap && mapPending),
+    // O REST do mapa só segura a tela enquanto o tabuleiro não chegou (e o `useMatchMap` não respondeu).
+    isLoading: matchMapPending && !map,
+    boardPending,
+    boardUnavailable,
     participants,
     participantsLoaded,
     refetchParticipants,

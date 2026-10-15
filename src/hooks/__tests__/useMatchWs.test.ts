@@ -35,6 +35,24 @@ describe("useMatchWs fog events", () => {
     expect(arg.visiblePolygons[0]).toEqual([[0, 0], [10, 0], [10, 10]]);
   });
 
+  it("passes grid and bg of map_full_state (null bg stays null, absent stays undefined)", () => {
+    const onMapFullState = vi.fn();
+    renderHook(() => useMatchWs({ matchUuid: "m1", token: "t", onMapFullState }));
+    const ws = flushConnect();
+    ws.onopen?.();
+    const grid = { kind: "square", cols: 2, rows: 2, cellSize: 64, skewRatio: 1, rotation: 0 };
+    const bg = { url: "x", x: 0, y: 0, width: 1, height: 1, rotation: 0, opacity: 1 };
+    ws.emit("map_full_state", { pieces: [], walls: [], visiblePolygons: [], fogMode: "live", grid, bg });
+    ws.emit("map_full_state", { pieces: [], walls: [], visiblePolygons: [], fogMode: "live", grid, bg: null });
+    ws.emit("map_full_state", { pieces: [], walls: [], visiblePolygons: [], fogMode: "live" });
+    const calls = onMapFullState.mock.calls.map((c) => c[0]);
+    expect(calls[0].grid).toEqual(grid);
+    expect(calls[0].bg).toEqual(bg);
+    expect(calls[1].bg).toBeNull();
+    expect(calls[2].grid).toBeUndefined();
+    expect(calls[2].bg).toBeUndefined();
+  });
+
   it("parses visibility_updated", () => {
     const onVisibilityUpdated = vi.fn();
     renderHook(() =>
@@ -675,6 +693,21 @@ describe("useMatchWs connection lifecycle", () => {
     act(() => { result.current.reconnect(); });
     flushConnect(1);
     expect(FakeWS.instances).toHaveLength(2);
+  });
+
+  // Task 2: o servidor avisa, ao conectar, que a sala não conseguiu carregar o tabuleiro. Não
+  // responde a nada que a aba enviou (sem toast) e a conexão continua aberta.
+  it("board_unavailable: chama onBoardUnavailable, não onWsError, e a conexão segue", () => {
+    const onWsError = vi.fn();
+    const onBoardUnavailable = vi.fn();
+    const { result } = renderHook(() => useMatchWs({ matchUuid: "m1", token: "t", onWsError, onBoardUnavailable }));
+    const ws = flushConnect();
+    act(() => { ws.onopen?.(); });
+    act(() => { ws.emit("error", { code: "board_unavailable", message: "the match board could not be loaded; reconnect to try again" }); });
+
+    expect(onBoardUnavailable).toHaveBeenCalledTimes(1);
+    expect(onWsError).not.toHaveBeenCalled();
+    expect(result.current.status).toBe("connected");
   });
 
   it("reconnect() opens a fresh socket after giving up", () => {

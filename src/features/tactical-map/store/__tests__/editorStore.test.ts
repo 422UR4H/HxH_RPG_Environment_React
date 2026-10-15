@@ -239,3 +239,91 @@ describe("editorStore — wall tool UI state", () => {
     vi.useRealTimers();
   });
 });
+
+describe("editorStore — paredes acompanham o cellSize", () => {
+  beforeEach(() => { vi.useFakeTimers(); });
+  afterEach(() => { vi.useRealTimers(); });
+
+  const withWall = () => createEditorStore({ ...mapFixture, walls: [mockWall()] });
+
+  it("setGrid com cellSize 64→80 escala as paredes; desfazer volta as duas coisas", () => {
+    const store = withWall();
+    store.getState().setGrid({ ...mapFixture.grid, cellSize: 80 });
+    vi.advanceTimersByTime(400);
+    expect(store.getState().map.walls[0].p2).toEqual([80, 0]);
+    store.temporal.getState().undo();
+    expect(store.getState().map.walls[0].p2).toEqual([64, 0]);
+    expect(store.getState().map.grid.cellSize).toBe(64);
+  });
+
+  it("setBgWithGrid também escala as paredes", () => {
+    const store = withWall();
+    const bg = { url: "blob:x", x: 0, y: 0, width: 800, height: 600, rotation: 0, opacity: 1 };
+    store.getState().setBgWithGrid(bg, { ...mapFixture.grid, cellSize: 128 });
+    expect(store.getState().map.walls[0].p2).toEqual([128, 0]);
+  });
+});
+
+describe("editorStore — rajada de mudanças vira um passo único", () => {
+  beforeEach(() => { vi.useFakeTimers(); });
+  afterEach(() => { vi.useRealTimers(); });
+
+  const name = (s: ReturnType<typeof createEditorStore>) => s.getState().map.name;
+
+  it("duas mudanças em <400ms: um desfazer volta ao valor de antes da rajada", () => {
+    const store = createEditorStore({ ...mapFixture, name: "45" });
+    store.getState().setName("3");
+    vi.advanceTimersByTime(100);
+    store.getState().setName("30");
+    vi.advanceTimersByTime(400);
+    expect(store.temporal.getState().pastStates).toHaveLength(1);
+    store.temporal.getState().undo();
+    expect(name(store)).toBe("45");
+    expect(store.temporal.getState().pastStates).toHaveLength(0);
+  });
+
+  it("mudanças separadas por >400ms geram dois passos", () => {
+    const store = createEditorStore({ ...mapFixture, name: "a" });
+    store.getState().setName("b");
+    vi.advanceTimersByTime(400);
+    store.getState().setName("c");
+    vi.advanceTimersByTime(400);
+    expect(store.temporal.getState().pastStates).toHaveLength(2);
+    store.temporal.getState().undo();
+    expect(name(store)).toBe("b");
+    store.temporal.getState().undo();
+    expect(name(store)).toBe("a");
+  });
+
+  it("mudança + desfazer imediato volta ao original e refazer devolve a mudança", () => {
+    const store = createEditorStore({ ...mapFixture, name: "a" });
+    store.getState().setName("b");
+    store.temporal.getState().undo();
+    expect(name(store)).toBe("a");
+    vi.advanceTimersByTime(400); // nada pendente deve chegar depois
+    expect(store.temporal.getState().pastStates).toHaveLength(0);
+    expect(store.temporal.getState().futureStates).toHaveLength(1);
+    store.temporal.getState().redo();
+    expect(name(store)).toBe("b");
+  });
+
+  it("gesto logo após uma rajada pendente gera passos separados e corretos", () => {
+    const store = createEditorStore({ ...mapFixture, name: "a" });
+    store.getState().setName("b");
+    store.getState().setName("c");
+    // início de gesto (como useGestureHistory): pause() descarrega a rajada
+    store.temporal.getState().pause();
+    store.getState().setName("gesto");
+    store.temporal.getState().resume();
+    store.temporal.setState((s) => ({
+      pastStates: [...s.pastStates, { map: { ...mapFixture, name: "c" } }],
+      futureStates: [],
+    }));
+    vi.advanceTimersByTime(400);
+    expect(store.temporal.getState().pastStates).toHaveLength(2);
+    store.temporal.getState().undo();
+    expect(name(store)).toBe("c");
+    store.temporal.getState().undo();
+    expect(name(store)).toBe("a");
+  });
+});

@@ -44,7 +44,7 @@ fantasma de espera (o de um movimento que depende de CD).
 ```
 
 > **Superado no fechamento:** o `useLiveMapSync` não mistura mais REST e WS. O tabuleiro
-> (peças, paredes, fog) vem só do servidor, e do REST vêm o fundo e a grade. Ver
+> (peças, paredes, fog) vem só do servidor, a grade e o fundo também são os do tabuleiro da partida (`map_full_state`); do REST vem só o nome e o fog (e a grade/fundo até o primeiro `map_full_state`). Ver
 > `combate-fechamento-fase-6.md` ("O tabuleiro é do servidor").
 
 `GamePage.tsx` deixou de ser a página: hoje é só a rota. Ela busca `match`/`user`, decide
@@ -62,7 +62,7 @@ mais abaixo.
 | `src/features/match/combat/combatReducer.ts` | o reducer puro + estado inicial |
 | `src/features/match/combat/useMatchCombat.ts` | liga reducer ↔ `useMatchWs`, expõe `state`/`status`/`send`, persiste fantasmas |
 | `src/features/match/combat/useActionComposerState.ts` | rascunho (`localStorage`) + mapas peça↔personagem, compartilhado entre as duas páginas |
-| `src/features/match/combat/useLiveMapSync.ts` | paredes/peças/fog ao vivo, só do servidor (`map_full_state` + mensagens de peça/parede) para os dois papéis (F13); do REST vem só o mapa (fundo, grade) |
+| `src/features/match/combat/useLiveMapSync.ts` | paredes/peças/fog ao vivo, só do servidor (`map_full_state` + mensagens de peça/parede) para os dois papéis (F13); grade e fundo também vêm do `map_full_state` (`boardGrid`/`boardBg`); o mapa REST só vale até ele chegar |
 | `src/features/match/combat/actionDraft.ts` | rascunho + fantasmas confirmados em `localStorage`, migração de alvo |
 | `src/features/match/combat/mapCanvasStyles.ts` | os três styled-components do canvas do mapa, extraídos por estarem duplicados entre as páginas |
 | `src/features/match/combat/defaultMoveCategory.ts` | `defaultMoveCategory(state)` — hoje sempre `"Dash"`, é função de propósito (ver spec §6) |

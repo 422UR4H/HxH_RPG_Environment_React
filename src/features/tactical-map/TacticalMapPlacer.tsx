@@ -11,7 +11,7 @@ import useToken from "../../hooks/useToken";
 import { useRosterDrag } from "./hooks/useRosterDrag";
 import type { TacticalMap, Piece, SlotCoord } from "../../types/tacticalMap";
 import type { CharacterPrivateSummary } from "../../types/characterSheet";
-import { isSameSlot } from "./utils/coords";
+import { isSameSlot, slotScreenInradius } from "./utils/coords";
 
 type Props = {
   map: TacticalMap;
@@ -89,12 +89,12 @@ export default function TacticalMapPlacer({
       .filter((cs): cs is CharacterPrivateSummary => cs != null);
   }, [playerCharacterIds, placedCharacterIds, npcMap]);
 
-  // On-screen token diameter = world token size (cellSize * 0.9) × current zoom.
+  // On-screen token diameter = world token size (slotScreenInradius × 0.9 × 2, as drawn on screen) × current zoom.
   // Clamped so the ghost stays grabbable when zoomed far out. Same formula as
   // TacticalMapEditor — kept local rather than extracted since it depends on
-  // caller-local values (map.grid.cellSize, viewportScale); a one-line
+  // caller-local values (map.grid — its shape, not just cellSize — and viewportScale); a one-line
   // function shared by two callers would trade duplication for indirection.
-  const dragGhostSize = Math.max(44, map.grid.cellSize * 0.9 * viewportScale);
+  const dragGhostSize = Math.max(44, slotScreenInradius(map.grid) * 2 * 0.9 * viewportScale);
 
   // --- Handlers ---
 

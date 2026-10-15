@@ -1,4 +1,4 @@
-import type { GridShape, SlotCoord } from "../../../types/tacticalMap";
+import type { GridShape, SlotCoord, VisibilityPolygon } from "../../../types/tacticalMap";
 import { hexToPixel, pixelToHex } from "./hex";
 
 type XY = { x: number; y: number };
@@ -7,8 +7,9 @@ const DEG_TO_RAD = Math.PI / 180;
 
 // Maps a point from local grid space to world space.
 //
-// The transform is built around the grid CENTER (pivot = cols*cellSize/2,
-// rows*cellSize/2) and applies, in order:
+// The transform is built around the grid CENTER (pivot = gridPivot: the center
+// of gridLocalBounds — cols*cellSize/2, rows*cellSize/2 for square; for hex the
+// bounds are offset, so it is NOT that) and applies, in order:
 //   1. rotation (degrees)
 //   2. vertical squash by skewRatio — in SCREEN space, AFTER rotation
 //
@@ -18,8 +19,7 @@ const DEG_TO_RAD = Math.PI / 180;
 // own axes). Squashing before rotation would only ever compress the local
 // vertical axis, which is the bug we're fixing.
 export function applyTransform(p: XY, grid: GridShape): XY {
-  const pivotX = (grid.cols * grid.cellSize) / 2;
-  const pivotY = (grid.rows * grid.cellSize) / 2;
+  const { x: pivotX, y: pivotY } = gridPivot(grid);
   const dx = p.x - pivotX;
   const dy = p.y - pivotY;
   let rx = dx;
@@ -38,8 +38,7 @@ export function applyTransform(p: XY, grid: GridShape): XY {
 // Inverse of applyTransform: world → local grid space.
 // Undo in reverse order: remove origin, un-squash (÷ skewRatio), then un-rotate.
 export function inverseTransform(p: XY, grid: GridShape): XY {
-  const pivotX = (grid.cols * grid.cellSize) / 2;
-  const pivotY = (grid.rows * grid.cellSize) / 2;
+  const { x: pivotX, y: pivotY } = gridPivot(grid);
   const rx = p.x - (grid.originX ?? 0) - pivotX;
   const ry = (p.y - (grid.originY ?? 0) - pivotY) / grid.skewRatio;
   if (grid.rotation === 0) {
@@ -137,6 +136,70 @@ export function gridLocalBounds(grid: GridShape): {
   };
 }
 
+// Pivô do transform: o centro REAL da grade no espaço LOCAL (centro de
+// gridLocalBounds). No quadrado é (cols·cellSize/2, rows·cellSize/2); no hex os
+// limites são deslocados, então o pivô antigo ficava fora do centro.
+export function gridPivot(grid: GridShape): XY {
+  const b = gridLocalBounds(grid);
+  return { x: (b.minX + b.maxX) / 2, y: (b.minY + b.maxY) / 2 };
+}
+
+// Posição WORLD da esfera de rotação: no raio centro→TC (já transformado), a
+// `offset` px além do TC. Compartilhada por MapHandlesLayer e pelos testes do arrasto.
+export function gridRotateHandleWorld(grid: GridShape, offset: number): XY {
+  const TC = applyTransform(gridHandleLocal("TC", grid), grid);
+  const center = applyTransform(gridHandleLocal("center", grid), grid);
+  const dx = TC.x - center.x;
+  const dy = TC.y - center.y;
+  const len = Math.hypot(dx, dy) || 1;
+  return { x: TC.x + (dx / len) * offset, y: TC.y + (dy / len) * offset };
+}
+
+// Mudar cols/rows/cellSize move o pivô e, numa grade girada/achatada, translada
+// todas as células. Compensa a origem para que o canto local (0,0) fique onde estava.
+export function keepGridAnchored(prev: GridShape, next: GridShape): GridShape {
+  const a = applyTransform({ x: 0, y: 0 }, prev);
+  const b = applyTransform({ x: 0, y: 0 }, next);
+  return {
+    ...next,
+    originX: (next.originX ?? 0) - (b.x - a.x),
+    originY: (next.originY ?? 0) - (b.y - a.y),
+  };
+}
+
+// Contorno da grade em WORLD: os 4 cantos de gridLocalBounds (TL, TR, BR, BL) por
+// applyTransform. A caixa de gridWorldBounds envolve este contorno.
+export function gridWorldCorners(grid: GridShape): XY[] {
+  const b = gridLocalBounds(grid);
+  return [
+    { x: b.minX, y: b.minY }, { x: b.maxX, y: b.minY },
+    { x: b.maxX, y: b.maxY }, { x: b.minX, y: b.maxY },
+  ].map((p) => applyTransform(p, grid));
+}
+
+// Axis-aligned bounds, in WORLD space, of the grid's real extent: the 4 corners
+// of gridLocalBounds run through applyTransform. Covers hex (wider than
+// cols*cellSize) and rotated/squashed grids. Shared by the camera fit and the fog.
+export function gridWorldBounds(grid: GridShape): {
+  minX: number; minY: number; maxX: number; maxY: number;
+} {
+  const corners = gridWorldCorners(grid);
+  const xs = corners.map((p) => p.x);
+  const ys = corners.map((p) => p.y);
+  return { minX: Math.min(...xs), minY: Math.min(...ys), maxX: Math.max(...xs), maxY: Math.max(...ys) };
+}
+
+// Visibility polygons arrive from the server in LOCAL grid space (same as wall
+// p1/p2). The transform is affine, so transforming each vertex is exact.
+export function polygonsToWorld(polys: VisibilityPolygon[], grid: GridShape): VisibilityPolygon[] {
+  return polys.map((poly) =>
+    poly.map((v): [number, number] => {
+      const w = applyTransform({ x: v[0], y: v[1] }, grid);
+      return [w.x, w.y];
+    }),
+  );
+}
+
 // Radius of the largest circle that fits inside one grid cell, in LOCAL
 // (pre-transform) space. A square cell inscribes a circle of cellSize/2; a
 // pointy-top hex cell inscribes one of cellSize·√3/2 (its flat-to-flat
@@ -145,6 +208,30 @@ export function gridLocalBounds(grid: GridShape): {
 // same fraction of its slot regardless of grid kind.
 export function slotInradius(grid: GridShape): number {
   return grid.kind === "square" ? grid.cellSize / 2 : (grid.cellSize * Math.sqrt(3)) / 2;
+}
+
+// Raio do maior círculo que cabe na casa (0,0) COMO ELA APARECE NA TELA: a menor distância
+// do centro transformado até cada aresta transformada. Numa grade rotacionada/achatada
+// (isométrica) a casa vira um losango mais baixo e o raio LOCAL (`slotInradius`) a deixaria
+// vazar sobre as vizinhas. Sem transform é igual a `slotInradius`. Medida em WORLD — é o
+// raio de desenho/toque da ficha; `slotInradius` fica para quem mede em LOCAL.
+export function slotScreenInradius(grid: GridShape): number {
+  const slot: SlotCoord =
+    grid.kind === "square" ? { kind: "square", col: 0, row: 0 } : { kind: "hex", q: 0, r: 0 };
+  const c = slotToWorld(slot, grid);
+  const corners = slotCorners(slot, grid);
+  let min = Infinity;
+  for (let i = 0; i < corners.length; i++) {
+    const a = corners[i];
+    const b = corners[(i + 1) % corners.length];
+    const ex = b.x - a.x;
+    const ey = b.y - a.y;
+    const len = Math.hypot(ex, ey);
+    if (len === 0) continue;
+    const d = Math.abs(ex * (c.y - a.y) - ey * (c.x - a.x)) / len;
+    if (d < min) min = d;
+  }
+  return Number.isFinite(min) ? min : slotInradius(grid);
 }
 
 // Converts a stack-cascade offset (§7.2 — dx/dy as a FRACTION of the inradius,
@@ -156,7 +243,7 @@ export function stackOffsetToPx(
   offset: { dx: number; dy: number } | undefined,
   grid: GridShape,
 ): XY {
-  const inradius = slotInradius(grid);
+  const inradius = slotScreenInradius(grid);
   return { x: (offset?.dx ?? 0) * inradius, y: (offset?.dy ?? 0) * inradius };
 }
 
@@ -184,10 +271,35 @@ const OPPOSITE_HANDLE: Record<string, string> = {
   TC: "BC", BC: "TC", ML: "MR", MR: "ML",
 };
 
+// y da alça depois de girar e ANTES de achatar, relativo ao pivô.
+function handleRotatedY(handle: string, grid: GridShape): number {
+  const { x: pivotX, y: pivotY } = gridPivot(grid);
+  const h = gridHandleLocal(handle, grid);
+  const t = grid.rotation * (Math.PI / 180);
+  return (h.x - pivotX) * Math.sin(t) + (h.y - pivotY) * Math.cos(t);
+}
+
+function handlePairOf(handle: string): "TC/BC" | "ML/MR" | null {
+  if (handle === "TC" || handle === "BC") return "TC/BC";
+  if (handle === "ML" || handle === "MR") return "ML/MR";
+  return null;
+}
+
+/**
+ * Par de alças que o Shift usa para achatar: o da direção mais vertical na tela, decidido só
+ * pelo ângulo — |cos θ| >= |sin θ| → TC/BC, senão ML/MR (empate em 45° fica com TC/BC). Não
+ * compara |ry| das alças: isso dependia da proporção da grade (uma 30×10 em 20° escolhia ML/MR
+ * com a TC visivelmente no topo). O outro par, com Shift, faz o redimensionamento normal.
+ */
+export function skewHandlePair(grid: GridShape): "TC/BC" | "ML/MR" {
+  const t = grid.rotation * (Math.PI / 180);
+  return Math.abs(Math.cos(t)) + 1e-9 >= Math.abs(Math.sin(t)) ? "TC/BC" : "ML/MR";
+}
+
 // Computes the new grid from dragging an edit handle to a world point.
 // Pure geometry, shared by MapHandlesLayer. Handles:
 //  - "rotate": angle from grid center (incl. origin) to cursor.
-//  - shift + TC/BC: perspective (skewRatio).
+//  - shift + par TC/BC ou ML/MR (`skewHandlePair`): perspective (skewRatio).
 //  - any resize handle: scales cellSize while pinning the OPPOSITE anchor in
 //    world space (so the grid grows toward the dragged handle, not always to the
 //    bottom-right). The pin is achieved by solving originX/originY. cellSize is
@@ -202,21 +314,28 @@ export function gridFromHandleDrag(
 ): GridShape | null {
   const MIN_CELL = 8;
   const MAX_CELL = 256;
-  const cx = (startGrid.cols * startGrid.cellSize) / 2 + (startGrid.originX ?? 0);
-  const cy = (startGrid.rows * startGrid.cellSize) / 2 + (startGrid.originY ?? 0);
+  const pivot = gridPivot(startGrid);
+  const cx = pivot.x + (startGrid.originX ?? 0);
+  const cy = pivot.y + (startGrid.originY ?? 0);
 
   if (handle === "rotate") {
-    const angle = Math.atan2(worldY - cy, worldX - cx) * (180 / Math.PI) + 90;
-    return { ...startGrid, rotation: angle };
+    // O desenho da esfera fica no raio centro→TC já achatado; desfaz o achatamento
+    // (÷ skewRatio) para medir o ângulo no espaço da rotação e evitar o "pulo".
+    const angle = Math.atan2((worldY - cy) / startGrid.skewRatio, worldX - cx) * (180 / Math.PI) + 90;
+    // Normaliza para (-180, 180] (faixa do painel) e arredonda a 0.1°.
+    let rotation = Math.round(angle * 10) / 10;
+    rotation = ((((rotation + 180) % 360) + 360) % 360) - 180;
+    if (rotation === -180) rotation = 180;
+    return { ...startGrid, rotation: Math.round(rotation * 10) / 10 };
   }
 
-  if (shiftKey && (handle === "TC" || handle === "BC")) {
-    const b = gridLocalBounds(startGrid);
-    const gh = b.maxY - b.minY;
-    const local = inverseTransform({ x: worldX, y: worldY }, startGrid);
-    const newH = handle === "TC" ? b.maxY - local.y : local.y - b.minY;
-    const ratio = Math.max(0.3, Math.min(1.0, newH / gh));
-    return { ...startGrid, skewRatio: ratio };
+  if (shiftKey && handlePairOf(handle) === skewHandlePair(startGrid)) {
+    // A alça fica sob o cursor em y: world.y = originY + pivôY + ry·s, onde ry é o
+    // y da alça girada (antes do achatamento) em relação ao pivô.
+    const ry = handleRotatedY(handle, startGrid);
+    if (Math.abs(ry) < 1e-9) return null;
+    const ratio = Math.max(0.3, Math.min(1.0, (worldY - (startGrid.originY ?? 0) - gridPivot(startGrid).y) / ry));
+    return { ...startGrid, skewRatio: Math.round(ratio * 100) / 100 };
   }
 
   const anchorId = OPPOSITE_HANDLE[handle];

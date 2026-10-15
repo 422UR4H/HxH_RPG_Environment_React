@@ -142,10 +142,26 @@ ele só era enviado pelo socket da página.
 
 ## O tabuleiro é do servidor (F13, F16)
 
-- As duas páginas da partida desenham só as peças do `map_full_state`. Do REST vêm o fundo e
-  a grade do mapa, mais nada. As peças do mapa da campanha não são as da partida.
-- O mestre no lobby também lê o `map_full_state` do servidor, e o lobby parou de mandar
-  `map_state_sync` (Ruling 15).
+- As duas páginas da partida desenham peças, grade e fundo do `map_full_state` (`boardGrid`/`boardBg`
+  em `useLiveMapSync`, aplicados por `tableMap`). O mapa da campanha (REST) não dá geometria
+  nenhuma — só o nome. Até o primeiro `map_full_state` com grade a área do mapa mostra um de
+  quatro textos (`boardWaitMessage`, usado pela mesa e pelo lobby), por prioridade:
+  1. falha do tabuleiro (`board_unavailable`): "Não foi possível carregar o tabuleiro da partida.
+     Atualize a página para tentar de novo." — **só vale com o socket `connected`** (todo novo
+     registro numa sala que ainda falha reenvia o erro, então nada se perde); some no próximo
+     `map_full_state`. Contrato: `System_X_System/docs/dev/api/match-combat-ws.md` § `board_unavailable`;
+  2. `waiting` (mestre ainda não abriu a sala, `lobby_not_open`): "O tabuleiro aparece quando o
+     mestre abrir a sala.";
+  3. sem conexão (`disconnected`, `error`, `throttled`, `replaced`, `kicked`, `lobby_closed`):
+     "Sem conexão com a sala. O tabuleiro aparece quando a conexão voltar.";
+  4. caso contrário, "Carregando o tabuleiro…" (`useGameTable().boardPending`, separado de
+     "nenhum mapa anexado").
+  "Há mapa anexado" vem do `useMatchMap` (`mapUuid`), não do `useMap`: um tabuleiro que chegou
+  desenha mesmo que o REST do mapa tenha falhado. Editar o mapa da campanha não muda a mesa. O
+  `fogMode` também vem só do `map_full_state`.
+- O lobby (mestre e jogador) desenha o mesmo tabuleiro: `useLobbyWs` lê grade, fundo e paredes do
+  `map_full_state` e o `LobbyPage` monta o mapa pelo mesmo `tableMap`, com a mesma espera. O
+  jogador recebe as paredes mascaradas (porta secreta não revelada vira parede comum). O lobby parou de mandar `map_state_sync` (Ruling 15).
 - Iniciar a partida não grava mais no mapa da campanha.
 
 ## Continuar o tabuleiro de outra partida (F15)
