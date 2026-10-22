@@ -17,8 +17,8 @@ import EditCharacterSheetPage from "./pages/EditCharacterSheetPage";
 import CreateNpcPage from "./pages/CreateNpcPage";
 import EditMatchPage from "./pages/EditMatchPage";
 import EditCampaignPage from "./pages/EditCampaignPage";
-import LobbyPage from "./pages/LobbyPage";
-import GamePage from "./pages/GamePage";
+const LobbyPage = lazy(() => import("./pages/LobbyPage"));
+const GamePage = lazy(() => import("./pages/GamePage"));
 const TacticalMapDemoPage = lazy(() => import("./pages/TacticalMapDemoPage"));
 const CreateMapPage = lazy(() => import("./pages/CreateMapPage"));
 const EditMapPage = lazy(() => import("./pages/EditMapPage"));
@@ -65,11 +65,19 @@ function App() {
         />
         <Route
           path="/campaigns/:campaignId/matches/:matchId/lobby"
-          element={<LobbyPage />}
+          element={
+            <Suspense fallback={<div>Loading...</div>}>
+              <LobbyPage />
+            </Suspense>
+          }
         />
         <Route
           path="/campaigns/:campaignId/matches/:matchId/game"
-          element={<GamePage />}
+          element={
+            <Suspense fallback={<div>Loading...</div>}>
+              <GamePage />
+            </Suspense>
+          }
         />
         <Route
           path="/campaigns/:campaignId/maps/new"
