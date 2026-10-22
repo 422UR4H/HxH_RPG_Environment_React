@@ -308,6 +308,7 @@ export default function PiecesLayer({
       window.removeEventListener("blur", handleBlur);
       canvas?.removeEventListener("contextmenu", handleContextMenu);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- npcMap omitted on purpose: it is a prop likely rebuilt by the parent, and including it could re-run this Pixi effect; behavior kept as-is (bug candidate: stale npcMap if NPC data changes without map.pieces changing)
   }, [app, vpRef, map.grid, map.pieces, piecesInteractive, onPieceSelect, onPieceMove, onPieceDragToRoster, onPieceDragStart, onPieceDragEnd, stopHoldProgress]);
 
   // Game only: the empty slot under the pointer, outlined — what a tap would pick as the

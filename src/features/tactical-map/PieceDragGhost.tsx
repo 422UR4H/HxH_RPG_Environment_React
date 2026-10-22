@@ -7,6 +7,7 @@ import gungiFrameUrl from "../../assets/icons/gungi.svg";
 // reads as "picked up" — slightly larger than the token resting on the board —
 // with a large, diffuse shadow offset below for depth (mirrors the old Pixi
 // lift). Shadow blur/offset scale with size so it stays proportional at any zoom.
+// eslint-disable-next-line react-refresh/only-export-components -- style helper co-located with the ghost component; only affects Fast Refresh in dev
 export function ghostStyle(size: number): CSSProperties {
   return {
     position: "fixed",
