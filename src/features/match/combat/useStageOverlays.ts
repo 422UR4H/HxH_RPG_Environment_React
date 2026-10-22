@@ -62,13 +62,14 @@ export function useStageOverlays(): {
 /**
  * Quando o painel vira modal (véu) abaixo de `railUp` — spec §4: só se o conteúdo NÃO pede
  * toque no mapa. Mestre: a aba Agir nunca (sem ator, tocar num NPC é como ele escolhe o
- * ator; com ator, é o compositor), e nem Arrumar/queda/fuga, que escolhem casa no mapa.
+ * ator; com ator, é o compositor), a Ficha também não (tocar numa peça mostra a ficha dela),
+ * e nem Arrumar/queda/fuga, que escolhem casa no mapa. Só a Fila tem véu.
  */
 export function masterPanelDismissible(input: {
   railActive: "fila" | "agir" | "ficha";
   mapPicking: boolean;
 }): boolean {
-  return input.railActive !== "agir" && !input.mapPicking;
+  return input.railActive === "fila" && !input.mapPicking;
 }
 
 /** Jogador: a aba Ação com personagem é o compositor; escolher a casa de fuga também pede o mapa. */

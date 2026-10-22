@@ -14,10 +14,13 @@ export default function MatchSheetPanel({
   token,
   sheetUuid,
   liveHp,
+  emptyHint = "Toque num personagem para ver a ficha.",
 }: {
   token: string;
   sheetUuid: string | undefined;
   liveHp?: { hp: number; maxHp: number };
+  /** Texto sem ficha escolhida; o padrão é o do jogador. */
+  emptyHint?: string;
 }) {
   const { data, isLoading, error } = useCharacterSheet(token, sheetUuid);
   const charSheet = useMemo(() => {
@@ -28,7 +31,7 @@ export default function MatchSheetPanel({
     };
   }, [data, liveHp]);
 
-  if (!sheetUuid) return <PanelHint>Toque num personagem para ver a ficha.</PanelHint>;
+  if (!sheetUuid) return <PanelHint>{emptyHint}</PanelHint>;
 
   return (
     <Wrapper data-testid="match-sheet">

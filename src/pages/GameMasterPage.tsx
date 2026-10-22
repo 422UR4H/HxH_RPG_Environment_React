@@ -141,6 +141,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   // ─── Arrumar (F12) ─────────────────────────────────────────────────────────
   const [boardMode, setBoardMode] = useState<BoardMode>("play");
   const arranging = boardMode === "arrange";
+  const sheetVisible = panelOpen && !arranging && railActive === "ficha";
   const [arrangePending, setArrangePending] = useState<ArrangePending | null>(null);
   const [arrangePieceId, setArrangePieceId] = useState<string | undefined>(undefined);
   const [placingId, setPlacingId] = useState<string | undefined>(undefined);
@@ -301,6 +302,12 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     (pieceId: string) => {
       const charId = pieceCharacter(pieceId);
       if (!charId) return;
+      // Ficha visível: o toque na peça é para ler a ficha, não para agir (o compositor está escondido).
+      if (sheetVisible) {
+        setSheetId(charId);
+        setInspectedId(charId);
+        return;
+      }
       if (actorId) {
         composer.onCharacterTap(charId);
         return;
@@ -311,20 +318,20 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
       }
       setInspectedId(charId);
     },
-    [pieceCharacter, actorId, composer, npcIds, chooseActor],
+    [pieceCharacter, sheetVisible, actorId, composer, npcIds, chooseActor],
   );
   const handlePieceHold = useCallback(
     (pieceId: string) => {
       const charId = pieceCharacter(pieceId);
-      if (charId && actorId) composer.onCharacterHold(charId);
+      if (charId && actorId && !sheetVisible) composer.onCharacterHold(charId);
     },
-    [pieceCharacter, actorId, composer],
+    [pieceCharacter, actorId, sheetVisible, composer],
   );
   const handleSlotTap = useCallback(
     (slot: SlotCoord) => {
-      if (actorId) composer.onSlotTap(slot);
+      if (actorId && !sheetVisible) composer.onSlotTap(slot);
     },
-    [actorId, composer],
+    [actorId, sheetVisible, composer],
   );
   // Com NPC, o mestre age só pelo NPC: a parede é alvo do compositor, como para o jogador. Sem NPC,
   // é a mão do mestre: o card "Ação do Mestre" no Agir (nada de modal). Os dois nunca juntos.
@@ -558,6 +565,8 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
         : "Arraste uma peça para movê-la."
       : showReactionHint
         ? undefined
+      : sheetVisible
+        ? "Toque numa peça para ver a ficha."
       : !actorId
         ? "Toque num NPC para agir por ele."
         : undefined;
@@ -626,6 +635,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
               token={token}
               sheetUuid={sheetId}
               liveHp={sheetId ? state.hp[sheetId] : undefined}
+              emptyHint="Toque numa peça no mapa ou num personagem em Personagens para ver a ficha."
             />
           ) : railActive === "fila" ? (
             <>

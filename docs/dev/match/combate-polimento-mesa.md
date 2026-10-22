@@ -52,9 +52,13 @@ abaixo da gaveta, 60). Os dois somem por CSS (`media.railUp` / `media.asideUp`) 
 
 **Onde mora a regra** — funções puras em `combat/useStageOverlays.ts`, testadas sem montar página:
 
-- `masterPanelDismissible({ railActive, mapPicking })` — `railActive !== "agir" && !mapPicking`.
-  **A aba Agir do mestre nunca ganha véu**: sem ator, tocar num NPC é como ele escolhe o ator;
-  com ator, é o compositor. Arrumar, queda e fuga (`mapPicking`) também escolhem casa no mapa.
+- `masterPanelDismissible({ railActive, mapPicking })` — `railActive === "fila" && !mapPicking`.
+  **Só a Fila do mestre ganha véu.** Agir nunca: sem ator, tocar num NPC é como ele escolhe o ator;
+  com ator, é o compositor. Ficha também não: com ela visível (`panelOpen && !arranging &&
+  railActive === "ficha"`), tocar numa peça mostra a ficha daquele personagem (`sheetId` +
+  anel de inspeção), sem escolher ator nem mexer no compositor; segurar a peça e tocar em slot
+  vazio não fazem nada, e a dica do mapa vira "Toque numa peça para ver a ficha.". Arrumar,
+  queda e fuga (`mapPicking`) também escolhem casa no mapa.
 - `playerPanelDismissible({ railActive, hasActor, picking })` — `(railActive === "ficha" || !hasActor) && !picking`.
 
 O hook `useStageOverlays()` (as duas páginas) guarda `panelOpen`/`asideOpen` num estado só, para

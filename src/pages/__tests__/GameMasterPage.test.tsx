@@ -576,6 +576,60 @@ describe("GameMasterPage", () => {
     expect(sent[sent.length - 1]?.payload.actorId).toBe("npc1");
   });
 
+  describe("D3: com a Ficha aberta, tocar numa peça mostra a ficha dela", () => {
+    const mapStub = () => screen.getByTestId("map-stub");
+    const openFicha = async () => {
+      await user.click(screen.getByRole("button", { name: "Ficha" }));
+      expect(screen.getByTestId("match-panel")).toHaveAttribute("data-open", "true");
+    };
+
+    it("sem ator: tocar num NPC mostra a ficha dele, não o escolhe e não vai ao Agir", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      await openFicha();
+      expect(screen.getByText("Toque numa peça no mapa ou num personagem em Personagens para ver a ficha.")).toBeInTheDocument();
+      expect(screen.getByText("Toque numa peça para ver a ficha.")).toBeInTheDocument();
+      expect(screen.queryByText("Toque num NPC para agir por ele.")).not.toBeInTheDocument();
+
+      act(() => screen.getByTestId("select-actor-npc1").click());
+      expect(await screen.findByTestId("match-sheet")).toBeInTheDocument();
+      expect(mapStub()).toHaveAttribute("data-inspected-piece-id", "piece-npc1");
+      expect(mapStub()).toHaveAttribute("data-selected-piece-id", "");
+      expect(screen.getByRole("button", { name: "Agir" })).toHaveAttribute("aria-pressed", "false");
+      expect(screen.getByRole("button", { name: "Ficha" })).toHaveAttribute("aria-pressed", "true");
+    });
+
+    it("com ator já escolhido: o alvo tocado não entra no compositor", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      act(() => screen.getByTestId("select-actor-npc1").click());
+      await openFicha();
+
+      act(() => screen.getByTestId("select-actor-c1").click());
+      expect(await screen.findByTestId("match-sheet")).toBeInTheDocument();
+      expect(mapStub()).toHaveAttribute("data-inspected-piece-id", "piece-c1");
+      expect(mapStub()).toHaveAttribute("data-selected-piece-id", "piece-npc1");
+
+      await user.click(screen.getByRole("button", { name: "Agir" }));
+      expect(screen.getByRole("button", { name: /declarar/i })).toBeDisabled();
+    });
+
+    it("segurar a peça e tocar no slot vazio não fazem nada com a Ficha aberta", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      act(() => screen.getByTestId("select-actor-npc1").click());
+      await openFicha();
+
+      fireEvent.contextMenu(screen.getByTestId("select-actor-c1"));
+      act(() => screen.getByTestId("empty-slot").click());
+      await user.click(screen.getByRole("button", { name: "Agir" }));
+      expect(screen.getByRole("button", { name: /declarar/i })).toBeDisabled();
+    });
+  });
+
   describe("parede", () => {
     const wallFixture = (over: Record<string, unknown> = {}) => ({
       id: "door-1", p1: [0, 0], p2: [1, 0], wallType: "door", material: "wood",

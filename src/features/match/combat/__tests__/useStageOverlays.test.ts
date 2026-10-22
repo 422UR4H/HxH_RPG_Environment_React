@@ -105,9 +105,11 @@ describe("masterPanelDismissible", () => {
   it("Agir nunca é dispensável (com ou sem ator o toque no mapa é do mestre)", () => {
     expect(masterPanelDismissible({ railActive: "agir", mapPicking: false })).toBe(false);
   });
-  it("Fila e Ficha são dispensáveis", () => {
+  it("Ficha pede toque no mapa (tocar na peça mostra a ficha): não", () => {
+    expect(masterPanelDismissible({ railActive: "ficha", mapPicking: false })).toBe(false);
+  });
+  it("só a Fila é dispensável", () => {
     expect(masterPanelDismissible({ railActive: "fila", mapPicking: false })).toBe(true);
-    expect(masterPanelDismissible({ railActive: "ficha", mapPicking: false })).toBe(true);
   });
   it("Arrumar, queda e fuga (mapPicking) não são dispensáveis", () => {
     expect(masterPanelDismissible({ railActive: "fila", mapPicking: true })).toBe(false);
