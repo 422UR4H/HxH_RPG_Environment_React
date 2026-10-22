@@ -26,7 +26,7 @@ Wrappers de HTML que poderiam viver em qualquer projeto React. Ex.: `BaseButton`
 Já carrega noção do projeto. Ex.: `CampaignCard` (sabe o que é uma campanha), `PageHeader` (cor de marca), `CharacterSheetCard`, `CreateButton`, `PageStates`.
 
 ### `molecules/` — composição de 2-3 ions/atoms
-Pequenas unidades funcionais. Ex.: `ConfirmDialog`, `ExpandableText`, `FormField` (Label + campo + ajuda), `FormCheckbox`, `FormRow`, `RuleSection`, `EmptyState`, `CharacterSidebarItem`, `AdaptiveActionButton`, `CharacterSheetHeader`.
+Pequenas unidades funcionais. Ex.: `ConfirmDialog`, `ExpandableText`, `FormField` (Label + campo + ajuda), `FormCheckbox`, `FormRow`, `RuleSection`, `EmptyState`, `CharacterSidebarItem`, `AdaptiveActionButton`, `CharacterSheetHeader`, `EdgeDrawer` (aba na borda + gaveta com véu; usada pelos templates para recolher colunas laterais).
 
 ### `organisms/` — pedaços grandes de UI auto-suficientes
 Sub-seções de página inteiras. Ex.: `CharactersSidebar` (shell + lista de personagens, genérico no tipo do item), `RulesSidebar` (shell + slot de seções de regra), `PageTabNav`.
@@ -39,7 +39,7 @@ Estrutura macro: header + colunas + slots. Sem dados, sem lógica de negócio �
 
 - **`DetailPageTemplate`** — header + 3 colunas (`leftSidebar`, `children`, `rightSidebar`). Usado por `CampaignPage`, `MatchPage`.
 - **`ListPageTemplate`** — container com background + header + gate de loading/erro + body centralizado. Usado por `CampaignsPage`, `PublicCampaignsPage`, `CharacterSheetsPage`.
-- **`CreateFormTemplate`** — header + coluna de formulário (título + erro + `<form>` + botões) + slot de regras. Usado por `CreateCampaignPage`, `CreateMatchPage`.
+- **`CreateFormTemplate`** — header + coluna de formulário (título + erro + `<form>` + botões) + slot de regras. Usado pelas páginas de criar **e** editar de campanha e de partida. Abaixo de 1149 px recolhe a coluna de regras numa `EdgeDrawer` (aba "REGRAS").
 - **`SignPagesTemplate`** — layout das telas de login/cadastro.
 
 > As páginas viram **thin orchestrators**: buscam dados (hooks) e compõem templates + organisms. Não têm styled-components de layout.
