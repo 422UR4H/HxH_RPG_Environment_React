@@ -54,7 +54,7 @@ export default function CreateMatchPage() {
     if (campaign?.storyStartAt) {
       setForm((prev) => ({ ...prev, storyStartAt: campaign.storyStartAt }));
     }
-  }, [campaign?.storyStartAt]);
+  }, [campaign?.storyStartAt, setForm]);
 
   const formatDateToISOString = (dateTimeString: string): string =>
     `${dateTimeString}:00Z`;

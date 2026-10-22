@@ -34,6 +34,7 @@ export function NavGuardProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- context hook co-located with its provider; only affects Fast Refresh in dev
 export function useNavGuard(): NavGuardContextValue {
   const ctx = useContext(NavGuardContext);
   if (!ctx) throw new Error("useNavGuard must be used inside NavGuardProvider");

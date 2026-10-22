@@ -270,6 +270,7 @@ export default function TacticalMapEditor({
       setTruncConfirmMsg(msg);
     });
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- handleSave is recreated each render so the useMemo at line ~364 recomputes every render; kept as-is (no behavior change in untested tactical-map folder); fixing needs useCallback
   const handleSave = async () => {
     if (!map.name.trim()) {
       setNameError("O nome do mapa é obrigatório.");

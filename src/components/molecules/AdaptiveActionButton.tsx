@@ -49,6 +49,7 @@ export default function AdaptiveActionButton({
       }
       window.removeEventListener("resize", checkScroll);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- listeners attach once per containerRef; checkScroll is recreated each render and only touches refs and a state setter, so the captured closure never goes stale
   }, [containerRef]);
 
   // Recalculate when the content changes (such as expanding description)

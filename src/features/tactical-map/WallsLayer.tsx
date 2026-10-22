@@ -267,6 +267,7 @@ export default function WallsLayer({
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("contextmenu", onContextMenu);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- vpRef is a ref object prop (stable by convention, only .current is read); omitted to keep this effect unchanged under the untested tactical-map folder
   }, [wallsInteractive, toLocal, vpScale, canvasEl, onWallSelect, onGestureStart, onGestureEnd, onDrawComplete, finishPolyline]);
 
   useEffect(() => {

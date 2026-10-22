@@ -24,6 +24,7 @@ export function EditorStoreProvider({
 // Assina uma fatia do store. O seletor precisa devolver referência ou primitivo —
 // derivação com alocação (new Set, .map, objeto literal) causa re-render infinito.
 // Ver o plano da Fase 5, seção "A armadilha do zustand".
+// eslint-disable-next-line react-refresh/only-export-components -- hook co-located with its context/provider; only affects Fast Refresh in dev
 export function useEditorStore<T>(selector: (s: EditorState) => T): T {
   const store = useContext(EditorStoreContext);
   if (!store) throw new Error("useEditorStore precisa de <EditorStoreProvider> acima na árvore");
@@ -31,6 +32,7 @@ export function useEditorStore<T>(selector: (s: EditorState) => T): T {
 }
 
 // Para quem precisa do store inteiro (ex.: useEditorHistory, que assina store.temporal).
+// eslint-disable-next-line react-refresh/only-export-components -- hook co-located with its context/provider; only affects Fast Refresh in dev
 export function useEditorStoreRef(): EditorStore {
   const store = useContext(EditorStoreContext);
   if (!store) throw new Error("useEditorStoreRef precisa de <EditorStoreProvider> acima na árvore");
