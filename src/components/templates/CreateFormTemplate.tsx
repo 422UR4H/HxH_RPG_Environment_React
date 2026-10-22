@@ -1,6 +1,8 @@
-import { type FormEvent, type ReactNode } from "react";
+import { type FormEvent, type ReactNode, useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
 import PageHeader from "../atoms/PageHeader";
+import EdgeDrawer from "../molecules/EdgeDrawer";
+import useMediaQuery from "../../hooks/useMediaQuery";
 import PageTitle from "../ions/PageTitle";
 import worldMap from "../../assets/images/worldmap.png";
 import { colors, fonts } from "../../styles/tokens";
@@ -31,6 +33,15 @@ export default function CreateFormTemplate({
   rulesContent,
   children,
 }: CreateFormTemplateProps) {
+  const isRulesCollapsed = useMediaQuery("(max-width: 1149px)");
+  const [isRulesOpen, setIsRulesOpen] = useState(false);
+  const openRules = useCallback(() => setIsRulesOpen(true), []);
+  const closeRules = useCallback(() => setIsRulesOpen(false), []);
+
+  useEffect(() => {
+    if (!isRulesCollapsed) setIsRulesOpen(false);
+  }, [isRulesCollapsed]);
+
   return (
     <PageContainer>
       <PageHeader backgroundColor={headerColor} />
@@ -56,7 +67,19 @@ export default function CreateFormTemplate({
           </FormColumn>
         </MainContentContainer>
 
-        {rulesContent}
+        {!isRulesCollapsed && rulesContent}
+        {isRulesCollapsed && rulesContent && (
+          <EdgeDrawer
+            side="right"
+            label="REGRAS"
+            open={isRulesOpen}
+            onOpen={openRules}
+            onClose={closeRules}
+            width={400}
+          >
+            {rulesContent}
+          </EdgeDrawer>
+        )}
       </PageBody>
     </PageContainer>
   );
@@ -77,6 +100,7 @@ const PageBody = styled.main`
   color: ${colors.textPrimary};
   min-height: 0;
   overflow: hidden;
+  position: relative;
 `;
 
 const MainContentContainer = styled.div`
