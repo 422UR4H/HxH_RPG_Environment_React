@@ -298,9 +298,14 @@ export default function ViewportInner({
       window.removeEventListener("pointermove", onWindowMove);
       window.removeEventListener("pointerup", onWindowUp);
       window.removeEventListener("pointercancel", onWindowUp);
-      panTracker.reset();
     };
   }, [app, placingNpcId, bgInteractive, onBgPositionChange, onDragGestureEnd, activeTool]);
+
+  // Re-assinar os listeners não muda quais dedos estão no chão: só zera ao desmontar.
+  useEffect(() => {
+    const tracker = panTrackerRef.current;
+    return () => tracker.reset();
+  }, []);
 
   // ─── NPC placement ────────────────────────────────────────────────────────
   useEffect(() => {
