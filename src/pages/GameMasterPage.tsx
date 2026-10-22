@@ -323,15 +323,15 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   const handlePieceHold = useCallback(
     (pieceId: string) => {
       const charId = pieceCharacter(pieceId);
-      if (charId && actorId && !sheetVisible) composer.onCharacterHold(charId);
+      if (charId && actorId) composer.onCharacterHold(charId);
     },
-    [pieceCharacter, actorId, sheetVisible, composer],
+    [pieceCharacter, actorId, composer],
   );
   const handleSlotTap = useCallback(
     (slot: SlotCoord) => {
-      if (actorId && !sheetVisible) composer.onSlotTap(slot);
+      if (actorId) composer.onSlotTap(slot);
     },
-    [actorId, sheetVisible, composer],
+    [actorId, composer],
   );
   // Com NPC, o mestre age só pelo NPC: a parede é alvo do compositor, como para o jogador. Sem NPC,
   // é a mão do mestre: o card "Ação do Mestre" no Agir (nada de modal). Os dois nunca juntos.
@@ -742,7 +742,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                   onPieceSelect={
                     fallPicking || reactionPicking ? undefined : arranging ? handleArrangeSelect : handlePieceTap
                   }
-                  onPieceLongPress={boardMode === "play" && actorId ? handlePieceHold : undefined}
+                  onPieceLongPress={boardMode === "play" && actorId && !sheetVisible ? handlePieceHold : undefined}
                   selectedPieceId={
                     reactionPicking
                       ? reactionPiece?.id
@@ -758,12 +758,12 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                     reactionPicking ? undefined : fallPicking ? fallPreview : arranging ? arrangePreview : composer.preview ?? masterWallPreview
                   }
                   intentGhosts={intentGhosts}
-                  highlightHoverSlot={fallPicking || reactionPicking || (!arranging && !!actorId)}
+                  highlightHoverSlot={fallPicking || reactionPicking || (!arranging && !!actorId && !sheetVisible)}
                   fitRequest={game.fitRequest}
                   onEmptySlotClick={
                     reactionPicking
                       ? handleReactionSlot
-                      : fallPicking ? handleFallSlot : boardMode === "play" && actorId ? handleSlotTap : undefined
+                      : fallPicking ? handleFallSlot : boardMode === "play" && actorId && !sheetVisible ? handleSlotTap : undefined
                   }
                   onPieceMove={arranging ? handleArrangeMove : undefined}
                   placingNpcId={arranging ? (placingId ?? null) : null}

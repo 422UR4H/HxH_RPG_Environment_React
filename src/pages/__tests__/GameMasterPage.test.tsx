@@ -616,17 +616,20 @@ describe("GameMasterPage", () => {
       expect(screen.getByRole("button", { name: /declarar/i })).toBeDisabled();
     });
 
-    it("segurar a peça e tocar no slot vazio não fazem nada com a Ficha aberta", async () => {
+    it("com a Ficha aberta o mapa não arma segurar nem toque em slot vazio", async () => {
       renderMasterPage();
       const ws = await waitForSocket();
       openWithServerBoard(ws);
       act(() => screen.getByTestId("select-actor-npc1").click());
       await openFicha();
 
-      fireEvent.contextMenu(screen.getByTestId("select-actor-c1"));
-      act(() => screen.getByTestId("empty-slot").click());
+      // Sem o handler o mapa nem arma o anel de segurar: o toque lento ainda mostra a ficha.
+      expect(mapStub()).toHaveAttribute("data-has-long-press", "false");
+      expect(mapStub()).toHaveAttribute("data-has-empty-slot-click", "false");
+
       await user.click(screen.getByRole("button", { name: "Agir" }));
-      expect(screen.getByRole("button", { name: /declarar/i })).toBeDisabled();
+      expect(mapStub()).toHaveAttribute("data-has-long-press", "true");
+      expect(mapStub()).toHaveAttribute("data-has-empty-slot-click", "true");
     });
   });
 
