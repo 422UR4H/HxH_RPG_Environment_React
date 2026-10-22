@@ -153,7 +153,7 @@ const FloatingGroup = styled.div`
   right: max(16px, min(60px, 5cqi));
   z-index: 10;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
   gap: 12px;
   pointer-events: none;
