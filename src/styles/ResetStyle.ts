@@ -24,8 +24,11 @@ const ResetStyle = createGlobalStyle`
 	}
 
 	html, body {
-		height: 100dvh;
+		/* A ordem importa: a última declaração válida vence. 100vh é o fallback;
+		   100dvh acompanha a barra do navegador no celular, senão o documento
+		   fica mais alto que a tela e vira um segundo scroller por fora do #root. */
 		height: 100vh;
+		height: 100dvh;
     background: ${colors.surfaceMuted};
 	}
 
