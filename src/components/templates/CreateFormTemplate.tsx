@@ -99,6 +99,8 @@ const PageBody = styled.main`
   display: flex;
   color: ${colors.textPrimary};
   min-height: 0;
+  min-width: 0;
+  width: 100%;
   overflow: visible;
   position: relative;
 `;
