@@ -141,6 +141,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   // ─── Arrumar (F12) ─────────────────────────────────────────────────────────
   const [boardMode, setBoardMode] = useState<BoardMode>("play");
   const arranging = boardMode === "arrange";
+  const sheetVisible = panelOpen && !arranging && railActive === "ficha";
   const [arrangePending, setArrangePending] = useState<ArrangePending | null>(null);
   const [arrangePieceId, setArrangePieceId] = useState<string | undefined>(undefined);
   const [placingId, setPlacingId] = useState<string | undefined>(undefined);
@@ -301,6 +302,12 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     (pieceId: string) => {
       const charId = pieceCharacter(pieceId);
       if (!charId) return;
+      // Ficha visível: o toque na peça é para ler a ficha, não para agir (o compositor está escondido).
+      if (sheetVisible) {
+        setSheetId(charId);
+        setInspectedId(charId);
+        return;
+      }
       if (actorId) {
         composer.onCharacterTap(charId);
         return;
@@ -311,7 +318,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
       }
       setInspectedId(charId);
     },
-    [pieceCharacter, actorId, composer, npcIds, chooseActor],
+    [pieceCharacter, sheetVisible, actorId, composer, npcIds, chooseActor],
   );
   const handlePieceHold = useCallback(
     (pieceId: string) => {
@@ -558,6 +565,8 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
         : "Arraste uma peça para movê-la."
       : showReactionHint
         ? undefined
+      : sheetVisible
+        ? "Toque numa peça para ver a ficha."
       : !actorId
         ? "Toque num NPC para agir por ele."
         : undefined;
@@ -626,6 +635,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
               token={token}
               sheetUuid={sheetId}
               liveHp={sheetId ? state.hp[sheetId] : undefined}
+              emptyHint="Toque numa peça no mapa ou num personagem em Personagens para ver a ficha."
             />
           ) : railActive === "fila" ? (
             <>
@@ -732,7 +742,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                   onPieceSelect={
                     fallPicking || reactionPicking ? undefined : arranging ? handleArrangeSelect : handlePieceTap
                   }
-                  onPieceLongPress={boardMode === "play" && actorId ? handlePieceHold : undefined}
+                  onPieceLongPress={boardMode === "play" && actorId && !sheetVisible ? handlePieceHold : undefined}
                   selectedPieceId={
                     reactionPicking
                       ? reactionPiece?.id
@@ -748,12 +758,12 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                     reactionPicking ? undefined : fallPicking ? fallPreview : arranging ? arrangePreview : composer.preview ?? masterWallPreview
                   }
                   intentGhosts={intentGhosts}
-                  highlightHoverSlot={fallPicking || reactionPicking || (!arranging && !!actorId)}
+                  highlightHoverSlot={fallPicking || reactionPicking || (!arranging && !!actorId && !sheetVisible)}
                   fitRequest={game.fitRequest}
                   onEmptySlotClick={
                     reactionPicking
                       ? handleReactionSlot
-                      : fallPicking ? handleFallSlot : boardMode === "play" && actorId ? handleSlotTap : undefined
+                      : fallPicking ? handleFallSlot : boardMode === "play" && actorId && !sheetVisible ? handleSlotTap : undefined
                   }
                   onPieceMove={arranging ? handleArrangeMove : undefined}
                   placingNpcId={arranging ? (placingId ?? null) : null}

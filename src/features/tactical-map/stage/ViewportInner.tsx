@@ -14,6 +14,7 @@ import BgLayer from "./BgLayer";
 import GridLayer from "./GridLayer";
 import PiecesLayer from "./PiecesLayer";
 import IntentLayer from "../IntentLayer";
+import { createPanTracker } from "../hooks/panGesture";
 
 type BgDragState = {
   startWorldX: number;
@@ -215,13 +216,11 @@ export default function ViewportInner({
   // pieceDragActiveRef: piece onPointerDown sets this before our RAF fires so
   // pan can skip starting when a piece was the actual target.
   const pieceDragActiveRef = useRef(false);
-  const isPanningRef = useRef(false);
-  // O pan só começa no próximo quadro; se o dedo/botão já subiu até lá, não começa.
-  const pointerHeldRef = useRef(false);
-  const panStartClientRef = useRef({ x: 0, y: 0 });
-  const panStartVpRef = useRef({ x: 0, y: 0 });
+  // O pan pertence a um ponteiro só; a pinça fica com o plugin `pinch` do pixi-viewport.
+  const panTrackerRef = useRef(createPanTracker());
 
   useEffect(() => {
+    const panTracker = panTrackerRef.current;
     const onWindowDown = (e: PointerEvent) => {
       const canvas = app?.renderer ? app.canvas : null;
       if (!canvas || placingNpcId || e.button !== 0) return;
@@ -230,26 +229,25 @@ export default function ViewportInner({
       if (e.target !== canvas) return;
       const vp = vpRef.current;
       if (!vp) return;
-      const snapX = e.clientX;
-      const snapY = e.clientY;
-      pointerHeldRef.current = true;
+      const tracker = panTracker;
+      const pointerId = e.pointerId;
+      tracker.down(pointerId, { x: e.clientX, y: e.clientY });
       requestAnimationFrame(() => {
         if (pieceDragActiveRef.current) {
           pieceDragActiveRef.current = false;
+          tracker.suppress(pointerId);
           return;
         }
         // bgDragState is set synchronously by BgLayer's Pixi onPointerDown (which
         // fires before this window handler in the same tick), so if the bg sprite
         // was clicked it's already non-null here and we skip pan.
-        if (bgInteractive && bgDragState.current) return;
+        if (bgInteractive && bgDragState.current) { tracker.suppress(pointerId); return; }
         // Suppress pan only while a wall is being drawn; clicks outside snap area still pan.
-        if (wallGestureActiveRef.current) return;
+        if (wallGestureActiveRef.current) { tracker.suppress(pointerId); return; }
         // Um toque rápido (soltou antes deste quadro) deixava o pan ligado: no toque não
-        // há hover para desligá-lo, e o toque seguinte fazia o mapa pular.
-        if (!pointerHeldRef.current) return;
-        isPanningRef.current = true;
-        panStartClientRef.current = { x: snapX, y: snapY };
-        panStartVpRef.current = { x: vp.x, y: vp.y };
+        // há hover para desligá-lo, e o toque seguinte fazia o mapa pular. Segundo dedo
+        // (pinça) também não arma.
+        tracker.arm(pointerId, { x: vp.x, y: vp.y });
       });
     };
 
@@ -266,20 +264,25 @@ export default function ViewportInner({
         );
         return;
       }
-      if (!isPanningRef.current) return;
+      const tracker = panTracker;
+      const vp = vpRef.current;
       // Um pointerup perdido (arraste nativo, soltar fora da janela) deixava o mapa
       // seguindo o mouse: sem o botão principal pressionado, o pan acabou.
-      if ((e.buttons & 1) === 0) { isPanningRef.current = false; return; }
-      const vp = vpRef.current;
-      if (!vp) return;
+      if (tracker.isPanning() && (e.buttons & 1) === 0) {
+        tracker.up(e.pointerId, { x: vp?.x ?? 0, y: vp?.y ?? 0 });
+        return;
+      }
+      // Sempre chama: mantém a última posição de cada dedo, de onde sai a reancoragem pós-pinça.
+      const next = tracker.move(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (!next || !vp) return;
       userMovedRef.current = true;
-      vp.x = panStartVpRef.current.x + (e.clientX - panStartClientRef.current.x);
-      vp.y = panStartVpRef.current.y + (e.clientY - panStartClientRef.current.y);
+      vp.x = next.x;
+      vp.y = next.y;
     };
 
-    const onWindowUp = () => {
-      pointerHeldRef.current = false;
-      isPanningRef.current = false;
+    const onWindowUp = (e: PointerEvent) => {
+      const vp = vpRef.current;
+      panTracker.up(e.pointerId, { x: vp?.x ?? 0, y: vp?.y ?? 0 });
       const wasBgDrag = !!bgDragState.current;
       bgDragState.current = null;
       if (wasBgDrag) onDragGestureEnd?.();
@@ -295,9 +298,14 @@ export default function ViewportInner({
       window.removeEventListener("pointermove", onWindowMove);
       window.removeEventListener("pointerup", onWindowUp);
       window.removeEventListener("pointercancel", onWindowUp);
-      isPanningRef.current = false;
     };
   }, [app, placingNpcId, bgInteractive, onBgPositionChange, onDragGestureEnd, activeTool]);
+
+  // Re-assinar os listeners não muda quais dedos estão no chão: só zera ao desmontar.
+  useEffect(() => {
+    const tracker = panTrackerRef.current;
+    return () => tracker.reset();
+  }, []);
 
   // ─── NPC placement ────────────────────────────────────────────────────────
   useEffect(() => {

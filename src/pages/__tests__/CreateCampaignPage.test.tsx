@@ -1,5 +1,5 @@
 // src/pages/__tests__/CreateCampaignPage.test.tsx
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { http, HttpResponse } from "msw";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -13,6 +13,24 @@ vi.mock("react-router-dom", async () => {
   return { ...actual, useNavigate: () => mockNavigate };
 });
 
+
+// O setup devolve sempre `matches: false` (max-width = tela larga); aqui responde por largura.
+const originalMatchMedia = window.matchMedia;
+function setWidth(px: number) {
+  window.matchMedia = ((query: string) => {
+    const max = /max-width:\s*(\d+)px/.exec(query);
+    return {
+      matches: max ? px <= Number(max[1]) : false,
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      onchange: null,
+      dispatchEvent: () => false,
+    };
+  }) as typeof window.matchMedia;
+}
 const baseUrl = "http://localhost:5000";
 
 function renderPage() {
@@ -106,5 +124,37 @@ describe("CreateCampaignPage", () => {
     const u = userEvent.setup();
     await u.click(screen.getByText(/Cancelar/i));
     expect(mockNavigate).toHaveBeenCalledWith(-1);
+  });
+
+  describe("tela estreita", () => {
+    afterEach(() => {
+      window.matchMedia = originalMatchMedia;
+    });
+
+    it("recolhe as regras e mostra a aba REGRAS", () => {
+      setWidth(390);
+      renderPage();
+      expect(screen.queryByRole("heading", { name: /Regras da Campanha/i })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "REGRAS" })).toBeInTheDocument();
+    });
+
+    it("clicar na aba abre a gaveta e Esc fecha", async () => {
+      setWidth(390);
+      const u = userEvent.setup();
+      renderPage();
+      await u.click(screen.getByRole("button", { name: "REGRAS" }));
+      expect(screen.getByRole("heading", { name: /Regras da Campanha/i })).toBeInTheDocument();
+      await u.keyboard("{Escape}");
+      expect(screen.queryByRole("heading", { name: /Regras da Campanha/i })).not.toBeInTheDocument();
+    });
+
+    it("tocar no X fecha a gaveta", async () => {
+      setWidth(390);
+      const u = userEvent.setup();
+      renderPage();
+      await u.click(screen.getByRole("button", { name: "REGRAS" }));
+      await u.click(screen.getByRole("button", { name: "Fechar" }));
+      expect(screen.queryByRole("heading", { name: /Regras da Campanha/i })).not.toBeInTheDocument();
+    });
   });
 });

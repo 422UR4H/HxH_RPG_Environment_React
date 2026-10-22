@@ -9,6 +9,12 @@ describe("MatchSheetPanel", () => {
     expect(screen.getByText(/Toque num personagem/)).toBeInTheDocument();
   });
 
+  it("o texto vazio é configurável (mestre)", () => {
+    renderWithProviders(<MatchSheetPanel token="t" sheetUuid={undefined} emptyHint="Toque numa peça." />);
+    expect(screen.getByText("Toque numa peça.")).toBeInTheDocument();
+    expect(screen.queryByText(/Toque num personagem/)).not.toBeInTheDocument();
+  });
+
   it("com sheet: sem cabeçalho de nickname nem botão de fechar a ficha", () => {
     renderWithProviders(<MatchSheetPanel token="t" sheetUuid="c1" />);
     expect(screen.getByTestId("match-sheet")).toBeInTheDocument();

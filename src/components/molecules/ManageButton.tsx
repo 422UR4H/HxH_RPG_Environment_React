@@ -124,6 +124,11 @@ const Button = styled.button<{ $isFloating: boolean; $open: boolean }>`
         padding: 14px 22px;
         box-shadow: 0 4px 10px ${colors.shadowMedium};
         font-size: min(24px, 4cqi);
+        @media (max-width: 609px) {
+          padding: 0 0.9em;
+          min-height: 44px;
+          font-size: clamp(13px, 3.75cqi, 20px);
+        }
         &:hover { transform: translateY(-3px); filter: brightness(1.2); }
       `
       : `

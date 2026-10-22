@@ -1,10 +1,10 @@
 // src/components/templates/DetailPageTemplate.tsx
-import { type ReactNode, type RefObject, useEffect, useState } from "react";
-import styled, { keyframes } from "styled-components";
+import { type ReactNode, type RefObject, useCallback, useEffect, useState } from "react";
+import styled from "styled-components";
 import PageHeader from "../atoms/PageHeader";
-import CloseButton from "../ions/CloseButton";
+import EdgeDrawer from "../molecules/EdgeDrawer";
 import worldMap from "../../assets/images/worldmap.png";
-import { colors, fonts } from "../../styles/tokens";
+import { colors } from "../../styles/tokens";
 import { scopedScrollbar, scrollbarPalettes } from "../../styles/scrollbar";
 import useMediaQuery from "../../hooks/useMediaQuery";
 
@@ -39,16 +39,8 @@ export default function DetailPageTemplate({
 
   const openRight = () => { setIsLeftOpen(false); setIsRightOpen(true); };
   const openLeft = () => { setIsRightOpen(false); setIsLeftOpen(true); };
-  const closeAll = () => { setIsRightOpen(false); setIsLeftOpen(false); };
-
-  const anyOpen = isRightOpen || isLeftOpen;
-
-  useEffect(() => {
-    if (!anyOpen) return;
-    const onKeyDown = (e: KeyboardEvent) => { if (e.key === "Escape") closeAll(); };
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [anyOpen]);
+  const closeLeft = useCallback(() => setIsLeftOpen(false), []);
+  const closeRight = useCallback(() => setIsRightOpen(false), []);
 
   useEffect(() => {
     if (!isLeftCollapsed) setIsLeftOpen(false);
@@ -66,47 +58,33 @@ export default function DetailPageTemplate({
         {!isRightCollapsed && rightSidebar}
 
         {isLeftCollapsed && (
-          <LeftEdgeTab onClick={openLeft}>{leftSidebarLabel}</LeftEdgeTab>
+          <EdgeDrawer
+            side="left"
+            label={leftSidebarLabel}
+            open={isLeftOpen}
+            onOpen={openLeft}
+            onClose={closeLeft}
+            width={300}
+          >
+            {leftSidebar}
+          </EdgeDrawer>
         )}
         {isRightCollapsed && rightSidebar && (
-          <RightEdgeTab onClick={openRight}>{rightSidebarLabel}</RightEdgeTab>
-        )}
-
-        {anyOpen && <DrawerBackdrop onClick={closeAll} />}
-
-        {isLeftCollapsed && isLeftOpen && (
-          <LeftDrawerPanel>
-            <LeftDrawerCloseButton onClick={closeAll} aria-label="Fechar">
-              <DrawerXIcon />
-            </LeftDrawerCloseButton>
-            <DrawerBody>{leftSidebar}</DrawerBody>
-          </LeftDrawerPanel>
-        )}
-
-        {isRightCollapsed && isRightOpen && rightSidebar && (
-          <RightDrawerPanel>
-            <RightDrawerCloseButton onClick={closeAll} aria-label="Fechar">
-              <DrawerXIcon />
-            </RightDrawerCloseButton>
-            <DrawerBody>{rightSidebar}</DrawerBody>
-          </RightDrawerPanel>
+          <EdgeDrawer
+            side="right"
+            label={rightSidebarLabel}
+            open={isRightOpen}
+            onOpen={openRight}
+            onClose={closeRight}
+            width={400}
+          >
+            {rightSidebar}
+          </EdgeDrawer>
         )}
       </PageBody>
     </PageContainer>
   );
 }
-
-// ─── Animations ───────────────────────────────────────────────────────────────
-
-const slideInFromLeft = keyframes`
-  from { transform: translateX(-100%); }
-  to   { transform: translateX(0); }
-`;
-
-const slideInFromRight = keyframes`
-  from { transform: translateX(100%); }
-  to   { transform: translateX(0); }
-`;
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
@@ -141,109 +119,4 @@ const MainContentContainer = styled.div<{ $bgImage: string }>`
   background-position: center;
   background-repeat: no-repeat;
   background-attachment: fixed;
-`;
-
-// ─── Edge Tabs ────────────────────────────────────────────────────────────────
-
-const EdgeTab = styled.button`
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 32px;
-  height: 110px;
-  background-color: ${colors.brandAccent};
-  border: none;
-  color: ${colors.textPrimary};
-  writing-mode: vertical-lr;
-  font-family: ${fonts.sans};
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 1.5px;
-  cursor: pointer;
-  z-index: 10;
-  transition: filter 0.15s;
-  padding: 0;
-
-  &:hover {
-    filter: brightness(1.15);
-  }
-`;
-
-const LeftEdgeTab = styled(EdgeTab)`
-  left: 0;
-  border-radius: 0 6px 6px 0;
-`;
-
-const RightEdgeTab = styled(EdgeTab)`
-  right: 0;
-  border-radius: 6px 0 0 6px;
-`;
-
-// ─── Drawer ───────────────────────────────────────────────────────────────────
-
-const DrawerBackdrop = styled.div`
-  position: absolute;
-  inset: 0;
-  background-color: ${colors.overlay};
-  z-index: 200;
-`;
-
-const DrawerPanel = styled.div`
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  z-index: 201;
-  background-color: ${colors.surfaceSidebar};
-  display: flex;
-  flex-direction: column;
-  overflow: visible;
-`;
-
-const LeftDrawerPanel = styled(DrawerPanel)`
-  left: 0;
-  width: 300px;
-  animation: ${slideInFromLeft} 250ms ease;
-`;
-
-const RightDrawerPanel = styled(DrawerPanel)`
-  right: 0;
-  width: 400px;
-  animation: ${slideInFromRight} 250ms ease;
-`;
-
-const DrawerBody = styled.div`
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-`;
-
-// X button: position: absolute within DrawerPanel (outside flex flow).
-// Bleeds 18px above and to the outer edge — imita o X da logo HxH.
-const DrawerCloseButtonBase = styled.button`
-  position: absolute;
-  z-index: 202;
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  line-height: 0;
-`;
-
-// Left drawer: X at top-right corner, mostly inside drawer, small bleed up and right
-const LeftDrawerCloseButton = styled(DrawerCloseButtonBase)`
-  top: -10px;
-  right: -8px;
-`;
-
-// Right drawer: X at top-right corner (screen edge), bleeds only upward — can't bleed right
-const RightDrawerCloseButton = styled(DrawerCloseButtonBase)`
-  top: -10px;
-  right: 8px;
-`;
-
-// Larger X icon for drawers (extends CloseButton ion)
-const DrawerXIcon = styled(CloseButton)`
-  width: 36px;
-  height: 36px;
-  opacity: 1;
 `;

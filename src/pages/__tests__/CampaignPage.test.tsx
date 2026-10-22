@@ -1,5 +1,5 @@
 // src/pages/__tests__/CampaignPage.test.tsx
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { http, HttpResponse } from "msw";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -17,6 +17,24 @@ vi.mock("react-router-dom", async () => {
   return { ...actual, useNavigate: () => mockNavigate };
 });
 
+
+// O setup devolve sempre `matches: false` (max-width = tela larga); aqui responde por largura.
+const originalMatchMedia = window.matchMedia;
+function setWidth(px: number) {
+  window.matchMedia = ((query: string) => {
+    const max = /max-width:\s*(\d+)px/.exec(query);
+    return {
+      matches: max ? px <= Number(max[1]) : false,
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      onchange: null,
+      dispatchEvent: () => false,
+    };
+  }) as typeof window.matchMedia;
+}
 const baseUrl = "http://localhost:5000";
 
 function renderPage() {
@@ -232,6 +250,24 @@ describe("CampaignPage", () => {
       expect(
         screen.getByRole("heading", { name: "Nen & Habilidades" }),
       ).toBeInTheDocument();
+    });
+  });
+
+  describe("sidebar de regras em tela estreita", () => {
+    afterEach(() => {
+      window.matchMedia = originalMatchMedia;
+    });
+
+    it("recolhe em aba REGRAS; abre a gaveta ao clicar e fecha com Esc", async () => {
+      setWidth(1000);
+      const u = userEvent.setup();
+      renderPage();
+      const tab = await screen.findByRole("button", { name: "REGRAS" });
+      expect(screen.queryByRole("heading", { name: "Sistema de Combate" })).not.toBeInTheDocument();
+      await u.click(tab);
+      expect(screen.getByRole("heading", { name: "Sistema de Combate" })).toBeInTheDocument();
+      await u.keyboard("{Escape}");
+      expect(screen.queryByRole("heading", { name: "Sistema de Combate" })).not.toBeInTheDocument();
     });
   });
 

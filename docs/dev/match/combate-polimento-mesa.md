@@ -52,16 +52,24 @@ abaixo da gaveta, 60). Os dois somem por CSS (`media.railUp` / `media.asideUp`) 
 
 **Onde mora a regra** — funções puras em `combat/useStageOverlays.ts`, testadas sem montar página:
 
-- `masterPanelDismissible({ railActive, mapPicking })` — `railActive !== "agir" && !mapPicking`.
-  **A aba Agir do mestre nunca ganha véu**: sem ator, tocar num NPC é como ele escolhe o ator;
-  com ator, é o compositor. Arrumar, queda e fuga (`mapPicking`) também escolhem casa no mapa.
+- `masterPanelDismissible({ railActive, mapPicking })` — `railActive === "fila" && !mapPicking`.
+  **Só a Fila do mestre ganha véu.** Agir nunca: sem ator, tocar num NPC é como ele escolhe o ator;
+  com ator, é o compositor. Ficha também não: com ela visível (`panelOpen && !arranging &&
+  railActive === "ficha"`), tocar numa peça mostra a ficha daquele personagem (`sheetId` +
+  anel de inspeção), sem escolher ator nem mexer no compositor; segurar a peça e tocar em slot
+  vazio não fazem nada, e a dica do mapa vira "Toque numa peça para ver a ficha.". Arrumar,
+  queda e fuga (`mapPicking`) também escolhem casa no mapa.
 - `playerPanelDismissible({ railActive, hasActor, picking })` — `(railActive === "ficha" || !hasActor) && !picking`.
 
 O hook `useStageOverlays()` (as duas páginas) guarda `panelOpen`/`asideOpen` num estado só, para
 "abre um, fecha o outro" ser atômico: abaixo de `railUp` abrir a gaveta fecha o painel e vice-versa
 (`panelIsSheet`); fechar nunca mexe no outro. `closeAsideIfDrawer` fecha a gaveta quando o usuário
-escolhe nela algo que abre outra coisa (só abaixo de `asideUp`). Estado inicial: painel aberto,
-gaveta aberta só em tela larga.
+escolhe nela algo que abre outra coisa (só abaixo de `asideUp`). Estado inicial: abaixo de `railUp`
+o painel abre **fechado** (mapa livre, sem véu); em tela larga painel aberto, e a gaveta só abre
+sozinha acima de `asideUp`.
+
+O `Shell` tem `touch-action: pan-x pan-y`: a mesa rola, mas não dá zoom de página (pinça ou toque
+duplo) — antes a pinça sobre o véu ampliava a página. O canvas do Pixi mantém o `none` dele.
 
 ## Ordem da fila do mestre
 

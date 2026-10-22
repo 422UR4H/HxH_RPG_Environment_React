@@ -299,6 +299,15 @@ describe("GameMasterPage", () => {
     });
   });
 
+  it("a mesa abre com o painel fechado e sem véu em tela estreita", async () => {
+    renderMasterPage();
+    const ws = await waitForSocket();
+    openWithServerBoard(ws);
+    await screen.findByTestId("map-stub");
+    expect(screen.getByTestId("match-panel")).toHaveAttribute("data-open", "false");
+    expect(screen.queryByTestId("panel-scrim")).not.toBeInTheDocument();
+  });
+
   it("abre a próxima ação e antecipa uma da fila", async () => {
     renderMasterPage();
     const ws = await waitForSocket();
@@ -306,6 +315,8 @@ describe("GameMasterPage", () => {
     act(() => ws.emit("action_queued", { actionId: "a1", actorId: "c1", bars: ["action"] }));
     // O badge do rail conta o que está na fila.
     expect(screen.getByRole("button", { name: /Fila/ })).toHaveTextContent("1");
+    // A mesa abre com o painel fechado em tela estreita: abre a Fila pela aba do rail.
+    await user.click(screen.getByRole("button", { name: /Fila/ }));
     act(() => screen.getByRole("button", { name: "Abrir agora" }).click());
 
     let sent = ws.send.mock.calls.map((c) => JSON.parse(c[0] as string));
@@ -563,6 +574,63 @@ describe("GameMasterPage", () => {
     const sent = ws.send.mock.calls.map((c) => JSON.parse(c[0] as string));
     expect(sent[sent.length - 1]?.type).toBe("enqueue_action");
     expect(sent[sent.length - 1]?.payload.actorId).toBe("npc1");
+  });
+
+  describe("D3: com a Ficha aberta, tocar numa peça mostra a ficha dela", () => {
+    const mapStub = () => screen.getByTestId("map-stub");
+    const openFicha = async () => {
+      await user.click(screen.getByRole("button", { name: "Ficha" }));
+      expect(screen.getByTestId("match-panel")).toHaveAttribute("data-open", "true");
+    };
+
+    it("sem ator: tocar num NPC mostra a ficha dele, não o escolhe e não vai ao Agir", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      await openFicha();
+      expect(screen.getByText("Toque numa peça no mapa ou num personagem em Personagens para ver a ficha.")).toBeInTheDocument();
+      expect(screen.getByText("Toque numa peça para ver a ficha.")).toBeInTheDocument();
+      expect(screen.queryByText("Toque num NPC para agir por ele.")).not.toBeInTheDocument();
+
+      act(() => screen.getByTestId("select-actor-npc1").click());
+      expect(await screen.findByTestId("match-sheet")).toBeInTheDocument();
+      expect(mapStub()).toHaveAttribute("data-inspected-piece-id", "piece-npc1");
+      expect(mapStub()).toHaveAttribute("data-selected-piece-id", "");
+      expect(screen.getByRole("button", { name: "Agir" })).toHaveAttribute("aria-pressed", "false");
+      expect(screen.getByRole("button", { name: "Ficha" })).toHaveAttribute("aria-pressed", "true");
+    });
+
+    it("com ator já escolhido: o alvo tocado não entra no compositor", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      act(() => screen.getByTestId("select-actor-npc1").click());
+      await openFicha();
+
+      act(() => screen.getByTestId("select-actor-c1").click());
+      expect(await screen.findByTestId("match-sheet")).toBeInTheDocument();
+      expect(mapStub()).toHaveAttribute("data-inspected-piece-id", "piece-c1");
+      expect(mapStub()).toHaveAttribute("data-selected-piece-id", "piece-npc1");
+
+      await user.click(screen.getByRole("button", { name: "Agir" }));
+      expect(screen.getByRole("button", { name: /declarar/i })).toBeDisabled();
+    });
+
+    it("com a Ficha aberta o mapa não arma segurar nem toque em slot vazio", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      act(() => screen.getByTestId("select-actor-npc1").click());
+      await openFicha();
+
+      // Sem o handler o mapa nem arma o anel de segurar: o toque lento ainda mostra a ficha.
+      expect(mapStub()).toHaveAttribute("data-has-long-press", "false");
+      expect(mapStub()).toHaveAttribute("data-has-empty-slot-click", "false");
+
+      await user.click(screen.getByRole("button", { name: "Agir" }));
+      expect(mapStub()).toHaveAttribute("data-has-long-press", "true");
+      expect(mapStub()).toHaveAttribute("data-has-empty-slot-click", "true");
+    });
   });
 
   describe("parede", () => {
@@ -1357,6 +1425,8 @@ describe("GameMasterPage", () => {
     /** O Capanga ataca o Gon, que fugiu e está falhando no movimento. */
     function openFailingEscape(ws: FakeWS) {
       openWithServerBoard(ws);
+      // Painel fechado ao abrir em tela estreita: abre a Fila pela aba do rail.
+      act(() => screen.getByRole("button", { name: /Fila/ }).click());
       act(() => ws.emit("action_queued", { actionId: "a1", actorId: "npc1", bars: ["action"] }));
       act(() => ws.emit("turn_opened", { turnId: "t1", actorId: "npc1", actionId: "a1", actionType: "" }));
       act(() =>
@@ -1469,6 +1539,8 @@ describe("GameMasterPage", () => {
     /** O Gon ataca o Capanga (NPC): o mestre reage por ele. */
     function openAttackOnNpc(ws: FakeWS) {
       openWithServerBoard(ws);
+      // Painel fechado ao abrir em tela estreita: abre a Fila pela aba do rail.
+      act(() => screen.getByRole("button", { name: /Fila/ }).click());
       act(() => ws.emit("action_queued", { actionId: "a1", actorId: "c1", bars: ["action"] }));
       act(() =>
         ws.emit("turn_opened", {

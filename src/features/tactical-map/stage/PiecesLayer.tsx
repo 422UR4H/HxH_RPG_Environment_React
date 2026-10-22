@@ -72,6 +72,11 @@ export default function PiecesLayer({
 }) {
   const { app } = useApplication();
   const localDrag = useRef<PieceLocalDragState>(null);
+  // O efeito dos ponteiros não depende de npcMap (reexecutá-lo derrubaria o arrasto em curso).
+  const npcMapRef = useRef(npcMap);
+  useEffect(() => {
+    npcMapRef.current = npcMap;
+  }, [npcMap]);
   const [draggingPieceId, setDraggingPieceId] = useState<string | null>(null);
   const [hoverSlot, setHoverSlot] = useState<SlotCoord | null>(null);
 
@@ -159,7 +164,7 @@ export default function PiecesLayer({
         stopHoldProgress();
         setDraggingPieceId(drag.pieceId);
         const pieceData = map.pieces.find((p) => p.id === drag.pieceId);
-        const npc = pieceData ? npcMap?.get(pieceData.characterId) : undefined;
+        const npc = pieceData ? npcMapRef.current?.get(pieceData.characterId) : undefined;
         onPieceDragStart?.(drag.pieceId, npc);
       }
       if (!drag.isDragging) return;
@@ -308,7 +313,6 @@ export default function PiecesLayer({
       window.removeEventListener("blur", handleBlur);
       canvas?.removeEventListener("contextmenu", handleContextMenu);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- npcMap omitted on purpose: it is a prop likely rebuilt by the parent, and including it could re-run this Pixi effect; behavior kept as-is (bug candidate: stale npcMap if NPC data changes without map.pieces changing)
   }, [app, vpRef, map.grid, map.pieces, piecesInteractive, onPieceSelect, onPieceMove, onPieceDragToRoster, onPieceDragStart, onPieceDragEnd, stopHoldProgress]);
 
   // Game only: the empty slot under the pointer, outlined — what a tap would pick as the

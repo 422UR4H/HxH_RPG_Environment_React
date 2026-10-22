@@ -12,6 +12,8 @@ export const Overlay = styled.div`
   align-items: center;
   justify-content: center;
   background: ${colors.overlay};
+  /* Fora do Shell: sem isto o pinch sobre o diálogo dá zoom na página e o usuário não volta. */
+  touch-action: pan-x pan-y;
 `;
 
 export const Dialog = styled.div`

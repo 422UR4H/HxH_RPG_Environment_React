@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { Navigate, useParams } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
 import useToken from "../hooks/useToken";
@@ -17,6 +18,17 @@ export default function EditMapPage() {
   const { data: map, isLoading } = useMap(token, mapId);
   const { mutateAsync } = useUpdateMap(token, campaignId, mapId);
 
+  const handleSave = useCallback(async (updatedMap: TacticalMap): Promise<void> => {
+    await mutateAsync({
+      name: updatedMap.name.trim(),
+      description: updatedMap.description,
+      grid: updatedMap.grid,
+      bg: updatedMap.bg,
+      pieces: updatedMap.pieces,
+      walls: updatedMap.walls,
+    });
+  }, [mutateAsync]);
+
   if (!token) return <Navigate to="/" replace />;
 
   if (isLoading || !map)
@@ -26,17 +38,6 @@ export default function EditMapPage() {
         <MapLoadingText>Carregando mapa...</MapLoadingText>
       </MapLoadingScreen>
     );
-
-  const handleSave = async (updatedMap: TacticalMap): Promise<void> => {
-    await mutateAsync({
-      name: updatedMap.name.trim(),
-      description: updatedMap.description,
-      grid: updatedMap.grid,
-      bg: updatedMap.bg,
-      pieces: updatedMap.pieces,
-      walls: updatedMap.walls,
-    });
-  };
 
   return (
     <TacticalMapEditor

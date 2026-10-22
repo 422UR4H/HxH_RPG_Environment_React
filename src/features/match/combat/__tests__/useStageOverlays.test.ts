@@ -27,9 +27,9 @@ afterEach(() => {
 
 describe("useStageOverlays", () => {
   describe("tela estreita", () => {
-    it("começa com o painel aberto e a gaveta fechada", () => {
+    it("começa com o painel e a gaveta fechados", () => {
       const { result } = renderHook(() => useStageOverlays());
-      expect(result.current.panelOpen).toBe(true);
+      expect(result.current.panelOpen).toBe(false);
       expect(result.current.asideOpen).toBe(false);
     });
 
@@ -105,9 +105,11 @@ describe("masterPanelDismissible", () => {
   it("Agir nunca é dispensável (com ou sem ator o toque no mapa é do mestre)", () => {
     expect(masterPanelDismissible({ railActive: "agir", mapPicking: false })).toBe(false);
   });
-  it("Fila e Ficha são dispensáveis", () => {
+  it("Ficha pede toque no mapa (tocar na peça mostra a ficha): não", () => {
+    expect(masterPanelDismissible({ railActive: "ficha", mapPicking: false })).toBe(false);
+  });
+  it("só a Fila é dispensável", () => {
     expect(masterPanelDismissible({ railActive: "fila", mapPicking: false })).toBe(true);
-    expect(masterPanelDismissible({ railActive: "ficha", mapPicking: false })).toBe(true);
   });
   it("Arrumar, queda e fuga (mapPicking) não são dispensáveis", () => {
     expect(masterPanelDismissible({ railActive: "fila", mapPicking: true })).toBe(false);

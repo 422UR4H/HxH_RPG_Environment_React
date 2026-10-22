@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import useToken from "../hooks/useToken";
 import { useCreateMap } from "../hooks/useCreateMap";
@@ -24,9 +24,7 @@ export default function CreateMapPage() {
     [],
   );
 
-  if (!token) return null;
-
-  const handleSave = async (map: TacticalMap) => {
+  const handleSave = useCallback(async (map: TacticalMap) => {
     await mutateAsync({
       name: map.name.trim(),
       description: map.description?.trim() || undefined,
@@ -34,14 +32,21 @@ export default function CreateMapPage() {
       bg: map.bg,
       pieces: map.pieces,
     });
-  };
+  }, [mutateAsync]);
+
+  const handleSaveSuccess = useCallback(
+    () => navigate(`/campaigns/${campaignId}`),
+    [navigate, campaignId],
+  );
+
+  if (!token) return null;
 
   return (
     <TacticalMapEditor
       campaignId={campaignId ?? ""}
       initialMap={initialMap}
       onSave={handleSave}
-      onSaveSuccess={() => navigate(`/campaigns/${campaignId}`)}
+      onSaveSuccess={handleSaveSuccess}
       saveLabel="Criar Mapa"
     />
   );
