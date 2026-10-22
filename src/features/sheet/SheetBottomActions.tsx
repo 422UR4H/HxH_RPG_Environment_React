@@ -182,9 +182,9 @@ const FloatingCampaignButton = styled.button`
   transition: all 0.3s ease;
 
   @media (max-width: 609px) {
-    padding: 0 11px;
+    padding: 0 0.9em;
     min-height: 44px;
-    font-size: min(3.75cqi, 22px);
+    font-size: clamp(13px, 3.75cqi, 20px);
     gap: 4px;
   }
 
