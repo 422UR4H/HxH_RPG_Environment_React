@@ -15,6 +15,9 @@ const queryClient = new QueryClient({
   },
 });
 
+// Após um deploy o hash dos chunks muda: a aba antiga pediria um arquivo que não existe mais.
+window.addEventListener("vite:preloadError", () => window.location.reload());
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ResetStyle />
