@@ -60,8 +60,12 @@ abaixo da gaveta, 60). Os dois somem por CSS (`media.railUp` / `media.asideUp`) 
 O hook `useStageOverlays()` (as duas páginas) guarda `panelOpen`/`asideOpen` num estado só, para
 "abre um, fecha o outro" ser atômico: abaixo de `railUp` abrir a gaveta fecha o painel e vice-versa
 (`panelIsSheet`); fechar nunca mexe no outro. `closeAsideIfDrawer` fecha a gaveta quando o usuário
-escolhe nela algo que abre outra coisa (só abaixo de `asideUp`). Estado inicial: painel aberto,
-gaveta aberta só em tela larga.
+escolhe nela algo que abre outra coisa (só abaixo de `asideUp`). Estado inicial: abaixo de `railUp`
+o painel abre **fechado** (mapa livre, sem véu); em tela larga painel aberto, e a gaveta só abre
+sozinha acima de `asideUp`.
+
+O `Shell` tem `touch-action: pan-x pan-y`: a mesa rola, mas não dá zoom de página (pinça ou toque
+duplo) — antes a pinça sobre o véu ampliava a página. O canvas do Pixi mantém o `none` dele.
 
 ## Ordem da fila do mestre
 

@@ -299,6 +299,15 @@ describe("GameMasterPage", () => {
     });
   });
 
+  it("a mesa abre com o painel fechado e sem véu em tela estreita", async () => {
+    renderMasterPage();
+    const ws = await waitForSocket();
+    openWithServerBoard(ws);
+    await screen.findByTestId("map-stub");
+    expect(screen.getByTestId("match-panel")).toHaveAttribute("data-open", "false");
+    expect(screen.queryByTestId("panel-scrim")).not.toBeInTheDocument();
+  });
+
   it("abre a próxima ação e antecipa uma da fila", async () => {
     renderMasterPage();
     const ws = await waitForSocket();
@@ -306,6 +315,8 @@ describe("GameMasterPage", () => {
     act(() => ws.emit("action_queued", { actionId: "a1", actorId: "c1", bars: ["action"] }));
     // O badge do rail conta o que está na fila.
     expect(screen.getByRole("button", { name: /Fila/ })).toHaveTextContent("1");
+    // A mesa abre com o painel fechado em tela estreita: abre a Fila pela aba do rail.
+    await user.click(screen.getByRole("button", { name: /Fila/ }));
     act(() => screen.getByRole("button", { name: "Abrir agora" }).click());
 
     let sent = ws.send.mock.calls.map((c) => JSON.parse(c[0] as string));
@@ -1357,6 +1368,8 @@ describe("GameMasterPage", () => {
     /** O Capanga ataca o Gon, que fugiu e está falhando no movimento. */
     function openFailingEscape(ws: FakeWS) {
       openWithServerBoard(ws);
+      // Painel fechado ao abrir em tela estreita: abre a Fila pela aba do rail.
+      act(() => screen.getByRole("button", { name: /Fila/ }).click());
       act(() => ws.emit("action_queued", { actionId: "a1", actorId: "npc1", bars: ["action"] }));
       act(() => ws.emit("turn_opened", { turnId: "t1", actorId: "npc1", actionId: "a1", actionType: "" }));
       act(() =>
@@ -1469,6 +1482,8 @@ describe("GameMasterPage", () => {
     /** O Gon ataca o Capanga (NPC): o mestre reage por ele. */
     function openAttackOnNpc(ws: FakeWS) {
       openWithServerBoard(ws);
+      // Painel fechado ao abrir em tela estreita: abre a Fila pela aba do rail.
+      act(() => screen.getByRole("button", { name: /Fila/ }).click());
       act(() => ws.emit("action_queued", { actionId: "a1", actorId: "c1", bars: ["action"] }));
       act(() =>
         ws.emit("turn_opened", {

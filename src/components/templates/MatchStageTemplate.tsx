@@ -117,6 +117,9 @@ const Shell = styled.div`
   /* Spec §13: arrastar no mapa/HUD não pode virar seleção de texto. Campos continuam selecionáveis. */
   user-select: none;
   -webkit-user-select: none;
+  /* Sem zoom de página (pinça ou toque duplo) na mesa: só o mapa dá zoom. O canvas mantém o
+     none dele; sem isto a pinça sobre o véu ampliava a página. */
+  touch-action: pan-x pan-y;
 
   & input,
   & textarea,

@@ -27,9 +27,9 @@ afterEach(() => {
 
 describe("useStageOverlays", () => {
   describe("tela estreita", () => {
-    it("começa com o painel aberto e a gaveta fechada", () => {
+    it("começa com o painel e a gaveta fechados", () => {
       const { result } = renderHook(() => useStageOverlays());
-      expect(result.current.panelOpen).toBe(true);
+      expect(result.current.panelOpen).toBe(false);
       expect(result.current.asideOpen).toBe(false);
     });
 

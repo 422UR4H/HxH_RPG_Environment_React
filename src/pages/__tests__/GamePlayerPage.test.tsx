@@ -188,6 +188,20 @@ describe("GamePlayerPage", () => {
     expect(screen.queryByTestId("map-stub")).not.toBeInTheDocument();
   });
 
+  it("a mesa abre com o painel fechado e sem véu em tela estreita", async () => {
+    renderPlayerPage();
+    const ws = await waitForSocket();
+    act(() => ws.onopen?.());
+    act(() =>
+      ws.emit("map_full_state", {
+        pieces: [], walls: [], visiblePolygons: [], fogMode: "explored", grid: mapApiFixture.grid, bg: null,
+      }),
+    );
+    await screen.findByTestId("map-stub");
+    expect(screen.getByTestId("match-panel")).toHaveAttribute("data-open", "false");
+    expect(screen.queryByTestId("panel-scrim")).not.toBeInTheDocument();
+  });
+
   it("conectando: diz que carrega o tabuleiro", async () => {
     renderPlayerPage();
     await screen.findByText("Carregando o tabuleiro…");
@@ -1174,6 +1188,8 @@ describe("GamePlayerPage", () => {
       const ws = await waitForSocket();
       boardWithBoth(ws);
       openAttackOnMe(ws);
+      // A mesa abre com o painel fechado em tela estreita: abre a aba Ação pelo rail.
+      await user.click(screen.getByRole("button", { name: /Ação/ }));
 
       // A aba Ação aberta já mostra a seção: sem dica.
       expect(reactionGroup()).toBeInTheDocument();
