@@ -110,6 +110,7 @@ const Panel = styled.div<{ $side: "left" | "right"; $width: number }>`
   flex-direction: column;
   overflow: visible;
   width: ${({ $width }) => $width}px;
+  max-width: 100%;
 
   ${({ $side }) =>
     $side === "left"
