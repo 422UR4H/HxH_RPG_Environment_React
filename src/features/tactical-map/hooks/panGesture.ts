@@ -16,6 +16,8 @@ export function createPanTracker() {
   let anchor: { client: PanPoint; camera: PanPoint } | null = null;
   /** Houve mais de um ponteiro neste gesto: só zera quando todos soltarem. */
   let pinched = false;
+  /** Gestos de outro dono (peça, parede, fundo): nunca viram pan, nem após a pinça. */
+  const suppressed = new Set<number>();
 
   const anchorOn = (pointerId: number, camera: PanPoint) => {
     const at = pointers.get(pointerId);
@@ -30,6 +32,7 @@ export function createPanTracker() {
     panner = null;
     anchor = null;
     pinched = false;
+    suppressed.clear();
   };
 
   return {
@@ -38,6 +41,14 @@ export function createPanTracker() {
       pointers.set(pointerId, { ...at });
       if (pointers.size > 1) {
         pinched = true;
+        panner = null;
+        anchor = null;
+      }
+    },
+    /** O quadro decidiu que o gesto deste ponteiro pertence a outro dono: não vira pan. */
+    suppress(pointerId: number) {
+      suppressed.add(pointerId);
+      if (panner === pointerId) {
         panner = null;
         anchor = null;
       }
@@ -59,6 +70,7 @@ export function createPanTracker() {
     /** pointerup / pointercancel. Fim de pinça com um dedo restante reancora o pan nele. */
     up(pointerId: number, camera: PanPoint) {
       pointers.delete(pointerId);
+      suppressed.delete(pointerId);
       if (panner === pointerId) {
         panner = null;
         anchor = null;
@@ -69,7 +81,7 @@ export function createPanTracker() {
       }
       if (pointers.size === 1 && pinched) {
         const [remaining] = pointers.keys();
-        anchorOn(remaining, camera);
+        if (!suppressed.has(remaining)) anchorOn(remaining, camera);
       }
     },
     isPanning: () => panner !== null,

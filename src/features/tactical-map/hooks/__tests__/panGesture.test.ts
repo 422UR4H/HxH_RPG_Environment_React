@@ -66,4 +66,14 @@ describe("createPanTracker", () => {
     expect(t.arm(3, { x: 7, y: 8 })).toBe(true);
     expect(t.move(3, { x: 210, y: 195 })).toEqual({ x: 17, y: 3 });
   });
+
+  it("gesto suprimido (peça/parede): pinça que termina não devolve o pan ao dedo restante", () => {
+    const t = createPanTracker();
+    t.down(1, { x: 0, y: 0 });
+    t.suppress(1);
+    t.down(2, { x: 50, y: 50 });
+    t.up(2, { x: 0, y: 0 });
+    expect(t.isPanning()).toBe(false);
+    expect(t.move(1, { x: 20, y: 20 })).toBeNull();
+  });
 });

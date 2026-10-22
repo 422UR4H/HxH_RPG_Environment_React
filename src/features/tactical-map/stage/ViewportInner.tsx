@@ -235,14 +235,15 @@ export default function ViewportInner({
       requestAnimationFrame(() => {
         if (pieceDragActiveRef.current) {
           pieceDragActiveRef.current = false;
+          tracker.suppress(pointerId);
           return;
         }
         // bgDragState is set synchronously by BgLayer's Pixi onPointerDown (which
         // fires before this window handler in the same tick), so if the bg sprite
         // was clicked it's already non-null here and we skip pan.
-        if (bgInteractive && bgDragState.current) return;
+        if (bgInteractive && bgDragState.current) { tracker.suppress(pointerId); return; }
         // Suppress pan only while a wall is being drawn; clicks outside snap area still pan.
-        if (wallGestureActiveRef.current) return;
+        if (wallGestureActiveRef.current) { tracker.suppress(pointerId); return; }
         // Um toque rápido (soltou antes deste quadro) deixava o pan ligado: no toque não
         // há hover para desligá-lo, e o toque seguinte fazia o mapa pular. Segundo dedo
         // (pinça) também não arma.
