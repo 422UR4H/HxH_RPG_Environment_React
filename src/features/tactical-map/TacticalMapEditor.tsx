@@ -264,14 +264,16 @@ export default function TacticalMapEditor({
 
   const handleStageDeselect = () => setSelection(null);
 
-  const askTruncConfirm = (msg: string): Promise<boolean> =>
-    new Promise<boolean>((resolve) => {
-      truncConfirmResolveRef.current = resolve;
-      setTruncConfirmMsg(msg);
-    });
+  const askTruncConfirm = useCallback(
+    (msg: string): Promise<boolean> =>
+      new Promise<boolean>((resolve) => {
+        truncConfirmResolveRef.current = resolve;
+        setTruncConfirmMsg(msg);
+      }),
+    [],
+  );
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- handleSave is recreated each render so the useMemo at line ~364 recomputes every render; kept as-is (no behavior change in untested tactical-map folder); fixing needs useCallback
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!map.name.trim()) {
       setNameError("O nome do mapa é obrigatório.");
       return;
@@ -341,7 +343,7 @@ export default function TacticalMapEditor({
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [map, onSave, onSaveSuccess, askTruncConfirm, markClean]);
 
   // On-screen token diameter = world token size (slotScreenInradius × 0.9 × 2, as drawn on screen) × current zoom.
   // Clamped so the ghost stays grabbable when zoomed far out. Same formula as
