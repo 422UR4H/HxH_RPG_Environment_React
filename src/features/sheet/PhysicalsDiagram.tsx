@@ -51,7 +51,7 @@ const PhysicalsDiagram = ({
 
   const incAttributePoints = (attr: Attribute) => {
     if (distributionPoints <= 0) return;
-    attr?.points !== undefined && (attr.points += 1);
+    if (attr?.points !== undefined) attr.points += 1;
     decDistributionPoints();
   };
   const decAttributePoints = (attr: Attribute) => {
