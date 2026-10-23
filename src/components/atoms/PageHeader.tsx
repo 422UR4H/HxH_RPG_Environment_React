@@ -19,7 +19,9 @@ export default function PageHeader({
   return (
     <StyledPageHeader $backgroundColor={backgroundColor}>
       {showBack && <BackButton />}
-      <LogoButton />
+      <LogoSlot>
+        <LogoButton />
+      </LogoSlot>
       {trailing && <Trailing>{trailing}</Trailing>}
     </StyledPageHeader>
   );
@@ -36,10 +38,14 @@ const StyledPageHeader = styled.div<{ $backgroundColor?: string }>`
   width: 100%;
   height: min(102px, 15.2vw);
   padding-bottom: 0.4vw;
-  /* O #root rola: com a barra de rolagem o header perde a largura da barra e o centro
-     desceria pela metade dela. Este padding é essa largura (0 sem barra) e devolve o
-     centro do conteúdo ao centro da janela. */
-  padding-left: calc(100vw - 100%);
+`;
+
+// O #root rola: com a barra de rolagem o header perde a largura da barra e o centro dele
+// desce metade dela. O deslocamento relativo leva a logo ao centro da janela (zero sem barra).
+// Não usar padding/margem com % no header: templates em grid dimensionam a coluna com ele.
+const LogoSlot = styled.div`
+  position: relative;
+  left: calc(50vw - 50%);
 `;
 
 // Centrado sem transform: um transform aqui viraria o bloco de contenção de filhos
