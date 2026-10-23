@@ -166,3 +166,40 @@ Commit: `fix(ui): bolinhas de carregamento lado a lado dentro do botão`.
   `/campaigns/new`, detalhe/edição de campanha e partida, criar/editar mapa — todos com o mesmo x (centro da
   janela) e o mesmo topo; repetir em largura de celular.
 - Login com senha errada: mensagem em português; bolinhas lado a lado, centradas, dentro do botão.
+
+## Rodada 2 (pedido do dono do produto depois do PR #80)
+
+Tasks 1–3 estão entregues e revisadas. O dono do produto pediu os textos das telas de entrada em
+português e o fim da mãozinha do mouse no botão desabilitado. A restrição 6 (não tocar no `&:disabled`
+do `BaseButton`) foi liberada por ele: a outra sessão só troca cores de tokens.
+
+### Task 4: telas de entrada em português e cursor do botão desabilitado
+
+**Arquivos:** `src/pages/LoginPage.tsx`, `src/pages/RegisterPage.tsx`, `src/components/ions/BaseButton.tsx`,
+`src/pages/__tests__/LoginPage.test.tsx`, `src/pages/__tests__/RegisterPage.test.tsx`.
+
+1. Textos (troca exata, nada mais nesses componentes):
+
+   | Tela | Hoje | Passa a ser |
+   |---|---|---|
+   | Login, botão | `Log In` | `Entrar` |
+   | Login, link para `/sign-up` | `First time? Create an account!` | `Primeira vez? Crie sua conta!` |
+   | Login e cadastro, placeholder do campo `password` | `password` | `senha` |
+   | Cadastro, placeholder do campo `confirmPass` | `confirm password` | `confirme a senha` |
+   | Cadastro, botão | `Sign Up` | `Criar conta` |
+   | Cadastro, link para `/` | `Switch back to log in` | `Já tem conta? Entre por aqui!` |
+
+   Ficam como estão: os placeholders `e-mail` e `nick` (as mensagens de erro já chamam o campo de "nick").
+   Minúsculas nos placeholders seguem o estilo atual da tela.
+2. `BaseButton`: dentro do bloco `&:disabled`, acrescente `cursor: default;` como **última** linha do bloco,
+   depois de `align-items: center;`. Não mexa nas outras linhas do bloco: a outra sessão remove o
+   `background-color` dele, e uma linha nova longe dali não gera conflito no merge. Motivo: a mãozinha diz
+   "dá para clicar"; o botão só fica desabilitado enquanto carrega, então a seta comum é o certo
+   (`not-allowed` daria a ideia de ação proibida, que não é o caso).
+3. Testes: atualize os seletores de `LoginPage.test.tsx` e `RegisterPage.test.tsx` para os textos novos
+   (`getByPlaceholderText("senha")`, `getByPlaceholderText("confirme a senha")`, botão `Entrar` /
+   `Criar conta`). No teste de carregamento do login, o texto que some e volta passa a ser `Entrar`.
+   Não há teste de cursor (jsdom não aplica o CSS do styled-components de forma confiável); o controlador
+   confere no navegador.
+
+Commit: `fix(ui): telas de entrada em português e seta no botão desabilitado`.
