@@ -55,14 +55,19 @@ decisões estão neste plano (seção "Decisões").
 
 **Arquivo:** `src/components/atoms/PageHeader.tsx` (só ele).
 
-No `StyledPageHeader`, acrescente `padding-left: calc(100vw - 100%);` com um comentário curto do porquê
-(o `#root` rola; com a barra o header encolhe e o centro andaria metade da barra; esse padding é a largura
-da barra quando ela existe e zero quando não, e devolve o centro do conteúdo ao centro da janela).
+Envolva o `<LogoButton />` num `LogoSlot` (styled div) com `position: relative; left: calc(50vw - 50%);` e
+um comentário curto do porquê (o `#root` rola; com a barra o header encolhe e o centro dele anda metade da
+barra; o deslocamento leva a logo do centro do header para o centro da janela, e é zero sem barra).
 
-Por que funciona: `box-sizing: border-box` é global; o `100%` do padding é a largura do pai, a mesma do
-header (`width: 100%`); `100vw` é a janela inteira. Com barra: 1536 − 1524 = 12 px de padding à esquerda, a
-caixa de conteúdo vai de 12 a 1524 e o centro fica em 768. Sem barra: 0. `Trailing` (absoluto, `right`) e
-`BackButton` (fixed) não mudam. Nada vertical muda.
+Por que funciona: o `%` de `left` num elemento relativo é a largura da caixa de conteúdo do pai (o header,
+que começa em x=0), então `50vw - 50%` é "centro da janela − centro do header": 6 px com a barra de 12 px,
+0 sem ela. Deslocamento relativo não entra no cálculo de tamanho de ninguém. `Trailing` (absoluto, `right`)
+e `BackButton` (fixed) não mudam. Nada vertical muda.
+
+> Primeira tentativa descartada (medida no navegador): `padding-left: calc(100vw - 100%)` no header. Nos
+> templates com `display: grid` (`CreateFormTemplate`, `DetailPageTemplate`, `MapEditorTemplate`) o grid
+> dimensiona a coluna tratando o `100%` como zero: o padding conta 100vw, a coluna vai a 1716 px e a logo
+> para x=858. Não use padding/margem com `%` no header.
 
 Sem teste automatizado (jsdom não faz layout); o controlador mede no navegador. Rode typecheck + lint + test
 e commite: `fix(ui): logo do header no centro da janela com ou sem barra de rolagem`.
