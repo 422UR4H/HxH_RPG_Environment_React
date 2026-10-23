@@ -19,6 +19,9 @@ const INSPECT_RING_COLOR = toPixiColor(colors.pieceInspectRing);
 const STACK_BADGE_BG = toPixiColor(colors.pieceStackBadge);
 const ACTIVE_TURN_COLOR = toPixiColor(colors.pieceActiveTurn);
 
+// The frame SVG is rasterized once; 4× keeps it sharp at board zoom-in on a 3× screen.
+const FRAME_RASTER_SCALE = 4;
+
 type PieceSpriteProps = {
   piece: Piece;
   grid: GridShape;
@@ -82,7 +85,11 @@ export default function PieceSprite({
     let cancelled = false;
 
     const makeTexture = (img: HTMLImageElement) =>
-      new Texture({ source: new ImageSource({ resource: img }) });
+      // Mipmaps + linear filtering: avatars are far larger than their on-board size, and
+      // plain minification of a large bitmap shimmers/aliases.
+      new Texture({
+        source: new ImageSource({ resource: img, autoGenerateMipmaps: true, scaleMode: "linear" }),
+      });
 
     const loadImg = (src: string) =>
       new Promise<HTMLImageElement | null>((resolve) => {
@@ -118,7 +125,9 @@ export default function PieceSprite({
   const [frameTexture, setFrameTexture] = useState<Texture | null>(null);
   useEffect(() => {
     let cancelled = false;
-    Assets.load(gungiFrameUrl)
+    // The frame is an SVG: Pixi rasterizes it once, at `resolution`, so the default 1×
+    // would be upscaled (blocky) on dense screens and when zoomed in on the board.
+    Assets.load({ src: gungiFrameUrl, data: { resolution: FRAME_RASTER_SCALE } })
       .then((t: Texture) => { if (!cancelled) setFrameTexture(t); })
       .catch(() => { if (!cancelled) setFrameTexture(null); });
     return () => { cancelled = true; };

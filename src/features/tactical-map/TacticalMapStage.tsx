@@ -9,6 +9,11 @@ import type { TacticalMapStageProps } from "./stage/stageProps";
 import ViewportInner from "./stage/ViewportInner";
 import BgFailedNotice from "./stage/BgFailedNotice";
 
+// Backing-store density. Pixi defaults to 1, which the browser then upscales on phones and
+// tablets (DPR 2–3): rings, dashes, walls and avatars all look blocky. Capped at 3 so the
+// canvas on a 3× phone stays a reasonable size for the GPU.
+const RENDER_RESOLUTION = Math.min(Math.max(window.devicePixelRatio || 1, 1), 3);
+
 extend({ Container, Graphics, Sprite, Text, Viewport });
 
 export default function TacticalMapStage({
@@ -113,7 +118,15 @@ export default function TacticalMapStage({
 
   return (
     <div ref={containerRef} style={{ position: "relative", width, height, overflow: "hidden", isolation: "isolate" }}>
-      <Application width={width} height={height} background={0x101820} onInit={rerenderAfterInit}>
+      <Application
+        width={width}
+        height={height}
+        background={0x101820}
+        resolution={RENDER_RESOLUTION}
+        autoDensity
+        antialias
+        onInit={rerenderAfterInit}
+      >
         <ViewportInner
           map={map}
           width={width}
