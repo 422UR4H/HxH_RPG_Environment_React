@@ -9,7 +9,7 @@ import { useSignUp } from "../hooks/useSignUp";
 import useToken from "../hooks/useToken";
 import BaseInput from "../components/ions/BaseInput";
 import InlineFeedback from "../components/ions/InlineFeedback";
-import { getApiErrorDetail } from "../utils/apiError";
+import { getRegisterErrorMessage } from "../features/auth/authErrorMessages";
 
 function isAnyFieldEmpty({ nick, email, password, confirmPass }: SignUpBody) {
   return email === "" || password === "" || nick === "" || confirmPass === "";
@@ -40,7 +40,7 @@ export default function RegisterPage() {
         navigate("/");
       },
       onError: (err: unknown) => {
-        setError(getApiErrorDetail(err) ?? "Erro ao criar conta");
+        setError(getRegisterErrorMessage(err));
       },
     });
   }

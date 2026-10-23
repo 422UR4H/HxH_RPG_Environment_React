@@ -1,5 +1,13 @@
 import axios from "axios";
 
+export const CONNECTION_ERROR_MESSAGE =
+  "Não foi possível conectar ao servidor. Verifique sua internet e tente novamente.";
+
+/** Erro do axios sem `response`: a requisição não chegou ao servidor (rede caiu, servidor fora). */
+export function isConnectionError(err: unknown): boolean {
+  return axios.isAxiosError(err) && !err.response;
+}
+
 /**
  * Extrai a mensagem específica de um erro da nossa API.
  *

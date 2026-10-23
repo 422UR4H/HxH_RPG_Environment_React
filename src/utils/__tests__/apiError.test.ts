@@ -1,7 +1,7 @@
 import type { AxiosResponse } from "axios";
 import { describe, it, expect } from "vitest";
 import axios from "axios";
-import { getApiErrorDetail } from "../apiError";
+import { getApiErrorDetail, isConnectionError } from "../apiError";
 
 describe("getApiErrorDetail", () => {
   it("case 1: returns detail from axios error with response.data.detail", () => {
@@ -106,5 +106,22 @@ describe("getApiErrorDetail", () => {
 
     const result = getApiErrorDetail(error);
     expect(result).toBe("Validation failed");
+  });
+});
+
+describe("isConnectionError", () => {
+  it("é true para erro do axios sem response (rede caiu)", () => {
+    expect(isConnectionError(new axios.AxiosError("Network Error"))).toBe(true);
+  });
+
+  it("é false para erro do axios com response", () => {
+    const error = new axios.AxiosError("Request failed");
+    error.response = { status: 500 } as AxiosResponse;
+    expect(isConnectionError(error)).toBe(false);
+  });
+
+  it("é false para erro que não é do axios", () => {
+    expect(isConnectionError(new Error("boom"))).toBe(false);
+    expect(isConnectionError(undefined)).toBe(false);
   });
 });
