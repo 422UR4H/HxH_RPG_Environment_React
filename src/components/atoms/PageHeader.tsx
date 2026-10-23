@@ -36,6 +36,10 @@ const StyledPageHeader = styled.div<{ $backgroundColor?: string }>`
   width: 100%;
   height: min(102px, 15.2vw);
   padding-bottom: 0.4vw;
+  /* O #root rola: com a barra de rolagem o header perde a largura da barra e o centro
+     desceria pela metade dela. Este padding é essa largura (0 sem barra) e devolve o
+     centro do conteúdo ao centro da janela. */
+  padding-left: calc(100vw - 100%);
 `;
 
 // Centrado sem transform: um transform aqui viraria o bloco de contenção de filhos
