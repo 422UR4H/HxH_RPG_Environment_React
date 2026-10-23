@@ -203,3 +203,44 @@ do `BaseButton`) foi liberada por ele: a outra sessão só troca cores de tokens
    confere no navegador.
 
 Commit: `fix(ui): telas de entrada em português e seta no botão desabilitado`.
+
+## Rodada 3: logo do System X System no header
+
+O dono do produto adicionou `src/assets/images/sxs-logo.svg` (vetorial puro: sem script, texto, imagem
+embutida nem link externo; viewBox 801.31×332.17, proporção 2,41 contra 2,32 da `hxh-logo.avif`) e pediu
+para ela substituir a logo **do header**. As telas de login e cadastro continuam com a logo HxH (`Logo` ion,
+usada pelo `SignPagesTemplate`).
+
+### Task 5: logo do System X System no header
+
+**Arquivos:** `src/assets/images/sxs-logo.svg` (já copiado na worktree pelo controlador, só adicionar ao
+commit), `src/components/atoms/LogoButton.tsx`, novo `src/components/atoms/__tests__/LogoButton.test.tsx`.
+Não mexa em `src/components/ions/Logo.tsx`, `SignPagesTemplate.tsx` nem `PageHeader.tsx`.
+
+1. `LogoButton.tsx`: troque o `import Logo from "../ions/Logo";` por
+   `import sxsLogo from "../../assets/images/sxs-logo.svg";` e o `<Logo />` por:
+   ```tsx
+   {/* O header usa a logo do sistema; a do HxH (Logo) fica nas telas de entrada. */}
+   <img src={sxsLogo} alt="System X System - Início" />
+   ```
+   O bloco `img { … }` do `StyledLogoButton` continua como está: mesma largura (`min(180px, 28vw)`), mesmo
+   hover. A altura sai sozinha da proporção do SVG (≈75 px a 180 px de largura); o header tem altura
+   fixa, então não muda.
+2. Teste novo `src/components/atoms/__tests__/LogoButton.test.tsx`:
+   ```tsx
+   import { describe, it, expect } from "vitest";
+   import { screen } from "@testing-library/react";
+   import { renderWithProviders } from "../../../test/render";
+   import LogoButton from "../LogoButton";
+
+   describe("LogoButton", () => {
+     it("mostra a logo do System X System, não a do HxH", () => {
+       renderWithProviders(<LogoButton />);
+       const logo = screen.getByAltText("System X System - Início");
+       expect(logo.getAttribute("src")).toMatch(/sxs-logo\.svg/);
+     });
+   });
+   ```
+   Rode-o antes da troca (deve falhar) e depois (deve passar).
+
+Commit: `feat(ui): logo do System X System no header`.
