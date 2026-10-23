@@ -25,6 +25,10 @@ export function getAvatarBlobUrl(url: string): Promise<string | null> {
 // Replicates CSS `inset box-shadow` from AvatarRelief (CharacterSheetHeader) as a
 // PixiJS-renderable texture. Using a canvas-drawn texture keeps everything inside the
 // WebGL display list — no DOM overlay div, no canvas/DOM z-layer conflict.
+// The canvas is drawn at SUPERSAMPLE× its on-board size (sprites set their own width/height,
+// so layout and alignment don't change) — otherwise it is stretched when the board is zoomed
+// or the screen is dense, which shows as blocky edges on the avatar ring.
+const SUPERSAMPLE = 4;
 const insetShadowCache = new Map<number, Texture>();
 export function getAvatarInsetShadowTexture(radius: number): Texture {
   const key = Math.round(radius * 10);
@@ -33,9 +37,10 @@ export function getAvatarInsetShadowTexture(radius: number): Texture {
 
   const d = Math.ceil(radius * 2);
   const canvas = document.createElement("canvas");
-  canvas.width = d;
-  canvas.height = d;
+  canvas.width = d * SUPERSAMPLE;
+  canvas.height = d * SUPERSAMPLE;
   const ctx = canvas.getContext("2d")!;
+  ctx.scale(SUPERSAMPLE, SUPERSAMPLE);
 
   // Replicate CSS `inset box-shadow` on a circle using radial gradients.
   // Each layer: radial gradient centered at (cx, cy + offsetY*r).
@@ -67,7 +72,7 @@ export function getAvatarInsetShadowTexture(radius: number): Texture {
     ctx.restore();
   }
 
-  const t = new Texture({ source: new ImageSource({ resource: canvas }) });
+  const t = new Texture({ source: new ImageSource({ resource: canvas, autoGenerateMipmaps: true }) });
   insetShadowCache.set(key, t);
   return t;
 }
