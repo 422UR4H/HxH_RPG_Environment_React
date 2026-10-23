@@ -204,43 +204,50 @@ do `BaseButton`) foi liberada por ele: a outra sessão só troca cores de tokens
 
 Commit: `fix(ui): telas de entrada em português e seta no botão desabilitado`.
 
-## Rodada 3: logo do System X System no header
+## Rodada 3: logo do System X System em todo lugar
 
 O dono do produto adicionou `src/assets/images/sxs-logo.svg` (vetorial puro: sem script, texto, imagem
 embutida nem link externo; viewBox 801.31×332.17, proporção 2,41 contra 2,32 da `hxh-logo.avif`) e pediu
-para ela substituir a logo **do header**. As telas de login e cadastro continuam com a logo HxH (`Logo` ion,
-usada pelo `SignPagesTemplate`).
+para ela substituir a logo atual **em todos os lugares**: o header (`PageHeader` → `LogoButton` → `Logo`) e as
+telas de login e cadastro (`SignPagesTemplate` → `Logo`). Os dois passam pelo ion `Logo`, então a troca é nele.
+O ícone da aba (`/vite.svg`) não é a logo e fica fora: uma logo larga não cabe num favicon quadrado.
 
-### Task 5: logo do System X System no header
+### Task 5: logo do System X System no header e nas telas de entrada
 
 **Arquivos:** `src/assets/images/sxs-logo.svg` (já copiado na worktree pelo controlador, só adicionar ao
-commit), `src/components/atoms/LogoButton.tsx`, novo `src/components/atoms/__tests__/LogoButton.test.tsx`.
-Não mexa em `src/components/ions/Logo.tsx`, `SignPagesTemplate.tsx` nem `PageHeader.tsx`.
+commit), `src/components/ions/Logo.tsx`, remover `src/assets/images/hxh-logo.avif` (fica sem uso), novo
+`src/components/ions/__tests__/Logo.test.tsx`. `LogoButton.tsx`, `SignPagesTemplate.tsx` e `PageHeader.tsx`
+ficam **como estão na main** (sem diff).
 
-1. `LogoButton.tsx`: troque o `import Logo from "../ions/Logo";` por
-   `import sxsLogo from "../../assets/images/sxs-logo.svg";` e o `<Logo />` por:
-   ```tsx
-   {/* O header usa a logo do sistema; a do HxH (Logo) fica nas telas de entrada. */}
-   <img src={sxsLogo} alt="System X System - Início" />
-   ```
-   O bloco `img { … }` do `StyledLogoButton` continua como está: mesma largura (`min(180px, 28vw)`), mesmo
-   hover. A altura sai sozinha da proporção do SVG (≈75 px a 180 px de largura); o header tem altura
-   fixa, então não muda.
-2. Teste novo `src/components/atoms/__tests__/LogoButton.test.tsx`:
+1. `Logo.tsx`: troque o import por `import sxsLogo from "../../assets/images/sxs-logo.svg";` e o elemento por
+   `<StyledLogo src={sxsLogo} alt="System X System" />`. O `StyledLogo` não muda: cada lugar mantém a
+   largura de hoje (header `min(180px, 28vw)` pelo `LogoButton`; telas de entrada 60%), e a altura sai da
+   proporção do SVG.
+2. `git rm src/assets/images/hxh-logo.avif` (único import dela era o `Logo.tsx`; o histórico guarda o arquivo).
+3. Teste novo `src/components/ions/__tests__/Logo.test.tsx`:
    ```tsx
    import { describe, it, expect } from "vitest";
    import { screen } from "@testing-library/react";
    import { renderWithProviders } from "../../../test/render";
-   import LogoButton from "../LogoButton";
+   import LogoButton from "../../atoms/LogoButton";
+   import SignPagesTemplate from "../../templates/SignPagesTemplate";
 
-   describe("LogoButton", () => {
-     it("mostra a logo do System X System, não a do HxH", () => {
-       renderWithProviders(<LogoButton />);
-       const logo = screen.getByAltText("System X System - Início");
-       expect(logo.getAttribute("src")).toMatch(/sxs-logo\.svg/);
+   describe("Logo", () => {
+     it("mostra a logo do System X System no header e nas telas de entrada", () => {
+       renderWithProviders(
+         <>
+           <LogoButton />
+           <SignPagesTemplate>
+             <div />
+           </SignPagesTemplate>
+         </>,
+       );
+       const logos = screen.getAllByAltText("System X System");
+       expect(logos).toHaveLength(2);
+       for (const logo of logos) expect(logo.getAttribute("src")).toMatch(/sxs-logo\.svg/);
      });
    });
    ```
    Rode-o antes da troca (deve falhar) e depois (deve passar).
 
-Commit: `feat(ui): logo do System X System no header`.
+Commit: `feat(ui): logo do System X System no header e nas telas de entrada`.
