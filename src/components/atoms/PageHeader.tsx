@@ -43,7 +43,9 @@ const StyledPageHeader = styled.div<{ $backgroundColor?: string }>`
 // O #root rola: com a barra de rolagem o header perde a largura da barra e o centro dele
 // desce metade dela. O deslocamento relativo leva a logo ao centro da janela (zero sem barra).
 // Não usar padding/margem com % no header: templates em grid dimensionam a coluna com ele.
+// display: flex evita o espaço de linha do inline-block da logo, que mudaria a altura do wrapper.
 const LogoSlot = styled.div`
+  display: flex;
   position: relative;
   left: calc(50vw - 50%);
 `;
