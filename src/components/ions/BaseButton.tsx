@@ -32,11 +32,11 @@ const StyledButton = styled.button`
   /* &:focus {
     outline: none;
   } */
-  &:hover {
+  &:hover:not(:disabled) {
     transform: translateY(-5px);
     filter: brightness(1.1);
   }
-  &:active {
+  &:active:not(:disabled) {
     transform: scale(0.98);
   }
   &:disabled {

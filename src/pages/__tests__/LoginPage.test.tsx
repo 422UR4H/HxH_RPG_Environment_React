@@ -43,4 +43,28 @@ describe("LoginPage", () => {
       ),
     ).toBeInTheDocument();
   });
+
+  it("desabilita o botão e mostra o status Carregando enquanto o login está pendente", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    server.use(
+      http.post(`${baseUrl}/auth/login`, async () => {
+        await gate;
+        return HttpResponse.json({ detail: "validation error: access denied" }, { status: 401 });
+      }),
+    );
+    renderPage();
+    await fillAndSubmit();
+
+    expect(await screen.findByRole("status", { name: "Carregando" })).toBeInTheDocument();
+    expect(screen.getByRole("button")).toBeDisabled();
+    expect(screen.queryByText("Log In")).not.toBeInTheDocument();
+
+    release();
+    expect(await screen.findByText("E-mail ou senha incorretos.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Log In" })).toBeEnabled();
+    expect(screen.queryByRole("status", { name: "Carregando" })).not.toBeInTheDocument();
+  });
 });

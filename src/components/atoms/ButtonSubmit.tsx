@@ -1,6 +1,6 @@
-// import { ThreeDots } from "react-loader-spinner"; // provisionally replaced by:
 import { styled, keyframes } from "styled-components";
 import BaseButton from "../ions/BaseButton";
+import { colors } from "../../styles/tokens";
 
 interface ButtonSubmitProps {
   disabled?: boolean;
@@ -13,50 +13,45 @@ export default function ButtonSubmit({
 }: ButtonSubmitProps) {
   return (
     <BaseButton type="submit" disabled={disabled}>
-      {disabled ? <LoadingDots /> : children}
+      {disabled ? (
+        <LoadingDots role="status" aria-label="Carregando">
+          <Dot />
+          <Dot />
+          <Dot />
+        </LoadingDots>
+      ) : (
+        children
+      )}
     </BaseButton>
-    // TODO: resolve or replace react-loader-spinner extension
-    // <ThreeDots
-    //     height="35"
-    //     color="white"
-    //     ariaLabel="three-dots-loading"
-    // />
-    // :
-    // children
-    // }
-    // </Button>
   );
 }
 
 const bounce = keyframes`
   0%, 80%, 100% { transform: scale(0); }
-  40% { transform: scale(1.0); }
+  40% { transform: scale(1); }
 `;
 
-const LoadingDots = styled.div`
-  display: flex;
-  justify-content: center;
+const LoadingDots = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+`;
 
-  &::before,
-  &::after,
-  & {
-    content: "";
-    width: 10px;
-    height: 10px;
-    margin: 0 5px;
-    border-radius: 50%;
-    background-color: white;
-    display: inline-block;
-    animation: ${bounce} 1.4s infinite ease-in-out both;
-  }
+// A animação fica nas bolinhas; no container ela encolheria as três juntas.
+const Dot = styled.span`
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: ${colors.textOnLight};
+  animation: ${bounce} 1.4s infinite ease-in-out both;
 
-  &::before {
-    content: "";
+  &:nth-child(1) {
     animation-delay: -0.32s;
   }
-
-  &::after {
-    content: "";
-    animation-delay: 0.16s;
+  &:nth-child(2) {
+    animation-delay: -0.16s;
+  }
+  &:nth-child(3) {
+    animation-delay: 0s;
   }
 `;
