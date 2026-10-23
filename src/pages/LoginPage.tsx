@@ -62,7 +62,7 @@ export default function LoginPage() {
         <BaseInput
           name="password"
           type="password"
-          placeholder="password"
+          placeholder="senha"
           value={form.password}
           onChange={handleForm}
           minLength={3}
@@ -70,9 +70,9 @@ export default function LoginPage() {
           required
         />
         {error && <InlineFeedback message={error} variant="error" onDismiss={() => setError(null)} />}
-        <ButtonSubmit disabled={isPending}>Log In</ButtonSubmit>
+        <ButtonSubmit disabled={isPending}>Entrar</ButtonSubmit>
       </Form>
-      <Link to="/sign-up">First time? Create an account!</Link>
+      <Link to="/sign-up">Primeira vez? Crie sua conta!</Link>
     </SignPagesTemplate>
   );
 }

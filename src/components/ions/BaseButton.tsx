@@ -45,6 +45,7 @@ const StyledButton = styled.button`
     display: flex;
     justify-content: center;
     align-items: center;
+    cursor: default;
   }
 
   /* @media (max-width: 767px) { */

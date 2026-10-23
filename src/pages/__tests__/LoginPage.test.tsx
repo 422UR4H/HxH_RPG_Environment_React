@@ -16,8 +16,8 @@ function renderPage() {
 async function fillAndSubmit() {
   const u = userEvent.setup();
   await u.type(screen.getByPlaceholderText("e-mail"), "teste@mail.com");
-  await u.type(screen.getByPlaceholderText("password"), "12345678");
-  await u.click(screen.getByRole("button", { name: /Log In/i }));
+  await u.type(screen.getByPlaceholderText("senha"), "12345678");
+  await u.click(screen.getByRole("button", { name: /Entrar/i }));
 }
 
 describe("LoginPage", () => {
@@ -60,11 +60,11 @@ describe("LoginPage", () => {
 
     expect(await screen.findByRole("status", { name: "Carregando" })).toBeInTheDocument();
     expect(screen.getByRole("button")).toBeDisabled();
-    expect(screen.queryByText("Log In")).not.toBeInTheDocument();
+    expect(screen.queryByText("Entrar")).not.toBeInTheDocument();
 
     release();
     expect(await screen.findByText("E-mail ou senha incorretos.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Log In" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Entrar" })).toBeEnabled();
     expect(screen.queryByRole("status", { name: "Carregando" })).not.toBeInTheDocument();
   });
 });

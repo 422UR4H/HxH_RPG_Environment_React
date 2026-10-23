@@ -17,9 +17,9 @@ async function fillAndSubmit() {
   const u = userEvent.setup();
   await u.type(screen.getByPlaceholderText("e-mail"), "teste@mail.com");
   await u.type(screen.getByPlaceholderText("nick"), "Tester");
-  await u.type(screen.getByPlaceholderText("password"), "12345678");
-  await u.type(screen.getByPlaceholderText("confirm password"), "12345678");
-  await u.click(screen.getByRole("button", { name: /Sign Up/i }));
+  await u.type(screen.getByPlaceholderText("senha"), "12345678");
+  await u.type(screen.getByPlaceholderText("confirme a senha"), "12345678");
+  await u.click(screen.getByRole("button", { name: /Criar conta/i }));
 }
 
 describe("RegisterPage", () => {
