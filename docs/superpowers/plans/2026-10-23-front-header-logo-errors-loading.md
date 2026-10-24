@@ -251,3 +251,150 @@ ficam **como estão na main** (sem diff).
    Rode-o antes da troca (deve falhar) e depois (deve passar).
 
 Commit: `feat(ui): logo do System X System no header e nas telas de entrada`.
+
+---
+
+## Rodada 4 — pedido do dono do produto (2026-10-24)
+
+O site vai ser apresentado na banca do TCC do designer do projeto. Três pedidos:
+
+1. As mensagens de erro do login (servidor fora, credenciais erradas…) são pequenas e não se alinham às margens dos campos e do botão.
+2. A logo nova parece menor e menos centrada na vertical que a antiga.
+3. O professor achou o botão "voltar" do header **embaçado** em repouso e nítido no hover.
+
+### Medidas (Chrome headless, 1536×864)
+
+**Erro nas telas de entrada.** Hoje é o `InlineFeedback` genérico:
+- Texto: 13 px, `line-height` 13 px.
+- Borda: 1 px, cantos de 5 px.
+- Cor: vermelho `danger` `#e74c3c`, com contraste 3,8:1 sobre branco, abaixo do AA de 4,5:1.
+
+A largura acompanha o texto: 179 px com "E-mail ou senha incorretos." e 475 px com a mensagem de conexão. Os campos e o botão têm 429 px, então a mensagem longa passa 23 px de cada lado. Os campos usam:
+- borda de 4 px `redInputError` `#b91a40`, com contraste 6,4:1;
+- 14 px de padding;
+- texto de 27 px em negrito.
+
+**Logo.**
+- Header de 102 px com `padding-bottom: 0.4vw` (6 px). A logo ficava com o topo em 10,6 px e o centro em 47,9, ou seja, 3 px acima do centro.
+- A antiga (180×77,7) ocupava o arquivo inteiro e também ficava 3 px acima.
+- Centro de massa visual, medido sobre o verde do header: 49,4% da altura na antiga e **45,7%** na nova. O "SYSTEM" branco no alto pesa mais que o reflexo laranja embaixo.
+- Por isso a nova parecia uns 6 px acima do centro, o dobro da antiga. Ela também era 3 px mais baixa (74,6 px contra 77,7).
+
+**Seta.** Fica em `top/left: min(10px, 1.6vw)`. Em densidade 1,25× isso dá 12,5 pixels físicos, e em 1,75× dá 17,5. A imagem do SVG é desenhada a meio pixel e sai borrada. O hover (`scale(1.05)`) a redesenha alinhada, e por isso parece nítida.
+
+Nitidez medida pelo desvio do Laplaciano (maior = mais nítido):
+
+| densidade | hoje | 12 px | hover de hoje | camada GPU | SVG inline |
+|---|---|---|---|---|---|
+| 1 | 57,3 | 57,3 | 59,2 | 57,3 | 57,2 |
+| 1,25 | 30,5 | **47,9** | 36,7 | 30,5 | 30,5 |
+| 1,5 | 42,9 | 42,9 | 36,3 | 42,9 | 43,1 |
+| 1,75 | 24,9 | **40,3** | 30,0 | 24,9 | 24,9 |
+| 2 | 39,3 | 39,3 | 40,9 | 39,3 | 38,6 |
+
+### Decisões
+
+- **Grade do header: 102 = 12 + 78 + 12.**
+  - A logo e a seta ficam com 78 px de altura e 12 px de respiro em cima e embaixo, centradas no mesmo eixo.
+  - 12 é múltiplo de 4, então cai em pixel físico inteiro nas densidades 1; 1,25; 1,5; 1,75 e 2.
+  - Abaixo de 671 px tudo escala junto com o header (`15.2vw`): respiro `1.8vw`, logo `28vw`, seta `20.3vw`.
+- **Logo:** `min(188px, 28vw)`, que dá 77,9 px de altura, igual à antiga.
+  - Logos de proporções diferentes se igualam pela altura, não pela largura.
+  - O `padding-bottom` sai, e a caixa fica no centro exato.
+  - O centro de massa cai em 47,6 px, praticamente onde ficava o da logo antiga (47,5), que era a referência de "centrado" do dono do produto.
+- **Seta:**
+  - `top/left: min(12px, 1.8vw)` e largura `min(136px, 20.3vw)`, que dá 78,7 px de altura.
+  - O `alt` passa a ser "Voltar", já que a interface é em português.
+  - O hover continua o mesmo.
+- **Erro das telas de entrada:** um componente próprio, `SignFormError`, usado pelo login e pelo cadastro. O `InlineFeedback` continua igual para as outras 2 páginas que o usam.
+  - Mesma coluna dos campos: 429 px, e 100% abaixo de 580 px, como `BaseInput`/`BaseButton`.
+  - O texto começa no mesmo recuo do texto digitado. Faixa de 4 px + padding de 14 px = borda de 4 px + padding de 14 px do campo.
+  - Faixa à esquerda de 4 px na cor dos campos, `redInputError`. Uma borda completa de 4 px o faria parecer um terceiro campo.
+  - Fundo com a mesma cor a 8% (`14`) e cantos retos como os campos.
+  - Tipografia: 18 px semibold (600), `line-height` 1,35. Fica um degrau abaixo do link (20 px, 600) na escala 27 → 20 → 18, e não abaixo de 16 px.
+  - Contraste de 5,6:1 sobre o fundo tingido (AA).
+  - `role="alert"`, para o leitor de tela anunciar o erro.
+
+### Task 6: erro das telas de entrada, grade do header e seta nítida
+
+**Arquivos:**
+- novo `src/components/atoms/SignFormError.tsx`
+- `src/pages/LoginPage.tsx`, `src/pages/RegisterPage.tsx`
+- `src/pages/__tests__/LoginPage.test.tsx`, `src/pages/__tests__/RegisterPage.test.tsx`
+- `src/components/atoms/PageHeader.tsx`, `src/components/atoms/LogoButton.tsx`, `src/components/ions/BackButton.tsx`
+
+1. **Testes primeiro.**
+   - Em `LoginPage.test.tsx`, no teste "mostra mensagem amigável no 401, sem o texto cru do backend", acrescente depois do `findByText`:
+     ```tsx
+     expect(screen.getByRole("alert")).toHaveTextContent("E-mail ou senha incorretos.");
+     ```
+   - Em `RegisterPage.test.tsx`, no teste "traduz o 409 de e-mail já cadastrado", acrescente depois do `findByText`:
+     ```tsx
+     expect(screen.getByRole("alert")).toHaveTextContent("Já existe uma conta com esse e-mail.");
+     ```
+
+   Rode os dois arquivos: os dois testes devem falhar, porque hoje não há `role="alert"`.
+
+2. **Novo `src/components/atoms/SignFormError.tsx`** (exatamente):
+   ```tsx
+   import styled from "styled-components";
+   import { colors, fonts } from "../../styles/tokens";
+
+   interface SignFormErrorProps {
+     message: string;
+   }
+
+   // Erro das telas de entrada. Ocupa a coluna dos campos e do botão (429 px; 100% abaixo de 580 px,
+   // como BaseInput/BaseButton) e começa o texto no recuo do texto digitado: faixa de 4 px + 14 px de
+   // padding = borda de 4 px + 14 px de padding do campo. Faixa, não borda inteira: senão parece um campo.
+   export default function SignFormError({ message }: SignFormErrorProps) {
+     return <StyledSignFormError role="alert">{message}</StyledSignFormError>;
+   }
+
+   const StyledSignFormError = styled.div`
+     box-sizing: border-box;
+     width: 429px;
+     padding: 10px 14px;
+     border-left: 4px solid ${colors.redInputError};
+     background-color: ${colors.redInputError}14;
+
+     font-family: ${fonts.sans};
+     font-size: min(18px, 4.6vw);
+     font-weight: 600;
+     line-height: 1.35;
+     text-align: left;
+     color: ${colors.redInputError};
+
+     @media (max-width: 580px) {
+       width: 100%;
+     }
+   `;
+   ```
+
+3. **`LoginPage.tsx` e `RegisterPage.tsx`:** troque o import do `InlineFeedback` por
+   `import SignFormError from "../components/atoms/SignFormError";` e a linha
+   `{error && <InlineFeedback message={error} variant="error" onDismiss={() => setError(null)} />}` por
+   `{error && <SignFormError message={error} />}`. Não mexa em mais nada nessas páginas.
+
+4. **`PageHeader.tsx`:** em `StyledPageHeader`, apague a linha `padding-bottom: 0.4vw;` e ponha logo acima de `height:` o comentário:
+   ```tsx
+     // 102 = 12 + 78 + 12: logo e seta com 78 px de altura, centradas no mesmo eixo.
+     // Sem padding embaixo: o 0.4vw antigo subia a logo 3 px.
+   ```
+
+5. **`LogoButton.tsx`:** em `img`, troque `width: min(180px, 28vw);` por `width: min(188px, 28vw);` e ponha logo acima o comentário
+   `/* 188 px → 78 px de altura, a da logo antiga: logos de proporção diferente se igualam pela altura. */`.
+   Deixe as linhas comentadas que já existem.
+
+6. **`BackButton.tsx`:**
+   - Em `StyledBackButton`, troque `left: min(10px, 1.6vw);` por `left: min(12px, 1.8vw);` e `top: min(10px, 1.6vw);` por `top: min(12px, 1.8vw);`. Logo acima do `left:` ponha:
+     ```tsx
+       /* 12 px é múltiplo de 4: pixel físico inteiro nas densidades 1; 1,25; 1,5; 1,75 e 2.
+          Com 10 px a seta caía em meio pixel em 1,25 e 1,75 e saía borrada (o hover a redesenhava nítida). */
+     ```
+   - Em `Arrow`, troque `width: min(140px, 20vw);` por `width: min(136px, 20.3vw);` e ponha acima `/* 136 px → 78,7 px de altura, a mesma da logo (grade do header). */`.
+   - No JSX, `alt="Back"` passa a ser `alt="Voltar"`.
+
+7. Rode os testes do passo 1 (agora passam), `npm run typecheck`, `npm run lint` e `npm test`.
+
+Commit: `fix(ui): erro das telas de entrada na coluna dos campos, header centrado e seta nítida`.
