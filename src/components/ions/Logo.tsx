@@ -1,8 +1,8 @@
-import hxhLogo from "../../assets/images/hxh-logo.avif";
+import sxsLogo from "../../assets/images/sxs-logo.svg";
 import styled from "styled-components";
 
 export default function Logo() {
-  return <StyledLogo src={hxhLogo} alt="HxH RPG System - Home" />;
+  return <StyledLogo src={sxsLogo} alt="System X System" />;
 }
 
 const StyledLogo = styled.img`
