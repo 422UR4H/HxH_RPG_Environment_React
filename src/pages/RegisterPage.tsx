@@ -9,7 +9,7 @@ import { useSignUp } from "../hooks/useSignUp";
 import useToken from "../hooks/useToken";
 import BaseInput from "../components/ions/BaseInput";
 import InlineFeedback from "../components/ions/InlineFeedback";
-import { getApiErrorDetail } from "../utils/apiError";
+import { getRegisterErrorMessage } from "../features/auth/authErrorMessages";
 
 function isAnyFieldEmpty({ nick, email, password, confirmPass }: SignUpBody) {
   return email === "" || password === "" || nick === "" || confirmPass === "";
@@ -40,7 +40,7 @@ export default function RegisterPage() {
         navigate("/");
       },
       onError: (err: unknown) => {
-        setError(getApiErrorDetail(err) ?? "Erro ao criar conta");
+        setError(getRegisterErrorMessage(err));
       },
     });
   }
@@ -71,7 +71,7 @@ export default function RegisterPage() {
         <BaseInput
           name="password"
           type="password"
-          placeholder="password"
+          placeholder="senha"
           value={form.password}
           onChange={handleForm}
           minLength={8}
@@ -81,7 +81,7 @@ export default function RegisterPage() {
         <BaseInput
           name="confirmPass"
           type="password"
-          placeholder="confirm password"
+          placeholder="confirme a senha"
           value={form.confirmPass}
           onChange={handleForm}
           minLength={8}
@@ -89,9 +89,9 @@ export default function RegisterPage() {
           required
         />
         {error && <InlineFeedback message={error} variant="error" onDismiss={() => setError(null)} />}
-        <ButtonSubmit disabled={isPending}>Sign Up</ButtonSubmit>
+        <ButtonSubmit disabled={isPending}>Criar conta</ButtonSubmit>
       </Form>
-      <Link to="/">Switch back to log in</Link>
+      <Link to="/">Já tem conta? Entre por aqui!</Link>
     </SignPagesTemplate>
   );
 }

@@ -138,7 +138,7 @@ function CreateCharacterSheetPage() {
         setCharSheet,
         charClasses,
         isLoading: isLoading || isSubmitting,
-        error: error ? error.message : null,
+        error: error ? "Não foi possível carregar as classes de personagem. Tente novamente mais tarde." : null,
         onAvatarSelected: handleAvatarSelected,
         onCoverSelected: handleCoverSelected,
         onCreateSheet: handleCreateSheet,

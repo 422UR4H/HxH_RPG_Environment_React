@@ -107,7 +107,28 @@ describe("CreateCampaignPage", () => {
     await u.type(screen.getByLabelText(/Nome da Campanha/i), "Nova");
     await u.type(screen.getByLabelText(/Descrição Breve/i), "Brief");
     await u.click(screen.getByRole("button", { name: /Criar Campanha/i }));
-    expect(await screen.findByText(/Server explodiu/i, {}, { timeout: 5000 })).toBeInTheDocument();
+    expect(
+      await screen.findByText("Erro ao criar campanha. Tente novamente.", {}, { timeout: 5000 }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Server explodiu/i)).not.toBeInTheDocument();
+  });
+
+  it("traduz o 403 do limite de campanhas", async () => {
+    server.use(
+      http.post(`${baseUrl}/campaigns`, () =>
+        HttpResponse.json(
+          { detail: "validation error: user cannot have more than 10 campaigns" },
+          { status: 403 },
+        ),
+      ),
+    );
+    renderPage();
+    const u = userEvent.setup();
+    await u.type(screen.getByLabelText(/Nome da Campanha/i), "Nova");
+    await u.type(screen.getByLabelText(/Descrição Breve/i), "Brief");
+    await u.click(screen.getByRole("button", { name: /Criar Campanha/i }));
+    expect(await screen.findByText("Você atingiu o limite de 10 campanhas.")).toBeInTheDocument();
+    expect(screen.queryByText(/validation error/i)).not.toBeInTheDocument();
   });
 
   it("toggle de 'Campanha Pública' inverte o checkbox", async () => {
