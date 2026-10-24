@@ -8,7 +8,7 @@ import type { SignUpBody } from "../types/user";
 import { useSignUp } from "../hooks/useSignUp";
 import useToken from "../hooks/useToken";
 import BaseInput from "../components/ions/BaseInput";
-import InlineFeedback from "../components/ions/InlineFeedback";
+import SignFormError from "../components/atoms/SignFormError";
 import { getRegisterErrorMessage } from "../features/auth/authErrorMessages";
 
 function isAnyFieldEmpty({ nick, email, password, confirmPass }: SignUpBody) {
@@ -88,7 +88,7 @@ export default function RegisterPage() {
           maxLength={32}
           required
         />
-        {error && <InlineFeedback message={error} variant="error" onDismiss={() => setError(null)} />}
+        {error && <SignFormError message={error} />}
         <ButtonSubmit disabled={isPending}>Criar conta</ButtonSubmit>
       </Form>
       <Link to="/">Já tem conta? Entre por aqui!</Link>

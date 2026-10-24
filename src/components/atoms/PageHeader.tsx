@@ -36,8 +36,9 @@ const StyledPageHeader = styled.div<{ $backgroundColor?: string }>`
 
   background-color: ${({ $backgroundColor }) => $backgroundColor || colors.surfaceHeaderDefault};
   width: 100%;
+  // 102 = 12 + 78 + 12: logo e seta com 78 px de altura, centradas no mesmo eixo.
+  // Sem padding embaixo: o 0.4vw antigo subia a logo 3 px.
   height: min(102px, 15.2vw);
-  padding-bottom: 0.4vw;
 `;
 
 // O #root rola: com a barra de rolagem o header perde a largura da barra e o centro dele

@@ -35,7 +35,8 @@ const StyledLogoButton = styled.div`
 
   img {
     /* width: min(200px, 28vw); */
-    width: min(180px, 28vw);
+    /* 188 px → 78 px de altura, a da logo antiga: logos de proporção diferente se igualam pela altura. */
+    width: min(188px, 28vw);
     /* width: min(180px, 28%); */
     display: block;
     /* border: none;

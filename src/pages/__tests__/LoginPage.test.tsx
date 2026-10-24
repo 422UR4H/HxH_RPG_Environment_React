@@ -30,6 +30,7 @@ describe("LoginPage", () => {
     renderPage();
     await fillAndSubmit();
     expect(await screen.findByText("E-mail ou senha incorretos.")).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("E-mail ou senha incorretos.");
     expect(screen.queryByText(/access denied/i)).not.toBeInTheDocument();
   });
 

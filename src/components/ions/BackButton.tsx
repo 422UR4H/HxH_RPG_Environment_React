@@ -14,7 +14,7 @@ export default function BackButton() {
 
   return (
     <StyledBackButton onClick={handleClick}>
-      <Arrow src={backArrow} alt="Back" />
+      <Arrow src={backArrow} alt="Voltar" />
     </StyledBackButton>
   );
 }
@@ -22,9 +22,11 @@ export default function BackButton() {
 const StyledBackButton = styled.div`
   position: fixed;
   z-index: 10;
-  left: min(10px, 1.6vw);
+  /* 12 px é múltiplo de 4: pixel físico inteiro nas densidades 1; 1,25; 1,5; 1,75 e 2.
+     Com 10 px a seta caía em meio pixel em 1,25 e 1,75 e saía borrada (o hover a redesenhava nítida). */
+  left: min(12px, 1.8vw);
   /* left: 0px; */
-  top: min(10px, 1.6vw);
+  top: min(12px, 1.8vw);
 
   cursor: pointer;
   display: inline-block;
@@ -42,7 +44,8 @@ const StyledBackButton = styled.div`
 `;
 
 const Arrow = styled.img`
-  width: min(140px, 20vw);
+  /* 136 px → 78,7 px de altura, a mesma da logo (grade do header). */
+  width: min(136px, 20.3vw);
   height: auto;
   display: block;
   object-fit: contain;

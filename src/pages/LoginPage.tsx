@@ -8,7 +8,7 @@ import { Link, useNavigate } from "react-router-dom";
 import useUser from "../hooks/useUser";
 import { useSignIn } from "../hooks/useSignIn";
 import BaseInput from "../components/ions/BaseInput";
-import InlineFeedback from "../components/ions/InlineFeedback";
+import SignFormError from "../components/atoms/SignFormError";
 import { getLoginErrorMessage } from "../features/auth/authErrorMessages";
 
 type LoginForm = {
@@ -69,7 +69,7 @@ export default function LoginPage() {
           maxLength={32}
           required
         />
-        {error && <InlineFeedback message={error} variant="error" onDismiss={() => setError(null)} />}
+        {error && <SignFormError message={error} />}
         <ButtonSubmit disabled={isPending}>Entrar</ButtonSubmit>
       </Form>
       <Link to="/sign-up">Primeira vez? Crie sua conta!</Link>

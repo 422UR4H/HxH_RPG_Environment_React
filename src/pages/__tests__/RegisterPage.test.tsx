@@ -32,6 +32,7 @@ describe("RegisterPage", () => {
     renderPage();
     await fillAndSubmit();
     expect(await screen.findByText("Já existe uma conta com esse e-mail.")).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("Já existe uma conta com esse e-mail.");
     expect(screen.queryByText(/validation error/i)).not.toBeInTheDocument();
   });
 
