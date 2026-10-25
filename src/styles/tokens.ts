@@ -116,7 +116,8 @@ export const colors = {
   actionAccent: palette.gold300, // borda de item aberto, variante laranja dos botões
   actionDisabled: alpha(palette.gold700, 0.45), // submit desabilitado
   actionHighlight: palette.gold700, // controles do header (seta, logo): halo do hover e anel de foco
-  actionDestructive: palette.red700, // botões que removem, excluem, rejeitam ou saem
+  actionDestructive: palette.red700, // botões que removem, excluem, rejeitam ou saem: nunca o vermelho do brand (é o da peça)
+  actionDestructiveText: palette.red600, // texto de ação destrutiva sobre painel escuro: o contraste manda
 
   // feedback
   feedbackDanger: palette.red600, // erro, alerta, perigo, falha em combate

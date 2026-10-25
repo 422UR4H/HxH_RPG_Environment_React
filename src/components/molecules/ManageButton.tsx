@@ -181,7 +181,7 @@ const MenuItem = styled.div`
 `;
 
 const MenuItemDanger = styled(MenuItem)`
-  color: ${colors.actionDestructive};
+  color: ${colors.actionDestructiveText};
   padding: 16px 0 16px 18px;
 `;
 
