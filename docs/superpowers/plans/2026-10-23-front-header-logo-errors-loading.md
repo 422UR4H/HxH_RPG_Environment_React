@@ -398,3 +398,256 @@ Nitidez medida pelo desvio do Laplaciano (maior = mais nítido):
 7. Rode os testes do passo 1 (agora passam), `npm run typecheck`, `npm run lint` e `npm test`.
 
 Commit: `fix(ui): erro das telas de entrada na coluna dos campos, header centrado e seta nítida`.
+
+## Rodada 5 — hover sem "falsa nitidez", camada própria da seta e foco pelo teclado (2026-10-25)
+
+Pedido do dono do produto:
+- O meio pixel da rodada 4 é real, mas ele não o enxergou no navegador dele em tamanho real (só no print ampliado). Suspeita que o `brightness` do hover dá a sensação de "ficar mais nítido".
+- Quer a seta numa camada própria, para o borrão não voltar.
+- Quer seta e logo alcançáveis pelo Tab, com o estado de hover marcando o foco, sem regredir nada.
+
+### Medidas (Chrome headless, header verde de `/campaigns/new`, 1536 px)
+
+**Seta em densidade 1, a tela do dono do produto.** Cada parte do hover foi aplicada como estilo fixo. A nitidez é o desvio do Laplaciano, ou seja, o contraste das bordas. "Estourados" são pixels que viraram branco puro.
+
+| estado | nitidez | estourados |
+|---|---|---|
+| repouso | 63,6 | 0 |
+| hover de hoje (zoom 1,05 + brilho 1,1) | 68,0 (+7%) | 191 |
+| só o zoom 1,05 | 62,9 (−1%) | 0 |
+| só o brilho 1,1 | 68,4 (+8%) | 162 |
+| só o brilho 1,25 | 73,6 (+16%) | 259 |
+
+- Quem dá a sensação de nitidez é o brilho. O `brightness()` multiplica as cores: o claro sobe e o escuro fica, então o contraste das bordas aumenta, e o olho lê isso como foco.
+- O brilho também estoura o degradê dourado da borda.
+- Com 1,25 seria o dobro nas duas coisas.
+
+**Duas setas fixas lado a lado.** O Chrome as juntou numa camada só de 298×81. A camada começava no y=10 da cópia e borrava a seta corrigida também: 42 em vez de 55,6 a 1,25×. Com `will-change: transform` cada uma ganha a sua camada e os números voltam. A seta real hoje está sozinha numa camada de 136×79; a blindagem impede que outro elemento fixo a arraste.
+
+**Halo testado.** Um `drop-shadow` dourado de 8 px em volta da seta fica limpo. Na logo, qualquer halo vaza para os vãos entre as letras, mesmo com 4 px a 60%: os vãos ficam oliva sobre o verde e viram uma placa dourada sobre o preto.
+
+**Anel de foco.** Um anel de 2 px `#d4af37` com 5 px de folga e cantos de 6 px é bem visível sobre `#252525`, preto e o verde dos templates. Cabe nos 102 px do header.
+
+### Decisões
+
+- **Sem `brightness()` no hover** da seta e da logo.
+- **Seta:** o hover e o foco continuam com o zoom de 1,05 e ganham um **halo dourado** (`drop-shadow(0 0 8px <token>cc)`). A seta "acende" por luz em volta, e os pixels dela ficam idênticos, então o repouso não parece uma versão pior.
+- **Logo:** o hover e o foco ficam só com o zoom de 1,05, porque o halo sujaria os vãos.
+- **Foco pelo teclado (`:focus-visible`):** o mesmo visual do hover mais o **anel dourado** nos dois.
+  - O anel é o que garante que o foco seja visível também na logo, onde o hover é só o zoom.
+  - O anel é um `outline` de verdade, que o modo de alto contraste do sistema preserva (filtros e sombras somem nesse modo).
+  - O clique com o mouse não mostra o anel (heurística do `:focus-visible`).
+- **Semântica:**
+  - A seta vira `<button type="button">`. É uma ação (voltar no histórico), e `type="button"` impede que ela envie um formulário em volta.
+  - A logo vira `<Link to="/">`, porque leva a um endereço. Ganha Ctrl/Cmd+clique e botão do meio para nova aba.
+  - O clique simples continua passando pela trava de navegação (`confirmNavigation`) antes de navegar.
+- **Camada própria da seta:** `will-change: transform` no botão, com comentário breve.
+- **Token novo `controlHighlight`** (`#d4af37`, mesmo valor de `goldExp` com nome de uso, como `statusLeft`/`grayMid`). Isso é uma **exceção explícita** à restrição global 1, aprovada pelo controlador. Ele entra na seção "gold / warning", que a sessão paralela não edita.
+- `transition: all` passa a listar só o que anima (`transform`, `filter`).
+
+### Task 7: hover com halo, camada própria da seta e foco pelo teclado
+
+**Arquivos:**
+- `src/styles/tokens.ts` (só uma linha nova)
+- `src/components/ions/BackButton.tsx`
+- `src/components/atoms/LogoButton.tsx`
+- novo `src/components/atoms/__tests__/PageHeader.test.tsx`
+
+1. **Testes primeiro.** Crie `src/components/atoms/__tests__/PageHeader.test.tsx` (exatamente):
+   ```tsx
+   import { describe, it, expect } from "vitest";
+   import { screen, waitFor } from "@testing-library/react";
+   import userEvent from "@testing-library/user-event";
+   import { useLocation } from "react-router-dom";
+   import { renderWithProviders } from "../../../test/render";
+   import PageHeader from "../PageHeader";
+
+   function Pathname() {
+     return <span data-testid="pathname">{useLocation().pathname}</span>;
+   }
+
+   describe("PageHeader — seta e logo", () => {
+     it("a seta é um botão 'Voltar' que não envia formulário", () => {
+       renderWithProviders(<PageHeader />);
+       expect(screen.getByRole("button", { name: "Voltar" })).toHaveAttribute("type", "button");
+     });
+
+     it("a logo é um link para o início", () => {
+       renderWithProviders(<PageHeader />);
+       expect(screen.getByRole("link", { name: "System X System" })).toHaveAttribute("href", "/");
+     });
+
+     it("o Tab passa pela seta e depois pela logo", async () => {
+       const user = userEvent.setup();
+       renderWithProviders(<PageHeader />);
+       await user.tab();
+       expect(screen.getByRole("button", { name: "Voltar" })).toHaveFocus();
+       await user.tab();
+       expect(screen.getByRole("link", { name: "System X System" })).toHaveFocus();
+     });
+
+     it("o clique simples na logo navega para o início", async () => {
+       const user = userEvent.setup();
+       renderWithProviders(
+         <>
+           <PageHeader />
+           <Pathname />
+         </>,
+         { route: "/campaigns" },
+       );
+       await user.click(screen.getByRole("link", { name: "System X System" }));
+       await waitFor(() => expect(screen.getByTestId("pathname").textContent).toBe("/"));
+     });
+   });
+   ```
+   Rode só esse arquivo. Os três primeiros devem falhar, porque hoje a seta e a logo são `div`. O quarto pode passar já hoje; ele protege o comportamento.
+
+2. **`src/styles/tokens.ts`:** logo depois da linha `  goldStar: "#f0c040", // rating star`, acrescente **só** esta linha, sem mexer em mais nada do arquivo:
+   ```ts
+     controlHighlight: "#d4af37", // controles do header (seta, logo): halo do hover e anel de foco; mesmo valor de goldExp, nome semântico
+   ```
+
+3. **`src/components/ions/BackButton.tsx`** (arquivo inteiro, exatamente):
+   ```tsx
+   import { useNavigate } from "react-router-dom";
+   import styled from "styled-components";
+   // import backArrow from "../../assets/icons/setavoltarsemponta.svg"
+   import backArrow from "../../assets/icons/setavoltarcomponta.svg";
+   import { useNavGuard } from "../../contexts/NavGuardContext";
+   import { colors } from "../../styles/tokens";
+
+   export default function BackButton() {
+     const navigate = useNavigate();
+     const { confirmNavigation } = useNavGuard();
+
+     const handleClick = async () => {
+       if (await confirmNavigation()) navigate(-1);
+     };
+
+     return (
+       <StyledBackButton type="button" onClick={handleClick}>
+         <Arrow src={backArrow} alt="Voltar" />
+       </StyledBackButton>
+     );
+   }
+
+   const StyledBackButton = styled.button`
+     position: fixed;
+     z-index: 10;
+     /* 12 px é múltiplo de 4: pixel físico inteiro nas densidades 1; 1,25; 1,5; 1,75 e 2.
+        Com 10 px a seta caía em meio pixel em 1,25 e 1,75 e saía borrada. */
+     left: min(12px, 1.8vw);
+     top: min(12px, 1.8vw);
+     /* Camada própria: sem ela o Chrome pode juntar a seta a outro elemento fixo numa camada
+        que comece em meio pixel, e o borrão volta. */
+     will-change: transform;
+
+     display: block;
+     width: fit-content;
+     height: fit-content;
+     padding: 0;
+     margin: 0;
+     border: none;
+     border-radius: 6px;
+     background: none;
+     cursor: pointer;
+
+     &:focus-visible {
+       outline: 2px solid ${colors.controlHighlight};
+       outline-offset: 5px;
+     }
+
+     /* Acende com um halo em volta, sem mexer nos pixels da seta: o brightness() antigo
+        aumentava o contraste das bordas e dava a impressão de ficar mais nítida. */
+     &:hover > img,
+     &:focus-visible > img {
+       transform: scale(1.05);
+       filter: drop-shadow(0 0 8px ${colors.controlHighlight}cc);
+     }
+     &:active > img {
+       transform: scale(0.98);
+     }
+   `;
+
+   const Arrow = styled.img`
+     /* 136 px → 78,7 px de altura, a mesma da logo (grade do header). */
+     width: min(136px, 20.3vw);
+     height: auto;
+     display: block;
+     object-fit: contain;
+     border: none;
+     outline: none;
+
+     transition:
+       transform 0.2s ease,
+       filter 0.2s ease;
+   `;
+   ```
+
+4. **`src/components/atoms/LogoButton.tsx`** (arquivo inteiro, exatamente):
+   ```tsx
+   import type { MouseEvent } from "react";
+   import { Link, useNavigate } from "react-router-dom";
+   import styled from "styled-components";
+   import Logo from "../ions/Logo";
+   import { useNavGuard } from "../../contexts/NavGuardContext";
+   import { colors } from "../../styles/tokens";
+
+   export default function LogoButton() {
+     const navigate = useNavigate();
+     const { confirmNavigation } = useNavGuard();
+
+     // Ctrl/Cmd/Shift/Alt+clique e botão do meio ficam com o navegador (nova aba): a página atual não sai.
+     // O clique simples passa pela trava de navegação antes de sair.
+     const handleClick = async (event: MouseEvent<HTMLAnchorElement>) => {
+       if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+       event.preventDefault();
+       if (await confirmNavigation()) navigate("/");
+     };
+
+     return (
+       <StyledLogoButton to="/" onClick={handleClick}>
+         <Logo />
+       </StyledLogoButton>
+     );
+   }
+
+   const StyledLogoButton = styled(Link)`
+     display: block;
+     width: fit-content;
+     height: fit-content;
+     border-radius: 6px;
+
+     &:focus-visible {
+       outline: 2px solid ${colors.controlHighlight};
+       outline-offset: 5px;
+     }
+
+     img {
+       /* width: min(200px, 28vw); */
+       /* 188 px → 78 px de altura, a da logo antiga: logos de proporção diferente se igualam pela altura. */
+       width: min(188px, 28vw);
+       /* width: min(180px, 28%); */
+       display: block;
+       /* border: none;
+       outline: none; */
+
+       /* Só o zoom: o brightness() antigo dava a impressão de ficar mais nítida, e um halo aqui
+          vazaria para os vãos entre as letras. */
+       transition: transform 0.2s ease;
+     }
+
+     &:hover img,
+     &:focus-visible img {
+       transform: scale(1.05);
+     }
+     &:active img {
+       transform: scale(0.98);
+     }
+   `;
+   ```
+
+5. Rode o teste do passo 1 (agora os quatro passam), `npm run typecheck`, `npm run lint` e `npm test`.
+   - Se algum teste de página quebrar porque agora há um `button` ou `link` a mais na tela, pare e reporte. Não ajuste o teste por conta própria.
+
+Commit: `fix(ui): hover com halo em vez de brilho, camada própria da seta e foco pelo teclado no header`.
