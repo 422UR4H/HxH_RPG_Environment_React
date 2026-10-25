@@ -128,7 +128,7 @@ export const colors = {
   feedbackWarningBg: alpha(palette.gold700, 0.12), // fundo do aviso
 
   // status
-  statusScheduled: palette.gold700, // pílula com texto escuro
+  statusScheduled: palette.gold700,
   statusOngoing: palette.green700, // em andamento, NPC, aceitar (fundo de pílula com texto branco)
   statusPublic: palette.green500, // campanha pública: texto sobre fundo escuro
   statusEnded: palette.red800,

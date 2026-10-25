@@ -122,7 +122,7 @@ const StatusPill = styled.span<{ $status: MatchStatus }>`
       : $status === "ongoing"
       ? colors.statusOngoing
       : colors.statusEnded};
-  color: ${({ $status }) => ($status === "scheduled" ? colors.textOnLight : colors.textPrimary)};
+  color: ${colors.textPrimary};
 `;
 
 const DateLabel = styled.div`
