@@ -6,6 +6,7 @@ import PlusButton from "../../components/ions/PlusButton";
 import MinusButton from "../../components/ions/MinusButton";
 import { useState } from "react";
 import { deriveMiddlePoints } from "./utils/distribute";
+import { colors } from "../../styles/tokens";
 
 interface PhysicalsDiagramProps {
   mode: DiagramsMode;
@@ -270,7 +271,7 @@ const AttributeNumbers = styled.div`
 const AttributePoints = styled.div`
   font-family: "Roboto", sans-serif;
   font-weight: bold;
-  color: #00ea5a;
+  color: ${colors.vitalPoints};
   align-items: center;
   justify-content: center;
 `;

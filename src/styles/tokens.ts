@@ -33,13 +33,14 @@ export const palette = {
   green700: "#107135",
   green500: "#27ae60",
   green400: "#34d399",
-  green300: "#00ea5a",
+  green200: "#00ff22",
 
   // vermelhos
   red800: "#ba1a3e",
   red700: "#d6224b",
   red600: "#e60000",
   red500: "#ff1c1c",
+  red400: "#ff0015",
   coral500: "#ff6b4a",
 
   // laranja / âmbar / dourado
@@ -52,11 +53,13 @@ export const palette = {
   gold500: "#d4af37",
   gold400: "#f0c040",
   gold300: "#ffd700",
+  gold200: "#ffc300",
   ochre700: "#a16207",
 
   // azuis
   blue700: "#2e5397",
   blue600: "#4b70a4",
+  blue400: "#4da3ff", // azul de mana (reservado: ainda sem uso)
   cyan400: "#38bdf8",
   navy950: "#0b1220",
   slate400: "#94a3b8",
@@ -94,7 +97,7 @@ export const colors = {
   surfacePanel: palette.neutral900, // painel do ManageButton
   surfaceModal: palette.neutral850, // modal do ImagePickerModal, hover de item do ManageButton
   surfaceFade: alpha(palette.brown700, 0.9), // degradê do texto expansível, casado com surfaceInput
-  surfaceActorRow: alpha(palette.green300, 0.25), // linha de ordem destacada do ator no combate
+  surfaceActorRow: alpha(palette.green200, 0.25), // linha de ordem destacada do ator no combate
 
   // text
   textPrimary: palette.neutral0,
@@ -126,7 +129,6 @@ export const colors = {
   // feedback
   feedbackDanger: palette.red500, // erro, alerta, perigo, falha em combate
   feedbackInputError: palette.red800, // borda de campo com erro, aviso de erro nas telas de login
-  feedbackSuccess: palette.green700, // aviso de sucesso
   feedbackWarning: palette.amber500, // texto de aviso no seletor de imagem
   feedbackWarningBorder: palette.amber700, // borda e pílula de aviso
   feedbackWarningBg: palette.amber900, // fundo do aviso
@@ -140,11 +142,11 @@ export const colors = {
   statusRating: palette.gold400, // estrela de avaliação
 
   // vital — esquemáticas da ficha
-  vitalHp: palette.red800,
-  vitalSp: palette.green700,
-  vitalExp: palette.gold500, // barra de EXP do personagem
-  vitalSkillExp: palette.red800, // barra de EXP de habilidade e atributo
-  vitalPoints: palette.green300, // pontos a distribuir
+  vitalHp: palette.red400,
+  vitalSp: palette.green200,
+  vitalExp: palette.gold200, // barra de EXP do personagem
+  vitalSkillExp: palette.red400, // barra de EXP de habilidade e atributo
+  vitalPoints: palette.green200, // pontos a distribuir
 
   // map — mapa tático (as cores do Pixi entram por aqui; converta com parseInt(hex.slice(1), 16))
   mapSelectionRing: palette.gold300, // anel da peça selecionada

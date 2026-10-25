@@ -5,6 +5,7 @@ import type { DiagramsMode } from "./types/diagramsMode.ts";
 import styled from "styled-components";
 import MinusButton from "../../components/ions/MinusButton.tsx";
 import { useState } from "react";
+import { colors } from "../../styles/tokens";
 
 interface MentalsDiagramProps {
   mode: DiagramsMode;
@@ -250,7 +251,7 @@ const AttributeNumbers = styled.div`
 const AttributePoints = styled.div`
   font-family: "Roboto", sans-serif;
   font-weight: bold;
-  color: #00ea5a;
+  color: ${colors.vitalPoints};
   align-items: center;
   justify-content: center;
 `;
