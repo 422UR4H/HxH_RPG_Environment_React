@@ -45,14 +45,12 @@ export const palette = {
   red800: "#ba1a3e", // brand
   red700: "#cb1437",
   red600: "#db0e2f", // saturado
-  red500: "#ff6b4a", // combate: Atacar, linha de ataque, anel do alvo
+  red500: "#ff3630", // combate: Atacar, linha de ataque, anel do alvo
 
-  // laranja
-  orange500: "#ffa216",
+  gold800: "#b8860b", // escuro: tag agendada
   gold700: "#d4af37", // brand
-  gold600: "#e2b525",
-  gold500: "#f0bc13", // saturado
-  gold400: "#ffc300", // saturado máximo
+  gold400: "#ffc300", // saturado: EXP, anel de seleção
+  gold300: "#ffa216", // quente: borda de item aberto, alça skew, botões laranja
 
   // azuis: 4 variações
   blue700: "#2e5397", // brand
@@ -115,7 +113,7 @@ export const colors = {
   borderAccent: palette.red800, // borda de destaque: hover/ativo dos cards de ficha e de navegação
 
   // action
-  actionAccent: palette.orange500, // borda de item aberto, variante laranja dos botões
+  actionAccent: palette.gold300, // borda de item aberto, variante laranja dos botões
   actionDisabled: alpha(palette.gold700, 0.45), // submit desabilitado
   actionHighlight: palette.gold700, // controles do header (seta, logo): halo do hover e anel de foco
   actionDestructive: palette.red800, // botões que removem, excluem, rejeitam ou saem
@@ -128,7 +126,7 @@ export const colors = {
   feedbackWarningBg: alpha(palette.gold700, 0.12), // fundo do aviso
 
   // status
-  statusScheduled: palette.gold700,
+  statusScheduled: palette.gold800,
   statusOngoing: palette.green700, // em andamento, NPC, aceitar (fundo de pílula com texto branco)
   statusPublic: palette.green500, // campanha pública: texto sobre fundo escuro
   statusEnded: palette.red800,
@@ -164,7 +162,7 @@ export const colors = {
   mapHandleFill: palette.neutral0, // alças de redimensionar e bordas do fundo
   mapHandleStroke: palette.neutral800, // contorno das alças
   mapHandleRotate: palette.gold400, // alça de rotação
-  mapHandleSkew: palette.orange500, // alças em modo skew (Shift)
+  mapHandleSkew: palette.gold300, // alças em modo skew (Shift)
   mapWallStone: palette.slate400,
   mapWallWood: palette.ochre700,
   mapWallIron: palette.slate500,
@@ -200,7 +198,7 @@ export const fonts = {
 // Gradientes são uma decisão de design só — um token por gradiente, não um por cor-stop.
 export const gradients = {
   // botões laranja (CreateButton / submit)
-  orange: `linear-gradient(to bottom, ${palette.orange500} 0%, ${palette.orange500} 20%, ${palette.red600} 100%)`,
+  orange: `linear-gradient(to bottom, ${palette.gold300} 0%, ${palette.gold300} 20%, ${palette.red600} 100%)`,
   // fundo das telas de login e cadastro
   signBg: `linear-gradient(to bottom, ${palette.blue600} 0%, ${palette.blue700} 100%)`,
   // véu sob o texto de um card com imagem de fundo: limpo no topo, escuro onde o texto fica
