@@ -67,7 +67,7 @@ const MentalsDiagram = ({
       <DiagramWrapper>
         {(mode === "distribute" || mode === "create" || mode === "edit") && (
           <Distribution>
-            Pontos para Distribuir: {distributionPoints}
+            Pontos para Distribuir: <DistributionPoints>{distributionPoints}</DistributionPoints>
           </Distribution>
         )}
 
@@ -150,6 +150,10 @@ const DiagramWrapper = styled.div`
   width: 100%;
   padding-bottom: 100%;
   margin: 0 auto;
+`;
+
+const DistributionPoints = styled.span`
+  color: ${colors.vitalPoints};
 `;
 
 const SVGContainer = styled.div`

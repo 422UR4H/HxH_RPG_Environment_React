@@ -81,7 +81,7 @@ const PhysicalsDiagram = ({
       <DiagramWrapper>
         {(mode === "distribute" || mode === "create" || mode === "edit") && (
           <Distribution>
-            Pontos para Distribuir: {distributionPoints}
+            Pontos para Distribuir: <DistributionPoints>{distributionPoints}</DistributionPoints>
           </Distribution>
         )}
 
@@ -184,6 +184,10 @@ const Distribution = styled.div`
   @media (max-width: 589px) {
     top: -17cqi;
   }
+`;
+
+const DistributionPoints = styled.span`
+  color: ${colors.vitalPoints};
 `;
 
 const SVGContainer = styled.div`
