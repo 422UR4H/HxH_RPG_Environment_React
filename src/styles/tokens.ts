@@ -36,8 +36,8 @@ export const palette = {
 
   // vermelhos
   red800: "#ba1a3e", // brand
-  red700: "#d01334",
-  red600: "#e70a27", // saturado
+  red700: "#cb1437",
+  red600: "#db0e2f", // saturado
   red500: "#ff0015", // saturado máximo
 
   // laranja / âmbar / dourado
