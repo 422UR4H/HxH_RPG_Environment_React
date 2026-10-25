@@ -45,7 +45,7 @@ export const palette = {
   red800: "#ba1a3e", // brand
   red700: "#cb1437",
   red600: "#db0e2f", // saturado
-  red500: "#ff3d47", // combate: Atacar, linha de ataque, anel do alvo
+  red500: "#ff5257", // combate: Atacar, linha de ataque, anel do alvo
 
   gold800: "#b8860b", // escuro: tag agendada
   gold700: "#dba306", // brand
@@ -116,7 +116,7 @@ export const colors = {
   actionAccent: palette.gold300, // borda de item aberto, variante laranja dos botões
   actionDisabled: alpha(palette.gold700, 0.45), // submit desabilitado
   actionHighlight: palette.gold700, // controles do header (seta, logo): halo do hover e anel de foco
-  actionDestructive: palette.red800, // botões que removem, excluem, rejeitam ou saem
+  actionDestructive: palette.red700, // botões que removem, excluem, rejeitam ou saem
 
   // feedback
   feedbackDanger: palette.red600, // erro, alerta, perigo, falha em combate
