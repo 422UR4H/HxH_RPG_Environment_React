@@ -28,12 +28,11 @@ export const palette = {
   brown850: "#382a1a",
   brown900: "#2d2215",
 
-  // verdes: 4 variações, do brand ao saturado (green900 é o cabeçalho, brand escuro à parte)
-  green900: "#08491f",
+  // verdes: 4 variações (escuro do cabeçalho, brand, intermediário, saturado)
+  green900: "#08491f", // cabeçalho; reservado a outros usos escuros
   green700: "#107135", // brand
-  green600: "#0e9d39",
-  green500: "#09cc33", // saturado
-  green300: "#00ff22", // saturado máximo
+  green600: "#0aab2f",
+  green500: "#04e52a", // saturado
 
   // vermelhos
   red800: "#ba1a3e", // brand
