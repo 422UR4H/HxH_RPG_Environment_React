@@ -31,8 +31,8 @@ export const palette = {
   // verdes: 4 variações (escuro do cabeçalho, brand, intermediário, saturado)
   green900: "#08491f", // cabeçalho; reservado a outros usos escuros
   green700: "#107135", // brand
-  green600: "#0aab2f",
-  green500: "#04e52a", // saturado
+  green600: "#17993d",
+  green500: "#1fc140", // saturado
 
   // vermelhos
   red800: "#ba1a3e", // brand
