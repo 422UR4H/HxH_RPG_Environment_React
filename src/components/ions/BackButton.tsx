@@ -3,6 +3,7 @@ import styled from "styled-components";
 // import backArrow from "../../assets/icons/setavoltarsemponta.svg"
 import backArrow from "../../assets/icons/setavoltarcomponta.svg";
 import { useNavGuard } from "../../contexts/NavGuardContext";
+import { colors } from "../../styles/tokens";
 
 export default function BackButton() {
   const navigate = useNavigate();
@@ -13,34 +14,48 @@ export default function BackButton() {
   };
 
   return (
-    <StyledBackButton onClick={handleClick}>
+    <StyledBackButton type="button" onClick={handleClick}>
       <Arrow src={backArrow} alt="Voltar" />
     </StyledBackButton>
   );
 }
 
-const StyledBackButton = styled.div`
+const StyledBackButton = styled.button`
   position: fixed;
   z-index: 10;
   /* 12 px é múltiplo de 4: pixel físico inteiro nas densidades 1; 1,25; 1,5; 1,75 e 2.
-     Com 10 px a seta caía em meio pixel em 1,25 e 1,75 e saía borrada (o hover a redesenhava nítida). */
+     Com 10 px a seta caía em meio pixel em 1,25 e 1,75 e saía borrada. */
   left: min(12px, 1.8vw);
-  /* left: 0px; */
   top: min(12px, 1.8vw);
+  /* Camada própria: sem ela o Chrome pode juntar a seta a outro elemento fixo numa camada
+     que comece em meio pixel, e o borrão volta. */
+  will-change: transform;
 
-  cursor: pointer;
-  display: inline-block;
-
-  /* Remove any default styling that could create a "box" */
-  background: none;
-  border: none;
-  padding: 0;
-  margin: 0;
-  outline: none;
-
-  /* Ensure the clickable area matches exactly the icon size */
+  display: block;
   width: fit-content;
   height: fit-content;
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid ${colors.controlHighlight};
+    outline-offset: 5px;
+  }
+
+  /* Acende com um halo em volta, sem mexer nos pixels da seta: o brightness() antigo
+     aumentava o contraste das bordas e dava a impressão de ficar mais nítida. */
+  &:hover > img,
+  &:focus-visible > img {
+    transform: scale(1.05);
+    filter: drop-shadow(0 0 8px ${colors.controlHighlight}cc);
+  }
+  &:active > img {
+    transform: scale(0.98);
+  }
 `;
 
 const Arrow = styled.img`
@@ -52,13 +67,7 @@ const Arrow = styled.img`
   border: none;
   outline: none;
 
-  transition: all 0.2s ease;
-
-  &:hover {
-    transform: scale(1.05);
-    filter: brightness(1.1);
-  }
-  &:active {
-    transform: scale(0.98);
-  }
+  transition:
+    transform 0.2s ease,
+    filter 0.2s ease;
 `;
