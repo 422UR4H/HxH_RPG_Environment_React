@@ -49,8 +49,8 @@ const StyledLogoButton = styled(Link)`
     transition: transform 0.2s ease;
   }
 
-  /* Hover só com mouse: no toque ele fica preso depois do toque. */
-  @media (hover: hover) {
+  /* Hover só se há mouse ou touchpad: num aparelho só de toque ele fica preso depois do toque. */
+  @media (any-hover: hover) {
     &:hover img {
       transform: scale(1.05);
     }
