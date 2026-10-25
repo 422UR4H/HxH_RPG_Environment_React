@@ -21,6 +21,13 @@ export const palette = {
   neutral900: "#1c1c1c",
   neutral1000: "#000000",
 
+  // mapa tático, à parte das quatro paletas: palco e paredes
+  navy950: "#0b1220",
+  ochre700: "#a16207",
+  slate400: "#94a3b8",
+  slate500: "#64748b",
+  purple500: "#a855f7",
+
   // marrons dos painéis
   brown500: "#604d31",
   brown600: "#5a4529",
@@ -38,30 +45,20 @@ export const palette = {
   red800: "#ba1a3e", // brand
   red700: "#cb1437",
   red600: "#db0e2f", // saturado
-  red500: "#ff0015", // saturado máximo
+  red500: "#ff6b4a", // combate: Atacar, linha de ataque, anel do alvo
 
-  // laranja / âmbar / dourado
+  // laranja
   orange500: "#ffa216",
-  amber600: "#b8860b",
-  amber700: "#a07000",
-  amber800: "#7a5618",
-  amber900: "#3a2a00",
   gold700: "#d4af37", // brand
   gold600: "#e2b525",
   gold500: "#f0bc13", // saturado
   gold400: "#ffc300", // saturado máximo
-  ochre700: "#a16207",
 
   // azuis: 4 variações
   blue700: "#2e5397", // brand
   blue600: "#4b70a4", // brand claro (degradê do login)
-  blue500: "#3184ee",
+  blue500: "#38bdf8", // combate: movimento no mapa e nos botões Mover
   blue400: "#4da3ff", // saturado (mana)
-  cyan400: "#38bdf8", // movimento no mapa
-  navy950: "#0b1220",
-  slate400: "#94a3b8",
-  slate500: "#64748b",
-  purple500: "#a855f7",
 } as const;
 
 /** `alpha(colors.feedbackDanger, 0.2)` → `rgba(255, 28, 28, 0.2)`. Só aceita hex de 6 dígitos. */
@@ -119,7 +116,7 @@ export const colors = {
 
   // action
   actionAccent: palette.orange500, // borda de item aberto, variante laranja dos botões
-  actionDisabled: palette.amber800, // submit desabilitado
+  actionDisabled: alpha(palette.gold700, 0.45), // submit desabilitado
   actionHighlight: palette.gold700, // controles do header (seta, logo): halo do hover e anel de foco
   actionDestructive: palette.red800, // botões que removem, excluem, rejeitam ou saem
 
@@ -127,11 +124,11 @@ export const colors = {
   feedbackDanger: palette.red600, // erro, alerta, perigo, falha em combate
   feedbackInputError: palette.red800, // borda de campo com erro, aviso de erro nas telas de login
   feedbackWarning: palette.gold400, // texto de aviso no seletor de imagem
-  feedbackWarningBorder: palette.amber700, // borda e pílula de aviso
-  feedbackWarningBg: palette.amber900, // fundo do aviso
+  feedbackWarningBorder: palette.gold700, // borda e pílula de aviso
+  feedbackWarningBg: alpha(palette.gold700, 0.12), // fundo do aviso
 
   // status
-  statusScheduled: palette.amber600,
+  statusScheduled: palette.gold700, // pílula com texto escuro
   statusOngoing: palette.green700, // em andamento, NPC, aceitar (fundo de pílula com texto branco)
   statusPublic: palette.green500, // campanha pública: texto sobre fundo escuro
   statusEnded: palette.red800,
@@ -148,15 +145,15 @@ export const colors = {
 
   // map — mapa tático (as cores do Pixi entram por aqui; converta com parseInt(hex.slice(1), 16))
   mapSelectionRing: palette.gold400, // anel da peça selecionada
-  mapTargetRing: palette.red600, // anel do alvo em combate: o matiz do ataque, distinto do dourado da seleção
+  mapTargetRing: palette.red500, // anel do alvo em combate: o matiz do ataque, distinto do dourado da seleção
   mapInspectRing: palette.neutral300, // anel de "só olhando" (F7): neutro, nunca o dourado do ator
   // movimento = azul-ciano: complementar do vermelho do ataque (mapAttackIntent) e seguro p/ daltonismo
   // vs vermelho; é a convenção do gênero; o verde já significa "turno aberto" (mapActiveTurn)
   // e some em mapas de grama. Também é o tint de "mover" no composer e do fantasma de intenção declarada (§8).
-  mapMoveIntent: palette.cyan400,
+  mapMoveIntent: palette.blue500,
   mapIntentOutline: palette.navy950, // contorno escuro sob os traços de movimento (legível sobre qualquer terreno)
   mapStackBadge: palette.neutral900, // fundo do selo ×N da cascata (§7.2)
-  mapAttackIntent: palette.red600, // ataque em composição: linha ator→alvo, tint do composer
+  mapAttackIntent: palette.red500, // ataque em composição: linha ator→alvo, tint do composer
   mapActiveTurn: palette.green500, // anel da peça cujo turno está aberto
   mapSlotHover: palette.neutral0, // casa sob o ponteiro durante a composição (desenhada com alpha baixo)
   mapSlotValid: palette.green500, // casa livre/válida ao arrastar ou posicionar

@@ -312,7 +312,7 @@ const WarningButton = styled.button`
 
 const DiscardButton = styled(WarningButton)`
   background: ${colors.feedbackWarningBorder};
-  color: ${colors.textPrimary};
+  color: ${colors.textOnLight};
   border-color: ${colors.feedbackWarningBorder};
 `;
 
