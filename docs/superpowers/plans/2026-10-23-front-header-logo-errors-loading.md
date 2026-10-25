@@ -651,3 +651,41 @@ Pedido do dono do produto:
    - Se algum teste de página quebrar porque agora há um `button` ou `link` a mais na tela, pare e reporte. Não ajuste o teste por conta própria.
 
 Commit: `fix(ui): hover com halo em vez de brilho, camada própria da seta e foco pelo teclado no header`.
+
+### Rodada 5b — halo da seta adiado para aprovação do designer (2026-10-25)
+
+O dono do produto gostou do halo, mas ele depende da aprovação do designer do projeto. O halo sai deste PR e a sessão paralela dos tokens o aplica depois da conversa com o designer.
+- O hover e o foco da seta ficam só com o zoom de 1,05, igual à logo.
+- Continuam sem `brightness()`, e o anel de foco dourado continua.
+- O token `controlHighlight` fica, porque é usado pelo anel.
+- Também ficam a posição em 12 px, a camada própria da seta e todo o resto da rodada 5.
+
+### Task 8: tirar o halo da seta
+
+Só `src/components/ions/BackButton.tsx`:
+1. O comentário e o fragmento `lit`:
+   ```tsx
+   /* Acende com um halo em volta, sem mexer nos pixels da seta: o brightness() antigo
+      aumentava o contraste das bordas e dava a impressão de ficar mais nítida. */
+   const lit = css`
+     transform: scale(1.05);
+     filter: drop-shadow(0 0 8px ${colors.controlHighlight}cc);
+   `;
+   ```
+   viram:
+   ```tsx
+   /* Estado aceso (hover e foco): só o zoom. Sem brightness(): ele aumentava o contraste
+      das bordas e dava a impressão de a seta ficar mais nítida. */
+   const lit = css`
+     transform: scale(1.05);
+   `;
+   ```
+2. No `Arrow`, a transição deixa de animar o `filter`:
+   ```tsx
+     transition:
+       transform 0.2s ease,
+       filter 0.2s ease;
+   ```
+   vira `  transition: transform 0.2s ease;`.
+
+Commit: `fix(ui): seta do header sem halo até a aprovação do designer`.
