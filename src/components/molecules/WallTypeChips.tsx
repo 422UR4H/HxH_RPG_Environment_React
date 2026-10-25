@@ -109,7 +109,7 @@ const ModeLabel = styled.span<{ $active: boolean }>`
 `;
 const EscHint = styled.span`
   font-family: ${fonts.sans};
-  font-size: 10px; color: rgba(255, 255, 255, 0.6);
+  font-size: 10px; color: ${colors.overlayLightStrong};
 `;
 const Section = styled.div`
   display: flex; flex-direction: column; gap: 6px;

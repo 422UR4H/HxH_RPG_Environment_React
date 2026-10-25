@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent, MouseEvent, PointerEvent } from "react";
 import styled from "styled-components";
-import { colors, fonts } from "../../../styles/tokens";
+import { colors, fonts, alpha } from "../../../styles/tokens";
 import { createHoldTracker } from "../../tactical-map/hooks/useHoldGesture";
 import { REACTION_BUTTONS, REACTION_BUTTON_LABELS } from "./reactionModel";
 import type { ReactionButton, ReactionStatus } from "./reactionModel";
@@ -184,14 +184,14 @@ const Button = styled.button<{ $compact: boolean }>`
   touch-action: manipulation;
 
   &:focus-visible {
-    outline: 2px solid ${colors.brandAccentBright};
+    outline: 2px solid ${colors.brandAccent};
     outline-offset: 1px;
   }
 
   /* A fuga armada: a mesma cor do destino que vai aparecer no mapa. */
   &[aria-pressed="true"] {
-    border-color: ${colors.moveIntent};
-    background: ${colors.moveIntentBg};
+    border-color: ${colors.mapMoveIntent};
+    background: ${alpha(colors.mapMoveIntent, 0.16)};
     font-weight: 700;
   }
 `;
@@ -201,7 +201,7 @@ const Armed = styled.div`
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  color: ${colors.moveIntent};
+  color: ${colors.mapMoveIntent};
 `;
 
 const CancelArmed = styled.button`

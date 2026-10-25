@@ -307,7 +307,7 @@ const NumInput = styled.input`
   width: 100%;
 
   &:focus {
-    border-color: ${colors.brandAccentBright};
+    border-color: ${colors.brandAccent};
   }
 `;
 
@@ -358,7 +358,7 @@ const SkewInput = styled.input`
   outline: none;
 
   &:focus {
-    border-color: ${colors.brandAccentBright};
+    border-color: ${colors.brandAccent};
   }
 `;
 

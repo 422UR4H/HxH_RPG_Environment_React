@@ -96,12 +96,12 @@ const borderColor = ({
   $isOnline?: boolean;
   $isNpc?: boolean;
 }): string => {
-  if ($isDead) return colors.danger;
+  if ($isDead) return colors.feedbackDanger;
   if ($isPending) return colors.statusPending;
   if ($isOnline === false) return colors.statusLeft;
   if ($isOnline === true) return colors.statusOngoing;
-  if ($isNpc) return colors.statusNpc;
-  return colors.orange;
+  if ($isNpc) return colors.statusOngoing;
+  return colors.actionAccent;
 };
 
 const ItemContainer = styled.div<{
@@ -142,12 +142,12 @@ const PendingBadge = styled(Badge)`
 `;
 
 const DeadBadge = styled(Badge)`
-  background-color: ${colors.danger};
+  background-color: ${colors.feedbackDanger};
   color: ${colors.textPrimary};
 `;
 
 const NpcBadge = styled(Badge)`
-  background-color: ${colors.statusNpc};
+  background-color: ${colors.statusOngoing};
   color: ${colors.textPrimary};
 `;
 

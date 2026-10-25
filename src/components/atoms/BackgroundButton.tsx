@@ -20,8 +20,8 @@ export default function BackgroundButton({
 }
 
 const ButtonContainer = styled.button`
-  background-color: ${colors.grayMid};
-  border: 2px solid ${colors.borderGrayLight};
+  background-color: ${colors.surfaceNeutral};
+  border: 2px solid ${colors.borderLight};
   border-radius: 8px;
   padding: 1.6cqi 4cqi;
   cursor: pointer;
@@ -33,7 +33,7 @@ const ButtonContainer = styled.button`
   transition: all 0.2s ease;
 
   &:hover {
-    background-color: ${colors.grayMidStrong};
+    background-color: ${colors.surfaceNeutralHover};
     border-color: ${colors.textPlaceholder};
   }
 `;

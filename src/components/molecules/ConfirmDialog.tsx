@@ -114,6 +114,6 @@ const ActionButton = styled(BaseButton)<{
   $color?: string;
 }>`
   background: ${({ $bg, $variant }) =>
-    $bg ?? ($variant === "danger" ? colors.dangerDark : colors.brandAccent)};
+    $bg ?? ($variant === "danger" ? colors.feedbackDanger : colors.brandAccent)};
   color: ${({ $color }) => $color ?? colors.textPrimary};
 `;

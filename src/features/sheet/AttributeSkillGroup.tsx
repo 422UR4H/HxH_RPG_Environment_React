@@ -68,7 +68,7 @@ export default function AttributeSkillGroup({
 
 const AttributeSkillContainer = styled.div`
   margin-bottom: 3cqi;
-  border: 1px solid ${colors.grayMid};
+  border: 1px solid ${colors.borderMuted};
   border-radius: 8px;
   overflow: hidden;
 `;
@@ -79,7 +79,7 @@ const AttributeSectionTitle = styled.div`
   font-weight: bold;
   font-family: "Oswald", sans-serif;
   font-size: 24px;
-  border-bottom: 1px solid ${colors.grayMid};
+  border-bottom: 1px solid ${colors.borderMuted};
   display: flex;
   gap: 16px;
 `;

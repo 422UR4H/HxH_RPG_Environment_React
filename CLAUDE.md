@@ -63,7 +63,7 @@ One narrow, intentional exception: `src/utils/lowercaseFirstKeys.ts`, used by `c
 
 ## Design tokens
 
-Colors, fonts and gradients live in `src/styles/tokens.ts` (`colors`, `fonts`, `gradients`). No raw hex/rgba in styled-components outside the pixel-tuned zone — add a token instead. Currently applied across the refactored surface (templates, organisms, form components, `CampaignPage`/`MatchPage`).
+Cor só existe em `src/styles/tokens.ts` (duas camadas: `palette` × `colors` semântico). Componente nunca escreve hex/rgba/`0x`/`white`: um teste falha. Cor nova? Leia `src/styles/CLAUDE.md` antes — o fluxo manda reutilizar token, e **palette nova é decisão do designer: pare e pergunte**.
 
 ## Styling
 

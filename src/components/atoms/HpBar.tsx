@@ -11,7 +11,7 @@ export default function HpBar({ current = 0, max = 0 }: HpBarProps) {
     <ProgressBar
       current={current}
       max={max}
-      color={colors.redHp}
+      color={colors.vitalHp}
     />
   );
 }

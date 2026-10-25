@@ -404,9 +404,9 @@ const InlineErrorMessage = styled.p`
   font-family: ${fonts.sans};
   font-size: max(2.6cqi, 12px);
   line-height: 1.2;
-  color: ${colors.accentDanger};
+  color: ${colors.feedbackDanger};
   background: ${colors.overlaySoft};
-  border-left: 3px solid ${colors.accentDanger};
+  border-left: 3px solid ${colors.feedbackDanger};
   padding: 10px 14px;
   border-radius: 0 8px 8px 0;
   white-space: pre-line;

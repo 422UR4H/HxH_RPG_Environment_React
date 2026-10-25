@@ -1,7 +1,7 @@
 import styled from "styled-components";
 import type { Piece } from "../../types/tacticalMap";
 import type { CharacterPrivateSummary } from "../../types/characterSheet";
-import { colors, fonts } from "../../styles/tokens";
+import { colors, fonts, alpha } from "../../styles/tokens";
 
 type Props = {
   piece: Piece;
@@ -176,9 +176,9 @@ const Divider = styled.hr`
 const RemoveButton = styled.button`
   width: 100%;
   height: max(40px, 8cqi);
-  border: 1px solid ${colors.danger}55;
-  background: ${colors.danger}11;
-  color: ${colors.danger};
+  border: 1px solid ${alpha(colors.feedbackDanger, 0.33)};
+  background: ${alpha(colors.feedbackDanger, 0.07)};
+  color: ${colors.feedbackDanger};
   border-radius: 6px;
   font-family: ${fonts.sans};
   font-size: clamp(10px, 2.8cqi, 12px);
@@ -191,8 +191,8 @@ const RemoveButton = styled.button`
   transition: background 0.15s;
 
   &:hover {
-    background: ${colors.danger}22;
-    border-color: ${colors.danger};
+    background: ${alpha(colors.feedbackDanger, 0.13)};
+    border-color: ${colors.feedbackDanger};
   }
 `;
 

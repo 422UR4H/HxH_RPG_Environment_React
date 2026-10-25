@@ -9,7 +9,7 @@ interface ExpBarProps {
   tooltipAlign?: "center" | "right";
 }
 
-export default function ExpBar({ currExp, maxExp, color = colors.redExpDefault, tooltipAlign = "center" }: ExpBarProps) {
+export default function ExpBar({ currExp, maxExp, color = colors.vitalSkillExp, tooltipAlign = "center" }: ExpBarProps) {
   const [tooltipVisible, setTooltipVisible] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -83,7 +83,7 @@ const Tooltip = styled.div<{ $align: "center" | "right" }>`
     $align === "right"
       ? "right: 1cqi;"
       : "left: 50%; transform: translateX(-50%);"}
-  background: ${colors.grayBgDark};
+  background: ${colors.surfaceBar};
   color: ${colors.textPrimary};
   font-family: "Roboto", sans-serif;
   font-size: 5cqi;
@@ -98,7 +98,7 @@ const Tooltip = styled.div<{ $align: "center" | "right" }>`
 const BarTrack = styled.div`
   width: 100%;
   height: 4px;
-  background: ${colors.grayMid};
+  background: ${colors.surfaceNeutral};
 `;
 
 const BarFill = styled.div<{ $percentage: number; $color: string }>`

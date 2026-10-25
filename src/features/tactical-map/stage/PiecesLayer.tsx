@@ -13,9 +13,10 @@ import { createTapTracker, isTapConsumed } from "../hooks/tapGesture";
 import { stackOffsets } from "../utils/stacking";
 import { colors } from "../../../styles/tokens";
 import PieceSprite from "./PieceSprite";
+import { toPixi } from "../../../styles/pixi";
 
-const HOLD_PROGRESS_COLOR = parseInt(colors.warningText.replace("#", ""), 16);
-const HOVER_SLOT_COLOR = parseInt(colors.slotHover.replace("#", ""), 16);
+const HOLD_PROGRESS_COLOR = parseInt(colors.feedbackWarning.replace("#", ""), 16);
+const HOVER_SLOT_COLOR = parseInt(colors.mapSlotHover.replace("#", ""), 16);
 
 // No containerRef: piece position is driven by React state (dragWorldPos) to
 // avoid @pixi/react reconciler overwriting imperative position.set() calls.
@@ -417,7 +418,7 @@ export default function PiecesLayer({
       const occupied = !outOfBounds && map.pieces.some(
         (p) => p.id !== draggingPieceId && isSameSlot(p.coord.slot, hoverSlot),
       );
-      const color = occupied || outOfBounds ? 0xff3030 : 0x30ff80;
+      const color = occupied || outOfBounds ? toPixi(colors.mapSlotInvalid) : toPixi(colors.mapSlotValid);
       g.setFillStyle({ color, alpha: 0.25 });
       const corners = slotCorners(hoverSlot, map.grid);
       g.moveTo(corners[0].x, corners[0].y);

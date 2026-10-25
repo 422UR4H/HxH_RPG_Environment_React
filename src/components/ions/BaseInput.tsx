@@ -24,7 +24,7 @@ const StyledInput = styled.input`
   font-weight: 700;
   line-height: 40px;
   color: ${colors.textOnLight};
-  border: 4px solid ${colors.redInputError};
+  border: 4px solid ${colors.feedbackInputError};
 
   width: 429px;
   height: 48px;

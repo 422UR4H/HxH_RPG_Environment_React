@@ -87,6 +87,6 @@ const BarBackground = styled.div`
 const BarFill = styled.div<{ $percentage: number }>`
   width: ${({ $percentage }) => $percentage}%;
   height: 100%;
-  background-color: ${colors.goldExp};
+  background-color: ${colors.vitalExp};
   transition: width 0.3s ease;
 `;

@@ -149,7 +149,7 @@ const Overlay = styled.div`
 `;
 
 const Modal = styled.div`
-  background: ${colors.grayBgModal};
+  background: ${colors.surfaceModal};
   border-radius: 12px;
   padding: 28px;
   width: min(900px, 92vw);
@@ -214,8 +214,8 @@ const Editor = styled.textarea`
   font-size: 1rem;
   line-height: 1.6;
   color: ${colors.textPrimary};
-  background: ${colors.grayBgDark};
-  border: 2px solid ${colors.grayMidStrong};
+  background: ${colors.surfaceBar};
+  border: 2px solid ${colors.borderStrong};
   border-radius: 6px;
   resize: vertical;
   tab-size: 4;
@@ -223,12 +223,12 @@ const Editor = styled.textarea`
   box-sizing: border-box;
 
   &::placeholder { color: ${colors.textPlaceholder}; }
-  &:focus { outline: none; border-color: ${colors.brandAccentBright}; }
+  &:focus { outline: none; border-color: ${colors.brandAccent}; }
 `;
 
 const FormattingTip = styled.div`
-  background: ${colors.warningBgDark};
-  border: 1px solid ${colors.warningBorder};
+  background: ${colors.feedbackWarningBg};
+  border: 1px solid ${colors.feedbackWarningBorder};
   border-radius: 6px;
   padding: 10px 14px;
   margin-bottom: 12px;
@@ -240,13 +240,13 @@ const FormattingTip = styled.div`
 const TipText = styled.p`
   font-family: "Roboto", sans-serif;
   font-size: 0.85rem;
-  color: ${colors.warningText};
+  color: ${colors.feedbackWarning};
   line-height: 1.5;
   margin: 0;
 
   code {
     font-family: "Courier New", monospace;
-    background: rgba(0, 0, 0, 0.25);
+    background: ${colors.shadowSoft};
     padding: 1px 5px;
     border-radius: 3px;
   }
@@ -258,8 +258,8 @@ const TipText = styled.p`
 const ReadOnlyView = styled.div`
   min-height: 50vh;
   padding: 14px 16px;
-  background: ${colors.grayBgDark};
-  border: 2px solid ${colors.grayMidStrong};
+  background: ${colors.surfaceBar};
+  border: 2px solid ${colors.borderStrong};
   border-radius: 6px;
   overflow-y: auto;
 `;

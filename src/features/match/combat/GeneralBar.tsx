@@ -128,8 +128,8 @@ const Dot = styled.span`
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: ${colors.pieceActiveTurn};
-  box-shadow: 0 0 0 3px ${colors.rowHighlight};
+  background: ${colors.mapActiveTurn};
+  box-shadow: 0 0 0 3px ${colors.surfaceActorRow};
 `;
 
 const Idle = styled.span`
@@ -147,8 +147,8 @@ const Order = styled.div`
 const OrderChip = styled.span<{ $mine: boolean }>`
   padding: 2px 8px;
   border-radius: 999px;
-  background: ${({ $mine }) => ($mine ? colors.rowHighlight : colors.surfaceInput)};
-  border: 1px solid ${({ $mine }) => ($mine ? colors.brandAccentBright : "transparent")};
+  background: ${({ $mine }) => ($mine ? colors.surfaceActorRow : colors.surfaceInput)};
+  border: 1px solid ${({ $mine }) => ($mine ? colors.brandAccent : "transparent")};
 `;
 
 const Icons = styled.span`

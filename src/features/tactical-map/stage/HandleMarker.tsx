@@ -1,5 +1,7 @@
 import { useCallback } from "react";
 import type { FederatedPointerEvent, Graphics as PixiGraphics } from "pixi.js";
+import { colors } from "../../../styles/tokens";
+import { toPixi } from "../../../styles/pixi";
 
 // The square white marker used for both the bg's 8 resize handles and the
 // grid's 4 corners — same draw, same props, so the two copies (BgResizeHandle
@@ -20,9 +22,9 @@ export default function HandleMarker({
   const draw = useCallback((g: PixiGraphics) => {
     g.clear();
     g.rect(hx - hs / 2, hy - hs / 2, hs, hs);
-    g.setFillStyle({ color: 0xffffff });
+    g.setFillStyle({ color: toPixi(colors.mapHandleFill) });
     g.fill();
-    g.setStrokeStyle({ color: 0x333333, width: hs * 0.15 });
+    g.setStrokeStyle({ color: toPixi(colors.mapHandleStroke), width: hs * 0.15 });
     g.stroke();
   }, [hx, hy, hs]);
 

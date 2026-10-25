@@ -134,7 +134,7 @@ const SystemNote = styled.p`
   margin: 0;
   font-size: 12px;
   line-height: 1.4;
-  color: ${colors.warningText};
+  color: ${colors.feedbackWarning};
 `;
 
 const BiasDisclosure = styled.button`

@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import styled from "styled-components";
-import { colors, fonts } from "../../styles/tokens";
+import { colors, fonts, alpha } from "../../styles/tokens";
 
 type Props = {
   message: string;
@@ -10,18 +10,18 @@ type Props = {
 };
 
 const BG: Record<NonNullable<Props["variant"]>, string> = {
-  success: `${colors.brandAccent}22`,
-  error:   `${colors.danger}18`,
+  success: `${alpha(colors.brandAccent, 0.13)}`,
+  error:   `${alpha(colors.feedbackDanger, 0.09)}`,
   info:    `${colors.surfaceInput}`,
 };
 const BORDER: Record<NonNullable<Props["variant"]>, string> = {
   success: colors.brandAccent,
-  error:   colors.danger,
+  error:   colors.feedbackDanger,
   info:    colors.borderInput,
 };
 const TEXT: Record<NonNullable<Props["variant"]>, string> = {
-  success: colors.brandAccentBright,
-  error:   colors.danger,
+  success: colors.brandAccent,
+  error:   colors.feedbackDanger,
   info:    colors.textMuted,
 };
 

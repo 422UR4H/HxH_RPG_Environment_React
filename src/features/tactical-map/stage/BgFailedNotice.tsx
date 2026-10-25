@@ -27,7 +27,7 @@ const Notice = styled.div`
   gap: 12px;
   padding: 6px 12px;
   background: ${colors.overlayDark};
-  border: 1px solid ${colors.grayMid};
+  border: 1px solid ${colors.borderMuted};
   border-radius: 6px;
   color: ${colors.textPrimary};
   font-family: ${fonts.sans};

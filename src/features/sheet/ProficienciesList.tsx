@@ -141,7 +141,7 @@ const DistributionSlot = styled.div<{ $selected: boolean }>`
   background-color: ${colors.surfaceControl};
   border-radius: 12px;
   padding: 15px;
-  border: 4px solid ${({ $selected }) => ($selected ? colors.brandAccent : colors.grayMidStrong)};
+  border: 4px solid ${({ $selected }) => ($selected ? colors.brandAccent : colors.borderStrong)};
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -183,7 +183,7 @@ const SlotSelect = styled.select`
   &:focus { outline: none; }
   &:hover { filter: brightness(1.1); }
 
-  option:disabled { color: ${colors.grayMid}; background-color: ${colors.surfaceMuted}; }
+  option:disabled { color: ${colors.textFaint}; background-color: ${colors.surfaceMuted}; }
 `;
 
 const SlotOption = styled.option`

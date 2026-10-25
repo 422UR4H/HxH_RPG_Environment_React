@@ -1,6 +1,10 @@
 import type { VisibilityPolygon } from "../../../types/tacticalMap";
+import { colors } from "../../../styles/tokens";
+import { toPixi } from "../../../styles/pixi";
 
-export const FOG_COLOR = 0x05070a;
+const MASK_COLOR = toPixi(colors.mapMask);
+
+export const FOG_COLOR = toPixi(colors.mapFog);
 export const FOG_ALPHA = 0.92;
 /** Padding around the board so panning never exposes an un-fogged edge. */
 export const FOG_PADDING = 2000;
@@ -89,13 +93,13 @@ export function drawLosMask(
   // The colour is irrelevant — a stencil mask only cares about coverage — but the fill
   // must happen, otherwise there is no geometry and the mask degenerates: an inverse
   // mask then covers everything, a normal mask hides everything.
-  g.fill({ color: 0xffffff, alpha: 1 });
+  g.fill({ color: MASK_COLOR, alpha: 1 });
 
   // StencilMaskPipe collects the mask container's renderables with the colour mask off,
   // so a stroke writes to the stencil exactly like a fill does. A centred stroke of
   // width 2*dilate extends `dilate` past the edge (the inner half lands on already
   // covered pixels, which the increment-clamp leaves alone).
   if (dilate > 0) {
-    g.stroke({ color: 0xffffff, alpha: 1, width: dilate * 2 });
+    g.stroke({ color: MASK_COLOR, alpha: 1, width: dilate * 2 });
   }
 }

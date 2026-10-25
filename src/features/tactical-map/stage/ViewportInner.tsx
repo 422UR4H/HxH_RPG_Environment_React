@@ -15,6 +15,8 @@ import GridLayer from "./GridLayer";
 import PiecesLayer from "./PiecesLayer";
 import IntentLayer from "../IntentLayer";
 import { createPanTracker } from "../hooks/panGesture";
+import { colors } from "../../../styles/tokens";
+import { toPixi } from "../../../styles/pixi";
 
 type BgDragState = {
   startWorldX: number;
@@ -368,7 +370,7 @@ export default function ViewportInner({
       g.clear();
       if (!placementHoverSlot || !placingNpcId) return;
       const inBounds = isSlotInBounds(placementHoverSlot, map.grid);
-      const color = inBounds ? 0x30ff80 : 0xff3030;
+      const color = inBounds ? toPixi(colors.mapSlotValid) : toPixi(colors.mapSlotInvalid);
       g.setFillStyle({ color, alpha: 0.3 });
       g.setStrokeStyle({ color, width: 2, alpha: 0.9 });
       const corners = slotCorners(placementHoverSlot, map.grid);

@@ -105,7 +105,7 @@ const Status = styled.span<{ $status: DeclaredAction["status"] }>`
   padding: 1px 8px;
   border-radius: 999px;
   font-size: 11px;
-  background: ${({ $status }) => ($status === "open" ? colors.rowHighlight : colors.surfaceInput)};
+  background: ${({ $status }) => ($status === "open" ? colors.surfaceActorRow : colors.surfaceInput)};
   color: ${({ $status }) => ($status === "open" ? colors.textPrimary : colors.textPlaceholderStrong)};
 `;
 

@@ -35,7 +35,7 @@ const StyledLogoutButton = styled.button`
   color: ${colors.textPrimary};
 
   background: transparent;
-  border: 2px solid ${colors.redCardAccent};
+  border: 2px solid ${colors.actionDestructive};
   border-radius: 8px;
 
   svg {
@@ -49,10 +49,10 @@ const StyledLogoutButton = styled.button`
   }
 
   &:hover {
-    background-color: ${colors.redCardAccent};
+    background-color: ${colors.actionDestructive};
   }
   &:active {
-    background-color: ${colors.redHp};
+    background-color: ${colors.actionDestructive};
   }
   &:focus-visible {
     outline: 2px solid ${colors.textPrimary};

@@ -179,8 +179,8 @@ const ProfileNameInput = styled.input`
   font-size: min(4.2cqi, 32px);
   font-weight: bold;
   color: ${colors.textPrimary};
-  background-color: ${colors.grayMid};
-  border: 2px solid ${colors.grayMidStrong};
+  background-color: ${colors.surfaceNeutral};
+  border: 2px solid ${colors.borderStrong};
   border-radius: 6px;
   padding: 12px 16px;
   margin-bottom: 2cqi;
@@ -193,7 +193,7 @@ const ProfileNameInput = styled.input`
 
   &:focus {
     outline: none;
-    border-color: ${colors.brandAccentBright};
+    border-color: ${colors.brandAccent};
   }
 
   @media (max-width: 609px) {
@@ -206,8 +206,8 @@ const ProfileDescriptionTextarea = styled.textarea`
   font-size: min(3.4cqi, 24px);
   line-height: 1.6;
   color: ${colors.textPrimary};
-  background-color: ${colors.grayMid};
-  border: 2px solid ${colors.grayMidStrong};
+  background-color: ${colors.surfaceNeutral};
+  border: 2px solid ${colors.borderStrong};
   border-radius: 6px;
   padding: 12px 16px;
   margin-bottom: 2cqi;
@@ -221,7 +221,7 @@ const ProfileDescriptionTextarea = styled.textarea`
 
   &:focus {
     outline: none;
-    border-color: ${colors.brandAccentBright};
+    border-color: ${colors.brandAccent};
   }
 
   @media (max-width: 609px) {
@@ -275,8 +275,8 @@ const DetailInput = styled.input`
   font-size: min(3.8cqi, 28px);
   font-weight: 600;
   color: ${colors.textPrimary};
-  background-color: ${colors.grayMid};
-  border: 2px solid ${colors.grayMidStrong};
+  background-color: ${colors.surfaceNeutral};
+  border: 2px solid ${colors.borderStrong};
   border-radius: 6px;
   padding: 12px 16px;
 
@@ -287,7 +287,7 @@ const DetailInput = styled.input`
 
   &:focus {
     outline: none;
-    border-color: ${colors.brandAccentBright};
+    border-color: ${colors.brandAccent};
   }
 
   /* Remove increment/decrement from input type number */

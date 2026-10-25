@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import { colors, fonts } from "../../../styles/tokens";
+import { colors, fonts, alpha } from "../../../styles/tokens";
 
 // Os seletores são do padrão da mesa inteira (diálogos de reação e de cena também).
 export {
@@ -8,7 +8,7 @@ export {
 
 type Tone = "move" | "attack";
 
-const toneColor = (tone: Tone) => (tone === "move" ? colors.moveIntent : colors.pieceAttackIntent);
+const toneColor = (tone: Tone) => (tone === "move" ? colors.mapMoveIntent : colors.mapAttackIntent);
 
 export const Sheet = styled.section`
   display: flex;
@@ -103,8 +103,8 @@ export const Chip = styled.span`
   gap: 2px;
   padding: 3px 4px 3px 10px;
   border-radius: 999px;
-  border: 1px solid ${colors.pieceAttackIntent};
-  background: ${colors.attackIntentBg};
+  border: 1px solid ${colors.mapAttackIntent};
+  background: ${alpha(colors.mapAttackIntent, 0.16)};
 `;
 
 export const Footer = styled.div`

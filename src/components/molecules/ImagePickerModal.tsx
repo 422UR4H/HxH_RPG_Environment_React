@@ -236,7 +236,7 @@ const Overlay = styled.div`
 `;
 
 const Modal = styled.div`
-  background: ${colors.grayBgModal};
+  background: ${colors.surfaceModal};
   border-radius: 12px;
   padding: 28px;
   width: min(560px, 92vw);
@@ -276,14 +276,14 @@ const ModeButton = styled.button<{ $active: boolean }>`
   font-weight: ${({ $active }) => ($active ? "600" : "400")};
   color: ${({ $active }) => ($active ? colors.textPrimary : colors.textPlaceholderStrong)};
   background: ${({ $active }) => ($active ? colors.brandAccent : "transparent")};
-  border: 2px solid ${({ $active }) => ($active ? colors.brandAccent : colors.grayMid)};
+  border: 2px solid ${({ $active }) => ($active ? colors.brandAccent : colors.borderMuted)};
   border-radius: 6px;
   cursor: pointer;
 `;
 
 const OverwriteWarning = styled.div`
-  background: ${colors.warningBgDark};
-  border: 1px solid ${colors.warningBorder};
+  background: ${colors.feedbackWarningBg};
+  border: 1px solid ${colors.feedbackWarningBorder};
   border-radius: 6px;
   padding: 12px 16px;
   display: flex;
@@ -294,7 +294,7 @@ const OverwriteWarning = styled.div`
 const WarningText = styled.p`
   font-family: "Roboto", sans-serif;
   font-size: 0.9rem;
-  color: ${colors.warningText};
+  color: ${colors.feedbackWarning};
   margin: 0;
 `;
 
@@ -304,24 +304,24 @@ const WarningButton = styled.button`
   padding: 6px 14px;
   background: transparent;
   color: ${colors.textPlaceholderStrong};
-  border: 1px solid ${colors.grayMid};
+  border: 1px solid ${colors.borderMuted};
   border-radius: 4px;
   cursor: pointer;
   font-size: 0.85rem;
 `;
 
 const DiscardButton = styled(WarningButton)`
-  background: ${colors.warningBorder};
+  background: ${colors.feedbackWarningBorder};
   color: ${colors.textPrimary};
-  border-color: ${colors.warningBorder};
+  border-color: ${colors.feedbackWarningBorder};
 `;
 
 const UrlSection = styled.div`display: flex; flex-direction: column; gap: 10px;`;
 
 const UrlInput = styled.input`
   padding: 10px 14px;
-  background: ${colors.grayBgDeeper};
-  border: 2px solid ${colors.grayMid};
+  background: ${colors.surfaceDeep};
+  border: 2px solid ${colors.borderMuted};
   border-radius: 6px;
   color: ${colors.textPrimary};
   font-family: "Roboto", sans-serif;
@@ -335,7 +335,7 @@ const PreviewContainer = styled.div<{ $aspectRatio: string; $borderRadius: strin
   aspect-ratio: ${({ $aspectRatio }) => $aspectRatio};
   border-radius: ${({ $borderRadius }) => $borderRadius};
   overflow: hidden;
-  border: 2px dashed ${colors.grayMid};
+  border: 2px dashed ${colors.borderMuted};
 `;
 
 const PreviewImage = styled.img`width: 100%; height: 100%; object-fit: cover;`;
@@ -343,8 +343,8 @@ const PreviewImage = styled.img`width: 100%; height: 100%; object-fit: cover;`;
 const UploadSection = styled.div`display: flex; flex-direction: column; gap: 10px;`;
 
 const DropZone = styled.div`
-  background: ${colors.grayBgDeeper};
-  border: 2px dashed ${colors.grayMid};
+  background: ${colors.surfaceDeep};
+  border: 2px dashed ${colors.borderMuted};
   border-radius: 8px;
   padding: 48px 20px;
   display: flex;
@@ -354,11 +354,11 @@ const DropZone = styled.div`
   &:hover { border-color: ${colors.brandAccent}; }
 `;
 
-const DropZoneText = styled.p`color: ${colors.grayMidStrong}; font-family: "Roboto", sans-serif; font-size: 0.9rem; margin: 0;`;
+const DropZoneText = styled.p`color: ${colors.textHint}; font-family: "Roboto", sans-serif; font-size: 0.9rem; margin: 0;`;
 
 const CropArea = styled.div`display: flex; flex-direction: column; gap: 8px;`;
 
-const CropHint = styled.p`color: ${colors.grayMidStrong}; font-family: "Roboto", sans-serif; font-size: 0.75rem; text-align: center; margin: 0;`;
+const CropHint = styled.p`color: ${colors.textHint}; font-family: "Roboto", sans-serif; font-size: 0.75rem; text-align: center; margin: 0;`;
 
 const ModalActions = styled.div`display: flex; justify-content: space-between;`;
 
@@ -366,7 +366,7 @@ const CancelButton = styled.button`
   padding: 10px 20px;
   background: transparent;
   color: ${colors.textPlaceholderStrong};
-  border: 2px solid ${colors.grayMid};
+  border: 2px solid ${colors.borderMuted};
   border-radius: 6px;
   cursor: pointer;
   font-family: "Roboto", sans-serif;

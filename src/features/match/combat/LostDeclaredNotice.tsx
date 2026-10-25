@@ -43,7 +43,7 @@ const Notice = styled.div`
   max-width: 100%;
   padding: 10px 8px 10px 14px;
   border-radius: 6px;
-  border: 1px solid ${colors.warningBorder};
+  border: 1px solid ${colors.feedbackWarningBorder};
   background: ${colors.surfaceSidebar};
   color: ${colors.textPrimary};
   font-family: ${fonts.sans};

@@ -69,7 +69,7 @@ export const CancelButton = styled(ButtonBase)`
 `;
 
 export const ConfirmButton = styled(ButtonBase)`
-  background: ${colors.dangerDark};
+  background: ${colors.feedbackDanger};
   color: ${colors.textPrimary};
 `;
 

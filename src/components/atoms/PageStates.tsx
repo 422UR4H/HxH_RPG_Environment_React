@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import { colors } from "../../styles/tokens";
+import { colors, alpha } from "../../styles/tokens";
 
 export const LoadingContainer = styled.div`
   display: flex;
@@ -12,8 +12,8 @@ export const LoadingContainer = styled.div`
 `;
 
 export const ErrorContainer = styled.div`
-  background-color: ${colors.errorBgSoft};
-  color: ${colors.danger};
+  background-color: ${alpha(colors.feedbackDanger, 0.1)};
+  color: ${colors.feedbackDanger};
   padding: 20px;
   border-radius: 8px;
   text-align: center;

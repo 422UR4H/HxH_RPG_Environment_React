@@ -266,7 +266,7 @@ const EditsNote = styled.span`
 
 const AppliedLine = styled.span`
   font-size: 12px;
-  color: ${colors.warningText};
+  color: ${colors.feedbackWarning};
 `;
 
 const Panel = styled.section`
@@ -325,7 +325,7 @@ const OpenRow = styled.li`
   gap: 4px;
   padding: 8px;
   border-radius: 6px;
-  border: 1px solid ${colors.pieceActiveTurn};
+  border: 1px solid ${colors.mapActiveTurn};
   background: ${colors.surfaceInputHover};
 `;
 
@@ -334,7 +334,7 @@ const OpenBadge = styled.span`
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  color: ${colors.pieceActiveTurn};
+  color: ${colors.mapActiveTurn};
 `;
 
 const NextRoundBadge = styled(OpenBadge)`

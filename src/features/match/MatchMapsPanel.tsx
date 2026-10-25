@@ -154,7 +154,7 @@ const MapsPlaceholder = styled.p`
 const MapChangeError = styled.p`
   font-family: ${fonts.sans};
   font-size: 14px;
-  color: ${colors.danger};
+  color: ${colors.feedbackDanger};
 `;
 
 const MapChangeNotice = styled.p`

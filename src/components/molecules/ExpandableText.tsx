@@ -86,7 +86,7 @@ const Container = styled.div<{
         left: 0;
         right: 0;
         height: 50px;
-        box-shadow: inset 0 -40px 50px 0 ${colors.fadeSurfaceInput};
+        box-shadow: inset 0 -40px 50px 0 ${colors.surfaceFade};
         pointer-events: none;
       }
     `}

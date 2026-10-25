@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import styled from "styled-components";
-import { colors, fonts } from "../../styles/tokens";
+import { colors, fonts, alpha } from "../../styles/tokens";
 import type { WallMaterial, WallSegment, WallType } from "../../types/tacticalMap";
 
 type Props = {
@@ -129,7 +129,7 @@ const BadgeDot = styled.div`
 const BadgeLabel = styled.span`
   font-family: ${fonts.sans};
   font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
-  color: ${colors.brandAccentBright};
+  color: ${colors.brandAccent};
 `;
 const Section = styled.div`
   display: flex; flex-direction: column; gap: 6px;
@@ -156,12 +156,12 @@ const Chip = styled.button<{ $active: boolean }>`
 const LockToggle = styled.button<{ $locked: boolean }>`
   font-family: ${fonts.sans};
   font-size: 12px; padding: 5px 14px; border-radius: 999px;
-  border: 1px solid ${({ $locked }) => $locked ? colors.dangerDark : colors.borderInput};
-  background: ${({ $locked }) => $locked ? colors.errorBgSoft : "transparent"};
-  color: ${({ $locked }) => $locked ? colors.danger : colors.textPlaceholderStrong};
+  border: 1px solid ${({ $locked }) => $locked ? colors.feedbackDanger : colors.borderInput};
+  background: ${({ $locked }) => $locked ? alpha(colors.feedbackDanger, 0.1) : "transparent"};
+  color: ${({ $locked }) => $locked ? colors.feedbackDanger : colors.textPlaceholderStrong};
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s, color 0.15s;
-  &:hover { border-color: ${colors.danger}; color: ${colors.danger}; }
+  &:hover { border-color: ${colors.feedbackDanger}; color: ${colors.feedbackDanger}; }
 `;
 const Actions = styled.div`
   display: flex; gap: 8px;
@@ -170,17 +170,17 @@ const ApplyButton = styled.button<{ $applied: boolean }>`
   font-family: ${fonts.sans};
   flex: 1; padding: 7px; border-radius: 6px;
   border: none;
-  background: ${({ $applied }) => $applied ? colors.brandAccentBright : colors.brandAccent};
+  background: ${colors.brandAccent};
   color: ${colors.textPrimary};
   font-size: 12px; font-weight: 600; cursor: pointer;
   transition: background 0.2s;
-  &:hover { background: ${colors.brandAccentBright}; }
+  &:hover { background: ${colors.brandAccent}; }
 `;
 const DeleteButton = styled.button`
   font-family: ${fonts.sans};
   padding: 7px 12px; border-radius: 6px;
-  border: 1px solid ${colors.dangerDark}; background: transparent; color: ${colors.danger};
+  border: 1px solid ${colors.actionDestructive}; background: transparent; color: ${colors.actionDestructive};
   font-size: 12px; cursor: pointer;
   transition: background 0.15s, color 0.15s;
-  &:hover { background: ${colors.dangerDark}; color: ${colors.textPrimary}; }
+  &:hover { background: ${colors.actionDestructive}; color: ${colors.textPrimary}; }
 `;

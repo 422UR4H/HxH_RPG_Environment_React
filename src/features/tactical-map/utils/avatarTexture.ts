@@ -1,4 +1,5 @@
 import { ImageSource, Texture } from "pixi.js";
+import { colors } from "../../../styles/tokens";
 
 // Module-level CORS-safe avatar cache: R2 URL → Promise<same-origin blob URL>.
 // Blob URLs are same-origin so they're safe for WebGL textures.
@@ -51,10 +52,10 @@ export function getAvatarInsetShadowTexture(radius: number): Texture {
   // CSS origin: inset 0 4cqi 5cqi → offsetY=0.08r blur=0.10r; cqi = 2r/100
   const cx = radius, cy = radius, r = radius + 1;
   const layers: [string, number, number][] = [
-    ["rgba(0,0,0,0.85)",        0.1, 0.1],
-    ["rgba(0,0,0,0.42)",        0.1, 0.14],
-    ["rgba(255,255,255,0.14)", -0.1, 0.1],
-    ["rgba(255,255,255,0.05)", -0.1, 0.2],
+    [colors.overlayDark,        0.1, 0.1],
+    [colors.overlaySoft,        0.1, 0.14],
+    [colors.overlayHighlight, -0.1, 0.1],
+    [colors.overlayHighlightFaint, -0.1, 0.2],
   ];
   for (const [color, offsetFrac, blurFrac] of layers) {
     ctx.save();
