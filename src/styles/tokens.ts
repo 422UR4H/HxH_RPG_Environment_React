@@ -31,15 +31,14 @@ export const palette = {
   // verdes: 4 variações (escuro do cabeçalho, brand, intermediário, saturado)
   green900: "#08491f", // cabeçalho; reservado a outros usos escuros
   green700: "#107135", // brand
-  green600: "#11a235",
-  green500: "#12d335", // saturado
+  green600: "#17993d",
+  green500: "#1fc140", // saturado
 
   // vermelhos
   red800: "#ba1a3e", // brand
   red700: "#d01334",
   red600: "#e70a27", // saturado
   red500: "#ff0015", // saturado máximo
-  coral500: "#ff6b4a",
 
   // laranja / âmbar / dourado
   orange500: "#ffa216",
@@ -58,6 +57,7 @@ export const palette = {
   blue600: "#4b70a4", // brand claro (degradê do login)
   blue500: "#3184ee",
   blue400: "#4da3ff", // saturado (mana)
+  cyan400: "#38bdf8", // movimento no mapa
   navy950: "#0b1220",
   slate400: "#94a3b8",
   slate500: "#64748b",
@@ -148,15 +148,15 @@ export const colors = {
 
   // map — mapa tático (as cores do Pixi entram por aqui; converta com parseInt(hex.slice(1), 16))
   mapSelectionRing: palette.gold400, // anel da peça selecionada
-  mapTargetRing: palette.coral500, // anel do alvo em combate: o matiz do ataque, distinto do dourado da seleção
+  mapTargetRing: palette.red600, // anel do alvo em combate: o matiz do ataque, distinto do dourado da seleção
   mapInspectRing: palette.neutral300, // anel de "só olhando" (F7): neutro, nunca o dourado do ator
-  // movimento = azul-ciano: complementar do laranja do ataque (mapAttackIntent) e seguro p/ daltonismo
-  // vs laranja-avermelhado; é a convenção do gênero; o verde já significa "turno aberto" (mapActiveTurn)
+  // movimento = azul-ciano: complementar do vermelho do ataque (mapAttackIntent) e seguro p/ daltonismo
+  // vs vermelho; é a convenção do gênero; o verde já significa "turno aberto" (mapActiveTurn)
   // e some em mapas de grama. Também é o tint de "mover" no composer e do fantasma de intenção declarada (§8).
-  mapMoveIntent: palette.blue400,
+  mapMoveIntent: palette.cyan400,
   mapIntentOutline: palette.navy950, // contorno escuro sob os traços de movimento (legível sobre qualquer terreno)
   mapStackBadge: palette.neutral900, // fundo do selo ×N da cascata (§7.2)
-  mapAttackIntent: palette.coral500, // ataque em composição: linha ator→alvo, tint do composer
+  mapAttackIntent: palette.red600, // ataque em composição: linha ator→alvo, tint do composer
   mapActiveTurn: palette.green500, // anel da peça cujo turno está aberto
   mapSlotHover: palette.neutral0, // casa sob o ponteiro durante a composição (desenhada com alpha baixo)
   mapSlotValid: palette.green500, // casa livre/válida ao arrastar ou posicionar
