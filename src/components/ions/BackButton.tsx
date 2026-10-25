@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 // import backArrow from "../../assets/icons/setavoltarsemponta.svg"
 import backArrow from "../../assets/icons/setavoltarcomponta.svg";
 import { useNavGuard } from "../../contexts/NavGuardContext";
@@ -19,6 +19,13 @@ export default function BackButton() {
     </StyledBackButton>
   );
 }
+
+/* Acende com um halo em volta, sem mexer nos pixels da seta: o brightness() antigo
+   aumentava o contraste das bordas e dava a impressão de ficar mais nítida. */
+const lit = css`
+  transform: scale(1.05);
+  filter: drop-shadow(0 0 8px ${colors.controlHighlight}cc);
+`;
 
 const StyledBackButton = styled.button`
   position: fixed;
@@ -46,12 +53,14 @@ const StyledBackButton = styled.button`
     outline-offset: 5px;
   }
 
-  /* Acende com um halo em volta, sem mexer nos pixels da seta: o brightness() antigo
-     aumentava o contraste das bordas e dava a impressão de ficar mais nítida. */
-  &:hover > img,
+  /* Hover só com mouse: no toque ele fica preso depois do toque. */
+  @media (hover: hover) {
+    &:hover > img {
+      ${lit}
+    }
+  }
   &:focus-visible > img {
-    transform: scale(1.05);
-    filter: drop-shadow(0 0 8px ${colors.controlHighlight}cc);
+    ${lit}
   }
   &:active > img {
     transform: scale(0.98);

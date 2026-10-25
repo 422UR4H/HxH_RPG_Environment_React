@@ -49,7 +49,12 @@ const StyledLogoButton = styled(Link)`
     transition: transform 0.2s ease;
   }
 
-  &:hover img,
+  /* Hover só com mouse: no toque ele fica preso depois do toque. */
+  @media (hover: hover) {
+    &:hover img {
+      transform: scale(1.05);
+    }
+  }
   &:focus-visible img {
     transform: scale(1.05);
   }
