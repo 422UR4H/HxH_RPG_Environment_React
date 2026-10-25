@@ -295,7 +295,9 @@ function EditCharacterSheetPage() {
           (editMode === "full" ? classesLoading : false) ||
           isSubmitting,
         error:
-          editMode === "full" && classesError ? classesError.message : null,
+          editMode === "full" && classesError
+            ? "Não foi possível carregar as classes de personagem. Tente novamente mais tarde."
+            : null,
         onAvatarSelected: handleAvatarSelected,
         onCoverSelected: handleCoverSelected,
         onCreateSheet: handleSave,

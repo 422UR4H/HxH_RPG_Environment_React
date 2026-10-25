@@ -63,4 +63,31 @@ describe("CharacterSheetPage", () => {
     });
     expect(await screen.findByText(/TestNick/i)).toBeInTheDocument();
   });
+
+  it("mostra mensagem em português quando o carregamento falha (500)", async () => {
+    server.use(
+      http.get(`${baseUrl}/charactersheets/:id`, () =>
+        HttpResponse.json({ detail: "boom" }, { status: 500 }),
+      ),
+    );
+    renderPage({ user: userFixture });
+    expect(
+      await screen.findByText(
+        "Não foi possível carregar a ficha. Tente novamente mais tarde.",
+        {},
+        { timeout: 5000 },
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Request failed/i)).not.toBeInTheDocument();
+  });
+
+  it("mostra 'Ficha não encontrada.' no 404", async () => {
+    server.use(
+      http.get(`${baseUrl}/charactersheets/:id`, () =>
+        HttpResponse.json({ detail: "not found" }, { status: 404 }),
+      ),
+    );
+    renderPage({ user: userFixture });
+    expect(await screen.findByText("Ficha não encontrada.", {}, { timeout: 5000 })).toBeInTheDocument();
+  });
 });

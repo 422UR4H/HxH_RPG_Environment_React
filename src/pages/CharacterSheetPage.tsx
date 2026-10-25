@@ -7,6 +7,7 @@ import { useCharacterSheet } from "../hooks/useCharacterSheet";
 import { useAcceptSheetSubmission } from "../hooks/useAcceptSheetSubmission";
 import { useRejectSheetSubmission } from "../hooks/useRejectSheetSubmission";
 import { useDeleteCharacterSheet } from "../hooks/useDeleteCharacterSheet";
+import { isApiError } from "../services/httpClient";
 
 function CharacterSheetPage() {
   const { id } = useParams<{ id: string }>();
@@ -80,7 +81,11 @@ function CharacterSheetPage() {
       data={{
         charSheet,
         isLoading,
-        error: error ? error.message : null,
+        error: error
+          ? isApiError(error, 404)
+            ? "Ficha não encontrada."
+            : "Não foi possível carregar a ficha. Tente novamente mais tarde."
+          : null,
         onCampaignClick: isMasterNpc
           ? handleCampaignClickMaster
           : isOwner && charSheet

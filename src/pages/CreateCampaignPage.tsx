@@ -11,7 +11,8 @@ import FormInput from "../components/ions/FormInput";
 import FormTextArea from "../components/ions/FormTextArea";
 import RulesSidebar from "../components/organisms/RulesSidebar";
 import RuleSection from "../components/molecules/RuleSection";
-import { getApiErrorDetail } from "../utils/apiError";
+import { CONNECTION_ERROR_MESSAGE, getApiErrorDetail, isConnectionError } from "../utils/apiError";
+import { getCampaignValidationMessage } from "../features/campaign/campaignErrorMessages";
 import { toDateInputValue } from "../utils/date";
 
 type CampaignFormData = {
@@ -49,7 +50,14 @@ export default function CreateCampaignPage() {
     createCampaign(form, {
       onSuccess: () => navigate(-1),
       onError: (err: unknown) => {
-        setError(getApiErrorDetail(err) ?? "Erro ao criar campanha. Tente novamente.");
+        if (isConnectionError(err)) {
+          setError(CONNECTION_ERROR_MESSAGE);
+          return;
+        }
+        setError(
+          getCampaignValidationMessage(getApiErrorDetail(err) ?? "") ??
+            "Erro ao criar campanha. Tente novamente.",
+        );
       },
     });
   };

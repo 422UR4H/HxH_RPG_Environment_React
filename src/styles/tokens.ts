@@ -75,6 +75,7 @@ export const colors = {
   // gold / warning
   goldExp: "#d4af37", // character exp bar fill
   goldStar: "#f0c040", // rating star
+  controlHighlight: "#d4af37", // controles do header (seta, logo): halo do hover e anel de foco; mesmo valor de goldExp, nome semântico
   warningText: "#ffc107", // warning text in image picker
   warningBorder: "#a07000", // warning border / pill bg
   warningBgDark: "#3a2a00", // warning notice background

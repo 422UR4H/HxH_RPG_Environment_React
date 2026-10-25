@@ -1,8 +1,9 @@
 import { useNavigate } from "react-router-dom";
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 // import backArrow from "../../assets/icons/setavoltarsemponta.svg"
 import backArrow from "../../assets/icons/setavoltarcomponta.svg";
 import { useNavGuard } from "../../contexts/NavGuardContext";
+import { colors } from "../../styles/tokens";
 
 export default function BackButton() {
   const navigate = useNavigate();
@@ -13,49 +14,66 @@ export default function BackButton() {
   };
 
   return (
-    <StyledBackButton onClick={handleClick}>
-      <Arrow src={backArrow} alt="Back" />
+    <StyledBackButton type="button" onClick={handleClick}>
+      <Arrow src={backArrow} alt="Voltar" />
     </StyledBackButton>
   );
 }
 
-const StyledBackButton = styled.div`
+/* Estado aceso (hover e foco): só o zoom. Sem brightness(): ele aumentava o contraste
+   das bordas e dava a impressão de a seta ficar mais nítida. */
+const lit = css`
+  transform: scale(1.05);
+`;
+
+const StyledBackButton = styled.button`
   position: fixed;
   z-index: 10;
-  left: min(10px, 1.6vw);
-  /* left: 0px; */
-  top: min(10px, 1.6vw);
+  /* 12 px é múltiplo de 4: pixel físico inteiro nas densidades 1; 1,25; 1,5; 1,75 e 2.
+     Com 10 px a seta caía em meio pixel em 1,25 e 1,75 e saía borrada. */
+  left: min(12px, 1.8vw);
+  top: min(12px, 1.8vw);
+  /* Camada própria: sem ela o Chrome pode juntar a seta a outro elemento fixo numa camada
+     que comece em meio pixel, e o borrão volta. */
+  will-change: transform;
 
-  cursor: pointer;
-  display: inline-block;
-
-  /* Remove any default styling that could create a "box" */
-  background: none;
-  border: none;
-  padding: 0;
-  margin: 0;
-  outline: none;
-
-  /* Ensure the clickable area matches exactly the icon size */
+  display: block;
   width: fit-content;
   height: fit-content;
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid ${colors.controlHighlight};
+    outline-offset: 5px;
+  }
+
+  /* Hover só se há mouse ou touchpad: num aparelho só de toque ele fica preso depois do toque. */
+  @media (any-hover: hover) {
+    &:hover > img {
+      ${lit}
+    }
+  }
+  &:focus-visible > img {
+    ${lit}
+  }
+  &:active > img {
+    transform: scale(0.98);
+  }
 `;
 
 const Arrow = styled.img`
-  width: min(140px, 20vw);
+  /* 136 px → 78,7 px de altura, a mesma da logo (grade do header). */
+  width: min(136px, 20.3vw);
   height: auto;
   display: block;
   object-fit: contain;
   border: none;
   outline: none;
 
-  transition: all 0.2s ease;
-
-  &:hover {
-    transform: scale(1.05);
-    filter: brightness(1.1);
-  }
-  &:active {
-    transform: scale(0.98);
-  }
+  transition: transform 0.2s ease;
 `;

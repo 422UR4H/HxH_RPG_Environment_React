@@ -15,6 +15,10 @@ const campaignValidationMessages: Record<string, string> = {
     "A data corrente da história não pode ser anterior ao valor atual.",
   "validation error: story_current_at cannot be before story_start_at":
     "A data corrente da história não pode ser anterior à data de início da história.",
+  "validation error: user cannot have more than 10 campaigns":
+    "Você atingiu o limite de 10 campanhas.",
+  "validation error: story start date cannot be empty":
+    "Informe a data de início da história.",
 };
 
 export function getCampaignValidationMessage(detail: string): string | undefined {

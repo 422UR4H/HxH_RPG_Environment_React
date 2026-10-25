@@ -8,8 +8,8 @@ import { Link, useNavigate } from "react-router-dom";
 import useUser from "../hooks/useUser";
 import { useSignIn } from "../hooks/useSignIn";
 import BaseInput from "../components/ions/BaseInput";
-import InlineFeedback from "../components/ions/InlineFeedback";
-import { getApiErrorDetail } from "../utils/apiError";
+import SignFormError from "../components/atoms/SignFormError";
+import { getLoginErrorMessage } from "../features/auth/authErrorMessages";
 
 type LoginForm = {
   email: string;
@@ -42,7 +42,7 @@ export default function LoginPage() {
         navigate("/home");
       },
       onError: (err: unknown) => {
-        setError(getApiErrorDetail(err) ?? "Erro ao fazer login");
+        setError(getLoginErrorMessage(err));
       },
     });
   }
@@ -62,17 +62,17 @@ export default function LoginPage() {
         <BaseInput
           name="password"
           type="password"
-          placeholder="password"
+          placeholder="senha"
           value={form.password}
           onChange={handleForm}
           minLength={3}
           maxLength={32}
           required
         />
-        {error && <InlineFeedback message={error} variant="error" onDismiss={() => setError(null)} />}
-        <ButtonSubmit disabled={isPending}>Log In</ButtonSubmit>
+        {error && <SignFormError message={error} />}
+        <ButtonSubmit disabled={isPending}>Entrar</ButtonSubmit>
       </Form>
-      <Link to="/sign-up">First time? Create an account!</Link>
+      <Link to="/sign-up">Primeira vez? Crie sua conta!</Link>
     </SignPagesTemplate>
   );
 }
