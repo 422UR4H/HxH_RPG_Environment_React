@@ -11,7 +11,7 @@ export default function SpBar({ current = 0, max = 0 }: SpBarProps) {
     <ProgressBar
       current={current}
       max={max}
-      color={colors.brandAccent}
+      color={colors.vitalSp}
     />
   );
 }
