@@ -20,11 +20,10 @@ export default function BackButton() {
   );
 }
 
-/* Acende com um halo em volta, sem mexer nos pixels da seta: o brightness() antigo
-   aumentava o contraste das bordas e dava a impressão de ficar mais nítida. */
+/* Estado aceso (hover e foco): só o zoom. Sem brightness(): ele aumentava o contraste
+   das bordas e dava a impressão de a seta ficar mais nítida. */
 const lit = css`
   transform: scale(1.05);
-  filter: drop-shadow(0 0 8px ${colors.controlHighlight}cc);
 `;
 
 const StyledBackButton = styled.button`
@@ -76,7 +75,5 @@ const Arrow = styled.img`
   border: none;
   outline: none;
 
-  transition:
-    transform 0.2s ease,
-    filter 0.2s ease;
+  transition: transform 0.2s ease;
 `;
