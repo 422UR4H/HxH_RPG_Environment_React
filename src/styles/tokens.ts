@@ -45,7 +45,7 @@ export const palette = {
   red800: "#ba1a3e", // brand
   red700: "#cb1437",
   red600: "#db0e2f", // saturado
-  red500: "#ff513d", // combate: Atacar, linha de ataque, anel do alvo
+  red500: "#ff3d47", // combate: Atacar, linha de ataque, anel do alvo
 
   gold800: "#b8860b", // escuro: tag agendada
   gold700: "#dba306", // brand

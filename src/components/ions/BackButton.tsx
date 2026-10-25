@@ -3,7 +3,7 @@ import styled, { css } from "styled-components";
 // import backArrow from "../../assets/icons/setavoltarsemponta.svg"
 import backArrow from "../../assets/icons/setavoltarcomponta.svg";
 import { useNavGuard } from "../../contexts/NavGuardContext";
-import { colors } from "../../styles/tokens";
+import { alpha, colors } from "../../styles/tokens";
 
 export default function BackButton() {
   const navigate = useNavigate();
@@ -24,6 +24,9 @@ export default function BackButton() {
    das bordas e dava a impressão de a seta ficar mais nítida. */
 const lit = css`
   transform: scale(1.05);
+  /* Halo dourado, aguardando aprovação do designer: para ativar, apague os marcadores de
+     comentário da linha de filter abaixo e faça o mesmo na transição de Arrow. Duas camadas: um núcleo curto e uma luz mais larga. */
+  /* filter: drop-shadow(0 0 4px ${alpha(colors.actionHighlight, 0.9)}) drop-shadow(0 0 10px ${alpha(colors.actionHighlight, 0.5)}); */
 `;
 
 const StyledBackButton = styled.button`
@@ -76,4 +79,5 @@ const Arrow = styled.img`
   outline: none;
 
   transition: transform 0.2s ease;
+  /* Com o halo ativo, use: transition: transform 0.2s ease, filter 0.2s ease; */
 `;
