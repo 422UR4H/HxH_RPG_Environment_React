@@ -31,11 +31,11 @@ export const palette = {
   // verdes
   green900: "#08491f",
   green700: "#107135",
-  green200: "#00ff22",
+  green200: "#09cc33",
 
   // vermelhos
   red800: "#ba1a3e",
-  red400: "#ff0015",
+  red400: "#e70a27",
   coral500: "#ff6b4a",
 
   // laranja / âmbar / dourado
