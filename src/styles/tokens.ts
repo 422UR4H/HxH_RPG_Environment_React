@@ -28,14 +28,18 @@ export const palette = {
   brown850: "#382a1a",
   brown900: "#2d2215",
 
-  // verdes
+  // verdes: 4 variações, do brand ao saturado (green900 é o cabeçalho, brand escuro à parte)
   green900: "#08491f",
-  green700: "#107135",
-  green200: "#09cc33",
+  green700: "#107135", // brand
+  green600: "#0e9d39",
+  green500: "#09cc33", // saturado
+  green300: "#00ff22", // saturado máximo
 
   // vermelhos
-  red800: "#ba1a3e",
-  red400: "#e70a27",
+  red800: "#ba1a3e", // brand
+  red700: "#d01334",
+  red600: "#e70a27", // saturado
+  red500: "#ff0015", // saturado máximo
   coral500: "#ff6b4a",
 
   // laranja / âmbar / dourado
@@ -44,14 +48,17 @@ export const palette = {
   amber700: "#a07000",
   amber800: "#7a5618",
   amber900: "#3a2a00",
-  gold500: "#d4af37",
-  gold200: "#ffc300",
+  gold700: "#d4af37", // brand
+  gold600: "#e2b525",
+  gold500: "#f0bc13", // saturado
+  gold400: "#ffc300", // saturado máximo
   ochre700: "#a16207",
 
-  // azuis
-  blue700: "#2e5397",
-  blue600: "#4b70a4",
-  blue400: "#4da3ff", // azul de mana e movimento no mapa
+  // azuis: 4 variações
+  blue700: "#2e5397", // brand
+  blue600: "#4b70a4", // brand claro (degradê do login)
+  blue500: "#3184ee",
+  blue400: "#4da3ff", // saturado (mana)
   navy950: "#0b1220",
   slate400: "#94a3b8",
   slate500: "#64748b",
@@ -76,7 +83,7 @@ export const colors = {
   surfaceScrollTrack: palette.brown700, // trilho da scrollbar (tema earth)
   surfaceScrollThumbHover: palette.brown600, // polegar da scrollbar no hover (tema earth)
   surfaceScrollThumbAccent: palette.red800, // polegar da scrollbar (tema dark, o global)
-  surfaceScrollThumbAccentHover: palette.red400, // polegar da scrollbar (tema dark) no hover
+  surfaceScrollThumbAccentHover: palette.red600, // polegar da scrollbar (tema dark) no hover
   surfaceMuted: palette.neutral800, // cartão escuro de reserva (participante sem dados privados)
   surfaceControl: palette.neutral700, // superfície interna de controle: fundo da barra, card de atributo
   surfaceNeutral: palette.neutral600, // fundo neutro secundário: trilho da barra de EXP, campos de perfil
@@ -88,7 +95,7 @@ export const colors = {
   surfacePanel: palette.neutral900, // painel do ManageButton
   surfaceModal: palette.neutral850, // modal do ImagePickerModal, hover de item do ManageButton
   surfaceFade: alpha(palette.brown700, 0.9), // degradê do texto expansível, casado com surfaceInput
-  surfaceActorRow: alpha(palette.green200, 0.25), // linha de ordem destacada do ator no combate
+  surfaceActorRow: alpha(palette.green500, 0.25), // linha de ordem destacada do ator no combate
 
   // text
   textPrimary: palette.neutral0,
@@ -114,34 +121,34 @@ export const colors = {
   // action
   actionAccent: palette.orange500, // borda de item aberto, variante laranja dos botões
   actionDisabled: palette.amber800, // submit desabilitado
-  actionHighlight: palette.gold500, // controles do header (seta, logo): halo do hover e anel de foco
+  actionHighlight: palette.gold700, // controles do header (seta, logo): halo do hover e anel de foco
   actionDestructive: palette.red800, // botões que removem, excluem, rejeitam ou saem
 
   // feedback
-  feedbackDanger: palette.red400, // erro, alerta, perigo, falha em combate
+  feedbackDanger: palette.red600, // erro, alerta, perigo, falha em combate
   feedbackInputError: palette.red800, // borda de campo com erro, aviso de erro nas telas de login
-  feedbackWarning: palette.gold200, // texto de aviso no seletor de imagem
+  feedbackWarning: palette.gold400, // texto de aviso no seletor de imagem
   feedbackWarningBorder: palette.amber700, // borda e pílula de aviso
   feedbackWarningBg: palette.amber900, // fundo do aviso
 
   // status
   statusScheduled: palette.amber600,
   statusOngoing: palette.green700, // em andamento, NPC, aceitar (fundo de pílula com texto branco)
-  statusPublic: palette.green200, // campanha pública: texto sobre fundo escuro
+  statusPublic: palette.green500, // campanha pública: texto sobre fundo escuro
   statusEnded: palette.red800,
   statusLeft: palette.neutral600,
   statusPending: palette.blue700,
-  statusRating: palette.gold200, // estrela de avaliação
+  statusRating: palette.gold400, // estrela de avaliação
 
   // vital — esquemáticas da ficha
-  vitalHp: palette.red400,
-  vitalSp: palette.green200,
-  vitalExp: palette.gold200, // barra de EXP do personagem
-  vitalSkillExp: palette.red400, // barra de EXP de habilidade e atributo
-  vitalPoints: palette.green200, // pontos a distribuir
+  vitalHp: palette.red600,
+  vitalSp: palette.green500,
+  vitalExp: palette.gold400, // barra de EXP do personagem
+  vitalSkillExp: palette.red600, // barra de EXP de habilidade e atributo
+  vitalPoints: palette.green500, // pontos a distribuir
 
   // map — mapa tático (as cores do Pixi entram por aqui; converta com parseInt(hex.slice(1), 16))
-  mapSelectionRing: palette.gold200, // anel da peça selecionada
+  mapSelectionRing: palette.gold400, // anel da peça selecionada
   mapTargetRing: palette.coral500, // anel do alvo em combate: o matiz do ataque, distinto do dourado da seleção
   mapInspectRing: palette.neutral300, // anel de "só olhando" (F7): neutro, nunca o dourado do ator
   // movimento = azul-ciano: complementar do laranja do ataque (mapAttackIntent) e seguro p/ daltonismo
@@ -151,23 +158,23 @@ export const colors = {
   mapIntentOutline: palette.navy950, // contorno escuro sob os traços de movimento (legível sobre qualquer terreno)
   mapStackBadge: palette.neutral900, // fundo do selo ×N da cascata (§7.2)
   mapAttackIntent: palette.coral500, // ataque em composição: linha ator→alvo, tint do composer
-  mapActiveTurn: palette.green200, // anel da peça cujo turno está aberto
+  mapActiveTurn: palette.green500, // anel da peça cujo turno está aberto
   mapSlotHover: palette.neutral0, // casa sob o ponteiro durante a composição (desenhada com alpha baixo)
-  mapSlotValid: palette.green200, // casa livre/válida ao arrastar ou posicionar
-  mapSlotInvalid: palette.red400, // casa ocupada ou fora do tabuleiro
+  mapSlotValid: palette.green500, // casa livre/válida ao arrastar ou posicionar
+  mapSlotInvalid: palette.red600, // casa ocupada ou fora do tabuleiro
   mapStageBg: palette.navy950, // fundo do palco Pixi
   mapFog: palette.neutral1000, // névoa
   mapMask: palette.neutral0, // cor técnica de máscara/stencil (nunca aparece)
   mapHandleFill: palette.neutral0, // alças de redimensionar e bordas do fundo
   mapHandleStroke: palette.neutral800, // contorno das alças
-  mapHandleRotate: palette.gold200, // alça de rotação
+  mapHandleRotate: palette.gold400, // alça de rotação
   mapHandleSkew: palette.orange500, // alças em modo skew (Shift)
   mapWallStone: palette.slate400,
   mapWallWood: palette.ochre700,
   mapWallIron: palette.slate500,
   mapWallMagical: palette.purple500,
   mapWallGlow: palette.neutral0, // brilho e alças da parede
-  mapWallMidpoint: palette.gold200, // ponto médio da parede selecionada
+  mapWallMidpoint: palette.gold400, // ponto médio da parede selecionada
   mapPieceShadow: palette.neutral1000, // sombra projetada da peça e do rótulo
   mapPieceFallback: palette.neutral850, // peça sem avatar
   mapPieceLabel: palette.neutral0, // texto sobre a peça (nível, altura)
@@ -197,7 +204,7 @@ export const fonts = {
 // Gradientes são uma decisão de design só — um token por gradiente, não um por cor-stop.
 export const gradients = {
   // botões laranja (CreateButton / submit)
-  orange: `linear-gradient(to bottom, ${palette.orange500} 0%, ${palette.orange500} 20%, ${palette.red400} 100%)`,
+  orange: `linear-gradient(to bottom, ${palette.orange500} 0%, ${palette.orange500} 20%, ${palette.red600} 100%)`,
   // fundo das telas de login e cadastro
   signBg: `linear-gradient(to bottom, ${palette.blue600} 0%, ${palette.blue700} 100%)`,
   // véu sob o texto de um card com imagem de fundo: limpo no topo, escuro onde o texto fica
