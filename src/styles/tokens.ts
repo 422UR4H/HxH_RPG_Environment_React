@@ -125,6 +125,8 @@ export const colors = {
   feedbackWarning: palette.gold400, // texto de aviso no seletor de imagem
   feedbackWarningBorder: palette.gold700, // borda e pílula de aviso
   feedbackWarningBg: alpha(palette.gold700, 0.12), // fundo do aviso
+  feedbackProgress: palette.green500, // indicador de carregamento (arco do spinner)
+  feedbackDangerText: palette.red500, // título de erro sobre fundo escuro
 
   // status
   statusScheduled: palette.gold800,
