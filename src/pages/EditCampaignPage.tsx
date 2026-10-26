@@ -18,7 +18,7 @@ import UpcomingRulesSidebar from "../components/organisms/UpcomingRulesSidebar";
 import { PageLoading, PageError, PageNotFound } from "../components/templates/PageState";
 import { getApiErrorDetail } from "../utils/apiError";
 import { toDateTimeLocalValue } from "../utils/date";
-import { missingRequiredMessage } from "../utils/requiredFields";
+import { incompleteInputMessage, missingRequiredMessage } from "../utils/requiredFields";
 
 type CampaignEditFormData = {
   name: string;
@@ -115,11 +115,13 @@ export default function EditCampaignPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // Com partida iniciada, nome e início da história ficam travados (não vão no envio).
-    const missing = missingRequiredMessage([
-      ...(hasStartedMatch ? [] : [{ label: "Nome da Campanha", value: form.name }]),
-      { label: "Descrição Breve", value: form.briefInitialDescription },
-      ...(hasStartedMatch ? [] : [{ label: "Data de Início da História", value: form.storyStartAt }]),
-    ]);
+    const missing =
+      incompleteInputMessage(e.currentTarget as HTMLFormElement) ??
+      missingRequiredMessage([
+        ...(hasStartedMatch ? [] : [{ label: "Nome da Campanha", value: form.name }]),
+        { label: "Descrição Breve", value: form.briefInitialDescription },
+        ...(hasStartedMatch ? [] : [{ label: "Data de Início da História", value: form.storyStartAt }]),
+      ]);
     if (missing) {
       setError(missing);
       return;

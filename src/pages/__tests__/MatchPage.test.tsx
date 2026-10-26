@@ -421,6 +421,25 @@ describe("MatchPage", () => {
       expect(screen.getByText("Pendente")).toBeInTheDocument();
     });
 
+    it.each([
+      ["Aceitar", "accept"],
+      ["Recusar", "reject"],
+    ])("'%s' calls the %s endpoint without opening the sheet", async (verb, action) => {
+      serveEnrollment("pending");
+      const calls: string[] = [];
+      server.use(
+        http.post(`${baseUrl}/enrollments/:id/:action`, ({ params }) => {
+          calls.push(`${params.id}/${params.action}`);
+          return HttpResponse.json({});
+        }),
+      );
+      renderPage({ user: masterUserFixture });
+      const u = userEvent.setup();
+      await u.click(await screen.findByRole("button", { name: `${verb} inscrição de Killua` }));
+      await waitFor(() => expect(calls).toEqual([`enr-1/${action}`]));
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
     it("drops the actions once the enrollment is accepted, keeping only the status", async () => {
       serveEnrollment("accepted");
       renderPage({ user: masterUserFixture });

@@ -14,7 +14,7 @@ import UpcomingRulesSidebar from "../components/organisms/UpcomingRulesSidebar";
 import { CONNECTION_ERROR_MESSAGE, getApiErrorDetail, isConnectionError } from "../utils/apiError";
 import { getCampaignValidationMessage } from "../features/campaign/campaignErrorMessages";
 import { toDateInputValue } from "../utils/date";
-import { missingRequiredMessage } from "../utils/requiredFields";
+import { incompleteInputMessage, missingRequiredMessage } from "../utils/requiredFields";
 
 type CampaignFormData = {
   name: string;
@@ -43,11 +43,13 @@ export default function CreateCampaignPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const missing = missingRequiredMessage([
-      { label: "Nome da Campanha", value: form.name },
-      { label: "Descrição Breve", value: form.briefInitialDescription },
-      { label: "Data de Início da História", value: form.storyStartAt },
-    ]);
+    const missing =
+      incompleteInputMessage(e.currentTarget as HTMLFormElement) ??
+      missingRequiredMessage([
+        { label: "Nome da Campanha", value: form.name },
+        { label: "Descrição Breve", value: form.briefInitialDescription },
+        { label: "Data de Início da História", value: form.storyStartAt },
+      ]);
     if (missing) {
       setError(missing);
       return;

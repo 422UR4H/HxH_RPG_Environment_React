@@ -1,5 +1,6 @@
 import { cloneElement, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import type { CSSProperties, ReactElement } from "react";
+import { createPortal } from "react-dom";
 import styled from "styled-components";
 import { colors } from "../../styles/tokens";
 
@@ -12,8 +13,9 @@ const LONG_PRESS_MS = 500;
  * Dica não clicável: hover (mouse) e foco mostram; toque mostra por `TOUCH_MS`. Segurar o
  * dedo (`LONG_PRESS_MS`) também mostra, e o clique que vem ao soltar é engolido — é assim
  * que um botão que age no toque (ex.: sair) se explica no touch sem ser acionado.
- * A bolha é `position: fixed`, medida a partir do filho ao abrir: um ancestral com
- * `overflow` (a Regência da topbar rola na horizontal) cortaria uma bolha absoluta.
+ * A bolha é `position: fixed`, medida a partir do filho ao abrir, e vai num portal no `body`:
+ * um ancestral com `overflow` (a Regência da topbar rola na horizontal) cortaria uma bolha
+ * absoluta, e um com `filter`/`transform` (o hover do card do lobby) prenderia a `fixed` nele.
  */
 export default function Tooltip({
   label,
@@ -134,11 +136,13 @@ export default function Tooltip({
           a bolha visual é aria-hidden para o texto não ser lido duas vezes. */}
       {enabled && <SrOnly id={id}>{label}</SrOnly>}
       {cloneElement(children, enabled ? { "aria-describedby": id } : {})}
-      {open && (
-        <Bubble ref={bubbleRef} role="tooltip" aria-hidden="true" style={pos ?? undefined}>
-          {label}
-        </Bubble>
-      )}
+      {open &&
+        createPortal(
+          <Bubble ref={bubbleRef} role="tooltip" aria-hidden="true" style={pos ?? undefined}>
+            {label}
+          </Bubble>,
+          document.body,
+        )}
     </Wrap>
   );
 }

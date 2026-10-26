@@ -9,3 +9,14 @@ export function missingRequiredMessage(fields: { label: string; value: string }[
   const list = `${missing.slice(0, -1).join(", ")} e ${missing[missing.length - 1]}`;
   return `Preencha os campos obrigatórios: ${list}.`;
 }
+
+/**
+ * Data digitada pela metade: o navegador entrega `value` vazio e marca `badInput`. Sem o balão
+ * (`noValidate`), ela sumiria em silêncio (opcional) ou pareceria "não preenchida" (obrigatória).
+ */
+export function incompleteInputMessage(form: HTMLFormElement): string | null {
+  const hasBadInput = Array.from(form.elements).some(
+    (el) => el instanceof HTMLInputElement && el.validity.badInput,
+  );
+  return hasBadInput ? "Há uma data incompleta: complete-a ou apague-a." : null;
+}

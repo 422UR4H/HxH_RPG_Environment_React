@@ -107,6 +107,30 @@ describe("CreateMatchPage", () => {
     ).toBeInTheDocument();
   });
 
+  it("keeps the story start inside the campaign, as the browser did before noValidate", async () => {
+    let posted = false;
+    server.use(
+      http.post(`${baseUrl}/matches`, () => {
+        posted = true;
+        return HttpResponse.json({ match: { uuid: "m" } }, { status: 201 });
+      }),
+    );
+    renderPage();
+    const u = userEvent.setup();
+    await u.type(await screen.findByLabelText(/Título da Partida/i), "Nova Partida");
+    await u.type(screen.getByLabelText(/Descrição Breve/i), "Brief partida");
+    const storyStart = screen.getByLabelText("Data de Início na História");
+    await u.clear(storyStart);
+    await u.type(storyStart, "2024-12-31");
+    await u.click(screen.getByRole("button", { name: /Criar Partida/i }));
+    expect(
+      await screen.findByText(
+        "A data de início na história deve ser igual ou posterior ao início da campanha.",
+      ),
+    ).toBeInTheDocument();
+    expect(posted).toBe(false);
+  });
+
   it("submete dados válidos e navega de volta", async () => {
     server.use(
       http.post(`${baseUrl}/matches`, () =>

@@ -114,4 +114,18 @@ describe("Tooltip", () => {
     fireEvent.click(btn);
     expect(screen.queryByRole("tooltip", { hidden: true })).toBeNull();
   });
+
+  it("renders the bubble on the body, out of any ancestor that would clip or re-anchor it", () => {
+    render(
+      <div data-testid="card" style={{ overflow: "hidden", filter: "brightness(1.05)" }}>
+        <Tooltip label="Motivo">
+          <button type="button">Alvo</button>
+        </Tooltip>
+      </div>,
+    );
+    fireEvent.focus(screen.getByRole("button", { name: "Alvo" }));
+    const tip = screen.getByRole("tooltip", { hidden: true });
+    expect(tip.parentElement).toBe(document.body);
+    expect(screen.getByTestId("card")).not.toContainElement(tip);
+  });
 });

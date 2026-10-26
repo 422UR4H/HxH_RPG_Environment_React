@@ -18,7 +18,7 @@ import UpcomingRulesSidebar from "../components/organisms/UpcomingRulesSidebar";
 import { PageLoading, PageError, PageNotFound } from "../components/templates/PageState";
 import { getApiErrorDetail } from "../utils/apiError";
 import { toDateTimeLocalValue } from "../utils/date";
-import { missingRequiredMessage } from "../utils/requiredFields";
+import { incompleteInputMessage, missingRequiredMessage } from "../utils/requiredFields";
 
 type MatchFormData = {
   title: string;
@@ -122,12 +122,14 @@ export default function EditMatchPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const missing = missingRequiredMessage([
-      { label: "Título da Partida", value: form.title },
-      { label: "Descrição Breve", value: form.briefInitialDescription },
-      { label: "Data e Hora da Sessão", value: form.gameScheduledAt },
-      { label: "Data de Início na História", value: form.storyStartAt },
-    ]);
+    const missing =
+      incompleteInputMessage(e.currentTarget as HTMLFormElement) ??
+      missingRequiredMessage([
+        { label: "Título da Partida", value: form.title },
+        { label: "Descrição Breve", value: form.briefInitialDescription },
+        { label: "Data e Hora da Sessão", value: form.gameScheduledAt },
+        { label: "Data de Início na História", value: form.storyStartAt },
+      ]);
     if (missing) {
       setError(missing);
       return;

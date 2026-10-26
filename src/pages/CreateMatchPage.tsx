@@ -17,7 +17,7 @@ import { PageLoading, PageError, PageNotFound } from "../components/templates/Pa
 import { isApiError } from "../services/httpClient";
 import { getApiErrorDetail } from "../utils/apiError";
 import { toDateInputValue, toDateTimeLocalValue } from "../utils/date";
-import { missingRequiredMessage } from "../utils/requiredFields";
+import { incompleteInputMessage, missingRequiredMessage } from "../utils/requiredFields";
 
 type MatchFormData = {
   title: string;
@@ -65,14 +65,27 @@ export default function CreateMatchPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const missing = missingRequiredMessage([
-      { label: "Título da Partida", value: form.title },
-      { label: "Descrição Breve", value: form.briefInitialDescription },
-      { label: "Data e Hora da Sessão", value: form.gameScheduledAt },
-      { label: "Data de Início na História", value: form.storyStartAt },
-    ]);
+    const missing =
+      incompleteInputMessage(e.currentTarget as HTMLFormElement) ??
+      missingRequiredMessage([
+        { label: "Título da Partida", value: form.title },
+        { label: "Descrição Breve", value: form.briefInitialDescription },
+        { label: "Data e Hora da Sessão", value: form.gameScheduledAt },
+        { label: "Data de Início na História", value: form.storyStartAt },
+      ]);
     if (missing) {
       setError(missing);
+      return;
+    }
+    // O min/max do campo não barra mais o envio (noValidate): a mesma regra do back, sem a ida à API.
+    const outsideCampaign =
+      campaign?.storyStartAt && form.storyStartAt < campaign.storyStartAt
+        ? "validation error: story start date must be after campaign start date"
+        : campaign?.storyEndAt && form.storyStartAt > campaign.storyEndAt
+          ? "validation error: story start date must be before campaign end date"
+          : null;
+    if (outsideCampaign) {
+      setError(getMatchValidationMessage(outsideCampaign) ?? null);
       return;
     }
     setError(null);

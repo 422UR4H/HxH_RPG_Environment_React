@@ -31,7 +31,8 @@ export default function BlockableButton({
         {...rest}
         type={type}
         aria-disabled={blocked || undefined}
-        onClick={blocked ? undefined : onClick}
+        // Bloqueado não age nem envia formulário; o clique segue até o Tooltip, que mostra o motivo.
+        onClick={blocked ? (e) => e.preventDefault() : onClick}
       >
         {children}
         {blocked && <HelpMark src={questionMark} alt="" aria-hidden="true" />}
