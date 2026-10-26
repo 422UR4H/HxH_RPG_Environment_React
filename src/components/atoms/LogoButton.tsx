@@ -30,6 +30,7 @@ const StyledLogoButton = styled(Link)`
   height: fit-content;
   border-radius: 6px;
 
+  /* Afastamento de 5 px (o global tem 3): a logo tem um respiro maior que os outros controles. */
   &:focus-visible {
     outline: 2px solid ${colors.actionHighlight};
     outline-offset: 5px;
@@ -41,8 +42,6 @@ const StyledLogoButton = styled(Link)`
     width: min(188px, 28vw);
     /* width: min(180px, 28%); */
     display: block;
-    /* border: none;
-    outline: none; */
 
     /* Só o zoom: o brightness() antigo dava a impressão de ficar mais nítida, e um halo aqui
        vazaria para os vãos entre as letras. */

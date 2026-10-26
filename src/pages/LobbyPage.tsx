@@ -415,11 +415,6 @@ const RetryButton = styled.button`
   &:hover {
     filter: brightness(1.2);
   }
-
-  &:focus-visible {
-    outline: 2px solid ${colors.actionHighlight};
-    outline-offset: 2px;
-  }
 `;
 
 const MasterActions = styled.div`

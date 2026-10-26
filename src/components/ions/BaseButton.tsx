@@ -28,9 +28,6 @@ const StyledButton = styled.button`
   border-radius: 14px;
   cursor: pointer;
 
-  /* &:focus {
-    outline: none;
-  } */
   &:hover:not(:disabled) {
     transform: translateY(-5px);
     filter: brightness(1.1);

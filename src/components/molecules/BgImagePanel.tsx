@@ -447,6 +447,7 @@ const NumberInput = styled.input`
   color: ${colors.textPrimary};
   font-size: 13px;
   outline: none;
+  &:focus { border-color: ${colors.brandAccent}; }
   &:disabled { opacity: 0.4; }
 `;
 

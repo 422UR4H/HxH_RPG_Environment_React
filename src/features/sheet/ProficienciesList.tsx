@@ -177,8 +177,8 @@ const SlotSelect = styled.select`
   background-position: right 12px center;
   background-size: min(4.4cqi, 28px);
 
-  &:active { outline: none; border-color: ${colors.textPrimary}; }
-  &:focus { outline: none; }
+  /* Select fica fora do anel global: o foco é a borda branca. */
+  &:active, &:focus { outline: none; border-color: ${colors.textPrimary}; }
   &:hover { filter: brightness(1.1); }
 
   option:disabled { color: ${colors.textFaint}; background-color: ${colors.surfaceMuted}; }

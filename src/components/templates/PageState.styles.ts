@@ -127,11 +127,6 @@ const actionBase = css`
   text-decoration: none;
   cursor: pointer;
   color: ${colors.textPrimary};
-
-  &:focus-visible {
-    outline: 2px solid ${colors.actionHighlight};
-    outline-offset: 3px;
-  }
 `;
 
 const primary = css`

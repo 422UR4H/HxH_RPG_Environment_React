@@ -35,8 +35,10 @@ const StyledInput = styled.input`
   &::placeholder {
     color: ${colors.textInputDisabled};
   }
+  /* Foco visível: a borda passa do vermelho de repouso para o texto escuro. PR 3 redesenha. */
   &:focus {
     outline: none;
+    border-color: ${colors.textOnLight};
   }
 
   /* @media (max-width: 767px) { */

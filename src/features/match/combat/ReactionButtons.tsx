@@ -181,6 +181,8 @@ const Button = styled.button<{ $compact: boolean }>`
   -webkit-touch-callout: none;
   touch-action: manipulation;
 
+  /* Diferente do anel global de propósito: botões compactos lado a lado, o afastamento de 3 px
+     invadiria o vizinho; e o verde do painel de combate identifica a reação. */
   &:focus-visible {
     outline: 2px solid ${colors.brandAccent};
     outline-offset: 1px;

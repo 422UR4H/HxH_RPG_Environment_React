@@ -101,10 +101,6 @@ const Card = styled(Link)`
       transform: scale(1.06);
     }
   }
-  &:focus-visible {
-    outline: 2px solid ${colors.textPrimary};
-    outline-offset: 3px;
-  }
   &:active {
     transform: scale(0.98);
   }

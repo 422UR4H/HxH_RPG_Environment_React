@@ -20,13 +20,15 @@ export default function BackButton() {
   );
 }
 
-/* Estado aceso (hover e foco): só o zoom. Sem brightness(): ele aumentava o contraste
-   das bordas e dava a impressão de a seta ficar mais nítida. */
+/* Zoom: aparece no hover e no foco do teclado. */
 const lit = css`
   transform: scale(1.05);
-  /* Halo dourado, aguardando aprovação do designer: para ativar, apague os marcadores de
-     comentário da linha de filter abaixo e faça o mesmo na transição de Arrow. Duas camadas: um núcleo curto e uma luz mais larga. */
-  /* filter: drop-shadow(0 0 4px ${alpha(colors.actionHighlight, 0.9)}) drop-shadow(0 0 10px ${alpha(colors.actionHighlight, 0.5)}); */
+`;
+
+/* Halo dourado: só no hover. Duas camadas, um núcleo curto e uma luz mais larga. No foco
+   quem sinaliza é o anel do botão; halo ali seria um segundo indicador. */
+const halo = css`
+  filter: drop-shadow(0 0 4px ${alpha(colors.actionHighlight, 0.9)}) drop-shadow(0 0 10px ${alpha(colors.actionHighlight, 0.5)});
 `;
 
 const StyledBackButton = styled.button`
@@ -50,6 +52,7 @@ const StyledBackButton = styled.button`
   background: none;
   cursor: pointer;
 
+  /* Afastamento de 5 px (o global tem 3): a seta tem um respiro maior que os outros controles. */
   &:focus-visible {
     outline: 2px solid ${colors.actionHighlight};
     outline-offset: 5px;
@@ -59,6 +62,7 @@ const StyledBackButton = styled.button`
   @media (any-hover: hover) {
     &:hover > img {
       ${lit}
+      ${halo}
     }
   }
   &:focus-visible > img {
@@ -78,6 +82,5 @@ const Arrow = styled.img`
   border: none;
   outline: none;
 
-  transition: transform 0.2s ease;
-  /* Com o halo ativo, use: transition: transform 0.2s ease, filter 0.2s ease; */
+  transition: transform 0.2s ease, filter 0.2s ease;
 `;
