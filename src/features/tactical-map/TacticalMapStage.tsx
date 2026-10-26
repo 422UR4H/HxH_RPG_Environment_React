@@ -191,7 +191,7 @@ export default function TacticalMapStage({
         <BgLoadingOverlay>
           <Spinner />
           <LoadingLabel>
-            {uploading ? "Enviando imagem..." : "Carregando imagem..."}
+            {uploading ? "Enviando imagem…" : "Carregando imagem…"}
           </LoadingLabel>
         </BgLoadingOverlay>
       )}

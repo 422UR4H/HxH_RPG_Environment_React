@@ -1,12 +1,12 @@
 import { useCallback } from "react";
 import { Navigate, useParams } from "react-router-dom";
-import styled, { keyframes } from "styled-components";
 import useToken from "../hooks/useToken";
 import { useMap } from "../hooks/useMap";
 import { useUpdateMap } from "../hooks/useUpdateMap";
 import TacticalMapEditor from "../features/tactical-map/TacticalMapEditor";
 import type { TacticalMap } from "../types/tacticalMap";
-import { colors, fonts } from "../styles/tokens";
+import { PageLoading, PageError, PageNotFound } from "../components/templates/PageState";
+import { isApiError } from "../services/httpClient";
 
 export default function EditMapPage() {
   const { campaignId, mapId } = useParams<{
@@ -15,7 +15,7 @@ export default function EditMapPage() {
   }>();
   const { token } = useToken();
 
-  const { data: map, isLoading } = useMap(token, mapId);
+  const { data: map, isPending, isError, error, refetch } = useMap(token, mapId);
   const { mutateAsync } = useUpdateMap(token, campaignId, mapId);
 
   const handleSave = useCallback(async (updatedMap: TacticalMap): Promise<void> => {
@@ -31,13 +31,20 @@ export default function EditMapPage() {
 
   if (!token) return <Navigate to="/" replace />;
 
-  if (isLoading || !map)
-    return (
-      <MapLoadingScreen>
-        <MapSpinner />
-        <MapLoadingText>Carregando mapa...</MapLoadingText>
-      </MapLoadingScreen>
+  const campaignBack = { label: "Voltar para a campanha", to: `/campaigns/${campaignId}` };
+  if (isError) {
+    return isApiError(error, 404) ? (
+      <PageNotFound title="Mapa não encontrado" back={campaignBack} />
+    ) : (
+      <PageError
+        title="Não foi possível carregar o mapa"
+        onRetry={() => void refetch()}
+        back={campaignBack}
+      />
     );
+  }
+  if (isPending) return <PageLoading label="Carregando mapa…" />;
+  if (!map) return <PageNotFound title="Mapa não encontrado" back={campaignBack} />;
 
   return (
     <TacticalMapEditor
@@ -47,33 +54,3 @@ export default function EditMapPage() {
     />
   );
 }
-
-const spinMap = keyframes`
-  to { transform: rotate(360deg); }
-`;
-
-const MapLoadingScreen = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 20px;
-  min-height: 100dvh;
-  background: ${colors.surfaceSidebar};
-`;
-
-const MapSpinner = styled.div`
-  width: 48px;
-  height: 48px;
-  border: 4px solid ${colors.overlayHighlight};
-  border-top-color: ${colors.brandAccent};
-  border-radius: 50%;
-  animation: ${spinMap} 0.9s linear infinite;
-`;
-
-const MapLoadingText = styled.p`
-  margin: 0;
-  color: ${colors.textPrimary};
-  font-family: ${fonts.sans};
-  font-size: 16px;
-`;

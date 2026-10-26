@@ -50,7 +50,7 @@ export default function NpcRosterPanel({
     >
       {showSearch && (
         <SearchInput
-          placeholder="Buscar..."
+          placeholder="Buscar…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />

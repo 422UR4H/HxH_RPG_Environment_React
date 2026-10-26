@@ -1,5 +1,5 @@
 import { useCampaigns } from "../hooks/useCampaigns";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import type { CampaignSummary } from "../types/campaigns";
 import worldMap from "../assets/images/worldmap.png";
 import CampaignCard from "../components/atoms/CampaignCard";
@@ -12,15 +12,26 @@ import CreateButton from "../components/atoms/CreateButton";
 function CampaignsPage() {
   const { token } = useToken();
   const navigate = useNavigate();
-  const { data: campaigns = [], isPending, isError } = useCampaigns(token);
+  const {
+    data: campaigns = [],
+    isPending,
+    isError,
+    refetch,
+  } = useCampaigns(token);
+
+  if (!token) {
+    return <Navigate to="/" replace />;
+  }
 
   return (
     <ListPageTemplate
       bgImage={worldMap}
       isPending={isPending}
       isError={isError}
-      loadingLabel="Carregando campanhas..."
-      errorLabel="Falha ao carregar campanhas. Tente novamente mais tarde."
+      loadingLabel="Carregando campanhas…"
+      errorLabel="Não foi possível carregar as campanhas"
+      onRetry={() => void refetch()}
+      backdrop="world"
     >
       <PageTitle>LISTA DE CAMPANHAS</PageTitle>
 

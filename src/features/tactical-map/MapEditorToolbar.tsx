@@ -285,7 +285,7 @@ export default function MapEditorToolbar({
           disabled={isSaving}
           onClick={onSave}
         >
-          {isSaving ? "Salvando..." : saveLabel}
+          {isSaving ? "Salvando…" : saveLabel}
         </SaveButton>
       </SaveArea>
     </Toolbar>

@@ -64,7 +64,7 @@ describe("CharacterSheetPage", () => {
     expect(await screen.findByText(/TestNick/i)).toBeInTheDocument();
   });
 
-  it("mostra mensagem em português quando o carregamento falha (500)", async () => {
+  it("500 mostra o título do erro com 'Tentar de novo'", async () => {
     server.use(
       http.get(`${baseUrl}/charactersheets/:id`, () =>
         HttpResponse.json({ detail: "boom" }, { status: 500 }),
@@ -72,22 +72,25 @@ describe("CharacterSheetPage", () => {
     );
     renderPage({ user: userFixture });
     expect(
-      await screen.findByText(
-        "Não foi possível carregar a ficha. Tente novamente mais tarde.",
-        {},
-        { timeout: 5000 },
-      ),
+      await screen.findByText("Não foi possível carregar a ficha", {}, { timeout: 5000 }),
     ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Tentar de novo" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Voltar para personagens" })).toBeInTheDocument();
     expect(screen.queryByText(/Request failed/i)).not.toBeInTheDocument();
   });
 
-  it("mostra 'Ficha não encontrada.' no 404", async () => {
+  it("404 mostra 'Ficha não encontrada' com o caminho para a lista, sem repetir", async () => {
     server.use(
       http.get(`${baseUrl}/charactersheets/:id`, () =>
         HttpResponse.json({ detail: "not found" }, { status: 404 }),
       ),
     );
     renderPage({ user: userFixture });
-    expect(await screen.findByText("Ficha não encontrada.", {}, { timeout: 5000 })).toBeInTheDocument();
+    expect(await screen.findByText("Ficha não encontrada", {}, { timeout: 5000 })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Voltar para personagens" })).toHaveAttribute(
+      "href",
+      "/charactersheets",
+    );
+    expect(screen.queryByRole("button", { name: "Tentar de novo" })).not.toBeInTheDocument();
   });
 });

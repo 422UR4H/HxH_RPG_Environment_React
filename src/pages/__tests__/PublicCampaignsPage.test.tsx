@@ -18,7 +18,7 @@ function renderPage(opts: Parameters<typeof renderWithProviders>[1] = {}) {
 }
 
 describe("PublicCampaignsPage", () => {
-  it("mostra 'Carregando campanhas...' inicialmente", () => {
+  it("mostra 'Carregando campanhas públicas…' inicialmente", () => {
     server.use(
       http.get(`${baseUrl}/public/campaigns`, async () => {
         await new Promise((r) => setTimeout(r, 50));
@@ -26,7 +26,7 @@ describe("PublicCampaignsPage", () => {
       }),
     );
     renderPage();
-    expect(screen.getByText(/Carregando campanhas\.\.\./i)).toBeInTheDocument();
+    expect(screen.getByText(/Carregando campanhas públicas…/i)).toBeInTheDocument();
   });
 
   it("mostra erro se a API falha", async () => {
@@ -36,7 +36,7 @@ describe("PublicCampaignsPage", () => {
       ),
     );
     renderPage();
-    expect(await screen.findByText(/Falha ao carregar campanhas/i, {}, { timeout: 5000 })).toBeInTheDocument();
+    expect(await screen.findByText(/Não foi possível carregar as campanhas públicas/i, {}, { timeout: 5000 })).toBeInTheDocument();
   });
 
   it("mostra 'Nenhuma campanha pública disponível' quando lista é vazia", async () => {

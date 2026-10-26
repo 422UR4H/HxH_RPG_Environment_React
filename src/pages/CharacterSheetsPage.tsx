@@ -13,7 +13,7 @@ import { colors } from "../styles/tokens";
 function CharacterSheetsPage() {
   const { token } = useToken();
   const navigate = useNavigate();
-  const { data: charSheets, isPending, isFetching, isError } = useCharacterSheets(token);
+  const { data: charSheets, isPending, isFetching, isError, refetch } = useCharacterSheets(token);
 
   // Rules of Hooks: useEffect must be before any conditional return
   useEffect(() => {
@@ -33,8 +33,10 @@ function CharacterSheetsPage() {
       bgAttachment="scroll"
       isPending={isPending}
       isError={isError}
-      loadingLabel="Carregando..."
-      errorLabel="Falha ao carregar personagens. Tente novamente mais tarde."
+      loadingLabel="Carregando personagens…"
+      errorLabel="Não foi possível carregar os personagens"
+      onRetry={() => void refetch()}
+      backdrop="sheet"
     >
       <PageTitle>LISTA DE PERSONAGENS</PageTitle>
 

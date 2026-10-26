@@ -259,19 +259,77 @@ describe("useLobbyWs", () => {
     expect(MockWebSocket).toHaveBeenCalledTimes(2);
   });
 
-  it("sets status to throttled after 5 reconnects in 60s", () => {
+  it("um 1006 depois de aberto vai para waking e tenta de novo em 500 ms", () => {
     const { result } = renderHook(() => useLobbyWs(defaultParams));
+    simulateOpen();
+    simulateClose(1006);
+    expect(result.current.status).toBe("waking");
+    act(() => { vi.advanceTimersByTime(499); });
+    expect(MockWebSocket).toHaveBeenCalledTimes(1);
+    act(() => { vi.advanceTimersByTime(1); });
+    expect(MockWebSocket).toHaveBeenCalledTimes(2);
+    expect(result.current.status).toBe("waking");
+    simulateClose(1006);
+    expect(result.current.status).toBe("waking");
+    simulateOpen();
+    expect(result.current.status).toBe("connected");
+  });
 
-    for (let i = 0; i < 5; i++) {
-      simulateOpen();
+  function failUntilUnreachable(result: { current: { status: string } }) {
+    for (let i = 0; i < 200 && result.current.status !== "unreachable"; i++) {
       simulateClose(1006);
-      act(() => { vi.advanceTimersByTime(60_000); });
+      act(() => { vi.advanceTimersByTime(5000); });
     }
+  }
 
-    expect(result.current.status).toBe("throttled");
+  it("falhas seguidas por 180 s levam a unreachable e param de criar sockets", () => {
+    const { result } = renderHook(() => useLobbyWs(defaultParams));
+    const t0 = Date.now();
+    failUntilUnreachable(result);
+    expect(result.current.status).toBe("unreachable");
+    expect(Date.now() - t0).toBeGreaterThanOrEqual(180_000);
     const countBefore = MockWebSocket.mock.calls.length;
     act(() => { vi.advanceTimersByTime(60_000); });
     expect(MockWebSocket.mock.calls.length).toBe(countBefore);
+  });
+
+  it("uma mensagem recebida zera a janela", () => {
+    const { result } = renderHook(() => useLobbyWs(defaultParams));
+    simulateOpen();
+    sendFromServer("room_state", { players: [] });
+    simulateClose(1006);
+    const t0 = Date.now();
+    while (Date.now() - t0 < 170_000) {
+      act(() => { vi.advanceTimersByTime(5000); });
+      simulateClose(1006);
+    }
+    expect(result.current.status).toBe("waking");
+    // Reconecta, recebe mensagem, cai de novo: janela nova, volta a esperar 500 ms.
+    act(() => { vi.advanceTimersByTime(5000); });
+    simulateOpen();
+    sendFromServer("room_state", { players: [] });
+    simulateClose(1006);
+    expect(result.current.status).toBe("waking");
+    const count = MockWebSocket.mock.calls.length;
+    act(() => { vi.advanceTimersByTime(500); });
+    expect(MockWebSocket.mock.calls.length).toBe(count + 1);
+  });
+
+  it("reconnect() a partir de unreachable cria um socket novo em connecting", () => {
+    const { result } = renderHook(() => useLobbyWs(defaultParams));
+    failUntilUnreachable(result);
+    expect(result.current.status).toBe("unreachable");
+    const count = MockWebSocket.mock.calls.length;
+    act(() => { result.current.reconnect(); });
+    expect(MockWebSocket.mock.calls.length).toBe(count + 1);
+    expect(result.current.status).toBe("connecting");
+  });
+
+  it("o onerror sozinho não muda o status", () => {
+    const { result } = renderHook(() => useLobbyWs(defaultParams));
+    simulateOpen();
+    act(() => { wsInstance.onerror?.({} as Event); });
+    expect(result.current.status).toBe("connected");
   });
 
   it("closes WS on unmount", () => {

@@ -11,10 +11,8 @@ import { useMap } from "../hooks/useMap";
 import TacticalMapPlacer from "../features/tactical-map/TacticalMapPlacer";
 import { tableMap } from "../features/match/combat/tableMap";
 import { BoardWaitNotice } from "../features/match/combat/BoardWaitNotice";
-import {
-  LoadingContainer,
-  ErrorContainer,
-} from "../components/atoms/PageStates";
+import { PageLoading, PageError, PageNotFound } from "../components/templates/PageState";
+import { isApiError } from "../services/httpClient";
 import { ActionsList } from "../components/atoms/ActionsList";
 import ConfirmDialog from "../components/molecules/ConfirmDialog";
 import DetailPageTemplate from "../components/templates/DetailPageTemplate";
@@ -23,15 +21,15 @@ import RulesSidebar from "../components/organisms/RulesSidebar";
 import RuleSection from "../components/molecules/RuleSection";
 import LobbyConnectionSidebarItem from "../features/match/LobbyConnectionSidebarItem";
 import { colors, fonts, alpha } from "../styles/tokens";
+import { GAME_SERVER_WAKING, GAME_SERVER_UNREACHABLE } from "../services/serverWake";
 import type { WsStatus, LobbyFullState } from "../hooks/useLobbyWs";
 import type { BgImage, GridShape, Piece, SlotCoord, WallSegment } from "../types/tacticalMap";
 
 const ERROR_STATUSES: WsStatus[] = [
+  "unreachable",
   "lobby_not_open",
   "kicked",
   "lobby_closed",
-  "throttled",
-  "error",
   "replaced",
 ];
 
@@ -48,9 +46,19 @@ export default function LobbyPage() {
   const [isKicked, setIsKicked] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
-  const { data: match, isPending, isError } = useMatchDetails(token, matchId);
-  const { data: enrollments = [], isPending: enrollmentsPending } =
-    useMatchEnrollments(token, matchId, true);
+  const {
+    data: match,
+    isPending,
+    isError,
+    error: matchError,
+    refetch: refetchMatch,
+  } = useMatchDetails(token, matchId);
+  const {
+    data: enrollments = [],
+    isPending: enrollmentsPending,
+    isError: enrollmentsError,
+    refetch: refetchEnrollments,
+  } = useMatchEnrollments(token, matchId, true);
 
   const isMaster = !!(match && user && match.masterUuid === user.uuid);
   const hasAccess =
@@ -123,7 +131,7 @@ export default function LobbyPage() {
     );
   }, []);
 
-  const { status, participants, sendStartMatch, sendKick, sendCancelLobby, sendPieceMoved, sendPieceRemoved } =
+  const { status, participants, sendStartMatch, sendKick, sendCancelLobby, sendPieceMoved, sendPieceRemoved, reconnect } =
     useLobbyWs({
       matchUuid: matchId ?? "",
       token: token ?? "",
@@ -158,10 +166,25 @@ export default function LobbyPage() {
   }, [isMaster, lobbyPieces, playerCharacterIds]);
 
   if (!token) return <Navigate to="/" replace />;
-  if (isPending || enrollmentsPending)
-    return <LoadingContainer>Carregando lobby...</LoadingContainer>;
-  if (isError || !match)
-    return <ErrorContainer>Falha ao carregar a partida.</ErrorContainer>;
+  const matchBack = {
+    label: "Voltar para a partida",
+    to: `/campaigns/${campaignId}/matches/${matchId}`,
+  };
+  if (isError && isApiError(matchError, 404))
+    return <PageNotFound title="Partida não encontrada" back={matchBack} />;
+  if (isError || enrollmentsError)
+    return (
+      <PageError
+        title="Não foi possível carregar o lobby"
+        onRetry={() => {
+          if (isError) void refetchMatch();
+          if (enrollmentsError) void refetchEnrollments();
+        }}
+        back={matchBack}
+      />
+    );
+  if (isPending || enrollmentsPending) return <PageLoading label="Carregando lobby…" />;
+  if (!match) return <PageNotFound title="Partida não encontrada" back={matchBack} />;
   if (!hasAccess) {
     return (
       <Navigate to={`/campaigns/${campaignId}/matches/${matchId}`} replace />
@@ -192,19 +215,17 @@ export default function LobbyPage() {
     if (isKicked) return "Você foi removido do lobby pelo mestre.";
     switch (status) {
       case "connecting":
-        return "Conectando ao lobby...";
-      case "disconnected":
-        return "Reconectando...";
+        return "Conectando ao lobby…";
+      case "waking":
+        return GAME_SERVER_WAKING;
+      case "unreachable":
+        return GAME_SERVER_UNREACHABLE;
       case "lobby_not_open":
         return "O lobby ainda não foi aberto pelo mestre.";
-      case "throttled":
-        return "Muitas tentativas de conexão. Recarregue a página para tentar novamente.";
       case "kicked":
         return "Você foi removido do lobby pelo mestre.";
       case "lobby_closed":
         return "O lobby foi encerrado pelo mestre.";
-      case "error":
-        return "Erro de conexão. Verifique sua internet.";
       case "replaced":
         return "Este lobby foi aberto em outra aba ou dispositivo com a sua conta. Recarregue a página para usá-lo aqui.";
       default:
@@ -261,23 +282,31 @@ export default function LobbyPage() {
 
         {wsStatusMessage && (
           <WsStatusBar $isError={ERROR_STATUSES.includes(status)}>
-            {wsStatusMessage}
+            <span>{wsStatusMessage}</span>
+            {status === "unreachable" && !isKicked && (
+              <RetryButton type="button" onClick={reconnect}>
+                Tentar de novo
+              </RetryButton>
+            )}
           </WsStatusBar>
         )}
 
         <ActionsList>
           {isMaster ? (
             <MasterActions>
-              <StartButton onClick={sendStartMatch}>
+              <StartButton onClick={sendStartMatch} disabled={status !== "connected"}>
                 Iniciar Partida
               </StartButton>
-              <CancelButton onClick={() => setShowCancelConfirm(true)}>
+              <CancelButton
+                onClick={() => setShowCancelConfirm(true)}
+                disabled={status !== "connected"}
+              >
                 Cancelar Lobby
               </CancelButton>
             </MasterActions>
           ) : (
             <WaitingMessage>
-              Aguardando o mestre iniciar a partida...
+              Aguardando o mestre iniciar a partida…
             </WaitingMessage>
           )}
         </ActionsList>
@@ -360,6 +389,11 @@ const ConnectedCounter = styled.div`
 `;
 
 const WsStatusBar = styled.div<{ $isError: boolean }>`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
   font-family: ${fonts.sans};
   font-size: 16px;
   padding: 10px 16px;
@@ -367,9 +401,30 @@ const WsStatusBar = styled.div<{ $isError: boolean }>`
   margin-bottom: 20px;
   background-color: ${({ $isError }) =>
     $isError ? alpha(colors.feedbackDanger, 0.1) : colors.overlayMedium};
-  color: ${({ $isError }) => ($isError ? colors.feedbackDanger : colors.textMuted)};
+  color: ${({ $isError }) => ($isError ? colors.feedbackDangerText : colors.textMuted)};
   border: 1px solid
     ${({ $isError }) => ($isError ? colors.feedbackDanger : colors.borderDivider)};
+`;
+
+const RetryButton = styled.button`
+  font-family: ${fonts.sans};
+  font-size: 14px;
+  font-weight: 600;
+  padding: 6px 16px;
+  border-radius: 6px;
+  border: 1px solid ${colors.feedbackDanger};
+  background: transparent;
+  color: ${colors.feedbackDangerText};
+  cursor: pointer;
+
+  &:hover {
+    filter: brightness(1.2);
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${colors.actionHighlight};
+    outline-offset: 2px;
+  }
 `;
 
 const MasterActions = styled.div`
@@ -395,6 +450,12 @@ const BaseActionButton = styled.button`
   }
   &:active {
     transform: scale(0.98);
+  }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    filter: none;
+    transform: none;
   }
 `;
 

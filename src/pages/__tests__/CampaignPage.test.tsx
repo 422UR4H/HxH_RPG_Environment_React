@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { http, HttpResponse } from "msw";
 import { screen, waitFor } from "@testing-library/react";
+import { Route, Routes } from "react-router-dom";
 import userEvent from "@testing-library/user-event";
 import { server } from "../../test/server";
 import { renderWithProviders } from "../../test/render";
@@ -50,7 +51,7 @@ describe("CampaignPage", () => {
   });
 
   describe("loading & error", () => {
-    it("mostra 'Carregando campanha...' enquanto a request resolve", () => {
+    it("mostra 'Carregando campanha…' enquanto a request resolve", () => {
       server.use(
         http.get(`${baseUrl}/campaigns/:id`, async () => {
           await new Promise((r) => setTimeout(r, 50));
@@ -58,10 +59,10 @@ describe("CampaignPage", () => {
         }),
       );
       renderPage();
-      expect(screen.getByText(/Carregando campanha\.\.\./i)).toBeInTheDocument();
+      expect(screen.getByText(/Carregando campanha…/i)).toBeInTheDocument();
     });
 
-    it("mostra mensagem de erro se a API responde 500", async () => {
+    it("500 mostra o erro com 'Tentar de novo'", async () => {
       server.use(
         http.get(`${baseUrl}/campaigns/:id`, () =>
           HttpResponse.json({ error: "server error" }, { status: 500 }),
@@ -69,8 +70,35 @@ describe("CampaignPage", () => {
       );
       renderPage();
       expect(
-        await screen.findByText(/Falha ao carregar detalhes da campanha/i, {}, { timeout: 5000 }),
+        await screen.findByText("Não foi possível carregar a campanha", {}, { timeout: 5000 }),
       ).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Tentar de novo" })).toBeInTheDocument();
+    });
+
+    it("404 mostra 'Campanha não encontrada' com o caminho para a lista", async () => {
+      server.use(
+        http.get(`${baseUrl}/campaigns/:id`, () =>
+          HttpResponse.json({ error: "not found" }, { status: 404 }),
+        ),
+      );
+      renderPage();
+      expect(await screen.findByText("Campanha não encontrada", {}, { timeout: 5000 })).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "Ver campanhas" })).toHaveAttribute(
+        "href",
+        "/campaigns",
+      );
+      expect(screen.queryByRole("button", { name: "Tentar de novo" })).not.toBeInTheDocument();
+    });
+
+    it("sem token redireciona para o login", async () => {
+      renderWithProviders(
+        <Routes>
+          <Route path="/campaigns/:id" element={<CampaignPage />} />
+          <Route path="/" element={<div>login</div>} />
+        </Routes>,
+        { route: "/campaigns/campaign-1", token: null },
+      );
+      expect(await screen.findByText("login")).toBeInTheDocument();
     });
 
     it("mostra 'Campanha não encontrada' quando response é null", async () => {

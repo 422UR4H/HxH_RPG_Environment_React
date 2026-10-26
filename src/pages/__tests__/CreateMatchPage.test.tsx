@@ -44,6 +44,19 @@ describe("CreateMatchPage", () => {
     expect(container.textContent ?? "").not.toContain("CRIAR NOVA PARTIDA");
   });
 
+  it("falha ao carregar a campanha mostra o erro com 'Tentar de novo'", async () => {
+    server.use(
+      http.get(`${baseUrl}/campaigns/:id`, () =>
+        HttpResponse.json({ error: "x" }, { status: 500 }),
+      ),
+    );
+    renderPage();
+    expect(
+      await screen.findByText("Não foi possível carregar a campanha", {}, { timeout: 5000 }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Tentar de novo" })).toBeInTheDocument();
+  });
+
   it("renderiza os campos do form", async () => {
     renderPage();
     expect(await screen.findByLabelText(/Título da Partida/i)).toBeInTheDocument();

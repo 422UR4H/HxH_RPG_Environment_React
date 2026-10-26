@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { useParams, useNavigate, useLocation, useSearchParams } from "react-router-dom";
+import { Navigate, useParams, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import useToken from "../hooks/useToken";
 import useUser from "../hooks/useUser";
 import { useCampaignDetails } from "../hooks/useCampaignDetails";
@@ -13,10 +13,7 @@ import MatchItem from "../features/campaign/MatchItem";
 import AdaptiveActionButton from "../components/molecules/AdaptiveActionButton";
 import BottomActions from "../components/molecules/BottomActions";
 import { getSortedCharacters } from "../features/campaign/utils/characterUtils";
-import {
-  LoadingContainer,
-  ErrorContainer,
-} from "../components/atoms/PageStates";
+import { PageLoading, PageError, PageNotFound } from "../components/templates/PageState";
 import { ActionsList as BaseActionsList } from "../components/atoms/ActionsList";
 import ExpandableText from "../components/molecules/ExpandableText";
 import ConfirmDialog from "../components/molecules/ConfirmDialog";
@@ -29,6 +26,8 @@ import { useMaps } from "../hooks/useMaps";
 import PageTabNav from "../components/organisms/PageTabNav";
 import MapCard from "../components/molecules/MapCard";
 import { formatDateBR } from "../utils/date";
+
+const CAMPAIGNS_BACK = { label: "Ver campanhas", to: "/campaigns" };
 
 export default function CampaignPage() {
   const { id } = useParams<{ id: string }>();
@@ -51,7 +50,13 @@ export default function CampaignPage() {
   const sidebarRef = useRef<HTMLDivElement>(null);
   const mainContentRef = useRef<HTMLDivElement>(null);
 
-  const { data: campaign, isPending, isError } = useCampaignDetails(token, id);
+  const {
+    data: campaign,
+    isPending,
+    isError,
+    error: loadError,
+    refetch,
+  } = useCampaignDetails(token, id);
   const {
     mutate: submitSheet,
     isPending: submitPending,
@@ -136,16 +141,21 @@ export default function CampaignPage() {
     sortedSheets = getSortedCharacters(campaign.characterSheets, pendingSheets);
   }
 
-  if (isPending) {
-    return <LoadingContainer>Carregando campanha...</LoadingContainer>;
-  }
+  if (!token) return <Navigate to="/" replace />;
   if (isError) {
-    return (
-      <ErrorContainer>Falha ao carregar detalhes da campanha.</ErrorContainer>
+    return isApiError(loadError, 404) ? (
+      <PageNotFound title="Campanha não encontrada" back={CAMPAIGNS_BACK} />
+    ) : (
+      <PageError
+        title="Não foi possível carregar a campanha"
+        onRetry={() => void refetch()}
+        back={CAMPAIGNS_BACK}
+      />
     );
   }
+  if (isPending) return <PageLoading label="Carregando campanha…" />;
   if (!campaign) {
-    return <ErrorContainer>Campanha não encontrada</ErrorContainer>;
+    return <PageNotFound title="Campanha não encontrada" back={CAMPAIGNS_BACK} />;
   }
 
   return (
@@ -269,7 +279,7 @@ export default function CampaignPage() {
               ) : !submitted && sheetId ? (
                 <>
                   <AdaptiveActionButton
-                    label={submitPending ? "Submetendo..." : "Submeter Ficha"}
+                    label={submitPending ? "Submetendo…" : "Submeter Ficha"}
                     type="match"
                     onClick={submitPending ? () => {} : handleRequestSubmit}
                     containerRef={mainContentRef}
@@ -302,7 +312,7 @@ export default function CampaignPage() {
           <>
             <MapsGrid>
               {mapsPending ? (
-                <MapsEmptyText>Carregando mapas...</MapsEmptyText>
+                <MapsEmptyText>Carregando mapas…</MapsEmptyText>
               ) : (maps ?? []).length === 0 ? (
                 <MapsEmptyText>Nenhum mapa criado ainda.</MapsEmptyText>
               ) : (

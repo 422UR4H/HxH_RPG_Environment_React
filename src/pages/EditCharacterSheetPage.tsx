@@ -11,6 +11,7 @@ import type { CharacterSheet } from "../types/characterSheet";
 import { validateCharacterSheet } from "../features/sheet/utils/validateCharacterSheet";
 import { characterSheetsService } from "../services/characterSheetsService";
 import { uploadService } from "../services/uploadService";
+import { isApiError } from "../services/httpClient";
 
 function sheetChangedFrom(
   current: CharacterSheet,
@@ -50,14 +51,17 @@ function EditCharacterSheetPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data: existingSheet, isLoading: sheetLoading } = useCharacterSheet(
-    token,
-    id,
-  );
+  const {
+    data: existingSheet,
+    isLoading: sheetLoading,
+    error: sheetError,
+    refetch: refetchSheet,
+  } = useCharacterSheet(token, id);
   const {
     data: charClasses,
     isLoading: classesLoading,
     error: classesError,
+    refetch: refetchClasses,
   } = useCharacterClasses(token);
 
   const [charSheet, setCharSheet] = useState<CharacterSheet | undefined>(
@@ -294,10 +298,15 @@ function EditCharacterSheetPage() {
           sheetLoading ||
           (editMode === "full" ? classesLoading : false) ||
           isSubmitting,
-        error:
-          editMode === "full" && classesError
-            ? "Não foi possível carregar as classes de personagem. Tente novamente mais tarde."
+        error: sheetError
+          ? isApiError(sheetError, 404)
+            ? "Ficha não encontrada"
+            : "Não foi possível carregar a ficha"
+          : editMode === "full" && classesError
+            ? "Não foi possível carregar as classes"
             : null,
+        onRetry: () => void (sheetError ? refetchSheet() : refetchClasses()),
+        notFound: isApiError(sheetError, 404),
         onAvatarSelected: handleAvatarSelected,
         onCoverSelected: handleCoverSelected,
         onCreateSheet: handleSave,

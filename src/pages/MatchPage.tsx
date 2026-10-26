@@ -20,7 +20,8 @@ import MatchHeaderSection from "../features/match/MatchHeaderSection";
 import MatchMapsPanel from "../features/match/MatchMapsPanel";
 import LobbyConfirmDialog from "../features/match/LobbyConfirmDialog";
 import BottomActions from "../components/molecules/BottomActions";
-import { LoadingContainer, ErrorContainer } from "../components/atoms/PageStates";
+import { PageLoading, PageError, PageNotFound } from "../components/templates/PageState";
+import { isApiError } from "../services/httpClient";
 import ConfirmDialog from "../components/molecules/ConfirmDialog";
 import DetailPageTemplate from "../components/templates/DetailPageTemplate";
 import RulesSidebar from "../components/organisms/RulesSidebar";
@@ -28,7 +29,6 @@ import RuleSection from "../components/molecules/RuleSection";
 import type { MatchStatus } from "../types/match";
 import { ActionsList } from "../components/atoms/ActionsList";
 import { useQueryClient } from "@tanstack/react-query";
-import { isApiError } from "../services/httpClient";
 import { getApiErrorDetail } from "../utils/apiError";
 
 const MAP_LOCKED_TEXT = "O mapa não pode ser trocado depois que a partida começou.";
@@ -90,7 +90,13 @@ export default function MatchPage() {
   const [descriptionSignal, setDescriptionSignal] = useState(false);
   const mainContentRef = useRef<HTMLDivElement>(null);
 
-  const { data: match, isPending, isError } = useMatchDetails(token, matchId);
+  const {
+    data: match,
+    isPending,
+    isError,
+    error: loadError,
+    refetch,
+  } = useMatchDetails(token, matchId);
 
   const matchStarted = !!match?.gameStartAt;
 
@@ -235,10 +241,23 @@ export default function MatchPage() {
     enrollSheet({ sheetUuid: sheetId, matchUuid: match.uuid });
   };
 
-  if (isPending)
-    return <LoadingContainer>Carregando partida...</LoadingContainer>;
-  if (isError) return <ErrorContainer>Falha ao carregar detalhes da partida.</ErrorContainer>;
-  if (!match) return <ErrorContainer>Partida não encontrada</ErrorContainer>;
+  const campaignBack = {
+    label: "Voltar para a campanha",
+    to: `/campaigns/${campaignId}`,
+  };
+  if (isError) {
+    return isApiError(loadError, 404) ? (
+      <PageNotFound title="Partida não encontrada" back={campaignBack} />
+    ) : (
+      <PageError
+        title="Não foi possível carregar a partida"
+        onRetry={() => void refetch()}
+        back={campaignBack}
+      />
+    );
+  }
+  if (isPending) return <PageLoading label="Carregando partida…" />;
+  if (!match) return <PageNotFound title="Partida não encontrada" back={campaignBack} />;
 
   const status = getMatchStatus(match);
 
@@ -342,7 +361,7 @@ export default function MatchPage() {
                       }
                     : canEnroll
                     ? {
-                        label: enrollPending ? "Inscrevendo..." : "Inscrever-se",
+                        label: enrollPending ? "Inscrevendo…" : "Inscrever-se",
                         onClick: enrollPending ? () => {} : () => setShowEnrollConfirm(true),
                       }
                     : undefined

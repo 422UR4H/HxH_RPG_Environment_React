@@ -27,7 +27,7 @@ export default function CreateFormTemplate({
   error,
   onSubmit,
   submitLabel,
-  submittingLabel = "Criando...",
+  submittingLabel = "Criando…",
   isSubmitting,
   onCancel,
   rulesContent,

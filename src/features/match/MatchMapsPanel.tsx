@@ -54,7 +54,7 @@ export default function MatchMapsPanel({
         {changeError && <MapChangeError role="alert">{changeError}</MapChangeError>}
         {changeNotice && <MapChangeNotice role="status">{changeNotice}</MapChangeNotice>}
         {mapsPending ? (
-          <MapsEmptyText>Carregando mapas...</MapsEmptyText>
+          <MapsEmptyText>Carregando mapas…</MapsEmptyText>
         ) : (maps ?? []).length === 0 ? (
           <MapsEmptyText>Nenhum mapa criado ainda.</MapsEmptyText>
         ) : (
@@ -70,7 +70,7 @@ export default function MatchMapsPanel({
                       <>
                         <AttachedBadge>Anexado</AttachedBadge>
                         <DetachButton onClick={onDetach} disabled={isDetaching}>
-                          {isDetaching ? "Desanexando..." : "Desanexar"}
+                          {isDetaching ? "Desanexando…" : "Desanexar"}
                         </DetachButton>
                       </>
                     ) : (
@@ -78,7 +78,7 @@ export default function MatchMapsPanel({
                         onClick={() => onAttach(map.id)}
                         disabled={isAttaching}
                       >
-                        {isAttaching ? "Anexando..." : "Anexar"}
+                        {isAttaching ? "Anexando…" : "Anexar"}
                       </AttachButton>
                     )}
                   </MapAttachRow>

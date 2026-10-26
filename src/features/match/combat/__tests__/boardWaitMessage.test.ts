@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { GAME_SERVER_WAKING } from "../../../../services/serverWake";
 import { boardWaitMessage } from "../boardWaitMessage";
 import type { MatchWsStatus } from "../../../../hooks/useMatchWs";
 import type { WsStatus } from "../../../../hooks/useLobbyWs";
@@ -32,9 +33,12 @@ describe("boardWaitMessage", () => {
     });
   });
   it("sem conexão: mesa e lobby", () => {
-    for (const status of ["disconnected", "error", "throttled", "replaced", "kicked", "lobby_closed"] as S[]) {
+    for (const status of ["unreachable", "disconnected", "replaced", "kicked", "lobby_closed"] as S[]) {
       expect(boardWaitMessage({ boardUnavailable: false, status })).toEqual({ text: NO_CONNECTION, tone: "muted" });
     }
+  });
+  it("waking: texto de servidor acordando, em tom neutro", () => {
+    expect(boardWaitMessage({ boardUnavailable: false, status: "waking" })).toEqual({ text: GAME_SERVER_WAKING, tone: "muted" });
   });
   it("conectando ou conectado: carregando", () => {
     for (const status of ["connecting", "connected"] as S[]) {

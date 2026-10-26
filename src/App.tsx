@@ -1,6 +1,9 @@
-import { lazy, Suspense } from "react";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { lazy, Suspense, useEffect } from "react";
+import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
+import { warmUpServers } from "./services/serverWake";
 import { NavGuardProvider } from "./contexts/NavGuardContext";
+import NotFoundPage from "./pages/NotFoundPage";
+import { PageLoading } from "./components/templates/PageState";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import HomePage from "./pages/HomePage";
@@ -23,10 +26,20 @@ const TacticalMapDemoPage = lazy(() => import("./pages/TacticalMapDemoPage"));
 const CreateMapPage = lazy(() => import("./pages/CreateMapPage"));
 const EditMapPage = lazy(() => import("./pages/EditMapPage"));
 
+// Acorda API e servidor do jogo (Render dorme) em segundo plano a cada navegação.
+function ServerWarmUp() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    warmUpServers();
+  }, [pathname]);
+  return null;
+}
+
 function App() {
   return (
     <NavGuardProvider>
       <BrowserRouter>
+        <ServerWarmUp />
         <Routes>
         <Route path="/" element={<LoginPage />} />
         <Route path="/sign-up" element={<RegisterPage />} />
@@ -66,7 +79,7 @@ function App() {
         <Route
           path="/campaigns/:campaignId/matches/:matchId/lobby"
           element={
-            <Suspense fallback={<div>Loading...</div>}>
+            <Suspense fallback={<PageLoading label="Carregando…" />}>
               <LobbyPage />
             </Suspense>
           }
@@ -74,7 +87,7 @@ function App() {
         <Route
           path="/campaigns/:campaignId/matches/:matchId/game"
           element={
-            <Suspense fallback={<div>Loading...</div>}>
+            <Suspense fallback={<PageLoading label="Carregando…" />}>
               <GamePage />
             </Suspense>
           }
@@ -82,7 +95,7 @@ function App() {
         <Route
           path="/campaigns/:campaignId/maps/new"
           element={
-            <Suspense fallback={<div>Loading...</div>}>
+            <Suspense fallback={<PageLoading label="Carregando…" />}>
               <CreateMapPage />
             </Suspense>
           }
@@ -90,7 +103,7 @@ function App() {
         <Route
           path="/campaigns/:campaignId/maps/:mapId/edit"
           element={
-            <Suspense fallback={<div>Loading...</div>}>
+            <Suspense fallback={<PageLoading label="Carregando…" />}>
               <EditMapPage />
             </Suspense>
           }
@@ -99,12 +112,13 @@ function App() {
           <Route
             path="/dev/tactical-map-demo"
             element={
-              <Suspense fallback={<div>Loading map demo…</div>}>
+              <Suspense fallback={<PageLoading label="Carregando…" />}>
                 <TacticalMapDemoPage />
               </Suspense>
             }
           />
         )}
+        <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </BrowserRouter>
     </NavGuardProvider>

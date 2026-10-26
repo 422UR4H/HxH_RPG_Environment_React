@@ -29,7 +29,7 @@ describe("CharacterSheetsPage", () => {
     mockNavigate.mockReset();
   });
 
-  it("mostra 'Carregando...' inicialmente", () => {
+  it("mostra 'Carregando personagens…' inicialmente", () => {
     server.use(
       http.get(`${baseUrl}/charactersheets`, async () => {
         await new Promise((r) => setTimeout(r, 50));
@@ -37,7 +37,7 @@ describe("CharacterSheetsPage", () => {
       }),
     );
     renderPage();
-    expect(screen.getByText(/Carregando\.\.\./i)).toBeInTheDocument();
+    expect(screen.getByText(/Carregando personagens…/i)).toBeInTheDocument();
   });
 
   it("mostra erro se a API falha", async () => {
@@ -47,7 +47,7 @@ describe("CharacterSheetsPage", () => {
       ),
     );
     renderPage();
-    expect(await screen.findByText(/Falha ao carregar personagens/i, {}, { timeout: 5000 })).toBeInTheDocument();
+    expect(await screen.findByText(/Não foi possível carregar os personagens/i, {}, { timeout: 5000 })).toBeInTheDocument();
   });
 
   it("renderiza card pra cada ficha", async () => {

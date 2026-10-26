@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { Navigate, useParams, useNavigate } from "react-router-dom";
 import useToken from "../hooks/useToken";
 import { useCreateMap } from "../hooks/useCreateMap";
 import TacticalMapEditor from "../features/tactical-map/TacticalMapEditor";
@@ -39,7 +39,7 @@ export default function CreateMapPage() {
     [navigate, campaignId],
   );
 
-  if (!token) return null;
+  if (!token) return <Navigate to="/" replace />;
 
   return (
     <TacticalMapEditor

@@ -640,8 +640,8 @@ describe("useMatchWs connection lifecycle", () => {
     expect(ws.close).toHaveBeenCalledWith(4000, expect.any(String));
 
     act(() => { ws.onclose?.({ code: 4000 } as CloseEvent); });
-    expect(result.current.status).toBe("connecting");
-    act(() => { vi.advanceTimersByTime(1000); });
+    expect(result.current.status).toBe("waking");
+    act(() => { vi.advanceTimersByTime(500); });
     expect(FakeWS.instances).toHaveLength(2);
   });
 
@@ -721,5 +721,83 @@ describe("useMatchWs connection lifecycle", () => {
     flushConnect(1);
     expect(FakeWS.instances).toHaveLength(2);
     expect(result.current.status).toBe("connecting");
+  });
+
+  it("um fechamento 1006 vai para waking e tenta de novo em 500 ms", () => {
+    const { result } = renderHook(() => useMatchWs({ matchUuid: "m1", token: "t" }));
+    const ws = flushConnect();
+    act(() => { ws.onclose?.({ code: 1006 } as CloseEvent); });
+    expect(result.current.status).toBe("waking");
+    act(() => { vi.advanceTimersByTime(499); });
+    expect(FakeWS.instances).toHaveLength(1);
+    act(() => { vi.advanceTimersByTime(1); });
+    expect(FakeWS.instances).toHaveLength(2);
+  });
+
+  it("falhas por 180 s vão para disconnected, e reconnect() reabre", () => {
+    const { result } = renderHook(() => useMatchWs({ matchUuid: "m1", token: "t" }));
+    let ws = flushConnect();
+    let guard = 0;
+    const status = (): string => result.current.status;
+    while (status() !== "disconnected" && guard++ < 200) {
+      act(() => { ws.onclose?.({ code: 1006 } as CloseEvent); });
+      if (status() === "disconnected") break;
+      expect(status()).toBe("waking");
+      act(() => { vi.advanceTimersByTime(5000); });
+      ws = FakeWS.instances[FakeWS.instances.length - 1];
+    }
+    expect(result.current.status).toBe("disconnected");
+    // Bem mais que as 5 tentativas de antes: foi a janela de tempo que esgotou.
+    expect(FakeWS.instances.length).toBeGreaterThan(20);
+
+    const before = FakeWS.instances.length;
+    act(() => { result.current.reconnect(); });
+    flushConnect(before);
+    expect(FakeWS.instances).toHaveLength(before + 1);
+  });
+
+  it("uma mensagem recebida zera a janela", () => {
+    const { result } = renderHook(() => useMatchWs({ matchUuid: "m1", token: "t" }));
+    let ws = flushConnect();
+    // Quase esgota a janela com falhas.
+    for (let t = 0; t < 170_000; t += 5000) {
+      act(() => { ws.onclose?.({ code: 1006 } as CloseEvent); });
+      act(() => { vi.advanceTimersByTime(5000); });
+      ws = FakeWS.instances[FakeWS.instances.length - 1];
+    }
+    act(() => { ws.onopen?.(); });
+    act(() => { ws.emit("room_state", {}); });
+    // Uma queda muito depois ganha janela nova (3 min), não a velha quase vencida.
+    act(() => { vi.advanceTimersByTime(60_000); });
+    act(() => { ws.onclose?.({ code: 1006 } as CloseEvent); });
+    expect(result.current.status).toBe("waking");
+    for (let i = 0; i < 20; i++) {
+      act(() => { vi.advanceTimersByTime(5000); });
+      ws = FakeWS.instances[FakeWS.instances.length - 1];
+      act(() => { ws.onclose?.({ code: 1006 } as CloseEvent); });
+    }
+    expect(result.current.status).toBe("waking");
+  });
+
+  it("1000 e 1001 vão direto para disconnected", () => {
+    const { result } = renderHook(() => useMatchWs({ matchUuid: "m1", token: "t" }));
+    const ws = flushConnect();
+    act(() => { ws.onclose?.({ code: 1001 } as CloseEvent); });
+    expect(result.current.status).toBe("disconnected");
+  });
+
+  it("waiting não gasta a janela: depois de 4 min esperando o mestre, a queda ainda tenta de novo", () => {
+    const { result } = renderHook(() => useMatchWs({ matchUuid: "m1", token: "t" }));
+    let ws = flushConnect();
+    for (let t = 0; t < 240_000; t += 5000) {
+      act(() => { ws.onopen?.(); });
+      act(() => { ws.emit("lobby_not_open", {}); });
+      act(() => { ws.onclose?.({ code: 4001 } as CloseEvent); });
+      expect(result.current.status).toBe("waiting");
+      act(() => { vi.advanceTimersByTime(5000); });
+      ws = FakeWS.instances[FakeWS.instances.length - 1];
+    }
+    act(() => { ws.onclose?.({ code: 1006 } as CloseEvent); });
+    expect(result.current.status).toBe("waking");
   });
 });

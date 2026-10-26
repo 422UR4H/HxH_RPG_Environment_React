@@ -182,4 +182,17 @@ describe("CreateCharacterSheetPage", () => {
       expect(mockNavigate).not.toHaveBeenCalled();
     },
   );
+
+  it("falha ao carregar as classes mostra o erro com 'Tentar de novo'", async () => {
+    server.use(
+      http.get(`${baseUrl}/classes`, () =>
+        HttpResponse.json({ detail: "boom" }, { status: 500 }),
+      ),
+    );
+    renderPage();
+    expect(
+      await screen.findByText("Não foi possível carregar as classes", {}, { timeout: 5000 }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Tentar de novo" })).toBeInTheDocument();
+  });
 });

@@ -144,7 +144,7 @@ export default function BgImagePanel({ bg, grid, mapId, onBgChange, onGridChange
           onDrop={handleDrop}
           onDragOver={(e) => e.preventDefault()}
         >
-          {isUploading ? "Enviando..." : "Clique ou solte uma imagem aqui"}
+          {isUploading ? "Enviando…" : "Clique ou solte uma imagem aqui"}
         </Dropzone>
 
         <OrDivider>── ou ──</OrDivider>

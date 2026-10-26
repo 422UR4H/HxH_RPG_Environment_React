@@ -113,7 +113,7 @@ export default function BackgroundEditorModal({
                 ref={textareaRef}
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
-                placeholder="Escreva ou cole o background do seu personagem..."
+                placeholder="Escreva ou cole o background do seu personagem…"
               />
             </>
           )}

@@ -207,7 +207,7 @@ export default function ImagePickerModal({
         <ModalActions>
           <CancelButton onClick={attemptClose}>Cancelar</CancelButton>
           <ConfirmButton onClick={handleConfirm} disabled={!hasPendingContent || isCompressing}>
-            {isCompressing ? "Processando..." : "Confirmar"}
+            {isCompressing ? "Processando…" : "Confirmar"}
           </ConfirmButton>
         </ModalActions>
       </Modal>
