@@ -2,7 +2,8 @@ import { Navigate, useParams } from "react-router-dom";
 import useToken from "../hooks/useToken";
 import useUser from "../hooks/useUser";
 import { useMatchDetails } from "../hooks/useMatchDetails";
-import { LoadingContainer } from "../components/atoms/PageStates";
+import { PageLoading, PageError, PageNotFound } from "../components/templates/PageState";
+import { isApiError } from "../services/httpClient";
 import GamePlayerPage from "./GamePlayerPage";
 import GameMasterPage from "./GameMasterPage";
 
@@ -32,13 +33,29 @@ function GameRoute({
   campaignId?: string;
   matchId?: string;
 }) {
-  const { data: match, isPending } = useMatchDetails(token, matchId);
+  const { data: match, isPending, isError, error, refetch } = useMatchDetails(token, matchId);
   const { user } = useUser();
 
-  // Loading guard (src/pages/CLAUDE.md): sem match/user não há como decidir o papel.
-  if (isPending || !match || !user) {
-    return <LoadingContainer>Carregando partida...</LoadingContainer>;
+  const matchBack = {
+    label: "Voltar para a campanha",
+    to: `/campaigns/${campaignId}`,
+  };
+
+  // Erro antes do carregando (src/pages/CLAUDE.md): query com erro nunca fica em "Carregando…".
+  if (isError) {
+    return isApiError(error, 404) ? (
+      <PageNotFound title="Partida não encontrada" back={matchBack} />
+    ) : (
+      <PageError
+        title="Não foi possível carregar a partida"
+        onRetry={() => void refetch()}
+        back={matchBack}
+      />
+    );
   }
+  // Sem match/user não há como decidir o papel.
+  if (isPending || !user) return <PageLoading label="Carregando partida…" />;
+  if (!match) return <PageNotFound title="Partida não encontrada" back={matchBack} />;
 
   const isMaster = match.masterUuid === user.uuid;
   return isMaster

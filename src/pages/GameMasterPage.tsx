@@ -718,7 +718,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
           <>
             <CanvasWrapper ref={canvasRef}>
               {game.isLoading ? (
-                <MapLoadingMessage>Carregando mapa...</MapLoadingMessage>
+                <MapLoadingMessage>Carregando mapa…</MapLoadingMessage>
               ) : game.boardPending ? (
                 // O mapa está anexado, mas o tabuleiro da partida ainda não chegou: diz o porquê,
                 // sem desenhar o mapa da campanha no lugar.

@@ -42,6 +42,23 @@ describe("EditMapPage", () => {
     expect(screen.getByText(/carregando/i)).toBeInTheDocument();
   });
 
+  it("500 no mapa mostra 'Não foi possível carregar o mapa', não carregando eterno", async () => {
+    server.use(
+      http.get(`${baseUrl}/maps/:mapId`, () =>
+        HttpResponse.json({ error: "x" }, { status: 500 }),
+      ),
+    );
+    renderWithProviders(<EditMapPage />, {
+      route: "/campaigns/campaign-1/maps/map-1/edit",
+      path: "/campaigns/:campaignId/maps/:mapId/edit",
+      user: masterUserFixture,
+    });
+    expect(
+      await screen.findByText("Não foi possível carregar o mapa", {}, { timeout: 5000 }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/carregando/i)).not.toBeInTheDocument();
+  });
+
   it("após carregar, exibe o nome do mapa no campo", async () => {
     renderPage();
     const nameInput = await screen.findByPlaceholderText(/nome do mapa/i);

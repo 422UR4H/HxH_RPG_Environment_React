@@ -139,6 +139,20 @@ describe("LobbyPage", () => {
     expect(screen.getByText(/Carregando/i)).toBeInTheDocument();
   });
 
+  it("500 na partida mostra o erro do lobby com 'Tentar de novo'", async () => {
+    server.use(
+      http.get(`${baseUrl}/matches/:id`, () => HttpResponse.json({ error: "x" }, { status: 500 })),
+      http.get(`${baseUrl}/matches/:id/enrollments`, () =>
+        HttpResponse.json({ enrollments: [] }),
+      ),
+    );
+    renderPage();
+    expect(
+      await screen.findByText("Não foi possível carregar o lobby", {}, { timeout: 5000 }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Tentar de novo" })).toBeInTheDocument();
+  });
+
   it("mestre vê botão Iniciar Partida e Cancelar Lobby", async () => {
     setupHandlers("master-1");
     renderPage({ user: masterUserFixture });

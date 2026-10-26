@@ -312,7 +312,7 @@ export default function CampaignPage() {
           <>
             <MapsGrid>
               {mapsPending ? (
-                <MapsEmptyText>Carregando mapas...</MapsEmptyText>
+                <MapsEmptyText>Carregando mapas…</MapsEmptyText>
               ) : (maps ?? []).length === 0 ? (
                 <MapsEmptyText>Nenhum mapa criado ainda.</MapsEmptyText>
               ) : (

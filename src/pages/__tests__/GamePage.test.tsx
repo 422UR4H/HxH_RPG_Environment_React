@@ -75,4 +75,33 @@ describe("GamePage (rota)", () => {
     expect(screen.getByRole("button", { name: /^agir$/i })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^ação$/i })).not.toBeInTheDocument();
   });
+
+  it("500 na partida mostra o erro com 'Tentar de novo', não carregando eterno", async () => {
+    server.use(
+      http.get(`${baseUrl}/matches/:id`, () =>
+        HttpResponse.json({ error: "x" }, { status: 500 }),
+      ),
+    );
+    renderPage();
+    expect(
+      await screen.findByText("Não foi possível carregar a partida", {}, { timeout: 5000 }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/carregando partida/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Tentar de novo" })).toBeInTheDocument();
+  });
+
+  it("404 na partida mostra 'Partida não encontrada' com volta para a campanha", async () => {
+    server.use(
+      http.get(`${baseUrl}/matches/:id`, () =>
+        HttpResponse.json({ error: "not found" }, { status: 404 }),
+      ),
+    );
+    renderPage();
+    expect(await screen.findByText("Partida não encontrada", {}, { timeout: 5000 })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Tentar de novo" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Voltar para a campanha" })).toHaveAttribute(
+      "href",
+      "/campaigns/campaign-1",
+    );
+  });
 });

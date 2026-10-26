@@ -11,10 +11,8 @@ import { useMap } from "../hooks/useMap";
 import TacticalMapPlacer from "../features/tactical-map/TacticalMapPlacer";
 import { tableMap } from "../features/match/combat/tableMap";
 import { BoardWaitNotice } from "../features/match/combat/BoardWaitNotice";
-import {
-  LoadingContainer,
-  ErrorContainer,
-} from "../components/atoms/PageStates";
+import { PageLoading, PageError, PageNotFound } from "../components/templates/PageState";
+import { isApiError } from "../services/httpClient";
 import { ActionsList } from "../components/atoms/ActionsList";
 import ConfirmDialog from "../components/molecules/ConfirmDialog";
 import DetailPageTemplate from "../components/templates/DetailPageTemplate";
@@ -48,9 +46,19 @@ export default function LobbyPage() {
   const [isKicked, setIsKicked] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
-  const { data: match, isPending, isError } = useMatchDetails(token, matchId);
-  const { data: enrollments = [], isPending: enrollmentsPending } =
-    useMatchEnrollments(token, matchId, true);
+  const {
+    data: match,
+    isPending,
+    isError,
+    error: matchError,
+    refetch: refetchMatch,
+  } = useMatchDetails(token, matchId);
+  const {
+    data: enrollments = [],
+    isPending: enrollmentsPending,
+    isError: enrollmentsError,
+    refetch: refetchEnrollments,
+  } = useMatchEnrollments(token, matchId, true);
 
   const isMaster = !!(match && user && match.masterUuid === user.uuid);
   const hasAccess =
@@ -158,10 +166,25 @@ export default function LobbyPage() {
   }, [isMaster, lobbyPieces, playerCharacterIds]);
 
   if (!token) return <Navigate to="/" replace />;
-  if (isPending || enrollmentsPending)
-    return <LoadingContainer>Carregando lobby...</LoadingContainer>;
-  if (isError || !match)
-    return <ErrorContainer>Falha ao carregar a partida.</ErrorContainer>;
+  const matchBack = {
+    label: "Voltar para a partida",
+    to: `/campaigns/${campaignId}/matches/${matchId}`,
+  };
+  if (isError && isApiError(matchError, 404))
+    return <PageNotFound title="Partida não encontrada" back={matchBack} />;
+  if (isError || enrollmentsError)
+    return (
+      <PageError
+        title="Não foi possível carregar o lobby"
+        onRetry={() => {
+          if (isError) void refetchMatch();
+          if (enrollmentsError) void refetchEnrollments();
+        }}
+        back={matchBack}
+      />
+    );
+  if (isPending || enrollmentsPending) return <PageLoading label="Carregando lobby…" />;
+  if (!match) return <PageNotFound title="Partida não encontrada" back={matchBack} />;
   if (!hasAccess) {
     return (
       <Navigate to={`/campaigns/${campaignId}/matches/${matchId}`} replace />
