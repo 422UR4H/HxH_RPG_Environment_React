@@ -123,10 +123,6 @@ const Shell = styled.div`
     user-select: text;
     -webkit-user-select: text;
   }
-
-  & * {
-    font-family: inherit;
-  }
 `;
 
 const TopBarZone = styled.header`

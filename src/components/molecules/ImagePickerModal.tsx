@@ -324,7 +324,7 @@ const UrlInput = styled.input`
   &:focus { outline: none; border-color: ${colors.brandAccent}; }
 `;
 
-const PreviewLabel = styled.p` font-size: 0.8rem; color: ${colors.textPlaceholder}; margin: 0;`;
+const PreviewLabel = styled.p`font-size: 0.8rem; color: ${colors.textPlaceholder}; margin: 0;`;
 
 const PreviewContainer = styled.div<{ $aspectRatio: string; $borderRadius: string }>`
   aspect-ratio: ${({ $aspectRatio }) => $aspectRatio};
