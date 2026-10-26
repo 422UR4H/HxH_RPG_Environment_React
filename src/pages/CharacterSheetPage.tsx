@@ -27,7 +27,7 @@ function CharacterSheetPage() {
     skillsMode: "view",
   };
 
-  const { data: charSheet, isLoading, error } = useCharacterSheet(token, id);
+  const { data: charSheet, isLoading, error, refetch } = useCharacterSheet(token, id);
   const { mutate: acceptSubmission, isPending: accepting } = useAcceptSheetSubmission(token, campaignId);
   const { mutate: rejectSubmission, isPending: rejecting } = useRejectSheetSubmission(token, campaignId);
   const { mutate: deleteSheet } = useDeleteCharacterSheet(token);
@@ -83,9 +83,11 @@ function CharacterSheetPage() {
         isLoading,
         error: error
           ? isApiError(error, 404)
-            ? "Ficha não encontrada."
-            : "Não foi possível carregar a ficha. Tente novamente mais tarde."
+            ? "Ficha não encontrada"
+            : "Não foi possível carregar a ficha"
           : null,
+        onRetry: () => void refetch(),
+        notFound: isApiError(error, 404),
         onCampaignClick: isMasterNpc
           ? handleCampaignClickMaster
           : isOwner && charSheet

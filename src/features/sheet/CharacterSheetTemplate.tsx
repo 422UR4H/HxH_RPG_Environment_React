@@ -4,6 +4,7 @@ import type { SheetMode } from "./types/sheetMode";
 import styled from "styled-components";
 import space from "../../assets/images/space.png";
 import BackButton from "../../components/ions/BackButton";
+import { PageError, PageLoading, PageNotFound } from "../../components/templates/PageState";
 import CharacterSheetHeader from "../../components/molecules/CharacterSheetHeader";
 import CharacterProfile from "./CharacterProfile";
 import PhysicalsDiagram from "./PhysicalsDiagram";
@@ -16,8 +17,12 @@ import SheetBottomActions from "./SheetBottomActions";
 import { colors, gradients, alpha } from "../../styles/tokens";
 
 interface Data {
+  /** Título do erro (a mensagem padrão do PageError acompanha). */
   error: string | null;
   isLoading: boolean;
+  onRetry?: () => void;
+  /** Recurso inexistente: mostra "não encontrada" em vez de erro repetível. */
+  notFound?: boolean;
 
   charSheet?: CharacterSheet;
   setCharSheet?: (charSheet: CharacterSheet) => void;
@@ -54,6 +59,8 @@ function CharacterSheetTemplate({
     charClasses,
     isLoading,
     error,
+    onRetry,
+    notFound,
     onCampaignClick,
     hasCampaign,
     onAcceptSubmission,
@@ -68,12 +75,42 @@ function CharacterSheetTemplate({
   },
   sheetMode,
 }: CharacterSheetTemplateProps) {
-  if (isLoading)
-    return (
-      <LoadingContainer>Carregando ficha do personagem...</LoadingContainer>
+  // Embutida na partida (F3): o estado fica compacto dentro do painel.
+  const embedded = !!sheetMode.embedded;
+  const notFoundBack = { label: "Voltar para personagens", to: "/charactersheets" };
+
+  if (isLoading) {
+    return embedded ? (
+      <LoadingContainer>Carregando ficha…</LoadingContainer>
+    ) : (
+      <PageLoading label="Carregando ficha…" backdrop="sheet" />
     );
-  if (error) return <ErrorContainer>{error}</ErrorContainer>;
-  if (!charSheet) return <ErrorContainer>Ficha não encontrada</ErrorContainer>;
+  }
+  if (notFound) {
+    return embedded ? (
+      <ErrorContainer>{error ?? "Ficha não encontrada"}</ErrorContainer>
+    ) : (
+      <PageNotFound
+        title={error ?? "Ficha não encontrada"}
+        back={notFoundBack}
+        backdrop="sheet"
+      />
+    );
+  }
+  if (error) {
+    return embedded ? (
+      <ErrorContainer>{error}</ErrorContainer>
+    ) : (
+      <PageError title={error} onRetry={onRetry} backdrop="sheet" />
+    );
+  }
+  if (!charSheet) {
+    return embedded ? (
+      <ErrorContainer>Ficha não encontrada</ErrorContainer>
+    ) : (
+      <PageNotFound title="Ficha não encontrada" back={notFoundBack} backdrop="sheet" />
+    );
+  }
 
   const {
     // categoryName,
@@ -99,11 +136,18 @@ function CharacterSheetTemplate({
 
   const mode = sheetMode.headerMode;
   if ((mode === "create" || mode === "edit") && !charClasses) {
-    return <ErrorContainer>Falha ao carregar classes</ErrorContainer>;
+    return embedded ? (
+      <ErrorContainer>Não foi possível carregar as classes</ErrorContainer>
+    ) : (
+      <PageError
+        title="Não foi possível carregar as classes"
+        onRetry={onRetry}
+        backdrop="sheet"
+      />
+    );
   }
 
   // Embutida na partida (F3): sem voltar (navegaria para fora dela) e sem ações de rodapé.
-  const embedded = !!sheetMode.embedded;
 
   return (
     <SheetContainer>
@@ -370,7 +414,7 @@ const LoadingContainer = styled.div`
 
 const ErrorContainer = styled.div`
   background-color: ${alpha(colors.feedbackDanger, 0.1)};
-  color: ${colors.feedbackDanger};
+  color: ${colors.feedbackDangerText};
   padding: 20px;
   border-radius: 8px;
   text-align: center;

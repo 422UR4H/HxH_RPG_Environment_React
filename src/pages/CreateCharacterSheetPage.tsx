@@ -25,7 +25,7 @@ function CreateCharacterSheetPage() {
   // Sobrevive a um retry: depois de criada, a ficha nunca é recriada — um
   // clique seguinte só reenvia upload/patch contra este mesmo uuid.
   const createdUuidRef = useRef<string | undefined>(undefined);
-  const { data: charClasses, isLoading, error } = useCharacterClasses(token);
+  const { data: charClasses, isLoading, error, refetch } = useCharacterClasses(token);
 
   useEffect(() => {
     return () => {
@@ -138,7 +138,8 @@ function CreateCharacterSheetPage() {
         setCharSheet,
         charClasses,
         isLoading: isLoading || isSubmitting,
-        error: error ? "Não foi possível carregar as classes de personagem. Tente novamente mais tarde." : null,
+        error: error ? "Não foi possível carregar as classes" : null,
+        onRetry: () => void refetch(),
         onAvatarSelected: handleAvatarSelected,
         onCoverSelected: handleCoverSelected,
         onCreateSheet: handleCreateSheet,
