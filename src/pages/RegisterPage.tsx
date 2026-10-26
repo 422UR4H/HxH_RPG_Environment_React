@@ -8,7 +8,7 @@ import SignPagesTemplate from "../components/templates/SignPagesTemplate";
 import type { SignUpBody } from "../types/user";
 import { useSignUp } from "../hooks/useSignUp";
 import useToken from "../hooks/useToken";
-import BaseInput from "../components/ions/BaseInput";
+import SignField from "../components/molecules/SignField";
 import SignFormError from "../components/atoms/SignFormError";
 import { getRegisterErrorMessage } from "../features/auth/authErrorMessages";
 
@@ -51,45 +51,40 @@ export default function RegisterPage() {
   return (
     <SignPagesTemplate>
       <Form onSubmit={handleSubmit}>
-        <BaseInput
+        <SignField
           name="email"
+          label="E-mail"
           type="email"
-          placeholder="e-mail"
           value={form.email}
           onChange={handleForm}
-          minLength={12}
+          autoComplete="email"
           maxLength={64}
-          required
         />
-        <BaseInput
+        <SignField
           name="nick"
-          type="text"
-          placeholder="nick"
+          label="Nick"
           value={form.nick}
           onChange={handleForm}
-          minLength={3}
+          autoComplete="username"
           maxLength={20}
-          required
         />
-        <BaseInput
+        <SignField
           name="password"
+          label="Senha"
           type="password"
-          placeholder="senha"
           value={form.password}
           onChange={handleForm}
-          minLength={8}
-          maxLength={32}
-          required
+          autoComplete="new-password"
+          maxLength={64}
         />
-        <BaseInput
+        <SignField
           name="confirmPass"
+          label="Confirme a senha"
           type="password"
-          placeholder="confirme a senha"
           value={form.confirmPass}
           onChange={handleForm}
-          minLength={8}
-          maxLength={32}
-          required
+          autoComplete="new-password"
+          maxLength={64}
         />
         {error && <SignFormError message={error} />}
         <ButtonSubmit disabled={isPending}>Criar conta</ButtonSubmit>

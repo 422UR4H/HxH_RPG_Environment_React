@@ -8,7 +8,7 @@ import useToken from "../hooks/useToken";
 import { Link, useNavigate } from "react-router-dom";
 import useUser from "../hooks/useUser";
 import { useSignIn } from "../hooks/useSignIn";
-import BaseInput from "../components/ions/BaseInput";
+import SignField from "../components/molecules/SignField";
 import SignFormError from "../components/atoms/SignFormError";
 import { getLoginErrorMessage } from "../features/auth/authErrorMessages";
 
@@ -53,24 +53,23 @@ export default function LoginPage() {
   return (
     <SignPagesTemplate>
       <Form onSubmit={handleSubmit}>
-        <BaseInput
+        <SignField
           name="email"
+          label="E-mail"
           type="email"
-          placeholder="e-mail"
           value={form.email}
           onChange={handleForm}
+          autoComplete="email"
           maxLength={64}
-          required
         />
-        <BaseInput
+        <SignField
           name="password"
+          label="Senha"
           type="password"
-          placeholder="senha"
           value={form.password}
           onChange={handleForm}
-          minLength={3}
-          maxLength={32}
-          required
+          autoComplete="current-password"
+          maxLength={64}
         />
         {error && <SignFormError message={error} />}
         <ButtonSubmit disabled={isPending}>Entrar</ButtonSubmit>

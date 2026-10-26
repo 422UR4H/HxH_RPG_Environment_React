@@ -51,11 +51,12 @@ export const StyledSignTemplates = styled.div`
   }
 
   @media (max-width: 480px) {
-    padding: 0;
+    padding: 16px;
 
     .form-div {
-      padding: 20px 0;
-      border-radius: 0;
+      width: 100%;
+      padding: 24px 20px;
+      border-radius: 16px;
     }
   }
 `;
