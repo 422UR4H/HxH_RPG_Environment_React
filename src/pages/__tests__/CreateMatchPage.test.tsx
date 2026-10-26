@@ -1,7 +1,7 @@
 // src/pages/__tests__/CreateMatchPage.test.tsx
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { http, HttpResponse } from "msw";
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { server } from "../../test/server";
 import { renderWithProviders } from "../../test/render";
@@ -67,6 +67,14 @@ describe("CreateMatchPage", () => {
   it("renderiza a sidebar de regras", async () => {
     renderPage();
     expect(await screen.findByRole("heading", { name: /Regras/i })).toBeInTheDocument();
+  });
+
+  it("uses the same rule cards as the match page, marked as coming soon", async () => {
+    renderPage();
+    const rules = await screen.findByRole("complementary", { name: /Regras/i });
+    expect(within(rules).getByText("Em breve")).toBeInTheDocument();
+    expect(within(rules).getByRole("heading", { name: "Configurações Gerais" })).toBeInTheDocument();
+    expect(within(rules).getByRole("heading", { name: "Nen & Habilidades" })).toBeInTheDocument();
   });
 
   it("mostra erro de validação se Título e Descrição Breve estão vazios", async () => {

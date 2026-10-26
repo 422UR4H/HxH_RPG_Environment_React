@@ -1,7 +1,7 @@
 // src/pages/__tests__/MatchPage.test.tsx
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { http, HttpResponse } from "msw";
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Route, Routes } from "react-router-dom";
 import { server } from "../../test/server";
@@ -381,6 +381,19 @@ describe("MatchPage", () => {
       );
       renderPage();
       expect(await screen.findByText("Participant")).toBeInTheDocument();
+    });
+  });
+
+  describe("navigation actions (CON-05)", () => {
+    it("'Abrir Lobby' navigates, so it carries no '+'", async () => {
+      server.use(
+        http.get(`${baseUrl}/matches/:id`, () =>
+          HttpResponse.json({ match: matchAsMasterApi(masterUserFixture.user.uuid) }),
+        ),
+      );
+      renderPage({ user: masterUserFixture });
+      const open = await screen.findByRole("button", { name: "Abrir Lobby" });
+      expect(within(open).queryByText("+")).not.toBeInTheDocument();
     });
   });
 

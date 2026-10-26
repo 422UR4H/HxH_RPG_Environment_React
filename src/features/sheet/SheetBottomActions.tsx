@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useDebounce } from "../../hooks/useDebounce";
-import PlusIcon from "../../components/ions/PlusIcon";
 import ManageButton from "../../components/molecules/ManageButton";
 import styled from "styled-components";
 import { colors, gradients } from "../../styles/tokens";
@@ -63,7 +62,6 @@ export default function SheetBottomActions({
           {manage && <ManageButton {...manage} isFloating={true} />}
           {onCampaignClick && (
             <FloatingCampaignButton onClick={onCampaignClick}>
-              <FloatingPlusIcon />
               <span>{campaignLabel}</span>
             </FloatingCampaignButton>
           )}
@@ -77,7 +75,6 @@ export default function SheetBottomActions({
       {manage && <ManageButton {...manage} isFloating={false} />}
       {onCampaignClick && (
         <CampaignButton onClick={onCampaignClick}>
-          <CampaignPlusIcon />
           <span>{campaignLabel}</span>
         </CampaignButton>
       )}
@@ -137,12 +134,6 @@ const CampaignButton = styled.button`
   }
 `;
 
-const CampaignPlusIcon = styled(PlusIcon)`
-  && {
-    font-size: min(36px, 6cqi);
-  }
-`;
-
 // Uma única faixa fixa: os dois botões dividem a largura e nunca se sobrepõem.
 // A faixa não captura toque; só os botões (e o menu de Gerenciar) capturam.
 const FloatingGroup = styled.div`
@@ -193,16 +184,5 @@ const FloatingCampaignButton = styled.button`
   }
   &:active {
     transform: scale(0.98);
-  }
-`;
-
-const FloatingPlusIcon = styled(PlusIcon)`
-  && {
-    font-size: min(36px, 6cqi);
-
-    @media (max-width: 609px) {
-      font-size: 1.3em;
-      line-height: 1;
-    }
   }
 `;

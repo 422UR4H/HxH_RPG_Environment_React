@@ -20,8 +20,8 @@ import ExpandableText from "../components/molecules/ExpandableText";
 import ConfirmDialog from "../components/molecules/ConfirmDialog";
 import DetailPageTemplate from "../components/templates/DetailPageTemplate";
 import CharactersSidebar from "../components/organisms/CharactersSidebar";
-import RulesSidebar from "../components/organisms/RulesSidebar";
-import RuleSection from "../components/molecules/RuleSection";
+import PlusIcon from "../components/ions/PlusIcon";
+import UpcomingRulesSidebar from "../components/organisms/UpcomingRulesSidebar";
 import { isApiError } from "../services/httpClient";
 import { useMaps } from "../hooks/useMaps";
 import PageTabNav from "../components/organisms/PageTabNav";
@@ -186,6 +186,7 @@ export default function CampaignPage() {
               isMaster && (
                 <AdaptiveActionButton
                   label="Criar NPC"
+                  icon={<PlusIcon />}
                   type="character"
                   onClick={handleCreateNpc}
                   containerRef={sidebarRef}
@@ -196,20 +197,7 @@ export default function CampaignPage() {
           />
         }
         rightSidebar={
-          <RulesSidebar>
-            <RuleSection title="Configurações Gerais">
-              As regras da campanha serão configuradas aqui.
-            </RuleSection>
-            <RuleSection title="Sistema de Combate">
-              Configure o sistema de combate da sua campanha.
-            </RuleSection>
-            <RuleSection title="Progressão de Personagens">
-              Define como os personagens evoluem durante a campanha.
-            </RuleSection>
-            <RuleSection title="Nen & Habilidades">
-              Configure as regras para uso e desenvolvimento de Nen.
-            </RuleSection>
-          </RulesSidebar>
+          <UpcomingRulesSidebar scope="campaign" />
         }
       >
         <CampaignHeader>
@@ -276,6 +264,7 @@ export default function CampaignPage() {
                   }}
                   primaryButton={{
                     label: "Criar Partida",
+                    icon: <PlusIcon />,
                     onClick: handleCreateMatch,
                   }}
                 />
@@ -334,6 +323,7 @@ export default function CampaignPage() {
             <ActionsList>
               <AdaptiveActionButton
                 label="Criar Mapa"
+                icon={<PlusIcon />}
                 type="match"
                 onClick={() => navigate(`/campaigns/${id}/maps/new`)}
                 containerRef={mainContentRef}

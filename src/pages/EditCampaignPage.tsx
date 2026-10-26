@@ -14,8 +14,7 @@ import FormRow from "../components/molecules/FormRow";
 import FormCheckbox from "../components/molecules/FormCheckbox";
 import FormInput from "../components/ions/FormInput";
 import FormTextArea from "../components/ions/FormTextArea";
-import RulesSidebar from "../components/organisms/RulesSidebar";
-import RuleSection from "../components/molecules/RuleSection";
+import UpcomingRulesSidebar from "../components/organisms/UpcomingRulesSidebar";
 import { PageLoading, PageError, PageNotFound } from "../components/templates/PageState";
 import { getApiErrorDetail } from "../utils/apiError";
 import { toDateTimeLocalValue } from "../utils/date";
@@ -159,23 +158,7 @@ export default function EditCampaignPage() {
       isSubmitting={isSubmitting}
       onCancel={() => navigate(-1)}
       rulesContent={
-        <RulesSidebar
-          title="Regras da Campanha"
-          footer="Mais opções de configuração serão adicionadas em breve."
-        >
-          <RuleSection title="Configurações Gerais">
-            As regras da campanha serão configuradas aqui.
-          </RuleSection>
-          <RuleSection title="Sistema de Combate">
-            Configure o sistema de combate da sua campanha.
-          </RuleSection>
-          <RuleSection title="Progressão de Personagens">
-            Define como os personagens evoluem durante a campanha.
-          </RuleSection>
-          <RuleSection title="Nen & Habilidades">
-            Configure as regras para uso e desenvolvimento de Nen.
-          </RuleSection>
-        </RulesSidebar>
+        <UpcomingRulesSidebar scope="campaign" />
       }
     >
       <FormField label="Nome da Campanha" htmlFor="name">

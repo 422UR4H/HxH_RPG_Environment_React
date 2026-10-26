@@ -20,6 +20,7 @@ const Section = styled.div`
   background-color: ${colors.surfaceInput};
   border-radius: 8px;
   padding: 15px;
+  cursor: default; /* ainda não é interativo: não pode parecer clicável */
 `;
 
 const SectionTitle = styled.h3`

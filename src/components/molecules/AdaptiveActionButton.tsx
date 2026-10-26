@@ -1,11 +1,12 @@
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, type ReactNode } from "react";
 import { useDebounce } from "../../hooks/useDebounce";
-import PlusIcon from "../ions/PlusIcon";
 import styled from "styled-components";
 import { colors } from "../../styles/tokens";
 
 interface AdaptiveActionButtonProps {
   label: string;
+  /** Antes do rótulo. "+" (`<PlusIcon />`) só em ação que cria algo; navegar ou enviar vai sem ícone. */
+  icon?: ReactNode;
   type: "character" | "match";
   onClick: () => void;
   containerRef: React.RefObject<HTMLDivElement | null>;
@@ -14,6 +15,7 @@ interface AdaptiveActionButtonProps {
 
 export default function AdaptiveActionButton({
   label,
+  icon,
   type,
   onClick,
   containerRef,
@@ -102,7 +104,7 @@ export default function AdaptiveActionButton({
         $isFloating={isFloating}
         onClick={onClick}
       >
-        <PlusIcon />
+        {icon}
         <span>{label}</span>
       </ActionButton>
     </ButtonWrapper>

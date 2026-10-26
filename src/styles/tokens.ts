@@ -139,6 +139,7 @@ export const colors = {
   statusLeft: palette.neutral600,
   statusPending: palette.blue700,
   statusRating: palette.gold400, // estrela de avaliação
+  statusComingSoon: palette.gold400, // selo "Em breve": função anunciada que ainda não existe
 
   // vital — esquemáticas da ficha
   vitalHp: palette.red600,
