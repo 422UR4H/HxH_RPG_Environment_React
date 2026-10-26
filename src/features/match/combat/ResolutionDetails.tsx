@@ -1,6 +1,6 @@
 import { useState } from "react";
 import styled from "styled-components";
-import { colors, fonts } from "../../../styles/tokens";
+import { colors } from "../../../styles/tokens";
 import type { EditActionPayload, ResolutionPayload } from "./combatMessages";
 import { orderPending, wallOutcomeText } from "./resolutionText";
 import { avoidedVerb, REACTION_KIND_LABELS, RUNG_LABELS } from "./combatText";
@@ -223,7 +223,6 @@ const Wrap = styled.section`
   gap: 8px;
   padding-top: 6px;
   color: ${colors.textPrimary};
-  font-family: ${fonts.sans};
   font-size: 12px;
 `;
 const Block = styled.div`
@@ -272,7 +271,6 @@ const PendingRow = styled.div`
   gap: 8px;
 `;
 const ActionButton = styled.button`
-  font-family: ${fonts.sans};
   font-size: 12px;
   font-weight: 600;
   padding: 6px 10px;

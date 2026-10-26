@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import { colors, fonts } from "../../styles/tokens";
+import { colors } from "../../styles/tokens";
 import type { WallMaterial, WallType } from "../../types/tacticalMap";
 
 type Props = {
@@ -102,20 +102,17 @@ const ModeDot = styled.div<{ $active: boolean }>`
   background: ${({ $active }) => $active ? colors.textPrimary : colors.textPlaceholderStrong};
 `;
 const ModeLabel = styled.span<{ $active: boolean }>`
-  font-family: ${fonts.sans};
   font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
   color: ${({ $active }) => $active ? colors.textPrimary : colors.textPlaceholderStrong};
   flex: 1;
 `;
 const EscHint = styled.span`
-  font-family: ${fonts.sans};
   font-size: 10px; color: ${colors.overlayLightStrong};
 `;
 const Section = styled.div`
   display: flex; flex-direction: column; gap: 6px;
 `;
 const SectionLabel = styled.span`
-  font-family: ${fonts.sans};
   font-size: 11px; font-weight: 600;
   color: ${colors.textPlaceholderStrong};
   text-transform: uppercase; letter-spacing: 0.05em;
@@ -124,7 +121,6 @@ const ChipRow = styled.div`
   display: flex; flex-wrap: wrap; gap: 6px;
 `;
 const Chip = styled.button<{ $active: boolean }>`
-  font-family: ${fonts.sans};
   font-size: 12px; padding: 4px 10px; border-radius: 999px;
   border: 1px solid ${({ $active }) => $active ? colors.brandAccent : colors.borderInput};
   background: ${({ $active }) => $active ? colors.brandAccent : "transparent"};
@@ -134,6 +130,5 @@ const Chip = styled.button<{ $active: boolean }>`
   &:hover { border-color: ${colors.brandAccent}; color: ${colors.textPrimary}; }
 `;
 const Hint = styled.span`
-  font-family: ${fonts.sans};
   font-size: 11px; color: ${colors.textPlaceholderStrong}; margin-top: 2px;
 `;

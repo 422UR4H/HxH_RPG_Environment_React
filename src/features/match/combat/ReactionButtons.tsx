@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent, MouseEvent, PointerEvent } from "react";
 import styled from "styled-components";
-import { colors, fonts, alpha } from "../../../styles/tokens";
+import { colors, alpha } from "../../../styles/tokens";
 import { createHoldTracker } from "../../tactical-map/hooks/useHoldGesture";
 import { REACTION_BUTTONS, REACTION_BUTTON_LABELS } from "./reactionModel";
 import type { ReactionButton, ReactionStatus } from "./reactionModel";
@@ -150,7 +150,6 @@ const Box = styled.div<{ $compact: boolean }>`
   border-radius: 8px;
   background: ${colors.surfaceSidebar};
   color: ${colors.textPrimary};
-  font-family: ${fonts.sans};
   font-size: ${({ $compact }) => ($compact ? "11px" : "12px")};
 `;
 
@@ -175,7 +174,6 @@ const Button = styled.button<{ $compact: boolean }>`
   border-radius: 6px;
   background: ${colors.surfaceInput};
   color: ${colors.textPrimary};
-  font-family: ${fonts.sans};
   font-size: ${({ $compact }) => ($compact ? "11px" : "12px")};
   cursor: pointer;
   /* Segurar no toque não pode selecionar o texto nem abrir o balão do sistema. */
@@ -209,7 +207,6 @@ const CancelArmed = styled.button`
   border: none;
   padding: 0;
   color: ${colors.textMuted};
-  font-family: ${fonts.sans};
   font-size: inherit;
   text-decoration: underline;
   cursor: pointer;

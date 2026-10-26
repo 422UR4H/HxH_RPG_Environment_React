@@ -19,7 +19,6 @@ export default function BaseInput({ ...props }: BaseInputProps) {
 }
 
 const StyledInput = styled.input`
-  font-family: "Roboto", "sans-serif";
   font-size: min(27px, 6vw);
   font-weight: 700;
   line-height: 40px;

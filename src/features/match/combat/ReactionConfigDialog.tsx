@@ -1,6 +1,6 @@
 import { useState } from "react";
 import styled from "styled-components";
-import { colors, fonts } from "../../../styles/tokens";
+import { colors } from "../../../styles/tokens";
 import type { ReactionKind } from "./combatMessages";
 import { costLabel, weaponLabel } from "./combatText";
 import { defaultWeaponOf } from "./actionDraft";
@@ -130,7 +130,6 @@ const Field = styled.div`
 
 const Cost = styled.p`
   margin: 0;
-  font-family: ${fonts.sans};
   font-size: 14px;
   line-height: 1.5;
   color: ${colors.textMuted};

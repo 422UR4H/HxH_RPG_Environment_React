@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import { colors, fonts } from "../../../styles/tokens";
+import { colors } from "../../../styles/tokens";
 import type { GridKind } from "../../../types/tacticalMap";
 import type { DeclaredAction } from "./combatReducer";
 import { describeDeclared } from "./combatText";
@@ -59,7 +59,6 @@ const Wrapper = styled.section`
   flex-direction: column;
   gap: 6px;
   padding: 12px 6px 0; /* dentro do Histórico: alinha com o texto das linhas (8px do contêiner + 6px da linha) */
-  font-family: ${fonts.sans};
   color: ${colors.textPrimary};
 `;
 
@@ -114,7 +113,6 @@ const CancelAction = styled.button`
   background: transparent;
   color: ${colors.textPlaceholderStrong};
   cursor: pointer;
-  font-family: ${fonts.sans};
   font-size: 11px;
   text-decoration: underline;
   padding: 0 2px;

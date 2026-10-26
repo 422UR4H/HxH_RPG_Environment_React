@@ -13,7 +13,7 @@ import PiecePropertyPanel from "../../components/molecules/PiecePropertyPanel";
 import WallTypeChips from "../../components/molecules/WallTypeChips";
 import WallConfigPanel from "../../components/molecules/WallConfigPanel";
 import InlineFeedback from "../../components/ions/InlineFeedback";
-import { colors, fonts } from "../../styles/tokens";
+import { colors } from "../../styles/tokens";
 import type { ToolKind } from "./store/editorStore";
 
 // Over the ~400-line guideline (docs/superpowers/specs/2026-08-06-tactical-map-refactor-design.md
@@ -297,7 +297,6 @@ const Toolbar = styled.div`
   display: flex;
   flex-direction: column;
   background: ${colors.surfaceSidebar};
-  font-family: ${fonts.sans};
   min-width: 240px;
   height: 100%;
   overflow: hidden;
@@ -323,7 +322,6 @@ const TabButton = styled.button<{ $active: boolean }>`
     $active ? colors.brandAccent : "transparent"};
   color: ${({ disabled }) =>
     disabled ? colors.textPlaceholderStrong : colors.textPrimary};
-  font-family: ${fonts.sans};
   font-size: clamp(10px, 2.8cqi, 12px);
   font-weight: 600;
   cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
@@ -362,7 +360,6 @@ const FieldGroup = styled.div`
 `;
 
 const NameInput = styled.input`
-  font-family: ${fonts.sans};
   font-size: clamp(12px, 3.5cqi, 14px);
   color: ${colors.textPrimary};
   background: ${colors.surfaceInput};
@@ -382,7 +379,6 @@ const NameInput = styled.input`
 `;
 
 const DescriptionTextarea = styled.textarea`
-  font-family: ${fonts.sans};
   font-size: 13px;
   color: ${colors.textPrimary};
   background: ${colors.surfaceInput};
@@ -420,7 +416,6 @@ const SaveButton = styled.button`
   border: none;
   background: ${colors.brandAccent};
   color: ${colors.textPrimary};
-  font-family: ${fonts.sans};
   font-size: clamp(12px, 3.5cqi, 14px);
   font-weight: 700;
   cursor: pointer;
@@ -437,7 +432,6 @@ const SaveButton = styled.button`
 `;
 
 const ErrorText = styled.span`
-  font-family: ${fonts.sans};
   font-size: 12px;
   color: ${colors.feedbackDanger};
 `;
@@ -456,7 +450,6 @@ const HistoryButton = styled.button`
   border: 1px solid ${colors.borderInput};
   background: transparent;
   color: ${colors.textPrimary};
-  font-family: ${fonts.sans};
   font-size: clamp(10px, 2.8cqi, 12px);
   font-weight: 600;
   cursor: pointer;

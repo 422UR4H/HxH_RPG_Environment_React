@@ -194,8 +194,8 @@ export const colors = {
 } as const;
 
 export const fonts = {
-  sans: '"Roboto", sans-serif',
-  display: '"Oswald", sans-serif',
+  sans: '"Roboto", system-ui, -apple-system, "Segoe UI", Arial, sans-serif',
+  display: '"Roboto", system-ui, -apple-system, "Segoe UI", Arial, sans-serif',
 } as const;
 
 // Gradientes são uma decisão de design só — um token por gradiente, não um por cor-stop.

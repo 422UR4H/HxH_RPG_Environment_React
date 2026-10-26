@@ -1,5 +1,5 @@
 import { createGlobalStyle } from "styled-components";
-import { colors } from "./tokens";
+import { colors, fonts } from "./tokens";
 import { globalScrollbar, scrollbarPalettes } from "./scrollbar";
 
 const ResetStyle = createGlobalStyle`
@@ -33,6 +33,7 @@ const ResetStyle = createGlobalStyle`
 	}
 
 	body {
+		font-family: ${fonts.sans};
 		line-height: 1;
     position: relative;
 	}
@@ -70,8 +71,12 @@ const ResetStyle = createGlobalStyle`
 		user-select: none;
 	}
 
+	/* Controles não herdam a fonte por padrão. */
+	button, input, select, textarea, optgroup {
+		font-family: inherit;
+	}
+
 	* {
-		font-family: 'Lato';
 		transition: color 200ms, background-color 200ms; 
 		box-sizing: border-box;
 	}

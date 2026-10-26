@@ -1,6 +1,6 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import styled from "styled-components";
-import { colors, fonts } from "../../../styles/tokens";
+import { colors } from "../../../styles/tokens";
 import type { GridKind } from "../../../types/tacticalMap";
 import type { TableEvent } from "./combatReducer";
 import type { ResolutionTarget, SceneCategory, WallTurnResult } from "./combatMessages";
@@ -241,7 +241,6 @@ const Container = styled.div`
   overflow-y: auto;
   padding: 8px;
   color: ${colors.textPrimary};
-  font-family: ${fonts.sans};
   font-size: 12px;
 `;
 
@@ -280,7 +279,6 @@ const LoadError = styled.p`
   margin: 0;
   padding: 8px 12px;
   color: ${colors.feedbackDanger};
-  font-family: ${fonts.sans};
   font-size: 12px;
 `;
 
@@ -288,7 +286,6 @@ const Empty = styled.p`
   margin: 0;
   padding: 16px 12px;
   color: ${colors.textPlaceholderStrong};
-  font-family: ${fonts.sans};
   font-size: 12px;
   font-style: italic;
 `;

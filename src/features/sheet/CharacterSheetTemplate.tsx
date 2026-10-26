@@ -341,7 +341,6 @@ const MainContent = styled.main<{ $hasBottomActions?: boolean }>`
 `;
 
 const SectionTitle = styled.h2`
-  font-family: "Roboto", sans-serif;
   font-weight: bold;
   font-size: 8cqi;
   color: ${colors.textPrimary};
@@ -362,7 +361,6 @@ const GridSection = styled.div`
 `;
 
 const GroupTitle = styled.h3`
-  font-family: "Roboto", sans-serif;
   font-size: 8cqi;
   color: ${colors.textMuted};
   margin-top: 5cqi;
@@ -442,7 +440,6 @@ const SubmissionActionsWrapper = styled.div`
 `;
 
 const SubmissionActionBase = styled.button`
-  font-family: "Roboto", sans-serif;
   font-size: 26px;
   font-weight: 600;
   border: none;
@@ -482,7 +479,6 @@ const SheetButtonsRow = styled.div`
 `;
 
 const SheetButtonBase = styled.button`
-  font-family: "Roboto", sans-serif;
   font-size: min(26px, 5cqi);
   font-weight: 600;
 
@@ -532,7 +528,6 @@ const CreateSheetArea = styled.div`
 `;
 
 const SubmitErrorText = styled.p`
-  font-family: "Roboto", sans-serif;
   font-size: max(2.7cqi, 12px);
   line-height: 1.2;
   color: ${colors.feedbackDanger};

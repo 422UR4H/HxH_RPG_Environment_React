@@ -1,6 +1,6 @@
 import { useState } from "react";
 import styled from "styled-components";
-import { colors, fonts } from "../../../styles/tokens";
+import { colors } from "../../../styles/tokens";
 import { breakpoints } from "../../../styles/breakpoints";
 import type { Bar, BarsPayload, RoundMode } from "./combatMessages";
 import { BAR_ICONS, BAR_LABELS } from "./combatText";
@@ -94,7 +94,6 @@ const Wrapper = styled.div`
   border-radius: 8px;
   background: ${colors.overlayMedium};
   color: ${colors.textPrimary};
-  font-family: ${fonts.sans};
   font-size: 12px;
   pointer-events: auto;
 `;
@@ -171,7 +170,6 @@ const StripToggle = styled.button`
   border: none;
   background: transparent;
   color: ${colors.textPlaceholderStrong};
-  font-family: ${fonts.sans};
   font-size: 12px;
   cursor: pointer;
   padding: 0;

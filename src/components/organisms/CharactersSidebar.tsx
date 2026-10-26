@@ -1,6 +1,6 @@
 import { type ReactNode, type RefObject } from "react";
 import styled from "styled-components";
-import { colors, fonts } from "../../styles/tokens";
+import { colors } from "../../styles/tokens";
 
 interface CharactersSidebarProps<T> {
   title?: string;
@@ -41,7 +41,6 @@ const SidebarContainer = styled.aside<{ $fluid?: boolean }>`
 `;
 
 const SidebarTitle = styled.h2`
-  font-family: ${fonts.sans};
   font-weight: 700;
   font-size: 32px;
   text-align: center;

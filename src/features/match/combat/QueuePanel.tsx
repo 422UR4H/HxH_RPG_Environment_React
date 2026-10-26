@@ -1,6 +1,6 @@
 import { useState } from "react";
 import styled from "styled-components";
-import { colors, fonts } from "../../../styles/tokens";
+import { colors } from "../../../styles/tokens";
 import type { GridKind } from "../../../types/tacticalMap";
 import type { Bar, BarsPayload, EditActionPayload, QueuedAction, QueuedActionDetail, ResolutionPayload, RoundMode } from "./combatMessages";
 import { BAR_ICONS, BAR_LABELS, costLabel, formatSlot, weaponLabel } from "./combatText";
@@ -275,7 +275,6 @@ const Panel = styled.section`
   gap: 8px;
   padding: 12px;
   color: ${colors.textPrimary};
-  font-family: ${fonts.sans};
   font-size: 13px;
 `;
 
@@ -360,7 +359,6 @@ const Bars = styled.span`
 
 const PullButton = styled.button`
   flex-shrink: 0;
-  font-family: ${fonts.sans};
   font-size: 12px;
   font-weight: 600;
   padding: 6px 10px;

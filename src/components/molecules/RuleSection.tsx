@@ -1,6 +1,6 @@
 import { type ReactNode } from "react";
 import styled from "styled-components";
-import { colors, fonts } from "../../styles/tokens";
+import { colors } from "../../styles/tokens";
 
 interface RuleSectionProps {
   title: string;
@@ -23,7 +23,6 @@ const Section = styled.div`
 `;
 
 const SectionTitle = styled.h3`
-  font-family: ${fonts.sans};
   font-weight: 600;
   font-size: 24px;
   margin-bottom: 10px;
@@ -33,7 +32,6 @@ const SectionTitle = styled.h3`
 // div (não p): children é ReactNode — pode receber conteúdo em bloco
 // quando o sistema de regras real existir (listas, etc.).
 const SectionBody = styled.div`
-  font-family: ${fonts.sans};
   font-weight: 300;
   font-size: 20px;
   color: ${colors.textPrimary};

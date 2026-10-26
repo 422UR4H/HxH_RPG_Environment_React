@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import { colors, fonts } from "../../../styles/tokens";
+import { colors } from "../../../styles/tokens";
 
 // Aviso discreto à esquerda do mapa, acima da fileira inferior, quando a imagem de fundo falha.
 // O fundo é só experiência (não mecânica): o contêiner não bloqueia o mapa (pointer-events: none)
@@ -30,7 +30,6 @@ const Notice = styled.div`
   border: 1px solid ${colors.borderMuted};
   border-radius: 6px;
   color: ${colors.textPrimary};
-  font-family: ${fonts.sans};
   font-size: 13px;
   pointer-events: none;
 `;

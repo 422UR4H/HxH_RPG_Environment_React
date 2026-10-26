@@ -148,7 +148,6 @@ const DistributionSlot = styled.div<{ $selected: boolean }>`
 `;
 
 const SlotLevel = styled.div`
-  font-family: "Roboto", sans-serif;
   font-weight: 700;
   font-size: min(22px, 5cqi);
   color: ${colors.textPrimary};
@@ -162,7 +161,6 @@ const SlotExp = styled.span`
 
 const SlotSelect = styled.select`
   width: 100%;
-  font-family: "Roboto", sans-serif;
   font-size: min(3.8cqi, 28px);
   font-weight: 600;
   color: ${colors.textPrimary};
@@ -187,7 +185,6 @@ const SlotSelect = styled.select`
 `;
 
 const SlotOption = styled.option`
-  font-family: "Roboto", sans-serif;
   font-size: min(3.8cqi, 28px);
   font-weight: 600;
   color: ${colors.textPrimary};

@@ -1,5 +1,5 @@
 import styled, { css } from "styled-components";
-import { colors, fonts } from "../../../styles/tokens";
+import { colors } from "../../../styles/tokens";
 
 /** O canvas preenche o palco inteiro; barras e avisos flutuam por cima dele. */
 export const CanvasWrapper = styled.div`
@@ -15,7 +15,6 @@ export const MapLoadingMessage = styled.p`
   justify-content: center;
   margin: 0;
   color: ${colors.textMuted};
-  font-family: ${fonts.sans};
   font-size: 16px;
 `;
 
@@ -54,7 +53,6 @@ export const StageNotices = styled.div`
 `;
 
 const cornerButton = css`
-  font-family: ${fonts.sans};
   font-size: 12px;
   font-weight: 600;
   padding: 7px 10px;
@@ -111,7 +109,6 @@ const hintBox = css`
   border-radius: 8px;
   background: ${colors.overlayMedium};
   color: ${colors.textMuted};
-  font-family: ${fonts.sans};
   font-size: 12px;
   text-align: center;
 `;

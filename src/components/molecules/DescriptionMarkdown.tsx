@@ -58,7 +58,6 @@ const MarkdownContainer = styled.div`
 `;
 
 const EmptyText = styled.p`
-  font-family: "Roboto", sans-serif;
   font-size: 0.95rem;
   color: ${colors.textPlaceholder};
   font-style: italic;

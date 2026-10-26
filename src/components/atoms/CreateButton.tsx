@@ -1,6 +1,6 @@
 import styled from "styled-components";
 import PlusIcon from "../ions/PlusIcon";
-import { colors, fonts, gradients } from "../../styles/tokens";
+import { colors, gradients } from "../../styles/tokens";
 
 interface CreateButtonProps {
   variant: "green" | "orange";
@@ -18,7 +18,6 @@ export default function CreateButton({ variant, label, onClick }: CreateButtonPr
 }
 
 const StyledButton = styled.button<{ $variant: "green" | "orange" }>`
-  font-family: ${fonts.sans};
   font-size: 26px;
   font-weight: 600;
   ${({ $variant }) =>

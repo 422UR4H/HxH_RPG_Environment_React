@@ -14,7 +14,6 @@ export default function BaseButton({ children, ...props }: BaseButtonProps) {
 }
 
 const StyledButton = styled.button`
-  font-family: "Roboto", "sans-serif";
   font-size: min(27px, 6vw);
   font-weight: 700;
   line-height: 40px;

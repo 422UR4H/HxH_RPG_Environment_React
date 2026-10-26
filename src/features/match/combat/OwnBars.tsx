@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import { colors, fonts } from "../../../styles/tokens";
+import { colors } from "../../../styles/tokens";
 import type { BarsPayload } from "./combatMessages";
 
 const signed = (n: number) => `${n >= 0 ? "+" : "−"}${Math.abs(n).toFixed(1)}`;
@@ -52,7 +52,6 @@ const Panel = styled.div`
   gap: 6px;
   padding: 12px 12px 0;
   color: ${colors.textPrimary};
-  font-family: ${fonts.sans};
   font-size: 12px;
 `;
 

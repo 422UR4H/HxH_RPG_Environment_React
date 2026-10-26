@@ -7,7 +7,7 @@ import { useSubmitCharacterSheet } from "../hooks/useSubmitCharacterSheet";
 import { useDeleteCampaign } from "../hooks/useDeleteCampaign";
 import type { CharacterPrivateSummary } from "../types/campaign";
 import styled from "styled-components";
-import { colors, fonts } from "../styles/tokens";
+import { colors } from "../styles/tokens";
 import CharacterSidebarItem from "../components/molecules/CharacterSidebarItem";
 import MatchItem from "../features/campaign/MatchItem";
 import AdaptiveActionButton from "../components/molecules/AdaptiveActionButton";
@@ -371,7 +371,6 @@ const CampaignHeader = styled.div`
 `;
 
 const CampaignTitle = styled.h1`
-  font-family: ${fonts.sans};
   font-size: 42px;
   font-weight: 900;
   color: ${colors.textPrimary};
@@ -381,7 +380,6 @@ const CampaignTitle = styled.h1`
 `;
 
 const CampaignDate = styled.div`
-  font-family: ${fonts.sans};
   font-weight: 400;
   text-align: right;
   color: ${colors.textPrimary};
@@ -390,7 +388,6 @@ const CampaignDate = styled.div`
 `;
 
 const CampaignBriefDescription = styled.p`
-  font-family: ${fonts.sans};
   font-weight: 400;
   font-size: 26px;
   line-height: 1.5;
@@ -411,7 +408,6 @@ const ActionsList = styled(BaseActionsList)`
 `;
 
 const InlineErrorMessage = styled.p`
-  font-family: ${fonts.sans};
   font-size: max(2.6cqi, 12px);
   line-height: 1.2;
   color: ${colors.feedbackDanger};
@@ -440,7 +436,6 @@ const MapsGrid = styled.div`
 `;
 
 const MapsEmptyText = styled.p`
-  font-family: ${fonts.sans};
   font-size: 16px;
   color: ${colors.textMuted};
   padding: 20px 0;

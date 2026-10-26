@@ -48,7 +48,6 @@ const MatchContainer = styled.div`
 `;
 
 const MatchTitle = styled.h3`
-  font-family: "Roboto", sans-serif;
   font-weight: 700;
   font-size: 24px;
   margin-bottom: 10px;
@@ -60,7 +59,6 @@ const MatchDate = styled.div`
   right: 20px;
   top: 20px;
 
-  font-family: "Roboto", sans-serif;
   font-weight: 400;
   font-size: 16px;
   color: ${colors.textPrimary};
@@ -71,14 +69,12 @@ const MatchEndDate = styled.div`
   bottom: 20px;
   right: 20px;
 
-  font-family: "Roboto", sans-serif;
   font-weight: 400;
   font-size: 16px;
   color: ${colors.textPrimary};
 `;
 
 const MatchDescription = styled.p`
-  font-family: "Roboto", sans-serif;
   font-weight: 300;
   font-size: 18px;
   line-height: 1.5;
@@ -86,7 +82,6 @@ const MatchDescription = styled.p`
 `;
 
 const MatchFinalDescription = styled.p`
-  font-family: "Roboto", sans-serif;
   font-weight: 400;
   font-size: 18px;
   line-height: 1.5;

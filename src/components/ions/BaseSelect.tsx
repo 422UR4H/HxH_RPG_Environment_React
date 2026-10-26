@@ -28,7 +28,6 @@ export default function BaseSelect({
 }
 
 const StyledBaseSelect = styled.select`
-  font-family: "Roboto", sans-serif;
   font-size: min(3.8cqi, 28px);
   font-weight: 600;
   color: ${colors.textPrimary};

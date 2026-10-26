@@ -32,7 +32,6 @@ const Container = styled.div`
 
 const sharedLabelStyles = `
   color: ${colors.textPrimary};
-  font-family: "Roboto", sans-serif;
   font-size: 3cqi;
   font-weight: 600;
   text-shadow: 1px 1px 4px ${colors.shadowText};

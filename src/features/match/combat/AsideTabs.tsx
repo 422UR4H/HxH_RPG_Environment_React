@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
 import styled from "styled-components";
-import { colors, fonts } from "../../../styles/tokens";
+import { colors } from "../../../styles/tokens";
 
 export type AsideTab = "historico" | "personagens";
 
@@ -66,7 +66,6 @@ const TabButton = styled.button`
   flex: 1;
   background: transparent;
   color: ${colors.textPlaceholderStrong};
-  font-family: ${fonts.sans};
   font-size: 13px;
   border: none;
   border-bottom: 2px solid transparent;

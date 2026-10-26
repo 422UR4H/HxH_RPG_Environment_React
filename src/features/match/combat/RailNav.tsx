@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import { colors, fonts } from "../../../styles/tokens";
+import { colors } from "../../../styles/tokens";
 import { media } from "../../../styles/breakpoints";
 
 export type RailNavItem = { id: string; label: string; icon?: string; badge?: number };
@@ -55,7 +55,6 @@ const NavButton = styled.button`
   gap: 2px;
   background: transparent;
   color: ${colors.textPlaceholderStrong};
-  font-family: ${fonts.sans};
   font-size: 12px;
   border: none;
   padding: 8px 4px;

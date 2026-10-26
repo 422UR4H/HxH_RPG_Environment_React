@@ -58,5 +58,4 @@ const Line = styled.span<{ $tone: BalloonTone }>`
   padding: 0 4px;
   border-radius: 6px;
   background: ${({ $tone }) => BG[$tone]};
-  font-family: ${fonts.sans};
 `;

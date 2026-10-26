@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import styled from "styled-components";
-import { colors, fonts } from "../../styles/tokens";
+import { colors } from "../../styles/tokens";
 import PieceDragGhost, { PieceDragGhostPortal } from "./PieceDragGhost";
 import TacticalMapStage from "./TacticalMapStage";
 import NpcRosterPanel from "../../components/molecules/NpcRosterPanel";
@@ -319,7 +319,6 @@ const PlacementOverlay = styled.div`
 `;
 
 const PlacementLabel = styled.span`
-  font-family: ${fonts.sans};
   font-size: 11px;
   letter-spacing: 0.06em;
   color: ${colors.textMuted};
@@ -353,7 +352,6 @@ const PlacementTokenBtn = styled.button<{ $size: number }>`
 `;
 
 const PlacementCancel = styled.button`
-  font-family: ${fonts.sans};
   font-size: 11px;
   color: ${colors.textPlaceholderStrong};
   background: none;

@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import { colors, fonts } from "../../../styles/tokens";
+import { colors } from "../../../styles/tokens";
 
 /**
  * Declaradas que o servidor perdeu (B12/F10). Persistente — ao contrário do
@@ -46,7 +46,6 @@ const Notice = styled.div`
   border: 1px solid ${colors.feedbackWarningBorder};
   background: ${colors.surfaceSidebar};
   color: ${colors.textPrimary};
-  font-family: ${fonts.sans};
   font-size: 13px;
 `;
 

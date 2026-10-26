@@ -117,7 +117,6 @@ const FloatingPrimary = styled.button`
   padding: 15px 30px 15px 26px;
   background-color: ${colors.brandAccent};
   color: ${colors.textPrimary};
-  font-family: "Roboto", sans-serif;
   font-size: min(26px, 5cqi);
   font-weight: 600;
   display: flex;
@@ -164,7 +163,6 @@ const PrimaryButton = styled.button`
   border-radius: 8px;
   background-color: ${colors.brandAccent};
   color: ${colors.textPrimary};
-  font-family: "Roboto", sans-serif;
   font-size: min(26px, 5cqi);
   font-weight: 600;
   display: flex;

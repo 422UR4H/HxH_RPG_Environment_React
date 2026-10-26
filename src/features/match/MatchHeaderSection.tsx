@@ -2,7 +2,7 @@
 import styled from "styled-components";
 import type { Match, MatchStatus } from "../../types/match";
 import ExpandableText from "../../components/molecules/ExpandableText";
-import { colors, fonts } from "../../styles/tokens";
+import { colors } from "../../styles/tokens";
 import { formatDateBR, formatDateTimeBR } from "../../utils/date";
 
 const statusLabels: Record<MatchStatus, string> = {
@@ -92,7 +92,6 @@ const MatchHeader = styled.div`
 `;
 
 const MatchTitle = styled.h1`
-  font-family: ${fonts.sans};
   font-size: 42px;
   font-weight: 900;
   color: ${colors.textPrimary};
@@ -110,7 +109,6 @@ const DateSection = styled.div`
 `;
 
 const StatusPill = styled.span<{ $status: MatchStatus }>`
-  font-family: ${fonts.sans};
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -126,7 +124,6 @@ const StatusPill = styled.span<{ $status: MatchStatus }>`
 `;
 
 const DateLabel = styled.div`
-  font-family: ${fonts.sans};
   font-weight: 400;
   font-size: 18px;
   color: ${colors.textPrimary};
@@ -139,7 +136,6 @@ const DateValueWithTooltip = styled.span`
 `;
 
 const StoryDate = styled.div`
-  font-family: ${fonts.sans};
   font-weight: 400;
   font-size: 18px;
   color: ${colors.textPrimary};
@@ -147,7 +143,6 @@ const StoryDate = styled.div`
 `;
 
 const MatchBriefDescription = styled.p`
-  font-family: ${fonts.sans};
   font-weight: 400;
   font-size: 26px;
   line-height: 1.5;
@@ -157,7 +152,6 @@ const MatchBriefDescription = styled.p`
 `;
 
 const MatchFinalDescription = styled.p`
-  font-family: ${fonts.sans};
   font-weight: 400;
   font-size: 18px;
   line-height: 1.5;
@@ -169,7 +163,6 @@ const MatchFinalDescription = styled.p`
 `;
 
 const LobbyNotOpenBanner = styled.div`
-  font-family: ${fonts.sans};
   font-size: 16px;
   padding: 10px 16px;
   border-radius: 8px;

@@ -1,7 +1,7 @@
 import styled from "styled-components";
 import type { Piece } from "../../types/tacticalMap";
 import type { CharacterPrivateSummary } from "../../types/characterSheet";
-import { colors, fonts, alpha } from "../../styles/tokens";
+import { colors, alpha } from "../../styles/tokens";
 
 type Props = {
   piece: Piece;
@@ -78,7 +78,6 @@ const Avatar = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: ${fonts.sans};
   font-size: 14px;
   font-weight: 700;
   color: ${colors.textPrimary};
@@ -98,20 +97,17 @@ const NpcInfo = styled.div`
 `;
 
 const NpcName = styled.span`
-  font-family: ${fonts.sans};
   font-size: clamp(11px, 3cqi, 13px);
   font-weight: 600;
   color: ${colors.textPrimary};
 `;
 
 const NpcMeta = styled.span`
-  font-family: ${fonts.sans};
   font-size: 11px;
   color: ${colors.textMuted};
 `;
 
 const Summary = styled.summary`
-  font-family: ${fonts.sans};
   font-size: 11px;
   color: ${colors.textMuted};
   cursor: pointer;
@@ -137,7 +133,6 @@ const ConfigBody = styled.div`
 `;
 
 const FieldLabel = styled.div`
-  font-family: ${fonts.sans};
   font-size: 10px;
   color: ${colors.textMuted};
   text-transform: uppercase;
@@ -158,7 +153,6 @@ const ZSlider = styled.input`
 `;
 
 const ZValue = styled.span`
-  font-family: ${fonts.sans};
   font-size: clamp(10px, 2.5cqi, 12px);
   color: ${colors.brandAccent};
   font-weight: 700;
@@ -180,7 +174,6 @@ const RemoveButton = styled.button`
   background: ${alpha(colors.feedbackDanger, 0.07)};
   color: ${colors.feedbackDanger};
   border-radius: 6px;
-  font-family: ${fonts.sans};
   font-size: clamp(10px, 2.8cqi, 12px);
   font-weight: 600;
   cursor: pointer;
@@ -197,7 +190,6 @@ const RemoveButton = styled.button`
 `;
 
 const DragHint = styled.p`
-  font-family: ${fonts.sans};
   font-size: 10px;
   color: ${colors.textPlaceholder};
   text-align: center;

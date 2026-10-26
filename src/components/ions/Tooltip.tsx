@@ -1,7 +1,7 @@
 import { cloneElement, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import type { CSSProperties, ReactElement } from "react";
 import styled from "styled-components";
-import { colors, fonts } from "../../styles/tokens";
+import { colors } from "../../styles/tokens";
 
 /** Quanto a dica fica de pé depois de um toque (no toque não há "sair" para esconder). */
 const TOUCH_MS = 2500;
@@ -165,6 +165,5 @@ const Bubble = styled.span`
   border-radius: 4px;
   background: ${colors.surfaceBar};
   color: ${colors.textPrimary};
-  font-family: ${fonts.sans};
   font-size: 12px;
 `;

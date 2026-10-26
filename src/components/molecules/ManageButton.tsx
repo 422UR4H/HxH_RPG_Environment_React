@@ -102,7 +102,6 @@ const Button = styled.button<{ $isFloating: boolean; $open: boolean }>`
   background: ${colors.surfacePanel};
   border: 1px solid ${({ $open }) => ($open ? colors.actionAccent : colors.borderMuted)};
   color: ${colors.textPrimary};
-  font-family: "Roboto", sans-serif;
   font-size: min(22px, 4cqi);
   font-weight: 600;
   cursor: pointer;
@@ -164,7 +163,6 @@ const PenIcon = styled.img`
 const MenuItem = styled.div`
   padding: 12px 14px;
   color: ${colors.textPrimary};
-  font-family: "Roboto", sans-serif;
   font-size: 17px;
   font-weight: 600;
   cursor: pointer;

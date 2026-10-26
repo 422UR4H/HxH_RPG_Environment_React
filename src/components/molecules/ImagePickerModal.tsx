@@ -248,7 +248,6 @@ const Modal = styled.div`
 `;
 
 const ModalTitle = styled.h2`
-  font-family: "Roboto", sans-serif;
   font-size: 1.4rem;
   font-weight: 700;
   color: ${colors.textPrimary};
@@ -256,7 +255,6 @@ const ModalTitle = styled.h2`
 `;
 
 const Subtitle = styled.p`
-  font-family: "Roboto", sans-serif;
   font-size: 0.85rem;
   color: ${colors.textPlaceholderStrong};
   margin: 0;
@@ -271,7 +269,6 @@ const ModeToggle = styled.div`
 const ModeButton = styled.button<{ $active: boolean }>`
   flex: 1;
   padding: 10px;
-  font-family: "Roboto", sans-serif;
   font-size: 0.9rem;
   font-weight: ${({ $active }) => ($active ? "600" : "400")};
   color: ${({ $active }) => ($active ? colors.textPrimary : colors.textPlaceholderStrong)};
@@ -292,7 +289,6 @@ const OverwriteWarning = styled.div`
 `;
 
 const WarningText = styled.p`
-  font-family: "Roboto", sans-serif;
   font-size: 0.9rem;
   color: ${colors.feedbackWarning};
   margin: 0;
@@ -324,12 +320,11 @@ const UrlInput = styled.input`
   border: 2px solid ${colors.borderMuted};
   border-radius: 6px;
   color: ${colors.textPrimary};
-  font-family: "Roboto", sans-serif;
   font-size: 0.9rem;
   &:focus { outline: none; border-color: ${colors.brandAccent}; }
 `;
 
-const PreviewLabel = styled.p`font-family: "Roboto", sans-serif; font-size: 0.8rem; color: ${colors.textPlaceholder}; margin: 0;`;
+const PreviewLabel = styled.p` font-size: 0.8rem; color: ${colors.textPlaceholder}; margin: 0;`;
 
 const PreviewContainer = styled.div<{ $aspectRatio: string; $borderRadius: string }>`
   aspect-ratio: ${({ $aspectRatio }) => $aspectRatio};
@@ -354,11 +349,11 @@ const DropZone = styled.div`
   &:hover { border-color: ${colors.brandAccent}; }
 `;
 
-const DropZoneText = styled.p`color: ${colors.textHint}; font-family: "Roboto", sans-serif; font-size: 0.9rem; margin: 0;`;
+const DropZoneText = styled.p`color: ${colors.textHint}; font-size: 0.9rem; margin: 0;`;
 
 const CropArea = styled.div`display: flex; flex-direction: column; gap: 8px;`;
 
-const CropHint = styled.p`color: ${colors.textHint}; font-family: "Roboto", sans-serif; font-size: 0.75rem; text-align: center; margin: 0;`;
+const CropHint = styled.p`color: ${colors.textHint}; font-size: 0.75rem; text-align: center; margin: 0;`;
 
 const ModalActions = styled.div`display: flex; justify-content: space-between;`;
 
@@ -369,7 +364,6 @@ const CancelButton = styled.button`
   border: 2px solid ${colors.borderMuted};
   border-radius: 6px;
   cursor: pointer;
-  font-family: "Roboto", sans-serif;
 `;
 
 const ConfirmButton = styled.button`
@@ -379,7 +373,6 @@ const ConfirmButton = styled.button`
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  font-family: "Roboto", sans-serif;
   font-weight: 600;
   &:disabled { opacity: 0.4; cursor: not-allowed; }
 `;

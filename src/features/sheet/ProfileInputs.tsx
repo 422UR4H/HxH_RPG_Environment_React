@@ -175,7 +175,6 @@ const ProfileContainer = styled.div`
 `;
 
 const ProfileNameInput = styled.input`
-  font-family: "Roboto", sans-serif;
   font-size: min(4.2cqi, 32px);
   font-weight: bold;
   color: ${colors.textPrimary};
@@ -202,7 +201,6 @@ const ProfileNameInput = styled.input`
 `;
 
 const ProfileDescriptionTextarea = styled.textarea`
-  font-family: "Roboto", sans-serif;
   font-size: min(3.4cqi, 24px);
   line-height: 1.6;
   color: ${colors.textPrimary};
@@ -260,7 +258,6 @@ const DetailItem = styled.div`
 `;
 
 const DetailLabel = styled.span`
-  font-family: "Roboto", sans-serif;
   font-size: min(3.4cqi, 24px);
   color: ${colors.textInputDisabled};
   font-weight: 500;
@@ -271,7 +268,6 @@ const DetailLabel = styled.span`
 `;
 
 const DetailInput = styled.input`
-  font-family: "Roboto", sans-serif;
   font-size: min(3.8cqi, 28px);
   font-weight: 600;
   color: ${colors.textPrimary};

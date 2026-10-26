@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import { colors, fonts } from "../../../styles/tokens";
+import { colors } from "../../../styles/tokens";
 import type { Bar, BarsPayload, RoundMode } from "./combatMessages";
 import { BAR_ICONS, BAR_LABELS } from "./combatText";
 import { fmt, mean } from "./barsMath";
@@ -74,7 +74,6 @@ const Strip = styled.div`
      "auto" também (CSS Overflow Module) — daí o ▲▼ vertical indesejado. A tira só rola
      na horizontal; na vertical ela cresce com as linhas (sem limite de altura aqui). */
   overflow-y: hidden;
-  font-family: ${fonts.sans};
   font-size: 11px;
 `;
 const Row = styled.div`

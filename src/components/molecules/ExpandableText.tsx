@@ -57,7 +57,6 @@ const Container = styled.div<{
   $showButton: boolean;
   $backgroundColor: string;
 }>`
-  font-family: "Roboto", sans-serif;
   font-weight: 300;
   font-size: 18px;
   background-color: ${({ $backgroundColor }) => $backgroundColor};

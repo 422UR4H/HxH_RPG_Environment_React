@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import { colors, fonts } from "../../../styles/tokens";
+import { colors } from "../../../styles/tokens";
 import type { EditActionPayload } from "./combatMessages";
 import RollConditionEditor from "./RollConditionEditor";
 import { SYSTEM_BIAS_REASON, describeCondition, systemBiasText, type EditableRoll } from "./rollEdits";
@@ -87,7 +87,6 @@ const RollRow = styled.div`
 `;
 
 const EditButton = styled.button`
-  font-family: ${fonts.sans};
   font-size: 12px;
   font-weight: 600;
   padding: 6px 10px;

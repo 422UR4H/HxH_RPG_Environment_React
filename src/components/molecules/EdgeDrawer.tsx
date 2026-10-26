@@ -1,7 +1,7 @@
 import { type ReactNode, useEffect } from "react";
 import styled, { css, keyframes } from "styled-components";
 import CloseButton from "../ions/CloseButton";
-import { colors, fonts } from "../../styles/tokens";
+import { colors } from "../../styles/tokens";
 
 interface EdgeDrawerProps {
   side: "left" | "right";
@@ -68,7 +68,6 @@ const EdgeTab = styled.button<{ $side: "left" | "right" }>`
   border: none;
   color: ${colors.textPrimary};
   writing-mode: vertical-lr;
-  font-family: ${fonts.sans};
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 1.5px;

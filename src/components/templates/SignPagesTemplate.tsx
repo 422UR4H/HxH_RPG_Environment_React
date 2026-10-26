@@ -42,7 +42,6 @@ export const StyledSignTemplates = styled.div`
   }
 
   a {
-    font-family: "Roboto", "sans-serif";
     font-size: min(20px, 6vw);
     font-weight: 600;
     line-height: 24px;
