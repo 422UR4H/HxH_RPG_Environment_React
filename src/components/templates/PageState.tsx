@@ -18,6 +18,7 @@ import {
   Spinner,
   Stage,
   Title,
+  ErrorIconSlot,
 } from "./PageState.styles";
 
 export type PageBackdrop = "world" | "sheet";
@@ -84,9 +85,9 @@ export function PageError({
 } & FrameProps) {
   return (
     <Frame {...frame} role="alert">
-      <span style={{ display: "flex", color: colors.feedbackDangerText }}>
+      <ErrorIconSlot>
         <ErrorIcon size={44} />
-      </span>
+      </ErrorIconSlot>
       <Title $color={colors.feedbackDangerText}>{title}</Title>
       <Message>{message}</Message>
       {(onRetry || back) && (
