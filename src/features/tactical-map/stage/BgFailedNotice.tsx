@@ -41,7 +41,6 @@ const RetryButton = styled.button`
   border: none;
   border-radius: 4px;
   color: ${colors.textPrimary};
-  font-family: inherit;
   font-size: 13px;
   cursor: pointer;
   pointer-events: auto;

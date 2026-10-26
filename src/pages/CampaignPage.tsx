@@ -1,6 +1,6 @@
-import useDocumentTitle from "../hooks/useDocumentTitle";
 import { useRef, useState } from "react";
 import { Navigate, useParams, useNavigate, useLocation, useSearchParams } from "react-router-dom";
+import useDocumentTitle from "../hooks/useDocumentTitle";
 import useToken from "../hooks/useToken";
 import useUser from "../hooks/useUser";
 import { useCampaignDetails } from "../hooks/useCampaignDetails";

@@ -76,8 +76,7 @@ export default function ManageButton({
         <ConfirmDialog
           message={confirmMessage}
           confirmLabel="Excluir"
-          confirmBackground={colors.actionDestructive}
-          confirmTextColor={colors.textPrimary}
+          confirmVariant="danger"
           dialogBackground={colors.overlayDark}
           cancelBackground={colors.surfacePanel}
           cancelBorderColor={colors.borderMuted}

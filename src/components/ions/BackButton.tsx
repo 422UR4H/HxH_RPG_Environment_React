@@ -52,9 +52,8 @@ const StyledBackButton = styled.button`
   background: none;
   cursor: pointer;
 
-  /* Afastamento de 5 px (o global tem 3): a seta tem um respiro maior que os outros controles. */
+  /* Só o afastamento é próprio (5 px; o global tem 3): a seta tem um respiro maior que os outros controles. O contorno e a cor vêm do anel global. */
   &:focus-visible {
-    outline: 2px solid ${colors.actionHighlight};
     outline-offset: 5px;
   }
 

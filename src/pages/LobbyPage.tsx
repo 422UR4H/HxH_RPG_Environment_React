@@ -1,7 +1,7 @@
-import useDocumentTitle from "../hooks/useDocumentTitle";
 import { useState, useRef, useCallback, useMemo } from "react";
 import { Navigate, useParams, useNavigate } from "react-router-dom";
 import styled from "styled-components";
+import useDocumentTitle from "../hooks/useDocumentTitle";
 import useToken from "../hooks/useToken";
 import useUser from "../hooks/useUser";
 import { useMatchDetails } from "../hooks/useMatchDetails";
@@ -444,7 +444,8 @@ const BaseActionButton = styled.button`
     transform: scale(0.98);
   }
   &:disabled {
-    opacity: 0.5;
+    background: ${colors.surfaceDisabled};
+    color: ${colors.textDisabledOnDark};
     cursor: not-allowed;
     filter: none;
     transform: none;

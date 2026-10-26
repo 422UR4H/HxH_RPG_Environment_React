@@ -1,7 +1,7 @@
-import useDocumentTitle from "../hooks/useDocumentTitle";
 import { useState, useEffect, useRef } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import useDocumentTitle from "../hooks/useDocumentTitle";
 import useToken from "../hooks/useToken";
 import type { SheetMode } from "../features/sheet/types/sheetMode";
 import CharacterSheetTemplate from "../features/sheet/CharacterSheetTemplate";

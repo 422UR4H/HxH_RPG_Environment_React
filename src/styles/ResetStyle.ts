@@ -80,12 +80,12 @@ const ResetStyle = createGlobalStyle`
 		--focus-ring: ${colors.actionHighlight};
 	}
 
-	/* Anel de foco único. :where zera a especificidade: qualquer regra de componente
-	   vence sem depender da ordem de injeção (o styled-components não a garante entre
-	   global e componentes). Campos de texto ficam de fora: o navegador marca
-	   :focus-visible neles também no clique, e eles têm a borda própria. */
-	:where(:not(input, textarea, select)):focus-visible,
-	:where(input[type="checkbox"], input[type="radio"], input[type="range"]):focus-visible {
+	/* Anel de foco único. Todo o seletor, :focus-visible incluído, fica dentro do :where,
+	   então a especificidade é zero: qualquer regra de componente vence sem depender da
+	   ordem de injeção (o styled-components não a garante entre global e componentes).
+	   Campos de texto ficam de fora: o navegador marca :focus-visible neles também no
+	   clique, e eles têm a borda própria. */
+	:where(:not(input, textarea, select):focus-visible, input:is([type="checkbox"], [type="radio"], [type="range"], [type="color"]):focus-visible) {
 		outline: 2px solid var(--focus-ring);
 		outline-offset: 3px;
 	}

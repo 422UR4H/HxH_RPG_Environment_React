@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { lerCssReset } from "../../test/lerCssReset";
+import { fonts } from "../tokens";
 
 /**
  * Guardião de fonte. A família é declarada uma vez só, no body (ResetStyle), via `fonts.sans`.
@@ -46,5 +48,14 @@ describe("fonte só é declarada no body", () => {
 
   it("o reset não declara Lato", () => {
     expect(sources["/src/styles/ResetStyle.ts"]).not.toMatch(/Lato/);
+  });
+
+  it("o CSS do reset declara a fonte no body e os controles a herdam; o * não declara", () => {
+    const css = lerCssReset();
+    expect(css).toMatch(new RegExp(`body\\{[^}]*font-family:${fonts.sans.replace(/\s+/g, "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
+    expect(css).toContain("button,input,select,textarea,optgroup{font-family:inherit;}");
+    const universal = css.match(/(?:^|[}>/])\*\{([^}]*)\}/);
+    expect(universal).not.toBeNull();
+    expect(universal![1]).not.toContain("font-family");
   });
 });

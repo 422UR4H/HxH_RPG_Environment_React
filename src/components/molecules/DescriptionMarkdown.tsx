@@ -29,7 +29,6 @@ export default function DescriptionMarkdown({
 }
 
 const MarkdownContainer = styled.div`
-  font-family: inherit;
   color: ${colors.textPrimary};
   line-height: 1.6;
   tab-size: 4;

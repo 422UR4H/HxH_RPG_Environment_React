@@ -120,7 +120,6 @@ const actionBase = css`
   min-height: 44px;
   padding: 0 20px;
   border-radius: 6px;
-  font-family: inherit;
   font-size: 16px;
   font-weight: 700;
   line-height: 1.2;

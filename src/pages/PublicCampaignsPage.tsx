@@ -1,5 +1,5 @@
-import useDocumentTitle from "../hooks/useDocumentTitle";
 import { Navigate, useLocation } from "react-router-dom";
+import useDocumentTitle from "../hooks/useDocumentTitle";
 import useToken from "../hooks/useToken";
 import { usePublicCampaigns } from "../hooks/usePublicCampaigns";
 import CampaignCard from "../components/atoms/CampaignCard";

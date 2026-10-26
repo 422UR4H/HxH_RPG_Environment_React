@@ -1,5 +1,5 @@
-import useDocumentTitle from "../hooks/useDocumentTitle";
 import { Navigate, useParams } from "react-router-dom";
+import useDocumentTitle from "../hooks/useDocumentTitle";
 import useToken from "../hooks/useToken";
 import useUser from "../hooks/useUser";
 import { useMatchDetails } from "../hooks/useMatchDetails";

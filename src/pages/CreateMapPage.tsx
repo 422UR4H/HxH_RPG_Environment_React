@@ -1,6 +1,6 @@
-import useDocumentTitle from "../hooks/useDocumentTitle";
 import { useCallback, useMemo } from "react";
 import { Navigate, useParams, useNavigate } from "react-router-dom";
+import useDocumentTitle from "../hooks/useDocumentTitle";
 import useToken from "../hooks/useToken";
 import { useCreateMap } from "../hooks/useCreateMap";
 import TacticalMapEditor from "../features/tactical-map/TacticalMapEditor";
