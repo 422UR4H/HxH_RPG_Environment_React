@@ -361,7 +361,7 @@ export default function MatchPage() {
                       }
                     : canEnroll
                     ? {
-                        label: enrollPending ? "Inscrevendo..." : "Inscrever-se",
+                        label: enrollPending ? "Inscrevendo…" : "Inscrever-se",
                         onClick: enrollPending ? () => {} : () => setShowEnrollConfirm(true),
                       }
                     : undefined

@@ -401,7 +401,7 @@ const WsStatusBar = styled.div<{ $isError: boolean }>`
   margin-bottom: 20px;
   background-color: ${({ $isError }) =>
     $isError ? alpha(colors.feedbackDanger, 0.1) : colors.overlayMedium};
-  color: ${({ $isError }) => ($isError ? colors.feedbackDanger : colors.textMuted)};
+  color: ${({ $isError }) => ($isError ? colors.feedbackDangerText : colors.textMuted)};
   border: 1px solid
     ${({ $isError }) => ($isError ? colors.feedbackDanger : colors.borderDivider)};
 `;
@@ -414,11 +414,16 @@ const RetryButton = styled.button`
   border-radius: 6px;
   border: 1px solid ${colors.feedbackDanger};
   background: transparent;
-  color: ${colors.feedbackDanger};
+  color: ${colors.feedbackDangerText};
   cursor: pointer;
 
   &:hover {
     filter: brightness(1.2);
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${colors.actionHighlight};
+    outline-offset: 2px;
   }
 `;
 

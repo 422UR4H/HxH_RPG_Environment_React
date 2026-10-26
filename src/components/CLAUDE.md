@@ -23,7 +23,7 @@ Wrappers de HTML que poderiam viver em qualquer projeto React. Ex.: `BaseButton`
 > **Por que `ions/` existe além de `atoms/`?** O Atomic Design canônico (Brad Frost) não tem essa camada. Foi adicionada porque, na prática, é útil distinguir "wrapper de HTML genérico" (ion) de "unidade com semântica do nosso jogo" (atom).
 
 ### `atoms/` — UI pequena com semântica de domínio
-Já carrega noção do projeto. Ex.: `CampaignCard` (sabe o que é uma campanha), `PageHeader` (cor de marca), `CharacterSheetCard`, `CreateButton`, `PageStates`.
+Já carrega noção do projeto. Ex.: `CampaignCard` (sabe o que é uma campanha), `PageHeader` (cor de marca), `CharacterSheetCard`, `CreateButton`.
 
 ### `molecules/` — composição de 2-3 ions/atoms
 Pequenas unidades funcionais. Ex.: `ConfirmDialog`, `ExpandableText`, `FormField` (Label + campo + ajuda), `FormCheckbox`, `FormRow`, `RuleSection`, `EmptyState`, `CharacterSidebarItem`, `AdaptiveActionButton`, `CharacterSheetHeader`, `EdgeDrawer` (aba na borda + gaveta com véu; usada pelos templates para recolher colunas laterais).
@@ -40,6 +40,7 @@ Estrutura macro: header + colunas + slots. Sem dados, sem lógica de negócio �
 - **`DetailPageTemplate`** — header + 3 colunas (`leftSidebar`, `children`, `rightSidebar`). Usado por `CampaignPage`, `MatchPage`.
 - **`ListPageTemplate`** — container com background + header + gate de loading/erro + body centralizado. Usado por `CampaignsPage`, `PublicCampaignsPage`, `CharacterSheetsPage`.
 - **`CreateFormTemplate`** — header + coluna de formulário (título + erro + `<form>` + botões) + slot de regras. Usado pelas páginas de criar **e** editar de campanha e de partida. Abaixo de 1149 px recolhe a coluna de regras numa `EdgeDrawer` (aba "REGRAS").
+- **`PageState`** — `PageLoading` / `PageError` (com "Tentar de novo") / `PageNotFound`, famílias `world` e `sheet` (`backdrop`). Padrão de guard em `src/pages/CLAUDE.md`.
 - **`SignPagesTemplate`** — layout das telas de login/cadastro.
 
 > As páginas viram **thin orchestrators**: buscam dados (hooks) e compõem templates + organisms. Não têm styled-components de layout.

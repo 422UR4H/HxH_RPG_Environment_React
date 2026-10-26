@@ -268,7 +268,11 @@ describe("useLobbyWs", () => {
     expect(MockWebSocket).toHaveBeenCalledTimes(1);
     act(() => { vi.advanceTimersByTime(1); });
     expect(MockWebSocket).toHaveBeenCalledTimes(2);
-    expect(result.current.status).toBe("connecting");
+    expect(result.current.status).toBe("waking");
+    simulateClose(1006);
+    expect(result.current.status).toBe("waking");
+    simulateOpen();
+    expect(result.current.status).toBe("connected");
   });
 
   function failUntilUnreachable(result: { current: { status: string } }) {

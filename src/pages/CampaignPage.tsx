@@ -279,7 +279,7 @@ export default function CampaignPage() {
               ) : !submitted && sheetId ? (
                 <>
                   <AdaptiveActionButton
-                    label={submitPending ? "Submetendo..." : "Submeter Ficha"}
+                    label={submitPending ? "Submetendo…" : "Submeter Ficha"}
                     type="match"
                     onClick={submitPending ? () => {} : handleRequestSubmit}
                     containerRef={mainContentRef}

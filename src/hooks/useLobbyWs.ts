@@ -134,7 +134,8 @@ export function useLobbyWs({
 
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
-      updateStatus("connecting");
+      // Durante a janela de acordar, o status segue "waking" entre as tentativas.
+      if (statusRef.current !== "waking") updateStatus("connecting");
 
       ws.onopen = () => {
         if (!active) {

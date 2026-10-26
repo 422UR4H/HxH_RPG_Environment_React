@@ -41,7 +41,7 @@ function GameRoute({
     to: `/campaigns/${campaignId}`,
   };
 
-  // Erro antes do carregando (src/pages/CLAUDE.md): query com erro nunca fica em "Carregando…".
+  // Erro antes do carregando (ordem dos guards em src/pages/CLAUDE.md): query com erro nunca fica em "Carregando…".
   if (isError) {
     return isApiError(error, 404) ? (
       <PageNotFound title="Partida não encontrada" back={matchBack} />

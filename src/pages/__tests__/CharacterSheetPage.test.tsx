@@ -75,6 +75,7 @@ describe("CharacterSheetPage", () => {
       await screen.findByText("Não foi possível carregar a ficha", {}, { timeout: 5000 }),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Tentar de novo" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Voltar para personagens" })).toBeInTheDocument();
     expect(screen.queryByText(/Request failed/i)).not.toBeInTheDocument();
   });
 

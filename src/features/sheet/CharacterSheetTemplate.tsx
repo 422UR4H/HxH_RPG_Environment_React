@@ -101,7 +101,12 @@ function CharacterSheetTemplate({
     return embedded ? (
       <ErrorContainer>{error}</ErrorContainer>
     ) : (
-      <PageError title={error} onRetry={onRetry} backdrop="sheet" />
+      <PageError
+        title={error}
+        onRetry={onRetry}
+        back={notFoundBack}
+        backdrop="sheet"
+      />
     );
   }
   if (!charSheet) {
@@ -142,6 +147,7 @@ function CharacterSheetTemplate({
       <PageError
         title="Não foi possível carregar as classes"
         onRetry={onRetry}
+        back={notFoundBack}
         backdrop="sheet"
       />
     );

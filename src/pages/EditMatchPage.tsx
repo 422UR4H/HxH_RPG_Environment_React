@@ -144,7 +144,7 @@ export default function EditMatchPage() {
       error={error}
       onSubmit={handleSubmit}
       submitLabel="Salvar Alterações"
-      submittingLabel="Salvando..."
+      submittingLabel="Salvando…"
       isSubmitting={isSubmitting}
       onCancel={() => navigate(-1)}
       rulesContent={
