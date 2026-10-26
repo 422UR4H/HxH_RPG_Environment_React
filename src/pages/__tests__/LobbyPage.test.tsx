@@ -343,14 +343,14 @@ describe("LobbyPage", () => {
         expect(screen.queryByText(/Não foi possível carregar o tabuleiro/)).not.toBeInTheDocument();
       });
 
-      it("sem conexão: diz que o tabuleiro volta com a conexão", async () => {
+      it("queda do socket: o servidor está acordando, a mesa espera", async () => {
         withAttachedMap();
         renderPage({ user: masterUserFixture });
         await waitForWsConnect();
         simulateWsOpen();
         sendFromServer("room_state", { matchUuid: "match-1", state: "lobby", players: [] });
         wsInstance.onclose?.({ code: 1006 } as CloseEvent);
-        await screen.findByText("Sem conexão com a sala. O tabuleiro aparece quando a conexão voltar.");
+        await screen.findAllByText("Acordando o servidor da mesa… pode levar até um minuto.");
       });
 
       it("o tabuleiro chegou e o REST do mapa falhou: desenha mesmo assim", async () => {

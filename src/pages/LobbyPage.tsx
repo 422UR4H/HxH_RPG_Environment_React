@@ -21,15 +21,15 @@ import RulesSidebar from "../components/organisms/RulesSidebar";
 import RuleSection from "../components/molecules/RuleSection";
 import LobbyConnectionSidebarItem from "../features/match/LobbyConnectionSidebarItem";
 import { colors, fonts, alpha } from "../styles/tokens";
+import { GAME_SERVER_WAKING, GAME_SERVER_UNREACHABLE } from "../services/serverWake";
 import type { WsStatus, LobbyFullState } from "../hooks/useLobbyWs";
 import type { BgImage, GridShape, Piece, SlotCoord, WallSegment } from "../types/tacticalMap";
 
 const ERROR_STATUSES: WsStatus[] = [
+  "unreachable",
   "lobby_not_open",
   "kicked",
   "lobby_closed",
-  "throttled",
-  "error",
   "replaced",
 ];
 
@@ -216,18 +216,16 @@ export default function LobbyPage() {
     switch (status) {
       case "connecting":
         return "Conectando ao lobby...";
-      case "disconnected":
-        return "Reconectando...";
+      case "waking":
+        return GAME_SERVER_WAKING;
+      case "unreachable":
+        return GAME_SERVER_UNREACHABLE;
       case "lobby_not_open":
         return "O lobby ainda não foi aberto pelo mestre.";
-      case "throttled":
-        return "Muitas tentativas de conexão. Recarregue a página para tentar novamente.";
       case "kicked":
         return "Você foi removido do lobby pelo mestre.";
       case "lobby_closed":
         return "O lobby foi encerrado pelo mestre.";
-      case "error":
-        return "Erro de conexão. Verifique sua internet.";
       case "replaced":
         return "Este lobby foi aberto em outra aba ou dispositivo com a sua conta. Recarregue a página para usá-lo aqui.";
       default:

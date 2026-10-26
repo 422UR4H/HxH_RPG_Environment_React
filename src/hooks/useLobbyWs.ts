@@ -1,15 +1,17 @@
 import { useEffect, useRef, useState, useCallback } from "react";
+import { createReconnectPolicy } from "./reconnectPolicy";
 import type { BgImage, GridShape, SlotCoord, WallSegment } from "../types/tacticalMap";
 
 export type WsStatus =
   | "connecting"
   | "connected"
-  | "disconnected"
+  /** O servidor da mesa não respondeu; seguimos tentando (ele pode estar acordando). */
+  | "waking"
+  /** A janela de tentativas esgotou; só `reconnect()` abre uma nova. */
+  | "unreachable"
   | "lobby_not_open"
   | "kicked"
   | "lobby_closed"
-  | "throttled"
-  | "error"
   /** A mesma conta abriu o lobby em outra conexão, e o servidor ficou com ela (B4). */
   | "replaced";
 
@@ -62,17 +64,15 @@ interface UseLobbyWsResult {
   sendCancelLobby: () => void;
   sendPieceMoved: (pieceId: string, slot: SlotCoord, characterId?: string, visible?: boolean, z?: number) => void;
   sendPieceRemoved: (pieceId: string) => void;
+  /** Zera a política e abre uma conexão nova (a partir de `unreachable`). */
+  reconnect: () => void;
 }
-
-const MAX_RECONNECTS = 5;
-const BASE_DELAY_MS = 500;
-const MAX_DELAY_MS = 30_000;
 
 const TERMINAL_STATUSES: WsStatus[] = [
   "lobby_not_open",
   "kicked",
   "lobby_closed",
-  "throttled",
+  "unreachable",
   // Reconectar tomaria o lugar da outra conexão, que retomaria o desta — para sempre.
   "replaced",
 ];
@@ -95,7 +95,7 @@ export function useLobbyWs({
 
   const wsRef = useRef<WebSocket | null>(null);
   const statusRef = useRef<WsStatus>("connecting");
-  const reconnectCountRef = useRef<number>(0);
+  const [connectNonce, setConnectNonce] = useState(0);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onMatchStartedRef = useRef(onMatchStarted);
   onMatchStartedRef.current = onMatchStarted;
@@ -125,7 +125,7 @@ export function useLobbyWs({
     // or triggers a reconnect — this correctly handles React Strict Mode's
     // mount → cleanup → remount cycle in development.
     let active = true;
-    reconnectCountRef.current = 0;
+    const policy = createReconnectPolicy();
 
     const wsUrl = `${import.meta.env.VITE_WS_URL}/ws?match_uuid=${matchUuid}&token=${encodeURIComponent(token)}&nickname=${encodeURIComponent(nickname)}`;
 
@@ -146,6 +146,8 @@ export function useLobbyWs({
 
       ws.onmessage = (event: MessageEvent) => {
         if (!active) return;
+        // Qualquer mensagem prova que a conexão está viva: a próxima queda ganha janela nova.
+        policy.reset();
 
         let msg: { type: string; payload: Record<string, unknown> };
         try {
@@ -276,28 +278,18 @@ export function useLobbyWs({
         }
         if (TERMINAL_STATUSES.includes(statusRef.current)) return;
 
-        reconnectCountRef.current += 1;
-
-        if (reconnectCountRef.current >= MAX_RECONNECTS) {
-          updateStatus("throttled");
+        const delay = policy.nextDelay(Date.now());
+        if (delay === null) {
+          updateStatus("unreachable");
           return;
         }
 
-        const delay = Math.min(
-          BASE_DELAY_MS * Math.pow(2, reconnectCountRef.current - 1),
-          MAX_DELAY_MS
-        );
-
-        updateStatus("disconnected");
+        updateStatus("waking");
         reconnectTimerRef.current = setTimeout(connect, delay);
       };
 
-      ws.onerror = () => {
-        if (!active) return;
-        if (!TERMINAL_STATUSES.includes(statusRef.current)) {
-          updateStatus("error");
-        }
-      };
+      // Quem decide o status é o onclose; o onerror sempre vem seguido de um.
+      ws.onerror = () => {};
     }
 
     connect();
@@ -313,7 +305,9 @@ export function useLobbyWs({
         wsRef.current = null;
       }
     };
-  }, [matchUuid, token, nickname, enabled, updateStatus]);
+  }, [matchUuid, token, nickname, enabled, updateStatus, connectNonce]);
+
+  const reconnect = useCallback(() => setConnectNonce((n) => n + 1), []);
 
   const sendMessage = useCallback((type: string, payload: unknown = {}) => {
     const ws = wsRef.current;
@@ -351,5 +345,5 @@ export function useLobbyWs({
     [sendMessage],
   );
 
-  return { status, participants, sendStartMatch, sendKick, sendCancelLobby, sendPieceMoved, sendPieceRemoved };
+  return { status, participants, sendStartMatch, sendKick, sendCancelLobby, sendPieceMoved, sendPieceRemoved, reconnect };
 }
