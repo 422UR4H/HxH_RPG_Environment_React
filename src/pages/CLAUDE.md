@@ -26,7 +26,7 @@ if (isError) {
     ? <PageNotFound title="Campanha não encontrada" back={back} />
     : <PageError title="Não foi possível carregar a campanha" onRetry={() => void refetch()} back={back} />;
 }
-if (isPending) return <PageLoading />;
+if (isPending) return <PageLoading label="Carregando campanha…" />;
 if (!campaign) return <PageNotFound title="Campanha não encontrada" back={back} />;
 // Aqui os dados estão garantidos — sem useEffect, sem undefined inicial
 ```
