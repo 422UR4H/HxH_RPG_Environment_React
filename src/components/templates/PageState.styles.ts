@@ -15,6 +15,11 @@ export const Shell = styled.div`
   display: flex;
   flex-direction: column;
   font-family: ${fonts.sans};
+  /* O reset global põe a fonte em todo elemento (TIP-01), o que anula a herança daqui.
+     Sai quando o reset passar a declarar a fonte só no body (PR 2 da fase 2). */
+  & * {
+    font-family: ${fonts.sans};
+  }
 `;
 
 // A cor de base fica sob a imagem: se ela falhar, o texto continua legível.
