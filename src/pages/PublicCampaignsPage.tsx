@@ -13,7 +13,7 @@ function PublicCampaignsPage() {
   const sheetId = (location.state as { sheetId?: string; sheetNick?: string } | null)?.sheetId;
   const sheetNick = (location.state as { sheetId?: string; sheetNick?: string } | null)?.sheetNick;
 
-  const { data: campaigns, isLoading, error } = usePublicCampaigns(token);
+  const { data: campaigns, isLoading, error, refetch } = usePublicCampaigns(token);
 
   if (!token) {
     return <Navigate to="/" replace />;
@@ -24,8 +24,10 @@ function PublicCampaignsPage() {
       bgImage={worldMap}
       isPending={isLoading}
       isError={!!error}
-      loadingLabel="Carregando campanhas..."
-      errorLabel="Falha ao carregar campanhas. Tente novamente mais tarde."
+      loadingLabel="Carregando campanhas públicas…"
+      errorLabel="Não foi possível carregar as campanhas públicas"
+      onRetry={() => void refetch()}
+      backdrop="world"
     >
       <PageTitle>CAMPANHAS PÚBLICAS</PageTitle>
 

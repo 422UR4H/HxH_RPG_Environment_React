@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { http, HttpResponse } from "msw";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { Route, Routes } from "react-router-dom";
 import { server } from "../../test/server";
 import { renderWithProviders } from "../../test/render";
 import { campaignSummaryFixture, campaignSummaryApiFixture } from "../../test/fixtures/campaign";
@@ -28,7 +29,7 @@ describe("CampaignsPage", () => {
     mockNavigate.mockReset();
   });
 
-  it("mostra 'Carregando campanhas...' inicialmente", () => {
+  it("mostra 'Carregando campanhas…' inicialmente", () => {
     server.use(
       http.get(`${baseUrl}/campaigns`, async () => {
         await new Promise((r) => setTimeout(r, 50));
@@ -36,7 +37,7 @@ describe("CampaignsPage", () => {
       }),
     );
     renderPage();
-    expect(screen.getByText(/Carregando campanhas\.\.\./i)).toBeInTheDocument();
+    expect(screen.getByText(/Carregando campanhas…/i)).toBeInTheDocument();
   });
 
   it("mostra erro se a API falha", async () => {
@@ -44,7 +45,37 @@ describe("CampaignsPage", () => {
       http.get(`${baseUrl}/campaigns`, () => HttpResponse.json({ error: "x" }, { status: 500 })),
     );
     renderPage();
-    expect(await screen.findByText(/Falha ao carregar campanhas/i, {}, { timeout: 5000 })).toBeInTheDocument();
+    expect(await screen.findByText(/Não foi possível carregar as campanhas/i, {}, { timeout: 5000 })).toBeInTheDocument();
+  });
+
+  it("Tentar de novo refaz a busca", async () => {
+    let calls = 0;
+    server.use(
+      http.get(`${baseUrl}/campaigns`, () => {
+        calls += 1;
+        // useCampaigns tem retry: 1, então a 1ª busca gasta 2 chamadas antes do erro aparecer.
+        if (calls <= 2) return HttpResponse.json({ error: "x" }, { status: 500 });
+        return HttpResponse.json({ campaigns: [campaignSummaryApiFixture] });
+      }),
+    );
+    renderPage();
+    const u = userEvent.setup();
+    await u.click(
+      await screen.findByRole("button", { name: "Tentar de novo" }, { timeout: 5000 }),
+    );
+    expect(await screen.findByText(campaignSummaryFixture.name)).toBeInTheDocument();
+    expect(calls).toBe(3);
+  });
+
+  it("sem token redireciona para o login", async () => {
+    renderWithProviders(
+      <Routes>
+        <Route path="/campaigns" element={<CampaignsPage />} />
+        <Route path="/" element={<div>login</div>} />
+      </Routes>,
+      { route: "/campaigns", token: null },
+    );
+    expect(await screen.findByText("login")).toBeInTheDocument();
   });
 
   it("mostra empty state quando lista é vazia", async () => {

@@ -1,7 +1,8 @@
 import { type ReactNode } from "react";
 import styled from "styled-components";
 import PageHeader from "../atoms/PageHeader";
-import { LoadingContainer, ErrorContainer } from "../atoms/PageStates";
+import { PageLoading, PageError } from "./PageState";
+import type { PageBackdrop, PageStateLink } from "./PageState";
 import { colors } from "../../styles/tokens";
 
 interface ListPageTemplateProps {
@@ -12,6 +13,9 @@ interface ListPageTemplateProps {
   isError?: boolean;
   loadingLabel?: string;
   errorLabel?: string;
+  onRetry?: () => void;
+  backdrop?: PageBackdrop;
+  errorBack?: PageStateLink;
   children: ReactNode;
 }
 
@@ -21,15 +25,32 @@ export default function ListPageTemplate({
   bgAttachment = "fixed",
   isPending,
   isError,
-  loadingLabel = "Carregando...",
-  errorLabel = "Falha ao carregar. Tente novamente mais tarde.",
+  loadingLabel = "Carregando…",
+  errorLabel = "Não foi possível carregar a lista",
+  onRetry,
+  backdrop,
+  errorBack = { label: "Voltar para o início", to: "/home" },
   children,
 }: ListPageTemplateProps) {
   if (isPending) {
-    return <LoadingContainer>{loadingLabel}</LoadingContainer>;
+    return (
+      <PageLoading
+        label={loadingLabel}
+        backdrop={backdrop}
+        headerColor={headerColor}
+      />
+    );
   }
   if (isError) {
-    return <ErrorContainer>{errorLabel}</ErrorContainer>;
+    return (
+      <PageError
+        title={errorLabel}
+        onRetry={onRetry}
+        back={errorBack}
+        backdrop={backdrop}
+        headerColor={headerColor}
+      />
+    );
   }
   return (
     <PageContainer $bgImage={bgImage} $bgAttachment={bgAttachment}>
