@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Frontend for an HxH (Hunter x Hunter) RPG system — character sheets, campaigns, matches. Backend at `VITE_API_URL` (default `http://localhost:5000`). UI copy is mixed Brazilian Portuguese / English.
 
+**Language rule:** code is English — identifiers (variables, functions, types, file names) and test titles (`describe`/`it`). Portuguese is for UI copy (and assertions on it), code comments, and the guard tests' failure messages (`noRawColors`, `noRawFonts`). Older test titles in Portuguese predate this rule; don't add new ones.
+
 ## Commands
 
 - `npm run dev` — Vite dev server (HMR)
