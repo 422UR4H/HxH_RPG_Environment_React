@@ -15,7 +15,7 @@ import FormInput from "../components/ions/FormInput";
 import FormTextArea from "../components/ions/FormTextArea";
 import RulesSidebar from "../components/organisms/RulesSidebar";
 import RuleSection from "../components/molecules/RuleSection";
-import { LoadingContainer, ErrorContainer } from "../components/atoms/PageStates";
+import { PageLoading, PageError, PageNotFound } from "../components/templates/PageState";
 import { getApiErrorDetail } from "../utils/apiError";
 import { toDateTimeLocalValue } from "../utils/date";
 
@@ -56,7 +56,13 @@ export default function EditMatchPage() {
   const [error, setError] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
 
-  const { data: match, isPending, isError } = useMatchDetails(token, matchId);
+  const {
+    data: match,
+    isPending,
+    isError,
+    error: loadError,
+    refetch,
+  } = useMatchDetails(token, matchId);
 
   const { form, handleForm, setForm } = useForm<MatchFormData>({
     title: "",
@@ -85,9 +91,23 @@ export default function EditMatchPage() {
 
   if (!token) return <Navigate to="/" replace />;
 
-  if (isPending) return <LoadingContainer>Carregando partida...</LoadingContainer>;
-  if (isError) return <ErrorContainer>Falha ao carregar partida.</ErrorContainer>;
-  if (!match) return <ErrorContainer>Partida não encontrada.</ErrorContainer>;
+  const matchBack = {
+    label: "Voltar para a partida",
+    to: `/campaigns/${campaignId}/matches/${matchId}`,
+  };
+  if (isError) {
+    return isApiError(loadError, 404) ? (
+      <PageNotFound title="Partida não encontrada" back={matchBack} />
+    ) : (
+      <PageError
+        title="Não foi possível carregar a partida"
+        onRetry={() => void refetch()}
+        back={matchBack}
+      />
+    );
+  }
+  if (isPending) return <PageLoading label="Carregando partida…" />;
+  if (!match) return <PageNotFound title="Partida não encontrada" back={matchBack} />;
 
   const isMaster = match.masterUuid === user?.uuid;
   if (!isMaster) return <Navigate to={`/campaigns/${campaignId}/matches/${matchId}`} replace />;

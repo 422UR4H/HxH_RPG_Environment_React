@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { http, HttpResponse } from "msw";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { Route, Routes } from "react-router-dom";
 import { server } from "../../test/server";
 import { renderWithProviders } from "../../test/render";
 import { matchApiFixture, matchAsMasterApi, matchOngoingApi, matchEndedApi } from "../../test/fixtures/match";
@@ -33,7 +34,7 @@ describe("MatchPage", () => {
   });
 
   describe("loading & error", () => {
-    it("mostra 'Carregando partida...' enquanto resolve", () => {
+    it("mostra 'Carregando partida…' enquanto resolve", () => {
       server.use(
         http.get(`${baseUrl}/matches/:id`, async () => {
           await new Promise((r) => setTimeout(r, 50));
@@ -41,7 +42,22 @@ describe("MatchPage", () => {
         }),
       );
       renderPage();
-      expect(screen.getByText(/Carregando partida\.\.\./i)).toBeInTheDocument();
+      expect(screen.getByText(/Carregando partida…/i)).toBeInTheDocument();
+    });
+
+    it("404 mostra 'Partida não encontrada' com o caminho de volta para a campanha", async () => {
+      server.use(
+        http.get(`${baseUrl}/matches/:id`, () =>
+          HttpResponse.json({ error: "not found" }, { status: 404 }),
+        ),
+      );
+      renderPage();
+      expect(await screen.findByText("Partida não encontrada", {}, { timeout: 5000 })).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "Voltar para a campanha" })).toHaveAttribute(
+        "href",
+        "/campaigns/campaign-1",
+      );
+      expect(screen.queryByRole("button", { name: "Tentar de novo" })).not.toBeInTheDocument();
     });
 
     it("mostra erro se a API responde 500", async () => {
@@ -52,8 +68,9 @@ describe("MatchPage", () => {
       );
       renderPage();
       expect(
-        await screen.findByText(/Falha ao carregar detalhes da partida/i, {}, { timeout: 5000 }),
+        await screen.findByText("Não foi possível carregar a partida", {}, { timeout: 5000 }),
       ).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Tentar de novo" })).toBeInTheDocument();
     });
 
     it("mostra 'Partida não encontrada' quando response é null", async () => {
@@ -64,9 +81,15 @@ describe("MatchPage", () => {
       expect(await screen.findByText(/Partida n[ãa]o encontrada/i)).toBeInTheDocument();
     });
 
-    it("renderiza estado vazio se não há token", () => {
-      const { container } = renderPage({ token: null });
-      expect(container.querySelector("h1")).toBeNull();
+    it("sem token redireciona para o login", async () => {
+      renderWithProviders(
+        <Routes>
+          <Route path="/campaigns/:campaignId/matches/:matchId" element={<MatchPage />} />
+          <Route path="/" element={<div>login</div>} />
+        </Routes>,
+        { route: "/campaigns/campaign-1/matches/match-1", token: null },
+      );
+      expect(await screen.findByText("login")).toBeInTheDocument();
     });
   });
 

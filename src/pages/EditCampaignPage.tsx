@@ -15,7 +15,7 @@ import FormInput from "../components/ions/FormInput";
 import FormTextArea from "../components/ions/FormTextArea";
 import RulesSidebar from "../components/organisms/RulesSidebar";
 import RuleSection from "../components/molecules/RuleSection";
-import { LoadingContainer, ErrorContainer } from "../components/atoms/PageStates";
+import { PageLoading, PageError, PageNotFound } from "../components/templates/PageState";
 import { getApiErrorDetail } from "../utils/apiError";
 import { toDateTimeLocalValue } from "../utils/date";
 
@@ -50,7 +50,13 @@ export default function EditCampaignPage() {
   const [error, setError] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
 
-  const { data: campaign, isPending, isError } = useCampaignDetails(token, id);
+  const {
+    data: campaign,
+    isPending,
+    isError,
+    error: loadError,
+    refetch,
+  } = useCampaignDetails(token, id);
 
   const { form, handleForm, setForm } = useForm<CampaignEditFormData>({
     name: "",
@@ -83,9 +89,20 @@ export default function EditCampaignPage() {
 
   if (!token) return <Navigate to="/" replace />;
 
-  if (isPending) return <LoadingContainer>Carregando campanha...</LoadingContainer>;
-  if (isError) return <ErrorContainer>Falha ao carregar campanha.</ErrorContainer>;
-  if (!campaign) return <ErrorContainer>Campanha não encontrada.</ErrorContainer>;
+  const campaignBack = { label: "Voltar para a campanha", to: `/campaigns/${id}` };
+  if (isError) {
+    return isApiError(loadError, 404) ? (
+      <PageNotFound title="Campanha não encontrada" back={campaignBack} />
+    ) : (
+      <PageError
+        title="Não foi possível carregar a campanha"
+        onRetry={() => void refetch()}
+        back={campaignBack}
+      />
+    );
+  }
+  if (isPending) return <PageLoading label="Carregando campanha…" />;
+  if (!campaign) return <PageNotFound title="Campanha não encontrada" back={campaignBack} />;
 
   const isMaster = campaign.masterUuid === user?.uuid;
   if (!isMaster) return <Navigate to={`/campaigns/${id}`} replace />;

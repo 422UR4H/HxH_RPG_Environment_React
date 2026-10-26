@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { http, HttpResponse } from "msw";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { Route, Routes } from "react-router-dom";
 import { server } from "../../test/server";
 import { renderWithProviders } from "../../test/render";
 import { masterUserFixture } from "../../test/fixtures/user";
@@ -28,6 +29,17 @@ function renderPage() {
 describe("CreateMapPage", () => {
   beforeEach(() => {
     mockNavigate.mockReset();
+  });
+
+  it("sem token redireciona para o login", async () => {
+    renderWithProviders(
+      <Routes>
+        <Route path="/campaigns/:campaignId/maps/new" element={<CreateMapPage />} />
+        <Route path="/" element={<div>login</div>} />
+      </Routes>,
+      { route: "/campaigns/campaign-1/maps/new", token: null, user: null },
+    );
+    expect(await screen.findByText("login")).toBeInTheDocument();
   });
 
   it("exibe campo de nome do mapa na toolbar", () => {

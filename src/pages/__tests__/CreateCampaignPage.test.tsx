@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { http, HttpResponse } from "msw";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { Route, Routes } from "react-router-dom";
 import { server } from "../../test/server";
 import { renderWithProviders } from "../../test/render";
 import CreateCampaignPage from "../CreateCampaignPage";
@@ -43,6 +44,17 @@ function renderPage() {
 describe("CreateCampaignPage", () => {
   beforeEach(() => {
     mockNavigate.mockReset();
+  });
+
+  it("sem token redireciona para o login", async () => {
+    renderWithProviders(
+      <Routes>
+        <Route path="/campaigns/new" element={<CreateCampaignPage />} />
+        <Route path="/" element={<div>login</div>} />
+      </Routes>,
+      { route: "/campaigns/new", token: null },
+    );
+    expect(await screen.findByText("login")).toBeInTheDocument();
   });
 
   it("renderiza o título 'CRIAR NOVA CAMPANHA'", () => {

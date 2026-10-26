@@ -13,7 +13,8 @@ import FormInput from "../components/ions/FormInput";
 import FormTextArea from "../components/ions/FormTextArea";
 import RulesSidebar from "../components/organisms/RulesSidebar";
 import RuleSection from "../components/molecules/RuleSection";
-import { LoadingContainer, ErrorContainer } from "../components/atoms/PageStates";
+import { PageLoading, PageError, PageNotFound } from "../components/templates/PageState";
+import { isApiError } from "../services/httpClient";
 import { getApiErrorDetail } from "../utils/apiError";
 import { toDateInputValue, toDateTimeLocalValue } from "../utils/date";
 
@@ -47,6 +48,8 @@ export default function CreateMatchPage() {
     data: campaign,
     isPending: campaignPending,
     isError: campaignError,
+    error: campaignLoadError,
+    refetch: refetchCampaign,
   } = useCampaignDetails(token, campaignId);
   const { mutate: createMatch, isPending } = useCreateMatch(token, campaignId);
 
@@ -89,10 +92,20 @@ export default function CreateMatchPage() {
 
   if (!token) return <Navigate to="/" replace />;
   if (!campaignId) return <Navigate to="/campaigns" replace />;
-  if (campaignPending)
-    return <LoadingContainer>Carregando campanha...</LoadingContainer>;
-  if (campaignError || !campaign)
-    return <ErrorContainer>Falha ao carregar campanha.</ErrorContainer>;
+  const campaignBack = { label: "Voltar para a campanha", to: `/campaigns/${campaignId}` };
+  if (campaignError) {
+    return isApiError(campaignLoadError, 404) ? (
+      <PageNotFound title="Campanha não encontrada" back={campaignBack} />
+    ) : (
+      <PageError
+        title="Não foi possível carregar a campanha"
+        onRetry={() => void refetchCampaign()}
+        back={campaignBack}
+      />
+    );
+  }
+  if (campaignPending) return <PageLoading label="Carregando campanha…" />;
+  if (!campaign) return <PageNotFound title="Campanha não encontrada" back={campaignBack} />;
 
   return (
     <CreateFormTemplate
