@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { lerCssReset } from "../../test/lerCssReset";
+import { readResetCss } from "../../test/readResetCss";
 import { fonts } from "../tokens";
 
 /**
@@ -51,7 +51,7 @@ describe("fonte só é declarada no body", () => {
   });
 
   it("o CSS do reset declara a fonte no body e os controles a herdam; o * não declara", () => {
-    const css = lerCssReset();
+    const css = readResetCss();
     expect(css).toMatch(new RegExp(`body\\{[^}]*font-family:${fonts.sans.replace(/\s+/g, "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
     expect(css).toContain("button,input,select,textarea,optgroup{font-family:inherit;}");
     const universal = css.match(/(?:^|[}>/])\*\{([^}]*)\}/);

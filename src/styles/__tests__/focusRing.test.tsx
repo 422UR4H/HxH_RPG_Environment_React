@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { lerCssReset as lerCss } from "../../test/lerCssReset";
+import { readResetCss } from "../../test/readResetCss";
 import { colors } from "../tokens";
 
 // Extrai a regra inteira (seletor + bloco) do anel: a que contém o :where( com :focus-visible.
@@ -11,11 +11,11 @@ const regraDoAnel = (css: string) => {
 
 describe("anel de foco global", () => {
   it("define --focus-ring no :root", () => {
-    expect(lerCss()).toContain(`:root{--focus-ring:${colors.actionHighlight};}`);
+    expect(readResetCss()).toContain(`:root{--focus-ring:${colors.actionHighlight};}`);
   });
 
   it("anel global com especificidade zero", () => {
-    const regra = regraDoAnel(lerCss());
+    const regra = regraDoAnel(readResetCss());
     expect(regra).not.toBe("");
     // Acha o ")" que fecha o :where e confere que não sobra :focus-visible depois dele.
     let nivel = 0;
@@ -35,7 +35,7 @@ describe("anel de foco global", () => {
   });
 
   it("campos de texto ficam fora do anel", () => {
-    const css = lerCss();
+    const css = readResetCss();
     const seletor = regraDoAnel(css);
     expect(seletor).toContain(":not(input,textarea,select)");
     expect(seletor).toContain('[type="checkbox"]');
@@ -44,6 +44,6 @@ describe("anel de foco global", () => {
   });
 
   it("inclui input color", () => {
-    expect(regraDoAnel(lerCss())).toContain('[type="color"]');
+    expect(regraDoAnel(readResetCss())).toContain('[type="color"]');
   });
 });
