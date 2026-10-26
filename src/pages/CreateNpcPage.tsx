@@ -1,3 +1,4 @@
+import useDocumentTitle from "../hooks/useDocumentTitle";
 import { useState, useEffect, useRef } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
@@ -133,6 +134,8 @@ function CreateNpcPage() {
       setIsSubmitting(false);
     }
   };
+
+  useDocumentTitle("Novo NPC");
 
   if (!token) return <Navigate to="/" replace />;
   if (!campaignId) return <Navigate to="/campaigns" replace />;

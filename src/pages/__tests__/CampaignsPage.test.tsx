@@ -91,6 +91,12 @@ describe("CampaignsPage", () => {
     expect(await screen.findByText(campaignSummaryFixture.name)).toBeInTheDocument();
   });
 
+  it("exibe o título da aba", async () => {
+    renderPage();
+    await screen.findByText(campaignSummaryFixture.name);
+    expect(document.title).toBe("Campanhas · System X System");
+  });
+
   it("clicar em 'Criar Nova Campanha' navega pra /campaigns/new", async () => {
     renderPage();
     const u = userEvent.setup();

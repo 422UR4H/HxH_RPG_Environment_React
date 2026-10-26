@@ -1,3 +1,4 @@
+import useDocumentTitle from "../hooks/useDocumentTitle";
 import { useState, useEffect, useRef } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
@@ -127,6 +128,8 @@ function CreateCharacterSheetPage() {
       setIsSubmitting(false);
     }
   };
+
+  useDocumentTitle("Nova ficha");
 
   if (!token) return <Navigate to="/" replace />;
 

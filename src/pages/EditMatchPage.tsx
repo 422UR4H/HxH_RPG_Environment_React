@@ -1,3 +1,4 @@
+import useDocumentTitle from "../hooks/useDocumentTitle";
 import { useState, useEffect } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import useToken from "../hooks/useToken";
@@ -88,6 +89,8 @@ export default function EditMatchPage() {
   }, [match, initialized, setForm]);
 
   const { mutate: updateMatch, isPending: isSubmitting } = useUpdateMatch(token, matchId);
+
+  useDocumentTitle("Editar", match?.title);
 
   if (!token) return <Navigate to="/" replace />;
 

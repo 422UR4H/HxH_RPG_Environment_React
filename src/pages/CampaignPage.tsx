@@ -1,3 +1,4 @@
+import useDocumentTitle from "../hooks/useDocumentTitle";
 import { useRef, useState } from "react";
 import { Navigate, useParams, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import useToken from "../hooks/useToken";
@@ -140,6 +141,8 @@ export default function CampaignPage() {
     const pendingSheets = isMaster ? campaign.pendingSheets : ownPending;
     sortedSheets = getSortedCharacters(campaign.characterSheets, pendingSheets);
   }
+
+  useDocumentTitle(campaign?.name);
 
   if (!token) return <Navigate to="/" replace />;
   if (isError) {

@@ -1,3 +1,4 @@
+import useDocumentTitle from "../hooks/useDocumentTitle";
 import { useState, useEffect, useRef } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
@@ -85,6 +86,8 @@ function EditCharacterSheetPage() {
       if (coverBlobUrlRef.current) URL.revokeObjectURL(coverBlobUrlRef.current);
     };
   }, []);
+
+  useDocumentTitle("Editar", existingSheet?.profile.nickname);
 
   if (!token || !id) return <Navigate to="/" replace />;
 

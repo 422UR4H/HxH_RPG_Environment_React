@@ -1,3 +1,4 @@
+import useDocumentTitle from "../hooks/useDocumentTitle";
 import { useCallback } from "react";
 import { Navigate, useParams } from "react-router-dom";
 import useToken from "../hooks/useToken";
@@ -28,6 +29,8 @@ export default function EditMapPage() {
       walls: updatedMap.walls,
     });
   }, [mutateAsync]);
+
+  useDocumentTitle("Editar", map?.name);
 
   if (!token) return <Navigate to="/" replace />;
 

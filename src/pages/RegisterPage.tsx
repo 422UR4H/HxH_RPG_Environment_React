@@ -1,3 +1,4 @@
+import useDocumentTitle from "../hooks/useDocumentTitle";
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import useForm from "../hooks/useForm";
@@ -16,6 +17,8 @@ function isAnyFieldEmpty({ nick, email, password, confirmPass }: SignUpBody) {
 }
 
 export default function RegisterPage() {
+  useDocumentTitle("Criar conta");
+
   const navigate = useNavigate();
   const { form, handleForm } = useForm<SignUpBody>({
     nick: "",

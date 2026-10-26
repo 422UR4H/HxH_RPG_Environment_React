@@ -1,3 +1,4 @@
+import useDocumentTitle from "../hooks/useDocumentTitle";
 import { Navigate, useParams } from "react-router-dom";
 import useToken from "../hooks/useToken";
 import useUser from "../hooks/useUser";
@@ -40,6 +41,8 @@ function GameRoute({
     label: "Voltar para a campanha",
     to: `/campaigns/${campaignId}`,
   };
+
+  useDocumentTitle("Mesa", match?.title);
 
   // Erro antes do carregando (ordem dos guards em src/pages/CLAUDE.md): query com erro nunca fica em "Carregando…".
   if (isError) {

@@ -1,3 +1,4 @@
+import useDocumentTitle from "../hooks/useDocumentTitle";
 import { Navigate } from "react-router-dom";
 import styled from "styled-components";
 import useToken from "../hooks/useToken";
@@ -10,6 +11,8 @@ import { colors } from "../styles/tokens";
 
 function HomePage() {
   const { token } = useToken();
+
+  useDocumentTitle("Início");
 
   if (!token) return <Navigate to="/" replace />;
 

@@ -1,3 +1,4 @@
+import useDocumentTitle from "../hooks/useDocumentTitle";
 import { useState, useRef, useCallback, useMemo } from "react";
 import { Navigate, useParams, useNavigate } from "react-router-dom";
 import styled from "styled-components";
@@ -164,6 +165,8 @@ export default function LobbyPage() {
       lobbyPieces.filter((p) => playerCharIdSet.has(p.characterId)).map((p) => p.id),
     );
   }, [isMaster, lobbyPieces, playerCharacterIds]);
+
+  useDocumentTitle("Lobby", match?.title);
 
   if (!token) return <Navigate to="/" replace />;
   const matchBack = {

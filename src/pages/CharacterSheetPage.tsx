@@ -1,3 +1,4 @@
+import useDocumentTitle from "../hooks/useDocumentTitle";
 import { Navigate, useParams, useNavigate, useLocation } from "react-router-dom";
 import CharacterSheetTemplate from "../features/sheet/CharacterSheetTemplate";
 import useToken from "../hooks/useToken";
@@ -31,6 +32,8 @@ function CharacterSheetPage() {
   const { mutate: acceptSubmission, isPending: accepting } = useAcceptSheetSubmission(token, campaignId);
   const { mutate: rejectSubmission, isPending: rejecting } = useRejectSheetSubmission(token, campaignId);
   const { mutate: deleteSheet } = useDeleteCharacterSheet(token);
+
+  useDocumentTitle(charSheet?.profile.nickname);
 
   if (!token || !id) {
     return <Navigate to="/" replace />;

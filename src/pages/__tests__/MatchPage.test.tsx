@@ -93,6 +93,12 @@ describe("MatchPage", () => {
     });
   });
 
+  it("exibe o título da aba com o título da partida", async () => {
+    renderPage();
+    await screen.findByText("AGENDADA");
+    expect(document.title).toBe("Partida de Teste · System X System");
+  });
+
   describe("status da partida", () => {
     it("exibe 'AGENDADA' quando gameStartAt é null", async () => {
       renderPage();

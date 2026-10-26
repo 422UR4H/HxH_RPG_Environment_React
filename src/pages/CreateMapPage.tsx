@@ -1,3 +1,4 @@
+import useDocumentTitle from "../hooks/useDocumentTitle";
 import { useCallback, useMemo } from "react";
 import { Navigate, useParams, useNavigate } from "react-router-dom";
 import useToken from "../hooks/useToken";
@@ -38,6 +39,8 @@ export default function CreateMapPage() {
     () => navigate(`/campaigns/${campaignId}`),
     [navigate, campaignId],
   );
+
+  useDocumentTitle("Novo mapa");
 
   if (!token) return <Navigate to="/" replace />;
 
