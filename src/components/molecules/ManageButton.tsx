@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import styled from "styled-components";
 import ConfirmDialog from "./ConfirmDialog";
 import penIcon from "../../assets/icons/pen.svg";
-import { colors, gradients } from "../../styles/tokens";
+import { colors } from "../../styles/tokens";
 
 interface ManageButtonProps {
   isFree: boolean;
@@ -76,8 +76,8 @@ export default function ManageButton({
         <ConfirmDialog
           message={confirmMessage}
           confirmLabel="Excluir"
-          confirmBackground={gradients.orange}
-          confirmTextColor={colors.textOnLight}
+          confirmBackground={colors.actionDestructive}
+          confirmTextColor={colors.textPrimary}
           dialogBackground={colors.overlayDark}
           cancelBackground={colors.surfacePanel}
           cancelBorderColor={colors.borderMuted}

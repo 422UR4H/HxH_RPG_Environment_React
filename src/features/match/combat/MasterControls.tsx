@@ -466,7 +466,10 @@ const PrimaryButton = styled(SmallButton)`
   background: ${colors.brandAccent};
 
   &[aria-disabled="true"] {
-    opacity: 0.4;
+    background: ${colors.surfaceDisabled};
+    border-color: ${colors.surfaceDisabled};
+    color: ${colors.textDisabledOnDark};
+    filter: none;
     cursor: not-allowed;
   }
 `;

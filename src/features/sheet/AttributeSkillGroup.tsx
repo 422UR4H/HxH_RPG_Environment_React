@@ -87,7 +87,7 @@ const AttributeSectionTitle = styled.div`
 const AttributeTitle = styled.h3`
   font-family: ${fonts.sans};
   font-size: 6cqi;
-  color: ${colors.textLabelMuted};
+  color: ${colors.textMuted};
 `;
 
 const AttributePower = styled.h3`
@@ -138,5 +138,5 @@ const SkillValue = styled.div`
 
 const SkillLevel = styled.div`
   font-size: 5cqi;
-  color: ${colors.textInputDisabled};
+  color: ${colors.textMuted};
 `;

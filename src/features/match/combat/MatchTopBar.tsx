@@ -153,7 +153,10 @@ export const SmallButton = styled.button`
   }
 
   &:disabled {
-    opacity: 0.4;
+    background: ${colors.surfaceDisabled};
+    border-color: ${colors.surfaceDisabled};
+    color: ${colors.textDisabledOnDark};
+    filter: none;
     cursor: not-allowed;
   }
 `;

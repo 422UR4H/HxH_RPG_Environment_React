@@ -142,7 +142,9 @@ const KickButton = styled.button`
     filter: brightness(1.15);
   }
   &:disabled {
-    opacity: 0.35;
+    background-color: ${colors.surfaceDisabled};
+    color: ${colors.textDisabledOnDark};
+    filter: none;
     cursor: not-allowed;
   }
 `;
