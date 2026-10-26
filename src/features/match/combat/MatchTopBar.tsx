@@ -5,10 +5,12 @@ import { media } from "../../../styles/breakpoints";
 import type { MatchWsStatus } from "../../../hooks/useMatchWs";
 import type { RoundMode, ScenePayload } from "./combatMessages";
 import { ROUND_MODE_LABELS } from "./combatText";
+import { GAME_SERVER_WAKING } from "../../../services/serverWake";
 
 const STATUS_LABELS: Record<MatchWsStatus, string> = {
   connecting: "Conectando…",
   connected: "Conectado",
+  waking: "Acordando o servidor…",
   waiting: "Aguardando o mestre abrir a sala…",
   disconnected: "Desconectado",
   replaced: "Aberta em outra aba",
@@ -17,6 +19,7 @@ const STATUS_LABELS: Record<MatchWsStatus, string> = {
 const STATUS_COLORS: Record<MatchWsStatus, string> = {
   connecting: colors.feedbackWarning,
   connected: colors.statusOngoing,
+  waking: colors.feedbackWarning,
   waiting: colors.feedbackWarning,
   disconnected: colors.feedbackDanger,
   replaced: colors.feedbackWarning,
@@ -50,7 +53,7 @@ export default function MatchTopBar({
         {scene?.briefInitialDescription || (scene ? "Cena sem nome" : "Sem cena")}
       </SceneLabel>
       {!actions && roundMode && <RoundBadge>{ROUND_MODE_LABELS[roundMode]}</RoundBadge>}
-      <Status data-testid="ws-status" title={STATUS_LABELS[status]}>
+      <Status data-testid="ws-status" title={status === "waking" ? GAME_SERVER_WAKING : STATUS_LABELS[status]}>
         <StatusDot style={{ background: STATUS_COLORS[status] }} aria-hidden />
         <StatusText>{STATUS_LABELS[status]}</StatusText>
       </Status>

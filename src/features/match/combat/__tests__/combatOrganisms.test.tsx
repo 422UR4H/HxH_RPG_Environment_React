@@ -1165,6 +1165,13 @@ describe("MatchTopBar", () => {
     render(<MatchTopBar roundMode="" status="waiting" asideOpen={false} onToggleAside={() => {}} />);
     expect(screen.getByTestId("ws-status")).toHaveAttribute("title", "Aguardando o mestre abrir a sala…");
   });
+
+  it("mostra Acordando o servidor… com o aviso longo no tooltip quando está acordando", () => {
+    render(<MatchTopBar roundMode="" status="waking" asideOpen={false} onToggleAside={() => {}} />);
+    const status = screen.getByTestId("ws-status");
+    expect(status).toHaveTextContent("Acordando o servidor…");
+    expect(status).toHaveAttribute("title", "Acordando o servidor da mesa… pode levar até um minuto.");
+  });
 });
 
 describe("EventStream: ação cancelada", () => {

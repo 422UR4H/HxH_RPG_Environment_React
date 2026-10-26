@@ -4,13 +4,15 @@ import type {
   AttachReactionPayload, ChangeScenePayload, CombatServerMessage, EditActionPayload, EnqueueActionPayload, MasterActionPayload, RoundMode,
 } from "../features/match/combat/combatMessages";
 import { normalizeCombatMessage } from "../features/match/combat/normalizeWire";
+import { createReconnectPolicy } from "./reconnectPolicy";
 
 /**
  * `waiting`: the room is not open (`lobby_not_open`) — only the master's connection
  * creates it, so a player who arrives first waits for them instead of giving up.
  */
 /** `replaced`: a mesma conta abriu outra conexão e o servidor ficou com ela (B4). */
-export type MatchWsStatus = "connecting" | "connected" | "waiting" | "disconnected" | "replaced";
+/** `waking`: o servidor da mesa não respondeu; seguimos tentando (ele pode estar acordando). */
+export type MatchWsStatus = "connecting" | "connected" | "waking" | "waiting" | "disconnected" | "replaced";
 
 /**
  * A piece exactly as the game server serializes it: flat (`pieceId`/`slot` as
@@ -68,8 +70,6 @@ function parsePolys(
   return (raw ?? []).map((poly) => poly.map((p) => [p.x, p.y] as [number, number]));
 }
 
-const MAX_RECONNECTS = 5;
-const BASE_DELAY_MS = 1000;
 /** Retry cadence while the room is not open yet (the master has not connected). */
 const WAITING_RETRY_MS = 5000;
 /**
@@ -251,7 +251,7 @@ export function useMatchWs({
     if (!matchUuid) return;
 
     let active = true;
-    let attempts = 0;
+    const policy = createReconnectPolicy();
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
     let silenceTimer: ReturnType<typeof setTimeout> | null = null;
     // Set by `lobby_not_open`; read by the close that follows it. The server closes with
@@ -273,7 +273,7 @@ export function useMatchWs({
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
       roomNotOpen = false;
-      setStatus((s) => (s === "waiting" ? s : "connecting"));
+      setStatus((s) => (s === "waiting" || s === "waking" ? s : "connecting"));
 
       ws.onopen = () => {
         if (!active) { ws.close(); return; }
@@ -288,9 +288,9 @@ export function useMatchWs({
 
       ws.onmessage = (event: MessageEvent) => {
         // Anything at all proves the registration is alive; only then does the
-        // connection count as a success for the reconnect budget.
+        // connection count as a success: the next drop gets a fresh reconnect window.
         clearSilence();
-        attempts = 0;
+        policy.reset();
         try {
           const msg = JSON.parse(event.data as string) as { type: string; payload: unknown; timestamp?: string };
           if (msg.type === "lobby_not_open") {
@@ -418,13 +418,17 @@ export function useMatchWs({
           retryTimer = setTimeout(connect, WAITING_RETRY_MS);
           return;
         }
-        if (ev.code === 1000 || ev.code === 1001 || attempts >= MAX_RECONNECTS) {
+        if (ev.code === 1000 || ev.code === 1001) {
           setStatus("disconnected");
           return;
         }
-        attempts++;
-        const delay = BASE_DELAY_MS * 2 ** (attempts - 1);
-        setStatus("connecting");
+        // The window is time-based (the free host can take minutes to wake): null = gave up.
+        const delay = policy.nextDelay(Date.now());
+        if (delay === null) {
+          setStatus("disconnected");
+          return;
+        }
+        setStatus("waking");
         retryTimer = setTimeout(connect, delay);
       };
 
