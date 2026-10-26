@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
+import useDocumentTitle from "../hooks/useDocumentTitle";
 import { useCreateMatch } from "../hooks/useCreateMatch";
 import { useCampaignDetails } from "../hooks/useCampaignDetails";
 import useToken from "../hooks/useToken";
@@ -89,6 +90,8 @@ export default function CreateMatchPage() {
   const handleTogglePublic = () => {
     setForm({ ...form, isPublic: !form.isPublic });
   };
+
+  useDocumentTitle("Nova partida");
 
   if (!token) return <Navigate to="/" replace />;
   if (!campaignId) return <Navigate to="/campaigns" replace />;

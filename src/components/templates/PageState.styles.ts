@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import styled, { css, keyframes } from "styled-components";
 import spaceImage from "../../assets/images/space.png";
 import worldImage from "../../assets/images/worldmap.png";
-import { alpha, colors, fonts } from "../../styles/tokens";
+import { alpha, colors } from "../../styles/tokens";
 
 export type Family = "world" | "sheet";
 
@@ -14,12 +14,6 @@ export const Shell = styled.div`
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  font-family: ${fonts.sans};
-  /* O reset global põe a fonte em todo elemento (TIP-01), o que anula a herança daqui.
-     Sai quando o reset passar a declarar a fonte só no body (PR 2 da fase 2). */
-  & * {
-    font-family: ${fonts.sans};
-  }
 `;
 
 // A cor de base fica sob a imagem: se ela falhar, o texto continua legível.
@@ -126,18 +120,12 @@ const actionBase = css`
   min-height: 44px;
   padding: 0 20px;
   border-radius: 6px;
-  font-family: inherit;
   font-size: 16px;
   font-weight: 700;
   line-height: 1.2;
   text-decoration: none;
   cursor: pointer;
   color: ${colors.textPrimary};
-
-  &:focus-visible {
-    outline: 2px solid ${colors.actionHighlight};
-    outline-offset: 3px;
-  }
 `;
 
 const primary = css`

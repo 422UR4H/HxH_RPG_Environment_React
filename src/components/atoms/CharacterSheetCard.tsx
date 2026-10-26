@@ -48,7 +48,6 @@ export default function CharacterSheetCard({
 }
 
 const CharacterName = styled.h2`
-  font-family: "Roboto", sans-serif;
   font-size: 24px;
   font-weight: 700;
   margin-bottom: 10px;

@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import { colors, fonts, alpha } from "../../../styles/tokens";
+import { colors, alpha } from "../../../styles/tokens";
 
 // Os seletores são do padrão da mesa inteira (diálogos de reação e de cena também).
 export {
@@ -16,7 +16,6 @@ export const Sheet = styled.section`
   gap: 10px;
   padding: 12px;
   color: ${colors.textPrimary};
-  font-family: ${fonts.sans};
   font-size: 13px;
 `;
 
@@ -115,7 +114,6 @@ export const Footer = styled.div`
 export const DeclareButton = styled.button`
   flex: 1;
   min-height: 40px;
-  font-family: ${fonts.sans};
   font-size: 14px;
   font-weight: 700;
   border: none;
@@ -133,7 +131,6 @@ export const DeclareButton = styled.button`
 export const ClearButton = styled.button`
   min-height: 40px;
   padding: 0 14px;
-  font-family: ${fonts.sans};
   font-size: 13px;
   border: 1px solid ${colors.borderInput};
   border-radius: 8px;

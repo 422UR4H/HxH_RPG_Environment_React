@@ -54,10 +54,6 @@ const StyledLogoutButton = styled.button`
   &:active {
     background-color: ${colors.actionDestructive};
   }
-  &:focus-visible {
-    outline: 2px solid ${colors.textPrimary};
-    outline-offset: 2px;
-  }
 
   @media (max-width: 480px) {
     min-height: 36px;

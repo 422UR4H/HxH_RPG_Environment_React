@@ -28,7 +28,6 @@ export default function BaseSelect({
 }
 
 const StyledBaseSelect = styled.select`
-  font-family: "Roboto", sans-serif;
   font-size: min(3.8cqi, 28px);
   font-weight: 600;
   color: ${colors.textPrimary};
@@ -49,13 +48,11 @@ const StyledBaseSelect = styled.select`
   background-position: right min(2cqi, 12px) center;
   background-size: min(4.4cqi, 28px);
 
-  &:active {
-    outline: none;
-    border-color: ${colors.brandAccent};
-    border-color: ${colors.textPrimary};
-  }
+  /* Select fica fora do anel global (como os campos de texto): o foco é a borda branca. */
+  &:active,
   &:focus {
     outline: none;
+    border-color: ${colors.textPrimary};
   }
   &:hover {
     filter: brightness(1.1);

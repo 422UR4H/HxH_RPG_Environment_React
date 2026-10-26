@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import { colors, fonts } from "../../styles/tokens";
+import { colors } from "../../styles/tokens";
 
 interface FormCheckboxProps {
   id: string;
@@ -39,7 +39,6 @@ const Group = styled.div`
 `;
 
 const GroupLabel = styled.span`
-  font-family: ${fonts.sans};
   font-weight: 700;
   font-size: 26px;
   color: ${colors.textPrimary};
@@ -58,14 +57,12 @@ const Checkbox = styled.input`
 `;
 
 const CheckboxLabel = styled.label`
-  font-family: ${fonts.sans};
   font-weight: 500;
   font-size: 26px;
   cursor: pointer;
 `;
 
 const HelpText = styled.p`
-  font-family: ${fonts.sans};
   font-weight: 400;
   font-size: 18px;
   color: ${colors.textPrimary};

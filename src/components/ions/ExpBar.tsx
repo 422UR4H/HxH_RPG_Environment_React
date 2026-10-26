@@ -85,7 +85,6 @@ const Tooltip = styled.div<{ $align: "center" | "right" }>`
       : "left: 50%; transform: translateX(-50%);"}
   background: ${colors.surfaceBar};
   color: ${colors.textPrimary};
-  font-family: "Roboto", sans-serif;
   font-size: 5cqi;
   font-weight: 600;
   padding: 1.8cqi 3cqi;

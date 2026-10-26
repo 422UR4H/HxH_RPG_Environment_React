@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState } from "react";
 import styled, { keyframes } from "styled-components";
-import { colors, fonts } from "../../styles/tokens";
+import { colors } from "../../styles/tokens";
 import { Application, extend } from "@pixi/react";
 import { Container, Graphics, Sprite, Text } from "pixi.js";
 import { Viewport } from "pixi-viewport";
@@ -228,6 +228,5 @@ const Spinner = styled.div`
 const LoadingLabel = styled.p`
   margin: 0;
   color: ${colors.textPrimary};
-  font-family: ${fonts.sans};
   font-size: 14px;
 `;

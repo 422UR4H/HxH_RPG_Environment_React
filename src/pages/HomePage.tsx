@@ -1,5 +1,6 @@
 import { Navigate } from "react-router-dom";
 import styled from "styled-components";
+import useDocumentTitle from "../hooks/useDocumentTitle";
 import useToken from "../hooks/useToken";
 import PageHeader from "../components/atoms/PageHeader";
 import LogoutButton from "../components/atoms/LogoutButton";
@@ -10,6 +11,8 @@ import { colors } from "../styles/tokens";
 
 function HomePage() {
   const { token } = useToken();
+
+  useDocumentTitle("Início");
 
   if (!token) return <Navigate to="/" replace />;
 

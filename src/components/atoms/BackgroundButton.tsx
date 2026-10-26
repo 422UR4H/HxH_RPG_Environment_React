@@ -45,7 +45,6 @@ const BookIcon = styled.img`
 `;
 
 const BackgroundText = styled.span`
-  font-family: "Roboto", sans-serif;
   font-size: min(3.4cqi, 28px);
   color: ${colors.textPrimary};
   font-weight: 600;

@@ -1,7 +1,7 @@
 import styled from "styled-components";
 import type { Skill } from "../../types/characterSheet.ts";
 import ExpBar from "../../components/ions/ExpBar.tsx";
-import { colors } from "../../styles/tokens";
+import { colors, fonts } from "../../styles/tokens";
 
 interface SkillCardProps {
   name: string;
@@ -77,7 +77,7 @@ const AttributeSectionTitle = styled.div`
   background-color: ${colors.surfaceControl};
   padding: 8px 12px;
   font-weight: bold;
-  font-family: "Oswald", sans-serif;
+  font-family: ${fonts.display};
   font-size: 24px;
   border-bottom: 1px solid ${colors.borderMuted};
   display: flex;
@@ -85,15 +85,15 @@ const AttributeSectionTitle = styled.div`
 `;
 
 const AttributeTitle = styled.h3`
-  font-family: "Roboto", sans-serif;
+  font-family: ${fonts.sans};
   font-size: 6cqi;
   color: ${colors.textLabelMuted};
 `;
 
 const AttributePower = styled.h3`
-  font-family: "Roboto", sans-serif;
+  font-family: ${fonts.sans};
   font-size: 6cqi;
-  color: ${colors.textLabelMuted};
+  color: ${colors.textMuted};
 `;
 
 const SkillsSubList = styled.div`
@@ -117,7 +117,6 @@ const SkillCardBody = styled.div`
 `;
 
 const SkillName = styled.div`
-  font-family: "Roboto", sans-serif;
   font-size: 5cqi;
   font-weight: 500;
   margin-bottom: 2cqi;
@@ -132,14 +131,12 @@ const SkillNumbers = styled.div`
 `;
 
 const SkillValue = styled.div`
-  font-family: "Roboto", sans-serif;
   font-size: 6cqi;
   font-weight: bold;
   color: ${colors.textPrimary};
 `;
 
 const SkillLevel = styled.div`
-  font-family: "Roboto", sans-serif;
   font-size: 5cqi;
-  color: ${colors.textInputDisabled};
+  color: ${colors.textMuted};
 `;

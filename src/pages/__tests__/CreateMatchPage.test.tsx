@@ -44,7 +44,7 @@ describe("CreateMatchPage", () => {
     expect(container.textContent ?? "").not.toContain("CRIAR NOVA PARTIDA");
   });
 
-  it("falha ao carregar a campanha mostra o erro com 'Tentar de novo'", async () => {
+  it("campaign loading failure shows the error with 'Tentar de novo'", async () => {
     server.use(
       http.get(`${baseUrl}/campaigns/:id`, () =>
         HttpResponse.json({ error: "x" }, { status: 500 }),

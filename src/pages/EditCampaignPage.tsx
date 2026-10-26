@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
+import useDocumentTitle from "../hooks/useDocumentTitle";
 import useToken from "../hooks/useToken";
 import useUser from "../hooks/useUser";
 import useForm from "../hooks/useForm";
@@ -86,6 +87,8 @@ export default function EditCampaignPage() {
   }, [campaign, initialized, setForm]);
 
   const { mutate: updateCampaign, isPending: isSubmitting } = useUpdateCampaign(token, id);
+
+  useDocumentTitle("Editar", campaign?.name);
 
   if (!token) return <Navigate to="/" replace />;
 

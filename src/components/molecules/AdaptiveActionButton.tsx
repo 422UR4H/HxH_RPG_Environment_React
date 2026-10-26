@@ -2,7 +2,7 @@ import { useRef, useEffect, useState } from "react";
 import { useDebounce } from "../../hooks/useDebounce";
 import PlusIcon from "../ions/PlusIcon";
 import styled from "styled-components";
-import { colors, fonts } from "../../styles/tokens";
+import { colors } from "../../styles/tokens";
 
 interface AdaptiveActionButtonProps {
   label: string;
@@ -150,7 +150,6 @@ const ActionButton = styled.button<{
         box-shadow: 0 4px 10px ${colors.shadowSoft};
         gap: 10px;
 
-        font-family: ${fonts.sans};
         font-size: 26px;
         font-weight: 600;
 
@@ -176,7 +175,6 @@ const ActionButton = styled.button<{
         box-shadow: none;
         gap: 15px;
 
-        font-family: ${fonts.sans};
         font-size: 26px;
         font-weight: 600;
 

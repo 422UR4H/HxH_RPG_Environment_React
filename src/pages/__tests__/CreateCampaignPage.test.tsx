@@ -46,7 +46,7 @@ describe("CreateCampaignPage", () => {
     mockNavigate.mockReset();
   });
 
-  it("sem token redireciona para o login", async () => {
+  it("redirects to login without a token", async () => {
     renderWithProviders(
       <Routes>
         <Route path="/campaigns/new" element={<CreateCampaignPage />} />

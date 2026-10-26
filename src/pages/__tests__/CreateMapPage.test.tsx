@@ -31,7 +31,7 @@ describe("CreateMapPage", () => {
     mockNavigate.mockReset();
   });
 
-  it("sem token redireciona para o login", async () => {
+  it("redirects to login without a token", async () => {
     renderWithProviders(
       <Routes>
         <Route path="/campaigns/:campaignId/maps/new" element={<CreateMapPage />} />

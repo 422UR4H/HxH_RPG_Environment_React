@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import styled from "styled-components";
 import ConfirmDialog from "./ConfirmDialog";
 import penIcon from "../../assets/icons/pen.svg";
-import { colors, gradients } from "../../styles/tokens";
+import { colors } from "../../styles/tokens";
 
 interface ManageButtonProps {
   isFree: boolean;
@@ -76,8 +76,7 @@ export default function ManageButton({
         <ConfirmDialog
           message={confirmMessage}
           confirmLabel="Excluir"
-          confirmBackground={gradients.orange}
-          confirmTextColor={colors.textOnLight}
+          confirmVariant="danger"
           dialogBackground={colors.overlayDark}
           cancelBackground={colors.surfacePanel}
           cancelBorderColor={colors.borderMuted}
@@ -102,7 +101,6 @@ const Button = styled.button<{ $isFloating: boolean; $open: boolean }>`
   background: ${colors.surfacePanel};
   border: 1px solid ${({ $open }) => ($open ? colors.actionAccent : colors.borderMuted)};
   color: ${colors.textPrimary};
-  font-family: "Roboto", sans-serif;
   font-size: min(22px, 4cqi);
   font-weight: 600;
   cursor: pointer;
@@ -164,7 +162,6 @@ const PenIcon = styled.img`
 const MenuItem = styled.div`
   padding: 12px 14px;
   color: ${colors.textPrimary};
-  font-family: "Roboto", sans-serif;
   font-size: 17px;
   font-weight: 600;
   cursor: pointer;

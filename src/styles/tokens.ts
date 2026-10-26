@@ -47,7 +47,7 @@ export const palette = {
   red600: "#db0e2f", // saturado
   red500: "#ff5257", // combate: Atacar, linha de ataque, anel do alvo
 
-  gold800: "#b8860b", // escuro: tag agendada
+  gold800: "#b8860b", // escuro
   gold700: "#dba306", // brand
   gold400: "#ffc300", // saturado: EXP, anel de seleção
   gold300: "#ffa216", // quente: borda de item aberto, alça skew, botões laranja
@@ -80,6 +80,7 @@ export const colors = {
   surfaceScrollThumbAccentHover: palette.red600, // polegar da scrollbar (tema dark) no hover
   surfaceMuted: palette.neutral800, // cartão escuro de reserva (participante sem dados privados)
   surfaceControl: palette.neutral700, // superfície interna de controle: fundo da barra, card de atributo
+  surfaceDisabled: palette.neutral700, // controle desativado sobre painel escuro: lobby, barra do mestre
   surfaceNeutral: palette.neutral600, // fundo neutro secundário: trilho da barra de EXP, campos de perfil
   surfaceNeutralHover: palette.neutral500, // hover do fundo neutro (BackgroundButton)
   surfaceHeaderDefault: palette.neutral850, // fundo padrão do PageHeader
@@ -100,6 +101,7 @@ export const colors = {
   textPlaceholderStrong: palette.neutral300, // aba inativa, texto de ajuda
   textInputDisabled: palette.neutral300, // campo desabilitado ou vazio
   textLabelMuted: palette.neutral300, // rótulos dos grupos de atributos
+  textDisabledOnDark: palette.neutral300, // rótulo de controle desativado sobre surfaceDisabled
   textFaint: palette.neutral600, // opção desabilitada de lista
   textHint: palette.neutral500, // legenda e dica nas áreas de soltar
   textLinkOnLight: palette.blue700, // links sobre fundo branco (telas de login e cadastro)
@@ -116,6 +118,7 @@ export const colors = {
   actionAccent: palette.gold300, // borda de item aberto, variante laranja dos botões
   actionDisabled: alpha(palette.gold700, 0.45), // submit desabilitado
   actionHighlight: palette.gold700, // controles do header (seta, logo): halo do hover e anel de foco
+  actionHighlightOnLight: palette.blue700, // anel de foco sobre superfície clara: cartão do login e do cadastro
   actionDestructive: palette.red700, // botões que removem, excluem, rejeitam ou saem: nunca o vermelho do brand (é o da peça)
   actionDestructiveText: palette.red600, // texto de ação destrutiva sobre painel escuro: o contraste manda
 
@@ -129,7 +132,7 @@ export const colors = {
   feedbackDangerText: palette.red500, // título de erro sobre fundo escuro
 
   // status
-  statusScheduled: palette.gold800,
+  statusScheduled: palette.blue700, // selo agendada: fundo de pílula com texto branco
   statusOngoing: palette.green700, // em andamento, NPC, aceitar (fundo de pílula com texto branco)
   statusPublic: palette.green500, // campanha pública: texto sobre fundo escuro
   statusEnded: palette.red800,
@@ -194,8 +197,8 @@ export const colors = {
 } as const;
 
 export const fonts = {
-  sans: '"Roboto", sans-serif',
-  display: '"Oswald", sans-serif',
+  sans: '"Roboto", system-ui, -apple-system, "Segoe UI", Arial, sans-serif',
+  display: '"Roboto", system-ui, -apple-system, "Segoe UI", Arial, sans-serif',
 } as const;
 
 // Gradientes são uma decisão de design só — um token por gradiente, não um por cor-stop.

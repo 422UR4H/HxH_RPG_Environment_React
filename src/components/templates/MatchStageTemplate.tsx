@@ -1,7 +1,7 @@
 import type { PointerEvent, ReactNode } from "react";
 import styled from "styled-components";
 import { media } from "../../styles/breakpoints";
-import { colors, fonts } from "../../styles/tokens";
+import { colors } from "../../styles/tokens";
 
 type Props = {
   topbar: ReactNode;
@@ -103,9 +103,6 @@ export default function MatchStageTemplate({
 // no canvas recém-descoberto. Por isso o pointerdown morre aqui.
 const stopPointerDown = (e: PointerEvent<HTMLElement>) => e.stopPropagation();
 
-// O reset global põe `font-family: 'Lato'` em TODO elemento, e Lato não é carregada (o
-// index.html só traz Roboto): qualquer <span> sem fonte própria cairia na serifada padrão.
-// Aqui a tela inteira herda uma fonte só.
 const Shell = styled.div`
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
@@ -113,7 +110,6 @@ const Shell = styled.div`
   overflow: hidden;
   background: ${colors.surfaceSidebar};
   color: ${colors.textPrimary};
-  font-family: ${fonts.sans};
   /* Spec §13: arrastar no mapa/HUD não pode virar seleção de texto. Campos continuam selecionáveis. */
   user-select: none;
   -webkit-user-select: none;
@@ -126,10 +122,6 @@ const Shell = styled.div`
   & select {
     user-select: text;
     -webkit-user-select: text;
-  }
-
-  & * {
-    font-family: inherit;
   }
 `;
 

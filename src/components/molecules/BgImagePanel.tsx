@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import imageCompression from "browser-image-compression";
-import { colors, fonts } from "../../styles/tokens";
+import { colors } from "../../styles/tokens";
 import { IMAGE_PICKER_TIP } from "../../constants/uiStrings";
 import { fitGridAndCover } from "../../features/tactical-map/utils/bgFit";
 import useToken from "../../hooks/useToken";
@@ -336,7 +336,6 @@ const Panel = styled.div`
   flex-direction: column;
   gap: 12px;
   padding: 12px;
-  font-family: ${fonts.sans};
 `;
 
 const SectionTitle = styled.p`
@@ -380,7 +379,6 @@ const UrlInput = styled.input`
   border: 1px solid ${colors.borderInput};
   border-radius: 6px;
   color: ${colors.textPrimary};
-  font-family: ${fonts.sans};
   font-size: 13px;
   outline: none;
   &:focus { border-color: ${colors.brandAccent}; }
@@ -393,7 +391,6 @@ const AddButton = styled.button`
   color: ${colors.textPrimary};
   border: none;
   border-radius: 6px;
-  font-family: ${fonts.sans};
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -422,7 +419,6 @@ const TextButton = styled.button`
   color: ${colors.brandAccent};
   border: 1px solid ${colors.brandAccent};
   border-radius: 6px;
-  font-family: ${fonts.sans};
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -449,9 +445,9 @@ const NumberInput = styled.input`
   border: 1px solid ${colors.borderInput};
   border-radius: 6px;
   color: ${colors.textPrimary};
-  font-family: ${fonts.sans};
   font-size: 13px;
   outline: none;
+  &:focus { border-color: ${colors.brandAccent}; }
   &:disabled { opacity: 0.4; }
 `;
 
@@ -478,7 +474,6 @@ const RefitButton = styled.button`
   color: ${colors.textPlaceholderStrong};
   border: 1px solid ${colors.borderInput};
   border-radius: 6px;
-  font-family: ${fonts.sans};
   font-size: 12px;
   cursor: pointer;
   &:hover { border-color: ${colors.brandAccent}; color: ${colors.brandAccent}; }

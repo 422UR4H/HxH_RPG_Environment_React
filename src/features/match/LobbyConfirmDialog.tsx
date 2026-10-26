@@ -1,6 +1,6 @@
 // src/features/match/LobbyConfirmDialog.tsx
 import styled from "styled-components";
-import { colors, fonts } from "../../styles/tokens";
+import { colors } from "../../styles/tokens";
 
 interface LobbyConfirmDialogProps {
   onCancel: () => void;
@@ -49,7 +49,6 @@ const StyledLobbyDialog = styled.div`
 `;
 
 const ConfirmText = styled.p`
-  font-family: ${fonts.sans};
   font-size: 20px;
   color: ${colors.textPrimary};
   line-height: 1.5;
@@ -62,7 +61,6 @@ const ConfirmButtons = styled.div`
 `;
 
 const BaseDialogButton = styled.button`
-  font-family: ${fonts.sans};
   font-size: 18px;
   font-weight: 600;
   padding: 12px 24px;

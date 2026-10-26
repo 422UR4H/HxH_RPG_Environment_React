@@ -29,7 +29,7 @@ describe("CampaignsPage", () => {
     mockNavigate.mockReset();
   });
 
-  it("mostra 'Carregando campanhas…' inicialmente", () => {
+  it("shows 'Carregando campanhas…' initially", () => {
     server.use(
       http.get(`${baseUrl}/campaigns`, async () => {
         await new Promise((r) => setTimeout(r, 50));
@@ -48,7 +48,7 @@ describe("CampaignsPage", () => {
     expect(await screen.findByText(/Não foi possível carregar as campanhas/i, {}, { timeout: 5000 })).toBeInTheDocument();
   });
 
-  it("Tentar de novo refaz a busca", async () => {
+  it("'Tentar de novo' refetches", async () => {
     let calls = 0;
     server.use(
       http.get(`${baseUrl}/campaigns`, () => {
@@ -67,7 +67,7 @@ describe("CampaignsPage", () => {
     expect(calls).toBe(3);
   });
 
-  it("sem token redireciona para o login", async () => {
+  it("redirects to login without a token", async () => {
     renderWithProviders(
       <Routes>
         <Route path="/campaigns" element={<CampaignsPage />} />
@@ -89,6 +89,12 @@ describe("CampaignsPage", () => {
   it("renderiza um card pra cada campanha", async () => {
     renderPage();
     expect(await screen.findByText(campaignSummaryFixture.name)).toBeInTheDocument();
+  });
+
+  it("sets the tab title", async () => {
+    renderPage();
+    await screen.findByText(campaignSummaryFixture.name);
+    expect(document.title).toBe("Campanhas · System X System");
   });
 
   it("clicar em 'Criar Nova Campanha' navega pra /campaigns/new", async () => {

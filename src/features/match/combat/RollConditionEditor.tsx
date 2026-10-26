@@ -1,6 +1,6 @@
 import { useId, useState } from "react";
 import styled from "styled-components";
-import { colors, fonts } from "../../../styles/tokens";
+import { colors } from "../../../styles/tokens";
 import type { EditActionPayload } from "./combatMessages";
 import { clearPayload, conditionPayload, passiveBiasNote, systemBiasNote, type EditableRoll } from "./rollEdits";
 
@@ -126,7 +126,6 @@ const Editor = styled.div`
   padding: 8px;
   border: 1px solid ${colors.brandAccent};
   border-radius: 6px;
-  font-family: ${fonts.sans};
   color: ${colors.textPrimary};
 `;
 
@@ -142,7 +141,6 @@ const BiasDisclosure = styled.button`
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-family: ${fonts.sans};
   font-size: 12px;
   font-weight: 600;
   padding: 4px 8px;
@@ -187,7 +185,6 @@ const BiasRow = styled.div`
 `;
 
 const Toggle = styled.button`
-  font-family: ${fonts.sans};
   font-size: 12px;
   padding: 4px 8px;
   border: 1px solid ${colors.borderInput};
@@ -218,7 +215,6 @@ const Input = styled.input`
   border-radius: 4px;
   background: ${colors.surfaceInput};
   color: ${colors.textPrimary};
-  font-family: ${fonts.sans};
   font-size: 13px;
 `;
 
@@ -230,7 +226,6 @@ const Buttons = styled.div`
 `;
 
 const ButtonBase = styled.button`
-  font-family: ${fonts.sans};
   font-size: 12px;
   font-weight: 600;
   padding: 6px 10px;

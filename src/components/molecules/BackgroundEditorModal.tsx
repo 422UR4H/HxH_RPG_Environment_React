@@ -169,7 +169,6 @@ const Modal = styled.div`
 `;
 
 const Title = styled.h2`
-  font-family: "Roboto", sans-serif;
   font-size: 1.4rem;
   font-weight: 700;
   color: ${colors.textPrimary};
@@ -197,7 +196,6 @@ const ActionButton = styled.button`
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  font-family: "Roboto", sans-serif;
   font-weight: 600;
   font-size: 0.95rem;
 
@@ -210,7 +208,6 @@ const Editor = styled.textarea`
   width: 100%;
   min-height: 50vh;
   padding: 14px 16px;
-  font-family: "Roboto", sans-serif;
   font-size: 1rem;
   line-height: 1.6;
   color: ${colors.textPrimary};
@@ -238,7 +235,6 @@ const FormattingTip = styled.div`
 `;
 
 const TipText = styled.p`
-  font-family: "Roboto", sans-serif;
   font-size: 0.85rem;
   color: ${colors.feedbackWarning};
   line-height: 1.5;

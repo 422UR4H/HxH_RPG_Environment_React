@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import { colors, fonts } from "../../../styles/tokens";
+import { colors } from "../../../styles/tokens";
 
 // A casca dos diálogos de confirmação da partida (nova cena, fechar com reação pendente,
 // arrumar o tabuleiro): fundo escurecido, cartão central, botões à direita.
@@ -26,7 +26,6 @@ export const Dialog = styled.div`
   border-radius: 12px;
   background: ${colors.surfaceSidebar};
   color: ${colors.textPrimary};
-  font-family: ${fonts.sans};
 `;
 
 export const DialogTitle = styled.h2`
@@ -48,7 +47,6 @@ export const Buttons = styled.div`
 `;
 
 export const ButtonBase = styled.button`
-  font-family: ${fonts.sans};
   font-size: 14px;
   font-weight: 600;
   padding: 10px 18px;

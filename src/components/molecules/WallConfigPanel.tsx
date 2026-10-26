@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import styled from "styled-components";
-import { colors, fonts, alpha } from "../../styles/tokens";
+import { colors, alpha } from "../../styles/tokens";
 import type { WallMaterial, WallSegment, WallType } from "../../types/tacticalMap";
 
 type Props = {
@@ -115,7 +115,6 @@ export default function WallConfigPanel({ wall, onUpdate, onRemove }: Props) {
 
 const Container = styled.div`
   display: flex; flex-direction: column; gap: 12px; padding: 12px;
-  font-family: ${fonts.sans};
 `;
 const Badge = styled.div`
   display: flex; align-items: center; gap: 6px;
@@ -127,7 +126,6 @@ const BadgeDot = styled.div`
   background: ${colors.brandAccent}; flex-shrink: 0;
 `;
 const BadgeLabel = styled.span`
-  font-family: ${fonts.sans};
   font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
   color: ${colors.brandAccent};
 `;
@@ -135,7 +133,6 @@ const Section = styled.div`
   display: flex; flex-direction: column; gap: 6px;
 `;
 const SectionLabel = styled.span`
-  font-family: ${fonts.sans};
   font-size: 11px; font-weight: 600;
   color: ${colors.textPlaceholderStrong};
   text-transform: uppercase; letter-spacing: 0.05em;
@@ -144,7 +141,6 @@ const ChipRow = styled.div`
   display: flex; flex-wrap: wrap; gap: 6px;
 `;
 const Chip = styled.button<{ $active: boolean }>`
-  font-family: ${fonts.sans};
   font-size: 12px; padding: 4px 10px; border-radius: 999px;
   border: 1px solid ${({ $active }) => $active ? colors.brandAccent : colors.borderInput};
   background: ${({ $active }) => $active ? colors.brandAccent : "transparent"};
@@ -154,7 +150,6 @@ const Chip = styled.button<{ $active: boolean }>`
   &:hover { border-color: ${colors.brandAccent}; color: ${colors.textPrimary}; }
 `;
 const LockToggle = styled.button<{ $locked: boolean }>`
-  font-family: ${fonts.sans};
   font-size: 12px; padding: 5px 14px; border-radius: 999px;
   border: 1px solid ${({ $locked }) => $locked ? colors.feedbackDanger : colors.borderInput};
   background: ${({ $locked }) => $locked ? alpha(colors.feedbackDanger, 0.1) : "transparent"};
@@ -167,7 +162,6 @@ const Actions = styled.div`
   display: flex; gap: 8px;
 `;
 const ApplyButton = styled.button<{ $applied: boolean }>`
-  font-family: ${fonts.sans};
   flex: 1; padding: 7px; border-radius: 6px;
   border: none;
   background: ${colors.brandAccent};
@@ -177,7 +171,6 @@ const ApplyButton = styled.button<{ $applied: boolean }>`
   &:hover { background: ${colors.brandAccent}; }
 `;
 const DeleteButton = styled.button`
-  font-family: ${fonts.sans};
   padding: 7px 12px; border-radius: 6px;
   border: 1px solid ${colors.actionDestructive}; background: transparent; color: ${colors.actionDestructive};
   font-size: 12px; cursor: pointer;

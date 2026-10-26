@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import styled from "styled-components";
-import { colors, fonts, alpha } from "../../styles/tokens";
+import { colors, alpha } from "../../styles/tokens";
 
 type Props = {
   message: string;
@@ -45,7 +45,6 @@ export default function InlineFeedback({
 }
 
 const Wrapper = styled.div<{ $variant: NonNullable<Props["variant"]> }>`
-  font-family: ${fonts.sans};
   font-size: clamp(11px, 2.5cqi, 13px);
   padding: 6px 10px;
   border-radius: 5px;

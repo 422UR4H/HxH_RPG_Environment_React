@@ -2,7 +2,7 @@
 import styled from "styled-components";
 import type { TacticalMap, MatchMapResponse } from "../../types/tacticalMap";
 import MapCard from "../../components/molecules/MapCard";
-import { colors, fonts } from "../../styles/tokens";
+import { colors } from "../../styles/tokens";
 import { formatDateBR } from "../../utils/date";
 import type { BoardSource } from "../../hooks/useInheritableBoards";
 
@@ -137,14 +137,12 @@ const MapsGrid = styled.div`
 `;
 
 const MapsEmptyText = styled.p`
-  font-family: ${fonts.sans};
   font-size: 16px;
   color: ${colors.textMuted};
   padding: 20px 0;
 `;
 
 const MapsPlaceholder = styled.p`
-  font-family: ${fonts.sans};
   font-size: 16px;
   color: ${colors.textMuted};
   padding: 40px 0;
@@ -152,13 +150,11 @@ const MapsPlaceholder = styled.p`
 `;
 
 const MapChangeError = styled.p`
-  font-family: ${fonts.sans};
   font-size: 14px;
   color: ${colors.feedbackDanger};
 `;
 
 const MapChangeNotice = styled.p`
-  font-family: ${fonts.sans};
   font-size: 14px;
   color: ${colors.textMuted};
 `;
@@ -170,7 +166,6 @@ const InheritBlock = styled.div`
 `;
 
 const InheritLabel = styled.span`
-  font-family: ${fonts.sans};
   font-size: 13px;
   font-weight: 600;
   color: ${colors.textMuted};
@@ -183,7 +178,6 @@ const InheritList = styled.div`
 `;
 
 const InheritHint = styled.p`
-  font-family: ${fonts.sans};
   font-size: 12px;
   color: ${colors.textMuted};
 `;
@@ -201,7 +195,6 @@ const MapAttachRow = styled.div`
 `;
 
 const AttachedBadge = styled.span`
-  font-family: ${fonts.sans};
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -212,7 +205,6 @@ const AttachedBadge = styled.span`
 `;
 
 const BaseMapButton = styled.button`
-  font-family: ${fonts.sans};
   font-size: 14px;
   font-weight: 600;
   padding: 6px 16px;

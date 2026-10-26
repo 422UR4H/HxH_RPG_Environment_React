@@ -1,6 +1,6 @@
 import { type ReactNode } from "react";
 import styled from "styled-components";
-import { colors, fonts } from "../../styles/tokens";
+import { colors } from "../../styles/tokens";
 
 interface RulesSidebarProps {
   title?: string;
@@ -32,7 +32,6 @@ const SidebarContainer = styled.aside`
 `;
 
 const SidebarTitle = styled.h2`
-  font-family: ${fonts.sans};
   font-weight: 700;
   font-size: 32px;
   text-align: center;
@@ -49,7 +48,6 @@ const RulesContent = styled.div`
 `;
 
 const SidebarFooter = styled.div`
-  font-family: ${fonts.sans};
   font-weight: 300;
   margin-top: 30px;
   font-size: 18px;

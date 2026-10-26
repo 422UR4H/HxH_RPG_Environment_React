@@ -37,7 +37,7 @@ describe("boardWaitMessage", () => {
       expect(boardWaitMessage({ boardUnavailable: false, status })).toEqual({ text: NO_CONNECTION, tone: "muted" });
     }
   });
-  it("waking: texto de servidor acordando, em tom neutro", () => {
+  it("waking: server-waking text, in a neutral tone", () => {
     expect(boardWaitMessage({ boardUnavailable: false, status: "waking" })).toEqual({ text: GAME_SERVER_WAKING, tone: "muted" });
   });
   it("conectando ou conectado: carregando", () => {

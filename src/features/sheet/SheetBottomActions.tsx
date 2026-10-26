@@ -120,7 +120,6 @@ const CampaignButton = styled.button`
   border-radius: 8px;
   background: ${gradients.orange};
   color: ${colors.textOnLight};
-  font-family: "Roboto", sans-serif;
   font-size: min(26px, 5cqi);
   font-weight: 600;
   display: flex;
@@ -171,7 +170,6 @@ const FloatingCampaignButton = styled.button`
   padding: min(15px, 3.6cqi) min(30px, 5cqi) min(15px, 3.6cqi) min(26px, 5cqi);
   background: ${gradients.orange};
   color: ${colors.textOnLight};
-  font-family: "Roboto", sans-serif;
   font-size: min(26px, 5cqi);
   font-weight: 600;
   display: flex;

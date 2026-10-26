@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { ChangeEvent } from "react";
 import styled from "styled-components";
 import type { GridShape } from "../../types/tacticalMap";
-import { colors, fonts } from "../../styles/tokens";
+import { colors } from "../../styles/tokens";
 import { keepGridAnchored } from "../../features/tactical-map/utils/coords";
 
 type Props = {
@@ -251,7 +251,6 @@ const Panel = styled.div`
 `;
 
 const SectionTitle = styled.h3`
-  font-family: ${fonts.sans};
   font-size: clamp(10px, 3cqi, 13px);
   font-weight: 700;
   letter-spacing: 1px;
@@ -267,7 +266,6 @@ const Field = styled.div`
 `;
 
 const FieldLabel = styled.label`
-  font-family: ${fonts.sans};
   font-size: 13px;
   font-weight: 600;
   color: ${colors.textDisabled};
@@ -285,7 +283,6 @@ const KindButton = styled.button<{ $active: boolean }>`
   border: 1px solid ${colors.borderInput};
   background: ${({ $active }) => ($active ? colors.brandAccent : "transparent")};
   color: ${colors.textPrimary};
-  font-family: ${fonts.sans};
   font-size: clamp(11px, 3cqi, 13px);
   font-weight: 600;
   cursor: pointer;
@@ -296,7 +293,6 @@ const KindButton = styled.button<{ $active: boolean }>`
 `;
 
 const NumInput = styled.input`
-  font-family: ${fonts.sans};
   font-size: clamp(12px, 3.5cqi, 15px);
   color: ${colors.textPrimary};
   background: ${colors.surfaceInput};
@@ -324,7 +320,6 @@ const RefitButton = styled.button`
   color: ${colors.textDisabled};
   border: 1px solid ${colors.borderInput};
   border-radius: 6px;
-  font-family: ${fonts.sans};
   font-size: 12px;
   cursor: pointer;
 
@@ -348,7 +343,6 @@ const SkewRow = styled.div`
 const SkewInput = styled.input`
   width: 64px;
   flex-shrink: 0;
-  font-family: ${fonts.sans};
   font-size: clamp(12px, 3.5cqi, 15px);
   color: ${colors.textPrimary};
   background: ${colors.surfaceInput};
@@ -365,14 +359,12 @@ const SkewInput = styled.input`
 const SkewLabels = styled.div`
   display: flex;
   justify-content: space-between;
-  font-family: ${fonts.sans};
   font-size: 11px;
   color: ${colors.textDisabled};
 `;
 
 const HelpText = styled.p`
   margin: 0;
-  font-family: ${fonts.sans};
   font-size: 11px;
   line-height: 1.4;
   color: ${colors.textDisabled};

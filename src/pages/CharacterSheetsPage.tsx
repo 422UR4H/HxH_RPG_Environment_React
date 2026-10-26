@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
+import useDocumentTitle from "../hooks/useDocumentTitle";
 import useToken from "../hooks/useToken";
 import space from "../assets/images/space.png";
 import { useCharacterSheets } from "../hooks/useCharacterSheets";
@@ -21,6 +22,8 @@ function CharacterSheetsPage() {
       navigate("/charactersheet/new", { replace: true });
     }
   }, [charSheets, isPending, isFetching, navigate]);
+
+  useDocumentTitle("Personagens");
 
   if (!token) {
     return <Navigate to="/" replace />;

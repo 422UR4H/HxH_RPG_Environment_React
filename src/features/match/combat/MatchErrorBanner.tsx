@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import styled from "styled-components";
 import CloseButton from "../../../components/ions/CloseButton";
-import { colors, fonts } from "../../../styles/tokens";
+import { colors } from "../../../styles/tokens";
 import { combatErrorText } from "./combatErrorMessages";
 import type { WsError } from "./combatErrorMessages";
 
@@ -41,7 +41,6 @@ const Banner = styled.div`
   border: 1px solid ${colors.feedbackDanger};
   background: ${colors.surfaceSidebar};
   color: ${colors.textPrimary};
-  font-family: ${fonts.sans};
   font-size: 13px;
 `;
 

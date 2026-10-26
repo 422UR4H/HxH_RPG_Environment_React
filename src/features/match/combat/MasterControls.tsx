@@ -3,7 +3,7 @@
 import { useState } from "react";
 import styled, { css } from "styled-components";
 import Tooltip from "../../../components/ions/Tooltip";
-import { colors, fonts } from "../../../styles/tokens";
+import { colors } from "../../../styles/tokens";
 import { media } from "../../../styles/breakpoints";
 import type { Participant } from "../../../types/match";
 import type { WallSegment } from "../../../types/tacticalMap";
@@ -342,7 +342,6 @@ const WallLife = styled.div`
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-family: ${fonts.sans};
   font-size: 12px;
   color: ${colors.textPrimary};
 
@@ -366,7 +365,6 @@ const LifeFill = styled.div`
 const WallList = styled.ul`
   margin: 0;
   padding-left: 16px;
-  font-family: ${fonts.sans};
   font-size: 12px;
   color: ${colors.textPrimary};
 `;
@@ -402,7 +400,6 @@ const NpcSelect = styled.select`
   color: ${colors.textPrimary};
   border: 1px solid ${colors.surfaceInputHover};
   border-radius: 6px;
-  font-family: ${fonts.sans};
   font-size: 13px;
   padding: 4px 6px;
 `;
@@ -450,7 +447,6 @@ const ModeGroup = styled.div<{ $placement: "topbar" | "panel" }>`
 `;
 
 const ModeButton = styled.button`
-  font-family: ${fonts.sans};
   font-size: 12px;
   border: none;
   padding: 6px 10px;
@@ -470,7 +466,10 @@ const PrimaryButton = styled(SmallButton)`
   background: ${colors.brandAccent};
 
   &[aria-disabled="true"] {
-    opacity: 0.4;
+    background: ${colors.surfaceDisabled};
+    border-color: ${colors.surfaceDisabled};
+    color: ${colors.textDisabledOnDark};
+    filter: none;
     cursor: not-allowed;
   }
 `;
@@ -496,7 +495,6 @@ const PickerList = styled.div`
 `;
 
 const NpcChip = styled.button`
-  font-family: ${fonts.sans};
   font-size: 13px;
   padding: 5px 12px;
   border-radius: 999px;

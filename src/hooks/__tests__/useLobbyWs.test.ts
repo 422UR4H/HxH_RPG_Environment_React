@@ -259,7 +259,7 @@ describe("useLobbyWs", () => {
     expect(MockWebSocket).toHaveBeenCalledTimes(2);
   });
 
-  it("um 1006 depois de aberto vai para waking e tenta de novo em 500 ms", () => {
+  it("a 1006 after open goes to waking and retries in 500 ms", () => {
     const { result } = renderHook(() => useLobbyWs(defaultParams));
     simulateOpen();
     simulateClose(1006);
@@ -282,7 +282,7 @@ describe("useLobbyWs", () => {
     }
   }
 
-  it("falhas seguidas por 180 s levam a unreachable e param de criar sockets", () => {
+  it("consecutive failures for 180 s lead to unreachable and stop creating sockets", () => {
     const { result } = renderHook(() => useLobbyWs(defaultParams));
     const t0 = Date.now();
     failUntilUnreachable(result);
@@ -293,7 +293,7 @@ describe("useLobbyWs", () => {
     expect(MockWebSocket.mock.calls.length).toBe(countBefore);
   });
 
-  it("uma mensagem recebida zera a janela", () => {
+  it("a received message resets the window", () => {
     const { result } = renderHook(() => useLobbyWs(defaultParams));
     simulateOpen();
     sendFromServer("room_state", { players: [] });
@@ -315,7 +315,7 @@ describe("useLobbyWs", () => {
     expect(MockWebSocket.mock.calls.length).toBe(count + 1);
   });
 
-  it("reconnect() a partir de unreachable cria um socket novo em connecting", () => {
+  it("reconnect() from unreachable creates a new socket in connecting", () => {
     const { result } = renderHook(() => useLobbyWs(defaultParams));
     failUntilUnreachable(result);
     expect(result.current.status).toBe("unreachable");
@@ -325,7 +325,7 @@ describe("useLobbyWs", () => {
     expect(result.current.status).toBe("connecting");
   });
 
-  it("o onerror sozinho não muda o status", () => {
+  it("onerror alone does not change the status", () => {
     const { result } = renderHook(() => useLobbyWs(defaultParams));
     simulateOpen();
     act(() => { wsInstance.onerror?.({} as Event); });

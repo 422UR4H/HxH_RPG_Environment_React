@@ -1,5 +1,5 @@
 import styled, { css } from "styled-components";
-import { colors, fonts, alpha } from "../../../styles/tokens";
+import { colors, alpha } from "../../../styles/tokens";
 
 // Os seletores da mesa: escolher entre poucas opções é tocar num botão, nunca a bolinha de
 // rádio ou a caixinha nativa do navegador (destoam do resto e são pequenas para o dedo).
@@ -28,7 +28,6 @@ export const Toggle = styled.button<{ $tone: Tone }>`
   border: 1px solid ${colors.borderInput};
   background: ${colors.surfaceInput};
   color: ${colors.textMuted};
-  font-family: ${fonts.sans};
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -65,7 +64,6 @@ export const Segment = styled.button`
   border: none;
   background: transparent;
   color: ${colors.textPlaceholderStrong};
-  font-family: ${fonts.sans};
   font-size: 13px;
   padding: 6px 14px;
   cursor: pointer;
@@ -97,7 +95,6 @@ export const Weapon = styled.button`
   border: 1px solid ${colors.borderInput};
   background: ${colors.surfaceInput};
   color: ${colors.textMuted};
-  font-family: ${fonts.sans};
   cursor: pointer;
   text-align: left;
 
@@ -120,7 +117,6 @@ export const WeaponStats = styled.span`
 
 /** O rótulo de um grupo de escolha num diálogo ("Categoria", "Arma"). */
 export const ChoiceLabel = styled.span`
-  font-family: ${fonts.sans};
   font-size: 13px;
   font-weight: 600;
   color: ${colors.textMuted};

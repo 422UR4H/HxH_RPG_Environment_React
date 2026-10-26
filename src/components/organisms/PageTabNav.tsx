@@ -1,6 +1,6 @@
 import { useSearchParams } from "react-router-dom";
 import styled from "styled-components";
-import { colors, fonts } from "../../styles/tokens";
+import { colors } from "../../styles/tokens";
 
 type Tab = { id: string; label: string };
 
@@ -38,7 +38,6 @@ const Nav = styled.nav`
 `;
 
 const TabButton = styled.button<{ $active: boolean }>`
-  font-family: ${fonts.sans};
   font-size: 16px;
   font-weight: ${({ $active }) => ($active ? "700" : "400")};
   color: ${({ $active }) =>

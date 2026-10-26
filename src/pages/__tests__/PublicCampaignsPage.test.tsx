@@ -18,7 +18,7 @@ function renderPage(opts: Parameters<typeof renderWithProviders>[1] = {}) {
 }
 
 describe("PublicCampaignsPage", () => {
-  it("mostra 'Carregando campanhas públicas…' inicialmente", () => {
+  it("shows 'Carregando campanhas públicas…' initially", () => {
     server.use(
       http.get(`${baseUrl}/public/campaigns`, async () => {
         await new Promise((r) => setTimeout(r, 50));

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import styled from "styled-components";
-import { colors, fonts } from "../../../styles/tokens";
+import { colors } from "../../../styles/tokens";
 import {
   Buttons, CancelButton, ConfirmButton, Dialog, DialogHint, DialogTitle, Overlay,
 } from "./dialogStyles";
@@ -85,7 +85,6 @@ const DescInput = styled.input`
   color: ${colors.textPrimary};
   border: 1px solid ${colors.surfaceInputHover};
   border-radius: 8px;
-  font-family: ${fonts.sans};
   font-size: 14px;
   min-height: 40px;
   padding: 0 10px;

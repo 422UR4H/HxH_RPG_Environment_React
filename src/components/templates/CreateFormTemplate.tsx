@@ -5,7 +5,7 @@ import EdgeDrawer from "../molecules/EdgeDrawer";
 import useMediaQuery from "../../hooks/useMediaQuery";
 import PageTitle from "../ions/PageTitle";
 import worldMap from "../../assets/images/worldmap.png";
-import { colors, fonts, alpha } from "../../styles/tokens";
+import { colors, alpha } from "../../styles/tokens";
 import { scopedScrollbar, scrollbarPalettes } from "../../styles/scrollbar";
 
 interface CreateFormTemplateProps {
@@ -151,7 +151,6 @@ const ButtonsContainer = styled.div`
 const Button = styled.button`
   padding: 16px 32px;
   border-radius: 6px;
-  font-family: ${fonts.sans};
   font-size: 26px;
   font-weight: bold;
   cursor: pointer;

@@ -29,7 +29,6 @@ export default function DescriptionMarkdown({
 }
 
 const MarkdownContainer = styled.div`
-  font-family: inherit;
   color: ${colors.textPrimary};
   line-height: 1.6;
   tab-size: 4;
@@ -58,7 +57,6 @@ const MarkdownContainer = styled.div`
 `;
 
 const EmptyText = styled.p`
-  font-family: "Roboto", sans-serif;
   font-size: 0.95rem;
   color: ${colors.textPlaceholder};
   font-style: italic;

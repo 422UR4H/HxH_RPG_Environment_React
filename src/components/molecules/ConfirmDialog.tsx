@@ -72,7 +72,6 @@ const Dialog = styled.div<{ $bg?: string }>`
 `;
 
 const Message = styled.p`
-  font-family: "Roboto", sans-serif;
   font-size: 20px;
   color: ${colors.textPrimary};
   line-height: 1.5;
@@ -85,7 +84,6 @@ const Buttons = styled.div`
 `;
 
 const BaseButton = styled.button`
-  font-family: "Roboto", sans-serif;
   font-size: 18px;
   font-weight: 600;
   padding: 12px 24px;
@@ -114,6 +112,6 @@ const ActionButton = styled(BaseButton)<{
   $color?: string;
 }>`
   background: ${({ $bg, $variant }) =>
-    $bg ?? ($variant === "danger" ? colors.feedbackDanger : colors.brandAccent)};
+    $bg ?? ($variant === "danger" ? colors.actionDestructive : colors.brandAccent)};
   color: ${({ $color }) => $color ?? colors.textPrimary};
 `;

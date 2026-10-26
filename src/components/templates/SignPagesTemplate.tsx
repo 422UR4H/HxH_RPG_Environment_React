@@ -30,6 +30,8 @@ export const StyledSignTemplates = styled.div`
   padding: 30px;
 
   .form-div {
+    /* O dourado do anel global some no branco do cartão. */
+    --focus-ring: ${colors.actionHighlightOnLight};
     background-color: ${colors.textPrimary};
     width: min(535px, 100vw);
     border-radius: 24px;
@@ -42,7 +44,6 @@ export const StyledSignTemplates = styled.div`
   }
 
   a {
-    font-family: "Roboto", "sans-serif";
     font-size: min(20px, 6vw);
     font-weight: 600;
     line-height: 24px;

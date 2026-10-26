@@ -1,6 +1,7 @@
 import { useState, useEffect, type FormEvent } from "react";
 import SignPagesTemplate from "../components/templates/SignPagesTemplate";
 import Form from "../components/atoms/Form";
+import useDocumentTitle from "../hooks/useDocumentTitle";
 import useForm from "../hooks/useForm";
 import ButtonSubmit from "../components/atoms/ButtonSubmit";
 import useToken from "../hooks/useToken";
@@ -17,6 +18,8 @@ type LoginForm = {
 };
 
 export default function LoginPage() {
+  useDocumentTitle("Entrar");
+
   const { token, login } = useToken();
   const { putUser } = useUser();
   const { form, handleForm } = useForm<LoginForm>({ email: "", password: "" });

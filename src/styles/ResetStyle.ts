@@ -1,5 +1,5 @@
 import { createGlobalStyle } from "styled-components";
-import { colors } from "./tokens";
+import { colors, fonts } from "./tokens";
 import { globalScrollbar, scrollbarPalettes } from "./scrollbar";
 
 const ResetStyle = createGlobalStyle`
@@ -33,6 +33,7 @@ const ResetStyle = createGlobalStyle`
 	}
 
 	body {
+		font-family: ${fonts.sans};
 		line-height: 1;
     position: relative;
 	}
@@ -70,8 +71,26 @@ const ResetStyle = createGlobalStyle`
 		user-select: none;
 	}
 
+	/* Controles não herdam a fonte por padrão. */
+	button, input, select, textarea, optgroup {
+		font-family: inherit;
+	}
+
+	:root {
+		--focus-ring: ${colors.actionHighlight};
+	}
+
+	/* Anel de foco único. Todo o seletor, :focus-visible incluído, fica dentro do :where,
+	   então a especificidade é zero: qualquer regra de componente vence sem depender da
+	   ordem de injeção (o styled-components não a garante entre global e componentes).
+	   Campos de texto ficam de fora: o navegador marca :focus-visible neles também no
+	   clique, e eles têm a borda própria. */
+	:where(:not(input, textarea, select):focus-visible, input:is([type="checkbox"], [type="radio"], [type="range"], [type="color"]):focus-visible) {
+		outline: 2px solid var(--focus-ring);
+		outline-offset: 3px;
+	}
+
 	* {
-		font-family: 'Lato';
 		transition: color 200ms, background-color 200ms; 
 		box-sizing: border-box;
 	}

@@ -38,13 +38,11 @@ const ProficiencyCardContent = styled.div`
 `;
 
 const ProficiencyName = styled.div`
-  font-family: "Roboto", sans-serif;
   font-weight: 500;
   font-size: min(22px, 5cqi);
 `;
 
 const ProficiencyLevel = styled.div`
-  font-family: "Roboto", sans-serif;
   font-weight: 400;
   font-size: min(22px, 5cqi);
   color: ${colors.textInputDisabled};

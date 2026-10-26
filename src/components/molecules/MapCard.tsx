@@ -1,7 +1,7 @@
 // src/components/molecules/MapCard.tsx
 import styled from "styled-components";
 import type { TacticalMap } from "../../types/tacticalMap";
-import { colors, fonts } from "../../styles/tokens";
+import { colors } from "../../styles/tokens";
 
 interface MapCardProps {
   map: TacticalMap;
@@ -38,7 +38,6 @@ const Card = styled.button`
 `;
 
 const MapName = styled.h3`
-  font-family: ${fonts.sans};
   font-size: 18px;
   font-weight: 700;
   color: ${colors.textPrimary};
@@ -46,7 +45,6 @@ const MapName = styled.h3`
 `;
 
 const MapDescription = styled.p`
-  font-family: ${fonts.sans};
   font-size: 14px;
   color: ${colors.textMuted};
   margin: 0;

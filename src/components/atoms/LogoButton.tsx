@@ -3,7 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import Logo from "../ions/Logo";
 import { useNavGuard } from "../../contexts/NavGuardContext";
-import { colors } from "../../styles/tokens";
 
 export default function LogoButton() {
   const navigate = useNavigate();
@@ -30,8 +29,8 @@ const StyledLogoButton = styled(Link)`
   height: fit-content;
   border-radius: 6px;
 
+  /* Só o afastamento é próprio (5 px; o global tem 3): a logo tem um respiro maior que os outros controles. O contorno e a cor vêm do anel global. */
   &:focus-visible {
-    outline: 2px solid ${colors.actionHighlight};
     outline-offset: 5px;
   }
 
@@ -41,8 +40,6 @@ const StyledLogoButton = styled(Link)`
     width: min(188px, 28vw);
     /* width: min(180px, 28%); */
     display: block;
-    /* border: none;
-    outline: none; */
 
     /* Só o zoom: o brightness() antigo dava a impressão de ficar mais nítida, e um halo aqui
        vazaria para os vãos entre as letras. */

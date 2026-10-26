@@ -1,4 +1,5 @@
 import { Navigate, useLocation } from "react-router-dom";
+import useDocumentTitle from "../hooks/useDocumentTitle";
 import useToken from "../hooks/useToken";
 import { usePublicCampaigns } from "../hooks/usePublicCampaigns";
 import CampaignCard from "../components/atoms/CampaignCard";
@@ -14,6 +15,8 @@ function PublicCampaignsPage() {
   const sheetNick = (location.state as { sheetId?: string; sheetNick?: string } | null)?.sheetNick;
 
   const { data: campaigns, isLoading, error, refetch } = usePublicCampaigns(token);
+
+  useDocumentTitle("Campanhas públicas");
 
   if (!token) {
     return <Navigate to="/" replace />;

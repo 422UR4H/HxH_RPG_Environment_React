@@ -1,3 +1,4 @@
+import useDocumentTitle from "../hooks/useDocumentTitle";
 import { useCampaigns } from "../hooks/useCampaigns";
 import { Navigate, useNavigate } from "react-router-dom";
 import type { CampaignSummary } from "../types/campaigns";
@@ -18,6 +19,8 @@ function CampaignsPage() {
     isError,
     refetch,
   } = useCampaigns(token);
+
+  useDocumentTitle("Campanhas");
 
   if (!token) {
     return <Navigate to="/" replace />;

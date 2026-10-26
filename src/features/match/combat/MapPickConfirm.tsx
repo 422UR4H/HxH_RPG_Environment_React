@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import { colors, fonts } from "../../../styles/tokens";
+import { colors } from "../../../styles/tokens";
 
 /**
  * A escolha de uma casa no mapa (a casa da fuga, onde cai a fuga que falhou), no mesmo lugar da
@@ -56,7 +56,6 @@ const Bar = styled.div<{ $passive?: boolean }>`
   border: 1px solid ${colors.mapMoveIntent};
   background: ${colors.overlayMedium};
   color: ${colors.textPrimary};
-  font-family: ${fonts.sans};
   font-size: 12px;
   text-align: left;
   pointer-events: ${(p) => (p.$passive ? "none" : "auto")};
@@ -74,7 +73,6 @@ const Text = styled.div`
 
 const ConfirmButton = styled.button`
   flex-shrink: 0;
-  font-family: ${fonts.sans};
   font-size: 13px;
   font-weight: 700;
   padding: 8px 12px;

@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import ReactionConfigDialog from "../ReactionConfigDialog";
 import type { ReactionButton } from "../reactionModel";
-import { colors, fonts } from "../../../../styles/tokens";
+import { colors } from "../../../../styles/tokens";
 
 function setup(initial: ReactionButton = "dodge", extra: { defaultWeapon?: string } = {}) {
   const onSend = vi.fn();
@@ -114,27 +114,15 @@ describe("ReactionConfigDialog", () => {
     expect(screen.getByText(/^Custo:/)).toHaveTextContent("Custo: barras de ação e movimento");
   });
 
-  it("as escolhas são botões na fonte do diálogo, não o `* { font-family }` global", () => {
-    // A regra do `ResetStyle` que vazava: ela vence a herança, então o rótulo precisa declarar a
-    // própria fonte. (O `createGlobalStyle` não chega ao jsdom; a regra entra à mão.)
-    const reset = document.head.appendChild(document.createElement("style"));
-    reset.textContent = "* { font-family: 'Lato'; }";
+  it("choices are buttons, with the selected one in the text color", () => {
     // O token é "white"; o computado vem em rgb — normaliza pelo próprio jsdom.
     const probe = document.body.appendChild(document.createElement("div"));
     probe.style.color = colors.textPrimary;
     const textPrimary = getComputedStyle(probe).color;
     probe.remove();
-    try {
-      setup("repel");
-      expect(document.querySelector('input[type="radio"], input[type="checkbox"], select')).toBeNull();
-      // O escolhido fica na cor do texto; o resto, apagado.
-      for (const el of [radio("Repelir"), weapon("Desarmado"), screen.getByText("Arma")]) {
-        expect(getComputedStyle(el).fontFamily).toBe(fonts.sans);
-      }
-      expect(getComputedStyle(radio("Repelir")).color).toBe(textPrimary);
-    } finally {
-      reset.remove();
-    }
+    setup("repel");
+    expect(document.querySelector('input[type="radio"], input[type="checkbox"], select')).toBeNull();
+    expect(getComputedStyle(radio("Repelir")).color).toBe(textPrimary);
   });
 
   it("Cancelar não envia", () => {

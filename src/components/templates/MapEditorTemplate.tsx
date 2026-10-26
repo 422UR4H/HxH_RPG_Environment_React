@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import styled from "styled-components";
 import PageHeader from "../atoms/PageHeader";
-import { colors, fonts } from "../../styles/tokens";
+import { colors } from "../../styles/tokens";
 import { scopedScrollbar, scrollbarPalettes } from "../../styles/scrollbar";
 
 type Props = {
@@ -42,7 +42,6 @@ const PageBody = styled.main`
   display: flex;
   min-height: 0;
   color: ${colors.textPrimary};
-  font-family: ${fonts.sans};
 
   @media (max-width: 749px) {
     flex-direction: column;

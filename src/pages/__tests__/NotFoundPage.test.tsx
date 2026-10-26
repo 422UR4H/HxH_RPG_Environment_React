@@ -4,7 +4,7 @@ import { renderWithProviders } from "../../test/render";
 import NotFoundPage from "../NotFoundPage";
 
 describe("NotFoundPage", () => {
-  it("mostra o título e a mensagem da rota inexistente", () => {
+  it("shows the title and message for a nonexistent route", () => {
     renderWithProviders(<NotFoundPage />);
     expect(screen.getByText("Página não encontrada")).toBeInTheDocument();
     expect(
@@ -12,12 +12,12 @@ describe("NotFoundPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("com token, 'Ir para o início' aponta para /home", () => {
+  it("with a token, 'Ir para o início' points to /home", () => {
     renderWithProviders(<NotFoundPage />);
     expect(screen.getByRole("link", { name: "Ir para o início" })).toHaveAttribute("href", "/home");
   });
 
-  it("sem token, 'Ir para o início' aponta para /", () => {
+  it("without a token, 'Ir para o início' points to /", () => {
     renderWithProviders(<NotFoundPage />, { token: null });
     expect(screen.getByRole("link", { name: "Ir para o início" })).toHaveAttribute("href", "/");
   });

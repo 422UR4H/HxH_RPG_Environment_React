@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Navigate, useParams, useNavigate, useLocation, useSearchParams } from "react-router-dom";
+import useDocumentTitle from "../hooks/useDocumentTitle";
 import useToken from "../hooks/useToken";
 import useUser from "../hooks/useUser";
 import { useMatchDetails } from "../hooks/useMatchDetails";
@@ -189,6 +190,8 @@ export default function MatchPage() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [match]);
+
+  useDocumentTitle(match?.title);
 
   if (!token) return <Navigate to="/" replace />;
 

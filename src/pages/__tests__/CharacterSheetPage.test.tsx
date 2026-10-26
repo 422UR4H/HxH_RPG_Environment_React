@@ -64,7 +64,7 @@ describe("CharacterSheetPage", () => {
     expect(await screen.findByText(/TestNick/i)).toBeInTheDocument();
   });
 
-  it("500 mostra o título do erro com 'Tentar de novo'", async () => {
+  it("500 shows the error title with 'Tentar de novo'", async () => {
     server.use(
       http.get(`${baseUrl}/charactersheets/:id`, () =>
         HttpResponse.json({ detail: "boom" }, { status: 500 }),
@@ -79,7 +79,7 @@ describe("CharacterSheetPage", () => {
     expect(screen.queryByText(/Request failed/i)).not.toBeInTheDocument();
   });
 
-  it("404 mostra 'Ficha não encontrada' com o caminho para a lista, sem repetir", async () => {
+  it("404 shows 'Ficha não encontrada' with the path to the list, without repeating it", async () => {
     server.use(
       http.get(`${baseUrl}/charactersheets/:id`, () =>
         HttpResponse.json({ detail: "not found" }, { status: 404 }),

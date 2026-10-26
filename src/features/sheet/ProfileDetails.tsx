@@ -78,7 +78,6 @@ const ProfileContainer = styled.div`
 `;
 
 const ProfileName = styled.h2`
-  font-family: "Roboto", sans-serif;
   font-size: min(4.2cqi, 32px);
   font-weight: bold;
   color: ${colors.textPrimary};
@@ -90,7 +89,6 @@ const ProfileName = styled.h2`
 `;
 
 const ProfileDescription = styled.p`
-  font-family: "Roboto", sans-serif;
   font-size: min(3.4cqi, 24px);
   line-height: 1.6;
   color: ${colors.textMuted};
@@ -127,7 +125,6 @@ const DetailItem = styled.div`
 `;
 
 const DetailLabel = styled.span`
-  font-family: "Roboto", sans-serif;
   font-size: min(3.4cqi, 24px);
   color: ${colors.textInputDisabled};
   font-weight: 500;
@@ -138,7 +135,6 @@ const DetailLabel = styled.span`
 `;
 
 const DetailValue = styled.span`
-  font-family: "Roboto", sans-serif;
   font-size: min(3.8cqi, 28px);
   color: ${colors.textPrimary};
   font-weight: 600;
@@ -155,7 +151,6 @@ const BirthdayAgeRow = styled.div`
 
 
 const BriefDescriptionTextarea = styled.textarea`
-  font-family: "Roboto", sans-serif;
   font-size: min(3.4cqi, 24px);
   line-height: 1.6;
   color: ${colors.textPrimary};

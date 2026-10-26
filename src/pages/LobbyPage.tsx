@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useMemo } from "react";
 import { Navigate, useParams, useNavigate } from "react-router-dom";
 import styled from "styled-components";
+import useDocumentTitle from "../hooks/useDocumentTitle";
 import useToken from "../hooks/useToken";
 import useUser from "../hooks/useUser";
 import { useMatchDetails } from "../hooks/useMatchDetails";
@@ -20,7 +21,7 @@ import CharactersSidebar from "../components/organisms/CharactersSidebar";
 import RulesSidebar from "../components/organisms/RulesSidebar";
 import RuleSection from "../components/molecules/RuleSection";
 import LobbyConnectionSidebarItem from "../features/match/LobbyConnectionSidebarItem";
-import { colors, fonts, alpha } from "../styles/tokens";
+import { colors, alpha } from "../styles/tokens";
 import { GAME_SERVER_WAKING, GAME_SERVER_UNREACHABLE } from "../services/serverWake";
 import type { WsStatus, LobbyFullState } from "../hooks/useLobbyWs";
 import type { BgImage, GridShape, Piece, SlotCoord, WallSegment } from "../types/tacticalMap";
@@ -164,6 +165,8 @@ export default function LobbyPage() {
       lobbyPieces.filter((p) => playerCharIdSet.has(p.characterId)).map((p) => p.id),
     );
   }, [isMaster, lobbyPieces, playerCharacterIds]);
+
+  useDocumentTitle("Lobby", match?.title);
 
   if (!token) return <Navigate to="/" replace />;
   const matchBack = {
@@ -360,7 +363,6 @@ const LobbyHeader = styled.div`
 `;
 
 const LobbyTitle = styled.h1`
-  font-family: ${fonts.sans};
   font-size: 42px;
   font-weight: 900;
   color: ${colors.textPrimary};
@@ -370,7 +372,6 @@ const LobbyTitle = styled.h1`
 `;
 
 const LobbyStatusPill = styled.span`
-  font-family: ${fonts.sans};
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -382,7 +383,6 @@ const LobbyStatusPill = styled.span`
 `;
 
 const ConnectedCounter = styled.div`
-  font-family: ${fonts.sans};
   font-size: 18px;
   color: ${colors.textMuted};
   margin-bottom: 16px;
@@ -394,7 +394,6 @@ const WsStatusBar = styled.div<{ $isError: boolean }>`
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
-  font-family: ${fonts.sans};
   font-size: 16px;
   padding: 10px 16px;
   border-radius: 8px;
@@ -407,7 +406,6 @@ const WsStatusBar = styled.div<{ $isError: boolean }>`
 `;
 
 const RetryButton = styled.button`
-  font-family: ${fonts.sans};
   font-size: 14px;
   font-weight: 600;
   padding: 6px 16px;
@@ -420,11 +418,6 @@ const RetryButton = styled.button`
   &:hover {
     filter: brightness(1.2);
   }
-
-  &:focus-visible {
-    outline: 2px solid ${colors.actionHighlight};
-    outline-offset: 2px;
-  }
 `;
 
 const MasterActions = styled.div`
@@ -435,7 +428,6 @@ const MasterActions = styled.div`
 `;
 
 const BaseActionButton = styled.button`
-  font-family: ${fonts.sans};
   font-size: 20px;
   font-weight: 600;
   padding: 14px 32px;
@@ -452,7 +444,8 @@ const BaseActionButton = styled.button`
     transform: scale(0.98);
   }
   &:disabled {
-    opacity: 0.5;
+    background: ${colors.surfaceDisabled};
+    color: ${colors.textDisabledOnDark};
     cursor: not-allowed;
     filter: none;
     transform: none;
@@ -470,7 +463,6 @@ const CancelButton = styled(BaseActionButton)`
 `;
 
 const WaitingMessage = styled.p`
-  font-family: ${fonts.sans};
   font-size: 20px;
   color: ${colors.textMuted};
   font-style: italic;

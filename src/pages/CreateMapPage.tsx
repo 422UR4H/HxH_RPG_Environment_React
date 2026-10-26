@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from "react";
 import { Navigate, useParams, useNavigate } from "react-router-dom";
+import useDocumentTitle from "../hooks/useDocumentTitle";
 import useToken from "../hooks/useToken";
 import { useCreateMap } from "../hooks/useCreateMap";
 import TacticalMapEditor from "../features/tactical-map/TacticalMapEditor";
@@ -38,6 +39,8 @@ export default function CreateMapPage() {
     () => navigate(`/campaigns/${campaignId}`),
     [navigate, campaignId],
   );
+
+  useDocumentTitle("Novo mapa");
 
   if (!token) return <Navigate to="/" replace />;
 

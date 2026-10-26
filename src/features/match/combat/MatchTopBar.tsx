@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import styled from "styled-components";
-import { colors, fonts } from "../../../styles/tokens";
+import { colors } from "../../../styles/tokens";
 import { media } from "../../../styles/breakpoints";
 import type { MatchWsStatus } from "../../../hooks/useMatchWs";
 import type { RoundMode, ScenePayload } from "./combatMessages";
@@ -88,7 +88,6 @@ const Bar = styled.div`
   min-height: 44px;
   padding: 4px 10px;
   color: ${colors.textPrimary};
-  font-family: ${fonts.sans};
   font-size: 13px;
 `;
 
@@ -139,7 +138,6 @@ const StatusText = styled.span`
 
 export const SmallButton = styled.button`
   flex-shrink: 0;
-  font-family: ${fonts.sans};
   font-size: 12px;
   font-weight: 600;
   border: 1px solid ${colors.borderInput};
@@ -155,7 +153,10 @@ export const SmallButton = styled.button`
   }
 
   &:disabled {
-    opacity: 0.4;
+    background: ${colors.surfaceDisabled};
+    border-color: ${colors.surfaceDisabled};
+    color: ${colors.textDisabledOnDark};
+    filter: none;
     cursor: not-allowed;
   }
 `;

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
+import useDocumentTitle from "../hooks/useDocumentTitle";
 import { useCreateCampaign } from "../hooks/useCreateCampaign";
 import useToken from "../hooks/useToken";
 import useForm from "../hooks/useForm";
@@ -65,6 +66,8 @@ export default function CreateCampaignPage() {
   const handleTogglePublic = () => {
     setForm({ ...form, isPublic: !form.isPublic });
   };
+
+  useDocumentTitle("Nova campanha");
 
   if (!token) return <Navigate to="/" replace />;
 

@@ -97,7 +97,6 @@ const CardContent = styled.div`
 `;
 
 const CampaignName = styled.h2`
-  font-family: "Roboto", sans-serif;
   font-weight: 700;
   font-size: 26px;
   color: ${colors.textPrimary};
@@ -115,7 +114,6 @@ const CampaignInfo = styled.div`
 `;
 
 const Description = styled.p`
-  font-family: "Roboto", sans-serif;
   font-weight: 400;
   font-size: 22px;
   line-height: 1.4;
@@ -133,21 +131,18 @@ const MetaInfo = styled.div`
 `;
 
 const DateInfo = styled.span`
-  font-family: "Roboto", sans-serif;
   font-weight: 300;
   font-size: 16px;
   color: ${colors.textPrimary};
 `;
 
 const PublicStatus = styled.span<{ $isPublic: boolean }>`
-  font-family: "Roboto", sans-serif;
   font-weight: 500;
   font-size: 16px;
   color: ${({ $isPublic }) => ($isPublic ? colors.statusPublic : colors.feedbackDanger)};
 `;
 
 const NextGameInfo = styled.span`
-  font-family: "Roboto", sans-serif;
   font-weight: 400;
   font-size: 16px;
   color: ${colors.statusRating};

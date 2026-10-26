@@ -4,7 +4,7 @@ import type { CharacterPrivateSummary } from "../../types/characterSheet";
 import useToken from "../../hooks/useToken";
 import { useCampaignDetails } from "../../hooks/useCampaignDetails";
 import CharacterSidebarItem from "./CharacterSidebarItem";
-import { colors, fonts, alpha } from "../../styles/tokens";
+import { colors, alpha } from "../../styles/tokens";
 
 type Props = {
   campaignId: string;
@@ -98,7 +98,6 @@ const DropZone = styled.div<{ $isDropTarget: boolean }>`
 `;
 
 const SearchInput = styled.input`
-  font-family: ${fonts.sans};
   font-size: 12px;
   color: ${colors.textPrimary};
   background: ${colors.surfaceInput};
@@ -145,7 +144,6 @@ const CardWrapper = styled.div<{ $isPlacing: boolean }>`
 `;
 
 const EmptyHint = styled.p`
-  font-family: ${fonts.sans};
   font-size: 11px;
   color: ${colors.textPlaceholder};
   text-align: center;
