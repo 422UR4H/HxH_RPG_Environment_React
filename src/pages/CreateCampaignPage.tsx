@@ -14,6 +14,7 @@ import UpcomingRulesSidebar from "../components/organisms/UpcomingRulesSidebar";
 import { CONNECTION_ERROR_MESSAGE, getApiErrorDetail, isConnectionError } from "../utils/apiError";
 import { getCampaignValidationMessage } from "../features/campaign/campaignErrorMessages";
 import { toDateInputValue } from "../utils/date";
+import { missingRequiredMessage } from "../utils/requiredFields";
 
 type CampaignFormData = {
   name: string;
@@ -42,8 +43,13 @@ export default function CreateCampaignPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.briefInitialDescription) {
-      setError("Nome e descrição breve são obrigatórios.");
+    const missing = missingRequiredMessage([
+      { label: "Nome da Campanha", value: form.name },
+      { label: "Descrição Breve", value: form.briefInitialDescription },
+      { label: "Data de Início da História", value: form.storyStartAt },
+    ]);
+    if (missing) {
+      setError(missing);
       return;
     }
     setError(null);
@@ -107,7 +113,7 @@ export default function CreateCampaignPage() {
         />
       </FormField>
 
-      <FormField label="Descrição Completa" htmlFor="description">
+      <FormField label="Descrição Completa" htmlFor="description" optional>
         <FormTextArea
           id="description"
           name="description"
@@ -118,7 +124,7 @@ export default function CreateCampaignPage() {
         />
       </FormField>
 
-      <FormField label="Link da Chamada" htmlFor="callLink">
+      <FormField label="Link da Chamada" htmlFor="callLink" optional>
         <FormInput
           id="callLink"
           name="callLink"

@@ -18,6 +18,7 @@ import UpcomingRulesSidebar from "../components/organisms/UpcomingRulesSidebar";
 import { PageLoading, PageError, PageNotFound } from "../components/templates/PageState";
 import { getApiErrorDetail } from "../utils/apiError";
 import { toDateTimeLocalValue } from "../utils/date";
+import { missingRequiredMessage } from "../utils/requiredFields";
 
 type CampaignEditFormData = {
   name: string;
@@ -113,8 +114,14 @@ export default function EditCampaignPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if ((!hasStartedMatch && !form.name) || !form.briefInitialDescription) {
-      setError("Nome e descrição breve são obrigatórios.");
+    // Com partida iniciada, nome e início da história ficam travados (não vão no envio).
+    const missing = missingRequiredMessage([
+      ...(hasStartedMatch ? [] : [{ label: "Nome da Campanha", value: form.name }]),
+      { label: "Descrição Breve", value: form.briefInitialDescription },
+      ...(hasStartedMatch ? [] : [{ label: "Data de Início da História", value: form.storyStartAt }]),
+    ]);
+    if (missing) {
+      setError(missing);
       return;
     }
     if (form.storyCurrentAt) {
@@ -186,7 +193,7 @@ export default function EditCampaignPage() {
         />
       </FormField>
 
-      <FormField label="Descrição Completa" htmlFor="description">
+      <FormField label="Descrição Completa" htmlFor="description" optional>
         <FormTextArea
           id="description"
           name="description"
@@ -196,7 +203,7 @@ export default function EditCampaignPage() {
         />
       </FormField>
 
-      <FormField label="Link da Chamada" htmlFor="callLink">
+      <FormField label="Link da Chamada" htmlFor="callLink" optional>
         <FormInput
           id="callLink"
           name="callLink"
@@ -223,6 +230,7 @@ export default function EditCampaignPage() {
           label="Data Corrente da História"
           htmlFor="storyCurrentAt"
           helpText="Data atual dentro do universo da campanha"
+          optional
         >
           <FormInput
             id="storyCurrentAt"

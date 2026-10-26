@@ -18,6 +18,7 @@ import UpcomingRulesSidebar from "../components/organisms/UpcomingRulesSidebar";
 import { PageLoading, PageError, PageNotFound } from "../components/templates/PageState";
 import { getApiErrorDetail } from "../utils/apiError";
 import { toDateTimeLocalValue } from "../utils/date";
+import { missingRequiredMessage } from "../utils/requiredFields";
 
 type MatchFormData = {
   title: string;
@@ -121,8 +122,14 @@ export default function EditMatchPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.title || !form.briefInitialDescription) {
-      setError("Título e descrição breve são obrigatórios.");
+    const missing = missingRequiredMessage([
+      { label: "Título da Partida", value: form.title },
+      { label: "Descrição Breve", value: form.briefInitialDescription },
+      { label: "Data e Hora da Sessão", value: form.gameScheduledAt },
+      { label: "Data de Início na História", value: form.storyStartAt },
+    ]);
+    if (missing) {
+      setError(missing);
       return;
     }
     setError(null);
@@ -178,7 +185,7 @@ export default function EditMatchPage() {
         />
       </FormField>
 
-      <FormField label="Descrição Completa (Opcional)" htmlFor="description">
+      <FormField label="Descrição Completa" htmlFor="description" optional>
         <FormTextArea
           id="description"
           name="description"
