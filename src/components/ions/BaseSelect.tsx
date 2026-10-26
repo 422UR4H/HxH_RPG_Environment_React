@@ -51,7 +51,7 @@ const StyledBaseSelect = styled.select`
 
   &:active {
     outline: none;
-    border-color: ${colors.brandAccentBright};
+    border-color: ${colors.brandAccent};
     border-color: ${colors.textPrimary};
   }
   &:focus {

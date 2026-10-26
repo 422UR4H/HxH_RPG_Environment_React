@@ -112,16 +112,16 @@ const SkillToggle = styled(EditButton)`
 `;
 
 const Applied = styled.span`
-  color: ${colors.warningText};
+  color: ${colors.feedbackWarning};
 `;
 
 // O que o sistema aplicou sozinho: contornado, para não se confundir com a condição do mestre.
 const SystemApplied = styled.span`
   align-self: flex-start;
   padding: 1px 6px;
-  border: 1px solid ${colors.warningText};
+  border: 1px solid ${colors.feedbackWarning};
   border-radius: 999px;
-  color: ${colors.warningText};
+  color: ${colors.feedbackWarning};
   font-size: 11px;
 `;
 

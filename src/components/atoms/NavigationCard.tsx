@@ -94,7 +94,7 @@ const Card = styled(Link)`
   &:hover,
   &:focus-visible {
     transform: translateY(-5px);
-    border-color: ${colors.redCardAccent};
+    border-color: ${colors.borderAccent};
     box-shadow: 0 8px 15px ${colors.shadowStrong};
 
     ${Background} {

@@ -79,8 +79,8 @@ export default function ManageButton({
           confirmBackground={gradients.orange}
           confirmTextColor={colors.textOnLight}
           dialogBackground={colors.overlayDark}
-          cancelBackground={colors.grayBgPanel}
-          cancelBorderColor={colors.grayMid}
+          cancelBackground={colors.surfacePanel}
+          cancelBorderColor={colors.borderMuted}
           onConfirm={() => {
             setShowDeleteConfirm(false);
             onDelete();
@@ -99,8 +99,8 @@ const Wrapper = styled.div`
 `;
 
 const Button = styled.button<{ $isFloating: boolean; $open: boolean }>`
-  background: ${colors.grayBgPanel};
-  border: 1px solid ${({ $open }) => ($open ? colors.orange : colors.grayMid)};
+  background: ${colors.surfacePanel};
+  border: 1px solid ${({ $open }) => ($open ? colors.actionAccent : colors.borderMuted)};
   color: ${colors.textPrimary};
   font-family: "Roboto", sans-serif;
   font-size: min(22px, 4cqi);
@@ -122,7 +122,7 @@ const Button = styled.button<{ $isFloating: boolean; $open: boolean }>`
       ? `
         border-radius: 50px;
         padding: 14px 22px;
-        box-shadow: 0 4px 10px ${colors.shadowMedium};
+        box-shadow: 0 4px 10px ${colors.shadowStrong};
         font-size: min(24px, 4cqi);
         @media (max-width: 609px) {
           padding: 0 0.9em;
@@ -147,8 +147,8 @@ const Menu = styled.div`
   position: absolute;
   bottom: calc(100% + 6px);
   left: 0;
-  background: ${colors.grayBgPanel};
-  border: 1px solid ${colors.grayMid};
+  background: ${colors.surfacePanel};
+  border: 1px solid ${colors.borderMuted};
   border-radius: 8px;
   overflow: hidden;
   min-width: 160px;
@@ -176,12 +176,12 @@ const MenuItem = styled.div`
     border-bottom: none;
   }
   &:hover {
-    background: ${colors.grayBgModal};
+    background: ${colors.surfaceModal};
   }
 `;
 
 const MenuItemDanger = styled(MenuItem)`
-  color: ${colors.dangerLight};
+  color: ${colors.actionDestructiveText};
   padding: 16px 0 16px 18px;
 `;
 

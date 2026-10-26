@@ -306,7 +306,7 @@ const PlacementOverlay = styled.div`
   position: fixed;
   transform: translate(-50%, calc(-100% - 14px));
   z-index: 9998;
-  background: ${colors.grayBgModal};
+  background: ${colors.surfaceModal};
   border: 1px solid ${colors.borderInput};
   border-radius: 10px;
   padding: 10px 14px;
@@ -314,7 +314,7 @@ const PlacementOverlay = styled.div`
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  box-shadow: 0 6px 28px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 6px 28px ${colors.overlayMedium};
   pointer-events: auto;
 `;
 

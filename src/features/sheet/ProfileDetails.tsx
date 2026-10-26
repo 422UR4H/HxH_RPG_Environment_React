@@ -159,8 +159,8 @@ const BriefDescriptionTextarea = styled.textarea`
   font-size: min(3.4cqi, 24px);
   line-height: 1.6;
   color: ${colors.textPrimary};
-  background-color: ${colors.grayMid};
-  border: 2px solid ${colors.grayMidStrong};
+  background-color: ${colors.surfaceNeutral};
+  border: 2px solid ${colors.borderStrong};
   border-radius: 6px;
   padding: 12px 16px;
   margin-bottom: 2cqi;
@@ -174,7 +174,7 @@ const BriefDescriptionTextarea = styled.textarea`
   }
   &:focus {
     outline: none;
-    border-color: ${colors.brandAccentBright};
+    border-color: ${colors.brandAccent};
   }
 
   @media (max-width: 609px) {

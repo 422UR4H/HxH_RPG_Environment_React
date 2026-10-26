@@ -9,9 +9,9 @@ import { colors } from "../../styles/tokens";
 export type { IntentPreview } from "./utils/intentGeometry";
 
 const toPixiColor = (hex: string) => parseInt(hex.replace("#", ""), 16);
-const MOVE_COLOR = toPixiColor(colors.moveIntent);
-const OUTLINE_COLOR = toPixiColor(colors.intentOutline);
-const ATTACK_COLOR = toPixiColor(colors.pieceAttackIntent);
+const MOVE_COLOR = toPixiColor(colors.mapMoveIntent);
+const OUTLINE_COLOR = toPixiColor(colors.mapIntentOutline);
+const ATTACK_COLOR = toPixiColor(colors.mapAttackIntent);
 
 type XY = { x: number; y: number };
 

@@ -40,8 +40,6 @@ const StyledButton = styled.button`
     transform: scale(0.98);
   }
   &:disabled {
-    background-color: ${colors.disabledBlue};
-
     display: flex;
     justify-content: center;
     align-items: center;

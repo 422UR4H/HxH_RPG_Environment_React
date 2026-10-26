@@ -163,7 +163,7 @@ const Bubble = styled.span`
   white-space: nowrap;
   padding: 4px 8px;
   border-radius: 4px;
-  background: ${colors.grayBgDark};
+  background: ${colors.surfaceBar};
   color: ${colors.textPrimary};
   font-family: ${fonts.sans};
   font-size: 12px;

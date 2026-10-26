@@ -4,7 +4,7 @@ import type { CharacterPrivateSummary } from "../../types/characterSheet";
 import useToken from "../../hooks/useToken";
 import { useCampaignDetails } from "../../hooks/useCampaignDetails";
 import CharacterSidebarItem from "./CharacterSidebarItem";
-import { colors, fonts } from "../../styles/tokens";
+import { colors, fonts, alpha } from "../../styles/tokens";
 
 type Props = {
   campaignId: string;
@@ -93,7 +93,7 @@ const DropZone = styled.div<{ $isDropTarget: boolean }>`
       $isDropTarget ? colors.brandAccent : "transparent"};
   border-radius: 6px;
   background: ${({ $isDropTarget }) =>
-    $isDropTarget ? `${colors.brandAccent}0d` : "transparent"};
+    $isDropTarget ? `${alpha(colors.brandAccent, 0.05)}` : "transparent"};
   transition: border-color 0.15s, background 0.15s;
 `;
 
@@ -113,7 +113,7 @@ const SearchInput = styled.input`
     color: ${colors.textPlaceholder};
   }
   &:focus {
-    border-color: ${colors.brandAccentBright};
+    border-color: ${colors.brandAccent};
   }
 `;
 

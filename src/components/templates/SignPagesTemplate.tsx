@@ -46,7 +46,7 @@ export const StyledSignTemplates = styled.div`
     font-size: min(20px, 6vw);
     font-weight: 600;
     line-height: 24px;
-    color: ${colors.linkBlue};
+    color: ${colors.textLinkOnLight};
   }
 
   @media (max-width: 480px) {

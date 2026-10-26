@@ -75,10 +75,10 @@ const CardContainer = styled(Link)`
   &:hover {
     transform: translateY(-5px);
     box-shadow: 0 8px 15px ${colors.shadowStrong};
-    border-color: ${colors.redCardAccent};
+    border-color: ${colors.borderAccent};
 
     ${CharacterName} {
-      color: ${colors.redCardAccent};
+      color: ${colors.borderAccent};
     }
   }
   &:active {
@@ -90,7 +90,7 @@ const CardContainer = styled(Link)`
     border-radius: 0;
 
     &:hover {
-      border-color: ${colors.redCardAccent};
+      border-color: ${colors.borderAccent};
       border-width: 4px 0 4px 0;
     }
     &:active {

@@ -13,7 +13,7 @@ import PhysicalSkillsGroup from "./PhysicalSkillsGroup";
 import SpiritualSkillsGroup from "./SpiritualSkillsGroup";
 import ProficienciesList from "./ProficienciesList";
 import SheetBottomActions from "./SheetBottomActions";
-import { colors, gradients } from "../../styles/tokens";
+import { colors, gradients, alpha } from "../../styles/tokens";
 
 interface Data {
   error: string | null;
@@ -264,8 +264,8 @@ const SheetContainer = styled.div`
   container-type: inline-size;
   max-width: 940px;
   margin: 0 auto;
-  color: white;
-  background-color: black;
+  color: ${colors.textPrimary};
+  background-color: ${colors.surfaceHeaderDark};
   position: relative;
 `;
 
@@ -294,7 +294,7 @@ const SectionTitle = styled.h2`
   font-family: "Roboto", sans-serif;
   font-weight: bold;
   font-size: 8cqi;
-  color: white;
+  color: ${colors.textPrimary};
   margin-bottom: 5cqi;
   padding-left: 1cqi;
 `;
@@ -369,8 +369,8 @@ const LoadingContainer = styled.div`
 `;
 
 const ErrorContainer = styled.div`
-  background-color: ${colors.errorBgSoft};
-  color: ${colors.danger};
+  background-color: ${alpha(colors.feedbackDanger, 0.1)};
+  color: ${colors.feedbackDanger};
   padding: 20px;
   border-radius: 8px;
   text-align: center;
@@ -417,7 +417,7 @@ const AcceptButton = styled(SubmissionActionBase)`
 `;
 
 const RejectButton = styled(SubmissionActionBase)`
-  background: ${colors.redHp};
+  background: ${colors.actionDestructive};
   color: ${colors.textPrimary};
 `;
 
@@ -485,9 +485,9 @@ const SubmitErrorText = styled.p`
   font-family: "Roboto", sans-serif;
   font-size: max(2.7cqi, 12px);
   line-height: 1.2;
-  color: ${colors.accentDanger};
-  background: ${colors.errorBgFaint};
-  border-left: 3px solid ${colors.accentDanger};
+  color: ${colors.feedbackDanger};
+  background: ${alpha(colors.feedbackDanger, 0.08)};
+  border-left: 3px solid ${colors.feedbackDanger};
   margin: 16px 30px 0;
   padding: 10px 14px;
   border-radius: 0 8px 8px 0;

@@ -349,8 +349,8 @@ const SectionTitle = styled.p`
 `;
 
 const Dropzone = styled.div`
-  background: ${colors.grayBgDeeper};
-  border: 2px dashed ${colors.grayMid};
+  background: ${colors.surfaceDeep};
+  border: 2px dashed ${colors.borderMuted};
   border-radius: 8px;
   padding: 32px 16px;
   display: flex;
@@ -383,7 +383,7 @@ const UrlInput = styled.input`
   font-family: ${fonts.sans};
   font-size: 13px;
   outline: none;
-  &:focus { border-color: ${colors.brandAccentBright}; }
+  &:focus { border-color: ${colors.brandAccent}; }
   &::placeholder { color: ${colors.textPlaceholder}; }
 `;
 
@@ -409,7 +409,7 @@ const TipText = styled.p`
 
 const ErrorText = styled.p`
   font-size: 12px;
-  color: ${colors.danger};
+  color: ${colors.feedbackDanger};
   margin: 0;
 `;
 
@@ -429,8 +429,8 @@ const TextButton = styled.button`
 `;
 
 const DangerButton = styled(TextButton)`
-  color: ${colors.danger};
-  border-color: ${colors.danger};
+  color: ${colors.feedbackDanger};
+  border-color: ${colors.feedbackDanger};
 `;
 
 const FieldGroup = styled.div`

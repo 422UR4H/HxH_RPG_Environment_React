@@ -43,7 +43,7 @@ const PageContainer = styled.div`
   display: flex;
   flex-direction: column;
   min-height: 100%;
-  background-color: ${colors.grayBgDark};
+  background-color: ${colors.surfaceBar};
 `;
 
 // Os dois cards cabem inteiros na tela sem rolar: em pé, empilhados e limitados pela

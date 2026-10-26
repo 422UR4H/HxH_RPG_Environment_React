@@ -8,6 +8,7 @@ import type { WallType, WallMaterial } from "../../types/tacticalMap";
 import type { TacticalMapStageProps } from "./stage/stageProps";
 import ViewportInner from "./stage/ViewportInner";
 import BgFailedNotice from "./stage/BgFailedNotice";
+import { toPixi } from "../../styles/pixi";
 
 // Backing-store density. Pixi defaults to 1, which the browser then upscales on phones and
 // tablets (DPR 2–3): rings, dashes, walls and avatars all look blocky. Capped at 3 so the
@@ -121,7 +122,7 @@ export default function TacticalMapStage({
       <Application
         width={width}
         height={height}
-        background={0x101820}
+        background={toPixi(colors.mapStageBg)}
         resolution={RENDER_RESOLUTION}
         autoDensity
         antialias
@@ -206,7 +207,7 @@ const BgLoadingOverlay = styled.div`
   position: absolute;
   inset: 0;
   z-index: 1;
-  background: rgba(16, 24, 32, 0.85);
+  background: ${colors.overlayStage};
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -218,7 +219,7 @@ const BgLoadingOverlay = styled.div`
 const Spinner = styled.div`
   width: 40px;
   height: 40px;
-  border: 3px solid rgba(255, 255, 255, 0.15);
+  border: 3px solid ${colors.overlayHighlight};
   border-top-color: ${colors.brandAccent};
   border-radius: 50%;
   animation: ${spin} 0.8s linear infinite;

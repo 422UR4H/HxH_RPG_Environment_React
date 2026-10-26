@@ -377,7 +377,7 @@ const NameInput = styled.input`
   }
 
   &:focus {
-    border-color: ${colors.brandAccentBright};
+    border-color: ${colors.brandAccent};
   }
 `;
 
@@ -401,7 +401,7 @@ const DescriptionTextarea = styled.textarea`
   }
 
   &:focus {
-    border-color: ${colors.brandAccentBright};
+    border-color: ${colors.brandAccent};
   }
 `;
 
@@ -439,7 +439,7 @@ const SaveButton = styled.button`
 const ErrorText = styled.span`
   font-family: ${fonts.sans};
   font-size: 12px;
-  color: ${colors.danger};
+  color: ${colors.feedbackDanger};
 `;
 
 const HistoryRow = styled.div`

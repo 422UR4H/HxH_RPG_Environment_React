@@ -21,7 +21,7 @@ export const MapLoadingMessage = styled.p`
 
 /** A falha do tabuleiro: mesma posição do aviso de carga, em cor de erro. */
 export const MapErrorMessage = styled(MapLoadingMessage)`
-  color: ${colors.dangerLight};
+  color: ${colors.feedbackDanger};
   text-align: center;
   padding: 0 24px;
 `;
@@ -94,7 +94,7 @@ export const MapCornerStackButton = styled.button`
   ${cornerButton}
 
   &[aria-pressed="true"] {
-    border-color: ${colors.pieceSelectionRing};
+    border-color: ${colors.mapSelectionRing};
     background: ${colors.brandAccent};
   }
 `;

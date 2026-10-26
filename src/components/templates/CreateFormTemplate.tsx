@@ -5,7 +5,7 @@ import EdgeDrawer from "../molecules/EdgeDrawer";
 import useMediaQuery from "../../hooks/useMediaQuery";
 import PageTitle from "../ions/PageTitle";
 import worldMap from "../../assets/images/worldmap.png";
-import { colors, fonts } from "../../styles/tokens";
+import { colors, fonts, alpha } from "../../styles/tokens";
 import { scopedScrollbar, scrollbarPalettes } from "../../styles/scrollbar";
 
 interface CreateFormTemplateProps {
@@ -130,8 +130,8 @@ const FormColumn = styled.div`
 `;
 
 const ErrorMessage = styled.div`
-  background-color: ${colors.errorBg};
-  color: ${colors.danger};
+  background-color: ${alpha(colors.feedbackDanger, 0.2)};
+  color: ${colors.feedbackDanger};
   padding: 15px;
   border-radius: 6px;
   margin-bottom: 20px;
@@ -175,7 +175,7 @@ const SubmitButton = styled(Button)`
   }
 
   &:disabled {
-    background-color: ${colors.submitDisabled};
+    background-color: ${colors.actionDisabled};
     cursor: not-allowed;
   }
 `;

@@ -11,9 +11,14 @@ import { doorArcWorld, windowTicksWorld } from "./utils/wallSymbols";
 import { consumeTap, createTapTracker } from "./hooks/tapGesture";
 import { createHoldTracker } from "./hooks/useHoldGesture";
 import LosSplit from "./LosSplit";
+import { colors } from "../../styles/tokens";
+import { toPixi } from "../../styles/pixi";
 
+const WALL_GLOW = toPixi(colors.mapWallGlow);
+const WALL_MIDPOINT = toPixi(colors.mapWallMidpoint);
 const MATERIAL_COLOR: Record<WallMaterial, number> = {
-  stone: 0x94a3b8, wood: 0xa16207, iron: 0x64748b, magical: 0xa855f7,
+  stone: toPixi(colors.mapWallStone), wood: toPixi(colors.mapWallWood),
+  iron: toPixi(colors.mapWallIron), magical: toPixi(colors.mapWallMagical),
 };
 const MATERIAL_WIDTH: Record<WallMaterial, number> = {
   stone: 4, wood: 3, iron: 5, magical: 3,
@@ -426,7 +431,7 @@ export default function WallsLayer({
     const a1 = applyTransform({ x: w.p1[0], y: w.p1[1] }, grid);
     const a2 = applyTransform({ x: w.p2[0], y: w.p2[1] }, grid);
     // Glow
-    g.setStrokeStyle({ color: 0xffffff, width: MATERIAL_WIDTH[w.material] + 3, alpha: 0.4 });
+    g.setStrokeStyle({ color: WALL_GLOW, width: MATERIAL_WIDTH[w.material] + 3, alpha: 0.4 });
     g.moveTo(a1.x, a1.y); g.lineTo(a2.x, a2.y); g.stroke();
     // Line
     g.setStrokeStyle({ color: MATERIAL_COLOR[w.material], width: MATERIAL_WIDTH[w.material] });
@@ -434,7 +439,7 @@ export default function WallsLayer({
     // Handles
     const r = 6 / vpScale;
     for (const pt of [a1, a2]) {
-      g.setFillStyle({ color: 0xffffff });
+      g.setFillStyle({ color: WALL_GLOW });
       g.setStrokeStyle({ color: MATERIAL_COLOR[w.material], width: 2 });
       g.circle(pt.x, pt.y, r); g.fill(); g.stroke();
     }
@@ -474,7 +479,7 @@ export default function WallsLayer({
 
     if (previewPoint) {
       const a = applyTransform({ x: previewPoint[0], y: previewPoint[1] }, grid);
-      g.setFillStyle({ color: 0xffffff, alpha: 0.7 });
+      g.setFillStyle({ color: WALL_GLOW, alpha: 0.7 });
       g.circle(a.x, a.y, 3 / vpScale); g.fill();
     }
   }, [draw, wallsInteractive, drawingEnabled, grid, activeMaterial, vpScale]);
@@ -563,7 +568,7 @@ function drawLockedMarker(
   const mx = (a1.x + a2.x) / 2;
   const my = (a1.y + a2.y) / 2;
   const r = Math.max(2, 4 / vpScale);
-  g.setFillStyle({ color: 0xffd700, alpha: 0.9 });
+  g.setFillStyle({ color: WALL_MIDPOINT, alpha: 0.9 });
   g.circle(mx, my, r);
   g.fill();
 }

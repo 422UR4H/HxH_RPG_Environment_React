@@ -14,6 +14,13 @@ import { computeNewBgFromDrag } from "./utils/bgHandles";
 import { useShiftPressed } from "./hooks/useShiftPressed";
 import { useHandleDrag } from "./hooks/useHandleDrag";
 import HandleMarker from "./stage/HandleMarker";
+import { colors } from "../../styles/tokens";
+import { toPixi } from "../../styles/pixi";
+
+const HANDLE_FILL = toPixi(colors.mapHandleFill);
+const HANDLE_STROKE = toPixi(colors.mapHandleStroke);
+const HANDLE_ROTATE = toPixi(colors.mapHandleRotate);
+const HANDLE_SKEW = toPixi(colors.mapHandleSkew);
 
 type XY = { x: number; y: number };
 
@@ -156,7 +163,7 @@ function BgHandles({
 
   const drawBorder = useCallback((g: PixiGraphics) => {
     g.clear();
-    g.setStrokeStyle({ width: 1 / vpScale, color: 0xffffff, alpha: 0.7 });
+    g.setStrokeStyle({ width: 1 / vpScale, color: HANDLE_FILL, alpha: 0.7 });
     g.moveTo(pts.TL.x, pts.TL.y);
     g.lineTo(pts.TR.x, pts.TR.y);
     g.lineTo(pts.BR.x, pts.BR.y);
@@ -167,14 +174,14 @@ function BgHandles({
 
   const drawRotate = useCallback((g: PixiGraphics) => {
     g.clear();
-    g.setStrokeStyle({ width: 1 / vpScale, color: 0xffd700, alpha: 0.8 });
+    g.setStrokeStyle({ width: 1 / vpScale, color: HANDLE_ROTATE, alpha: 0.8 });
     g.moveTo(pts.topCenter.x, pts.topCenter.y);
     g.lineTo(pts.rot.x, pts.rot.y);
     g.stroke();
-    g.setFillStyle({ color: 0xffd700, alpha: 1 });
+    g.setFillStyle({ color: HANDLE_ROTATE, alpha: 1 });
     g.circle(pts.rot.x, pts.rot.y, rr);
     g.fill();
-    g.setStrokeStyle({ width: 1 / vpScale, color: 0x333333 });
+    g.setStrokeStyle({ width: 1 / vpScale, color: HANDLE_STROKE });
     g.stroke();
   }, [pts, rr, vpScale]);
 
@@ -274,7 +281,7 @@ function GridHandles({
 
   const drawBorder = useCallback((g: PixiGraphics) => {
     g.clear();
-    const color = shiftPressed ? 0xffaa00 : 0xffffff;
+    const color = shiftPressed ? HANDLE_SKEW : HANDLE_FILL;
     g.setStrokeStyle({ width: 1 / vpScale, color, alpha: 0.7 });
     g.moveTo(pts.TL.x, pts.TL.y);
     g.lineTo(pts.TR.x, pts.TR.y);
@@ -286,11 +293,11 @@ function GridHandles({
 
   const drawRotate = useCallback((g: PixiGraphics) => {
     g.clear();
-    g.setStrokeStyle({ width: 1 / vpScale, color: 0xffd700, alpha: 0.8 });
+    g.setStrokeStyle({ width: 1 / vpScale, color: HANDLE_ROTATE, alpha: 0.8 });
     g.moveTo(pts.TC.x, pts.TC.y);
     g.lineTo(pts.rot.x, pts.rot.y);
     g.stroke();
-    g.setFillStyle({ color: 0xffd700, alpha: 1 });
+    g.setFillStyle({ color: HANDLE_ROTATE, alpha: 1 });
     g.circle(pts.rot.x, pts.rot.y, rr);
     g.fill();
   }, [pts, rr, vpScale]);
@@ -368,7 +375,7 @@ function GridEdgeHandle({
   // Só o par `skew` (o mais vertical na tela) reage ao Shift (perspectiva).
   const skewAffordance = skew && shiftPressed;
   const actualHs = skewAffordance ? hs * 1.25 : hs;
-  const fillColor = skewAffordance ? 0xffaa00 : 0xffffff;
+  const fillColor = skewAffordance ? HANDLE_SKEW : HANDLE_FILL;
   const cursor = skewAffordance ? "row-resize" : vertical ? "ns-resize" : "ew-resize";
 
   const draw = useCallback((g: PixiGraphics) => {
@@ -376,7 +383,7 @@ function GridEdgeHandle({
     g.circle(hx, hy, actualHs / 2);
     g.setFillStyle({ color: fillColor });
     g.fill();
-    g.setStrokeStyle({ color: 0x333333, width: actualHs * 0.12 });
+    g.setStrokeStyle({ color: HANDLE_STROKE, width: actualHs * 0.12 });
     g.stroke();
   }, [hx, hy, actualHs, fillColor]);
 

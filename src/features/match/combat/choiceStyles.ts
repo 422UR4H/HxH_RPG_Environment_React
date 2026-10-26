@@ -1,5 +1,5 @@
 import styled, { css } from "styled-components";
-import { colors, fonts } from "../../../styles/tokens";
+import { colors, fonts, alpha } from "../../../styles/tokens";
 
 // Os seletores da mesa: escolher entre poucas opções é tocar num botão, nunca a bolinha de
 // rádio ou a caixinha nativa do navegador (destoam do resto e são pequenas para o dedo).
@@ -7,8 +7,8 @@ import { colors, fonts } from "../../../styles/tokens";
 
 type Tone = "move" | "attack";
 
-const toneColor = (tone: Tone) => (tone === "move" ? colors.moveIntent : colors.pieceAttackIntent);
-const toneBg = (tone: Tone) => (tone === "move" ? colors.moveIntentBg : colors.attackIntentBg);
+const toneColor = (tone: Tone) => (tone === "move" ? colors.mapMoveIntent : colors.mapAttackIntent);
+const toneBg = (tone: Tone) => (tone === "move" ? alpha(colors.mapMoveIntent, 0.16) : alpha(colors.mapAttackIntent, 0.16));
 
 /** Botões grandes lado a lado (2 por linha): Mover/Atacar, o tipo de reação, a categoria da cena. */
 export const Toggles = styled.div`
@@ -75,7 +75,7 @@ export const Segment = styled.button`
   }
 
   &[aria-checked="true"] {
-    background: ${colors.moveIntentBg};
+    background: ${alpha(colors.mapMoveIntent, 0.16)};
     color: ${colors.textPrimary};
     font-weight: 600;
   }
@@ -102,8 +102,8 @@ export const Weapon = styled.button`
   text-align: left;
 
   &[aria-checked="true"] {
-    border-color: ${colors.pieceAttackIntent};
-    background: ${colors.attackIntentBg};
+    border-color: ${colors.mapAttackIntent};
+    background: ${alpha(colors.mapAttackIntent, 0.16)};
     color: ${colors.textPrimary};
   }
 `;

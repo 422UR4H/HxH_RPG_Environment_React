@@ -9,15 +9,16 @@ import type { CharacterPrivateSummary } from "../../../types/characterSheet";
 import { slotToWorld, slotScreenInradius, stackOffsetToPx } from "../utils/coords";
 import { getAvatarBlobUrl, getAvatarInsetShadowTexture } from "../utils/avatarTexture";
 import { colors } from "../../../styles/tokens";
+import { toPixi } from "../../../styles/pixi";
 
 // Pixi Graphics wants numeric colors, not CSS hex strings — same conversion
 // GridLayer already does for grid.color.
 const toPixiColor = (hex: string) => parseInt(hex.replace("#", ""), 16);
-const SELECTION_RING_COLOR = toPixiColor(colors.pieceSelectionRing);
-const TARGET_RING_COLOR = toPixiColor(colors.pieceTargetRing);
-const INSPECT_RING_COLOR = toPixiColor(colors.pieceInspectRing);
-const STACK_BADGE_BG = toPixiColor(colors.pieceStackBadge);
-const ACTIVE_TURN_COLOR = toPixiColor(colors.pieceActiveTurn);
+const SELECTION_RING_COLOR = toPixiColor(colors.mapSelectionRing);
+const TARGET_RING_COLOR = toPixiColor(colors.mapTargetRing);
+const INSPECT_RING_COLOR = toPixiColor(colors.mapInspectRing);
+const STACK_BADGE_BG = toPixiColor(colors.mapStackBadge);
+const ACTIVE_TURN_COLOR = toPixiColor(colors.mapActiveTurn);
 
 // The frame SVG is rasterized once; 4× keeps it sharp at board zoom-in on a 3× screen.
 const FRAME_RASTER_SCALE = 4;
@@ -146,7 +147,7 @@ export default function PieceSprite({
   const drawShadow = useCallback(
     (g: PixiGraphics) => {
       g.clear();
-      g.setFillStyle({ color: 0x000000, alpha: shadowAlpha });
+      g.setFillStyle({ color: toPixi(colors.mapPieceShadow), alpha: shadowAlpha });
       g.circle(0, -zOffsetPx + 2, shadowRadius);
       g.fill();
     },
@@ -156,7 +157,7 @@ export default function PieceSprite({
   const drawFallback = useCallback(
     (g: PixiGraphics) => {
       g.clear();
-      g.setFillStyle({ color: 0x2d2d3a });
+      g.setFillStyle({ color: toPixi(colors.mapPieceFallback) });
       g.circle(0, -zOffsetPx, avatarRadius);
       g.fill();
     },
@@ -169,7 +170,7 @@ export default function PieceSprite({
     (g: PixiGraphics) => {
       maskRef.current = g;
       g.clear();
-      g.setFillStyle({ color: 0xffffff });
+      g.setFillStyle({ color: toPixi(colors.mapMask) });
       g.circle(0, -zOffsetPx, avatarRadius);
       g.fill();
       if (avatarGroupRef.current) avatarGroupRef.current.mask = g;
@@ -308,7 +309,7 @@ export default function PieceSprite({
             x={tokenRadius - tokenRadius * 0.32 * 0.3}
             y={-zOffsetPx + tokenRadius - tokenRadius * 0.32 * 0.3}
             anchor={0.5}
-            style={{ fontSize: Math.max(10, tokenRadius * 0.34), fill: 0xffffff, fontWeight: "bold" }}
+            style={{ fontSize: Math.max(10, tokenRadius * 0.34), fill: toPixi(colors.mapPieceLabel), fontWeight: "bold" }}
           />
         </>
       )}
@@ -318,7 +319,7 @@ export default function PieceSprite({
           text={`+${z}m`}
           x={tokenRadius + 2}
           y={-zOffsetPx - tokenRadius - 12}
-          style={{ fontSize: 12, fill: 0xffffff, dropShadow: { color: 0x000000, blur: 2, distance: 1 } }}
+          style={{ fontSize: 12, fill: toPixi(colors.mapPieceLabel), dropShadow: { color: toPixi(colors.mapPieceShadow), blur: 2, distance: 1 } }}
         />
       )}
     </pixiContainer>

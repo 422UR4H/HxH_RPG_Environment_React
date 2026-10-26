@@ -143,12 +143,12 @@ const PublicStatus = styled.span<{ $isPublic: boolean }>`
   font-family: "Roboto", sans-serif;
   font-weight: 500;
   font-size: 16px;
-  color: ${({ $isPublic }) => ($isPublic ? colors.statusNpc : colors.danger)};
+  color: ${({ $isPublic }) => ($isPublic ? colors.statusPublic : colors.feedbackDanger)};
 `;
 
 const NextGameInfo = styled.span`
   font-family: "Roboto", sans-serif;
   font-weight: 400;
   font-size: 16px;
-  color: ${colors.goldStar};
+  color: ${colors.statusRating};
 `;

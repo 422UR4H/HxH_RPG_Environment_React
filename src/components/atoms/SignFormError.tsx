@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import { colors, fonts } from "../../styles/tokens";
+import { colors, fonts, alpha } from "../../styles/tokens";
 
 interface SignFormErrorProps {
   message: string;
@@ -16,15 +16,15 @@ const StyledSignFormError = styled.div`
   box-sizing: border-box;
   width: 429px;
   padding: 10px 14px;
-  border-left: 4px solid ${colors.redInputError};
-  background-color: ${colors.redInputError}14;
+  border-left: 4px solid ${colors.feedbackInputError};
+  background-color: ${alpha(colors.feedbackInputError, 0.08)};
 
   font-family: ${fonts.sans};
   font-size: min(18px, 4.6vw);
   font-weight: 600;
   line-height: 1.35;
   text-align: left;
-  color: ${colors.redInputError};
+  color: ${colors.feedbackInputError};
 
   @media (max-width: 580px) {
     width: 100%;

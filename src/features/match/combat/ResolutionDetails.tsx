@@ -252,10 +252,10 @@ const FallBox = styled.div`
   gap: 4px;
   margin-top: 4px;
   padding: 6px 8px;
-  border: 1px solid ${colors.warningBorder};
+  border: 1px solid ${colors.feedbackWarningBorder};
   border-radius: 6px;
-  background: ${colors.warningBgDark};
-  color: ${colors.warningText};
+  background: ${colors.feedbackWarningBg};
+  color: ${colors.feedbackWarning};
 `;
 const PendingInfo = styled.div`
   display: flex;
@@ -288,7 +288,7 @@ const ActionButton = styled.button`
   }
 `;
 const SystemLine = styled.span`
-  color: ${colors.warningText};
+  color: ${colors.feedbackWarning};
   font-size: 12px;
 `;
 const Muted = styled.span`
@@ -299,6 +299,6 @@ const Warn = styled.div`
   display: flex;
   flex-direction: column;
   gap: 2px;
-  color: ${colors.warningText};
+  color: ${colors.feedbackWarning};
   font-size: 12px;
 `;

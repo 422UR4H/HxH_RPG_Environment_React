@@ -44,21 +44,9 @@ Estrutura macro: header + colunas + slots. Sem dados, sem lógica de negócio �
 
 > As páginas viram **thin orchestrators**: buscam dados (hooks) e compõem templates + organisms. Não têm styled-components de layout.
 
-## Design tokens — `src/styles/tokens.ts`
+## Design tokens
 
-Cores, fontes e gradientes vivem em `src/styles/tokens.ts` (`colors`, `fonts`, `gradients`).
-
-- **Sem literal de cor em styled-components.** Use o token: `background-color: ${colors.surfaceSidebar};`. Hex/rgba cru fora da zona pixel-tuned é code smell — espere challenge no review.
-- **Um token por valor distinto**, nomeado por uso (`brandPrimary`, `surfaceSidebar`, `statusOngoing`), não por matiz.
-- **Gradiente é uma decisão de design só** → um token por gradiente em `gradients`, **não** um token por cor-stop. Ex.: `gradients.orange` é a string `linear-gradient(...)` inteira. Não crie `orangeStart`/`orangeEnd` só para remontar um gradiente.
-- Se não existe um token apropriado, **crie o token** antes de hardcodar — é 1 linha em `tokens.ts`.
-- `tokens.ts` é `as const` → autocomplete e erro de TS em typo.
-
-### Scrollbars — `src/styles/scrollbar.ts`
-
-Paleta `dark` (trilho quase preto, polegar `redCardAccent`) é a global, aplicada no `ResetStyle`. Telas de campanha/partida trocam para `earth` (marrons dos painéis) no container da página com `${scopedScrollbar(scrollbarPalettes.earth)}` — hoje `CreateFormTemplate`, `DetailPageTemplate`, `MapEditorTemplate`. Não escreva `::-webkit-scrollbar` à mão num componente; esconder a barra (`scrollbar-width: none`) continua livre.
-
-> Escopo atual: os tokens estão aplicados em toda a árvore (`components/` e `features/`) — exceto na zona pixel-tuned descrita abaixo. Toda nova UI deve consumir tokens.
+Cores, fontes e gradientes vivem em `src/styles/tokens.ts`, em duas camadas (palette × semântica). Componente só usa `colors`/`gradients`/`alpha`; cor crua falha no teste. Regras, grupos de prefixo, fluxo para cor nova e scrollbars: **`src/styles/CLAUDE.md`**.
 
 ## Zona pixel-tuned — NÃO normalizar
 

@@ -12,10 +12,10 @@ export interface ScrollbarPalette {
 export const scrollbarPalettes = {
   /** Padrão global: telas escuras (fichas, espaço). */
   dark: {
-    track: colors.grayBgDeeper,
-    thumb: colors.redCardAccent,
-    thumbHover: colors.scrollThumbAccentHover,
-    thumbBorder: colors.grayBgDeeper,
+    track: colors.surfaceDeep,
+    thumb: colors.surfaceScrollThumbAccent,
+    thumbHover: colors.surfaceScrollThumbAccentHover,
+    thumbBorder: colors.surfaceDeep,
   },
   /** Telas de campanha/partida: os marrons dos painéis sobre o mapa-múndi. */
   earth: {

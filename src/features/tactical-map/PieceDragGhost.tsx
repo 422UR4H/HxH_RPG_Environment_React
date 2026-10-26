@@ -2,6 +2,7 @@ import type { CSSProperties, RefObject } from "react";
 import { createPortal } from "react-dom";
 import avatarPlaceholderUrl from "../../assets/placeholder/avatar.png";
 import gungiFrameUrl from "../../assets/icons/gungi.svg";
+import { colors } from "../../styles/tokens";
 
 // size = on-screen token diameter (px). The ghost is lifted to 1.2× so it
 // reads as "picked up" — slightly larger than the token resting on the board —
@@ -16,7 +17,7 @@ export function ghostStyle(size: number): CSSProperties {
     transform: "translate(-50%, -50%) scale(1.2)",
     width: size,
     height: size,
-    filter: `drop-shadow(0 ${Math.round(size * 0.22)}px ${Math.round(size * 0.36)}px rgba(0,0,0,0.55))`,
+    filter: `drop-shadow(0 ${Math.round(size * 0.22)}px ${Math.round(size * 0.36)}px ${colors.overlayMedium})`,
   };
 }
 

@@ -466,7 +466,7 @@ const ModeButton = styled.button`
 `;
 
 const PrimaryButton = styled(SmallButton)`
-  border-color: ${colors.brandAccentBright};
+  border-color: ${colors.brandAccent};
   background: ${colors.brandAccent};
 
   &[aria-disabled="true"] {
@@ -506,7 +506,7 @@ const NpcChip = styled.button`
   cursor: pointer;
 
   &[aria-pressed="true"] {
-    border-color: ${colors.pieceSelectionRing};
+    border-color: ${colors.mapSelectionRing};
     color: ${colors.textPrimary};
     font-weight: 600;
   }

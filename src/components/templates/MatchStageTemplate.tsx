@@ -236,7 +236,7 @@ const PanelScrim = styled.div`
   position: absolute;
   inset: 0;
   z-index: ${SCRIM_Z_INDEX};
-  background: ${colors.scrim};
+  background: ${colors.overlayScrim};
 
   ${media.railUp} {
     display: none;
@@ -248,7 +248,7 @@ const AsideScrim = styled.div`
   position: absolute;
   inset: 0;
   z-index: ${SCRIM_Z_INDEX};
-  background: ${colors.scrim};
+  background: ${colors.overlayScrim};
 
   ${media.asideUp} {
     display: none;

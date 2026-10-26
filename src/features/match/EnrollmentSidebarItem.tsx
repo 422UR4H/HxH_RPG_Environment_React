@@ -93,7 +93,7 @@ const ItemContainer = styled.div<{ $clickable: boolean }>`
   position: relative;
   overflow: hidden;
   border-radius: 0px 16px 0 0;
-  border-left: 4px solid ${colors.orange};
+  border-left: 4px solid ${colors.actionAccent};
   cursor: ${({ $clickable }) => ($clickable ? "pointer" : "default")};
 
   &:hover {
@@ -114,8 +114,8 @@ const StatusBadge = styled.span<{ $status: string }>`
     $status === "pending"
       ? colors.statusPending
       : $status === "accepted"
-      ? colors.statusNpc
-      : colors.danger};
+      ? colors.statusOngoing
+      : colors.feedbackDanger};
   color: ${colors.textPrimary};
 `;
 
@@ -134,7 +134,7 @@ const ActionButton = styled.button<{ $variant: "accept" | "reject" }>`
   font-weight: bold;
   cursor: pointer;
   background-color: ${({ $variant }) =>
-    $variant === "accept" ? colors.statusOngoing : colors.dangerDark};
+    $variant === "accept" ? colors.statusOngoing : colors.feedbackDanger};
   color: ${colors.textPrimary};
   transition: filter 0.2s;
 

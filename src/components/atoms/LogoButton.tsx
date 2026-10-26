@@ -31,7 +31,7 @@ const StyledLogoButton = styled(Link)`
   border-radius: 6px;
 
   &:focus-visible {
-    outline: 2px solid ${colors.controlHighlight};
+    outline: 2px solid ${colors.actionHighlight};
     outline-offset: 5px;
   }
 

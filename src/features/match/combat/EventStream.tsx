@@ -279,7 +279,7 @@ const Detail = styled.span`
 const LoadError = styled.p`
   margin: 0;
   padding: 8px 12px;
-  color: ${colors.danger};
+  color: ${colors.feedbackDanger};
   font-family: ${fonts.sans};
   font-size: 12px;
 `;

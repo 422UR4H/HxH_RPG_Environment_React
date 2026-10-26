@@ -38,7 +38,7 @@ const Banner = styled.div`
   max-width: 100%;
   padding: 10px 14px;
   border-radius: 6px;
-  border: 1px solid ${colors.statusError};
+  border: 1px solid ${colors.feedbackDanger};
   background: ${colors.surfaceSidebar};
   color: ${colors.textPrimary};
   font-family: ${fonts.sans};

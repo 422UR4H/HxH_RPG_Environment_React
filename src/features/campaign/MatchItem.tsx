@@ -92,7 +92,7 @@ const MatchFinalDescription = styled.p`
   line-height: 1.5;
   font-style: italic;
   color: ${colors.textMuted};
-  border-top: 1px solid ${colors.grayMid};
+  border-top: 1px solid ${colors.borderMuted};
   padding-top: 15px;
   padding-right: 140px;
 `;

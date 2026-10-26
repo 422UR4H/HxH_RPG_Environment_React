@@ -107,7 +107,7 @@ const Fill = styled.span<{ $frac: number }>`
   bottom: 0;
   left: ${({ $frac }) => ($frac >= 0 ? "50%" : `${50 + $frac * 50}%`)};
   width: ${({ $frac }) => `${Math.abs($frac) * 50}%`};
-  background: ${({ $frac }) => ($frac >= 0 ? colors.statusOngoing : colors.danger)};
+  background: ${({ $frac }) => ($frac >= 0 ? colors.statusOngoing : colors.feedbackDanger)};
 `;
 const Num = styled.span`
   min-width: 32px;

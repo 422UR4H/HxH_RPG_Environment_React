@@ -22,7 +22,7 @@ import CharactersSidebar from "../components/organisms/CharactersSidebar";
 import RulesSidebar from "../components/organisms/RulesSidebar";
 import RuleSection from "../components/molecules/RuleSection";
 import LobbyConnectionSidebarItem from "../features/match/LobbyConnectionSidebarItem";
-import { colors, fonts } from "../styles/tokens";
+import { colors, fonts, alpha } from "../styles/tokens";
 import type { WsStatus, LobbyFullState } from "../hooks/useLobbyWs";
 import type { BgImage, GridShape, Piece, SlotCoord, WallSegment } from "../types/tacticalMap";
 
@@ -366,10 +366,10 @@ const WsStatusBar = styled.div<{ $isError: boolean }>`
   border-radius: 8px;
   margin-bottom: 20px;
   background-color: ${({ $isError }) =>
-    $isError ? colors.errorBgSoft : colors.overlayMedium};
-  color: ${({ $isError }) => ($isError ? colors.danger : colors.textMuted)};
+    $isError ? alpha(colors.feedbackDanger, 0.1) : colors.overlayMedium};
+  color: ${({ $isError }) => ($isError ? colors.feedbackDanger : colors.textMuted)};
   border: 1px solid
-    ${({ $isError }) => ($isError ? colors.dangerDark : colors.borderDivider)};
+    ${({ $isError }) => ($isError ? colors.feedbackDanger : colors.borderDivider)};
 `;
 
 const MasterActions = styled.div`
@@ -404,7 +404,7 @@ const StartButton = styled(BaseActionButton)`
 `;
 
 const CancelButton = styled(BaseActionButton)`
-  background-color: ${colors.dangerDark};
+  background-color: ${colors.feedbackDanger};
   color: ${colors.textPrimary};
 `;
 

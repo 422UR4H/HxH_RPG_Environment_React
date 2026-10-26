@@ -80,7 +80,7 @@ const HpTrack = styled.div`
 const HpFill = styled.div`
   position: absolute;
   inset: 0 auto 0 0;
-  background: ${colors.redHp};
+  background: ${colors.vitalHp};
   transition: width 300ms ease;
 `;
 

@@ -15,11 +15,11 @@ const STATUS_LABELS: Record<MatchWsStatus, string> = {
 };
 
 const STATUS_COLORS: Record<MatchWsStatus, string> = {
-  connecting: colors.warningText,
+  connecting: colors.feedbackWarning,
   connected: colors.statusOngoing,
-  waiting: colors.warningText,
-  disconnected: colors.danger,
-  replaced: colors.warningText,
+  waiting: colors.feedbackWarning,
+  disconnected: colors.feedbackDanger,
+  replaced: colors.feedbackWarning,
 };
 
 /**
@@ -147,7 +147,7 @@ export const SmallButton = styled.button`
   color: ${colors.textPrimary};
 
   &[aria-pressed="true"] {
-    border-color: ${colors.brandAccentBright};
+    border-color: ${colors.brandAccent};
     background: ${colors.brandAccent};
   }
 

@@ -134,7 +134,7 @@ const KickButton = styled.button`
   font-weight: bold;
   cursor: pointer;
   padding: 4px 0;
-  background-color: ${colors.dangerDark};
+  background-color: ${colors.feedbackDanger};
   color: ${colors.textPrimary};
   transition: filter 0.2s;
 

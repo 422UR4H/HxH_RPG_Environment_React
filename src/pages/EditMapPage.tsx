@@ -65,7 +65,7 @@ const MapLoadingScreen = styled.div`
 const MapSpinner = styled.div`
   width: 48px;
   height: 48px;
-  border: 4px solid rgba(255, 255, 255, 0.12);
+  border: 4px solid ${colors.overlayHighlight};
   border-top-color: ${colors.brandAccent};
   border-radius: 50%;
   animation: ${spinMap} 0.9s linear infinite;

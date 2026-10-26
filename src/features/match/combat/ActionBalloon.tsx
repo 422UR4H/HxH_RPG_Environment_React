@@ -5,7 +5,7 @@ import type { BalloonTone } from "./balloonText";
 const BG: Record<BalloonTone, string> = {
   neutral: colors.surfaceInput,
   success: colors.brandAccent,
-  failure: colors.dangerDark,
+  failure: colors.feedbackDanger,
 };
 
 export type BalloonLine = { text: string; tone: BalloonTone };

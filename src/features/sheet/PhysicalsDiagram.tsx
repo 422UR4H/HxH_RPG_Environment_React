@@ -6,6 +6,7 @@ import PlusButton from "../../components/ions/PlusButton";
 import MinusButton from "../../components/ions/MinusButton";
 import { useState } from "react";
 import { deriveMiddlePoints } from "./utils/distribute";
+import { colors } from "../../styles/tokens";
 
 interface PhysicalsDiagramProps {
   mode: DiagramsMode;
@@ -80,7 +81,7 @@ const PhysicalsDiagram = ({
       <DiagramWrapper>
         {(mode === "distribute" || mode === "create" || mode === "edit") && (
           <Distribution>
-            Pontos para Distribuir: {distributionPoints}
+            Pontos para Distribuir: <DistributionPoints>{distributionPoints}</DistributionPoints>
           </Distribution>
         )}
 
@@ -185,6 +186,10 @@ const Distribution = styled.div`
   }
 `;
 
+const DistributionPoints = styled.span`
+  color: ${colors.vitalPoints};
+`;
+
 const SVGContainer = styled.div`
   position: absolute;
   top: 0;
@@ -270,7 +275,7 @@ const AttributeNumbers = styled.div`
 const AttributePoints = styled.div`
   font-family: "Roboto", sans-serif;
   font-weight: bold;
-  color: #00ea5a;
+  color: ${colors.vitalPoints};
   align-items: center;
   justify-content: center;
 `;

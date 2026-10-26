@@ -53,7 +53,7 @@ const Bar = styled.div<{ $passive?: boolean }>`
   gap: 10px;
   padding: 8px 10px;
   border-radius: 8px;
-  border: 1px solid ${colors.moveIntent};
+  border: 1px solid ${colors.mapMoveIntent};
   background: ${colors.overlayMedium};
   color: ${colors.textPrimary};
   font-family: ${fonts.sans};
@@ -80,7 +80,7 @@ const ConfirmButton = styled.button`
   padding: 8px 12px;
   border: none;
   border-radius: 6px;
-  background: ${colors.moveIntent};
+  background: ${colors.mapMoveIntent};
   color: ${colors.textOnLight};
   cursor: pointer;
 
