@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { http, HttpResponse } from "msw";
 import { screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { server } from "../../test/server";
 import { renderWithProviders } from "../../test/render";
 import { sheetApiFixture } from "../../test/fixtures/sheet";
@@ -92,5 +93,50 @@ describe("CharacterSheetPage", () => {
       "/charactersheets",
     );
     expect(screen.queryByRole("button", { name: "Tentar de novo" })).not.toBeInTheDocument();
+  });
+
+  describe("delete from the Manage menu (CON-07)", () => {
+    const blockedReason =
+      "Ficha em campanha ou com envio pendente não pode ser excluída: o histórico é do grupo.";
+
+    function serveSheet(overrides: Record<string, unknown>) {
+      server.use(
+        http.get(`${baseUrl}/charactersheets/:id`, () =>
+          HttpResponse.json({ characterSheet: { ...sheetApiFixture, ...overrides } }),
+        ),
+      );
+    }
+
+    async function openManageMenu() {
+      const u = userEvent.setup();
+      await u.click(await screen.findByRole("button", { name: /Gerenciar/i }));
+      return { u, deleteButton: screen.getByRole("button", { name: /Excluir/i }) };
+    }
+
+    it("lets the owner delete a sheet outside any campaign", async () => {
+      renderPage({ user: userFixture });
+      const { u, deleteButton } = await openManageMenu();
+      expect(deleteButton).not.toHaveAttribute("aria-disabled");
+      await u.click(deleteButton);
+      expect(await screen.findByText(/Tem certeza que deseja excluir esta ficha/i)).toBeInTheDocument();
+    });
+
+    it("shows delete as unavailable, with the reason, for a sheet in a campaign", async () => {
+      serveSheet({ campaignUuid: "campaign-1" });
+      renderPage({ user: userFixture });
+      const { u, deleteButton } = await openManageMenu();
+      expect(deleteButton).toHaveAttribute("aria-disabled", "true");
+      expect(deleteButton).toHaveAccessibleDescription(blockedReason);
+      await u.click(deleteButton);
+      expect(screen.queryByText(/Tem certeza que deseja excluir esta ficha/i)).not.toBeInTheDocument();
+    });
+
+    it("shows delete as unavailable for a sheet with a pending submission", async () => {
+      serveSheet({ submission: { campaignUuid: "campaign-1", createdAt: "2025-01-01T00:00:00Z" } });
+      renderPage({ user: userFixture });
+      const { deleteButton } = await openManageMenu();
+      expect(deleteButton).toHaveAttribute("aria-disabled", "true");
+      expect(deleteButton).toHaveAccessibleDescription(blockedReason);
+    });
   });
 });

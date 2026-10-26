@@ -1,18 +1,14 @@
 import { useEffect, useState } from "react";
 import { useDebounce } from "../../hooks/useDebounce";
 import ManageButton from "../../components/molecules/ManageButton";
+import type { ManageActions } from "../../components/molecules/ManageButton";
 import styled from "styled-components";
 import { colors, gradients } from "../../styles/tokens";
 
 interface SheetBottomActionsProps {
   onCampaignClick?: () => void;
   campaignLabel?: string;
-  manage?: {
-    isFree: boolean;
-    onEdit: () => void;
-    onDelete: () => void;
-    confirmMessage: string;
-  };
+  manage?: ManageActions;
 }
 
 export default function SheetBottomActions({

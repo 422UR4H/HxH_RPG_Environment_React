@@ -1,21 +1,24 @@
 import { useState, useEffect, useRef } from "react";
 import styled from "styled-components";
 import ConfirmDialog from "./ConfirmDialog";
+import BlockableButton from "./BlockableButton";
 import penIcon from "../../assets/icons/pen.svg";
 import { colors } from "../../styles/tokens";
 
 interface ManageButtonProps {
-  isFree: boolean;
-  deleteDisabledReason?: string;
+  /** Com motivo, Excluir fica indisponível e o motivo aparece no toque/hover/foco. */
+  deleteBlockedReason?: string;
   isFloating: boolean;
   confirmMessage: string;
   onEdit: () => void;
   onDelete: () => void;
 }
 
+/** O que a página entrega aos botões de baixo; a posição (flutuante ou não) é deles. */
+export type ManageActions = Omit<ManageButtonProps, "isFloating">;
+
 export default function ManageButton({
-  isFree,
-  deleteDisabledReason,
+  deleteBlockedReason,
   isFloating,
   confirmMessage,
   onEdit,
@@ -51,20 +54,20 @@ export default function ManageButton({
       <Wrapper ref={ref}>
         {open && (
           <Menu>
-            <MenuItem onClick={handleEdit}>
-              <PenIcon src={penIcon} alt="" /> Editar
+            <MenuItem type="button" onClick={handleEdit}>
+              <IconSlot>
+                <PenIcon src={penIcon} alt="" />
+              </IconSlot>
+              Editar
             </MenuItem>
-            {isFree ? (
-              <MenuItemDanger onClick={handleDelete}>🗑&nbsp; Excluir</MenuItemDanger>
-            ) : deleteDisabledReason ? (
-              <MenuItemDangerDisabled>
-                🗑&nbsp; Excluir
-                <DisabledReason>{deleteDisabledReason}</DisabledReason>
-              </MenuItemDangerDisabled>
-            ) : null}
+            <DeleteItem blockedReason={deleteBlockedReason} stretch onClick={handleDelete}>
+              <IconSlot aria-hidden="true">🗑</IconSlot>
+              Excluir
+            </DeleteItem>
           </Menu>
         )}
         <Button
+          type="button"
           $isFloating={isFloating}
           $open={open}
           onClick={() => setOpen((v) => !v)}
@@ -149,26 +152,29 @@ const Menu = styled.div`
   border: 1px solid ${colors.borderMuted};
   border-radius: 8px;
   overflow: hidden;
-  min-width: 160px;
+  min-width: 200px;
   box-shadow: 0 -4px 16px ${colors.overlayMedium};
   z-index: 20;
 `;
 
-const PenIcon = styled.img`
-  width: 1.4em;
-  height: 1.4em;
-`;
-
-const MenuItem = styled.div`
-  padding: 12px 14px;
-  color: ${colors.textPrimary};
-  font-size: 17px;
-  font-weight: 600;
-  cursor: pointer;
-  border-bottom: 1px solid ${colors.surfaceMuted};
+// Os dois itens com a mesma altura, o mesmo recuo e o ícone numa coluna de largura fixa,
+// para "Editar" e "Excluir" (e o "?" de indisponível) ficarem alinhados.
+const itemCss = `
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 18px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid ${colors.surfaceMuted};
+  font: inherit;
+  font-size: 17px;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
   &:last-child {
     border-bottom: none;
   }
@@ -177,22 +183,33 @@ const MenuItem = styled.div`
   }
 `;
 
-const MenuItemDanger = styled(MenuItem)`
+const MenuItem = styled.button`
+  ${itemCss}
+  color: ${colors.textPrimary};
+`;
+
+const DeleteItem = styled(BlockableButton)`
+  ${itemCss}
   color: ${colors.actionDestructiveText};
-  padding: 16px 0 16px 18px;
+
+  &[aria-disabled="true"] {
+    color: ${colors.textDisabled};
+    cursor: not-allowed;
+  }
+  &[aria-disabled="true"]:hover {
+    background: none;
+  }
 `;
 
-const MenuItemDangerDisabled = styled(MenuItem)`
-  color: ${colors.textDisabled};
-  padding: 16px 0 16px 18px;
-  cursor: not-allowed;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
+const IconSlot = styled.span`
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 1.4em;
+  flex-shrink: 0;
 `;
 
-const DisabledReason = styled.span`
-  font-size: 12px;
-  font-weight: 400;
-  color: ${colors.textDisabled};
+const PenIcon = styled.img`
+  width: 1.4em;
+  height: 1.4em;
 `;

@@ -292,6 +292,20 @@ describe("LobbyPage", () => {
     });
   });
 
+  it("explains why 'Expulsar' is unavailable for a player who is not connected (CON-08)", async () => {
+    setupHandlers("master-1");
+    renderPage({ user: masterUserFixture });
+    await waitForWsConnect();
+    simulateWsOpen();
+    sendFromServer("room_state", { matchUuid: "match-1", state: "lobby", players: [] });
+
+    const kick = await screen.findByRole("button", { name: /Expulsar/i });
+    expect(kick).toHaveAttribute("aria-disabled", "true");
+    expect(kick).toHaveAccessibleDescription("O jogador precisa estar conectado.");
+    await userEvent.click(kick);
+    expect(screen.queryByText(/Tem certeza que deseja expulsar/i)).not.toBeInTheDocument();
+  });
+
   it("shows the same four rule cards as the match, marked as coming soon", async () => {
     setupHandlers("master-1");
     renderPage({ user: masterUserFixture });

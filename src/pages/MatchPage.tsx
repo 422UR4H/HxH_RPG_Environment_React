@@ -324,7 +324,6 @@ export default function MatchPage() {
                 manage={
                   isMaster && !match.gameStartAt
                     ? {
-                        isFree: true,
                         onEdit: handleEdit,
                         onDelete: handleDelete,
                         confirmMessage:

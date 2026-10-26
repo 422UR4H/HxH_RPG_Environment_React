@@ -402,7 +402,13 @@ describe("CampaignPage", () => {
       });
       const user = userEvent.setup();
       await user.click(await screen.findByText(/Gerenciar/i));
-      expect(await screen.findByText(/Partida iniciada existente/i)).toBeInTheDocument();
+      const deleteButton = screen.getByRole("button", { name: /Excluir/i });
+      expect(deleteButton).toHaveAttribute("aria-disabled", "true");
+      expect(deleteButton).toHaveAccessibleDescription(
+        "Campanha com partida iniciada não pode ser excluída: o histórico é do grupo.",
+      );
+      await user.click(deleteButton);
+      expect(screen.queryByText(/Tem certeza que deseja excluir esta campanha/i)).not.toBeInTheDocument();
     });
 
     it("'Criar Partida' em BottomActions chama navigate", async () => {

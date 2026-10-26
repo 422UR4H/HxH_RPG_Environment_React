@@ -19,11 +19,14 @@ export default function Tooltip({
   label,
   children,
   enabled = true,
+  stretch = false,
 }: {
   label: string;
   children: ReactElement<{ "aria-describedby"?: string }>;
   /** false = não mostra nunca */
   enabled?: boolean;
+  /** true = ocupa a largura do contêiner (item de menu, botão de linha inteira) em vez de abraçar o filho. */
+  stretch?: boolean;
 }) {
   const id = useId();
   const wrapRef = useRef<HTMLSpanElement>(null);
@@ -96,6 +99,7 @@ export default function Tooltip({
   return (
     <Wrap
       ref={wrapRef}
+      $stretch={stretch}
       onPointerEnter={(e) => { if (e.pointerType === "mouse") show(); }}
       onPointerLeave={(e) => { if (e.pointerType === "mouse") hide(); }}
       onFocus={show}
@@ -148,8 +152,9 @@ const SrOnly = styled.span`
   white-space: nowrap;
 `;
 
-const Wrap = styled.span`
-  display: inline-flex;
+const Wrap = styled.span<{ $stretch: boolean }>`
+  display: ${({ $stretch }) => ($stretch ? "flex" : "inline-flex")};
+  ${({ $stretch }) => ($stretch ? "flex: 1 1 auto;" : "")}
   -webkit-touch-callout: none;
 `;
 
@@ -160,7 +165,11 @@ const Bubble = styled.span`
   z-index: 1000;
   pointer-events: none;
   user-select: none;
-  white-space: nowrap;
+  /* Curta fica numa linha; frase longa (o motivo de uma ação indisponível) quebra sem passar da tela. */
+  width: max-content;
+  max-width: min(280px, calc(100vw - 16px));
+  white-space: normal;
+  line-height: 1.35;
   padding: 4px 8px;
   border-radius: 4px;
   background: ${colors.surfaceBar};

@@ -253,9 +253,8 @@ export default function CampaignPage() {
                   containerRef={mainContentRef}
                   contentChangeSignal={descriptionSignal}
                   manage={{
-                    isFree: !hasStartedMatch,
-                    deleteDisabledReason: hasStartedMatch
-                      ? "Partida iniciada existente"
+                    deleteBlockedReason: hasStartedMatch
+                      ? "Campanha com partida iniciada não pode ser excluída: o histórico é do grupo."
                       : undefined,
                     onEdit: handleEdit,
                     onDelete: handleDelete,

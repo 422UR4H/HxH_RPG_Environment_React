@@ -41,7 +41,11 @@ function CharacterSheetPage() {
 
   const isOwner = !!charSheet && !!user && charSheet.playerUuid === user.uuid;
   const isMasterNpc = !!charSheet && !!user && charSheet.masterUuid === user.uuid && !charSheet.playerUuid;
-  const isFree = isOwner && !!charSheet && !charSheet.campaignUuid && !charSheet.submission;
+  // Regra do back: a ficha em campanha, ou com envio pendente, é do grupo.
+  const deleteBlockedReason =
+    charSheet?.campaignUuid || charSheet?.submission
+      ? "Ficha em campanha ou com envio pendente não pode ser excluída: o histórico é do grupo."
+      : undefined;
 
   const activeCampaignUuid =
     charSheet?.campaignUuid ?? charSheet?.submission?.campaignUuid;
@@ -100,9 +104,9 @@ function CharacterSheetPage() {
         onAcceptSubmission: !isOwner && !isMasterNpc && isPending && !accepting ? handleAccept : undefined,
         onRejectSubmission: !isOwner && !isMasterNpc && isPending && !rejecting ? handleReject : undefined,
         manage: isMasterNpc
-          ? { isFree: true, onEdit: handleEdit, onDelete: handleDelete, confirmMessage: "Tem certeza que deseja excluir esta ficha? Esta ação não pode ser desfeita." }
+          ? { onEdit: handleEdit, onDelete: handleDelete, confirmMessage: "Tem certeza que deseja excluir esta ficha? Esta ação não pode ser desfeita." }
           : isOwner
-          ? { isFree, onEdit: handleEdit, onDelete: handleDelete, confirmMessage: "Tem certeza que deseja excluir esta ficha? Esta ação não pode ser desfeita." }
+          ? { deleteBlockedReason, onEdit: handleEdit, onDelete: handleDelete, confirmMessage: "Tem certeza que deseja excluir esta ficha? Esta ação não pode ser desfeita." }
           : undefined,
       }}
     />
