@@ -87,13 +87,13 @@ const AttributeSectionTitle = styled.div`
 const AttributeTitle = styled.h3`
   font-family: ${fonts.sans};
   font-size: 6cqi;
-  color: ${colors.textMuted};
+  color: ${colors.textLabelMuted};
 `;
 
 const AttributePower = styled.h3`
   font-family: ${fonts.sans};
   font-size: 6cqi;
-  color: ${colors.textLabelMuted};
+  color: ${colors.textMuted};
 `;
 
 const SkillsSubList = styled.div`
