@@ -131,7 +131,7 @@ export default function LobbyPage() {
     );
   }, []);
 
-  const { status, participants, sendStartMatch, sendKick, sendCancelLobby, sendPieceMoved, sendPieceRemoved } =
+  const { status, participants, sendStartMatch, sendKick, sendCancelLobby, sendPieceMoved, sendPieceRemoved, reconnect } =
     useLobbyWs({
       matchUuid: matchId ?? "",
       token: token ?? "",
@@ -215,7 +215,7 @@ export default function LobbyPage() {
     if (isKicked) return "Você foi removido do lobby pelo mestre.";
     switch (status) {
       case "connecting":
-        return "Conectando ao lobby...";
+        return "Conectando ao lobby…";
       case "waking":
         return GAME_SERVER_WAKING;
       case "unreachable":
@@ -282,23 +282,31 @@ export default function LobbyPage() {
 
         {wsStatusMessage && (
           <WsStatusBar $isError={ERROR_STATUSES.includes(status)}>
-            {wsStatusMessage}
+            <span>{wsStatusMessage}</span>
+            {status === "unreachable" && !isKicked && (
+              <RetryButton type="button" onClick={reconnect}>
+                Tentar de novo
+              </RetryButton>
+            )}
           </WsStatusBar>
         )}
 
         <ActionsList>
           {isMaster ? (
             <MasterActions>
-              <StartButton onClick={sendStartMatch}>
+              <StartButton onClick={sendStartMatch} disabled={status !== "connected"}>
                 Iniciar Partida
               </StartButton>
-              <CancelButton onClick={() => setShowCancelConfirm(true)}>
+              <CancelButton
+                onClick={() => setShowCancelConfirm(true)}
+                disabled={status !== "connected"}
+              >
                 Cancelar Lobby
               </CancelButton>
             </MasterActions>
           ) : (
             <WaitingMessage>
-              Aguardando o mestre iniciar a partida...
+              Aguardando o mestre iniciar a partida…
             </WaitingMessage>
           )}
         </ActionsList>
@@ -381,6 +389,11 @@ const ConnectedCounter = styled.div`
 `;
 
 const WsStatusBar = styled.div<{ $isError: boolean }>`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
   font-family: ${fonts.sans};
   font-size: 16px;
   padding: 10px 16px;
@@ -391,6 +404,22 @@ const WsStatusBar = styled.div<{ $isError: boolean }>`
   color: ${({ $isError }) => ($isError ? colors.feedbackDanger : colors.textMuted)};
   border: 1px solid
     ${({ $isError }) => ($isError ? colors.feedbackDanger : colors.borderDivider)};
+`;
+
+const RetryButton = styled.button`
+  font-family: ${fonts.sans};
+  font-size: 14px;
+  font-weight: 600;
+  padding: 6px 16px;
+  border-radius: 6px;
+  border: 1px solid ${colors.feedbackDanger};
+  background: transparent;
+  color: ${colors.feedbackDanger};
+  cursor: pointer;
+
+  &:hover {
+    filter: brightness(1.2);
+  }
 `;
 
 const MasterActions = styled.div`
@@ -416,6 +445,12 @@ const BaseActionButton = styled.button`
   }
   &:active {
     transform: scale(0.98);
+  }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    filter: none;
+    transform: none;
   }
 `;
 

@@ -8,6 +8,14 @@ import { matchApiFixture, matchAsMasterApi } from "../../test/fixtures/match";
 import { masterUserFixture, userFixture } from "../../test/fixtures/user";
 import { mapApiFixture, mapWithPiecesApi, pieceFixture } from "../../test/fixtures/map";
 import LobbyPage from "../LobbyPage";
+import { useLobbyWs } from "../../hooks/useLobbyWs";
+import type { WsStatus } from "../../hooks/useLobbyWs";
+
+// O hook real por padrão; os testes de status o substituem por um retorno fixo.
+vi.mock("../../hooks/useLobbyWs", async () => {
+  const actual = await vi.importActual<typeof import("../../hooks/useLobbyWs")>("../../hooks/useLobbyWs");
+  return { ...actual, useLobbyWs: vi.fn(actual.useLobbyWs) };
+});
 
 const mockNavigate = vi.fn();
 vi.mock("react-router-dom", async () => {
@@ -115,7 +123,9 @@ function renderPage(opts: Parameters<typeof renderWithProviders>[1] = {}) {
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 describe("LobbyPage", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    const actual = await vi.importActual<typeof import("../../hooks/useLobbyWs")>("../../hooks/useLobbyWs");
+    vi.mocked(useLobbyWs).mockImplementation(actual.useLobbyWs);
     vi.stubGlobal("WebSocket", MockWebSocket);
     mockNavigate.mockReset();
     MockWebSocket.mockClear();
@@ -280,6 +290,81 @@ describe("LobbyPage", () => {
     await waitFor(() => {
       expect(screen.getByText(/Tem certeza/i)).toBeInTheDocument();
     });
+  });
+
+  describe("LobbyPage — estados da conexão", () => {
+    const reconnect = vi.fn();
+    function forceStatus(status: WsStatus) {
+      vi.mocked(useLobbyWs).mockImplementation(() => ({
+        status,
+        participants: [],
+        sendStartMatch: vi.fn(),
+        sendKick: vi.fn(),
+        sendCancelLobby: vi.fn(),
+        sendPieceMoved: vi.fn(),
+        sendPieceRemoved: vi.fn(),
+        reconnect,
+      }));
+    }
+    beforeEach(() => reconnect.mockReset());
+
+    it("waking mostra a mensagem de servidor acordando", async () => {
+      setupHandlers("master-1");
+      forceStatus("waking");
+      renderPage({ user: masterUserFixture });
+      expect(
+        await screen.findByText("Acordando o servidor da mesa… pode levar até um minuto."),
+      ).toBeInTheDocument();
+    });
+
+    it("unreachable mostra a mensagem e 'Tentar de novo', que chama reconnect", async () => {
+      setupHandlers("master-1");
+      forceStatus("unreachable");
+      renderPage({ user: masterUserFixture });
+      expect(
+        await screen.findByText("Não foi possível conectar ao servidor da mesa."),
+      ).toBeInTheDocument();
+      await userEvent.click(screen.getByRole("button", { name: "Tentar de novo" }));
+      expect(reconnect).toHaveBeenCalledTimes(1);
+    });
+
+    it("connecting mostra 'Conectando ao lobby…' sem 'Tentar de novo'", async () => {
+      setupHandlers("master-1");
+      forceStatus("connecting");
+      renderPage({ user: masterUserFixture });
+      expect(await screen.findByText("Conectando ao lobby…")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Tentar de novo" })).not.toBeInTheDocument();
+    });
+
+    it.each<WsStatus>(["connecting", "waking", "unreachable"])(
+      "%s: Iniciar Partida e Cancelar Lobby ficam desativados",
+      async (status) => {
+        setupHandlers("master-1");
+        forceStatus(status);
+        renderPage({ user: masterUserFixture });
+        expect(await screen.findByRole("button", { name: /Iniciar Partida/i })).toBeDisabled();
+        expect(screen.getByRole("button", { name: /Cancelar Lobby/i })).toBeDisabled();
+      },
+    );
+
+    it("connected: os botões do mestre ficam ativos", async () => {
+      setupHandlers("master-1");
+      forceStatus("connected");
+      renderPage({ user: masterUserFixture });
+      expect(await screen.findByRole("button", { name: /Iniciar Partida/i })).toBeEnabled();
+      expect(screen.getByRole("button", { name: /Cancelar Lobby/i })).toBeEnabled();
+    });
+
+    it.each<WsStatus>(["connecting", "waking", "unreachable", "connected"])(
+      "%s: 'Muitas tentativas' não aparece",
+      async (status) => {
+        setupHandlers("master-1");
+        forceStatus(status);
+        renderPage({ user: masterUserFixture });
+        await screen.findByRole("button", { name: /Iniciar Partida/i });
+        expect(screen.queryByText(/Muitas tentativas/i)).not.toBeInTheDocument();
+      },
+    );
   });
 
   describe("LobbyPage — mapa", () => {
