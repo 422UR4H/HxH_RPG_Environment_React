@@ -79,7 +79,7 @@ export default function CharacterSidebarItem({
       {isNpc && <NpcBadge>NPC</NpcBadge>}
       {isDead && <DeadBadge>Morto</DeadBadge>}
       {hasLeft && <LeftBadge>Saiu</LeftBadge>}
-      {isOnline === true && <OnlineBadge>ONLINE</OnlineBadge>}
+      {isOnline === true && <OnlineBadge>CONECTADO</OnlineBadge>}
       {isOnline === false && <AwaitingBadge>AGUARDANDO</AwaitingBadge>}
     </ItemContainer>
   );

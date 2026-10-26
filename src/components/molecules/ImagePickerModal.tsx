@@ -133,7 +133,7 @@ export default function ImagePickerModal({
 
         <ModeToggle>
           <ModeButton $active={mode === "upload"} onClick={() => handleModeClick("upload")}>
-            📁 Upload arquivo
+            📁 Enviar arquivo
           </ModeButton>
           <ModeButton $active={mode === "url"} onClick={() => handleModeClick("url")}>
             🔗 Colar link

@@ -61,7 +61,7 @@ export default function LobbyConnectionSidebarItem({
       >
         <CharacterSheetHeader mode="card" data={{ charSheet }} showStatus={!!priv} />
         <StatusBadge $isOnline={isOnline}>
-          {isOnline ? "ONLINE" : "AGUARDANDO"}
+          {isOnline ? "CONECTADO" : "AGUARDANDO"}
         </StatusBadge>
 
         {isMaster && (

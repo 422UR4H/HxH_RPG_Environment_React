@@ -95,6 +95,12 @@ describe("CharacterSheetPage", () => {
     expect(screen.queryByRole("button", { name: "Tentar de novo" })).not.toBeInTheDocument();
   });
 
+  it("names the skill groups like the attribute diagrams, in English (TXT-02)", async () => {
+    renderPage({ user: userFixture });
+    expect(await screen.findByRole("heading", { name: "Physical" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Físicas" })).not.toBeInTheDocument();
+  });
+
   describe("delete from the Manage menu (CON-07)", () => {
     const blockedReason =
       "Ficha em campanha ou com envio pendente não pode ser excluída: o histórico é do grupo.";

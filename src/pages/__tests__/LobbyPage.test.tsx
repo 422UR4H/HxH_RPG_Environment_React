@@ -306,6 +306,25 @@ describe("LobbyPage", () => {
     expect(screen.queryByText(/Tem certeza que deseja expulsar/i)).not.toBeInTheDocument();
   });
 
+  it("labels a connected player 'CONECTADO' and lets the master kick them (TXT-02)", async () => {
+    setupHandlers("master-1");
+    renderPage({ user: masterUserFixture });
+    await waitForWsConnect();
+    simulateWsOpen();
+    sendFromServer("room_state", {
+      matchUuid: "match-1",
+      state: "lobby",
+      players: [{ uuid: "user-1", nickname: "Gon", isMaster: false, isOnline: true }],
+    });
+
+    expect(await screen.findByText("CONECTADO")).toBeInTheDocument();
+    expect(screen.queryByText("ONLINE")).not.toBeInTheDocument();
+    const kick = screen.getByRole("button", { name: /Expulsar/i });
+    expect(kick).not.toHaveAttribute("aria-disabled");
+    await userEvent.click(kick);
+    expect(await screen.findByText(/Tem certeza que deseja expulsar Gon/i)).toBeInTheDocument();
+  });
+
   it("shows the same four rule cards as the match, marked as coming soon", async () => {
     setupHandlers("master-1");
     renderPage({ user: masterUserFixture });

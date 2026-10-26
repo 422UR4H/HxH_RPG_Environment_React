@@ -216,7 +216,7 @@ function CharacterSheetTemplate({
             <SectionTitle>PERÍCIAS</SectionTitle>
 
             <SkillsGroup>
-              <GroupTitle>Físicas</GroupTitle>
+              <GroupTitle>Physical</GroupTitle>
               <PhysicalSkillsGroup
                 mode={sheetMode.skillsMode}
                 attributes={physicalAttributes}
@@ -226,7 +226,7 @@ function CharacterSheetTemplate({
 
             {(spiritualAbility?.level ?? 0) > 0 && (
               <SkillsGroup>
-                <GroupTitle>Espirituais</GroupTitle>
+                <GroupTitle>Spiritual</GroupTitle>
                 <SpiritualSkillsGroup
                   mode={sheetMode.skillsMode}
                   attributes={spiritualAttributes}
