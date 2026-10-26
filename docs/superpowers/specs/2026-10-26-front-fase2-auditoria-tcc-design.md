@@ -133,7 +133,7 @@ antes de qualquer guarda (o relatório cita `CampaignsPage`, `CampaignPage`, `Cr
 `CreateMapPage`; confirme se há outras). Teste os caminhos sem token, com id inválido, com 404 e com 500.
 
 **Acordar os servidores cedo (PROD-01).** Ao abrir o app, em qualquer página e com ou sem sessão, o front dispara
-em segundo plano um `GET /liveness` na API (a rota já existe, sem login e sem banco) e um `GET /health` no servidor do jogo, sem esperar resposta (`mode: "no-cors"`,
+em segundo plano um `GET /readiness` na API (que passa a tocar o banco, ver abaixo) e um `GET /health` no servidor do jogo, sem esperar resposta (`mode: "no-cors"`,
 então o CORS não importa) e no máximo uma vez a cada 5 min por aba. A URL HTTP do jogo sai do `VITE_WS_URL`
 (`ws`→`http`, `wss`→`https`, só a origem). Um módulo só, em `src/services/`.
 
@@ -147,7 +147,7 @@ mensagem “Muitas tentativas de conexão. Recarregue a página…” sai. Os ca
 estão: `4001` (lobby não aberto), aberta em outra aba, expulso, lobby encerrado e a sala do mestre ainda fechada
 (`waiting`). Com o socket fechado, “Iniciar Partida” e “Cancelar Lobby” ficam desativados.
 
-**Sem PR no back:** a API já tem `/liveness` e `/readiness` (`internal/app/api/health.go`), e o jogo tem `/health`. O Render publica sozinho a cada merge na `main`; a validação online acontece depois que o PR estiver no ar.
+**PR pequeno no back (`feat/api-readiness-db`):** hoje `/liveness` e `/readiness` (`internal/app/api/health.go`) respondem fixo, sem tocar em nada. Segue-se o padrão de liveness × readiness: o `/liveness` continua dizendo só que o processo está de pé, e o `/readiness` passa a fazer um `Ping` no pool do Postgres, com prazo de 2 s: `200` se o banco respondeu, `503` se não. Assim o aquecimento acorda o Render **e** o Neon numa requisição só. Contrato novo em `System_X_System/docs/dev/api/health.md`, registrado no `documentation-map.yaml`. Se o Render tiver um health check configurado no painel, ele deve apontar para o `/liveness`, para um banco lento não derrubar a API. Os dois PRs podem entrar em qualquer ordem (com `no-cors`, a resposta não importa para o front). A validação online acontece depois que os dois estiverem no ar.
 
 ### PR 2 — Fundação: tipografia, foco, aba e tokens (`fix/ux-fundacao`)
 Itens: TIP-01, TIP-02, A11Y-01, HALO-01, FAV-01, FAV-02, COR-02, COR-03, COR-06, COR-07.
@@ -288,7 +288,7 @@ Itens: CON-02, CON-04, CON-05, CON-07, CON-08, FOR-06, TXT-02.
 
 - **CON-02:** a correção do relatório. A nota “Mais opções de configuração serão adicionadas em breve.” e os cards
   são os mesmos em todas as telas (hoje o lobby tem dois e as outras quatro).
-- **CON-04 (decisão delegada 6):** “Aceitar” com o check do designer e “Recusar” só com a palavra, os dois com
+- **CON-04 (decisão delegada 6):** os dois botões com ícone do designer, ou os dois sem. O par sai com ícone se o X de recusar do designer (pedido em 26/10, no vermelho de texto destrutivo `red600`, não no vermelho do brand) chegar até este PR; senão, os dois saem só com a palavra, e os ícones entram juntos depois. A regra abaixo vale para quando houver ícone: os dois com
   `aria-label` com o nick e 44 px, e só enquanto a inscrição está pendente. Depois, fica só o status. O check é o
   `src/assets/icons/Ativo 10.svg`, renomeado para `checkcomponta.svg` (no par do `setavoltarcomponta.svg`, a seta
   em uso; o arquivo não é usado em lugar nenhum), nas cores originais e com o ícone escondido do leitor de tela.

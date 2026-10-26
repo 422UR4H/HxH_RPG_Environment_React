@@ -182,7 +182,7 @@
 **Interfaces:**
 - Produces:
   - `gameHttpOrigin(wsUrl: string | undefined): string | null`: `ws://localhost:8081` → `http://localhost:8081`; `wss://x.onrender.com/ws` → `https://x.onrender.com`; vazio ou inválido → `null`.
-  - `warmUpServers(now?: number): void`: dispara `fetch(`${apiUrl}/liveness`, { mode: "no-cors" })` e `fetch(`${gameOrigin}/health`, { mode: "no-cors" })`, os dois sem `await` e com a rejeição engolida. Não faz nada se o último disparo foi há menos de `WARM_UP_INTERVAL_MS = 300_000`, contados num estado de módulo (por aba). A `apiUrl` sai da mesma fonte do `httpClient` (exporte a constante de lá, sem duplicá-la).
+  - `warmUpServers(now?: number): void`: dispara `fetch(`${apiUrl}/readiness`, { mode: "no-cors" })` e `fetch(`${gameOrigin}/health`, { mode: "no-cors" })`, os dois sem `await` e com a rejeição engolida. Não faz nada se o último disparo foi há menos de `WARM_UP_INTERVAL_MS = 300_000`, contados num estado de módulo (por aba). A `apiUrl` sai da mesma fonte do `httpClient` (exporte a constante de lá, sem duplicá-la).
   - `resetWarmUpForTests(): void`.
 
 - [ ] **Step 1: Testes.**
