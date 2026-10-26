@@ -384,6 +384,58 @@ describe("MatchPage", () => {
     });
   });
 
+  describe("enrollment review by the master (CON-04)", () => {
+    function serveEnrollment(status: "pending" | "accepted" | "rejected") {
+      server.use(
+        http.get(`${baseUrl}/matches/:id`, () =>
+          HttpResponse.json({ match: matchAsMasterApi(masterUserFixture.user.uuid) }),
+        ),
+        http.get(`${baseUrl}/matches/:id/enrollments`, () =>
+          HttpResponse.json({
+            enrollments: [
+              {
+                uuid: "enr-1",
+                status,
+                createdAt: "2025-01-01T00:00:00.000Z",
+                player: { uuid: "user-x", nick: "PlayerX" },
+                characterSheet: {
+                  uuid: "sheet-x",
+                  nickName: "Killua",
+                  createdAt: "2025-01-01T00:00:00.000Z",
+                  updatedAt: "2025-01-01T00:00:00.000Z",
+                },
+              },
+            ],
+          }),
+        ),
+      );
+    }
+
+    it("names both actions with the character's nick while the enrollment is pending", async () => {
+      serveEnrollment("pending");
+      renderPage({ user: masterUserFixture });
+      const accept = await screen.findByRole("button", { name: "Aceitar inscrição de Killua" });
+      const reject = screen.getByRole("button", { name: "Recusar inscrição de Killua" });
+      expect(accept).toHaveTextContent("Aceitar");
+      expect(reject).toHaveTextContent("Recusar");
+      expect(screen.getByText("Pendente")).toBeInTheDocument();
+    });
+
+    it("drops the actions once the enrollment is accepted, keeping only the status", async () => {
+      serveEnrollment("accepted");
+      renderPage({ user: masterUserFixture });
+      expect(await screen.findByText("Aceito")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /Aceitar|Recusar|✓|✗/ })).not.toBeInTheDocument();
+    });
+
+    it("labels a refused enrollment with the same verb as the action", async () => {
+      serveEnrollment("rejected");
+      renderPage({ user: masterUserFixture });
+      expect(await screen.findByText("Recusado")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /inscrição de Killua/i })).not.toBeInTheDocument();
+    });
+  });
+
   describe("navigation actions (CON-05)", () => {
     it("'Abrir Lobby' navigates, so it carries no '+'", async () => {
       server.use(

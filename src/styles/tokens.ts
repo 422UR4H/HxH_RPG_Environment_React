@@ -121,6 +121,7 @@ export const colors = {
   actionHighlightOnLight: palette.blue700, // anel de foco sobre superfície clara: cartão do login e do cadastro
   actionDestructive: palette.red700, // botões que removem, excluem, rejeitam ou saem: nunca o vermelho do brand (é o da peça)
   actionDestructiveText: palette.red600, // texto de ação destrutiva sobre painel escuro: o contraste manda
+  actionConfirm: palette.green500, // contorno da ação de aceitar sobre painel escuro (o verde da marca some ali)
 
   // feedback
   feedbackDanger: palette.red600, // erro, alerta, perigo, falha em combate

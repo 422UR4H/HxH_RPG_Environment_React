@@ -58,31 +58,29 @@ export default function EnrollmentSidebarItem({
       <StatusBadge $status={status}>
         {status === "pending" && "Pendente"}
         {status === "accepted" && "Aceito"}
-        {status === "rejected" && "Rejeitado"}
+        {status === "rejected" && "Recusado"}
       </StatusBadge>
 
-      {isMaster && (
-        <Actions>
-          <ActionButton
-            $variant="accept"
+      {/* Só enquanto há o que decidir; depois fica só o selo de status.
+          Sem ícone até o X de recusar do designer chegar: os dois entram juntos. */}
+      {isMaster && status === "pending" && (
+        <Actions onClick={(e) => e.stopPropagation()}>
+          <AcceptButton
+            type="button"
+            aria-label={`Aceitar inscrição de ${characterSheet.nickName}`}
             disabled={isLoading}
-            onClick={(e) => {
-              e.stopPropagation();
-              onAccept(enrollment.uuid);
-            }}
+            onClick={() => onAccept(enrollment.uuid)}
           >
-            ✓
-          </ActionButton>
-          <ActionButton
-            $variant="reject"
+            Aceitar
+          </AcceptButton>
+          <RejectButton
+            type="button"
+            aria-label={`Recusar inscrição de ${characterSheet.nickName}`}
             disabled={isLoading}
-            onClick={(e) => {
-              e.stopPropagation();
-              onReject(enrollment.uuid);
-            }}
+            onClick={() => onReject(enrollment.uuid)}
           >
-            ✗
-          </ActionButton>
+            Recusar
+          </RejectButton>
         </Actions>
       )}
     </ItemContainer>
@@ -122,27 +120,37 @@ const StatusBadge = styled.span<{ $status: string }>`
 const Actions = styled.div`
   display: flex;
   gap: 8px;
-  padding: 6px 8px;
+  padding: 8px;
   background-color: ${colors.overlayMedium};
 `;
 
-const ActionButton = styled.button<{ $variant: "accept" | "reject" }>`
+// Contorno sobre o painel escuro: o check verde do designer, quando chegar, não some no fundo.
+const ActionButton = styled.button`
   flex: 1;
-  border: none;
+  min-height: 44px;
+  padding: 0 12px;
   border-radius: 6px;
+  background: transparent;
   font-size: 16px;
   font-weight: bold;
   cursor: pointer;
-  background-color: ${({ $variant }) =>
-    $variant === "accept" ? colors.statusOngoing : colors.feedbackDanger};
-  color: ${colors.textPrimary};
-  transition: filter 0.2s;
+  transition: background-color 0.2s;
 
   &:hover:not(:disabled) {
-    filter: brightness(1.15);
+    background-color: ${colors.overlayHighlightFaint};
   }
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
+`;
+
+const AcceptButton = styled(ActionButton)`
+  border: 2px solid ${colors.actionConfirm};
+  color: ${colors.textPrimary};
+`;
+
+const RejectButton = styled(ActionButton)`
+  border: 2px solid ${colors.actionDestructiveText};
+  color: ${colors.actionDestructiveText};
 `;
