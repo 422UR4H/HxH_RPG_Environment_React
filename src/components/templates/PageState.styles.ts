@@ -103,7 +103,7 @@ export const Message = styled.p`
 
 export const Actions = styled.div`
   display: flex;
-  flex-direction: column-reverse;
+  flex-direction: column;
   align-self: stretch;
   gap: 12px;
 

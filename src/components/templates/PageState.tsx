@@ -103,12 +103,12 @@ export function PageError({
       <Message>{message}</Message>
       {(onRetry || back) && (
         <Actions>
-          {back && <SecondaryLink to={back.to}>{back.label}</SecondaryLink>}
           {onRetry && (
             <PrimaryButton type="button" onClick={onRetry}>
               Tentar de novo
             </PrimaryButton>
           )}
+          {back && <SecondaryLink to={back.to}>{back.label}</SecondaryLink>}
         </Actions>
       )}
     </Frame>
