@@ -1,3 +1,4 @@
+import ErrorIcon from "../ions/ErrorIcon";
 import styled from "styled-components";
 import { colors, alpha } from "../../styles/tokens";
 
@@ -43,12 +44,7 @@ export default function SignField({
       </Box>
       {error && (
         <ErrorText id={errorId}>
-          {/* Ícone próprio: o do PageState é um componente interno de 44 px, não exportado. */}
-          <svg width="18" height="18" viewBox="0 0 44 44" fill="none" aria-hidden="true">
-            <circle cx="22" cy="22" r="19" stroke="currentColor" strokeWidth="3" />
-            <path d="M22 12v12" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" />
-            <circle cx="22" cy="31" r="2.2" fill="currentColor" />
-          </svg>
+          <ErrorIcon size={18} />
           <span>{error}</span>
         </ErrorText>
       )}

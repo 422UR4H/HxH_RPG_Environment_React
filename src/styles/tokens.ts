@@ -103,7 +103,7 @@ export const colors = {
   textLabelMuted: palette.neutral300, // rótulos dos grupos de atributos
   textDisabledOnDark: palette.neutral300, // rótulo de controle desativado sobre surfaceDisabled
   textFaint: palette.neutral600, // opção desabilitada de lista
-  textHint: palette.neutral500, // legenda e dica nas áreas de soltar
+  textHint: palette.neutral500, // legenda e dica nas áreas de soltar; rótulo de campo em repouso sobre superfície clara (login, cadastro)
   textLinkOnLight: palette.blue700, // links sobre fundo branco (telas de login e cadastro)
 
   // border
