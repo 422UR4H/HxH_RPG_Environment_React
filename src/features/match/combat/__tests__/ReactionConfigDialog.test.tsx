@@ -114,7 +114,7 @@ describe("ReactionConfigDialog", () => {
     expect(screen.getByText(/^Custo:/)).toHaveTextContent("Custo: barras de ação e movimento");
   });
 
-  it("as escolhas são botões, com o escolhido na cor do texto", () => {
+  it("choices are buttons, with the selected one in the text color", () => {
     // O token é "white"; o computado vem em rgb — normaliza pelo próprio jsdom.
     const probe = document.body.appendChild(document.createElement("div"));
     probe.style.color = colors.textPrimary;

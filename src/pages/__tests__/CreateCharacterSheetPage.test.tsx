@@ -183,7 +183,7 @@ describe("CreateCharacterSheetPage", () => {
     },
   );
 
-  it("falha ao carregar as classes mostra o erro com 'Tentar de novo'", async () => {
+  it("class loading failure shows the error with 'Tentar de novo'", async () => {
     server.use(
       http.get(`${baseUrl}/classes`, () =>
         HttpResponse.json({ detail: "boom" }, { status: 500 }),

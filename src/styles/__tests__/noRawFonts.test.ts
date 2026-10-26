@@ -30,8 +30,8 @@ const isExempt = (path: string) =>
   PIXEL_TUNED.includes(path) ||
   EXEMPT_EXTRA.includes(path);
 
-describe("fonte só é declarada no body", () => {
-  it("nenhum arquivo fora de tokens.ts e da zona pixel-tuned escreve Roboto, Oswald ou Lato", () => {
+describe("font is declared only on body", () => {
+  it("no file outside tokens.ts and the pixel-tuned zone writes Roboto, Oswald or Lato", () => {
     const found: string[] = [];
     for (const [path, raw] of Object.entries(sources)) {
       if (isExempt(path)) continue;
@@ -46,11 +46,11 @@ describe("fonte só é declarada no body", () => {
     ).toEqual([]);
   });
 
-  it("o reset não declara Lato", () => {
+  it("the reset does not declare Lato", () => {
     expect(sources["/src/styles/ResetStyle.ts"]).not.toMatch(/Lato/);
   });
 
-  it("o CSS do reset declara a fonte no body e os controles a herdam; o * não declara", () => {
+  it("the reset CSS declares the font on body and controls inherit it; * does not declare it", () => {
     const css = readResetCss();
     expect(css).toMatch(new RegExp(`body\\{[^}]*font-family:${fonts.sans.replace(/\s+/g, "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
     expect(css).toContain("button,input,select,textarea,optgroup{font-family:inherit;}");

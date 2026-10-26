@@ -3,19 +3,19 @@ import { renderHook } from "@testing-library/react";
 import useDocumentTitle from "../useDocumentTitle";
 
 describe("useDocumentTitle", () => {
-  it("junta as partes e o nome do produto", () => {
+  it("joins the parts and the product name", () => {
     renderHook(() => useDocumentTitle("Mesa", "O Grande Início"));
     expect(document.title).toBe("Mesa · O Grande Início · System X System");
   });
 
-  it("ignora partes vazias", () => {
+  it("ignores empty parts", () => {
     renderHook(() => useDocumentTitle("Mesa", undefined));
     expect(document.title).toBe("Mesa · System X System");
     renderHook(() => useDocumentTitle());
     expect(document.title).toBe("System X System");
   });
 
-  it("atualiza quando o nome chega", () => {
+  it("updates when the name arrives", () => {
     const { rerender } = renderHook(
       ({ nome }: { nome?: string }) => useDocumentTitle("Mesa", nome),
       { initialProps: { nome: undefined as string | undefined } },
@@ -25,7 +25,7 @@ describe("useDocumentTitle", () => {
     expect(document.title).toBe("Mesa · Arena · System X System");
   });
 
-  it("volta ao nome do produto ao desmontar", () => {
+  it("goes back to the product name on unmount", () => {
     const { unmount } = renderHook(() => useDocumentTitle("Mesa"));
     unmount();
     expect(document.title).toBe("System X System");

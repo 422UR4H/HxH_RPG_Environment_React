@@ -149,7 +149,7 @@ describe("LobbyPage", () => {
     expect(screen.getByText(/Carregando/i)).toBeInTheDocument();
   });
 
-  it("500 na partida mostra o erro do lobby com 'Tentar de novo'", async () => {
+  it("500 on the match shows the lobby error with 'Tentar de novo'", async () => {
     server.use(
       http.get(`${baseUrl}/matches/:id`, () => HttpResponse.json({ error: "x" }, { status: 500 })),
       http.get(`${baseUrl}/matches/:id/enrollments`, () =>
@@ -292,7 +292,7 @@ describe("LobbyPage", () => {
     });
   });
 
-  describe("LobbyPage — estados da conexão", () => {
+  describe("LobbyPage — connection states", () => {
     const reconnect = vi.fn();
     function forceStatus(status: WsStatus) {
       vi.mocked(useLobbyWs).mockImplementation(() => ({
@@ -308,7 +308,7 @@ describe("LobbyPage", () => {
     }
     beforeEach(() => reconnect.mockReset());
 
-    it("waking mostra a mensagem de servidor acordando", async () => {
+    it("waking shows the server-waking message", async () => {
       setupHandlers("master-1");
       forceStatus("waking");
       renderPage({ user: masterUserFixture });
@@ -317,7 +317,7 @@ describe("LobbyPage", () => {
       ).toBeInTheDocument();
     });
 
-    it("unreachable mostra a mensagem e 'Tentar de novo', que chama reconnect", async () => {
+    it("unreachable shows the message and 'Tentar de novo', which calls reconnect", async () => {
       setupHandlers("master-1");
       forceStatus("unreachable");
       renderPage({ user: masterUserFixture });
@@ -328,7 +328,7 @@ describe("LobbyPage", () => {
       expect(reconnect).toHaveBeenCalledTimes(1);
     });
 
-    it("connecting mostra 'Conectando ao lobby…' sem 'Tentar de novo'", async () => {
+    it("connecting shows 'Conectando ao lobby…' without 'Tentar de novo'", async () => {
       setupHandlers("master-1");
       forceStatus("connecting");
       renderPage({ user: masterUserFixture });
@@ -347,7 +347,7 @@ describe("LobbyPage", () => {
       },
     );
 
-    it("connected: os botões do mestre ficam ativos", async () => {
+    it("connected: the master's buttons are enabled", async () => {
       setupHandlers("master-1");
       forceStatus("connected");
       renderPage({ user: masterUserFixture });
@@ -428,7 +428,7 @@ describe("LobbyPage", () => {
         expect(screen.queryByText(/Não foi possível carregar o tabuleiro/)).not.toBeInTheDocument();
       });
 
-      it("queda do socket: o servidor está acordando, a mesa espera", async () => {
+      it("socket drop: the server is waking, the table waits", async () => {
         withAttachedMap();
         renderPage({ user: masterUserFixture });
         await waitForWsConnect();

@@ -76,7 +76,7 @@ describe("GamePage (rota)", () => {
     expect(screen.queryByRole("button", { name: /^ação$/i })).not.toBeInTheDocument();
   });
 
-  it("500 na partida mostra o erro com 'Tentar de novo', não carregando eterno", async () => {
+  it("500 on the match shows the error with 'Tentar de novo', not an endless loading", async () => {
     server.use(
       http.get(`${baseUrl}/matches/:id`, () =>
         HttpResponse.json({ error: "x" }, { status: 500 }),
@@ -90,7 +90,7 @@ describe("GamePage (rota)", () => {
     expect(screen.getByRole("button", { name: "Tentar de novo" })).toBeInTheDocument();
   });
 
-  it("404 na partida mostra 'Partida não encontrada' com volta para a campanha", async () => {
+  it("404 on the match shows 'Partida não encontrada' with a way back to the campaign", async () => {
     server.use(
       http.get(`${baseUrl}/matches/:id`, () =>
         HttpResponse.json({ error: "not found" }, { status: 404 }),

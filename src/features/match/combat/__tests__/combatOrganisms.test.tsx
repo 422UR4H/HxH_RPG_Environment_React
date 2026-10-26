@@ -1166,7 +1166,7 @@ describe("MatchTopBar", () => {
     expect(screen.getByTestId("ws-status")).toHaveAttribute("title", "Aguardando o mestre abrir a sala…");
   });
 
-  it("mostra Acordando o servidor… com o aviso longo no tooltip quando está acordando", () => {
+  it("shows 'Acordando o servidor…' with the long notice in the tooltip when waking", () => {
     render(<MatchTopBar roundMode="" status="waking" asideOpen={false} onToggleAside={() => {}} />);
     const status = screen.getByTestId("ws-status");
     expect(status).toHaveTextContent("Acordando o servidor…");

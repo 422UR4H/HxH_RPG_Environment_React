@@ -723,7 +723,7 @@ describe("useMatchWs connection lifecycle", () => {
     expect(result.current.status).toBe("connecting");
   });
 
-  it("um fechamento 1006 vai para waking e tenta de novo em 500 ms", () => {
+  it("a 1006 close goes to waking and retries in 500 ms", () => {
     const { result } = renderHook(() => useMatchWs({ matchUuid: "m1", token: "t" }));
     const ws = flushConnect();
     act(() => { ws.onclose?.({ code: 1006 } as CloseEvent); });
@@ -734,7 +734,7 @@ describe("useMatchWs connection lifecycle", () => {
     expect(FakeWS.instances).toHaveLength(2);
   });
 
-  it("falhas por 180 s vão para disconnected, e reconnect() reabre", () => {
+  it("failures for 180 s go to disconnected, and reconnect() reopens", () => {
     const { result } = renderHook(() => useMatchWs({ matchUuid: "m1", token: "t" }));
     let ws = flushConnect();
     let guard = 0;
@@ -756,7 +756,7 @@ describe("useMatchWs connection lifecycle", () => {
     expect(FakeWS.instances).toHaveLength(before + 1);
   });
 
-  it("uma mensagem recebida zera a janela", () => {
+  it("a received message resets the window", () => {
     const { result } = renderHook(() => useMatchWs({ matchUuid: "m1", token: "t" }));
     let ws = flushConnect();
     // Quase esgota a janela com falhas.
@@ -779,14 +779,14 @@ describe("useMatchWs connection lifecycle", () => {
     expect(result.current.status).toBe("waking");
   });
 
-  it("1000 e 1001 vão direto para disconnected", () => {
+  it("1000 and 1001 go straight to disconnected", () => {
     const { result } = renderHook(() => useMatchWs({ matchUuid: "m1", token: "t" }));
     const ws = flushConnect();
     act(() => { ws.onclose?.({ code: 1001 } as CloseEvent); });
     expect(result.current.status).toBe("disconnected");
   });
 
-  it("waiting não gasta a janela: depois de 4 min esperando o mestre, a queda ainda tenta de novo", () => {
+  it("waiting does not spend the window: after 4 min waiting for the master, a drop still retries", () => {
     const { result } = renderHook(() => useMatchWs({ matchUuid: "m1", token: "t" }));
     let ws = flushConnect();
     for (let t = 0; t < 240_000; t += 5000) {

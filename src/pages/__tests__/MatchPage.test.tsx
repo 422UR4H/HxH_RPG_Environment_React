@@ -34,7 +34,7 @@ describe("MatchPage", () => {
   });
 
   describe("loading & error", () => {
-    it("mostra 'Carregando partida…' enquanto resolve", () => {
+    it("shows 'Carregando partida…' while it resolves", () => {
       server.use(
         http.get(`${baseUrl}/matches/:id`, async () => {
           await new Promise((r) => setTimeout(r, 50));
@@ -45,7 +45,7 @@ describe("MatchPage", () => {
       expect(screen.getByText(/Carregando partida…/i)).toBeInTheDocument();
     });
 
-    it("404 mostra 'Partida não encontrada' com o caminho de volta para a campanha", async () => {
+    it("404 shows 'Partida não encontrada' with the path back to the campaign", async () => {
       server.use(
         http.get(`${baseUrl}/matches/:id`, () =>
           HttpResponse.json({ error: "not found" }, { status: 404 }),
@@ -81,7 +81,7 @@ describe("MatchPage", () => {
       expect(await screen.findByText(/Partida n[ãa]o encontrada/i)).toBeInTheDocument();
     });
 
-    it("sem token redireciona para o login", async () => {
+    it("redirects to login without a token", async () => {
       renderWithProviders(
         <Routes>
           <Route path="/campaigns/:campaignId/matches/:matchId" element={<MatchPage />} />
@@ -93,7 +93,7 @@ describe("MatchPage", () => {
     });
   });
 
-  it("exibe o título da aba com o título da partida", async () => {
+  it("sets the tab title with the match title", async () => {
     renderPage();
     await screen.findByText("AGENDADA");
     expect(document.title).toBe("Partida de Teste · System X System");

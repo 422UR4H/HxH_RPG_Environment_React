@@ -11,7 +11,7 @@ describe("useDelayedFlag", () => {
     vi.restoreAllMocks();
   });
 
-  it("fica falso antes do prazo e verdadeiro depois", () => {
+  it("stays false before the deadline and true after it", () => {
     const { result } = renderHook(() => useDelayedFlag(3000));
     expect(result.current).toBe(false);
 
@@ -26,7 +26,7 @@ describe("useDelayedFlag", () => {
     expect(result.current).toBe(true);
   });
 
-  it("não dispara depois de desmontar", () => {
+  it("does not fire after unmount", () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const { unmount } = renderHook(() => useDelayedFlag(3000));
 

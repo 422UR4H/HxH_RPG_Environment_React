@@ -51,7 +51,7 @@ describe("CampaignPage", () => {
   });
 
   describe("loading & error", () => {
-    it("mostra 'Carregando campanha…' enquanto a request resolve", () => {
+    it("shows 'Carregando campanha…' while the request resolves", () => {
       server.use(
         http.get(`${baseUrl}/campaigns/:id`, async () => {
           await new Promise((r) => setTimeout(r, 50));
@@ -62,7 +62,7 @@ describe("CampaignPage", () => {
       expect(screen.getByText(/Carregando campanha…/i)).toBeInTheDocument();
     });
 
-    it("500 mostra o erro com 'Tentar de novo'", async () => {
+    it("500 shows the error with 'Tentar de novo'", async () => {
       server.use(
         http.get(`${baseUrl}/campaigns/:id`, () =>
           HttpResponse.json({ error: "server error" }, { status: 500 }),
@@ -75,7 +75,7 @@ describe("CampaignPage", () => {
       expect(screen.getByRole("button", { name: "Tentar de novo" })).toBeInTheDocument();
     });
 
-    it("404 mostra 'Campanha não encontrada' com o caminho para a lista", async () => {
+    it("404 shows 'Campanha não encontrada' with the path to the list", async () => {
       server.use(
         http.get(`${baseUrl}/campaigns/:id`, () =>
           HttpResponse.json({ error: "not found" }, { status: 404 }),
@@ -90,7 +90,7 @@ describe("CampaignPage", () => {
       expect(screen.queryByRole("button", { name: "Tentar de novo" })).not.toBeInTheDocument();
     });
 
-    it("sem token redireciona para o login", async () => {
+    it("redirects to login without a token", async () => {
       renderWithProviders(
         <Routes>
           <Route path="/campaigns/:id" element={<CampaignPage />} />

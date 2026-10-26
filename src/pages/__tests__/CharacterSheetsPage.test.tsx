@@ -29,7 +29,7 @@ describe("CharacterSheetsPage", () => {
     mockNavigate.mockReset();
   });
 
-  it("mostra 'Carregando personagens…' inicialmente", () => {
+  it("shows 'Carregando personagens…' initially", () => {
     server.use(
       http.get(`${baseUrl}/charactersheets`, async () => {
         await new Promise((r) => setTimeout(r, 50));

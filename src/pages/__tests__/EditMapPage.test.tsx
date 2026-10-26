@@ -42,7 +42,7 @@ describe("EditMapPage", () => {
     expect(screen.getByText(/carregando/i)).toBeInTheDocument();
   });
 
-  it("500 no mapa mostra 'Não foi possível carregar o mapa', não carregando eterno", async () => {
+  it("500 on the map shows 'Não foi possível carregar o mapa', not an endless loading", async () => {
     server.use(
       http.get(`${baseUrl}/maps/:mapId`, () =>
         HttpResponse.json({ error: "x" }, { status: 500 }),
