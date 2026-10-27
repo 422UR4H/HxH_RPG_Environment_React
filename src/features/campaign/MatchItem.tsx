@@ -1,6 +1,7 @@
 import styled from "styled-components";
 import type { Match } from "../../types/campaign";
 import { colors } from "../../styles/tokens";
+import { formatDateBR } from "../../utils/date";
 
 interface MatchItemProps {
   match: Match;
@@ -27,7 +28,7 @@ export default function MatchItem({ match, onClick }: MatchItemProps) {
 
       {match.storyEndAt && (
         <MatchEndDate>
-          Fim: {new Date(match.storyEndAt).toLocaleDateString("pt-BR")}
+          Fim: {formatDateBR(match.storyEndAt)}
         </MatchEndDate>
       )}
     </MatchContainer>
