@@ -46,6 +46,7 @@ const TabButton = styled.button<{ $active: boolean }>`
   border: none;
   border-bottom: 3px solid
     ${({ $active }) => ($active ? colors.brandAccent : "transparent")};
+  min-height: 44px;
   padding: 10px 20px;
   margin-bottom: -2px;
   cursor: pointer;

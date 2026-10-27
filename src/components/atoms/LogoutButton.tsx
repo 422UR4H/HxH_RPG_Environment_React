@@ -24,7 +24,7 @@ const StyledLogoutButton = styled.button`
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 16px;
 
   font-family: ${fonts.display};
@@ -56,7 +56,7 @@ const StyledLogoutButton = styled.button`
   }
 
   @media (max-width: 480px) {
-    min-height: 36px;
+    min-height: 44px;
     padding: 0 12px;
     font-size: 14px;
   }

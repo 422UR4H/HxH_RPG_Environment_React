@@ -2,6 +2,10 @@ import { type ReactNode, useEffect } from "react";
 import styled, { css, keyframes } from "styled-components";
 import CloseButton from "../ions/CloseButton";
 import { colors } from "../../styles/tokens";
+import { bottomBarSpace } from "../../styles/bottomBar";
+
+export const EDGE_TAB_WIDTH = 32;
+const EDGE_TAB_HEIGHT = 110;
 
 interface EdgeDrawerProps {
   side: "left" | "right";
@@ -60,10 +64,11 @@ const slideInFromRight = keyframes`
 
 const EdgeTab = styled.button<{ $side: "left" | "right" }>`
   position: absolute;
-  top: 50%;
+  /* No meio da tela, mas nunca abaixo do topo da barra de botões verdes: sobe só o necessário. */
+  top: max(${EDGE_TAB_HEIGHT / 2}px, min(50%, calc(100% - ${bottomBarSpace} - ${EDGE_TAB_HEIGHT / 2}px)));
   transform: translateY(-50%);
-  width: 32px;
-  height: 110px;
+  width: ${EDGE_TAB_WIDTH}px;
+  height: ${EDGE_TAB_HEIGHT}px;
   background-color: ${colors.brandAccent};
   border: none;
   color: ${colors.textPrimary};
@@ -78,6 +83,16 @@ const EdgeTab = styled.button<{ $side: "left" | "right" }>`
 
   &:hover {
     filter: brightness(1.15);
+  }
+
+  /* Área de toque de 44 px sem mudar o desenho: 12 px invisíveis para dentro da tela. */
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 12px;
+    ${({ $side }) => ($side === "left" ? "left: 100%;" : "right: 100%;")}
   }
 
   ${({ $side }) =>
