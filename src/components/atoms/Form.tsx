@@ -7,7 +7,7 @@ interface FormProps {
 }
 
 export default function Form({ children, onSubmit }: FormProps) {
-  return <StyledForm onSubmit={onSubmit}>{children}</StyledForm>;
+  return <StyledForm noValidate onSubmit={onSubmit}>{children}</StyledForm>;
 }
 
 const StyledForm = styled.form`

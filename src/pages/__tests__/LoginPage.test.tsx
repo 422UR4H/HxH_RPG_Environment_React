@@ -9,8 +9,8 @@ import LoginPage from "../LoginPage";
 
 const baseUrl = "http://localhost:5000";
 
-function renderPage() {
-  return renderWithProviders(<LoginPage />, { route: "/", token: null, user: null });
+function renderPage(state?: unknown) {
+  return renderWithProviders(<LoginPage />, { route: "/", token: null, user: null, state });
 }
 
 async function fillAndSubmit() {
@@ -67,5 +67,40 @@ describe("LoginPage", () => {
     expect(await screen.findByText("E-mail ou senha incorretos.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Entrar" })).toBeEnabled();
     expect(screen.queryByRole("status", { name: "Carregando" })).not.toBeInTheDocument();
+  });
+
+  it("shows field errors without calling the API", async () => {
+    let called = false;
+    server.use(
+      http.post(`${baseUrl}/auth/login`, () => {
+        called = true;
+        return HttpResponse.json({}, { status: 200 });
+      }),
+    );
+    renderPage();
+    await userEvent.setup().click(screen.getByRole("button", { name: /Entrar/i }));
+    expect(screen.getByText("Informe o e-mail.")).toBeInTheDocument();
+    expect(screen.getByText("Informe a senha.")).toBeInTheDocument();
+    expect(screen.getByLabelText("E-mail")).toHaveFocus();
+    expect(called).toBe(false);
+  });
+
+  it("keeps a single message for wrong credentials", async () => {
+    server.use(
+      http.post(`${baseUrl}/auth/login`, () =>
+        HttpResponse.json({ detail: "validation error: access denied" }, { status: 401 }),
+      ),
+    );
+    renderPage();
+    await fillAndSubmit();
+    expect(await screen.findByText("E-mail ou senha incorretos.")).toBeInTheDocument();
+    expect(screen.getByLabelText("E-mail")).not.toHaveAttribute("aria-invalid");
+    expect(screen.getByLabelText("Senha")).not.toHaveAttribute("aria-invalid");
+  });
+
+  it("after sign-up, prefills the email and shows the notice", () => {
+    renderPage({ registered: "novo@mail.com" });
+    expect(screen.getByLabelText("E-mail")).toHaveValue("novo@mail.com");
+    expect(screen.getByRole("status")).toHaveTextContent("Conta criada. Entre com seu e-mail e senha.");
   });
 });

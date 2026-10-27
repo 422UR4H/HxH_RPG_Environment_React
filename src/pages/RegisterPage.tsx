@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, type ChangeEvent, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import useDocumentTitle from "../hooks/useDocumentTitle";
 import useForm from "../hooks/useForm";
@@ -11,10 +11,9 @@ import useToken from "../hooks/useToken";
 import SignField from "../components/molecules/SignField";
 import SignFormError from "../components/atoms/SignFormError";
 import { getRegisterErrorMessage } from "../features/auth/authErrorMessages";
+import { validateRegister, type FieldErrors } from "../features/auth/validateSignForms";
 
-function isAnyFieldEmpty({ nick, email, password, confirmPass }: SignUpBody) {
-  return email === "" || password === "" || nick === "" || confirmPass === "";
-}
+const FIELD_ORDER = ["email", "nick", "password", "confirmPass"] as const;
 
 export default function RegisterPage() {
   useDocumentTitle("Criar conta");
@@ -29,18 +28,28 @@ export default function RegisterPage() {
   const { logout } = useToken();
   const { mutate: signUp, isPending } = useSignUp();
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors<(typeof FIELD_ORDER)[number]>>({});
+
+  function handleChange(e: ChangeEvent<HTMLInputElement>): void {
+    const name = e.target.name as (typeof FIELD_ORDER)[number];
+    setFieldErrors((prev) => ({ ...prev, [name]: undefined }));
+    handleForm(e);
+  }
 
   function handleSubmit(e: FormEvent<HTMLFormElement>): void {
     e.preventDefault();
     setError(null);
-    if (isAnyFieldEmpty(form)) {
-      setError("Preencha todos os campos!");
+    const errors = validateRegister(form);
+    setFieldErrors(errors);
+    const firstInvalid = FIELD_ORDER.find((name) => errors[name]);
+    if (firstInvalid) {
+      document.getElementById(`sign-${firstInvalid}`)?.focus();
       return;
     }
     signUp(form, {
       onSuccess: () => {
         logout();
-        navigate("/");
+        navigate("/", { state: { registered: form.email } });
       },
       onError: (err: unknown) => {
         setError(getRegisterErrorMessage(err));
@@ -56,35 +65,39 @@ export default function RegisterPage() {
           label="E-mail"
           type="email"
           value={form.email}
-          onChange={handleForm}
+          onChange={handleChange}
           autoComplete="email"
           maxLength={64}
+          error={fieldErrors.email}
         />
         <SignField
           name="nick"
           label="Nick"
           value={form.nick}
-          onChange={handleForm}
+          onChange={handleChange}
           autoComplete="username"
           maxLength={20}
+          error={fieldErrors.nick}
         />
         <SignField
           name="password"
           label="Senha"
           type="password"
           value={form.password}
-          onChange={handleForm}
+          onChange={handleChange}
           autoComplete="new-password"
           maxLength={64}
+          error={fieldErrors.password}
         />
         <SignField
           name="confirmPass"
           label="Confirme a senha"
           type="password"
           value={form.confirmPass}
-          onChange={handleForm}
+          onChange={handleChange}
           autoComplete="new-password"
           maxLength={64}
+          error={fieldErrors.confirmPass}
         />
         {error && <SignFormError message={error} />}
         <ButtonSubmit disabled={isPending}>Criar conta</ButtonSubmit>
