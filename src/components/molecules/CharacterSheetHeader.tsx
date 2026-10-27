@@ -97,6 +97,7 @@ export default function CharacterSheetHeader({
             <PenIcon src={penIcon} alt="Edit Icon" />
             <NicknameInput
               type="text"
+              autoComplete="off"
               placeholder="Nickname"
               maxLength={10}
               value={profile?.nickname ?? ""}

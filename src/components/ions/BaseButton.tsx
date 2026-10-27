@@ -42,13 +42,8 @@ const StyledButton = styled.button`
     cursor: default;
   }
 
-  /* @media (max-width: 767px) { */
   @media (max-width: 580px) {
     width: 100%;
-  }
-
-  @media (max-width: 480px) {
-    border-radius: 0;
   }
 
   @media (max-width: 360px) {

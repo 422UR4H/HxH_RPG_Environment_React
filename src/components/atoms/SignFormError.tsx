@@ -6,8 +6,8 @@ interface SignFormErrorProps {
 }
 
 // Erro das telas de entrada. Ocupa a coluna dos campos e do botão (429 px; 100% abaixo de 580 px,
-// como BaseInput/BaseButton) e começa o texto no recuo do texto digitado: faixa de 4 px + 14 px de
-// padding = borda de 4 px + 14 px de padding do campo. Faixa, não borda inteira: senão parece um campo.
+// como SignField/BaseButton) e começa o texto no recuo do texto digitado: faixa de 4 px + 14 px de
+// padding = borda de 2 px + 16 px de padding do campo. Faixa, não borda inteira: senão parece um campo.
 export default function SignFormError({ message }: SignFormErrorProps) {
   return <StyledSignFormError role="alert">{message}</StyledSignFormError>;
 }

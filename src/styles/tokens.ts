@@ -103,7 +103,7 @@ export const colors = {
   textLabelMuted: palette.neutral300, // rótulos dos grupos de atributos
   textDisabledOnDark: palette.neutral300, // rótulo de controle desativado sobre surfaceDisabled
   textFaint: palette.neutral600, // opção desabilitada de lista
-  textHint: palette.neutral500, // legenda e dica nas áreas de soltar
+  textHint: palette.neutral500, // legenda e dica nas áreas de soltar; rótulo de campo em repouso sobre superfície clara (login, cadastro)
   textLinkOnLight: palette.blue700, // links sobre fundo branco (telas de login e cadastro)
 
   // border
@@ -112,6 +112,7 @@ export const colors = {
   borderMuted: palette.neutral600, // borda neutra de uso geral
   borderStrong: palette.neutral500, // borda e texto neutro nas áreas de soltar
   borderLight: palette.neutral400, // borda em repouso do BackgroundButton
+  borderInputOnLight: palette.neutral400, // borda de campo em repouso sobre fundo claro: login e cadastro (3,5:1 sobre o branco)
   borderAccent: palette.red800, // borda de destaque: hover/ativo dos cards de ficha e de navegação
 
   // action
@@ -124,7 +125,7 @@ export const colors = {
 
   // feedback
   feedbackDanger: palette.red600, // erro, alerta, perigo, falha em combate
-  feedbackInputError: palette.red800, // borda de campo com erro, aviso de erro nas telas de login
+  feedbackInputError: palette.red600, // borda, rótulo e mensagem de erro de campo nas telas de login e cadastro (4,9:1 sobre o branco)
   feedbackWarning: palette.gold400, // texto de aviso no seletor de imagem
   feedbackWarningBorder: palette.gold700, // borda e pílula de aviso
   feedbackWarningBg: alpha(palette.gold700, 0.12), // fundo do aviso

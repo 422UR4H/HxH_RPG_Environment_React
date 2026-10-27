@@ -6,6 +6,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { TokenProvider } from "../contexts/TokenContext";
 import { UserProvider } from "../contexts/UserContext";
 import { NavGuardProvider } from "../contexts/NavGuardContext";
+import { fakeJwt } from "./fakeJwt";
 import { userFixture } from "./fixtures/user";
 import type { UserStorage } from "../types/user";
 
@@ -30,7 +31,7 @@ export function renderWithProviders(
   {
     route = "/",
     path,
-    token = "fake-jwt-token",
+    token = fakeJwt(),
     user = userFixture,
     state,
     ...rest

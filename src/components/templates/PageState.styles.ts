@@ -73,6 +73,12 @@ export const Spinner = styled.div`
   }
 `;
 
+// O ícone desenha em currentColor: a cor de erro vem daqui.
+export const ErrorIconSlot = styled.span`
+  display: flex;
+  color: ${colors.feedbackDangerText};
+`;
+
 export const Label = styled.p`
   margin: 0;
   font-size: 20px;
