@@ -2,6 +2,7 @@ import { useRef, useEffect, useState, type ReactNode } from "react";
 import { useDebounce } from "../../hooks/useDebounce";
 import styled from "styled-components";
 import { colors } from "../../styles/tokens";
+import { floatingElevation } from "../../styles/bottomBar";
 
 interface AdaptiveActionButtonProps {
   label: string;
@@ -120,7 +121,7 @@ const ButtonWrapper = styled.div<{
   bottom: 0px;
   ${({ $type }) => ($type === "character" ? "left: 0px;" : "left: 0px;")}
   z-index: 10;
-  height: 91px;
+  height: var(--bottom-bar-height, 91px);
   width: 100%;
 
   ${({ $type, $isFloating }) =>
@@ -149,7 +150,7 @@ const ActionButton = styled.button<{
         padding: 15px 30px 15px 26px;
         background-color: ${colors.brandAccent};
         color: ${colors.textPrimary};
-        box-shadow: 0 4px 10px ${colors.shadowSoft};
+        box-shadow: ${floatingElevation(colors.shadowFloating, colors.borderFloating)};
         gap: 10px;
 
         font-size: 26px;
@@ -158,7 +159,6 @@ const ActionButton = styled.button<{
         &:hover {
           transform: translateY(-5px);
           filter: brightness(1.1);
-          box-shadow: 0 8px 15px ${colors.shadowStrong};
         }
         &:active {
           transform: scale(0.98);

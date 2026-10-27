@@ -56,3 +56,26 @@ export function toDateTimeLocalValue(iso: string | undefined | null): string {
   const time = timePart?.substring(0, 5) ?? "00:00";
   return `${parts.year}-${parts.month}-${parts.day}T${time}`;
 }
+
+function pad(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+/** Dia de hoje pelo relógio local, `AAAA-MM-DD`. `toISOString()` daria o dia seguinte após 21h no Brasil. */
+export function todayLocalISODate(now: Date = new Date()): string {
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
+
+/** Data/hora local no formato de `<input type="datetime-local">`, `AAAA-MM-DDTHH:mm`. */
+export function toLocalDateTimeInputValue(date: Date): string {
+  return `${todayLocalISODate(date)}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+/** Dias de hoje até a data (negativo = passada), contados pelas partes da data, sem fuso. */
+export function daysFromToday(isoDate: string, now: Date = new Date()): number {
+  const parts = parseIsoDateParts(isoDate);
+  if (!parts) return NaN;
+  const target = Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day));
+  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((target - today) / 86_400_000);
+}

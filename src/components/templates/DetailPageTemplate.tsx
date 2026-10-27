@@ -6,6 +6,8 @@ import EdgeDrawer from "../molecules/EdgeDrawer";
 import worldMap from "../../assets/images/worldmap.png";
 import { colors } from "../../styles/tokens";
 import { scopedScrollbar, scrollbarPalettes } from "../../styles/scrollbar";
+import { bottomBarVars } from "../../styles/bottomBar";
+import { EDGE_TAB_HIT } from "../molecules/EdgeDrawer";
 import useMediaQuery from "../../hooks/useMediaQuery";
 
 interface DetailPageTemplateProps {
@@ -52,7 +54,12 @@ export default function DetailPageTemplate({
       <PageHeader backgroundColor={headerColor} showBack={!hideBack} />
       <PageBody>
         {!isLeftCollapsed && leftSidebar}
-        <MainContentContainer ref={mainRef} $bgImage={bgImage}>
+        <MainContentContainer
+          ref={mainRef}
+          $bgImage={bgImage}
+          $reserveLeft={isLeftCollapsed}
+          $reserveRight={isRightCollapsed && !!rightSidebar}
+        >
           {children}
         </MainContentContainer>
         {!isRightCollapsed && rightSidebar}
@@ -106,12 +113,21 @@ const PageBody = styled.main`
   width: 100%;
   overflow: visible;
   position: relative;
+  ${bottomBarVars}
 `;
 
-const MainContentContainer = styled.div<{ $bgImage: string }>`
+// Com a aba visível, o respiro lateral passa a ser a área de toque da aba (44 px):
+// o conteúdo nunca fica por baixo dela.
+const MainContentContainer = styled.div<{
+  $bgImage: string;
+  $reserveLeft: boolean;
+  $reserveRight: boolean;
+}>`
   flex: 1;
   min-width: 0;
   padding: 30px 30px 0px 30px;
+  ${({ $reserveLeft }) => $reserveLeft && `padding-left: ${EDGE_TAB_HIT}px;`}
+  ${({ $reserveRight }) => $reserveRight && `padding-right: ${EDGE_TAB_HIT}px;`}
   overflow-y: auto;
 
   background-image: url(${({ $bgImage }) => $bgImage});

@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useMemo } from "react";
 import { Navigate, useParams, useNavigate } from "react-router-dom";
 import styled from "styled-components";
+import Badge from "../components/ions/Badge";
 import useDocumentTitle from "../hooks/useDocumentTitle";
 import useToken from "../hooks/useToken";
 import useUser from "../hooks/useUser";
@@ -20,6 +21,7 @@ import DetailPageTemplate from "../components/templates/DetailPageTemplate";
 import CharactersSidebar from "../components/organisms/CharactersSidebar";
 import UpcomingRulesSidebar from "../components/organisms/UpcomingRulesSidebar";
 import LobbyConnectionSidebarItem from "../features/match/LobbyConnectionSidebarItem";
+import { HeaderBox, headerRow, headerTitle } from "../styles/pageHeader";
 import { colors, alpha } from "../styles/tokens";
 import { GAME_SERVER_WAKING, GAME_SERVER_UNREACHABLE } from "../services/serverWake";
 import type { WsStatus, LobbyFullState } from "../hooks/useLobbyWs";
@@ -266,10 +268,12 @@ export default function LobbyPage() {
           <UpcomingRulesSidebar scope="match" />
         }
       >
-        <LobbyHeader>
-          <LobbyTitle>{match.title.toUpperCase()}</LobbyTitle>
-          <LobbyStatusPill>LOBBY ABERTO</LobbyStatusPill>
-        </LobbyHeader>
+        <HeaderBox>
+          <LobbyHeader>
+            <LobbyTitle>{match.title.toUpperCase()}</LobbyTitle>
+            <LobbyStatusBadge tone="ongoing">LOBBY ABERTO</LobbyStatusBadge>
+          </LobbyHeader>
+        </HeaderBox>
 
         <ConnectedCounter>
           {connectedCount}/{totalCount} conectados
@@ -341,37 +345,11 @@ export default function LobbyPage() {
 }
 
 const LobbyHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 20px;
-
-  @media (max-width: 750px) {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
+  ${headerRow}
 `;
 
 const LobbyTitle = styled.h1`
-  font-size: 42px;
-  font-weight: 900;
-  color: ${colors.textPrimary};
-  flex: 1;
-  min-width: 0;
-  overflow-wrap: break-word;
-`;
-
-const LobbyStatusPill = styled.span`
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  padding: 4px 12px;
-  border-radius: 20px;
-  background-color: ${colors.statusOngoing};
-  color: ${colors.textPrimary};
-  flex-shrink: 0;
+  ${headerTitle}
 `;
 
 const ConnectedCounter = styled.div`
@@ -474,4 +452,8 @@ const LobbyMapSection = styled.div`
 // O aviso de espera é absoluto (o mesmo da mesa): precisa de um bloco posicionado.
 const LobbyMapWaiting = styled(LobbyMapSection)`
   position: relative;
+`;
+
+const LobbyStatusBadge = styled(Badge)`
+  flex-shrink: 0;
 `;

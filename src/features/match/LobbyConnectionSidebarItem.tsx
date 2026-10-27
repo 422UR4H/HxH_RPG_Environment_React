@@ -1,5 +1,6 @@
 import { useState } from "react";
 import styled from "styled-components";
+import Badge from "../../components/ions/Badge";
 import type { Enrollment } from "../../types/match";
 import { createEmptyCharacterSheet } from "../sheet/factories/characterSheet.factory";
 import CharacterSheetHeader from "../../components/molecules/CharacterSheetHeader";
@@ -60,7 +61,7 @@ export default function LobbyConnectionSidebarItem({
         onClick={isMaster ? onClick : undefined}
       >
         <CharacterSheetHeader mode="card" data={{ charSheet }} showStatus={!!priv} />
-        <StatusBadge $isOnline={isOnline}>
+        <StatusBadge tone={isOnline ? "ongoing" : "muted"} size="sm" uppercase={false}>
           {isOnline ? "CONECTADO" : "AGUARDANDO"}
         </StatusBadge>
 
@@ -105,19 +106,6 @@ const ItemContainer = styled.div<{ $isOnline: boolean; $clickable: boolean }>`
   }
 `;
 
-const StatusBadge = styled.span<{ $isOnline: boolean }>`
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 10;
-  border-radius: 4px;
-  padding: 2px 8px;
-  font-size: 12px;
-  font-weight: bold;
-  background-color: ${({ $isOnline }) =>
-    $isOnline ? colors.statusOngoing : colors.statusLeft};
-  color: ${({ $isOnline }) => ($isOnline ? colors.textPrimary : colors.textDisabled)};
-`;
 
 const Actions = styled.div`
   display: flex;
@@ -151,4 +139,12 @@ const KickButton = styled(BlockableButton)`
     filter: none;
     cursor: not-allowed;
   }
+`;
+
+// Selo sobre a capa do card: posição aqui, aparência no ion.
+const StatusBadge = styled(Badge)`
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 10;
 `;

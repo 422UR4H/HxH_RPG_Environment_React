@@ -16,7 +16,7 @@ import UpcomingRulesSidebar from "../components/organisms/UpcomingRulesSidebar";
 import { PageLoading, PageError, PageNotFound } from "../components/templates/PageState";
 import { isApiError } from "../services/httpClient";
 import { getApiErrorDetail } from "../utils/apiError";
-import { toDateInputValue, toDateTimeLocalValue } from "../utils/date";
+import { todayLocalISODate, toLocalDateTimeInputValue } from "../utils/date";
 import { incompleteInputMessage, missingRequiredMessage } from "../utils/requiredFields";
 
 type MatchFormData = {
@@ -39,10 +39,10 @@ export default function CreateMatchPage() {
     briefInitialDescription: "",
     description: "",
     isPublic: true,
-    gameScheduledAt: toDateTimeLocalValue(
-      new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    gameScheduledAt: toLocalDateTimeInputValue(
+      new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000),
     ),
-    storyStartAt: toDateInputValue(new Date().toISOString()),
+    storyStartAt: todayLocalISODate(),
   });
 
   const {

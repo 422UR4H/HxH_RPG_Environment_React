@@ -4,6 +4,7 @@ import ConfirmDialog from "./ConfirmDialog";
 import BlockableButton from "./BlockableButton";
 import penIcon from "../../assets/icons/pen.svg";
 import { colors } from "../../styles/tokens";
+import { floatingElevation } from "../../styles/bottomBar";
 
 interface ManageButtonProps {
   /** Com motivo, Excluir fica indisponível e o motivo aparece no toque/hover/foco. */
@@ -123,7 +124,7 @@ const Button = styled.button<{ $isFloating: boolean; $open: boolean }>`
       ? `
         border-radius: 50px;
         padding: 14px 22px;
-        box-shadow: 0 4px 10px ${colors.shadowStrong};
+        box-shadow: ${floatingElevation(colors.shadowFloating, colors.borderFloating)};
         font-size: min(24px, 4cqi);
         @media (max-width: 609px) {
           padding: 0 0.9em;

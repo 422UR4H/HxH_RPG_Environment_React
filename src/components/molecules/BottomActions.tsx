@@ -5,6 +5,7 @@ import ManageButton from "./ManageButton";
 import type { ManageActions } from "./ManageButton";
 import styled from "styled-components";
 import { colors } from "../../styles/tokens";
+import { floatingElevation } from "../../styles/bottomBar";
 
 interface BottomActionsProps {
   containerRef: RefObject<HTMLDivElement | null>;
@@ -119,12 +120,11 @@ const FloatingPrimary = styled.button`
   align-items: center;
   gap: 10px;
   cursor: pointer;
-  box-shadow: 0 4px 10px ${colors.shadowSoft};
+  box-shadow: ${floatingElevation(colors.shadowFloating, colors.borderFloating)};
   transition: all 0.3s ease;
   &:hover {
     transform: translateY(-5px);
     filter: brightness(1.1);
-    box-shadow: 0 8px 15px ${colors.shadowStrong};
   }
   &:active {
     transform: scale(0.98);
@@ -134,10 +134,10 @@ const FloatingPrimary = styled.button`
 const AnchoredWrapper = styled.div`
   container-type: inline-size;
   position: absolute;
-  bottom: 22px;
+  bottom: var(--bottom-bar-offset, 22px);
   left: 0;
   z-index: 10;
-  height: 91px;
+  height: var(--bottom-bar-height, 91px);
   width: 100%;
   display: flex;
   align-items: center;
@@ -145,10 +145,6 @@ const AnchoredWrapper = styled.div`
 
   @media (max-width: 609px) {
     gap: 15px;
-  }
-
-  @media (max-width: 440px) {
-    height: 70px;
   }
 `;
 

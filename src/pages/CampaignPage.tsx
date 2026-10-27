@@ -8,6 +8,7 @@ import { useSubmitCharacterSheet } from "../hooks/useSubmitCharacterSheet";
 import { useDeleteCampaign } from "../hooks/useDeleteCampaign";
 import type { CharacterPrivateSummary } from "../types/campaign";
 import styled from "styled-components";
+import { HeaderBox, headerAside, headerRow, headerTitle, narrowHeader } from "../styles/pageHeader";
 import { colors } from "../styles/tokens";
 import CharacterSidebarItem from "../components/molecules/CharacterSidebarItem";
 import MatchItem from "../features/campaign/MatchItem";
@@ -200,15 +201,17 @@ export default function CampaignPage() {
           <UpcomingRulesSidebar scope="campaign" />
         }
       >
-        <CampaignHeader>
-          <CampaignTitle>{campaign.name.toUpperCase()}</CampaignTitle>
-          <CampaignDate>
-            Data Atual:{" "}
-            {campaign.storyCurrentAt
-              ? formatDateBR(campaign.storyCurrentAt)
-              : "Data não disponível"}
-          </CampaignDate>
-        </CampaignHeader>
+        <HeaderBox>
+          <CampaignHeader>
+            <CampaignTitle>{campaign.name.toUpperCase()}</CampaignTitle>
+            <CampaignDate>
+              Data Atual:{" "}
+              {campaign.storyCurrentAt
+                ? formatDateBR(campaign.storyCurrentAt)
+                : "Data não disponível"}
+            </CampaignDate>
+          </CampaignHeader>
+        </HeaderBox>
 
         <CampaignBriefDescription>
           {campaign.briefInitialDescription}
@@ -349,34 +352,24 @@ export default function CampaignPage() {
 }
 
 const CampaignHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 20px;
-
-  @media (max-width: 750px) {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
+  ${headerRow}
 `;
 
 const CampaignTitle = styled.h1`
-  font-size: 42px;
-  font-weight: 900;
-  color: ${colors.textPrimary};
-  flex: 1;
-  min-width: 0;
-  overflow-wrap: break-word;
+  ${headerTitle}
 `;
 
 const CampaignDate = styled.div`
+  ${headerAside}
   font-weight: 400;
   text-align: right;
   color: ${colors.textPrimary};
   font-size: 18px;
   line-height: 1.5;
+
+  ${narrowHeader} {
+    text-align: left;
+  }
 `;
 
 const CampaignBriefDescription = styled.p`

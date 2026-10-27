@@ -13,7 +13,7 @@ import FormTextArea from "../components/ions/FormTextArea";
 import UpcomingRulesSidebar from "../components/organisms/UpcomingRulesSidebar";
 import { CONNECTION_ERROR_MESSAGE, getApiErrorDetail, isConnectionError } from "../utils/apiError";
 import { getCampaignValidationMessage } from "../features/campaign/campaignErrorMessages";
-import { toDateInputValue } from "../utils/date";
+import { todayLocalISODate } from "../utils/date";
 import { incompleteInputMessage, missingRequiredMessage } from "../utils/requiredFields";
 
 type CampaignFormData = {
@@ -36,7 +36,7 @@ export default function CreateCampaignPage() {
     description: "",
     isPublic: true,
     callLink: "",
-    storyStartAt: toDateInputValue(new Date().toISOString()),
+    storyStartAt: todayLocalISODate(),
   });
 
   const { mutate: createCampaign, isPending } = useCreateCampaign(token);

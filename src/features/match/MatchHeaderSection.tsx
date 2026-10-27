@@ -1,14 +1,28 @@
 // src/features/match/MatchHeaderSection.tsx
 import styled from "styled-components";
+import Badge from "../../components/ions/Badge";
+import type { BadgeTone } from "../../components/ions/Badge";
 import type { Match, MatchStatus } from "../../types/match";
 import ExpandableText from "../../components/molecules/ExpandableText";
 import { colors } from "../../styles/tokens";
+import {
+  HeaderBox,
+  headerAside,
+  headerRow,
+  headerTitle,
+} from "../../styles/pageHeader";
 import { formatDateBR, formatDateTimeBR } from "../../utils/date";
 
 const statusLabels: Record<MatchStatus, string> = {
   scheduled: "AGENDADA",
   ongoing: "EM ANDAMENTO",
   ended: "ENCERRADA",
+};
+
+const statusTones: Record<MatchStatus, BadgeTone> = {
+  scheduled: "scheduled",
+  ongoing: "ongoing",
+  ended: "ended",
 };
 
 interface MatchHeaderSectionProps {
@@ -26,27 +40,29 @@ export default function MatchHeaderSection({
 }: MatchHeaderSectionProps) {
   return (
     <>
-      <MatchHeader>
-        <MatchTitle>{match.title.toUpperCase()}</MatchTitle>
-        <DateSection>
-          <StatusPill $status={status}>{statusLabels[status]}</StatusPill>
-          {status === "scheduled" ? (
-            <DateLabel>
-              Agendada para:{" "}
-              <span>{formatDateTimeBR(match.gameScheduledAt)}</span>
-            </DateLabel>
-          ) : (
-            <DateLabel>
-              Iniciada em:{" "}
-              <DateValueWithTooltip
-                title={`Agendada para: ${formatDateTimeBR(match.gameScheduledAt)}`}
-              >
-                {formatDateTimeBR(match.gameStartAt!)}
-              </DateValueWithTooltip>
-            </DateLabel>
-          )}
-        </DateSection>
-      </MatchHeader>
+      <HeaderBox>
+        <MatchHeader>
+          <MatchTitle>{match.title.toUpperCase()}</MatchTitle>
+          <DateSection>
+            <Badge tone={statusTones[status]}>{statusLabels[status]}</Badge>
+            {status === "scheduled" ? (
+              <DateLabel>
+                Agendada para:{" "}
+                <span>{formatDateTimeBR(match.gameScheduledAt)}</span>
+              </DateLabel>
+            ) : (
+              <DateLabel>
+                Iniciada em:{" "}
+                <DateValueWithTooltip
+                  title={`Agendada para: ${formatDateTimeBR(match.gameScheduledAt)}`}
+                >
+                  {formatDateTimeBR(match.gameStartAt!)}
+                </DateValueWithTooltip>
+              </DateLabel>
+            )}
+          </DateSection>
+        </MatchHeader>
+      </HeaderBox>
 
       <StoryDate>Início na história: {formatDateBR(match.storyStartAt)}</StoryDate>
 
@@ -78,56 +94,29 @@ export default function MatchHeaderSection({
 }
 
 const MatchHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
+  ${headerRow}
   align-items: flex-start;
-  gap: 16px;
-  margin-bottom: 20px;
-
-  @media (max-width: 750px) {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
 `;
 
 const MatchTitle = styled.h1`
-  font-size: 42px;
-  font-weight: 900;
-  color: ${colors.textPrimary};
-  flex: 1;
-  min-width: 0;
-  overflow-wrap: break-word;
+  ${headerTitle}
 `;
 
 const DateSection = styled.div`
+  ${headerAside}
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  /* Selo e data sempre alinhados entre si à esquerda do bloco: o CSS não sabe quando a linha
+     quebrou, e alinhar à direita deixava o selo solto quando o bloco desce para baixo do título. */
+  align-items: flex-start;
   gap: 8px;
-  flex-shrink: 0;
-`;
-
-const StatusPill = styled.span<{ $status: MatchStatus }>`
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  padding: 4px 12px;
-  border-radius: 20px;
-  background-color: ${({ $status }) =>
-    $status === "scheduled"
-      ? colors.statusScheduled
-      : $status === "ongoing"
-      ? colors.statusOngoing
-      : colors.statusEnded};
-  color: ${colors.textPrimary};
 `;
 
 const DateLabel = styled.div`
   font-weight: 400;
   font-size: 18px;
   color: ${colors.textPrimary};
-  text-align: right;
+  text-align: left;
 `;
 
 const DateValueWithTooltip = styled.span`

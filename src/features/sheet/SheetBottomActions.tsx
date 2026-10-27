@@ -4,6 +4,7 @@ import ManageButton from "../../components/molecules/ManageButton";
 import type { ManageActions } from "../../components/molecules/ManageButton";
 import styled from "styled-components";
 import { colors, gradients } from "../../styles/tokens";
+import { floatingElevation } from "../../styles/bottomBar";
 
 interface SheetBottomActionsProps {
   onCampaignClick?: () => void;
@@ -163,7 +164,7 @@ const FloatingCampaignButton = styled.button`
   align-items: center;
   gap: 10px;
   cursor: pointer;
-  box-shadow: 0 4px 10px ${colors.shadowSoft};
+  box-shadow: ${floatingElevation(colors.shadowFloating, colors.borderFloating)};
   transition: all 0.3s ease;
 
   @media (max-width: 609px) {
@@ -176,7 +177,6 @@ const FloatingCampaignButton = styled.button`
   &:hover {
     transform: translateY(-5px);
     filter: brightness(1.1);
-    box-shadow: 0 8px 15px ${colors.shadowStrong};
   }
   &:active {
     transform: scale(0.98);

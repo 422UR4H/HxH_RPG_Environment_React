@@ -2,15 +2,12 @@ import styled from "styled-components";
 import { Link } from "react-router-dom";
 import type { CampaignSummary } from "../../types/campaigns";
 import { colors } from "../../styles/tokens";
+import { daysFromToday, formatDateBR } from "../../utils/date";
 
 function formatNextGame(dateStr: string): string {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const gameDate = new Date(dateStr);
-  gameDate.setHours(0, 0, 0, 0);
-  const diffMs = gameDate.getTime() - today.getTime();
-  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
-  const formatted = gameDate.toLocaleDateString("pt-BR");
+  const diffDays = daysFromToday(dateStr);
+  if (Number.isNaN(diffDays)) return "Partida agendada";
+  const formatted = formatDateBR(dateStr);
   if (diffDays < 0) return `Partida agendada para: ${formatted} (passada)`;
   if (diffDays === 0) return `Partida agendada para: ${formatted} (hoje)`;
   if (diffDays === 1) return `Partida agendada para: ${formatted} (amanhã)`;
@@ -25,7 +22,7 @@ interface CampaignCardProps {
 }
 
 export default function CampaignCard({ campaign, to, nextGameScheduledAt, state }: CampaignCardProps) {
-  const startDate = new Date(campaign.storyStartAt).toLocaleDateString("pt-BR");
+  const startDate = formatDateBR(campaign.storyStartAt);
   const nextGameText =
     nextGameScheduledAt === undefined
       ? null

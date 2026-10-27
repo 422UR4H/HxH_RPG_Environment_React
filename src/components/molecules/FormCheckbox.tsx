@@ -48,6 +48,7 @@ const CheckboxContainer = styled.div`
   display: flex;
   align-items: center;
   gap: 10px;
+  min-height: 44px; /* área de toque; o desenho do checkbox não muda */
 `;
 
 const Checkbox = styled.input`
