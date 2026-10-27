@@ -27,7 +27,7 @@ export const headerTitle = css`
   flex: 1 1 0;
   min-width: min-content;
   overflow-wrap: normal;
-  hyphens: auto;
+  hyphens: manual; /* auto faria o min-content virar uma sílaba e o título encolher ao lado da data */
 `;
 
 /** Linha com título e bloco da data; quebra só quando o título não cabe ao lado. */

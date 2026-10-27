@@ -45,11 +45,11 @@ describe("pageHeader", () => {
     expect(HEADER_NARROW_BELOW).toBe(400);
   });
 
-  it("keeps words whole and falls back to hyphenation with a clamped size", () => {
+  it("keeps words whole, without automatic hyphenation, with a clamped size", () => {
     render(<Title>O GRANDE INÍCIO</Title>);
     const css = injectedCss();
     expect(css).toContain("overflow-wrap:normal");
-    expect(css).toContain("hyphens:auto");
+    expect(css).toContain("hyphens:manual");
     expect(css).toContain("clamp(24px, 5.8cqi, 42px)");
   });
 });

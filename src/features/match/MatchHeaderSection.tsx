@@ -10,7 +10,6 @@ import {
   headerAside,
   headerRow,
   headerTitle,
-  narrowHeader,
 } from "../../styles/pageHeader";
 import { formatDateBR, formatDateTimeBR } from "../../utils/date";
 
@@ -107,24 +106,17 @@ const DateSection = styled.div`
   ${headerAside}
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  /* Selo e data sempre alinhados entre si à esquerda do bloco: o CSS não sabe quando a linha
+     quebrou, e alinhar à direita deixava o selo solto quando o bloco desce para baixo do título. */
+  align-items: flex-start;
   gap: 8px;
-
-  /* Empilhado: selo e data alinhados à esquerda, junto do título. */
-  ${narrowHeader} {
-    align-items: flex-start;
-  }
 `;
 
 const DateLabel = styled.div`
   font-weight: 400;
   font-size: 18px;
   color: ${colors.textPrimary};
-  text-align: right;
-
-  ${narrowHeader} {
-    text-align: left;
-  }
+  text-align: left;
 `;
 
 const DateValueWithTooltip = styled.span`
