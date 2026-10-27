@@ -1,5 +1,6 @@
 import { useState } from "react";
 import styled from "styled-components";
+import { colors } from "../../styles/tokens";
 import type { CharacterSheet } from "../../types/characterSheet";
 import HpBar from "../atoms/HpBar";
 import SpBar from "../atoms/SpBar";
@@ -410,6 +411,11 @@ const NicknameInput = styled.input`
   &::placeholder {
     color: white;
   }
+  /* Foco visível só por cor, sem alterar dimensões: a linha de baixo acende, como nos
+     outros campos (A11Y-01). */
+  &:focus-visible {
+    border-bottom-color: ${colors.actionHighlight};
+  }
 `;
 
 const CharacterClass = styled.h2`
@@ -455,6 +461,9 @@ const CharacterClassSelect = styled.select`
   }
   &:focus {
     outline: none;
+  }
+  &:focus-visible {
+    box-shadow: 0 0 0 2px ${colors.actionHighlight};
   }
   &:hover {
     filter: brightness(1.1);
