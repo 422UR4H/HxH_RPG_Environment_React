@@ -10,7 +10,8 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
-import { httpClient } from "../httpClient";
+import { httpClient, resetSessionRedirectForTests } from "../httpClient";
+import { SESSION_EXPIRED_KEY } from "../../features/auth/sessionNotice";
 
 const baseUrl = "http://localhost:5000";
 
@@ -18,6 +19,8 @@ describe("httpClient 401 interceptor", () => {
   let originalLocation: Location;
 
   beforeEach(() => {
+    sessionStorage.clear();
+    resetSessionRedirectForTests();
     originalLocation = window.location;
     // jsdom's real window.location.href setter attempts actual navigation
     // (and logs a "Not implemented" error). Replace it with a plain stub so
@@ -71,5 +74,41 @@ describe("httpClient 401 interceptor", () => {
     expect(localStorage.getItem("token")).toBeNull();
     expect(localStorage.getItem("user")).not.toBeNull();
     expect(window.location.href).toBe("http://localhost:3000/");
+  });
+
+  it("a 401 with a stored token marks the session as expired and redirects once", async () => {
+    localStorage.setItem("token", "expired-token");
+    let hrefAssignments = 0;
+    let href = "http://localhost:3000/";
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: {
+        get href() {
+          return href;
+        },
+        set href(value: string) {
+          hrefAssignments += 1;
+          href = value;
+        },
+      },
+    });
+    server.use(
+      http.get(`${baseUrl}/protected`, () => HttpResponse.json({ detail: "token expired" }, { status: 401 })),
+    );
+
+    await Promise.allSettled([httpClient.get("/protected"), httpClient.get("/protected")]);
+
+    expect(hrefAssignments).toBe(1);
+    expect(sessionStorage.getItem(SESSION_EXPIRED_KEY)).toBe("1");
+  });
+
+  it("a 401 without a token (wrong credentials) marks nothing", async () => {
+    server.use(
+      http.get(`${baseUrl}/public-but-401`, () => HttpResponse.json({ detail: "unauthorized" }, { status: 401 })),
+    );
+
+    await expect(httpClient.get("/public-but-401")).rejects.toBeTruthy();
+
+    expect(sessionStorage.getItem(SESSION_EXPIRED_KEY)).toBeNull();
   });
 });

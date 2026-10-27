@@ -64,12 +64,14 @@ export default function ProfileInputs({
     <ProfileContainer>
       <ProfileNameInput
         type="text"
+        autoComplete="off"
         placeholder="Nome completo do personagem"
         value={profile?.fullname || ""}
         onChange={(e) => handleInputChange("fullname", e.target.value)}
       />
 
       <ProfileDescriptionTextarea
+        autoComplete="off"
         placeholder="Breve descrição do personagem"
         rows={2}
         value={profile?.briefDescription || ""}

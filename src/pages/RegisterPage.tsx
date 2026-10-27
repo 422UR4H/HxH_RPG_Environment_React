@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, type ChangeEvent, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import useDocumentTitle from "../hooks/useDocumentTitle";
 import useForm from "../hooks/useForm";
@@ -8,13 +8,12 @@ import SignPagesTemplate from "../components/templates/SignPagesTemplate";
 import type { SignUpBody } from "../types/user";
 import { useSignUp } from "../hooks/useSignUp";
 import useToken from "../hooks/useToken";
-import BaseInput from "../components/ions/BaseInput";
+import SignField from "../components/molecules/SignField";
 import SignFormError from "../components/atoms/SignFormError";
-import { getRegisterErrorMessage } from "../features/auth/authErrorMessages";
+import { getRegisterErrorMessage, PASSWORDS_MISMATCH } from "../features/auth/authErrorMessages";
+import { validateRegister, type FieldErrors } from "../features/auth/validateSignForms";
 
-function isAnyFieldEmpty({ nick, email, password, confirmPass }: SignUpBody) {
-  return email === "" || password === "" || nick === "" || confirmPass === "";
-}
+const FIELD_ORDER = ["email", "nick", "password", "confirmPass"] as const;
 
 export default function RegisterPage() {
   useDocumentTitle("Criar conta");
@@ -29,18 +28,35 @@ export default function RegisterPage() {
   const { logout } = useToken();
   const { mutate: signUp, isPending } = useSignUp();
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors<(typeof FIELD_ORDER)[number]>>({});
+
+  function handleChange(e: ChangeEvent<HTMLInputElement>): void {
+    const name = e.target.name as (typeof FIELD_ORDER)[number];
+    setFieldErrors((prev) => ({
+      ...prev,
+      [name]: undefined,
+      // Editar a senha invalida o aviso de "não coincidem" do campo de confirmação.
+      ...(name === "password" && prev.confirmPass === PASSWORDS_MISMATCH
+        ? { confirmPass: undefined }
+        : {}),
+    }));
+    handleForm(e);
+  }
 
   function handleSubmit(e: FormEvent<HTMLFormElement>): void {
     e.preventDefault();
     setError(null);
-    if (isAnyFieldEmpty(form)) {
-      setError("Preencha todos os campos!");
+    const errors = validateRegister(form);
+    setFieldErrors(errors);
+    const firstInvalid = FIELD_ORDER.find((name) => errors[name]);
+    if (firstInvalid) {
+      document.getElementById(`sign-${firstInvalid}`)?.focus();
       return;
     }
     signUp(form, {
       onSuccess: () => {
         logout();
-        navigate("/");
+        navigate("/", { state: { registered: form.email } });
       },
       onError: (err: unknown) => {
         setError(getRegisterErrorMessage(err));
@@ -51,45 +67,44 @@ export default function RegisterPage() {
   return (
     <SignPagesTemplate>
       <Form onSubmit={handleSubmit}>
-        <BaseInput
+        <SignField
           name="email"
+          label="E-mail"
           type="email"
-          placeholder="e-mail"
           value={form.email}
-          onChange={handleForm}
-          minLength={12}
+          onChange={handleChange}
+          autoComplete="username"
           maxLength={64}
-          required
+          error={fieldErrors.email}
         />
-        <BaseInput
+        <SignField
           name="nick"
-          type="text"
-          placeholder="nick"
+          label="Nick"
           value={form.nick}
-          onChange={handleForm}
-          minLength={3}
+          onChange={handleChange}
+          autoComplete="nickname"
           maxLength={20}
-          required
+          error={fieldErrors.nick}
         />
-        <BaseInput
+        <SignField
           name="password"
+          label="Senha"
           type="password"
-          placeholder="senha"
           value={form.password}
-          onChange={handleForm}
-          minLength={8}
-          maxLength={32}
-          required
+          onChange={handleChange}
+          autoComplete="new-password"
+          maxLength={64}
+          error={fieldErrors.password}
         />
-        <BaseInput
+        <SignField
           name="confirmPass"
+          label="Confirme a senha"
           type="password"
-          placeholder="confirme a senha"
           value={form.confirmPass}
-          onChange={handleForm}
-          minLength={8}
-          maxLength={32}
-          required
+          onChange={handleChange}
+          autoComplete="new-password"
+          maxLength={64}
+          error={fieldErrors.confirmPass}
         />
         {error && <SignFormError message={error} />}
         <ButtonSubmit disabled={isPending}>Criar conta</ButtonSubmit>

@@ -14,22 +14,34 @@ export function getLoginErrorMessage(err: unknown): string {
   return "Não foi possível entrar agora. Tente novamente em instantes.";
 }
 
+export const REGISTERED_NOTICE = "Conta criada. Entre com seu e-mail e senha.";
+
+export const SESSION_EXPIRED_NOTICE = "Sua sessão expirou. Entre de novo.";
+
+export const EMAIL_REQUIRED = "Informe o e-mail.";
+export const EMAIL_INVALID = "E-mail inválido.";
+export const EMAIL_LENGTH = "O e-mail deve ter entre 12 e 64 caracteres.";
+export const NICK_REQUIRED = "Informe um nick.";
+export const NICK_LENGTH = "O nick deve ter entre 3 e 20 caracteres.";
+export const PASSWORD_REQUIRED = "Informe a senha.";
+export const PASSWORD_TOO_SHORT = "A senha deve ter pelo menos 8 caracteres.";
+export const PASSWORD_TOO_LONG = "A senha deve ter no máximo 64 caracteres.";
+export const CONFIRM_REQUIRED = "Confirme a senha.";
+export const PASSWORDS_MISMATCH = "As senhas não coincidem.";
+
 const registerValidationMessages: Record<string, string> = {
-  "validation error: nickname is required": "Informe um nick.",
-  "validation error: nickname must be between 3 and 20 characters":
-    "O nick deve ter entre 3 e 20 caracteres.",
+  "validation error: nickname is required": NICK_REQUIRED,
+  "validation error: nickname must be between 3 and 20 characters": NICK_LENGTH,
   "validation error: nickname already exists": "Esse nick já está em uso. Escolha outro.",
-  "validation error: email is required": "Informe o e-mail.",
-  "validation error: invalid email format": "E-mail inválido.",
-  "validation error: email must be between 12 and 64 characters":
-    "O e-mail deve ter entre 12 e 64 caracteres.",
+  "validation error: email is required": EMAIL_REQUIRED,
+  "validation error: invalid email format": EMAIL_INVALID,
+  "validation error: email must be between 12 and 64 characters": EMAIL_LENGTH,
   "validation error: email already exists": "Já existe uma conta com esse e-mail.",
-  "validation error: password is required": "Informe a senha.",
-  "validation error: confirm password is required": "Confirme a senha.",
-  "validation error: password must be longer than 8 characters":
-    "A senha deve ter pelo menos 8 caracteres.",
-  "validation error: password is too long": "A senha deve ter no máximo 64 caracteres.",
-  "validation error: passwords mismatch": "As senhas não coincidem.",
+  "validation error: password is required": PASSWORD_REQUIRED,
+  "validation error: confirm password is required": CONFIRM_REQUIRED,
+  "validation error: password must be longer than 8 characters": PASSWORD_TOO_SHORT,
+  "validation error: password is too long": PASSWORD_TOO_LONG,
+  "validation error: passwords mismatch": PASSWORDS_MISMATCH,
 };
 
 export function getRegisterErrorMessage(err: unknown): string {

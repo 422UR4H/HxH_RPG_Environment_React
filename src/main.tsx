@@ -22,11 +22,12 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ResetStyle />
     <QueryClientProvider client={queryClient}>
-      <UserProvider>
-        <TokenProvider>
+      {/* TokenProvider por fora: o token vencido na abertura limpa o user antes de o UserProvider ler. */}
+      <TokenProvider>
+        <UserProvider>
           <App />
-        </TokenProvider>
-      </UserProvider>
+        </UserProvider>
+      </TokenProvider>
     </QueryClientProvider>
   </StrictMode>
 );

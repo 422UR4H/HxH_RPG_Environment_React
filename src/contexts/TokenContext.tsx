@@ -1,5 +1,7 @@
 import { createContext, useState, type ReactNode } from "react";
 import type { Auth } from "../types/auth";
+import { isJwtExpired } from "../utils/jwt";
+import { expireSession } from "../features/auth/sessionNotice";
 
 export interface TokenContextType {
   token: string | null;
@@ -17,12 +19,22 @@ interface TokenProviderProps {
   children: ReactNode;
 }
 
-export function TokenProvider({ children }: TokenProviderProps) {
-  const lsToken = localStorage.getItem("token")
-    ? (JSON.parse(localStorage.getItem("token") as string) as Auth | null)
-    : null;
+// Token vencido no storage: descarta (com o user) e deixa o aviso, em vez de abrir telas que
+// só vão tomar 401. Idempotente, então rodar duas vezes no StrictMode não faz mal.
+function readStoredToken(): string | null {
+  const raw = localStorage.getItem("token");
+  if (!raw) return null;
+  const stored = JSON.parse(raw) as Auth | null;
+  if (!stored?.token) return null;
+  if (isJwtExpired(stored.token)) {
+    expireSession();
+    return null;
+  }
+  return stored.token;
+}
 
-  const [token, setToken] = useState<string | null>(lsToken?.token || null);
+export function TokenProvider({ children }: TokenProviderProps) {
+  const [token, setToken] = useState<string | null>(readStoredToken);
 
   function login(auth: Auth) {
     setToken(auth.token);

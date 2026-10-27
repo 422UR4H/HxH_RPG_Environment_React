@@ -25,8 +25,8 @@ export const StyledSignTemplates = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
-  height: 100dvh;
+  min-height: 100vh;
+  min-height: 100dvh;
   padding: 30px;
 
   .form-div {
@@ -51,11 +51,12 @@ export const StyledSignTemplates = styled.div`
   }
 
   @media (max-width: 480px) {
-    padding: 0;
+    padding: 16px;
 
     .form-div {
-      padding: 20px 0;
-      border-radius: 0;
+      width: 100%;
+      padding: 24px 20px;
+      border-radius: 16px;
     }
   }
 `;

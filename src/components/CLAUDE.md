@@ -18,7 +18,7 @@ Este diretório é o **UI Kit** do front-end: componentes compartilhados entre m
 Da menor para a maior; cada camada compõe a anterior:
 
 ### `ions/` — primitivos sem semântica de domínio
-Wrappers de HTML que poderiam viver em qualquer projeto React. Ex.: `BaseButton`, `BaseInput`, `Logo`, `ExpBar`, `PageTitle`, `FormInput`, `FormTextArea`, `PlusIcon`.
+Wrappers de HTML que poderiam viver em qualquer projeto React. Ex.: `BaseButton`, `Logo`, `ExpBar`, `PageTitle`, `FormInput`, `FormTextArea`, `PlusIcon`.
 
 > **Por que `ions/` existe além de `atoms/`?** O Atomic Design canônico (Brad Frost) não tem essa camada. Foi adicionada porque, na prática, é útil distinguir "wrapper de HTML genérico" (ion) de "unidade com semântica do nosso jogo" (atom).
 

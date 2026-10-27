@@ -7,13 +7,13 @@ interface FormProps {
 }
 
 export default function Form({ children, onSubmit }: FormProps) {
-  return <StyledForm onSubmit={onSubmit}>{children}</StyledForm>;
+  return <StyledForm noValidate onSubmit={onSubmit}>{children}</StyledForm>;
 }
 
 const StyledForm = styled.form`
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 13px;
+  gap: 22px; /* Vão único entre campos e botão; o rótulo sobre a borda já cabe aqui. */
   width: 100%;
 `;

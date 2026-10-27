@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import ErrorIcon from "../ions/ErrorIcon";
 import PageHeader from "../atoms/PageHeader";
 import BackButton from "../ions/BackButton";
 import useDelayedFlag from "../../hooks/useDelayedFlag";
@@ -17,6 +18,7 @@ import {
   Spinner,
   Stage,
   Title,
+  ErrorIconSlot,
 } from "./PageState.styles";
 
 export type PageBackdrop = "world" | "sheet";
@@ -69,21 +71,6 @@ export function PageLoading({ label, ...frame }: { label: string } & FrameProps)
   );
 }
 
-function ErrorIcon() {
-  return (
-    <svg width="44" height="44" viewBox="0 0 44 44" fill="none" aria-hidden="true">
-      <circle cx="22" cy="22" r="19" stroke={colors.feedbackDangerText} strokeWidth="3" />
-      <path
-        d="M22 12v12"
-        stroke={colors.feedbackDangerText}
-        strokeWidth="3.5"
-        strokeLinecap="round"
-      />
-      <circle cx="22" cy="31" r="2.2" fill={colors.feedbackDangerText} />
-    </svg>
-  );
-}
-
 export function PageError({
   title,
   message = DEFAULT_ERROR_MESSAGE,
@@ -98,7 +85,9 @@ export function PageError({
 } & FrameProps) {
   return (
     <Frame {...frame} role="alert">
-      <ErrorIcon />
+      <ErrorIconSlot>
+        <ErrorIcon size={44} />
+      </ErrorIconSlot>
       <Title $color={colors.feedbackDangerText}>{title}</Title>
       <Message>{message}</Message>
       {(onRetry || back) && (
