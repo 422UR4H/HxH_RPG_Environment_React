@@ -203,8 +203,9 @@ Itens: FOR-01, FOR-02, FOR-03, FOR-04, FOR-05, COR-01, EST-04, PROD-02 (parte do
   e-mail inválido, tamanho mínimo e máximo), mostrada embaixo do campo. Para credencial errada, uma mensagem só,
   embaixo dos campos (D3). Antes de escrever as regras de tamanho, **confira no back** as regras reais do cadastro
   (o e-mail com mínimo de 12 caracteres e o limite da senha) e alinhe o front a elas.
-- **Rótulos e preenchimento automático (FOR-03):** `autocomplete` de `email`, `current-password`,
-  `new-password` e `username` (no nick), com o `BaseInput` repassando as props. O fundo que o Chrome põe nos campos
+- **Rótulos e preenchimento automático (FOR-03):** `autocomplete` de `username` (no e-mail, do login e do
+  cadastro), `nickname` (no nick do cadastro), `current-password` e `new-password`; a conta é identificada pelo
+  e-mail, e com `username` no nick o gerenciador de senhas salvaria o nick e depois o preencheria no campo de e-mail, com o `BaseInput` repassando as props. O fundo que o Chrome põe nos campos
   preenchidos automaticamente é neutralizado no CSS (`:-webkit-autofill`), para o campo continuar com a cara do
   produto; **verifique com um preenchimento automático real do Chrome**. Nos outros formulários (campanha, partida,
   ficha, NPC), desligue a sugestão do navegador onde ela não faz sentido (nome de personagem, de campanha). Em caso

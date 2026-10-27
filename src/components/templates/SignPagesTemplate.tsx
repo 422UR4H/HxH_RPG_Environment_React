@@ -25,8 +25,8 @@ export const StyledSignTemplates = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
-  height: 100dvh;
+  min-height: 100vh;
+  min-height: 100dvh;
   padding: 30px;
 
   .form-div {

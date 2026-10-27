@@ -8,7 +8,7 @@ import { SERVER_WAKING_HINT } from "../../services/serverWake";
 export default function ServerWakingHint() {
   const slow = useDelayedFlag(3000);
   if (!slow) return null;
-  return <StyledHint>{SERVER_WAKING_HINT}</StyledHint>;
+  return <StyledHint role="status">{SERVER_WAKING_HINT}</StyledHint>;
 }
 
 const StyledHint = styled.p`

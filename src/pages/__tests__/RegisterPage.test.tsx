@@ -98,4 +98,15 @@ describe("RegisterPage", () => {
     expect(await screen.findByText("Conta criada. Entre com seu e-mail e senha.")).toBeInTheDocument();
     expect(screen.getByLabelText("E-mail")).toHaveValue("teste@mail.com");
   });
+
+  it("editing the password clears a stale mismatch error", async () => {
+    renderPage();
+    const u = userEvent.setup();
+    await u.type(screen.getByLabelText("Senha"), "12345678");
+    await u.type(screen.getByLabelText("Confirme a senha"), "1234567");
+    await u.click(screen.getByRole("button", { name: /Criar conta/i }));
+    expect(screen.getByText("As senhas não coincidem.")).toBeInTheDocument();
+    await u.type(screen.getByLabelText("Senha"), "9");
+    expect(screen.queryByText("As senhas não coincidem.")).not.toBeInTheDocument();
+  });
 });

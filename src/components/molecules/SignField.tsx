@@ -99,18 +99,30 @@ const Input = styled.input`
   }
 
   /* O preenchimento automático pinta o fundo; devolve a cor do cartão sem perder o anel de foco. */
-  &:-webkit-autofill,
+  /* Regras separadas: um navegador que não conhece um dos seletores descartaria a lista inteira. */
+  &:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0 1000px ${colors.textPrimary} inset;
+    -webkit-text-fill-color: ${colors.textOnLight};
+  }
   &:autofill {
     -webkit-box-shadow: 0 0 0 1000px ${colors.textPrimary} inset;
     -webkit-text-fill-color: ${colors.textOnLight};
   }
-  &:-webkit-autofill:focus,
+  &:-webkit-autofill:focus {
+    -webkit-box-shadow:
+      0 0 0 1000px ${colors.textPrimary} inset,
+      0 0 0 3px ${alpha(colors.actionHighlightOnLight, 0.35)};
+  }
   &:autofill:focus {
     -webkit-box-shadow:
       0 0 0 1000px ${colors.textPrimary} inset,
       0 0 0 3px ${alpha(colors.actionHighlightOnLight, 0.35)};
   }
-  &[aria-invalid="true"]:-webkit-autofill:focus,
+  &[aria-invalid="true"]:-webkit-autofill:focus {
+    -webkit-box-shadow:
+      0 0 0 1000px ${colors.textPrimary} inset,
+      0 0 0 3px ${alpha(colors.feedbackInputError, 0.35)};
+  }
   &[aria-invalid="true"]:autofill:focus {
     -webkit-box-shadow:
       0 0 0 1000px ${colors.textPrimary} inset,

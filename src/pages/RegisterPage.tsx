@@ -10,7 +10,7 @@ import { useSignUp } from "../hooks/useSignUp";
 import useToken from "../hooks/useToken";
 import SignField from "../components/molecules/SignField";
 import SignFormError from "../components/atoms/SignFormError";
-import { getRegisterErrorMessage } from "../features/auth/authErrorMessages";
+import { getRegisterErrorMessage, PASSWORDS_MISMATCH } from "../features/auth/authErrorMessages";
 import { validateRegister, type FieldErrors } from "../features/auth/validateSignForms";
 
 const FIELD_ORDER = ["email", "nick", "password", "confirmPass"] as const;
@@ -32,7 +32,14 @@ export default function RegisterPage() {
 
   function handleChange(e: ChangeEvent<HTMLInputElement>): void {
     const name = e.target.name as (typeof FIELD_ORDER)[number];
-    setFieldErrors((prev) => ({ ...prev, [name]: undefined }));
+    setFieldErrors((prev) => ({
+      ...prev,
+      [name]: undefined,
+      // Editar a senha invalida o aviso de "não coincidem" do campo de confirmação.
+      ...(name === "password" && prev.confirmPass === PASSWORDS_MISMATCH
+        ? { confirmPass: undefined }
+        : {}),
+    }));
     handleForm(e);
   }
 
@@ -66,7 +73,7 @@ export default function RegisterPage() {
           type="email"
           value={form.email}
           onChange={handleChange}
-          autoComplete="email"
+          autoComplete="username"
           maxLength={64}
           error={fieldErrors.email}
         />
@@ -75,7 +82,7 @@ export default function RegisterPage() {
           label="Nick"
           value={form.nick}
           onChange={handleChange}
-          autoComplete="username"
+          autoComplete="nickname"
           maxLength={20}
           error={fieldErrors.nick}
         />

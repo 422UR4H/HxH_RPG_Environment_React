@@ -100,7 +100,7 @@ export default function LoginPage() {
           type="email"
           value={form.email}
           onChange={handleChange}
-          autoComplete="email"
+          autoComplete="username"
           maxLength={64}
           error={fieldErrors.email}
         />
