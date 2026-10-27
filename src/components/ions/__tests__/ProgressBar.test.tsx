@@ -33,4 +33,25 @@ describe("ProgressBar", () => {
     expect(bar).toHaveAttribute("aria-valuemin", "0");
     expect(bar).toHaveAttribute("aria-valuemax", "20");
   });
+
+  it("clips the fill at the value", () => {
+    render(<ProgressBar current={10} max={20} color="red" />);
+    expect(screen.getByTestId("progress-fill")).toHaveStyle({ clipPath: "inset(0 50% 0 0)" });
+  });
+
+  it("uses a gradient with deepColor and a flat color without it", () => {
+    // O jsdom descarta gradientes com calc(); confere a regra gerada pelo styled-components.
+    const cssOf = (el: HTMLElement) =>
+      Array.from(document.querySelectorAll("style"))
+        .map((st) => st.textContent ?? "")
+        .join("")
+        .split("}")
+        .find((rule) => el.className.split(" ").some((c) => c && rule.includes(`.${c}{`) && rule.includes("clip-path"))) ?? "";
+    const { rerender } = render(<ProgressBar current={10} max={20} color="red" deepColor="darkred" />);
+    expect(cssOf(screen.getByTestId("progress-fill"))).toContain("linear-gradient(to right, red");
+    rerender(<ProgressBar current={10} max={20} color="red" />);
+    const flat = cssOf(screen.getByTestId("progress-fill"));
+    expect(flat).not.toContain("linear-gradient");
+    expect(flat).toContain("background:red");
+  });
 });

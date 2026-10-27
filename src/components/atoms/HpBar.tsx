@@ -12,6 +12,7 @@ export default function HpBar({ current = 0, max = 0 }: HpBarProps) {
       current={current}
       max={max}
       color={colors.vitalHp}
+      deepColor={colors.vitalHpDeep}
     />
   );
 }

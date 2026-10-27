@@ -146,6 +146,9 @@ export const colors = {
   // vital — esquemáticas da ficha
   vitalHp: palette.red600,
   vitalSp: palette.green500,
+  // Tom escuro sob o número da barra (mesma família de cor; contraste do branco ≥ 6).
+  vitalHpDeep: palette.red800,
+  vitalSpDeep: palette.green700,
   vitalExp: palette.gold400, // barra de EXP do personagem
   vitalSkillExp: palette.red600, // barra de EXP de habilidade e atributo
   vitalPoints: palette.green500, // pontos a distribuir
