@@ -155,6 +155,10 @@ const ButtonsContainer = styled.div`
     & > * {
       flex: 1 1 100%;
     }
+    /* && sobe a especificidade: o SubmitButton é declarado depois e a margem dele venceria. */
+    && > * {
+      margin: 0;
+    }
   }
 `;
 
