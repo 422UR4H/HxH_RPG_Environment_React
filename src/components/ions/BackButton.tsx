@@ -38,6 +38,8 @@ const StyledBackButton = styled.button`
      Com 10 px a seta caía em meio pixel em 1,25 e 1,75 e saía borrada. */
   /* round() em múltiplo de 4 px CSS: em densidades fracionárias (1,5; 2,625; 2,75) o pixel
      físico vira inteiro e a seta não fica borrada. */
+  left: min(12px, 1.8vw);
+  top: min(12px, 1.8vw);
   left: round(min(12px, 1.8vw), 4px);
   top: round(min(12px, 1.8vw), 4px);
   /* Camada própria: sem ela o Chrome pode juntar a seta a outro elemento fixo numa camada
@@ -76,6 +78,7 @@ const StyledBackButton = styled.button`
 
 const Arrow = styled.img`
   /* 136 px → 78,7 px de altura, a mesma da logo (grade do header). */
+  width: min(136px, 20.3vw);
   width: round(min(136px, 20.3vw), 4px);
   height: auto;
   display: block;
