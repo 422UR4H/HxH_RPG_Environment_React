@@ -32,14 +32,18 @@ const Container = styled.div`
 
 const sharedLabelStyles = `
   color: ${colors.textPrimary};
-  /* piso de 11px: legibilidade em cards estreitos */
-  font-size: max(3cqi, 11px);
+  font-size: 3cqi;
   font-weight: 600;
   text-shadow: 1px 1px 4px ${colors.shadowText};
   white-space: nowrap;
 
   @container (max-width: 609px) {
-    font-size: max(4cqi, 11px);
+    font-size: 4cqi;
+  }
+  /* Piso de 10 px só em card de 220 px ou mais: no card do lobby (cerca de 180 px) o número
+     maior cobre o fim da classe; ali o tamanho fica como estava (decisão do designer). */
+  @container (min-width: 220px) and (max-width: 609px) {
+    font-size: max(4cqi, 10px);
   }
 `;
 
@@ -60,8 +64,12 @@ const RightLabels = styled.div`
 
 const LvLabel = styled.span`
   ${sharedLabelStyles}
-  font-size: max(4cqi, 11px);
+  font-size: 4cqi;
   margin-right: 2cqi;
+
+  @container (min-width: 220px) {
+    font-size: max(4cqi, 10px);
+  }
 `;
 
 const ExpLabel = styled.span`

@@ -78,8 +78,9 @@ const Label = styled.span`
   text-align: right;
 
   font-family: ${fonts.display};
-  /* piso de 11px: legibilidade em cards estreitos */
-  font-size: max(3.8cqi, 11px);
+  /* Sem piso: a etiqueta define a altura da barra, e um piso a deixaria mais alta que o card
+     comporta. A legibilidade vem do branco com contorno. */
+  font-size: 3.8cqi;
   font-weight: 600;
   color: ${colors.textPrimary};
   text-shadow:

@@ -419,8 +419,7 @@ const NicknameInput = styled.input`
 
 const CharacterClass = styled.h2`
   font-family: "Roboto", sans-serif;
-  /* piso de 11px: legibilidade em cards estreitos */
-  font-size: max(min(3.6cqi, 2.2rem), 11px);
+  font-size: min(3.6cqi, 2.2rem);
   font-weight: 600;
   color: white;
   display: inline-block;
