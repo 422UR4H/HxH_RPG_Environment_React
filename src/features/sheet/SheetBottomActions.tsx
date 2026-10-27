@@ -164,7 +164,7 @@ const FloatingCampaignButton = styled.button`
   align-items: center;
   gap: 10px;
   cursor: pointer;
-  box-shadow: ${floatingElevation(colors.shadowFloating, colors.borderFloating, colors.highlightFloating)};
+  box-shadow: ${floatingElevation(colors.shadowFloating, colors.borderFloating, colors.borderFloatingHighlight)};
   transition: all 0.3s ease;
 
   @media (max-width: 609px) {

@@ -150,7 +150,7 @@ const ActionButton = styled.button<{
         padding: 15px 30px 15px 26px;
         background-color: ${colors.brandAccent};
         color: ${colors.textPrimary};
-        box-shadow: ${floatingElevation(colors.shadowFloating, colors.borderFloating, colors.highlightFloating)};
+        box-shadow: ${floatingElevation(colors.shadowFloating, colors.borderFloating, colors.borderFloatingHighlight)};
         gap: 10px;
 
         font-size: 26px;

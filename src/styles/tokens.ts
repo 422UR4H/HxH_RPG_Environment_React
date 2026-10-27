@@ -202,7 +202,7 @@ export const colors = {
   shadowText: alpha(palette.neutral1000, 0.9), // sombra de texto sobre a barra de EXP
   shadowFloating: alpha(palette.neutral1000, 0.85), // sombra funda dos botões flutuantes (CON-06)
   borderFloating: alpha(palette.neutral0, 0.3), // aro claro dos botões flutuantes
-  highlightFloating: alpha(palette.neutral0, 0.18), // brilho de 1 px no topo dos botões flutuantes
+  borderFloatingHighlight: alpha(palette.neutral0, 0.18), // brilho de 1 px no topo dos botões flutuantes
 } as const;
 
 export const fonts = {
