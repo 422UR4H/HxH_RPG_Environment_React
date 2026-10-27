@@ -1,5 +1,7 @@
 // src/features/match/MatchHeaderSection.tsx
 import styled from "styled-components";
+import Badge from "../../components/ions/Badge";
+import type { BadgeTone } from "../../components/ions/Badge";
 import type { Match, MatchStatus } from "../../types/match";
 import ExpandableText from "../../components/molecules/ExpandableText";
 import { colors } from "../../styles/tokens";
@@ -9,6 +11,12 @@ const statusLabels: Record<MatchStatus, string> = {
   scheduled: "AGENDADA",
   ongoing: "EM ANDAMENTO",
   ended: "ENCERRADA",
+};
+
+const statusTones: Record<MatchStatus, BadgeTone> = {
+  scheduled: "scheduled",
+  ongoing: "ongoing",
+  ended: "ended",
 };
 
 interface MatchHeaderSectionProps {
@@ -29,7 +37,7 @@ export default function MatchHeaderSection({
       <MatchHeader>
         <MatchTitle>{match.title.toUpperCase()}</MatchTitle>
         <DateSection>
-          <StatusPill $status={status}>{statusLabels[status]}</StatusPill>
+          <Badge tone={statusTones[status]}>{statusLabels[status]}</Badge>
           {status === "scheduled" ? (
             <DateLabel>
               Agendada para:{" "}
@@ -108,20 +116,6 @@ const DateSection = styled.div`
   flex-shrink: 0;
 `;
 
-const StatusPill = styled.span<{ $status: MatchStatus }>`
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  padding: 4px 12px;
-  border-radius: 20px;
-  background-color: ${({ $status }) =>
-    $status === "scheduled"
-      ? colors.statusScheduled
-      : $status === "ongoing"
-      ? colors.statusOngoing
-      : colors.statusEnded};
-  color: ${colors.textPrimary};
-`;
 
 const DateLabel = styled.div`
   font-weight: 400;

@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useMemo } from "react";
 import { Navigate, useParams, useNavigate } from "react-router-dom";
 import styled from "styled-components";
+import Badge from "../components/ions/Badge";
 import useDocumentTitle from "../hooks/useDocumentTitle";
 import useToken from "../hooks/useToken";
 import useUser from "../hooks/useUser";
@@ -268,7 +269,7 @@ export default function LobbyPage() {
       >
         <LobbyHeader>
           <LobbyTitle>{match.title.toUpperCase()}</LobbyTitle>
-          <LobbyStatusPill>LOBBY ABERTO</LobbyStatusPill>
+          <LobbyStatusBadge tone="ongoing">LOBBY ABERTO</LobbyStatusBadge>
         </LobbyHeader>
 
         <ConnectedCounter>
@@ -363,16 +364,6 @@ const LobbyTitle = styled.h1`
   overflow-wrap: break-word;
 `;
 
-const LobbyStatusPill = styled.span`
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  padding: 4px 12px;
-  border-radius: 20px;
-  background-color: ${colors.statusOngoing};
-  color: ${colors.textPrimary};
-  flex-shrink: 0;
-`;
 
 const ConnectedCounter = styled.div`
   font-size: 18px;
@@ -474,4 +465,8 @@ const LobbyMapSection = styled.div`
 // O aviso de espera é absoluto (o mesmo da mesa): precisa de um bloco posicionado.
 const LobbyMapWaiting = styled(LobbyMapSection)`
   position: relative;
+`;
+
+const LobbyStatusBadge = styled(Badge)`
+  flex-shrink: 0;
 `;

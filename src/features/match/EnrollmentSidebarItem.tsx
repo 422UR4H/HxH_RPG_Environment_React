@@ -1,4 +1,6 @@
 import styled from "styled-components";
+import Badge from "../../components/ions/Badge";
+import type { BadgeTone } from "../../components/ions/Badge";
 import type { Enrollment } from "../../types/match";
 import { createEmptyCharacterSheet } from "../../features/sheet/factories/characterSheet.factory";
 import CharacterSheetHeader from "../../components/molecules/CharacterSheetHeader";
@@ -55,7 +57,7 @@ export default function EnrollmentSidebarItem({
         data={{ charSheet }}
         showStatus={!!priv}
       />
-      <StatusBadge $status={status}>
+      <StatusBadge tone={enrollmentTones[status] ?? "danger"} size="sm" uppercase={false}>
         {status === "pending" && "Pendente"}
         {status === "accepted" && "Aceito"}
         {status === "rejected" && "Recusado"}
@@ -99,23 +101,6 @@ const ItemContainer = styled.div<{ $clickable: boolean }>`
   }
 `;
 
-const StatusBadge = styled.span<{ $status: string }>`
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 10;
-  border-radius: 4px;
-  padding: 2px 8px;
-  font-size: 12px;
-  font-weight: bold;
-  background-color: ${({ $status }) =>
-    $status === "pending"
-      ? colors.statusPending
-      : $status === "accepted"
-      ? colors.statusOngoing
-      : colors.feedbackDanger};
-  color: ${colors.textPrimary};
-`;
 
 const Actions = styled.div`
   display: flex;
@@ -154,3 +139,17 @@ const RejectButton = styled(ActionButton)`
   border: 2px solid ${colors.actionDestructiveText};
   color: ${colors.actionDestructiveText};
 `;
+
+// Selo sobre a capa do card: posição aqui, aparência no ion.
+const StatusBadge = styled(Badge)`
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 10;
+`;
+
+const enrollmentTones: Record<string, BadgeTone> = {
+  pending: "pending",
+  accepted: "ongoing",
+  rejected: "danger",
+};

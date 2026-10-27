@@ -2,6 +2,7 @@ import styled from "styled-components";
 import type { CharacterBaseSummary, StatusBar } from "../../types/characterSheet";
 import { createEmptyCharacterSheet } from "../../features/sheet/factories/characterSheet.factory";
 import CharacterSheetHeader from "./CharacterSheetHeader";
+import Badge from "../ions/Badge";
 import { colors } from "../../styles/tokens";
 
 interface CharacterSidebarItemProps {
@@ -75,12 +76,12 @@ export default function CharacterSidebarItem({
         data={{ charSheet }}
         showStatus={!!character.health}
       />
-      {isPending && <PendingBadge>Pendente</PendingBadge>}
-      {isNpc && <NpcBadge>NPC</NpcBadge>}
-      {isDead && <DeadBadge>Morto</DeadBadge>}
-      {hasLeft && <LeftBadge>Saiu</LeftBadge>}
-      {isOnline === true && <OnlineBadge>CONECTADO</OnlineBadge>}
-      {isOnline === false && <AwaitingBadge>AGUARDANDO</AwaitingBadge>}
+      {isPending && <OverlayBadge tone="pending" size="sm" uppercase={false}>Pendente</OverlayBadge>}
+      {isNpc && <OverlayBadge tone="ongoing" size="sm" uppercase={false}>NPC</OverlayBadge>}
+      {isDead && <OverlayBadge tone="danger" size="sm" uppercase={false}>Morto</OverlayBadge>}
+      {hasLeft && <OverlayBadge tone="muted" size="sm" uppercase={false}>Saiu</OverlayBadge>}
+      {isOnline === true && <OverlayBadge tone="ongoing" size="sm" uppercase={false}>CONECTADO</OverlayBadge>}
+      {isOnline === false && <OverlayBadge tone="muted" size="sm" uppercase={false}>AGUARDANDO</OverlayBadge>}
     </ItemContainer>
   );
 }
@@ -125,43 +126,10 @@ const ItemContainer = styled.div<{
   }
 `;
 
-const Badge = styled.span`
+// Selo sobre a capa do card: posição aqui, aparência no ion.
+const OverlayBadge = styled(Badge)`
   position: absolute;
   top: 10px;
   right: 10px;
-  border-radius: 4px;
-  padding: 2px 6px;
-  font-size: 12px;
-  font-weight: bold;
   z-index: 10;
-`;
-
-const PendingBadge = styled(Badge)`
-  background-color: ${colors.statusPending};
-  color: ${colors.textPrimary};
-`;
-
-const DeadBadge = styled(Badge)`
-  background-color: ${colors.feedbackDanger};
-  color: ${colors.textPrimary};
-`;
-
-const NpcBadge = styled(Badge)`
-  background-color: ${colors.statusOngoing};
-  color: ${colors.textPrimary};
-`;
-
-const LeftBadge = styled(Badge)`
-  background-color: ${colors.statusLeft};
-  color: ${colors.textDisabled};
-`;
-
-const OnlineBadge = styled(Badge)`
-  background-color: ${colors.statusOngoing};
-  color: ${colors.textPrimary};
-`;
-
-const AwaitingBadge = styled(Badge)`
-  background-color: ${colors.statusLeft};
-  color: ${colors.textDisabled};
 `;
