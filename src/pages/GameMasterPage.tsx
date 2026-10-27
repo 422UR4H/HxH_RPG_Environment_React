@@ -5,6 +5,7 @@
 // dar a palavra a cada reação esperando, na ordem que o mestre quiser.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useResizeObserver } from "../hooks/useResizeObserver";
+import usePointerVerb from "../hooks/usePointerVerb";
 import { useCombatCatalogue } from "../hooks/useCombatCatalogue";
 import { useMatchHistory } from "../hooks/useMatchHistory";
 import { useGameTable } from "../features/match/combat/useGameTable";
@@ -48,9 +49,10 @@ import MatchCharactersSidebar from "../features/match/MatchCharactersSidebar";
 import { BoardWaitNotice } from "../features/match/combat/BoardWaitNotice";
 import TacticalMapViewer from "../features/tactical-map/TacticalMapViewer";
 import {
-  CanvasWrapper, MapCornerStack, MapCornerStackButton, MapHint, MapHintButton, MapLoadingMessage, NoMapMessage,
+  CanvasWrapper, MapHint, MapHintButton, MapLoadingMessage, NoMapMessage,
   StageNotices,
 } from "../features/match/combat/mapCanvasStyles";
+import { MapCornerStack, MapCornerStackButton } from "../features/tactical-map/stage/mapCornerStyles";
 import { isSameSlot, slotToTriple, tripleToSlot } from "../features/tactical-map/utils/coords";
 import type { SlotTriple } from "../features/tactical-map/utils/coords";
 import type { IntentPreview } from "../features/tactical-map/utils/intentGeometry";
@@ -86,6 +88,7 @@ function arrangePayload(p: ArrangePending): MasterActionPayload {
 export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const { width, height } = useResizeObserver(canvasRef);
+  const verb = usePointerVerb();
 
   const [actorId, setActorId] = useState<string | undefined>(undefined);
   const [inspectedId, setInspectedId] = useState<string | undefined>(undefined);
@@ -555,28 +558,23 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     setPanelOpen(true);
   }, [setPanelOpen]);
   // O onde cai tem a barra dele (MapPickConfirm); a casa da fuga, só a dica — o toque já envia.
-  const mapHint = !map || (fallPicking && choosingFall)
-    ? undefined
-      : reactionPicking && reactionPick
-      ? `Toque na casa para onde ${nameOf(reactionPick.actorId)} escapa.`
-      : arranging
-      ? placingId
-        ? `Toque num slot vazio para pôr ${nameOf(placingId)}.`
-        : "Arraste uma peça para movê-la."
-      : showReactionHint
-        ? undefined
-      : sheetVisible
-        ? "Toque numa peça para ver a ficha."
-      : !actorId
-        ? "Toque num NPC para agir por ele."
-        : undefined;
+  const mapHint = pickMapHint();
+  function pickMapHint(): string | undefined {
+    if (!map || (fallPicking && choosingFall)) return undefined;
+    if (reactionPicking && reactionPick) return `${verb} na casa para onde ${nameOf(reactionPick.actorId)} escapa.`;
+    if (arranging) return placingId ? `${verb} num slot vazio para pôr ${nameOf(placingId)}.` : "Arraste uma peça para movê-la.";
+    if (showReactionHint) return undefined;
+    // Sem ficha escolhida o painel já diz o que fazer: a dica sob o mapa seria repetida.
+    if (sheetVisible) return sheetId ? `${verb} numa peça para ver a ficha.` : undefined;
+    return actorId ? undefined : `${verb} num NPC para agir por ele.`;
+  }
 
   return (
     <>
       <MatchStageTemplate
         panelOpen={panelOpen}
         asideOpen={asideOpen}
-        panelWide={!arranging && railActive === "ficha"}
+        panelWide={!arranging && railActive === "ficha" && !!sheetId}
         // Spec §4: véu só quando o painel não pede toque no mapa (regra em masterPanelDismissible).
         panelDismissible={masterPanelDismissible({ railActive, mapPicking: arranging || fallPicking || reactionPicking })}
         onDismissPanel={() => setPanelOpen(false)}
@@ -635,7 +633,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
               token={token}
               sheetUuid={sheetId}
               liveHp={sheetId ? state.hp[sheetId] : undefined}
-              emptyHint="Toque numa peça no mapa ou num personagem em Personagens para ver a ficha."
+              emptyHint={`${verb} numa peça ou num personagem para abrir a ficha.`}
             />
           ) : railActive === "fila" ? (
             <>
@@ -802,7 +800,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
             </StageNotices>
             {map && fallPicking && choosingFall && (
               <MapPickConfirm
-                prompt={`Toque na casa onde ${nameOf(choosingFall)} cai.`}
+                prompt={`${verb} na casa onde ${nameOf(choosingFall)} cai.`}
                 chosen={fallPending ? `${nameOf(choosingFall)} cai na casa marcada.` : undefined}
                 note="Vale se a fuga ainda falhar quando o turno fechar."
                 canConfirm={combat.status === "connected"}

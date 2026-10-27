@@ -1,7 +1,7 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import styled from "styled-components";
-import { stackAbove } from "./overlayLayout";
+import { clampToLayer, stackAbove } from "./overlayLayout";
 import type { OverlayBox } from "./overlayLayout";
 
 export type MapPieceAnchor = {
@@ -15,9 +15,12 @@ export type MapPieceAnchor = {
   node: ReactNode;
 };
 
-function sameOffsets(a: Record<string, number>, b: Record<string, number>): boolean {
+/** Ajuste do miolo do item: `dy` sobe o balão (pilha), `dx` o devolve para dentro da camada. */
+type Shift = { dx: number; dy: number };
+
+function sameShifts(a: Record<string, Shift>, b: Record<string, Shift>): boolean {
   const keys = Object.keys(a);
-  return keys.length === Object.keys(b).length && keys.every((k) => a[k] === b[k]);
+  return keys.length === Object.keys(b).length && keys.every((k) => b[k] && a[k].dx === b[k].dx && a[k].dy === b[k].dy);
 }
 
 /**
@@ -34,6 +37,10 @@ function sameOffsets(a: Record<string, number>, b: Record<string, number>): bool
  * sobe os que se sobrepõem (`stackAbove`). A medida é da casca do item, que fica no lugar
  * da âncora — a subida vai no miolo, então o deslocamento não volta para a medida seguinte
  * e o cálculo não oscila. Os botões de baixo não empilham.
+ *
+ * Todo item (botão ou balão) também é mantido dentro da largura da camada (`clampToLayer`):
+ * o miolo anda para os lados e a ponta do balão anda ao contrário (`--tip-offset`, lida pelo
+ * `ActionBalloon`), para continuar apontando para a peça.
  */
 export default function MapPieceOverlay({
   anchors,
@@ -49,27 +56,33 @@ export default function MapPieceOverlay({
     [anchors, width, height],
   );
   const itemEls = useRef(new Map<string, HTMLElement>());
-  const [offsets, setOffsets] = useState<Record<string, number>>({});
+  const [shifts, setShifts] = useState<Record<string, Shift>>({});
 
   // Mede de novo a cada lista de âncoras nova — todo pan/zoom e toda troca de balão (o texto
   // muda o tamanho). Só troca o estado quando a pilha mudou: o mesmo objeto devolvido não
   // re-renderiza, então não há laço.
   useLayoutEffect(() => {
     const boxes: OverlayBox[] = [];
+    const dxs: Record<string, number> = {};
     for (const a of visible) {
-      const el = a.placement === "above" ? itemEls.current.get(a.key) : undefined;
+      const el = itemEls.current.get(a.key);
       if (!el) continue;
       const r = el.getBoundingClientRect();
-      boxes.push({ key: a.key, x: r.left, y: r.top, w: r.width, h: r.height });
+      // A casca não anda: sua largura e sua borda esquerda são as da âncora, sem o ajuste.
+      const { left } = clampToLayer(a.x, r.width, width);
+      dxs[a.key] = left - (a.x - r.width / 2);
+      if (a.placement === "above") boxes.push({ key: a.key, x: r.left + dxs[a.key], y: r.top, w: r.width, h: r.height });
     }
-    const next = stackAbove(boxes);
-    setOffsets((prev) => (sameOffsets(prev, next) ? prev : next));
-  }, [visible]);
+    const dys = stackAbove(boxes);
+    const next: Record<string, Shift> = {};
+    for (const key of Object.keys(dxs)) next[key] = { dx: dxs[key], dy: dys[key] ?? 0 };
+    setShifts((prev) => (sameShifts(prev, next) ? prev : next));
+  }, [visible, width]);
 
   return (
     <Layer>
       {visible.map((a) => {
-        const offset = offsets[a.key] ?? 0;
+        const { dx, dy } = shifts[a.key] ?? { dx: 0, dy: 0 };
         return (
           <Item
             key={a.key}
@@ -84,7 +97,14 @@ export default function MapPieceOverlay({
             <Content
               $interactive={a.placement === "below"}
               onPointerDown={a.placement === "below" ? (e) => e.stopPropagation() : undefined}
-              style={offset ? { transform: `translateY(${offset}px)` } : undefined}
+              style={
+                dx || dy
+                  ? ({
+                      transform: [dx && `translateX(${dx}px)`, dy && `translateY(${dy}px)`].filter(Boolean).join(" "),
+                      "--tip-offset": `${-dx}px`,
+                    } as CSSProperties)
+                  : undefined
+              }
             >
               {a.node}
             </Content>
@@ -106,6 +126,7 @@ const Layer = styled.div`
 // deixou não pode engolir o toque no mapa.
 const Item = styled.div<{ $placement: "above" | "below" }>`
   position: absolute;
+  width: max-content; /* sem isso a largura encolhe perto da borda direita e o texto quebra */
   transform: ${({ $placement }) => ($placement === "above" ? "translate(-50%, -100%)" : "translate(-50%, 0)")};
   pointer-events: none;
 `;

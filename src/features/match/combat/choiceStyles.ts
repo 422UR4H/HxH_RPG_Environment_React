@@ -19,6 +19,7 @@ export const Toggles = styled.div`
 
 export const Toggle = styled.button<{ $tone: Tone }>`
   display: flex;
+  width: 100%;
   align-items: center;
   justify-content: center;
   gap: 6px;
@@ -45,6 +46,15 @@ export const Toggle = styled.button<{ $tone: Tone }>`
       color: ${colors.textPrimary};
       box-shadow: inset 0 0 0 1px ${toneColor($tone)};
     `}
+  }
+
+  // Depois do pressionado de propósito: indisponível vence ligado (mesma especificidade, vale a ordem).
+  &[aria-disabled="true"] {
+    background: ${colors.surfaceDisabled};
+    border-color: ${colors.surfaceDisabled};
+    color: ${colors.textDisabledOnDark};
+    box-shadow: none;
+    cursor: not-allowed;
   }
 `;
 

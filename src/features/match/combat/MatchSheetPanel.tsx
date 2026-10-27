@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import CharacterSheetTemplate from "../../sheet/CharacterSheetTemplate";
 import { MATCH_SHEET_MODE } from "../../sheet/types/sheetMode";
 import { useCharacterSheet } from "../../../hooks/useCharacterSheet";
+import usePointerVerb from "../../../hooks/usePointerVerb";
 import { PanelHint } from "./panelStyles";
 
 /**
@@ -14,14 +15,15 @@ export default function MatchSheetPanel({
   token,
   sheetUuid,
   liveHp,
-  emptyHint = "Toque num personagem para ver a ficha.",
+  emptyHint,
 }: {
   token: string;
   sheetUuid: string | undefined;
   liveHp?: { hp: number; maxHp: number };
-  /** Texto sem ficha escolhida; o padrão é o do jogador. */
+  /** Texto sem ficha escolhida; o padrão é o do jogador (com o verbo do ponteiro). */
   emptyHint?: string;
 }) {
+  const verb = usePointerVerb();
   const { data, isLoading, error } = useCharacterSheet(token, sheetUuid);
   const charSheet = useMemo(() => {
     if (!data || !liveHp) return data;
@@ -31,7 +33,13 @@ export default function MatchSheetPanel({
     };
   }, [data, liveHp]);
 
-  if (!sheetUuid) return <PanelHint>{emptyHint}</PanelHint>;
+  if (!sheetUuid) {
+    return (
+      <Empty data-testid="match-sheet-empty">
+        <PanelHint>{emptyHint ?? `${verb} num personagem para ver a ficha.`}</PanelHint>
+      </Empty>
+    );
+  }
 
   return (
     <Wrapper data-testid="match-sheet">
@@ -48,4 +56,15 @@ export default function MatchSheetPanel({
 // largura de conteúdo (media 0px). Bloco dá ao template a largura do painel.
 const Wrapper = styled.div`
   min-height: 0;
+`;
+
+// Estado vazio no meio do painel, não uma linha perdida no canto.
+const Empty = styled.div`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+  padding: 16px;
+  text-align: center;
 `;

@@ -19,6 +19,12 @@ const defaultGrid: GridShape = {
 };
 
 describe("GridConfigPanel", () => {
+  it("asks for a 44px touch area only on coarse pointers", () => {
+    render(<GridConfigPanel grid={defaultGrid} onChange={() => {}} />);
+    const css = Array.from(document.querySelectorAll("style")).map((el) => el.textContent ?? "").join("");
+    expect(css).toMatch(/@media \(pointer: ?coarse\)\s*\{[^}]*min-height: ?44px/);
+  });
+
   it("renderiza botões de tipo e campos numéricos", () => {
     render(<GridConfigPanel grid={defaultGrid} onChange={() => {}} />);
     expect(screen.getByRole("button", { name: /quadrada/i })).toBeInTheDocument();

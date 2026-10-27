@@ -1,6 +1,7 @@
 // Os controles que só a tela do mestre monta: regência (regime, abrir, fechar), a escolha
 // do NPC por quem agir, a ação direta numa porta/janela e o painel de arrumar o tabuleiro. Nenhum pergunta "sou mestre?" — a página é que decide montá-los.
 import { useState } from "react";
+import usePointerVerb from "../../../hooks/usePointerVerb";
 import styled, { css } from "styled-components";
 import Tooltip from "../../../components/ions/Tooltip";
 import { colors } from "../../../styles/tokens";
@@ -192,11 +193,12 @@ export function ArrangePanel({
   selectedName: string | undefined;
   onRemove: () => void;
 }) {
+  const verb = usePointerVerb().toLowerCase();
   return (
     <Picker aria-label="Arrumar o tabuleiro">
       <PanelTitle>Arrumar o tabuleiro</PanelTitle>
       <PanelHint>
-        Arraste uma peça para movê-la, ou toque nela para tirá-la do mapa. Nada muda antes de
+        Arraste uma peça para movê-la, ou {verb} nela para tirá-la do mapa. Nada muda antes de
         você confirmar.
       </PanelHint>
       {selectedName && (

@@ -18,6 +18,7 @@ import { useRosterDrag } from "./hooks/useRosterDrag";
 import { isSlotInBounds, isSameSlot, slotScreenInradius } from "./utils/coords";
 import { neighborTowardScreen } from "./utils/reach";
 import { uncoveredGridLines, trimUncoveredGrid } from "./utils/bgCoverage";
+import { MapCornerButton } from "./stage/mapCornerStyles";
 import { getApiErrorDetail } from "../../utils/apiError";
 
 // Over the ~400-line guideline (docs/superpowers/specs/2026-08-06-tactical-map-refactor-design.md
@@ -108,6 +109,8 @@ export default function TacticalMapEditor({
   // Current canvas zoom — used to size the drag ghost to match the on-screen
   // token (which scales with zoom in the Pixi viewport).
   const [viewportScale, setViewportScale] = useState(1);
+  // Pedido de enquadramento: o mesmo `fitRequest` da mesa (1 ao abrir; o botão "Enquadrar" soma).
+  const [fitRequest, setFitRequest] = useState(1);
 
   // Map uuid → CharacterPrivateSummary for PieceSprite lookup
   const npcMap = useMemo(() => {
@@ -388,10 +391,12 @@ export default function TacticalMapEditor({
           />
         }
       >
-        <div ref={canvasRef} style={{ width: "100%", height: "100%" }}>
+        <div ref={canvasRef} style={{ width: "100%", height: "100%", position: "relative" }}>
           {width > 0 && height > 0 && (
             <TacticalMapStage
               map={map}
+              fitRequest={fitRequest}
+              refitOnGridChange={false}
               width={width}
               height={height}
               bgInteractive={activeTool === "bg"}
@@ -432,6 +437,9 @@ export default function TacticalMapEditor({
               }
             />
           )}
+          <MapCornerButton type="button" onClick={() => setFitRequest((n) => n + 1)}>
+            Enquadrar
+          </MapCornerButton>
         </div>
       </MapEditorTemplate>
       {truncConfirmMsg && (

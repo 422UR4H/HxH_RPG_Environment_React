@@ -1,3 +1,5 @@
+import type { BarsPayload, RoundMode } from "./combatMessages";
+
 // Fora de CharacterBarsStrip.tsx para o arquivo do componente só exportar componente (Fast Refresh).
 /** U+2212 MINUS SIGN — não é hífen. */
 const MINUS = "−";
@@ -15,3 +17,18 @@ export const fmt = (n: number) => {
   const r = Math.round(Math.abs(n) * 10) / 10;
   return r === 0 ? "0" : `${n < 0 ? MINUS : ""}${r}`;
 };
+
+/** As linhas da tira: filtra uma vez só (o botão "Barras" e a tira usam o mesmo resultado). */
+export function barsRows(bars: BarsPayload | null | undefined, roundMode: RoundMode | ""): BarsPayload["characters"] {
+  return bars ? bars.characters.filter((c) => hasBarsData(c, bars, roundMode)) : [];
+}
+
+/** Uma linha só vale quando mostra algo além do nome: velocidade, ou (Disputado) uma barra já precificada. */
+export function hasBarsData(
+  c: BarsPayload["characters"][number],
+  bars: BarsPayload,
+  roundMode: RoundMode | "",
+): boolean {
+  if (c.actionSpeeds.length > 0 || c.moveSpeeds.length > 0) return true;
+  return roundMode === "Race" && (bars.prices.action !== undefined || bars.prices.move !== undefined);
+}

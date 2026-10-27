@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { stackAbove } from "../overlayLayout";
+import { clampToLayer, stackAbove } from "../overlayLayout";
 
 const box = (key: string, x: number, y: number, w = 40, h = 20) => ({ key, x, y, w, h });
 
@@ -59,5 +59,31 @@ describe("stackAbove", () => {
 
   it("caixa sem tamanho (ainda não medida) nunca sobrepõe", () => {
     expect(stackAbove([box("a", 0, 100, 0, 0), box("b", 0, 100, 0, 0)])).toEqual({ a: 0, b: 0 });
+  });
+});
+
+describe("clampToLayer", () => {
+  it("keeps a centered item where it is", () => {
+    expect(clampToLayer(100, 40, 400)).toEqual({ left: 80, tipOffset: 0 });
+  });
+
+  it("pushes an item at the left edge inside", () => {
+    expect(clampToLayer(5, 40, 400).left).toBe(4);
+  });
+
+  it("pushes an item at the right edge inside", () => {
+    expect(clampToLayer(395, 40, 400).left).toBe(356);
+  });
+
+  it("keeps the tip over the piece after the shift", () => {
+    const { left, tipOffset } = clampToLayer(5, 40, 400);
+    // centro do item + deslocamento da ponta = centro da peça
+    expect(left + 20 + tipOffset).toBe(5);
+    const right = clampToLayer(395, 40, 400);
+    expect(right.left + 20 + right.tipOffset).toBe(395);
+  });
+
+  it("aligns an item wider than the layer to the left margin", () => {
+    expect(clampToLayer(50, 500, 400).left).toBe(4);
   });
 });

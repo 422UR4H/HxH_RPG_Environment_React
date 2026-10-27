@@ -19,7 +19,7 @@ const baseProps = {
 describe("BgImagePanel — no image", () => {
   it("renders dropzone and URL input", () => {
     renderWithProviders(<BgImagePanel {...baseProps} />);
-    expect(screen.getByText(/clique ou solte/i)).toBeInTheDocument();
+    expect(screen.getByText(/(clique|toque) ou solte/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/url da imagem/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /adicionar/i })).toBeInTheDocument();
   });

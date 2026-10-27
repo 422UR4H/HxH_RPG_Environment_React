@@ -61,6 +61,7 @@ export default function ViewportInner({
   activePieceId,
   highlightHoverSlot,
   fitRequest,
+  refitOnGridChange = true,
   onPieceDragToRoster,
   onPieceDragStart,
   onPieceDragEnd,
@@ -189,6 +190,11 @@ export default function ViewportInner({
   // phone) as long as the viewer has not panned or zoomed by hand since the last framing.
   // Without it the map opened at 1:1 from the top-left corner and a grid wider than the
   // screen was simply cut off.
+  // A grade vai num ref para o efeito poder ler o valor atual sem depender dela; só entra nas
+  // dependências (via `gridTrigger`) quando `refitOnGridChange` está ligado.
+  const gridRef = useRef(map.grid);
+  gridRef.current = map.grid;
+  const gridTrigger = refitOnGridChange ? map.grid : null;
   const fittedRequestRef = useRef<number | undefined>(undefined);
   useEffect(() => {
     const vp = vpRef.current;
@@ -197,7 +203,7 @@ export default function ViewportInner({
     if (!newRequest && userMovedRef.current) return;
     fittedRequestRef.current = fitRequest;
     userMovedRef.current = false;
-    const wb = gridWorldBounds(map.grid);
+    const wb = gridWorldBounds(gridRef.current);
     const w = wb.maxX - wb.minX;
     const h = wb.maxY - wb.minY;
     if (w <= 0 || h <= 0) return;
@@ -205,7 +211,7 @@ export default function ViewportInner({
     vp.setZoom(scale, true);
     vp.moveCenter((wb.minX + wb.maxX) / 2, (wb.minY + wb.maxY) / 2);
     setVpScale(scale);
-  }, [fitRequest, vpReady, width, height, map.grid]);
+  }, [fitRequest, vpReady, width, height, gridTrigger]);
 
   // ─── Viewport pan via DOM events ─────────────────────────────────────────
   //

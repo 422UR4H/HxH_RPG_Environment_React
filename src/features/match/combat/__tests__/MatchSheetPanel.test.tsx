@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { screen } from "@testing-library/react";
 import MatchSheetPanel from "../MatchSheetPanel";
 import { renderWithProviders } from "../../../../test/render";
@@ -19,5 +19,33 @@ describe("MatchSheetPanel", () => {
     renderWithProviders(<MatchSheetPanel token="t" sheetUuid="c1" />);
     expect(screen.getByTestId("match-sheet")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Fechar ficha" })).not.toBeInTheDocument();
+  });
+
+  it("shows a centered empty state until a sheet is chosen", () => {
+    renderWithProviders(
+      <MatchSheetPanel token="t" sheetUuid={undefined} emptyHint="Toque numa peça ou num personagem para abrir a ficha." />,
+    );
+    const hint = screen.getByText("Toque numa peça ou num personagem para abrir a ficha.");
+    expect(hint.closest('[data-testid="match-sheet-empty"]')).not.toBeNull();
+  });
+
+  it("uses Clique when the pointer is fine (mouse)", () => {
+    const original = window.matchMedia;
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: query === "(pointer: fine)",
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+      onchange: null,
+    }));
+    try {
+      renderWithProviders(<MatchSheetPanel token="t" sheetUuid={undefined} />);
+      expect(screen.getByText(/Clique num personagem/)).toBeInTheDocument();
+    } finally {
+      window.matchMedia = original;
+    }
   });
 });

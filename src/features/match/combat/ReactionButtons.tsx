@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent, MouseEvent, PointerEvent } from "react";
 import styled from "styled-components";
+import usePointerVerb from "../../../hooks/usePointerVerb";
 import { colors, alpha } from "../../../styles/tokens";
 import { createHoldTracker } from "../../tactical-map/hooks/useHoldGesture";
 import { REACTION_BUTTONS, REACTION_BUTTON_LABELS } from "./reactionModel";
@@ -44,6 +45,7 @@ export default function ReactionButtons({
   useEffect(() => { onConfigureRef.current = onConfigure; }, [onConfigure]);
   // Este press já abriu a configuração? O toque longo do Android dispara `contextmenu`
   // logo depois do nosso timer — sem isto a configuração abriria duas vezes.
+  const verb = usePointerVerb().toLowerCase();
   const configuredRef = useRef(false);
   const [tracker] = useState(() =>
     createHoldTracker({
@@ -130,7 +132,7 @@ export default function ReactionButtons({
       </Row>
       {armed && (
         <Armed role="status">
-          <span>{REACTION_BUTTON_LABELS[armed]}: toque no mapa a casa para onde fugir.</span>
+          <span>{REACTION_BUTTON_LABELS[armed]}: {verb} no mapa a casa para onde fugir.</span>
           {onCancelArmed && (
             <CancelArmed type="button" onClick={onCancelArmed}>
               Cancelar

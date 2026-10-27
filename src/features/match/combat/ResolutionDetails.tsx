@@ -81,7 +81,8 @@ export default function ResolutionDetails({
   );
   return (
     <Wrap aria-label="Cálculo do turno">
-      {action && (
+      {/* `damageSkill` só vem quando a ação tem ataque: turno só de movimento não tem acerto a mostrar. */}
+      {action && resolution.damageSkill !== undefined && (
         <Block>
           <Label>Acerto</Label>
           <span>

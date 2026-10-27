@@ -61,7 +61,7 @@ describe("EditMapPage", () => {
 
   it("após carregar, exibe o nome do mapa no campo", async () => {
     renderPage();
-    const nameInput = await screen.findByPlaceholderText(/nome do mapa/i);
+    const nameInput = await screen.findByLabelText("Nome do mapa");
     expect(nameInput).toHaveValue(mapFixture.name);
   });
 
@@ -74,7 +74,7 @@ describe("EditMapPage", () => {
       }),
     );
     renderPage();
-    await screen.findByPlaceholderText(/nome do mapa/i);
+    await screen.findByLabelText("Nome do mapa");
     await userEvent.click(screen.getByRole("button", { name: /salvar/i }));
     await waitFor(() => {
       expect(capturedBody).toMatchObject({ name: mapFixture.name });
@@ -88,10 +88,15 @@ describe("EditMapPage", () => {
       ),
     );
     renderPage();
-    await screen.findByPlaceholderText(/nome do mapa/i);
+    await screen.findByLabelText("Nome do mapa");
     await userEvent.click(screen.getByRole("button", { name: /salvar/i }));
     await waitFor(() => {
-      expect(screen.getByPlaceholderText(/nome do mapa/i)).toBeInTheDocument();
+      expect(screen.getByLabelText("Nome do mapa")).toBeInTheDocument();
     });
+  });
+
+  it("shows an Enquadrar control in the editor", async () => {
+    renderPage();
+    expect(await screen.findByRole("button", { name: "Enquadrar" })).toBeInTheDocument();
   });
 });

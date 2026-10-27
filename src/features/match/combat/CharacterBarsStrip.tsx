@@ -10,18 +10,21 @@ import { fmt, mean } from "./barsMath";
  * No regime Livre não há preço, média nem carry-over — só as velocidades que agiram.
  */
 export default function CharacterBarsStrip({
-  bars,
+  rows,
+  prices,
   roundMode,
   nameOf,
 }: {
-  bars: BarsPayload;
+  /** Já filtradas por `barsRows`: a tira não refiltra. */
+  rows: BarsPayload["characters"];
+  prices: BarsPayload["prices"];
   roundMode: RoundMode | "";
   nameOf: (id: string) => string;
 }) {
   const race = roundMode === "Race";
   return (
     <Strip aria-label="Barras de cada personagem">
-      {bars.characters.map((c) => {
+      {rows.map((c) => {
         const speeds = [...c.actionSpeeds, ...c.moveSpeeds];
         const avg = mean(speeds);
         return (
@@ -29,7 +32,7 @@ export default function CharacterBarsStrip({
             <Name>{nameOf(c.characterId)}</Name>
             {race &&
               (["action", "move"] as Bar[]).map((b) => {
-                const price = bars.prices[b];
+                const price = prices[b];
                 if (price === undefined) return null;
                 const balance = b === "action" ? c.actionBalance : c.moveBalance;
                 return <BalanceBar key={b} bar={b} balance={balance} price={price} />;
@@ -74,7 +77,7 @@ const Strip = styled.div`
      "auto" também (CSS Overflow Module) — daí o ▲▼ vertical indesejado. A tira só rola
      na horizontal; na vertical ela cresce com as linhas (sem limite de altura aqui). */
   overflow-y: hidden;
-  font-size: 11px;
+  font-size: 12px;
 `;
 const Row = styled.div`
   display: flex;

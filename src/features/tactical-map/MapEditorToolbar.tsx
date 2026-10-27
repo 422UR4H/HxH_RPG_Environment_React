@@ -13,6 +13,8 @@ import PiecePropertyPanel from "../../components/molecules/PiecePropertyPanel";
 import WallTypeChips from "../../components/molecules/WallTypeChips";
 import WallConfigPanel from "../../components/molecules/WallConfigPanel";
 import InlineFeedback from "../../components/ions/InlineFeedback";
+import ComingSoonBadge from "../../components/ions/ComingSoonBadge";
+import Tooltip from "../../components/ions/Tooltip";
 import { colors } from "../../styles/tokens";
 import type { ToolKind } from "./store/editorStore";
 
@@ -152,18 +154,29 @@ export default function MapEditorToolbar({
   return (
     <Toolbar>
       <TabRow>
-        {TABS.map(({ tool, label, enabled }) => (
-          <TabButton
-            key={tool}
-            type="button"
-            $active={activeTool === tool}
-            data-active={activeTool === tool}
-            disabled={!enabled}
-            onClick={() => enabled && setActiveTool(tool)}
-          >
-            {label}
-          </TabButton>
-        ))}
+        {TABS.map(({ tool, label, enabled }) =>
+          enabled ? (
+            <TabButton
+              key={tool}
+              type="button"
+              $active={activeTool === tool}
+              data-active={activeTool === tool}
+              onClick={() => setActiveTool(tool)}
+            >
+              {label}
+            </TabButton>
+          ) : (
+            // Desativada mas visível: o selo e a dica explicam que ainda não existe (não parece quebrada).
+            <SoonRow key={tool}>
+              <Tooltip label="Em breve" stretch>
+                <TabButton type="button" $active={false} aria-disabled="true" $soon>
+                  {label}
+                  <ComingSoonBadge />
+                </TabButton>
+              </Tooltip>
+            </SoonRow>
+          ),
+        )}
       </TabRow>
 
       <HistoryRow>
@@ -253,16 +266,20 @@ export default function MapEditorToolbar({
 
       <MetaSection>
         <FieldGroup>
+          <FieldLabel htmlFor="map-name">Nome do mapa</FieldLabel>
           <NameInput
+            id="map-name"
             type="text"
-            placeholder="Nome do mapa"
+            placeholder="Ex.: Taverna do Porto"
             value={mapName}
             onChange={handleNameChange}
           />
           {nameError && <ErrorText>{nameError}</ErrorText>}
         </FieldGroup>
 
+        <FieldLabel htmlFor="map-description">Descrição</FieldLabel>
         <DescriptionTextarea
+          id="map-description"
           placeholder="Descrição (opcional)"
           value={mapDescription}
           onChange={handleDescriptionChange}
@@ -310,7 +327,24 @@ const TabRow = styled.div`
   border-bottom: 1px solid ${colors.borderInput};
 `;
 
-const TabButton = styled.button<{ $active: boolean }>`
+const SoonRow = styled.div`
+  display: flex;
+  flex: 1 0 100%;
+`;
+
+const FieldLabel = styled.label`
+  font-size: 13px;
+  font-weight: 600;
+  color: ${colors.textPrimary};
+
+  @media (max-width: 749px) {
+    &[for="map-description"] {
+      display: none;
+    }
+  }
+`;
+
+const TabButton = styled.button<{ $active: boolean; $soon?: boolean }>`
   flex: 1;
   min-width: 0;
   padding: clamp(4px, 1.5cqi, 6px) clamp(2px, 1cqi, 8px);
@@ -318,17 +352,21 @@ const TabButton = styled.button<{ $active: boolean }>`
   border-radius: 6px;
   border: 1px solid
     ${({ $active }) => ($active ? colors.brandAccent : colors.borderInput)};
-  background: ${({ $active }) =>
-    $active ? colors.brandAccent : "transparent"};
-  color: ${({ disabled }) =>
-    disabled ? colors.textPlaceholderStrong : colors.textPrimary};
-  font-size: clamp(10px, 2.8cqi, 12px);
+  background: ${({ $active, $soon }) =>
+    $soon ? colors.surfaceDisabled : $active ? colors.brandAccent : "transparent"};
+  color: ${({ $soon }) => ($soon ? colors.textDisabledOnDark : colors.textPrimary)};
+  font-size: clamp(12px, 3.2cqi, 13px);
   font-weight: 600;
-  cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
+  cursor: ${({ $soon }) => ($soon ? "not-allowed" : "pointer")};
   transition: background 0.15s;
+  ${({ $soon }) => $soon && "display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;"}
 
-  &:not(:disabled):hover {
-    filter: brightness(1.1);
+  &:hover {
+    filter: ${({ $soon }) => ($soon ? "none" : "brightness(1.1)")};
+  }
+
+  @media (pointer: coarse) {
+    min-height: 44px;
   }
 `;
 
@@ -360,7 +398,7 @@ const FieldGroup = styled.div`
 `;
 
 const NameInput = styled.input`
-  font-size: clamp(12px, 3.5cqi, 14px);
+  font-size: clamp(13px, 3.5cqi, 14px);
   color: ${colors.textPrimary};
   background: ${colors.surfaceInput};
   border: 1px solid ${colors.borderInput};
@@ -368,6 +406,10 @@ const NameInput = styled.input`
   padding: clamp(6px, 2cqi, 8px) clamp(8px, 3cqi, 12px);
   outline: none;
   width: 100%;
+
+  @media (pointer: coarse) {
+    min-height: 44px;
+  }
 
   &::placeholder {
     color: ${colors.textPlaceholder};
@@ -387,6 +429,10 @@ const DescriptionTextarea = styled.textarea`
   padding: 8px 12px;
   resize: vertical;
   outline: none;
+
+  @media (pointer: coarse) {
+    min-height: 44px;
+  }
 
   @media (max-width: 749px) {
     display: none;
@@ -450,10 +496,14 @@ const HistoryButton = styled.button`
   border: 1px solid ${colors.borderInput};
   background: transparent;
   color: ${colors.textPrimary};
-  font-size: clamp(10px, 2.8cqi, 12px);
+  font-size: clamp(12px, 3.2cqi, 13px);
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s;
+
+  @media (pointer: coarse) {
+    min-height: 44px;
+  }
 
   &:disabled {
     opacity: 0.35;

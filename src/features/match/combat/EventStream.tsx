@@ -6,6 +6,7 @@ import type { TableEvent } from "./combatReducer";
 import type { ResolutionTarget, SceneCategory, WallTurnResult } from "./combatMessages";
 import type { HistoryMasterAction, HistoryMove, HistoryTurn } from "../../../types/matchHistory";
 import type { HistoryRow } from "./historyRows";
+import { SCENE_LABEL } from "./sceneLabels";
 import { avoidedVerb, describeDeclared, describeHistoryAction, formatSlot, interactLabel, withWeapon, ROUND_MODE_LABELS } from "./combatText";
 
 /** U+2212 MINUS SIGN — não é hífen. */
@@ -13,8 +14,7 @@ const MINUS = "−";
 
 const lowerFirst = (t: string) => t.charAt(0).toLowerCase() + t.slice(1);
 
-const sceneLabel = (brief: string, category: SceneCategory) =>
-  brief || (category === "battle" ? "batalha" : "roleplay");
+const sceneLabel = (brief: string, category: SceneCategory) => brief || SCENE_LABEL[category];
 
 /** `details`: o que vai junto da linha — as master actions feitas dentro de um turno. */
 type Line = { icon: string; text: string; tone?: "turn" | "hp" | "muted"; details?: string[] };
@@ -78,7 +78,7 @@ function eventLine(event: TableEvent, nameOf: (id: string) => string, gridKind: 
         text: `${nameOf(event.characterId)}: ${event.hp}/${event.maxHp} (${MINUS}${event.damage})`,
       };
     case "round_closed":
-      return { icon: "↻", tone: "muted", text: "Fim do round" };
+      return { icon: "↻", tone: "muted", text: "Fim da rodada" };
     case "round_mode_changed":
       return { icon: "⇄", tone: "muted", text: `Regime: ${ROUND_MODE_LABELS[event.mode]}` };
     case "scene_changed":
@@ -144,7 +144,7 @@ function rowLine(row: HistoryRow, nameOf: (id: string) => string, gridKind: Grid
     case "scene":
       return { icon: "✦", tone: "muted", text: `Cena: ${sceneLabel(row.scene.briefDesc, row.scene.category)}` };
     case "round_closed":
-      return { icon: "↻", tone: "muted", text: "Fim do round" };
+      return { icon: "↻", tone: "muted", text: "Fim da rodada" };
     case "round_mode_changed":
       return { icon: "⇄", tone: "muted", text: `Regime: ${ROUND_MODE_LABELS[row.mode]}` };
     case "master_action":

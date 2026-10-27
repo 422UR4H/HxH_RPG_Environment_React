@@ -50,6 +50,11 @@ export type TacticalMapStageProps = {
   highlightHoverSlot?: boolean;
   // Game only: fit the whole grid on screen on mount, and again whenever this changes.
   fitRequest?: number;
+  // Padrão `true` (mesa): mudar a grade reenquadra enquanto a câmera não foi mexida. O editor
+  // passa `false`: ali a grade muda a cada edição/arraste de alça, e reenquadrar brigaria com
+  // a mão (zoom a cada tecla; laço no arraste de canto). Só `fitRequest` e o tamanho do canvas
+  // reenquadram.
+  refitOnGridChange?: boolean;
   onPieceDragToRoster?: (pieceId: string) => void;
   onPieceDragStart?: (pieceId: string, npc: CharacterPrivateSummary | undefined) => void;
   onPieceDragEnd?: () => void;

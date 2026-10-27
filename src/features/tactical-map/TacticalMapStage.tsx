@@ -39,6 +39,7 @@ export default function TacticalMapStage({
   activePieceId,
   highlightHoverSlot,
   fitRequest,
+  refitOnGridChange,
   onPieceDragToRoster,
   onPieceDragStart,
   onPieceDragEnd,
@@ -155,6 +156,7 @@ export default function TacticalMapStage({
           activePieceId={activePieceId}
           highlightHoverSlot={highlightHoverSlot}
           fitRequest={fitRequest}
+          refitOnGridChange={refitOnGridChange}
           onPieceDragToRoster={onPieceDragToRoster}
           onPieceDragStart={onPieceDragStart}
           onPieceDragEnd={onPieceDragEnd}

@@ -1,5 +1,6 @@
 import styled from "styled-components";
 import { colors } from "../../../styles/tokens";
+import usePointerVerb from "../../../hooks/usePointerVerb";
 
 /**
  * A escolha de uma casa no mapa (a casa da fuga, onde cai a fuga que falhou), no mesmo lugar da
@@ -26,13 +27,14 @@ export default function MapPickConfirm({
   canConfirm?: boolean;
   onConfirm: () => void;
 }) {
+  const verb = usePointerVerb();
   if (!chosen) return <Bar role="status" $passive>{prompt}</Bar>;
   return (
     <Bar role="group" aria-label="Confirmar a casa escolhida">
       <Text>
         <strong>{chosen}</strong>
         {note && <span>{note}</span>}
-        <span>Toque em outra casa para trocar.</span>
+        <span>{verb} em outra casa para trocar.</span>
       </Text>
       <ConfirmButton type="button" onClick={onConfirm} disabled={!canConfirm}>
         {confirmLabel}

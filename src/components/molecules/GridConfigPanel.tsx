@@ -3,6 +3,7 @@ import type { ChangeEvent } from "react";
 import styled from "styled-components";
 import type { GridShape } from "../../types/tacticalMap";
 import { colors } from "../../styles/tokens";
+import { touchTarget } from "../../styles/touchTarget";
 import { keepGridAnchored } from "../../features/tactical-map/utils/coords";
 
 type Props = {
@@ -251,7 +252,7 @@ const Panel = styled.div`
 `;
 
 const SectionTitle = styled.h3`
-  font-size: clamp(10px, 3cqi, 13px);
+  font-size: clamp(12px, 3cqi, 13px);
   font-weight: 700;
   letter-spacing: 1px;
   text-transform: uppercase;
@@ -283,13 +284,14 @@ const KindButton = styled.button<{ $active: boolean }>`
   border: 1px solid ${colors.borderInput};
   background: ${({ $active }) => ($active ? colors.brandAccent : "transparent")};
   color: ${colors.textPrimary};
-  font-size: clamp(11px, 3cqi, 13px);
+  font-size: clamp(12px, 3cqi, 13px);
   font-weight: 600;
   cursor: pointer;
 
   &:hover {
     filter: brightness(1.1);
   }
+  ${touchTarget}
 `;
 
 const NumInput = styled.input`
@@ -305,12 +307,14 @@ const NumInput = styled.input`
   &:focus {
     border-color: ${colors.brandAccent};
   }
+  ${touchTarget}
 `;
 
 const OpacityRange = styled.input`
   width: 100%;
   accent-color: ${colors.brandAccent};
   cursor: pointer;
+  ${touchTarget}
 `;
 
 const RefitButton = styled.button`
@@ -332,6 +336,7 @@ const RefitButton = styled.button`
     opacity: 0.4;
     cursor: not-allowed;
   }
+  ${touchTarget}
 `;
 
 const SkewRow = styled.div`
@@ -354,18 +359,19 @@ const SkewInput = styled.input`
   &:focus {
     border-color: ${colors.brandAccent};
   }
+  ${touchTarget}
 `;
 
 const SkewLabels = styled.div`
   display: flex;
   justify-content: space-between;
-  font-size: 11px;
+  font-size: 12px;
   color: ${colors.textDisabled};
 `;
 
 const HelpText = styled.p`
   margin: 0;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.4;
   color: ${colors.textDisabled};
 `;

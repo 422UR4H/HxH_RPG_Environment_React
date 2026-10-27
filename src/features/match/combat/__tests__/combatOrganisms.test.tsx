@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, within } from "@testing-library/react";
 import GeneralBar from "../GeneralBar";
 import CharacterBarsStrip from "../CharacterBarsStrip";
-import { fmt } from "../barsMath";
+import { barsRows, fmt } from "../barsMath";
 import OwnBars from "../OwnBars";
 import QueuePanel from "../QueuePanel";
 import CloseTurnRefusedDialog from "../CloseTurnRefusedDialog";
@@ -26,6 +26,7 @@ const res: ResolutionPayload = {
   turnId: "t1",
   isSettled: false,
   action: { skillName: "Accuracy", skillValue: 14, diceRolled: [6, 8], total: 20, isCritical: false, isCriticalFailure: false, margin: 3 },
+  damageSkill: "Push",
   targets: [{
     targetId: "c2", avoided: false, defended: true, dodgeTotal: 12, defenseTotal: 15,
     rawDamage: 10, defenseApplied: 3, projectedDamage: 7,
@@ -84,8 +85,27 @@ describe("GeneralBar", () => {
   it("sem turno e sem ordem, diz isso em vez de sumir", () => {
     render(<GeneralBar nameOf={nameOf} roundMode="" bars={null} />);
     expect(screen.getByText("Nenhum turno aberto")).toBeInTheDocument();
-    expect(screen.getByText("ordem vazia")).toBeInTheDocument();
     expect(screen.queryByTestId("prices")).toBeNull();
+  });
+
+  it("shows Fila vazia when nobody is queued", () => {
+    render(<GeneralBar nameOf={nameOf} roundMode="" bars={null} />);
+    expect(screen.getByText("Fila vazia")).toBeInTheDocument();
+    expect(screen.queryByText("ordem vazia")).toBeNull();
+  });
+
+  it("prefixes the names with Fila:", () => {
+    render(<GeneralBar bars={raceBars} roundMode="Race" nameOf={nameOf} />);
+    expect(screen.getByLabelText("Ordem")).toHaveTextContent(/^Fila:\s*Gon/);
+  });
+
+  it("hides the Barras button when nobody has data", () => {
+    const empty: BarsPayload = {
+      ...raceBars, prices: {},
+      characters: [{ characterId: "c1", actionBalance: 0, moveBalance: 0, actionSpeeds: [], moveSpeeds: [] }],
+    };
+    render(<GeneralBar bars={empty} roundMode="Race" nameOf={nameOf} />);
+    expect(screen.queryByRole("button", { name: /Barras/ })).toBeNull();
   });
 
   it("mostra a key de cada slot", () => {
@@ -94,9 +114,13 @@ describe("GeneralBar", () => {
   });
 });
 
+function Strip({ bars, mode }: { bars: BarsPayload; mode: "Race" | "Free" }) {
+  return <CharacterBarsStrip rows={barsRows(bars, mode)} prices={bars.prices} roundMode={mode} nameOf={nameOf} />;
+}
+
 describe("CharacterBarsStrip", () => {
   it("Disputado: saldo com uma casa, velocidades e média", () => {
-    render(<CharacterBarsStrip bars={raceBars} roundMode="Race" nameOf={nameOf} />);
+    render(<Strip bars={raceBars} mode="Race" />);
     expect(screen.getByText("Gon")).toBeInTheDocument();
     expect(screen.getByText(`${MINUS}2.5`)).toBeInTheDocument();
     expect(screen.getByText("16 · 14")).toBeInTheDocument();
@@ -105,15 +129,42 @@ describe("CharacterBarsStrip", () => {
   });
 
   it("Livre: sem barras nem média, só as velocidades", () => {
-    render(<CharacterBarsStrip bars={{ ...raceBars, prices: {} }} roundMode="Free" nameOf={nameOf} />);
+    render(<Strip bars={{ ...raceBars, prices: {} }} mode="Free" />);
     expect(screen.queryAllByRole("meter")).toHaveLength(0);
     expect(screen.queryByText(/x̄/)).not.toBeInTheDocument();
     expect(screen.getByText("16 · 14")).toBeInTheDocument();
   });
 
   it("barra sem preço não é desenhada", () => {
-    render(<CharacterBarsStrip bars={{ ...raceBars, prices: { action: 14 } }} roundMode="Race" nameOf={nameOf} />);
+    render(<Strip bars={{ ...raceBars, prices: { action: 14 } }} mode="Race" />);
     expect(screen.getAllByRole("meter")).toHaveLength(1);
+  });
+});
+
+describe("CharacterBarsStrip — linhas sem dado", () => {
+  it("lists only characters with speed or balance", () => {
+    const mixed: BarsPayload = {
+      ...raceBars, prices: {},
+      characters: [
+        { characterId: "c1", actionBalance: 0, moveBalance: 0, actionSpeeds: [16], moveSpeeds: [] },
+        { characterId: "c2", actionBalance: 0, moveBalance: 0, actionSpeeds: [], moveSpeeds: [] },
+      ],
+    };
+    render(<Strip bars={mixed} mode="Free" />);
+    expect(screen.getByText("Gon")).toBeInTheDocument();
+    expect(screen.queryByText("Killua")).toBeNull();
+  });
+});
+
+describe("barsRows", () => {
+  it("keeps a Race row that has a price but no speed", () => {
+    const priced: BarsPayload = {
+      ...raceBars, prices: { action: 14 },
+      characters: [{ characterId: "c1", actionBalance: 0, moveBalance: 0, actionSpeeds: [], moveSpeeds: [] }],
+    };
+    expect(barsRows(priced, "Race")).toHaveLength(1);
+    expect(barsRows(priced, "Free")).toHaveLength(0);
+    expect(barsRows(null, "Race")).toEqual([]);
   });
 });
 
@@ -363,6 +414,15 @@ describe("ResolutionDetails", () => {
     expect(screen.getByText(/10 → 7/)).toBeInTheDocument();
     expect(screen.getByText(/Killua/)).toBeInTheDocument();
     expect(screen.getByText(/incompleto/i)).toBeInTheDocument();
+  });
+
+  it("hides the Acerto block when the action has no attack", () => {
+    const moveOnly: ResolutionPayload = {
+      turnId: "t1", isSettled: false, targets: [],
+      action: { skillName: "Accuracy", skillValue: 0, diceRolled: [], total: 0, isCritical: false, isCriticalFailure: false },
+    };
+    render(<ResolutionDetails resolution={moveOnly} nameOf={resolutionNameOf} />);
+    expect(screen.queryByText("Acerto")).not.toBeInTheDocument();
   });
 
   it("sem onOpenReaction, não tem botão nenhum fora de uma fuga que falhou", () => {
@@ -830,6 +890,12 @@ describe("CloseTurnRefusedDialog", () => {
 });
 
 describe("EventStream", () => {
+  it("shows Fim da rodada", () => {
+    const events = [{ kind: "round_closed", at: 1, receivedAt: 1, roundMode: "Race" }] as unknown as TableEvent[];
+    render(<EventStream rows={historyRows(undefined, events, undefined, undefined)} nameOf={nameOf} gridKind="square" />);
+    expect(screen.getByTestId("event-row")).toHaveTextContent("Fim da rodada");
+  });
+
   it("mudar só o rodapé (pinKey) prende a rolagem ao fim de novo", () => {
     const scrollTo = vi.fn();
     Object.defineProperty(HTMLElement.prototype, "scrollTo", { configurable: true, value: scrollTo });
@@ -972,7 +1038,7 @@ describe("EventStream", () => {
     };
     render(<EventStream rows={historyRows(history, [], 0, undefined)} nameOf={nameOf} gridKind="square" />);
     const rows = screen.getAllByTestId("event-row");
-    expect(rows[0]).toHaveTextContent("Cena: batalha");
+    expect(rows[0]).toHaveTextContent("Cena: Batalha");
     // O destino é como ESTE leitor o viu: sem `position`, só a categoria (fog, ou ator sem peça).
     expect(rows[1]).toHaveTextContent(
       `Turno de Gon — moveu para coluna 4, linha 5 (Dash) e atacou Hisoka, Killua com Throwing Dagger · Hisoka ${MINUS}7, Killua esquivou`,
@@ -1057,7 +1123,7 @@ describe("EventStream", () => {
       expect.stringContaining("Mestre tirou Hisoka do mapa"),
       expect.stringMatching(/Mestre: revelar \S+/),
       expect.stringContaining("Ação do mestre"),
-      expect.stringContaining("Fim do round"),
+      expect.stringContaining("Fim da rodada"),
       expect.stringContaining("Cena: Arena"),
     ]);
   });
@@ -1159,6 +1225,17 @@ describe("MatchTopBar", () => {
     expect(screen.getByTestId("ws-status")).toHaveAttribute("title", "Aberta em outra aba");
     fireEvent.click(screen.getByRole("button", { name: "Usar aqui" }));
     expect(onReconnect).toHaveBeenCalled();
+  });
+
+  it("shows the scene label when there is no description", () => {
+    render(
+      <MatchTopBar
+        scene={{ sceneId: "s1", category: "roleplay", briefInitialDescription: "" }}
+        roundMode="" status="connected" asideOpen={false} onToggleAside={() => {}}
+      />,
+    );
+    expect(screen.getByText("Roleplay")).toBeInTheDocument();
+    expect(screen.queryByText("Cena sem nome")).toBeNull();
   });
 
   it("diz que está esperando o mestre quando a sala não abriu", () => {

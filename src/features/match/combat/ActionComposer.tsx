@@ -1,3 +1,5 @@
+import BlockableButton from "../../../components/molecules/BlockableButton";
+import usePointerVerb from "../../../hooks/usePointerVerb";
 import type { CombatCatalogue } from "../../../services/characterSheetsService";
 import type { GridKind } from "../../../types/tacticalMap";
 import {
@@ -23,11 +25,11 @@ function declareLabel(verdict: DraftVerdict, kind: ActKind): string {
   return `Declarar movimento + ${ACT_NOUNS[kind]}`;
 }
 
-const NOT_READY_HINTS: Record<Exclude<DraftVerdict, { ready: true }>["reason"], string> = {
-  empty: "Toque num espaço vazio do mapa para se mover, ou em alguém (ou numa parede) para agir.",
-  needs_destination: "Toque num espaço do mapa para escolher o destino — ou desligue Mover.",
-  needs_target: "Toque em alguém ou numa parede para marcar o alvo — ou desligue Atacar.",
-  out_of_reach: "Para abrir, fechar ou arrombar é preciso estar encostado na parede — ligue Mover ou escolha um destino ao lado dela.",
+const NOT_READY_HINTS: Record<Exclude<DraftVerdict, { ready: true }>["reason"], (verb: string) => string> = {
+  empty: (verb) => `${verb} num espaço vazio do mapa para se mover, ou em alguém (ou numa parede) para agir.`,
+  needs_destination: (verb) => `${verb} num espaço do mapa para escolher o destino — ou desligue Mover.`,
+  needs_target: (verb) => `${verb} em alguém ou numa parede para marcar o alvo — ou desligue Atacar.`,
+  out_of_reach: () => "Para abrir, fechar ou arrombar é preciso estar encostado na parede — ligue Mover ou escolha um destino ao lado dela.",
 };
 
 /**
@@ -57,6 +59,7 @@ export default function ActionComposer({
   onDeclare,
   canDeclare,
   blockedReason,
+  unavailableReason,
 }: {
   actorName: string;
   /** Mais de um personagem para agir (o jogador com duas fichas na partida): vira seletor. */
@@ -77,7 +80,10 @@ export default function ActionComposer({
   canDeclare: boolean;
   /** Por que não dá para declarar agora, quando o motivo não é o rascunho. */
   blockedReason?: string;
+  /** A sala ainda não está pronta (sem conexão ou sem tabuleiro): Mover, Atacar e Declarar ficam indisponíveis, com este motivo. */
+  unavailableReason?: string;
 }) {
+  const verb = usePointerVerb();
   const move = resolved.move;
   const act = resolved.act;
   const moveOn = move !== undefined;
@@ -118,6 +124,9 @@ export default function ActionComposer({
       <S.Toggles role="group" aria-label="O que fazer">
         <S.Toggle
           type="button"
+          as={BlockableButton}
+          blockedReason={unavailableReason}
+          stretch
           $tone="move"
           aria-pressed={moveOn}
           onClick={() => onDraftChange(toggleMove(draft, resolved))}
@@ -128,6 +137,9 @@ export default function ActionComposer({
         {/* A metade que mira: com parede como alvo, mostra o verbo escolhido (Abrir, Fechar…). */}
         <S.Toggle
           type="button"
+          as={BlockableButton}
+          blockedReason={unavailableReason}
+          stretch
           $tone="attack"
           aria-pressed={actOn}
           onClick={() => onDraftChange(toggleAct(draft))}
@@ -148,7 +160,7 @@ export default function ActionComposer({
                 )}
               </S.Detail>
             ) : (
-              <S.Hint>Toque num espaço do mapa para escolher o destino.</S.Hint>
+              <S.Hint>{verb} num espaço do mapa para escolher o destino.</S.Hint>
             )}
           </S.SectionRow>
           <S.Segmented role="radiogroup" aria-label="Tipo de movimento">
@@ -193,7 +205,7 @@ export default function ActionComposer({
               })}
             </S.Chips>
           ) : (
-            <S.Hint>Toque em alguém ou numa parede para marcar o alvo · segure para marcar vários.</S.Hint>
+            <S.Hint>{verb} em alguém ou numa parede para marcar o alvo · segure para marcar vários.</S.Hint>
           )}
           {act.verbs && (
             <S.Segmented role="radiogroup" aria-label="O que fazer">
@@ -243,8 +255,12 @@ export default function ActionComposer({
 
       <S.Footer>
         <S.DeclareButton
+          as={BlockableButton}
+          blockedReason={unavailableReason}
+          stretch
           type="button"
-          disabled={!verdict.ready || !canDeclare}
+          // Indisponível usa aria-disabled (o Tooltip explica); `disabled` não recebe foco nem toque.
+          disabled={!unavailableReason && (!verdict.ready || !canDeclare)}
           onClick={onDeclare}
         >
           {declareLabel(verdict, actKind)}
@@ -255,8 +271,10 @@ export default function ActionComposer({
           </S.ClearButton>
         )}
       </S.Footer>
-      {!verdict.ready ? (
-        <S.Hint data-testid="composer-hint">{NOT_READY_HINTS[verdict.reason]}</S.Hint>
+      {unavailableReason ? (
+        <S.Hint data-testid="composer-hint">{unavailableReason}</S.Hint>
+      ) : !verdict.ready ? (
+        <S.Hint data-testid="composer-hint">{NOT_READY_HINTS[verdict.reason](verb)}</S.Hint>
       ) : (
         blockedReason && <S.Hint data-testid="composer-hint">{blockedReason}</S.Hint>
       )}
