@@ -12,7 +12,7 @@ export default function ExpBar({ currExp, maxExp, color = colors.vitalSkillExp }
   const percentage = maxExp > 0 ? Math.min((currExp / maxExp) * 100, 100) : 0;
 
   return (
-    <Tooltip label={`${currExp}/${maxExp}`} placement="top" stretch>
+    <Tooltip label={`${currExp}/${maxExp}`} placement="bottom" stretch>
       <BarTrack
         role="progressbar"
         tabIndex={0}
