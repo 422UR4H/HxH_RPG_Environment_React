@@ -568,7 +568,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
       : showReactionHint
         ? undefined
       : sheetVisible
-        ? `${verb} numa peça para ver a ficha.`
+        ? (sheetId ? `${verb} numa peça para ver a ficha.` : undefined)
       : !actorId
         ? `${verb} num NPC para agir por ele.`
         : undefined;
@@ -578,7 +578,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
       <MatchStageTemplate
         panelOpen={panelOpen}
         asideOpen={asideOpen}
-        panelWide={!arranging && railActive === "ficha"}
+        panelWide={!arranging && railActive === "ficha" && !!sheetId}
         // Spec §4: véu só quando o painel não pede toque no mapa (regra em masterPanelDismissible).
         panelDismissible={masterPanelDismissible({ railActive, mapPicking: arranging || fallPicking || reactionPicking })}
         onDismissPanel={() => setPanelOpen(false)}

@@ -1,3 +1,4 @@
+import BlockableButton from "../../../components/molecules/BlockableButton";
 import usePointerVerb from "../../../hooks/usePointerVerb";
 import type { CombatCatalogue } from "../../../services/characterSheetsService";
 import type { GridKind } from "../../../types/tacticalMap";
@@ -58,6 +59,7 @@ export default function ActionComposer({
   onDeclare,
   canDeclare,
   blockedReason,
+  unavailableReason,
 }: {
   actorName: string;
   /** Mais de um personagem para agir (o jogador com duas fichas na partida): vira seletor. */
@@ -78,6 +80,8 @@ export default function ActionComposer({
   canDeclare: boolean;
   /** Por que não dá para declarar agora, quando o motivo não é o rascunho. */
   blockedReason?: string;
+  /** A sala ainda não está pronta (sem conexão ou sem tabuleiro): Mover, Atacar e Declarar ficam indisponíveis, com este motivo. */
+  unavailableReason?: string;
 }) {
   const verb = usePointerVerb();
   const move = resolved.move;
@@ -120,6 +124,8 @@ export default function ActionComposer({
       <S.Toggles role="group" aria-label="O que fazer">
         <S.Toggle
           type="button"
+          as={BlockableButton}
+          blockedReason={unavailableReason}
           $tone="move"
           aria-pressed={moveOn}
           onClick={() => onDraftChange(toggleMove(draft, resolved))}
@@ -130,6 +136,8 @@ export default function ActionComposer({
         {/* A metade que mira: com parede como alvo, mostra o verbo escolhido (Abrir, Fechar…). */}
         <S.Toggle
           type="button"
+          as={BlockableButton}
+          blockedReason={unavailableReason}
           $tone="attack"
           aria-pressed={actOn}
           onClick={() => onDraftChange(toggleAct(draft))}
@@ -245,8 +253,11 @@ export default function ActionComposer({
 
       <S.Footer>
         <S.DeclareButton
+          as={BlockableButton}
+          blockedReason={unavailableReason}
           type="button"
-          disabled={!verdict.ready || !canDeclare}
+          // Indisponível usa aria-disabled (o Tooltip explica); `disabled` não recebe foco nem toque.
+          disabled={!unavailableReason && (!verdict.ready || !canDeclare)}
           onClick={onDeclare}
         >
           {declareLabel(verdict, actKind)}
@@ -257,7 +268,9 @@ export default function ActionComposer({
           </S.ClearButton>
         )}
       </S.Footer>
-      {!verdict.ready ? (
+      {unavailableReason ? (
+        <S.Hint data-testid="composer-hint">{unavailableReason}</S.Hint>
+      ) : !verdict.ready ? (
         <S.Hint data-testid="composer-hint">{NOT_READY_HINTS[verdict.reason](verb)}</S.Hint>
       ) : (
         blockedReason && <S.Hint data-testid="composer-hint">{blockedReason}</S.Hint>

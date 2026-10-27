@@ -851,7 +851,8 @@ describe("GamePlayerPage", () => {
     act(() => ws.onclose?.({ code: 1000 } as CloseEvent));
 
     const declareButton = await screen.findByRole("button", { name: /^declarar/i });
-    expect(declareButton).toBeDisabled();
+    // Sala sem conexão: indisponível (aria-disabled, com o motivo no Tooltip), não `disabled`.
+    expect(declareButton).toHaveAttribute("aria-disabled", "true");
   });
 
   // M4: sem isto, um link lento deixaria o jogador clicar Declarar de novo antes do ack

@@ -26,6 +26,7 @@ const res: ResolutionPayload = {
   turnId: "t1",
   isSettled: false,
   action: { skillName: "Accuracy", skillValue: 14, diceRolled: [6, 8], total: 20, isCritical: false, isCriticalFailure: false, margin: 3 },
+  damageSkill: "Push",
   targets: [{
     targetId: "c2", avoided: false, defended: true, dodgeTotal: 12, defenseTotal: 15,
     rawDamage: 10, defenseApplied: 3, projectedDamage: 7,
@@ -397,6 +398,15 @@ describe("ResolutionDetails", () => {
     expect(screen.getByText(/10 → 7/)).toBeInTheDocument();
     expect(screen.getByText(/Killua/)).toBeInTheDocument();
     expect(screen.getByText(/incompleto/i)).toBeInTheDocument();
+  });
+
+  it("hides the Acerto block when the action has no attack", () => {
+    const moveOnly: ResolutionPayload = {
+      turnId: "t1", isSettled: false, targets: [],
+      action: { skillName: "Accuracy", skillValue: 0, diceRolled: [], total: 0, isCritical: false, isCriticalFailure: false },
+    };
+    render(<ResolutionDetails resolution={moveOnly} nameOf={resolutionNameOf} />);
+    expect(screen.queryByText("Acerto")).not.toBeInTheDocument();
   });
 
   it("sem onOpenReaction, não tem botão nenhum fora de uma fuga que falhou", () => {

@@ -58,6 +58,8 @@ type RailTab = "acao" | "ficha";
 /** Só a parede com o que fazer é tocável — terreno e parede destruída deixam o toque cair no slot. */
 const isActorWallTappable = (w: WallSegment) => actorWallVerbs(w).length > 0;
 
+const ROOM_NOT_READY = "Aguarde o mestre abrir a sala para agir.";
+
 export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const { width, height } = useResizeObserver(canvasRef);
@@ -228,6 +230,9 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
     ? (state.hp[actorId] ?? (restHealth ? { hp: restHealth.current, maxHp: restHealth.max } : undefined))
     : undefined;
 
+  // Sem conexão viva ou sem tabuleiro não há onde tocar: o compositor espera a sala.
+  const roomReady = combat.status === "connected" && !!map;
+
   const actorChoices = useMemo(
     () => myCharacters.map((p) => ({ id: p.characterSheet.uuid, name: p.characterSheet.nickName })),
     [myCharacters],
@@ -238,7 +243,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
       <MatchStageTemplate
         panelOpen={panelOpen}
         asideOpen={asideOpen}
-        panelWide={railActive === "ficha"}
+        panelWide={railActive === "ficha" && !!actorId}
         // Spec §4: véu só quando o painel não pede toque no mapa (regra em playerPanelDismissible).
         panelDismissible={playerPanelDismissible({ railActive, hasActor: !!actorId, picking })}
         onDismissPanel={() => setPanelOpen(false)}
@@ -294,6 +299,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
                 onDeclare={game.declare}
                 canDeclare={game.canDeclare}
                 blockedReason={game.blockedReason}
+                unavailableReason={roomReady ? undefined : ROOM_NOT_READY}
               />
             </>
           ) : (

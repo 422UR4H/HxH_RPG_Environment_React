@@ -33,7 +33,13 @@ export default function MatchSheetPanel({
     };
   }, [data, liveHp]);
 
-  if (!sheetUuid) return <PanelHint>{emptyHint ?? `${verb} num personagem para ver a ficha.`}</PanelHint>;
+  if (!sheetUuid) {
+    return (
+      <Empty data-testid="match-sheet-empty">
+        <PanelHint>{emptyHint ?? `${verb} num personagem para ver a ficha.`}</PanelHint>
+      </Empty>
+    );
+  }
 
   return (
     <Wrapper data-testid="match-sheet">
@@ -48,6 +54,17 @@ export default function MatchSheetPanel({
 // BF1: container de bloco, não flex — como item de um flex column (o Wrapper da página),
 // margin auto cancelava o stretch e o container-type: inline-size do template ficava sem
 // largura de conteúdo (media 0px). Bloco dá ao template a largura do painel.
+// Estado vazio no meio do painel, não uma linha perdida no canto.
+const Empty = styled.div`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+  padding: 16px;
+  text-align: center;
+`;
+
 const Wrapper = styled.div`
   min-height: 0;
 `;

@@ -126,6 +126,12 @@ export const DeclareButton = styled.button`
     opacity: 0.4;
     cursor: not-allowed;
   }
+
+  &[aria-disabled="true"] {
+    background: ${colors.surfaceDisabled};
+    color: ${colors.textDisabledOnDark};
+    cursor: not-allowed;
+  }
 `;
 
 export const ClearButton = styled.button`

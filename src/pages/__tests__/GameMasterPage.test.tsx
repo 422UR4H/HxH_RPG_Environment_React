@@ -589,7 +589,8 @@ describe("GameMasterPage", () => {
       openWithServerBoard(ws);
       await openFicha();
       expect(screen.getByText("Toque numa peça ou num personagem para abrir a ficha.")).toBeInTheDocument();
-      expect(screen.getByText("Toque numa peça para ver a ficha.")).toBeInTheDocument();
+      // O painel já diz isso: a dica repetida sob o mapa sai.
+      expect(screen.queryByText("Toque numa peça para ver a ficha.")).not.toBeInTheDocument();
       expect(screen.queryByText("Toque num NPC para agir por ele.")).not.toBeInTheDocument();
 
       act(() => screen.getByTestId("select-actor-npc1").click());

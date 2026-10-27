@@ -47,12 +47,14 @@ function Harness({
   onDeclare = () => {},
   canDeclare = true,
   blockedReason,
+  unavailableReason,
   spy,
 }: {
   initial?: ActionDraft;
   onDeclare?: () => void;
   canDeclare?: boolean;
   blockedReason?: string;
+  unavailableReason?: string;
   spy?: (d: ActionDraft) => void;
 }) {
   const [draft, setDraft] = useState(initial);
@@ -74,6 +76,7 @@ function Harness({
       onDeclare={onDeclare}
       canDeclare={canDeclare}
       blockedReason={blockedReason}
+      unavailableReason={unavailableReason}
     />
   );
 }
@@ -82,7 +85,28 @@ const moveToggle = () => screen.getByRole("button", { name: /Mover/ });
 const attackToggle = () => screen.getByRole("button", { name: /Atacar/ });
 const declare = () => screen.getByRole("button", { name: /^Declarar/ });
 
+const WAIT = "Aguarde o mestre abrir a sala para agir.";
+
 describe("ActionComposer", () => {
+  it("disables Mover and Atacar with the wait message while the room is not ready", () => {
+    render(<Harness unavailableReason={WAIT} />);
+    expect(moveToggle()).toHaveAttribute("aria-disabled", "true");
+    expect(attackToggle()).toHaveAttribute("aria-disabled", "true");
+    expect(declare()).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByTestId("composer-hint")).toHaveTextContent(WAIT);
+    fireEvent.click(moveToggle());
+    expect(moveToggle()).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("re-enables when the room becomes ready", () => {
+    const { rerender } = render(<Harness unavailableReason={WAIT} />);
+    rerender(<Harness />);
+    expect(moveToggle()).not.toHaveAttribute("aria-disabled");
+    fireEvent.click(moveToggle());
+    expect(moveToggle()).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("composer-hint")).not.toHaveTextContent(WAIT);
+  });
+
   it("nasce sem mover e sem atacar, e explica como começar", () => {
     render(<Harness />);
     expect(moveToggle()).toHaveAttribute("aria-pressed", "false");

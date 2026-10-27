@@ -20,4 +20,12 @@ describe("MatchSheetPanel", () => {
     expect(screen.getByTestId("match-sheet")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Fechar ficha" })).not.toBeInTheDocument();
   });
+
+  it("shows a centered empty state until a sheet is chosen", () => {
+    renderWithProviders(
+      <MatchSheetPanel token="t" sheetUuid={undefined} emptyHint="Toque numa peça ou num personagem para abrir a ficha." />,
+    );
+    const hint = screen.getByText("Toque numa peça ou num personagem para abrir a ficha.");
+    expect(hint.closest('[data-testid="match-sheet-empty"]')).not.toBeNull();
+  });
 });

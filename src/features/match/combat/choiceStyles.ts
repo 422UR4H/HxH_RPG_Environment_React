@@ -37,6 +37,14 @@ export const Toggle = styled.button<{ $tone: Tone }>`
     cursor: not-allowed;
   }
 
+  &[aria-disabled="true"] {
+    background: ${colors.surfaceDisabled};
+    border-color: ${colors.surfaceDisabled};
+    color: ${colors.textDisabledOnDark};
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+
   &[aria-pressed="true"],
   &[aria-checked="true"] {
     ${({ $tone }) => css`
