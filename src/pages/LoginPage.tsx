@@ -46,13 +46,11 @@ export default function LoginPage() {
     handleForm(e);
   }
 
+  // Consome o estado do cadastro: o aviso já foi lido para o useState, e um reload não o traz de volta.
+  const carriesSignUpState = (location.state as { registered?: string } | null)?.registered !== undefined;
   useEffect(() => {
-    if (registeredEmail !== undefined) {
-      navigate(location.pathname, { replace: true, state: null });
-    }
-    // Só na montagem: consome o estado uma vez.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (carriesSignUpState) navigate(location.pathname, { replace: true, state: null });
+  }, [carriesSignUpState, location.pathname, navigate]);
 
   useEffect(() => {
     if (token) navigate("/home");
