@@ -20,6 +20,7 @@ import GeneralBar from "../features/match/combat/GeneralBar";
 import OwnBars from "../features/match/combat/OwnBars";
 import EventStream from "../features/match/combat/EventStream";
 import { historyRows } from "../features/match/combat/historyRows";
+import { composerUnavailableReason } from "../features/match/combat/composerAvailability";
 import ActionComposer from "../features/match/combat/ActionComposer";
 import type { DeclaredAction } from "../features/match/combat/combatReducer";
 import CancelDeclaredDialog from "../features/match/combat/CancelDeclaredDialog";
@@ -57,8 +58,6 @@ type RailTab = "acao" | "ficha";
 
 /** Só a parede com o que fazer é tocável — terreno e parede destruída deixam o toque cair no slot. */
 const isActorWallTappable = (w: WallSegment) => actorWallVerbs(w).length > 0;
-
-const ROOM_NOT_READY = "Aguarde o mestre abrir a sala para agir.";
 
 export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
@@ -231,7 +230,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
     : undefined;
 
   // Sem conexão viva ou sem tabuleiro não há onde tocar: o compositor espera a sala.
-  const roomReady = combat.status === "connected" && !!map;
+  const composerUnavailable = composerUnavailableReason(combat.status, !!map);
 
   const actorChoices = useMemo(
     () => myCharacters.map((p) => ({ id: p.characterSheet.uuid, name: p.characterSheet.nickName })),
@@ -299,7 +298,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
                 onDeclare={game.declare}
                 canDeclare={game.canDeclare}
                 blockedReason={game.blockedReason}
-                unavailableReason={roomReady ? undefined : ROOM_NOT_READY}
+                unavailableReason={composerUnavailable}
               />
             </>
           ) : (

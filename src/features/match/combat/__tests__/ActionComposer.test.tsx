@@ -98,6 +98,13 @@ describe("ActionComposer", () => {
     expect(moveToggle()).toHaveAttribute("aria-pressed", "false");
   });
 
+  it("makes the blocked wrappers fill their cell", () => {
+    render(<Harness unavailableReason={WAIT} />);
+    expect(moveToggle().parentElement).toHaveStyle({ display: "flex" });
+    expect(declare().parentElement).toHaveStyle({ display: "flex" });
+    expect(screen.getByRole("group", { name: "O que fazer" })).toContainElement(moveToggle().parentElement);
+  });
+
   it("re-enables when the room becomes ready", () => {
     const { rerender } = render(<Harness unavailableReason={WAIT} />);
     rerender(<Harness />);

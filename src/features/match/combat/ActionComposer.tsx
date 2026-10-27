@@ -126,6 +126,7 @@ export default function ActionComposer({
           type="button"
           as={BlockableButton}
           blockedReason={unavailableReason}
+          stretch
           $tone="move"
           aria-pressed={moveOn}
           onClick={() => onDraftChange(toggleMove(draft, resolved))}
@@ -138,6 +139,7 @@ export default function ActionComposer({
           type="button"
           as={BlockableButton}
           blockedReason={unavailableReason}
+          stretch
           $tone="attack"
           aria-pressed={actOn}
           onClick={() => onDraftChange(toggleAct(draft))}
@@ -255,6 +257,7 @@ export default function ActionComposer({
         <S.DeclareButton
           as={BlockableButton}
           blockedReason={unavailableReason}
+          stretch
           type="button"
           // Indisponível usa aria-disabled (o Tooltip explica); `disabled` não recebe foco nem toque.
           disabled={!unavailableReason && (!verdict.ready || !canDeclare)}

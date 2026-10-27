@@ -113,6 +113,7 @@ export const Footer = styled.div`
 
 export const DeclareButton = styled.button`
   flex: 1;
+  width: 100%;
   min-height: 40px;
   font-size: 14px;
   font-weight: 700;

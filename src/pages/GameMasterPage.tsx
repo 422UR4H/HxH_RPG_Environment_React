@@ -557,21 +557,16 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     setPanelOpen(true);
   }, [setPanelOpen]);
   // O onde cai tem a barra dele (MapPickConfirm); a casa da fuga, só a dica — o toque já envia.
-  const mapHint = !map || (fallPicking && choosingFall)
-    ? undefined
-      : reactionPicking && reactionPick
-      ? `${verb} na casa para onde ${nameOf(reactionPick.actorId)} escapa.`
-      : arranging
-      ? placingId
-        ? `${verb} num slot vazio para pôr ${nameOf(placingId)}.`
-        : "Arraste uma peça para movê-la."
-      : showReactionHint
-        ? undefined
-      : sheetVisible
-        ? (sheetId ? `${verb} numa peça para ver a ficha.` : undefined)
-      : !actorId
-        ? `${verb} num NPC para agir por ele.`
-        : undefined;
+  const mapHint = pickMapHint();
+  function pickMapHint(): string | undefined {
+    if (!map || (fallPicking && choosingFall)) return undefined;
+    if (reactionPicking && reactionPick) return `${verb} na casa para onde ${nameOf(reactionPick.actorId)} escapa.`;
+    if (arranging) return placingId ? `${verb} num slot vazio para pôr ${nameOf(placingId)}.` : "Arraste uma peça para movê-la.";
+    if (showReactionHint) return undefined;
+    // Sem ficha escolhida o painel já diz o que fazer: a dica sob o mapa seria repetida.
+    if (sheetVisible) return sheetId ? `${verb} numa peça para ver a ficha.` : undefined;
+    return actorId ? undefined : `${verb} num NPC para agir por ele.`;
+  }
 
   return (
     <>
