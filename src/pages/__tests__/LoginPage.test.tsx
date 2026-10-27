@@ -1,16 +1,26 @@
 // src/pages/__tests__/LoginPage.test.tsx
 import { describe, it, expect } from "vitest";
 import { http, HttpResponse } from "msw";
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { server } from "../../test/server";
 import { renderWithProviders } from "../../test/render";
 import LoginPage from "../LoginPage";
+import { useLocation } from "react-router-dom";
 
 const baseUrl = "http://localhost:5000";
 
+function StateProbe() {
+  const { state } = useLocation();
+  return <div data-testid="location-state">{JSON.stringify(state)}</div>;
+}
+
 function renderPage(state?: unknown) {
-  return renderWithProviders(<LoginPage />, { route: "/", token: null, user: null, state });
+  return renderWithProviders(
+    <>
+      <LoginPage />
+      <StateProbe />
+    </>, { route: "/", token: null, user: null, state });
 }
 
 async function fillAndSubmit() {
@@ -102,5 +112,31 @@ describe("LoginPage", () => {
     renderPage({ registered: "novo@mail.com" });
     expect(screen.getByLabelText("E-mail")).toHaveValue("novo@mail.com");
     expect(screen.getByRole("status")).toHaveTextContent("Conta criada. Entre com seu e-mail e senha.");
+  });
+
+  it("consumes the sign-up notice", async () => {
+    server.use(
+      http.post(`${baseUrl}/auth/login`, () =>
+        HttpResponse.json({ detail: "validation error: access denied" }, { status: 401 }),
+      ),
+    );
+    const { rerender } = renderPage({ registered: "novo@mail.com" });
+    expect(screen.getByRole("status")).toHaveTextContent("Conta criada.");
+    // O estado foi apagado do histórico depois da primeira leitura.
+    await waitFor(() => expect(screen.getByTestId("location-state")).toHaveTextContent("null"));
+    // O e-mail preenchido continua; o aviso some ao tentar entrar.
+    expect(screen.getByLabelText("E-mail")).toHaveValue("novo@mail.com");
+    const u = userEvent.setup();
+    await u.type(screen.getByLabelText("Senha"), "12345678");
+    await u.click(screen.getByRole("button", { name: /Entrar/i }));
+    expect(await screen.findByText("E-mail ou senha incorretos.")).toBeInTheDocument();
+    expect(screen.queryByText("Conta criada. Entre com seu e-mail e senha.")).not.toBeInTheDocument();
+    rerender(
+      <>
+        <LoginPage />
+        <StateProbe />
+      </>,
+    );
+    expect(screen.queryByText("Conta criada. Entre com seu e-mail e senha.")).not.toBeInTheDocument();
   });
 });

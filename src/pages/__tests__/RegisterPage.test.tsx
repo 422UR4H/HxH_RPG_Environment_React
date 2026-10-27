@@ -67,6 +67,22 @@ describe("RegisterPage", () => {
     expect(screen.queryByText("O e-mail deve ter entre 12 e 64 caracteres.")).not.toBeInTheDocument();
   });
 
+  it("focuses the first errored field and clears only its own error on edit", async () => {
+    renderPage();
+    const u = userEvent.setup();
+    await u.type(screen.getByLabelText("E-mail"), "teste@mail.com");
+    await u.type(screen.getByLabelText("Senha"), "123");
+    await u.click(screen.getByRole("button", { name: /Criar conta/i }));
+    expect(screen.getByLabelText("Nick")).toHaveFocus();
+    expect(screen.getByText("Informe um nick.")).toBeInTheDocument();
+    expect(screen.getByText("A senha deve ter pelo menos 8 caracteres.")).toBeInTheDocument();
+
+    await u.type(screen.getByLabelText("Nick"), "T");
+    expect(screen.queryByText("Informe um nick.")).not.toBeInTheDocument();
+    expect(screen.getByText("A senha deve ter pelo menos 8 caracteres.")).toBeInTheDocument();
+    expect(screen.getByText("Confirme a senha.")).toBeInTheDocument();
+  });
+
   it("navigates to login with the email after success", async () => {
     server.use(
       http.post(`${baseUrl}/auth/register`, () => HttpResponse.json({}, { status: 201 })),

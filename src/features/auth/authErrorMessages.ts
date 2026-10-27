@@ -14,6 +14,8 @@ export function getLoginErrorMessage(err: unknown): string {
   return "Não foi possível entrar agora. Tente novamente em instantes.";
 }
 
+export const REGISTERED_NOTICE = "Conta criada. Entre com seu e-mail e senha.";
+
 export const EMAIL_REQUIRED = "Informe o e-mail.";
 export const EMAIL_INVALID = "E-mail inválido.";
 export const EMAIL_LENGTH = "O e-mail deve ter entre 12 e 64 caracteres.";

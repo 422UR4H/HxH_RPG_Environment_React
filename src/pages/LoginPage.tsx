@@ -11,10 +11,8 @@ import { useSignIn } from "../hooks/useSignIn";
 import SignField from "../components/molecules/SignField";
 import SignFormError from "../components/atoms/SignFormError";
 import SignNotice from "../components/atoms/SignNotice";
-import { getLoginErrorMessage } from "../features/auth/authErrorMessages";
+import { getLoginErrorMessage, REGISTERED_NOTICE } from "../features/auth/authErrorMessages";
 import { validateLogin, type FieldErrors } from "../features/auth/validateSignForms";
-
-const REGISTERED_NOTICE = "Conta criada. Entre com seu e-mail e senha.";
 
 type LoginForm = {
   email: string;
@@ -27,8 +25,12 @@ export default function LoginPage() {
   const { token, login } = useToken();
   const { putUser } = useUser();
   const location = useLocation();
-  // Vem do cadastro concluído: preenche o e-mail e mostra o aviso.
-  const registeredEmail = (location.state as { registered?: string } | null)?.registered;
+  // Vem do cadastro concluído: lido uma vez só (useState guarda o valor inicial) e depois
+  // apagado do histórico, para o aviso e o e-mail não voltarem ao recarregar.
+  const [registeredEmail] = useState(
+    () => (location.state as { registered?: string } | null)?.registered,
+  );
+  const [showNotice, setShowNotice] = useState(registeredEmail !== undefined);
   const { form, handleForm } = useForm<LoginForm>({
     email: registeredEmail ?? "",
     password: "",
@@ -45,12 +47,21 @@ export default function LoginPage() {
   }
 
   useEffect(() => {
+    if (registeredEmail !== undefined) {
+      navigate(location.pathname, { replace: true, state: null });
+    }
+    // Só na montagem: consome o estado uma vez.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
     if (token) navigate("/home");
   }, [token, navigate]);
 
   function handleSubmit(e: FormEvent<HTMLFormElement>): void {
     e.preventDefault();
     setError(null);
+    setShowNotice(false);
     const errors = validateLogin(form);
     setFieldErrors(errors);
     const firstInvalid = (["email", "password"] as const).find((name) => errors[name]);
@@ -73,7 +84,7 @@ export default function LoginPage() {
   return (
     <SignPagesTemplate>
       <Form onSubmit={handleSubmit}>
-        {registeredEmail !== undefined && <SignNotice message={REGISTERED_NOTICE} />}
+        {showNotice && <SignNotice message={REGISTERED_NOTICE} />}
         <SignField
           name="email"
           label="E-mail"
