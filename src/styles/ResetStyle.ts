@@ -90,6 +90,16 @@ const ResetStyle = createGlobalStyle`
 		outline-offset: 3px;
 	}
 
+	/* Controles nativos na cor da marca. */
+	input[type="checkbox"], input[type="radio"], input[type="range"] {
+		accent-color: ${colors.brandAccent};
+	}
+
+	/* Ícone do seletor de data branco e calendário aberto escuro, como o site. */
+	input[type="date"], input[type="datetime-local"], input[type="time"] {
+		color-scheme: dark;
+	}
+
 	* {
 		transition: color 200ms, background-color 200ms; 
 		box-sizing: border-box;

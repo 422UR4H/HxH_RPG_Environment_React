@@ -148,7 +148,14 @@ const Form = styled.form`
 
 const ButtonsContainer = styled.div`
   display: flex;
+  flex-wrap: wrap;
   gap: 15px;
+
+  @media (max-width: 480px) {
+    & > button {
+      flex: 1 1 100%;
+    }
+  }
 `;
 
 const Button = styled.button`
