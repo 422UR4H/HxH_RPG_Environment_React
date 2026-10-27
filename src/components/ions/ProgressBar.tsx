@@ -91,7 +91,7 @@ const Label = styled.span`
 
   font-family: ${fonts.display};
   /* Sem piso: a etiqueta define a altura da barra, e um piso a deixaria mais alta que o card
-     comporta. A legibilidade vem do branco com contorno. */
+     comporta. A legibilidade vem do branco com sombra suave sobre o tom mais escuro. */
   font-size: 3.8cqi;
   font-weight: 600;
   color: ${colors.textPrimary};

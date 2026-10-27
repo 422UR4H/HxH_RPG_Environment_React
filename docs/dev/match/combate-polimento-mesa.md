@@ -30,8 +30,9 @@ Quem precisa dessa fronteira usa o tracker, nunca compara pontas por conta próp
 ## Número da barra
 
 `components/ions/ProgressBar.tsx`. O número (`current/max`) é **uma etiqueta só**, fixa à direita,
-branca com contorno nítido em `textOnLight` (quatro `text-shadow` de 1 px): lê sobre o preenchimento
-e sobre a trilha, e não anda enquanto a barra anima o dano (fase 2, PR 5, MESA-03; antes eram duas
+branca com sombra suave (`text-shadow`) sobre um preenchimento de tom mais escuro do mesmo matiz,
+recortado por `clip-path` (o tom escuro fica sempre sob o número): lê sobre o preenchimento
+e sobre a trilha, centralizada na vertical com `text-box` (onde há suporte), e não anda enquanto a barra anima o dano (fase 2, PR 5, MESA-03; antes eram duas
 camadas recortadas que trocavam de cor na borda do fill). A etiqueta fica em fluxo: é ela que dá a
 altura da barra, por isso não tem piso de tamanho (um piso deixaria a barra mais alta que o card).
 
