@@ -41,7 +41,7 @@ describe("pageHeader", () => {
     );
     const css = injectedCss();
     expect(css).toContain("container-type:inline-size");
-    expect(css).toContain("grid-template-columns:minmax(0, 1fr) auto");
+    expect(css).toContain("grid-template-columns:minmax(min-content, 1fr) auto");
     expect(css).toContain("@container (max-width: 559px)");
     expect(css).toContain("display:flow-root");
     expect(css).toContain("float:right");

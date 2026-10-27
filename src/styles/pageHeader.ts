@@ -39,7 +39,7 @@ export const headerTitle = css`
  */
 export const headerRow = css`
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(min-content, 1fr) auto;
   grid-template-areas:
     "title badge"
     "title date";
