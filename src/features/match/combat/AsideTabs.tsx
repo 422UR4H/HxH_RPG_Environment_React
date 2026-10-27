@@ -82,4 +82,6 @@ const Content = styled.div`
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  /* Coluna lateral nunca rola na horizontal; o conteúdo é que cabe. */
+  overflow-x: hidden;
 `;

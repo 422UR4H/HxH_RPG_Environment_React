@@ -53,6 +53,8 @@ const Sidebar = styled.div`
   flex-shrink: 0;
   background-color: ${colors.surfaceSidebar};
   overflow-y: auto;
+  /* Coluna lateral nunca rola na horizontal; o conteúdo é que cabe. */
+  overflow-x: hidden;
 
   @media (max-width: 749px) {
     width: 100%;

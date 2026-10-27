@@ -35,6 +35,8 @@ const SidebarContainer = styled.aside`
   padding: 20px;
   position: relative;
   overflow-y: auto;
+  /* Coluna lateral nunca rola na horizontal; o conteúdo é que cabe. */
+  overflow-x: hidden;
   flex-shrink: 0;
 `;
 
