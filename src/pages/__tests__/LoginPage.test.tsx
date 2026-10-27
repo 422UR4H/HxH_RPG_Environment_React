@@ -1,12 +1,14 @@
 // src/pages/__tests__/LoginPage.test.tsx
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { http, HttpResponse } from "msw";
-import { screen, waitFor } from "@testing-library/react";
+import { act, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { server } from "../../test/server";
 import { renderWithProviders } from "../../test/render";
 import LoginPage from "../LoginPage";
 import { useLocation } from "react-router-dom";
+import { markSessionExpired } from "../../features/auth/sessionNotice";
+import { SERVER_WAKING_HINT } from "../../services/serverWake";
 
 const baseUrl = "http://localhost:5000";
 
@@ -31,6 +33,8 @@ async function fillAndSubmit() {
 }
 
 describe("LoginPage", () => {
+  beforeEach(() => sessionStorage.clear());
+
   it("mostra mensagem amigável no 401, sem o texto cru do backend", async () => {
     server.use(
       http.post(`${baseUrl}/auth/login`, () =>
@@ -138,5 +142,45 @@ describe("LoginPage", () => {
       </>,
     );
     expect(screen.queryByText("Conta criada. Entre com seu e-mail e senha.")).not.toBeInTheDocument();
+  });
+
+  it("shows the expired-session notice once", () => {
+    markSessionExpired();
+    const { unmount } = renderPage();
+    expect(screen.getByRole("status")).toHaveTextContent("Sua sessão expirou. Entre de novo.");
+    unmount();
+    renderPage();
+    expect(screen.queryByText("Sua sessão expirou. Entre de novo.")).not.toBeInTheDocument();
+  });
+
+  it("prefers the sign-up notice when both apply", () => {
+    markSessionExpired();
+    renderPage({ registered: "novo@mail.com" });
+    expect(screen.getByRole("status")).toHaveTextContent("Conta criada.");
+    expect(screen.queryByText("Sua sessão expirou. Entre de novo.")).not.toBeInTheDocument();
+  });
+
+  describe("waking hint", () => {
+    afterEach(() => vi.useRealTimers());
+
+    it("shows the waking hint after 3 s of pending login", async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      server.use(http.post(`${baseUrl}/auth/login`, () => new Promise(() => {})));
+      renderPage();
+      const u = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      await u.type(screen.getByLabelText("E-mail"), "teste@mail.com");
+      await u.type(screen.getByLabelText("Senha"), "12345678");
+      await u.click(screen.getByRole("button", { name: /Entrar/i }));
+      expect(await screen.findByRole("status", { name: "Carregando" })).toBeInTheDocument();
+
+      act(() => {
+        vi.advanceTimersByTime(2900);
+      });
+      expect(screen.queryByText(SERVER_WAKING_HINT)).not.toBeInTheDocument();
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+      expect(screen.getByText(SERVER_WAKING_HINT)).toBeInTheDocument();
+    });
   });
 });

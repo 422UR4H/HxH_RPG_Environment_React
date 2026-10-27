@@ -16,6 +16,8 @@ export function getLoginErrorMessage(err: unknown): string {
 
 export const REGISTERED_NOTICE = "Conta criada. Entre com seu e-mail e senha.";
 
+export const SESSION_EXPIRED_NOTICE = "Sua sessão expirou. Entre de novo.";
+
 export const EMAIL_REQUIRED = "Informe o e-mail.";
 export const EMAIL_INVALID = "E-mail inválido.";
 export const EMAIL_LENGTH = "O e-mail deve ter entre 12 e 64 caracteres.";

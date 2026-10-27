@@ -40,6 +40,8 @@ Two parallel contexts, each hydrated from `localStorage` on mount:
 
 `src/services/httpClient.ts` has a 401 interceptor that clears **both** localStorage keys and hard-redirects to `/` — it bypasses both contexts. If you add another auth-related key, update that interceptor too.
 
+When it fires (and when `TokenProvider` drops an already-expired JWT on start, read via `src/utils/jwt.ts`), it also writes `sessionStorage["sessionExpired"]` through `expireSession()` in `src/features/auth/sessionNotice.ts`; `LoginPage` is the only consumer (shows the notice once, then erases the key). A module flag keeps parallel 401s from redirecting twice. Test helper `renderWithProviders` plants a real unexpired JWT (`src/test/fakeJwt.ts`) because unreadable tokens count as expired.
+
 It only fires when a token was already stored. A failed login also returns 401, and firing there would wipe the error message before the page could render it.
 
 Pages self-guard with `if (!token) return <Navigate to="/" replace />`. No route wrapper.

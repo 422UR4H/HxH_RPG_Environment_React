@@ -11,7 +11,9 @@ import { useSignIn } from "../hooks/useSignIn";
 import SignField from "../components/molecules/SignField";
 import SignFormError from "../components/atoms/SignFormError";
 import SignNotice from "../components/atoms/SignNotice";
-import { getLoginErrorMessage, REGISTERED_NOTICE } from "../features/auth/authErrorMessages";
+import { getLoginErrorMessage, REGISTERED_NOTICE, SESSION_EXPIRED_NOTICE } from "../features/auth/authErrorMessages";
+import { consumeSessionExpired, peekSessionExpired } from "../features/auth/sessionNotice";
+import ServerWakingHint from "../components/atoms/ServerWakingHint";
 import { validateLogin, type FieldErrors } from "../features/auth/validateSignForms";
 
 type LoginForm = {
@@ -30,7 +32,13 @@ export default function LoginPage() {
   const [registeredEmail] = useState(
     () => (location.state as { registered?: string } | null)?.registered,
   );
-  const [showNotice, setShowNotice] = useState(registeredEmail !== undefined);
+  // Vem de um token vencido (interceptor 401 ou TokenProvider). Lido uma vez; apagado num efeito
+  // (e não na leitura) para sobreviver ao StrictMode, que roda o inicializador duas vezes.
+  const [sessionExpired] = useState(peekSessionExpired);
+  useEffect(() => {
+    consumeSessionExpired();
+  }, []);
+  const [showNotice, setShowNotice] = useState(true);
   const { form, handleForm } = useForm<LoginForm>({
     email: registeredEmail ?? "",
     password: "",
@@ -82,7 +90,10 @@ export default function LoginPage() {
   return (
     <SignPagesTemplate>
       <Form onSubmit={handleSubmit}>
-        {showNotice && <SignNotice message={REGISTERED_NOTICE} />}
+        {showNotice && registeredEmail !== undefined && <SignNotice message={REGISTERED_NOTICE} />}
+        {showNotice && registeredEmail === undefined && sessionExpired && (
+          <SignNotice message={SESSION_EXPIRED_NOTICE} />
+        )}
         <SignField
           name="email"
           label="E-mail"
@@ -105,6 +116,7 @@ export default function LoginPage() {
         />
         {error && <SignFormError message={error} />}
         <ButtonSubmit disabled={isPending}>Entrar</ButtonSubmit>
+        {isPending && <ServerWakingHint />}
       </Form>
       <Link to="/sign-up">Primeira vez? Crie sua conta!</Link>
     </SignPagesTemplate>
