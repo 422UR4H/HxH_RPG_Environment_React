@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import styled from "styled-components";
 import { colors, alpha } from "../../styles/tokens";
+import { touchTarget } from "../../styles/touchTarget";
 import type { WallMaterial, WallSegment, WallType } from "../../types/tacticalMap";
 
 type Props = {
@@ -126,14 +127,14 @@ const BadgeDot = styled.div`
   background: ${colors.brandAccent}; flex-shrink: 0;
 `;
 const BadgeLabel = styled.span`
-  font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
+  font-size: 12px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
   color: ${colors.brandAccent};
 `;
 const Section = styled.div`
   display: flex; flex-direction: column; gap: 6px;
 `;
 const SectionLabel = styled.span`
-  font-size: 11px; font-weight: 600;
+  font-size: 12px; font-weight: 600;
   color: ${colors.textPlaceholderStrong};
   text-transform: uppercase; letter-spacing: 0.05em;
 `;
@@ -148,6 +149,7 @@ const Chip = styled.button<{ $active: boolean }>`
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s, color 0.15s;
   &:hover { border-color: ${colors.brandAccent}; color: ${colors.textPrimary}; }
+  ${touchTarget}
 `;
 const LockToggle = styled.button<{ $locked: boolean }>`
   font-size: 12px; padding: 5px 14px; border-radius: 999px;
@@ -157,6 +159,7 @@ const LockToggle = styled.button<{ $locked: boolean }>`
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s, color 0.15s;
   &:hover { border-color: ${colors.feedbackDanger}; color: ${colors.feedbackDanger}; }
+  ${touchTarget}
 `;
 const Actions = styled.div`
   display: flex; gap: 8px;
@@ -169,6 +172,7 @@ const ApplyButton = styled.button<{ $applied: boolean }>`
   font-size: 12px; font-weight: 600; cursor: pointer;
   transition: background 0.2s;
   &:hover { background: ${colors.brandAccent}; }
+  ${touchTarget}
 `;
 const DeleteButton = styled.button`
   padding: 7px 12px; border-radius: 6px;
@@ -176,4 +180,5 @@ const DeleteButton = styled.button`
   font-size: 12px; cursor: pointer;
   transition: background 0.15s, color 0.15s;
   &:hover { background: ${colors.actionDestructive}; color: ${colors.textPrimary}; }
+  ${touchTarget}
 `;

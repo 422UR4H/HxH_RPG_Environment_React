@@ -5,6 +5,7 @@ import useToken from "../../hooks/useToken";
 import { useCampaignDetails } from "../../hooks/useCampaignDetails";
 import CharacterSidebarItem from "./CharacterSidebarItem";
 import { colors, alpha } from "../../styles/tokens";
+import { touchTarget } from "../../styles/touchTarget";
 
 type Props = {
   campaignId: string;
@@ -114,6 +115,7 @@ const SearchInput = styled.input`
   &:focus {
     border-color: ${colors.brandAccent};
   }
+  ${touchTarget}
 `;
 
 const List = styled.div`
@@ -144,7 +146,7 @@ const CardWrapper = styled.div<{ $isPlacing: boolean }>`
 `;
 
 const EmptyHint = styled.p`
-  font-size: 11px;
+  font-size: 12px;
   color: ${colors.textPlaceholder};
   text-align: center;
   padding: 16px 0;

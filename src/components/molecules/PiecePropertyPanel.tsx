@@ -2,6 +2,7 @@ import styled from "styled-components";
 import type { Piece } from "../../types/tacticalMap";
 import type { CharacterPrivateSummary } from "../../types/characterSheet";
 import { colors, alpha } from "../../styles/tokens";
+import { touchTarget } from "../../styles/touchTarget";
 
 type Props = {
   piece: Piece;
@@ -97,18 +98,18 @@ const NpcInfo = styled.div`
 `;
 
 const NpcName = styled.span`
-  font-size: clamp(11px, 3cqi, 13px);
+  font-size: clamp(12px, 3cqi, 13px);
   font-weight: 600;
   color: ${colors.textPrimary};
 `;
 
 const NpcMeta = styled.span`
-  font-size: 11px;
+  font-size: 12px;
   color: ${colors.textMuted};
 `;
 
 const Summary = styled.summary`
-  font-size: 11px;
+  font-size: 12px;
   color: ${colors.textMuted};
   cursor: pointer;
   padding: 4px 0;
@@ -119,7 +120,7 @@ const Summary = styled.summary`
 
   &::before {
     content: "▶";
-    font-size: 9px;
+    font-size: 12px;
     transition: transform 0.15s;
   }
 
@@ -133,7 +134,7 @@ const ConfigBody = styled.div`
 `;
 
 const FieldLabel = styled.div`
-  font-size: 10px;
+  font-size: 12px;
   color: ${colors.textMuted};
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -150,10 +151,11 @@ const ZSlider = styled.input`
   flex: 1;
   min-width: 0;
   accent-color: ${colors.brandAccent};
+  ${touchTarget}
 `;
 
 const ZValue = styled.span`
-  font-size: clamp(10px, 2.5cqi, 12px);
+  font-size: 12px;
   color: ${colors.brandAccent};
   font-weight: 700;
   min-width: 28px;
@@ -174,7 +176,7 @@ const RemoveButton = styled.button`
   background: ${alpha(colors.feedbackDanger, 0.07)};
   color: ${colors.feedbackDanger};
   border-radius: 6px;
-  font-size: clamp(10px, 2.8cqi, 12px);
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   display: flex;
@@ -187,10 +189,11 @@ const RemoveButton = styled.button`
     background: ${alpha(colors.feedbackDanger, 0.13)};
     border-color: ${colors.feedbackDanger};
   }
+  ${touchTarget}
 `;
 
 const DragHint = styled.p`
-  font-size: 10px;
+  font-size: 12px;
   color: ${colors.textPlaceholder};
   text-align: center;
   margin-top: 4px;

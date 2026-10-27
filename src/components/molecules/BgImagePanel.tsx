@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import imageCompression from "browser-image-compression";
 import { colors } from "../../styles/tokens";
+import { touchTarget } from "../../styles/touchTarget";
 import { IMAGE_PICKER_TIP } from "../../constants/uiStrings";
 import { fitGridAndCover } from "../../features/tactical-map/utils/bgFit";
 import useToken from "../../hooks/useToken";
@@ -385,6 +386,7 @@ const UrlInput = styled.input`
   outline: none;
   &:focus { border-color: ${colors.brandAccent}; }
   &::placeholder { color: ${colors.textPlaceholder}; }
+  ${touchTarget}
 `;
 
 const AddButton = styled.button`
@@ -397,10 +399,11 @@ const AddButton = styled.button`
   font-weight: 600;
   cursor: pointer;
   &:disabled { opacity: 0.4; cursor: not-allowed; }
+  ${touchTarget}
 `;
 
 const TipText = styled.p`
-  font-size: 11px;
+  font-size: 12px;
   color: ${colors.textPlaceholder};
   margin: 0;
   line-height: 1.4;
@@ -424,6 +427,7 @@ const TextButton = styled.button`
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
+  ${touchTarget}
 `;
 
 const DangerButton = styled(TextButton)`
@@ -451,6 +455,7 @@ const NumberInput = styled.input`
   outline: none;
   &:focus { border-color: ${colors.brandAccent}; }
   &:disabled { opacity: 0.4; }
+  ${touchTarget}
 `;
 
 const LockRow = styled.div`display: flex; align-items: flex-end; gap: 4px;`;
@@ -463,9 +468,10 @@ const LockButton = styled.button`
   padding: 0 4px;
   align-self: flex-end;
   margin-bottom: 6px;
+  ${touchTarget}
 `;
 
-const SliderInput = styled.input`width: 100%;`;
+const SliderInput = styled.input`width: 100%; ${touchTarget}`;
 
 const Divider = styled.hr`border-color: ${colors.borderInput}; margin: 4px 0;`;
 
@@ -479,4 +485,5 @@ const RefitButton = styled.button`
   font-size: 12px;
   cursor: pointer;
   &:hover { border-color: ${colors.brandAccent}; color: ${colors.brandAccent}; }
+  ${touchTarget}
 `;

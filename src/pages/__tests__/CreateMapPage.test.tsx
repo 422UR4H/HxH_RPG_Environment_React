@@ -44,7 +44,7 @@ describe("CreateMapPage", () => {
 
   it("exibe campo de nome do mapa na toolbar", () => {
     renderPage();
-    expect(screen.getByPlaceholderText(/nome do mapa/i)).toBeInTheDocument();
+    expect(screen.getByLabelText("Nome do mapa")).toBeInTheDocument();
   });
 
   it("clicar Salvar sem nome exibe erro em português", async () => {
@@ -63,7 +63,7 @@ describe("CreateMapPage", () => {
     );
     renderPage();
     await userEvent.type(
-      screen.getByPlaceholderText(/nome do mapa/i),
+      screen.getByLabelText("Nome do mapa"),
       "Floresta do Norte",
     );
     await userEvent.click(screen.getByRole("button", { name: /criar mapa/i }));
@@ -80,7 +80,7 @@ describe("CreateMapPage", () => {
     );
     renderPage();
     await userEvent.type(
-      screen.getByPlaceholderText(/nome do mapa/i),
+      screen.getByLabelText("Nome do mapa"),
       "Mapa X",
     );
     await userEvent.click(screen.getByRole("button", { name: /criar mapa/i }));
@@ -94,7 +94,7 @@ describe("CreateMapPage", () => {
     const addEventSpy = vi.spyOn(window, "addEventListener");
     renderPage();
     await userEvent.type(
-      screen.getByPlaceholderText(/nome do mapa/i),
+      screen.getByLabelText("Nome do mapa"),
       "A",
     );
     expect(addEventSpy).toHaveBeenCalledWith(

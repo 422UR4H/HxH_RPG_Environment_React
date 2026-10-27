@@ -1,5 +1,6 @@
 import styled from "styled-components";
 import { colors } from "../../styles/tokens";
+import { touchTarget } from "../../styles/touchTarget";
 import usePointerVerb from "../../hooks/usePointerVerb";
 import type { WallMaterial, WallType } from "../../types/tacticalMap";
 
@@ -104,18 +105,18 @@ const ModeDot = styled.div<{ $active: boolean }>`
   background: ${({ $active }) => $active ? colors.textPrimary : colors.textPlaceholderStrong};
 `;
 const ModeLabel = styled.span<{ $active: boolean }>`
-  font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+  font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
   color: ${({ $active }) => $active ? colors.textPrimary : colors.textPlaceholderStrong};
   flex: 1;
 `;
 const EscHint = styled.span`
-  font-size: 10px; color: ${colors.overlayLightStrong};
+  font-size: 12px; color: ${colors.overlayLightStrong};
 `;
 const Section = styled.div`
   display: flex; flex-direction: column; gap: 6px;
 `;
 const SectionLabel = styled.span`
-  font-size: 11px; font-weight: 600;
+  font-size: 12px; font-weight: 600;
   color: ${colors.textPlaceholderStrong};
   text-transform: uppercase; letter-spacing: 0.05em;
 `;
@@ -130,7 +131,8 @@ const Chip = styled.button<{ $active: boolean }>`
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s, color 0.15s;
   &:hover { border-color: ${colors.brandAccent}; color: ${colors.textPrimary}; }
+  ${touchTarget}
 `;
 const Hint = styled.span`
-  font-size: 11px; color: ${colors.textPlaceholderStrong}; margin-top: 2px;
+  font-size: 12px; color: ${colors.textPlaceholderStrong}; margin-top: 2px;
 `;
