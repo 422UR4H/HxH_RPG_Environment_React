@@ -21,8 +21,9 @@ export default function PlusButton({
 }
 
 const PlusButtonContainer = styled.div<{ $disabled: boolean }>`
-  width: 8cqi;
-  height: 7.98cqi;
+  /* round(): tamanho em pixel inteiro nas densidades fracionárias. */
+  width: round(8cqi, 1px);
+  height: round(7.98cqi, 1px);
 
   cursor: ${({ $disabled }) => ($disabled ? "not-allowed" : "pointer")};
   filter: ${({ $disabled }) => ($disabled ? "grayscale(100%)" : "none")};

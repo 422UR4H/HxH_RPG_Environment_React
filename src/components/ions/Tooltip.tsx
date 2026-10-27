@@ -171,12 +171,12 @@ const Bubble = styled.span`
   user-select: none;
   /* Curta fica numa linha; frase longa (o motivo de uma ação indisponível) quebra sem passar da tela. */
   width: max-content;
-  max-width: min(280px, calc(100vw - 16px));
+  max-width: min(300px, calc(100vw - 16px));
   white-space: normal;
   line-height: 1.35;
-  padding: 4px 8px;
+  padding: 6px 10px;
   border-radius: 4px;
   background: ${colors.surfaceBar};
   color: ${colors.textPrimary};
-  font-size: 12px;
+  font-size: 15px;
 `;
