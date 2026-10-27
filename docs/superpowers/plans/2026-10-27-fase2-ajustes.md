@@ -107,6 +107,65 @@ O dono do produto rejeitou a Task 1: os balões de atributos e perícias estavam
 - [ ] Testes do `CharacterExpBar`: as etiquetas continuam visíveis por padrão; com `labelsInTooltip` elas somem e o `mouseEnter` na `div` envolvente da barra (o `parentElement` do `progressbar`) mostra `"Lv 2 · 10 / 30"`; sem nível, `"10 / 30"`; `mouseLeave` esconde.
 - [ ] Commit — `fix(ficha): EXP da criação e edição no mesmo balão das perícias`.
 
+## Segunda rodada do dono do produto (27/10, tarde)
+
+Pedidos: selo fixo no canto superior direito na maioria das telas (embaixo só no celular) e título com piso; sombra dos flutuantes ainda fraca; “Iniciada em” com `title` nativo e cursor de ajuda, que não funciona no toque; número das barras de HP/SP nos cards serrilhado, mal lido e descentralizado (proposta dele: degradê para um tom escuro perto do brand sob o número); nenhuma coluna lateral pode ter rolagem horizontal; “?” e o texto do tooltip maiores (Task 4).
+
+### Task 7: “Iniciada em” no Tooltip compartilhado
+
+**Files:** `src/features/match/MatchHeaderSection.tsx` (+ o teste da página da partida, se ele procura o `title`)
+
+- [ ] O valor da data de início fica dentro do `Tooltip` de `src/components/ions/Tooltip.tsx` com `label={`Agendada para: ${formatDateTimeBR(match.gameScheduledAt)}`}` (o mesmo texto de hoje). O alvo precisa ser focável (`tabIndex={0}`), para teclado e toque. Saem o atributo `title`, o `cursor: help` e o `DateValueWithTooltip`; fica o sublinhado pontilhado (`text-decoration: underline dotted`), que avisa que há mais informação.
+- [ ] Teste (título em inglês): passar o mouse na data mostra `Agendada para: …` num `role="tooltip"`; o elemento não tem mais `title`.
+- [ ] Commit — `fix(partida): data de início com o balão do site, que funciona no toque`.
+
+### Task 8: Cabeçalho com o selo no canto superior direito
+
+**Files:** `src/styles/pageHeader.ts`, `src/styles/__tests__/pageHeader.test.tsx`, `src/features/match/MatchHeaderSection.tsx`, `src/pages/CampaignPage.tsx`, `src/pages/LobbyPage.tsx`
+
+Protótipo do coordenador (`proto-S4.css`, medido nas 4 telas × 8 larguras de 320 a 1920: zero palavra partida, zero transbordo). Medidas pela coluna central (`HeaderBox` é o contêiner):
+
+- [ ] **Ordem no DOM:** selo (se houver), título, data (se houver), filhos diretos da linha. Sai o bloco que embrulhava selo e data (`headerAside`, `DateSection`, o embrulho da data na campanha). O selo vem antes do título porque, na faixa média, ele flutua.
+- [ ] **`headerRow`, coluna ≥ 560 px:** `display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "title badge" "title date"; column-gap: 32px; row-gap: 0; align-items: start;`. **340–559 px** (`@container (max-width: 559px)`): `display: flow-root`. **< 340 px** (`@container (max-width: 339px)`): `display: flex; flex-direction: column; align-items: flex-start; gap: 10px;`.
+- [ ] **`headerTitle`:** `grid-area: title; font-size: clamp(26px, 5.5cqi, 42px); line-height: 1.1; font-weight: 900; min-width: 0; overflow-wrap: normal;` (ao lado do selo flutuante, `break-word` partia a palavra em vez de descê-la para a linha de baixo); < 340 px: `font-size: 22px; overflow-wrap: break-word;`.
+- [ ] **`headerBadge` (novo):** `grid-area: badge; justify-self: end; margin-bottom: 8px;`; 340–559: `float: right; margin: 4px 0 4px 16px;`; < 340: `float: none; margin: 0; order: 1;`.
+- [ ] **`headerDate` (novo):** `grid-area: date; justify-self: end; text-align: right;`; 340–559: `clear: both; padding-top: 10px;`; < 340: `order: 2; padding-top: 0; justify-self: start; text-align: left;`. `headerDateValue` (`nowrap`) continua.
+- [ ] As três telas usam esses blocos (`styled(Badge)` com `${headerBadge}`; o rótulo da data com `${headerDate}`), sem regra própria de alinhamento que os contradiga. Teste do `pageHeader` atualizado (o CSS contém `@container (max-width: 559px)`, `float: right` e `clamp(26px, 5.5cqi, 42px)`).
+- [ ] Commit — `fix(layout): selo no canto superior direito e título com piso de 26 px`.
+
+### Task 9: Barras de HP e SP — degradê sob o número, sem contorno, centralizado
+
+**Files:** `src/components/ions/ProgressBar.tsx`, `src/components/atoms/HpBar.tsx`, `src/components/atoms/SpBar.tsx`, `src/styles/tokens.ts`, `src/components/ions/__tests__/ProgressBar.test.tsx`, `src/features/sheet/__tests__/ProgressBar.test.tsx`
+
+Protótipo do coordenador (`protobars.mjs`, `barink.mjs`): o branco sobre o verde do SP tem contraste 2,4; sobre `green700`, 6,1; sobre `red800`, 6,4. Mesma família de cor de cada barra, sem cor nova na palette.
+
+- [ ] **Tokens semânticos:** `vitalHpDeep: palette.red800` e `vitalSpDeep: palette.green700`, ao lado de `vitalHp`/`vitalSp`, com comentário: o tom escuro sob o número da barra.
+- [ ] **`ProgressBar` ganha `deepColor?: string`** (sem ela, o preenchimento é a cor lisa de hoje). `HpBar` passa `colors.vitalHpDeep` e `SpBar`, `colors.vitalSpDeep`.
+- [ ] **Preenchimento da largura da barra, recortado no valor:** `BarFill` com `inset: 0; width: 100%; clip-path: inset(0 ${100 - pct}% 0 0); transition: clip-path 0.3s ease; font-size: 3.8cqi;` (a mesma fonte da etiqueta, para o `em` do degradê medir o número) e, com `deepColor`, `background: linear-gradient(to right, ${color} calc(100% - 8em), ${deepColor} calc(100% - 4em));`. Assim o tom escuro fica sempre sob o número, à direita, e só aparece onde há preenchimento.
+- [ ] **Etiqueta:** sai o contorno de 1 px em quatro direções (serrilhado no card); fica `text-shadow: 0 0 2px ${colors.shadowText}`. Centralização: fora de `@supports`, o `padding-top: 1px` de hoje; dentro de `@supports (text-box: trim-both cap alphabetic)`, `text-box: trim-both cap alphabetic; padding-top: calc((1lh + 1px - 1cap) / 2); padding-bottom: calc((1lh + 1px - 1cap) / 2);` (a altura continua `1lh + 1px` — o card não muda de tamanho — e os algarismos ficam no meio: medido 1,7/1,7 px no card de 10 px, era 2,7/0,7).
+- [ ] Testes: o `progress-fill` recorta no valor (`clip-path: inset(0 50% 0 0)` a 50%); com `deepColor`, o fundo é um `linear-gradient`; sem, a cor lisa.
+- [ ] Commit — `fix(ui): número das barras sobre o tom escuro da própria cor, sem contorno e centralizado`.
+
+### Task 10: Nenhuma coluna lateral rola na horizontal
+
+**Files:** `src/components/organisms/CharactersSidebar.tsx`, `src/components/organisms/RulesSidebar.tsx`, `src/components/templates/DetailPageTemplate.tsx`, `src/components/templates/MatchStageTemplate.tsx`, `src/components/templates/CreateFormTemplate.tsx`, `src/components/templates/MapEditorTemplate.tsx`, `src/features/match/combat/AsideTabs.tsx`
+
+Com `overflow-y: auto`, o navegador torna o eixo x rolável também: basta um item 1 px mais largo que a coluna (por exemplo, quando a barra vertical aparece e come a largura) para surgir a barra horizontal.
+
+- [ ] Em cada contêiner rolável de coluna lateral desses arquivos (os que têm `overflow-y: auto`), `overflow-x: hidden;` ao lado, com um comentário: coluna lateral nunca rola na horizontal; o conteúdo é que cabe.
+- [ ] Nas listas de itens dessas colunas (`CharactersList` e equivalentes), `& > * { min-width: 0; max-width: 100%; }`, para o item encolher em vez de passar da borda.
+- [ ] Commit — `fix(layout): colunas laterais sem rolagem horizontal`.
+
+### Task 11: Sombra dos flutuantes que aparece no fundo escuro
+
+**Files:** `src/styles/bottomBar.ts` (`floatingElevation`), `src/styles/tokens.ts`, os quatro chamadores (`AdaptiveActionButton`, `BottomActions`, `ManageButton`, `SheetBottomActions`)
+
+Protótipo do coordenador (`protoshadow.mjs`, variante C): no fundo escuro, sombra preta quase não aparece; o que separa é o aro claro e o brilho de cima, com uma sombra mais larga.
+
+- [ ] `floatingElevation(shadow, outline, highlight)` devolve `0 3px 6px ${shadow}, 0 16px 40px ${shadow}, 0 0 0 1px ${outline}, inset 0 1px 0 ${highlight}`.
+- [ ] Tokens: `shadowFloating: alpha(palette.neutral1000, 0.85)`, `borderFloating: alpha(palette.neutral0, 0.3)` e o novo `highlightFloating: alpha(palette.neutral0, 0.18)` (brilho de 1 px no topo dos flutuantes). Os quatro chamadores passam o terceiro argumento.
+- [ ] Commit — `fix(ui): flutuantes com aro claro e sombra larga, visíveis no fundo escuro`.
+
 ---
 
 ## Verificação final (coordenador)
