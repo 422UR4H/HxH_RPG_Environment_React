@@ -152,7 +152,7 @@ const ButtonsContainer = styled.div`
   gap: 15px;
 
   @media (max-width: 480px) {
-    & > button {
+    & > * {
       flex: 1 1 100%;
     }
   }
