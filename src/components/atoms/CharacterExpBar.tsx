@@ -12,9 +12,11 @@ interface CharacterExpBarProps {
 
 export default function CharacterExpBar({ currExp, maxExp, level, labelsInTooltip = false }: CharacterExpBarProps) {
   const percentage = maxExp > 0 ? Math.min((currExp / maxExp) * 100, 100) : 0;
-  const levelText = level !== undefined ? `Lv ${level}` : null;
-  const expText = maxExp > 0 ? `${currExp} / ${maxExp}` : null;
-  const label = [levelText, expText].filter(Boolean).join(" · ");
+  const hasLevel = level !== undefined;
+  const hasExp = maxExp > 0;
+  const label = [hasLevel ? `Lv ${level}` : null, hasExp ? `${currExp} / ${maxExp}` : null]
+    .filter(Boolean)
+    .join(" · ");
 
   const bar = (
     <BarBorder
@@ -43,9 +45,10 @@ export default function CharacterExpBar({ currExp, maxExp, level, labelsInToolti
 
   return (
     <Container>
+      {/* Os filhos ficam divididos em nós de texto como no original: o Chrome modela o texto por nó e o card é pixel-tuned. */}
       <RightLabels>
-        {levelText && <LvLabel>{levelText}</LvLabel>}
-        {expText && <ExpLabel>{expText}</ExpLabel>}
+        {hasLevel && <LvLabel>Lv {level}</LvLabel>}
+        {hasExp && <ExpLabel>{currExp} / {maxExp}</ExpLabel>}
       </RightLabels>
       {bar}
     </Container>
