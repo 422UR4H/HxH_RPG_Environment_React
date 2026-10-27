@@ -5,6 +5,12 @@ import type { BadgeTone } from "../../components/ions/Badge";
 import type { Match, MatchStatus } from "../../types/match";
 import ExpandableText from "../../components/molecules/ExpandableText";
 import { colors } from "../../styles/tokens";
+import {
+  HeaderBox,
+  headerRow,
+  headerTitle,
+  stackedHeader,
+} from "../../styles/pageHeader";
 import { formatDateBR, formatDateTimeBR } from "../../utils/date";
 
 const statusLabels: Record<MatchStatus, string> = {
@@ -34,27 +40,29 @@ export default function MatchHeaderSection({
 }: MatchHeaderSectionProps) {
   return (
     <>
-      <MatchHeader>
-        <MatchTitle>{match.title.toUpperCase()}</MatchTitle>
-        <DateSection>
-          <Badge tone={statusTones[status]}>{statusLabels[status]}</Badge>
-          {status === "scheduled" ? (
-            <DateLabel>
-              Agendada para:{" "}
-              <span>{formatDateTimeBR(match.gameScheduledAt)}</span>
-            </DateLabel>
-          ) : (
-            <DateLabel>
-              Iniciada em:{" "}
-              <DateValueWithTooltip
-                title={`Agendada para: ${formatDateTimeBR(match.gameScheduledAt)}`}
-              >
-                {formatDateTimeBR(match.gameStartAt!)}
-              </DateValueWithTooltip>
-            </DateLabel>
-          )}
-        </DateSection>
-      </MatchHeader>
+      <HeaderBox>
+        <MatchHeader>
+          <MatchTitle>{match.title.toUpperCase()}</MatchTitle>
+          <DateSection>
+            <Badge tone={statusTones[status]}>{statusLabels[status]}</Badge>
+            {status === "scheduled" ? (
+              <DateLabel>
+                Agendada para:{" "}
+                <span>{formatDateTimeBR(match.gameScheduledAt)}</span>
+              </DateLabel>
+            ) : (
+              <DateLabel>
+                Iniciada em:{" "}
+                <DateValueWithTooltip
+                  title={`Agendada para: ${formatDateTimeBR(match.gameScheduledAt)}`}
+                >
+                  {formatDateTimeBR(match.gameStartAt!)}
+                </DateValueWithTooltip>
+              </DateLabel>
+            )}
+          </DateSection>
+        </MatchHeader>
+      </HeaderBox>
 
       <StoryDate>Início na história: {formatDateBR(match.storyStartAt)}</StoryDate>
 
@@ -86,26 +94,12 @@ export default function MatchHeaderSection({
 }
 
 const MatchHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
+  ${headerRow}
   align-items: flex-start;
-  gap: 16px;
-  margin-bottom: 20px;
-
-  @media (max-width: 750px) {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
 `;
 
 const MatchTitle = styled.h1`
-  font-size: 42px;
-  font-weight: 900;
-  color: ${colors.textPrimary};
-  flex: 1;
-  min-width: 0;
-  overflow-wrap: break-word;
+  ${headerTitle}
 `;
 
 const DateSection = styled.div`
@@ -114,14 +108,22 @@ const DateSection = styled.div`
   align-items: flex-end;
   gap: 8px;
   flex-shrink: 0;
-`;
 
+  /* Empilhado: selo e data alinhados à esquerda, junto do título. */
+  ${stackedHeader} {
+    align-items: flex-start;
+  }
+`;
 
 const DateLabel = styled.div`
   font-weight: 400;
   font-size: 18px;
   color: ${colors.textPrimary};
   text-align: right;
+
+  ${stackedHeader} {
+    text-align: left;
+  }
 `;
 
 const DateValueWithTooltip = styled.span`
