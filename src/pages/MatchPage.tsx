@@ -25,8 +25,7 @@ import { PageLoading, PageError, PageNotFound } from "../components/templates/Pa
 import { isApiError } from "../services/httpClient";
 import ConfirmDialog from "../components/molecules/ConfirmDialog";
 import DetailPageTemplate from "../components/templates/DetailPageTemplate";
-import RulesSidebar from "../components/organisms/RulesSidebar";
-import RuleSection from "../components/molecules/RuleSection";
+import UpcomingRulesSidebar from "../components/organisms/UpcomingRulesSidebar";
 import type { MatchStatus } from "../types/match";
 import { ActionsList } from "../components/atoms/ActionsList";
 import { useQueryClient } from "@tanstack/react-query";
@@ -304,20 +303,7 @@ export default function MatchPage() {
           />
         }
         rightSidebar={
-          <RulesSidebar>
-            <RuleSection title="Configurações Gerais">
-              As regras da partida seguem as definições da campanha.
-            </RuleSection>
-            <RuleSection title="Sistema de Combate">
-              Configure o sistema de combate da partida.
-            </RuleSection>
-            <RuleSection title="Progressão de Personagens">
-              Define como os personagens evoluem durante a partida.
-            </RuleSection>
-            <RuleSection title="Nen & Habilidades">
-              Configure as regras para uso e desenvolvimento de Nen.
-            </RuleSection>
-          </RulesSidebar>
+          <UpcomingRulesSidebar scope="match" />
         }
       >
         <MatchHeaderSection
@@ -338,7 +324,6 @@ export default function MatchPage() {
                 manage={
                   isMaster && !match.gameStartAt
                     ? {
-                        isFree: true,
                         onEdit: handleEdit,
                         onDelete: handleDelete,
                         confirmMessage:

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { http, HttpResponse } from "msw";
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { server } from "../../test/server";
 import { renderWithProviders } from "../../test/render";
@@ -290,6 +290,51 @@ describe("LobbyPage", () => {
     await waitFor(() => {
       expect(screen.getByText(/Tem certeza/i)).toBeInTheDocument();
     });
+  });
+
+  it("explains why 'Expulsar' is unavailable for a player who is not connected (CON-08)", async () => {
+    setupHandlers("master-1");
+    renderPage({ user: masterUserFixture });
+    await waitForWsConnect();
+    simulateWsOpen();
+    sendFromServer("room_state", { matchUuid: "match-1", state: "lobby", players: [] });
+
+    const kick = await screen.findByRole("button", { name: /Expulsar/i });
+    expect(kick).toHaveAttribute("aria-disabled", "true");
+    expect(kick).toHaveAccessibleDescription("O jogador precisa estar conectado.");
+    await userEvent.click(kick);
+    expect(screen.queryByText(/Tem certeza que deseja expulsar/i)).not.toBeInTheDocument();
+  });
+
+  it("labels a connected player 'CONECTADO' and lets the master kick them (TXT-02)", async () => {
+    setupHandlers("master-1");
+    renderPage({ user: masterUserFixture });
+    await waitForWsConnect();
+    simulateWsOpen();
+    sendFromServer("room_state", {
+      matchUuid: "match-1",
+      state: "lobby",
+      players: [{ uuid: "user-1", nickname: "Gon", isMaster: false, isOnline: true }],
+    });
+
+    expect(await screen.findByText("CONECTADO")).toBeInTheDocument();
+    expect(screen.queryByText("ONLINE")).not.toBeInTheDocument();
+    const kick = screen.getByRole("button", { name: /Expulsar/i });
+    expect(kick).not.toHaveAttribute("aria-disabled");
+    await userEvent.click(kick);
+    expect(await screen.findByText(/Tem certeza que deseja expulsar Gon/i)).toBeInTheDocument();
+  });
+
+  it("shows the same four rule cards as the match, marked as coming soon", async () => {
+    setupHandlers("master-1");
+    renderPage({ user: masterUserFixture });
+    const rules = await screen.findByRole("complementary", { name: /Regras/i });
+    expect(within(rules).getByText("Em breve")).toBeInTheDocument();
+    expect(within(rules).getByRole("heading", { name: "Progressão de Personagens" })).toBeInTheDocument();
+    expect(within(rules).getByRole("heading", { name: "Nen & Habilidades" })).toBeInTheDocument();
+    expect(
+      within(rules).getByText("Mais opções de configuração serão adicionadas em breve."),
+    ).toBeInTheDocument();
   });
 
   describe("LobbyPage — connection states", () => {

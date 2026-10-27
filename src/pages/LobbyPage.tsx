@@ -18,8 +18,7 @@ import { ActionsList } from "../components/atoms/ActionsList";
 import ConfirmDialog from "../components/molecules/ConfirmDialog";
 import DetailPageTemplate from "../components/templates/DetailPageTemplate";
 import CharactersSidebar from "../components/organisms/CharactersSidebar";
-import RulesSidebar from "../components/organisms/RulesSidebar";
-import RuleSection from "../components/molecules/RuleSection";
+import UpcomingRulesSidebar from "../components/organisms/UpcomingRulesSidebar";
 import LobbyConnectionSidebarItem from "../features/match/LobbyConnectionSidebarItem";
 import { colors, alpha } from "../styles/tokens";
 import { GAME_SERVER_WAKING, GAME_SERVER_UNREACHABLE } from "../services/serverWake";
@@ -264,14 +263,7 @@ export default function LobbyPage() {
           />
         }
         rightSidebar={
-          <RulesSidebar>
-            <RuleSection title="Configurações Gerais">
-              As regras da partida seguem as definições da campanha.
-            </RuleSection>
-            <RuleSection title="Sistema de Combate">
-              Configure o sistema de combate da partida.
-            </RuleSection>
-          </RulesSidebar>
+          <UpcomingRulesSidebar scope="match" />
         }
       >
         <LobbyHeader>

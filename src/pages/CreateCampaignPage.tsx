@@ -10,11 +10,11 @@ import FormRow from "../components/molecules/FormRow";
 import FormCheckbox from "../components/molecules/FormCheckbox";
 import FormInput from "../components/ions/FormInput";
 import FormTextArea from "../components/ions/FormTextArea";
-import RulesSidebar from "../components/organisms/RulesSidebar";
-import RuleSection from "../components/molecules/RuleSection";
+import UpcomingRulesSidebar from "../components/organisms/UpcomingRulesSidebar";
 import { CONNECTION_ERROR_MESSAGE, getApiErrorDetail, isConnectionError } from "../utils/apiError";
 import { getCampaignValidationMessage } from "../features/campaign/campaignErrorMessages";
 import { toDateInputValue } from "../utils/date";
+import { incompleteInputMessage, missingRequiredMessage } from "../utils/requiredFields";
 
 type CampaignFormData = {
   name: string;
@@ -43,8 +43,15 @@ export default function CreateCampaignPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.briefInitialDescription) {
-      setError("Nome e descrição breve são obrigatórios.");
+    const missing =
+      incompleteInputMessage(e.currentTarget as HTMLFormElement) ??
+      missingRequiredMessage([
+        { label: "Nome da Campanha", value: form.name },
+        { label: "Descrição Breve", value: form.briefInitialDescription },
+        { label: "Data de Início da História", value: form.storyStartAt },
+      ]);
+    if (missing) {
+      setError(missing);
       return;
     }
     setError(null);
@@ -80,23 +87,7 @@ export default function CreateCampaignPage() {
       isSubmitting={isPending}
       onCancel={() => navigate(-1)}
       rulesContent={
-        <RulesSidebar
-          title="Regras da Campanha"
-          footer="Mais opções de configuração serão adicionadas em breve."
-        >
-          <RuleSection title="Configurações Gerais">
-            As regras da campanha serão configuradas aqui.
-          </RuleSection>
-          <RuleSection title="Sistema de Combate">
-            Configure o sistema de combate da sua campanha.
-          </RuleSection>
-          <RuleSection title="Progressão de Personagens">
-            Define como os personagens evoluem durante a campanha.
-          </RuleSection>
-          <RuleSection title="Nen & Habilidades">
-            Configure as regras para uso e desenvolvimento de Nen.
-          </RuleSection>
-        </RulesSidebar>
+        <UpcomingRulesSidebar scope="campaign" />
       }
     >
       <FormField label="Nome da Campanha" htmlFor="name">
@@ -124,7 +115,7 @@ export default function CreateCampaignPage() {
         />
       </FormField>
 
-      <FormField label="Descrição Completa" htmlFor="description">
+      <FormField label="Descrição Completa" htmlFor="description" optional>
         <FormTextArea
           id="description"
           name="description"
@@ -135,7 +126,7 @@ export default function CreateCampaignPage() {
         />
       </FormField>
 
-      <FormField label="Link da Chamada" htmlFor="callLink">
+      <FormField label="Link da Chamada" htmlFor="callLink" optional>
         <FormInput
           id="callLink"
           name="callLink"

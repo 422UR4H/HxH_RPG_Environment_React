@@ -123,3 +123,12 @@ describe("ImagePickerModal — guarda de descarte", () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 });
+
+describe("ImagePickerModal — tabs", () => {
+  it("names the upload tab in Portuguese, like 'Colar link'", () => {
+    render(<ImagePickerModal type="avatar" onConfirm={vi.fn()} onClose={vi.fn()} />);
+    expect(screen.getByText(/Enviar arquivo/)).toBeInTheDocument();
+    expect(screen.queryByText(/Upload arquivo/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Colar link/)).toBeInTheDocument();
+  });
+});

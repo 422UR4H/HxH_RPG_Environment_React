@@ -1,6 +1,7 @@
 import type { CharacterClass } from "../../types/characterClass";
 import type { CharacterSheet } from "../../types/characterSheet";
 import type { SheetMode } from "./types/sheetMode";
+import type { ManageActions } from "../../components/molecules/ManageButton";
 import styled from "styled-components";
 import space from "../../assets/images/space.png";
 import BackButton from "../../components/ions/BackButton";
@@ -39,12 +40,7 @@ interface Data {
   onCancel?: () => void;
   submitLabel?: string;
   submitError?: string | null;
-  manage?: {
-    isFree: boolean;
-    onEdit: () => void;
-    onDelete: () => void;
-    confirmMessage: string;
-  };
+  manage?: ManageActions;
 }
 
 interface CharacterSheetTemplateProps {
@@ -220,7 +216,7 @@ function CharacterSheetTemplate({
             <SectionTitle>PERÍCIAS</SectionTitle>
 
             <SkillsGroup>
-              <GroupTitle>Físicas</GroupTitle>
+              <GroupTitle>Physical</GroupTitle>
               <PhysicalSkillsGroup
                 mode={sheetMode.skillsMode}
                 attributes={physicalAttributes}
@@ -230,7 +226,7 @@ function CharacterSheetTemplate({
 
             {(spiritualAbility?.level ?? 0) > 0 && (
               <SkillsGroup>
-                <GroupTitle>Espirituais</GroupTitle>
+                <GroupTitle>Spiritual</GroupTitle>
                 <SpiritualSkillsGroup
                   mode={sheetMode.skillsMode}
                   attributes={spiritualAttributes}

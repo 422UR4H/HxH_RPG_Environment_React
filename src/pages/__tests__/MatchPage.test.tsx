@@ -1,7 +1,7 @@
 // src/pages/__tests__/MatchPage.test.tsx
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { http, HttpResponse } from "msw";
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Route, Routes } from "react-router-dom";
 import { server } from "../../test/server";
@@ -381,6 +381,90 @@ describe("MatchPage", () => {
       );
       renderPage();
       expect(await screen.findByText("Participant")).toBeInTheDocument();
+    });
+  });
+
+  describe("enrollment review by the master (CON-04)", () => {
+    function serveEnrollment(status: "pending" | "accepted" | "rejected") {
+      server.use(
+        http.get(`${baseUrl}/matches/:id`, () =>
+          HttpResponse.json({ match: matchAsMasterApi(masterUserFixture.user.uuid) }),
+        ),
+        http.get(`${baseUrl}/matches/:id/enrollments`, () =>
+          HttpResponse.json({
+            enrollments: [
+              {
+                uuid: "enr-1",
+                status,
+                createdAt: "2025-01-01T00:00:00.000Z",
+                player: { uuid: "user-x", nick: "PlayerX" },
+                characterSheet: {
+                  uuid: "sheet-x",
+                  nickName: "Killua",
+                  createdAt: "2025-01-01T00:00:00.000Z",
+                  updatedAt: "2025-01-01T00:00:00.000Z",
+                },
+              },
+            ],
+          }),
+        ),
+      );
+    }
+
+    it("names both actions with the character's nick while the enrollment is pending", async () => {
+      serveEnrollment("pending");
+      renderPage({ user: masterUserFixture });
+      const accept = await screen.findByRole("button", { name: "Aceitar inscrição de Killua" });
+      const reject = screen.getByRole("button", { name: "Recusar inscrição de Killua" });
+      expect(accept).toHaveTextContent("Aceitar");
+      expect(reject).toHaveTextContent("Recusar");
+      expect(screen.getByText("Pendente")).toBeInTheDocument();
+    });
+
+    it.each([
+      ["Aceitar", "accept"],
+      ["Recusar", "reject"],
+    ])("'%s' calls the %s endpoint without opening the sheet", async (verb, action) => {
+      serveEnrollment("pending");
+      const calls: string[] = [];
+      server.use(
+        http.post(`${baseUrl}/enrollments/:id/:action`, ({ params }) => {
+          calls.push(`${params.id}/${params.action}`);
+          return HttpResponse.json({});
+        }),
+      );
+      renderPage({ user: masterUserFixture });
+      const u = userEvent.setup();
+      await u.click(await screen.findByRole("button", { name: `${verb} inscrição de Killua` }));
+      await waitFor(() => expect(calls).toEqual([`enr-1/${action}`]));
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
+    it("drops the actions once the enrollment is accepted, keeping only the status", async () => {
+      serveEnrollment("accepted");
+      renderPage({ user: masterUserFixture });
+      expect(await screen.findByText("Aceito")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /Aceitar|Recusar|✓|✗/ })).not.toBeInTheDocument();
+    });
+
+    it("labels a refused enrollment with the same verb as the action", async () => {
+      serveEnrollment("rejected");
+      renderPage({ user: masterUserFixture });
+      expect(await screen.findByText("Recusado")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /inscrição de Killua/i })).not.toBeInTheDocument();
+    });
+  });
+
+  describe("navigation actions (CON-05)", () => {
+    it("'Abrir Lobby' navigates, so it carries no '+'", async () => {
+      server.use(
+        http.get(`${baseUrl}/matches/:id`, () =>
+          HttpResponse.json({ match: matchAsMasterApi(masterUserFixture.user.uuid) }),
+        ),
+      );
+      renderPage({ user: masterUserFixture });
+      const open = await screen.findByRole("button", { name: "Abrir Lobby" });
+      expect(within(open).queryByText("+")).not.toBeInTheDocument();
     });
   });
 

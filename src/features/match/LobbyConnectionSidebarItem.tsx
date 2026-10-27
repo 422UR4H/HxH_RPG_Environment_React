@@ -4,6 +4,7 @@ import type { Enrollment } from "../../types/match";
 import { createEmptyCharacterSheet } from "../sheet/factories/characterSheet.factory";
 import CharacterSheetHeader from "../../components/molecules/CharacterSheetHeader";
 import ConfirmDialog from "../../components/molecules/ConfirmDialog";
+import BlockableButton from "../../components/molecules/BlockableButton";
 import { colors } from "../../styles/tokens";
 
 interface LobbyConnectionSidebarItemProps {
@@ -60,17 +61,16 @@ export default function LobbyConnectionSidebarItem({
       >
         <CharacterSheetHeader mode="card" data={{ charSheet }} showStatus={!!priv} />
         <StatusBadge $isOnline={isOnline}>
-          {isOnline ? "ONLINE" : "AGUARDANDO"}
+          {isOnline ? "CONECTADO" : "AGUARDANDO"}
         </StatusBadge>
 
         {isMaster && (
-          <Actions>
+          // A faixa de ações nunca abre a ficha: o toque no Expulsar indisponível só mostra o motivo.
+          <Actions onClick={(e) => e.stopPropagation()}>
             <KickButton
-              disabled={!isOnline}
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowKickConfirm(true);
-              }}
+              blockedReason={isOnline ? undefined : "O jogador precisa estar conectado."}
+              stretch
+              onClick={() => setShowKickConfirm(true)}
             >
               Expulsar
             </KickButton>
@@ -126,22 +126,26 @@ const Actions = styled.div`
   background-color: ${colors.overlayMedium};
 `;
 
-const KickButton = styled.button`
+const KickButton = styled(BlockableButton)`
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
   border: none;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: bold;
   cursor: pointer;
-  padding: 4px 0;
-  background-color: ${colors.feedbackDanger};
+  padding: 0 12px;
+  background-color: ${colors.actionDestructive};
   color: ${colors.textPrimary};
   transition: filter 0.2s;
 
-  &:hover:not(:disabled) {
+  &:hover:not([aria-disabled="true"]) {
     filter: brightness(1.15);
   }
-  &:disabled {
+  &[aria-disabled="true"] {
     background-color: ${colors.surfaceDisabled};
     color: ${colors.textDisabledOnDark};
     filter: none;

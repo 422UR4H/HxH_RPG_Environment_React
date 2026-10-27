@@ -1,23 +1,19 @@
 import { useEffect, useState } from "react";
-import type { RefObject } from "react";
+import type { ReactNode, RefObject } from "react";
 import { useDebounce } from "../../hooks/useDebounce";
 import ManageButton from "./ManageButton";
-import PlusIcon from "../ions/PlusIcon";
+import type { ManageActions } from "./ManageButton";
 import styled from "styled-components";
 import { colors } from "../../styles/tokens";
 
 interface BottomActionsProps {
   containerRef: RefObject<HTMLDivElement | null>;
   contentChangeSignal?: unknown;
-  manage?: {
-    isFree: boolean;
-    deleteDisabledReason?: string;
-    onEdit: () => void;
-    onDelete: () => void;
-    confirmMessage: string;
-  };
+  manage?: ManageActions;
   primaryButton?: {
     label: string;
+    /** "+" (`<PlusIcon />`) só em ação que cria algo; navegar vai sem ícone. */
+    icon?: ReactNode;
     onClick: () => void;
   };
 }
@@ -71,7 +67,7 @@ export default function BottomActions({
           {manage && <ManageButton {...manage} isFloating={true} />}
           {primaryButton && (
             <FloatingPrimary onClick={primaryButton.onClick}>
-              <PlusIcon />
+              {primaryButton.icon}
               <span>{primaryButton.label}</span>
             </FloatingPrimary>
           )}
@@ -85,7 +81,7 @@ export default function BottomActions({
       {manage && <ManageButton {...manage} isFloating={false} />}
       {primaryButton && (
         <PrimaryButton onClick={primaryButton.onClick}>
-          <PlusIcon />
+          {primaryButton.icon}
           <span>{primaryButton.label}</span>
         </PrimaryButton>
       )}

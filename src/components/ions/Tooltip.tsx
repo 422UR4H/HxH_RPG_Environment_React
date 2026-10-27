@@ -1,5 +1,6 @@
 import { cloneElement, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import type { CSSProperties, ReactElement } from "react";
+import { createPortal } from "react-dom";
 import styled from "styled-components";
 import { colors } from "../../styles/tokens";
 
@@ -12,18 +13,22 @@ const LONG_PRESS_MS = 500;
  * Dica não clicável: hover (mouse) e foco mostram; toque mostra por `TOUCH_MS`. Segurar o
  * dedo (`LONG_PRESS_MS`) também mostra, e o clique que vem ao soltar é engolido — é assim
  * que um botão que age no toque (ex.: sair) se explica no touch sem ser acionado.
- * A bolha é `position: fixed`, medida a partir do filho ao abrir: um ancestral com
- * `overflow` (a Regência da topbar rola na horizontal) cortaria uma bolha absoluta.
+ * A bolha é `position: fixed`, medida a partir do filho ao abrir, e vai num portal no `body`:
+ * um ancestral com `overflow` (a Regência da topbar rola na horizontal) cortaria uma bolha
+ * absoluta, e um com `filter`/`transform` (o hover do card do lobby) prenderia a `fixed` nele.
  */
 export default function Tooltip({
   label,
   children,
   enabled = true,
+  stretch = false,
 }: {
   label: string;
   children: ReactElement<{ "aria-describedby"?: string }>;
   /** false = não mostra nunca */
   enabled?: boolean;
+  /** true = ocupa a largura do contêiner (item de menu, botão de linha inteira) em vez de abraçar o filho. */
+  stretch?: boolean;
 }) {
   const id = useId();
   const wrapRef = useRef<HTMLSpanElement>(null);
@@ -96,6 +101,7 @@ export default function Tooltip({
   return (
     <Wrap
       ref={wrapRef}
+      $stretch={stretch}
       onPointerEnter={(e) => { if (e.pointerType === "mouse") show(); }}
       onPointerLeave={(e) => { if (e.pointerType === "mouse") hide(); }}
       onFocus={show}
@@ -130,11 +136,13 @@ export default function Tooltip({
           a bolha visual é aria-hidden para o texto não ser lido duas vezes. */}
       {enabled && <SrOnly id={id}>{label}</SrOnly>}
       {cloneElement(children, enabled ? { "aria-describedby": id } : {})}
-      {open && (
-        <Bubble ref={bubbleRef} role="tooltip" aria-hidden="true" style={pos ?? undefined}>
-          {label}
-        </Bubble>
-      )}
+      {open &&
+        createPortal(
+          <Bubble ref={bubbleRef} role="tooltip" aria-hidden="true" style={pos ?? undefined}>
+            {label}
+          </Bubble>,
+          document.body,
+        )}
     </Wrap>
   );
 }
@@ -148,8 +156,9 @@ const SrOnly = styled.span`
   white-space: nowrap;
 `;
 
-const Wrap = styled.span`
-  display: inline-flex;
+const Wrap = styled.span<{ $stretch: boolean }>`
+  display: ${({ $stretch }) => ($stretch ? "flex" : "inline-flex")};
+  ${({ $stretch }) => ($stretch ? "flex: 1 1 auto;" : "")}
   -webkit-touch-callout: none;
 `;
 
@@ -160,7 +169,11 @@ const Bubble = styled.span`
   z-index: 1000;
   pointer-events: none;
   user-select: none;
-  white-space: nowrap;
+  /* Curta fica numa linha; frase longa (o motivo de uma ação indisponível) quebra sem passar da tela. */
+  width: max-content;
+  max-width: min(280px, calc(100vw - 16px));
+  white-space: normal;
+  line-height: 1.35;
   padding: 4px 8px;
   border-radius: 4px;
   background: ${colors.surfaceBar};

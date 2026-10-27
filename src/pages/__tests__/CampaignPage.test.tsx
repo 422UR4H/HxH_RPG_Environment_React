@@ -1,7 +1,7 @@
 // src/pages/__tests__/CampaignPage.test.tsx
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { http, HttpResponse } from "msw";
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import { Route, Routes } from "react-router-dom";
 import userEvent from "@testing-library/user-event";
 import { server } from "../../test/server";
@@ -402,7 +402,13 @@ describe("CampaignPage", () => {
       });
       const user = userEvent.setup();
       await user.click(await screen.findByText(/Gerenciar/i));
-      expect(await screen.findByText(/Partida iniciada existente/i)).toBeInTheDocument();
+      const deleteButton = screen.getByRole("button", { name: /Excluir/i });
+      expect(deleteButton).toHaveAttribute("aria-disabled", "true");
+      expect(deleteButton).toHaveAccessibleDescription(
+        "Campanha com partida iniciada não pode ser excluída: o histórico é do grupo.",
+      );
+      await user.click(deleteButton);
+      expect(screen.queryByText(/Tem certeza que deseja excluir esta campanha/i)).not.toBeInTheDocument();
     });
 
     it("'Criar Partida' em BottomActions chama navigate", async () => {
@@ -520,6 +526,44 @@ describe("CampaignPage", () => {
       expect(
         await screen.findByText(/Nenhum mapa criado ainda\./i),
       ).toBeInTheDocument();
+    });
+  });
+  describe("rules column (CON-02) and action icons (CON-05)", () => {
+    it("shows the rules as coming soon, with the shared footer note and the four cards", async () => {
+      server.use(
+        http.get(`${baseUrl}/campaigns/:id`, () =>
+          HttpResponse.json({ campaign: campaignApiFixture }),
+        ),
+      );
+      renderPage();
+      const rules = await screen.findByRole("complementary", { name: /Regras/i });
+      expect(within(rules).getByText("Em breve")).toBeInTheDocument();
+      expect(
+        within(rules).getByText("Mais opções de configuração serão adicionadas em breve."),
+      ).toBeInTheDocument();
+      for (const title of [
+        "Configurações Gerais",
+        "Sistema de Combate",
+        "Progressão de Personagens",
+        "Nen & Habilidades",
+      ]) {
+        expect(within(rules).getByRole("heading", { name: title })).toBeInTheDocument();
+      }
+    });
+
+    it("keeps the '+' only on the create action, outside the accessible name", async () => {
+      server.use(
+        http.get(`${baseUrl}/campaigns/:id`, () =>
+          HttpResponse.json({ campaign: campaignAsMasterApi(masterUserFixture.user.uuid) }),
+        ),
+      );
+      renderWithProviders(<CampaignPage />, {
+        route: "/campaigns/campaign-1",
+        path: "/campaigns/:id",
+        user: masterUserFixture,
+      });
+      const create = await screen.findByRole("button", { name: "Criar Partida" });
+      expect(within(create).getByText("+")).toBeInTheDocument();
     });
   });
 });

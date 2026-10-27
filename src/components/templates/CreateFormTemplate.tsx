@@ -52,7 +52,8 @@ export default function CreateFormTemplate({
 
             {error && <ErrorMessage>{error}</ErrorMessage>}
 
-            <Form onSubmit={onSubmit}>
+            {/* noValidate: sem balão do navegador; a página checa os obrigatórios e mostra o erro acima (FOR-06). */}
+            <Form onSubmit={onSubmit} noValidate>
               {children}
 
               <ButtonsContainer>

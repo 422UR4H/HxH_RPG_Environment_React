@@ -6,13 +6,18 @@ interface FormFieldProps {
   label: string;
   htmlFor: string;
   helpText?: string;
+  /** Marca "(opcional)" no rótulo. Só nos opcionais: marcar os obrigatórios poluiria o formulário. */
+  optional?: boolean;
   children: ReactNode;
 }
 
-export default function FormField({ label, htmlFor, helpText, children }: FormFieldProps) {
+export default function FormField({ label, htmlFor, helpText, optional, children }: FormFieldProps) {
   return (
     <Group>
-      <Label htmlFor={htmlFor}>{label}</Label>
+      <Label htmlFor={htmlFor}>
+        {label}
+        {optional && <Optional> (opcional)</Optional>}
+      </Label>
       {children}
       {helpText && <HelpText>{helpText}</HelpText>}
     </Group>
@@ -29,6 +34,12 @@ const Label = styled.label`
   font-weight: 700;
   font-size: 26px;
   color: ${colors.textPrimary};
+`;
+
+const Optional = styled.span`
+  font-weight: 400;
+  font-size: 0.7em;
+  color: ${colors.textPlaceholderStrong};
 `;
 
 const HelpText = styled.p`

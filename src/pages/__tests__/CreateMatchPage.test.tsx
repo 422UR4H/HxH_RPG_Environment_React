@@ -1,7 +1,7 @@
 // src/pages/__tests__/CreateMatchPage.test.tsx
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { http, HttpResponse } from "msw";
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { server } from "../../test/server";
 import { renderWithProviders } from "../../test/render";
@@ -69,13 +69,66 @@ describe("CreateMatchPage", () => {
     expect(await screen.findByRole("heading", { name: /Regras/i })).toBeInTheDocument();
   });
 
+  it("uses the same rule cards as the match page, marked as coming soon", async () => {
+    renderPage();
+    const rules = await screen.findByRole("complementary", { name: /Regras/i });
+    expect(within(rules).getByText("Em breve")).toBeInTheDocument();
+    expect(within(rules).getByRole("heading", { name: "Configurações Gerais" })).toBeInTheDocument();
+    expect(within(rules).getByRole("heading", { name: "Nen & Habilidades" })).toBeInTheDocument();
+  });
+
   it("mostra erro de validação se Título e Descrição Breve estão vazios", async () => {
     renderPage();
     const form = (await screen.findByRole("button", { name: /Criar Partida/i })).closest("form")!;
     form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
     await waitFor(() => {
-      expect(screen.getByText(/Título e descrição breve são obrigatórios/i)).toBeInTheDocument();
+      expect(
+        screen.getByText("Preencha os campos obrigatórios: Título da Partida e Descrição Breve."),
+      ).toBeInTheDocument();
     });
+  });
+
+  it("marks only the full description as optional (FOR-06)", async () => {
+    renderPage();
+    expect(await screen.findByLabelText("Descrição Completa (opcional)")).toBeInTheDocument();
+    expect(screen.getByLabelText("Título da Partida")).toBeInTheDocument();
+    expect(screen.getByLabelText("Data e Hora da Sessão")).toBeInTheDocument();
+  });
+
+  it("answers an emptied session date with its own message (FOR-06)", async () => {
+    renderPage();
+    const u = userEvent.setup();
+    await u.type(await screen.findByLabelText(/Título da Partida/i), "Nova Partida");
+    await u.type(screen.getByLabelText(/Descrição Breve/i), "Brief partida");
+    await u.clear(screen.getByLabelText("Data e Hora da Sessão"));
+    await u.click(screen.getByRole("button", { name: /Criar Partida/i }));
+    expect(
+      await screen.findByText("Preencha o campo obrigatório: Data e Hora da Sessão."),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps the story start inside the campaign, as the browser did before noValidate", async () => {
+    let posted = false;
+    server.use(
+      http.post(`${baseUrl}/matches`, () => {
+        posted = true;
+        return HttpResponse.json({ match: { uuid: "m" } }, { status: 201 });
+      }),
+    );
+    renderPage();
+    const u = userEvent.setup();
+    await u.type(await screen.findByLabelText(/Título da Partida/i), "Nova Partida");
+    await u.type(screen.getByLabelText(/Descrição Breve/i), "Brief partida");
+    const storyStart = screen.getByLabelText("Data de Início na História");
+    await u.clear(storyStart);
+    await u.type(storyStart, "2024-12-31");
+    await u.click(screen.getByRole("button", { name: /Criar Partida/i }));
+    expect(
+      await screen.findByText(
+        "A data de início na história deve ser igual ou posterior ao início da campanha.",
+      ),
+    ).toBeInTheDocument();
+    expect(posted).toBe(false);
   });
 
   it("submete dados válidos e navega de volta", async () => {

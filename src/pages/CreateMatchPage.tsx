@@ -12,12 +12,12 @@ import FormRow from "../components/molecules/FormRow";
 import FormCheckbox from "../components/molecules/FormCheckbox";
 import FormInput from "../components/ions/FormInput";
 import FormTextArea from "../components/ions/FormTextArea";
-import RulesSidebar from "../components/organisms/RulesSidebar";
-import RuleSection from "../components/molecules/RuleSection";
+import UpcomingRulesSidebar from "../components/organisms/UpcomingRulesSidebar";
 import { PageLoading, PageError, PageNotFound } from "../components/templates/PageState";
 import { isApiError } from "../services/httpClient";
 import { getApiErrorDetail } from "../utils/apiError";
 import { toDateInputValue, toDateTimeLocalValue } from "../utils/date";
+import { incompleteInputMessage, missingRequiredMessage } from "../utils/requiredFields";
 
 type MatchFormData = {
   title: string;
@@ -65,8 +65,27 @@ export default function CreateMatchPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.title || !form.briefInitialDescription) {
-      setError("Título e descrição breve são obrigatórios.");
+    const missing =
+      incompleteInputMessage(e.currentTarget as HTMLFormElement) ??
+      missingRequiredMessage([
+        { label: "Título da Partida", value: form.title },
+        { label: "Descrição Breve", value: form.briefInitialDescription },
+        { label: "Data e Hora da Sessão", value: form.gameScheduledAt },
+        { label: "Data de Início na História", value: form.storyStartAt },
+      ]);
+    if (missing) {
+      setError(missing);
+      return;
+    }
+    // O min/max do campo não barra mais o envio (noValidate): a mesma regra do back, sem a ida à API.
+    const outsideCampaign =
+      campaign?.storyStartAt && form.storyStartAt < campaign.storyStartAt
+        ? "validation error: story start date must be after campaign start date"
+        : campaign?.storyEndAt && form.storyStartAt > campaign.storyEndAt
+          ? "validation error: story start date must be before campaign end date"
+          : null;
+    if (outsideCampaign) {
+      setError(getMatchValidationMessage(outsideCampaign) ?? null);
       return;
     }
     setError(null);
@@ -119,23 +138,7 @@ export default function CreateMatchPage() {
       isSubmitting={isPending}
       onCancel={() => navigate(-1)}
       rulesContent={
-        <RulesSidebar
-          title="Regras da Partida"
-          footer="Mais opções de configuração serão adicionadas em breve."
-        >
-          <RuleSection title="Configurações da Partida">
-            Configure regras específicas para esta sessão de jogo.
-          </RuleSection>
-          <RuleSection title="Sistema de Encontros">
-            Configure os encontros e desafios para esta partida.
-          </RuleSection>
-          <RuleSection title="Recompensas">
-            Defina as recompensas que os jogadores poderão obter.
-          </RuleSection>
-          <RuleSection title="Eventos Narrativos">
-            Configure eventos especiais que ocorrerão nesta partida.
-          </RuleSection>
-        </RulesSidebar>
+        <UpcomingRulesSidebar scope="match" />
       }
     >
       <FormField label="Título da Partida" htmlFor="title">
@@ -163,7 +166,7 @@ export default function CreateMatchPage() {
         />
       </FormField>
 
-      <FormField label="Descrição Completa (Opcional)" htmlFor="description">
+      <FormField label="Descrição Completa" htmlFor="description" optional>
         <FormTextArea
           id="description"
           name="description"

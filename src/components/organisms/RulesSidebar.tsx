@@ -1,21 +1,28 @@
-import { type ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import styled from "styled-components";
 import { colors } from "../../styles/tokens";
 
 interface RulesSidebarProps {
   title?: string;
+  /** Ao lado do título, fora do heading (ex.: selo "Em breve"). */
+  badge?: ReactNode;
   children: ReactNode;
   footer?: ReactNode;
 }
 
 export default function RulesSidebar({
   title = "REGRAS",
+  badge,
   children,
   footer,
 }: RulesSidebarProps) {
+  const titleId = useId();
   return (
-    <SidebarContainer>
-      <SidebarTitle>{title}</SidebarTitle>
+    <SidebarContainer aria-labelledby={titleId}>
+      <SidebarHeader>
+        <SidebarTitle id={titleId}>{title}</SidebarTitle>
+        {badge}
+      </SidebarHeader>
       <RulesContent>{children}</RulesContent>
       {footer && <SidebarFooter>{footer}</SidebarFooter>}
     </SidebarContainer>
@@ -31,14 +38,22 @@ const SidebarContainer = styled.aside`
   flex-shrink: 0;
 `;
 
+const SidebarHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid ${colors.borderDivider};
+  padding-bottom: 10px;
+`;
+
 const SidebarTitle = styled.h2`
   font-weight: 700;
   font-size: 32px;
   text-align: center;
   color: ${colors.textPrimary};
-  margin-bottom: 20px;
-  border-bottom: 1px solid ${colors.borderDivider};
-  padding-bottom: 10px;
 `;
 
 const RulesContent = styled.div`

@@ -74,7 +74,7 @@ describe("CreateCampaignPage", () => {
 
   it("renderiza a sidebar de regras", () => {
     renderPage();
-    expect(screen.getByRole("heading", { name: /Regras da Campanha/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /^REGRAS$/ })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /Sistema de Combate/i })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /Progressão de Personagens/i })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /Nen & Habilidades/i })).toBeInTheDocument();
@@ -88,7 +88,31 @@ describe("CreateCampaignPage", () => {
     const form = submitButton.closest("form")!;
     form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
     await waitFor(() => {
-      expect(screen.getByText(/Nome e descrição breve são obrigatórios/i)).toBeInTheDocument();
+      expect(
+        screen.getByText("Preencha os campos obrigatórios: Nome da Campanha e Descrição Breve."),
+      ).toBeInTheDocument();
+    });
+  });
+
+  describe("required and optional fields (FOR-06)", () => {
+    it("marks only the optional fields, in the label", () => {
+      renderPage();
+      expect(screen.getByLabelText("Descrição Completa (opcional)")).toBeInTheDocument();
+      expect(screen.getByLabelText("Link da Chamada (opcional)")).toBeInTheDocument();
+      expect(screen.getByLabelText("Nome da Campanha")).toBeInTheDocument();
+      expect(screen.getByLabelText("Descrição Breve")).toBeInTheDocument();
+    });
+
+    it("answers an empty required field with its own message instead of the browser bubble", async () => {
+      renderPage();
+      const u = userEvent.setup();
+      const submit = screen.getByRole("button", { name: /Criar Campanha/i });
+      expect(submit.closest("form")).toHaveAttribute("novalidate");
+      await u.type(screen.getByLabelText("Nome da Campanha"), "Yorknew");
+      await u.click(submit);
+      expect(
+        await screen.findByText("Preencha o campo obrigatório: Descrição Breve."),
+      ).toBeInTheDocument();
     });
   });
 
@@ -167,7 +191,7 @@ describe("CreateCampaignPage", () => {
     it("recolhe as regras e mostra a aba REGRAS", () => {
       setWidth(390);
       renderPage();
-      expect(screen.queryByRole("heading", { name: /Regras da Campanha/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole("heading", { name: /^REGRAS$/ })).not.toBeInTheDocument();
       expect(screen.getByRole("button", { name: "REGRAS" })).toBeInTheDocument();
     });
 
@@ -176,9 +200,9 @@ describe("CreateCampaignPage", () => {
       const u = userEvent.setup();
       renderPage();
       await u.click(screen.getByRole("button", { name: "REGRAS" }));
-      expect(screen.getByRole("heading", { name: /Regras da Campanha/i })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: /^REGRAS$/ })).toBeInTheDocument();
       await u.keyboard("{Escape}");
-      expect(screen.queryByRole("heading", { name: /Regras da Campanha/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole("heading", { name: /^REGRAS$/ })).not.toBeInTheDocument();
     });
 
     it("tocar no X fecha a gaveta", async () => {
@@ -187,7 +211,7 @@ describe("CreateCampaignPage", () => {
       renderPage();
       await u.click(screen.getByRole("button", { name: "REGRAS" }));
       await u.click(screen.getByRole("button", { name: "Fechar" }));
-      expect(screen.queryByRole("heading", { name: /Regras da Campanha/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole("heading", { name: /^REGRAS$/ })).not.toBeInTheDocument();
     });
   });
 });

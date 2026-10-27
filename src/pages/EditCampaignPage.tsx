@@ -14,11 +14,11 @@ import FormRow from "../components/molecules/FormRow";
 import FormCheckbox from "../components/molecules/FormCheckbox";
 import FormInput from "../components/ions/FormInput";
 import FormTextArea from "../components/ions/FormTextArea";
-import RulesSidebar from "../components/organisms/RulesSidebar";
-import RuleSection from "../components/molecules/RuleSection";
+import UpcomingRulesSidebar from "../components/organisms/UpcomingRulesSidebar";
 import { PageLoading, PageError, PageNotFound } from "../components/templates/PageState";
 import { getApiErrorDetail } from "../utils/apiError";
 import { toDateTimeLocalValue } from "../utils/date";
+import { incompleteInputMessage, missingRequiredMessage } from "../utils/requiredFields";
 
 type CampaignEditFormData = {
   name: string;
@@ -114,8 +114,16 @@ export default function EditCampaignPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if ((!hasStartedMatch && !form.name) || !form.briefInitialDescription) {
-      setError("Nome e descrição breve são obrigatórios.");
+    // Com partida iniciada, nome e início da história ficam travados (não vão no envio).
+    const missing =
+      incompleteInputMessage(e.currentTarget as HTMLFormElement) ??
+      missingRequiredMessage([
+        ...(hasStartedMatch ? [] : [{ label: "Nome da Campanha", value: form.name }]),
+        { label: "Descrição Breve", value: form.briefInitialDescription },
+        ...(hasStartedMatch ? [] : [{ label: "Data de Início da História", value: form.storyStartAt }]),
+      ]);
+    if (missing) {
+      setError(missing);
       return;
     }
     if (form.storyCurrentAt) {
@@ -159,23 +167,7 @@ export default function EditCampaignPage() {
       isSubmitting={isSubmitting}
       onCancel={() => navigate(-1)}
       rulesContent={
-        <RulesSidebar
-          title="Regras da Campanha"
-          footer="Mais opções de configuração serão adicionadas em breve."
-        >
-          <RuleSection title="Configurações Gerais">
-            As regras da campanha serão configuradas aqui.
-          </RuleSection>
-          <RuleSection title="Sistema de Combate">
-            Configure o sistema de combate da sua campanha.
-          </RuleSection>
-          <RuleSection title="Progressão de Personagens">
-            Define como os personagens evoluem durante a campanha.
-          </RuleSection>
-          <RuleSection title="Nen & Habilidades">
-            Configure as regras para uso e desenvolvimento de Nen.
-          </RuleSection>
-        </RulesSidebar>
+        <UpcomingRulesSidebar scope="campaign" />
       }
     >
       <FormField label="Nome da Campanha" htmlFor="name">
@@ -203,7 +195,7 @@ export default function EditCampaignPage() {
         />
       </FormField>
 
-      <FormField label="Descrição Completa" htmlFor="description">
+      <FormField label="Descrição Completa" htmlFor="description" optional>
         <FormTextArea
           id="description"
           name="description"
@@ -213,7 +205,7 @@ export default function EditCampaignPage() {
         />
       </FormField>
 
-      <FormField label="Link da Chamada" htmlFor="callLink">
+      <FormField label="Link da Chamada" htmlFor="callLink" optional>
         <FormInput
           id="callLink"
           name="callLink"
@@ -240,6 +232,7 @@ export default function EditCampaignPage() {
           label="Data Corrente da História"
           htmlFor="storyCurrentAt"
           helpText="Data atual dentro do universo da campanha"
+          optional
         >
           <FormInput
             id="storyCurrentAt"
