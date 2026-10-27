@@ -77,11 +77,4 @@ const Root = styled.span<{ $tone: BadgeTone; $size: BadgeSize; $uppercase: boole
     text-box: trim-both cap alphabetic;
     padding-block: ${({ $size }) => `calc(${sizes[$size].padY}px + (1em - 1cap) / 2)`};
   }
-
-  /* Sem text-box (Firefox): o espaço de descendentes fica embaixo e o texto
-     sobe; empurra 1px do padding de baixo para cima, mantendo a altura. */
-  @supports not (text-box: trim-both cap alphabetic) {
-    padding-top: ${({ $size }) => sizes[$size].padY + 1}px;
-    padding-bottom: ${({ $size }) => sizes[$size].padY - 1}px;
-  }
 `;

@@ -7,9 +7,10 @@ import ExpandableText from "../../components/molecules/ExpandableText";
 import { colors } from "../../styles/tokens";
 import {
   HeaderBox,
+  headerAside,
   headerRow,
   headerTitle,
-  stackedHeader,
+  narrowHeader,
 } from "../../styles/pageHeader";
 import { formatDateBR, formatDateTimeBR } from "../../utils/date";
 
@@ -103,14 +104,14 @@ const MatchTitle = styled.h1`
 `;
 
 const DateSection = styled.div`
+  ${headerAside}
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 8px;
-  flex-shrink: 0;
 
   /* Empilhado: selo e data alinhados à esquerda, junto do título. */
-  ${stackedHeader} {
+  ${narrowHeader} {
     align-items: flex-start;
   }
 `;
@@ -121,7 +122,7 @@ const DateLabel = styled.div`
   color: ${colors.textPrimary};
   text-align: right;
 
-  ${stackedHeader} {
+  ${narrowHeader} {
     text-align: left;
   }
 `;

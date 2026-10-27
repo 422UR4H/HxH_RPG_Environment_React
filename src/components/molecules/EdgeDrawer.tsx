@@ -5,6 +5,8 @@ import { colors } from "../../styles/tokens";
 import { bottomBarSpace } from "../../styles/bottomBar";
 
 export const EDGE_TAB_WIDTH = 32;
+/** Largura da área de toque da aba (a aba desenhada + 12 px invisíveis); o conteúdo reserva isso. */
+export const EDGE_TAB_HIT = 44;
 const EDGE_TAB_HEIGHT = 110;
 
 interface EdgeDrawerProps {

@@ -2,14 +2,18 @@ import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import styled from "styled-components";
 import {
-  HEADER_STACK_BELOW,
+  HEADER_NARROW_BELOW,
   HeaderBox,
+  headerAside,
   headerRow,
   headerTitle,
 } from "../pageHeader";
 
 const Row = styled.div`
   ${headerRow}
+`;
+const Aside = styled.div`
+  ${headerAside}
 `;
 const Title = styled.h1`
   ${headerTitle}
@@ -22,18 +26,23 @@ function injectedCss(): string {
 }
 
 describe("pageHeader", () => {
-  it("makes the header box a container and stacks by container width, not window width", () => {
+  it("makes the header box a container and wraps only when the title does not fit", () => {
     render(
       <HeaderBox>
         <Row>
           <Title>REENCONTRAMOS</Title>
+          <Aside>01/01/2000</Aside>
         </Row>
       </HeaderBox>,
     );
     const css = injectedCss();
     expect(css).toContain("container-type:inline-size");
-    expect(css).toContain(`@container (max-width: ${HEADER_STACK_BELOW - 1}px)`);
-    expect(css).not.toContain("@media (max-width:750px)");
+    expect(css).toContain("flex-wrap:wrap");
+    expect(css).toContain("min-width:min-content");
+    expect(css).toContain("flex:1 1 0");
+    expect(css).toContain("flex:0 0 auto");
+    expect(css).not.toContain("flex-direction:column");
+    expect(HEADER_NARROW_BELOW).toBe(400);
   });
 
   it("keeps words whole and falls back to hyphenation with a clamped size", () => {

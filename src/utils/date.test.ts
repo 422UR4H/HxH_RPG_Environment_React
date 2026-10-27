@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import {
   daysFromToday,
   formatDateBR,
@@ -7,8 +7,14 @@ import {
 } from "./date";
 
 // O Node relê TZ ao ser atribuída; fixa o fuso do Brasil só para este arquivo.
+const originalTZ = process.env.TZ;
 beforeAll(() => {
   process.env.TZ = "America/Sao_Paulo";
+});
+
+afterAll(() => {
+  if (originalTZ === undefined) delete process.env.TZ;
+  else process.env.TZ = originalTZ;
 });
 
 afterEach(() => {

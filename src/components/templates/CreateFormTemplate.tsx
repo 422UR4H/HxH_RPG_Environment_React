@@ -1,7 +1,7 @@
 import { type FormEvent, type ReactNode, useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
 import PageHeader from "../atoms/PageHeader";
-import EdgeDrawer from "../molecules/EdgeDrawer";
+import EdgeDrawer, { EDGE_TAB_HIT } from "../molecules/EdgeDrawer";
 import useMediaQuery from "../../hooks/useMediaQuery";
 import PageTitle from "../ions/PageTitle";
 import worldMap from "../../assets/images/worldmap.png";
@@ -47,7 +47,7 @@ export default function CreateFormTemplate({
       <PageHeader backgroundColor={headerColor} />
       <PageBody>
         <MainContentContainer>
-          <FormColumn>
+          <FormColumn $reserveRight={isRulesCollapsed && !!rulesContent}>
             <PageTitle>{title}</PageTitle>
 
             {error && <ErrorMessage>{error}</ErrorMessage>}
@@ -121,13 +121,15 @@ const MainContentContainer = styled.div`
   background-attachment: fixed;
 `;
 
-const FormColumn = styled.div`
+const FormColumn = styled.div<{ $reserveRight: boolean }>`
   display: flex;
   flex-direction: column;
   gap: 30px;
   max-width: 940px;
   width: 100%;
   padding: 30px;
+  /* Aba REGRAS visível: a área de toque dela não cobre o formulário. */
+  ${({ $reserveRight }) => $reserveRight && `padding-right: ${EDGE_TAB_HIT}px;`}
 `;
 
 const ErrorMessage = styled.div`

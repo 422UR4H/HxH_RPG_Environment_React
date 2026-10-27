@@ -6,6 +6,7 @@ import { daysFromToday, formatDateBR } from "../../utils/date";
 
 function formatNextGame(dateStr: string): string {
   const diffDays = daysFromToday(dateStr);
+  if (Number.isNaN(diffDays)) return "Partida agendada";
   const formatted = formatDateBR(dateStr);
   if (diffDays < 0) return `Partida agendada para: ${formatted} (passada)`;
   if (diffDays === 0) return `Partida agendada para: ${formatted} (hoje)`;

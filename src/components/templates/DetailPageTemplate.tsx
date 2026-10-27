@@ -7,7 +7,7 @@ import worldMap from "../../assets/images/worldmap.png";
 import { colors } from "../../styles/tokens";
 import { scopedScrollbar, scrollbarPalettes } from "../../styles/scrollbar";
 import { bottomBarVars } from "../../styles/bottomBar";
-import { EDGE_TAB_WIDTH } from "../molecules/EdgeDrawer";
+import { EDGE_TAB_HIT } from "../molecules/EdgeDrawer";
 import useMediaQuery from "../../hooks/useMediaQuery";
 
 interface DetailPageTemplateProps {
@@ -116,7 +116,7 @@ const PageBody = styled.main`
   ${bottomBarVars}
 `;
 
-// Com a aba visível, o respiro lateral passa a ser a largura da aba (mais 8 px de folga):
+// Com a aba visível, o respiro lateral passa a ser a área de toque da aba (44 px):
 // o conteúdo nunca fica por baixo dela.
 const MainContentContainer = styled.div<{
   $bgImage: string;
@@ -126,8 +126,8 @@ const MainContentContainer = styled.div<{
   flex: 1;
   min-width: 0;
   padding: 30px 30px 0px 30px;
-  ${({ $reserveLeft }) => $reserveLeft && `padding-left: ${EDGE_TAB_WIDTH + 8}px;`}
-  ${({ $reserveRight }) => $reserveRight && `padding-right: ${EDGE_TAB_WIDTH + 8}px;`}
+  ${({ $reserveLeft }) => $reserveLeft && `padding-left: ${EDGE_TAB_HIT}px;`}
+  ${({ $reserveRight }) => $reserveRight && `padding-right: ${EDGE_TAB_HIT}px;`}
   overflow-y: auto;
 
   background-image: url(${({ $bgImage }) => $bgImage});

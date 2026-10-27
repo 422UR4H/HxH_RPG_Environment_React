@@ -57,7 +57,7 @@ export default function EnrollmentSidebarItem({
         data={{ charSheet }}
         showStatus={!!priv}
       />
-      <StatusBadge tone={enrollmentTones[status] ?? "danger"} size="sm" uppercase={false}>
+      <StatusBadge tone={enrollmentTones[status]} size="sm" uppercase={false}>
         {status === "pending" && "Pendente"}
         {status === "accepted" && "Aceito"}
         {status === "rejected" && "Recusado"}
@@ -148,7 +148,7 @@ const StatusBadge = styled(Badge)`
   z-index: 10;
 `;
 
-const enrollmentTones: Record<string, BadgeTone> = {
+const enrollmentTones: Record<Enrollment["status"], BadgeTone> = {
   pending: "pending",
   accepted: "ongoing",
   rejected: "danger",

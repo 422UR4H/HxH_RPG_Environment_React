@@ -1,6 +1,7 @@
 // src/features/match/MatchMapsPanel.tsx
 import styled from "styled-components";
 import type { TacticalMap, MatchMapResponse } from "../../types/tacticalMap";
+import Badge from "../../components/ions/Badge";
 import MapCard from "../../components/molecules/MapCard";
 import { colors } from "../../styles/tokens";
 import { formatDateBR } from "../../utils/date";
@@ -68,7 +69,7 @@ export default function MatchMapsPanel({
                   <MapAttachRow>
                     {isAttached ? (
                       <>
-                        <AttachedBadge>Anexado</AttachedBadge>
+                        <Badge tone="ongoing" uppercase={false}>Anexado</Badge>
                         <DetachButton onClick={onDetach} disabled={isDetaching}>
                           {isDetaching ? "Desanexando…" : "Desanexar"}
                         </DetachButton>
@@ -192,16 +193,6 @@ const MapAttachRow = styled.div`
   display: flex;
   align-items: center;
   gap: 10px;
-`;
-
-const AttachedBadge = styled.span`
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  padding: 3px 10px;
-  border-radius: 20px;
-  background-color: ${colors.statusOngoing};
-  color: ${colors.textPrimary};
 `;
 
 const BaseMapButton = styled.button`

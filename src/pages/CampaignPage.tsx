@@ -8,7 +8,7 @@ import { useSubmitCharacterSheet } from "../hooks/useSubmitCharacterSheet";
 import { useDeleteCampaign } from "../hooks/useDeleteCampaign";
 import type { CharacterPrivateSummary } from "../types/campaign";
 import styled from "styled-components";
-import { HeaderBox, headerRow, headerTitle, stackedHeader } from "../styles/pageHeader";
+import { HeaderBox, headerAside, headerRow, headerTitle, narrowHeader } from "../styles/pageHeader";
 import { colors } from "../styles/tokens";
 import CharacterSidebarItem from "../components/molecules/CharacterSidebarItem";
 import MatchItem from "../features/campaign/MatchItem";
@@ -360,13 +360,14 @@ const CampaignTitle = styled.h1`
 `;
 
 const CampaignDate = styled.div`
+  ${headerAside}
   font-weight: 400;
   text-align: right;
   color: ${colors.textPrimary};
   font-size: 18px;
   line-height: 1.5;
 
-  ${stackedHeader} {
+  ${narrowHeader} {
     text-align: left;
   }
 `;
