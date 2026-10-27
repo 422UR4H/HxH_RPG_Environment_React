@@ -46,7 +46,7 @@ const Bubble = styled.div<{ $tone: BalloonTone }>`
   &::after {
     content: "";
     position: absolute;
-    left: 50%;
+    left: calc(50% + var(--tip-offset, 0px)); /* o overlay desloca o balão; a ponta anda ao contrário */
     top: 100%;
     transform: translateX(-50%);
     border: 6px solid transparent;

@@ -28,3 +28,21 @@ export function stackAbove(boxes: OverlayBox[], gap = 4): Record<string, number>
   }
   return offsets;
 }
+
+/**
+ * Mantém um item centrado em `centerX` dentro da camada: devolve a borda esquerda já dentro de
+ * `[margin, layerWidth - margin - width]`. `tipOffset` é quanto a ponta do balão precisa andar,
+ * em relação ao centro do item, para continuar sobre `centerX` depois do deslocamento.
+ * Item mais largo que a camada fica encostado na margem esquerda.
+ */
+export function clampToLayer(
+  centerX: number,
+  width: number,
+  layerWidth: number,
+  margin = 4,
+): { left: number; tipOffset: number } {
+  const max = layerWidth - margin - width;
+  const wanted = centerX - width / 2;
+  const left = max < margin ? margin : Math.min(Math.max(wanted, margin), max);
+  return { left, tipOffset: centerX - (left + width / 2) };
+}
