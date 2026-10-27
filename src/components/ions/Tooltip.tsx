@@ -22,6 +22,7 @@ export default function Tooltip({
   children,
   enabled = true,
   stretch = false,
+  placement = "bottom",
 }: {
   label: string;
   children: ReactElement<{ "aria-describedby"?: string }>;
@@ -29,6 +30,8 @@ export default function Tooltip({
   enabled?: boolean;
   /** true = ocupa a largura do contêiner (item de menu, botão de linha inteira) em vez de abraçar o filho. */
   stretch?: boolean;
+  /** Lado preferido da bolha; se não couber na janela, ela vira para o lado oposto. */
+  placement?: "top" | "bottom";
 }) {
   const id = useId();
   const wrapRef = useRef<HTMLSpanElement>(null);
@@ -39,6 +42,7 @@ export default function Tooltip({
   const [pos, setPos] = useState<CSSProperties | null>(null);
 
   const bubbleRef = useRef<HTMLSpanElement>(null);
+  const anchorRect = useRef({ top: 0, bottom: 0 });
 
   useEffect(
     () => () => {
@@ -70,19 +74,27 @@ export default function Tooltip({
     return () => document.removeEventListener("keydown", onKey);
   }, [isOpen]);
 
-  // Mede a bolha e a mantém a 8px das bordas da tela (num celular de 390px ela cortaria).
+  // Mede a bolha e a mantém a 8px das bordas da tela (num celular de 390px ela cortaria);
+  // na vertical, vira para o lado oposto quando não cabe no preferido.
   useLayoutEffect(() => {
     const el = bubbleRef.current;
     if (!el || !pos) return;
     const w = el.offsetWidth;
+    const h = el.offsetHeight;
+    const { top, bottom } = anchorRect.current;
+    const above = top - h - 6;
+    const below = bottom + 6;
+    const useAbove = placement === "top" ? above >= 8 : below + h > window.innerHeight - 8;
+    el.style.top = `${useAbove ? above : below}px`;
     const center = Number(pos.left);
     el.style.transform = "none";
     el.style.left = `${Math.max(8, Math.min(center - w / 2, window.innerWidth - w - 8))}px`;
-  }, [pos]);
+  }, [pos, placement]);
 
   const show = () => {
     if (!enabled) return;
     const rect = wrapRef.current?.getBoundingClientRect();
+    anchorRect.current = { top: rect?.top ?? 0, bottom: rect?.bottom ?? 0 };
     setPos({ top: (rect?.bottom ?? 0) + 6, left: (rect?.left ?? 0) + (rect?.width ?? 0) / 2 });
   };
   const hide = () => {
