@@ -1,37 +1,72 @@
+import { useState, useRef, useEffect } from "react";
 import styled from "styled-components";
 import { colors } from "../../styles/tokens";
-import Tooltip from "./Tooltip";
 
 interface ExpBarProps {
   currExp: number;
   maxExp: number;
   color?: string;
+  tooltipAlign?: "center" | "right";
 }
 
-export default function ExpBar({ currExp, maxExp, color = colors.vitalSkillExp }: ExpBarProps) {
+export default function ExpBar({ currExp, maxExp, color = colors.vitalSkillExp, tooltipAlign = "center" }: ExpBarProps) {
+  const [tooltipVisible, setTooltipVisible] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current !== null) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  const showTooltip = () => {
+    setTooltipVisible(true);
+  };
+
+  const hideTooltip = () => {
+    setTooltipVisible(false);
+  };
+
+  const startLongPress = () => {
+    timerRef.current = setTimeout(() => {
+      setTooltipVisible(true);
+    }, 400);
+  };
+
+  const cancelLongPress = () => {
+    if (timerRef.current !== null) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    setTooltipVisible(false);
+  };
+
   const percentage = maxExp > 0 ? Math.min((currExp / maxExp) * 100, 100) : 0;
 
   return (
-    <Tooltip label={`${currExp}/${maxExp}`} placement="bottom" stretch>
+    <BarContainer
+      onMouseEnter={showTooltip}
+      onMouseLeave={hideTooltip}
+      onTouchStart={startLongPress}
+      onTouchEnd={cancelLongPress}
+      onTouchMove={cancelLongPress}
+    >
+      {tooltipVisible && <Tooltip $align={tooltipAlign}>{currExp}/{maxExp}</Tooltip>}
       <BarTrack
         role="progressbar"
-        tabIndex={0}
         aria-valuenow={currExp}
         aria-valuemin={0}
         aria-valuemax={maxExp}
       >
         <BarFill $percentage={percentage} $color={color} />
       </BarTrack>
-    </Tooltip>
+    </BarContainer>
   );
 }
 
-// A área de toque/hover é maior que a barra de 4px (o pseudo-elemento sobe 10px).
-const BarTrack = styled.div`
+const BarContainer = styled.div`
   position: relative;
   width: 100%;
-  height: 4px;
-  background: ${colors.surfaceNeutral};
   cursor: pointer;
 
   &::before {
@@ -39,6 +74,30 @@ const BarTrack = styled.div`
     position: absolute;
     inset: -10px 0 0 0;
   }
+`;
+
+const Tooltip = styled.div<{ $align: "center" | "right" }>`
+  position: absolute;
+  bottom: calc(100% + 4px);
+  ${({ $align }) =>
+    $align === "right"
+      ? "right: 1cqi;"
+      : "left: 50%; transform: translateX(-50%);"}
+  background: ${colors.surfaceBar};
+  color: ${colors.textPrimary};
+  font-size: 5cqi;
+  font-weight: 600;
+  padding: 1.8cqi 3cqi;
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 10;
+`;
+
+const BarTrack = styled.div`
+  width: 100%;
+  height: 4px;
+  background: ${colors.surfaceNeutral};
 `;
 
 const BarFill = styled.div<{ $percentage: number; $color: string }>`
