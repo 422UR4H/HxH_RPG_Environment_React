@@ -1,5 +1,6 @@
 // src/features/match/MatchHeaderSection.tsx
 import styled from "styled-components";
+import Tooltip from "../../components/ions/Tooltip";
 import Badge from "../../components/ions/Badge";
 import type { BadgeTone } from "../../components/ions/Badge";
 import type { Match, MatchStatus } from "../../types/match";
@@ -54,11 +55,13 @@ export default function MatchHeaderSection({
             ) : (
               <DateLabel>
                 Iniciada em:{" "}
-                <DateValueWithTooltip
-                  title={`Agendada para: ${formatDateTimeBR(match.gameScheduledAt)}`}
+                <Tooltip
+                  label={`Agendada para: ${formatDateTimeBR(match.gameScheduledAt)}`}
                 >
-                  {formatDateTimeBR(match.gameStartAt!)}
-                </DateValueWithTooltip>
+                  <StartedAtValue tabIndex={0}>
+                    {formatDateTimeBR(match.gameStartAt!)}
+                  </StartedAtValue>
+                </Tooltip>
               </DateLabel>
             )}
           </DateSection>
@@ -112,14 +115,13 @@ const DateLabel = styled.div`
   color: ${colors.textPrimary};
 `;
 
-const DateValueWithTooltip = styled.span`
-  ${headerDateValue}
-  text-decoration: underline dotted;
-  cursor: help;
-`;
-
 const DateValue = styled.span`
   ${headerDateValue}
+`;
+
+// O sublinhado pontilhado avisa que há mais informação (o balão com a data agendada).
+const StartedAtValue = styled(DateValue)`
+  text-decoration: underline dotted;
 `;
 
 const StoryDate = styled.div`
