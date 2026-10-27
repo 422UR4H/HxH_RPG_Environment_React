@@ -434,6 +434,9 @@ const CharacterClass = styled.h2`
 `;
 
 const CharacterClassSelect = styled.select`
+  /* A área de hover do balão da EXP sobe 10 px e cobria a base do select. */
+  position: relative;
+  z-index: 1;
   font-family: "Roboto", sans-serif;
   font-size: min(3.8cqi, 28px);
   font-weight: 600;
