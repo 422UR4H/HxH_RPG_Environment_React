@@ -27,14 +27,14 @@ Quem precisa dessa fronteira usa o tracker, nunca compara pontas por conta próp
 - `useHoldGesture` — não usa o tracker, mas importa `TAP_TOLERANCE_PX` como sua
   `MOVE_TOLERANCE_PX`: a tolerância é uma só.
 
-## Barra com texto em duas camadas
+## Número da barra
 
-`components/ions/ProgressBar.tsx`. O número (`current/max`) é desenhado **duas vezes**, na mesma
-posição: a camada clara (`TrackClip`, `clip-path: inset(0 0 0 X%)`) aparece só na parte **não**
-preenchida; a escura (`FillClip`, `inset(0 (100-X)% 0 0)`) só sobre o preenchimento. Juntas, o
-texto troca de cor exatamente na borda do fill, qualquer que seja a porcentagem.
+`components/ions/ProgressBar.tsx`. O número (`current/max`) é **uma etiqueta só**, fixa à direita,
+branca com contorno nítido em `textOnLight` (quatro `text-shadow` de 1 px): lê sobre o preenchimento
+e sobre a trilha, e não anda enquanto a barra anima o dano (fase 2, PR 5, MESA-03; antes eram duas
+camadas recortadas que trocavam de cor na borda do fill). A etiqueta fica em fluxo: é ela que dá a
+altura da barra, por isso não tem piso de tamanho (um piso deixaria a barra mais alta que o card).
 
-- A cópia escura é `aria-hidden`: o leitor de tela anuncia o texto uma vez.
 - O texto fica **fora** do elemento `progress-fill` (que só tem a cor) e aparece com valor 0
   (antes sumia). `ExpBar` também: a dica de XP agora aparece com `currExp` 0.
 

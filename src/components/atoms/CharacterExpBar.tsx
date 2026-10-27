@@ -40,6 +40,12 @@ const sharedLabelStyles = `
   @container (max-width: 609px) {
     font-size: 4cqi;
   }
+  /* Piso de 10 px (e não os 11 do plano: com 11 a classe encostava no Lv), só em card de
+     220 px ou mais. No card do lobby (cerca de 180 px) qualquer piso cobre o fim da classe:
+     ali o tamanho fica como estava, pendente do designer. */
+  @container (min-width: 220px) and (max-width: 609px) {
+    font-size: max(4cqi, 10px);
+  }
 `;
 
 const RightLabels = styled.div`
@@ -61,6 +67,11 @@ const LvLabel = styled.span`
   ${sharedLabelStyles}
   font-size: 4cqi;
   margin-right: 2cqi;
+
+  /* Mesmo piso e mesma faixa do número da EXP (ver sharedLabelStyles). */
+  @container (min-width: 220px) {
+    font-size: max(4cqi, 10px);
+  }
 `;
 
 const ExpLabel = styled.span`

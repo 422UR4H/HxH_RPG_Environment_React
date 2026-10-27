@@ -13,17 +13,9 @@ describe("ProgressBar", () => {
 
   it("mostra o texto com zero, fora do elemento de preenchimento", () => {
     render(<ProgressBar current={0} max={32} color="red" />);
-    // duas camadas (clara e escura recortada) repetem o texto; nenhuma dentro do fill
-    expect(screen.getAllByText("0/32")).toHaveLength(2);
+    // etiqueta única; nenhuma dentro do fill
+    expect(screen.getAllByText("0/32")).toHaveLength(1);
     const fill = screen.getByTestId("progress-fill");
     expect(within(fill).queryByText("0/32")).not.toBeInTheDocument();
-  });
-
-  it("anuncia o texto uma única vez (a cópia escura é aria-hidden)", () => {
-    render(<ProgressBar current={5} max={32} color="red" />);
-    const visibleToAT = screen
-      .getAllByText("5/32")
-      .filter((el) => !el.closest("[aria-hidden]"));
-    expect(visibleToAT).toHaveLength(1);
   });
 });

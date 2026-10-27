@@ -20,8 +20,7 @@ const PIXEL_TUNED = [
   "/src/features/sheet/NenPrinciplesDiagram.tsx",
 ];
 
-// O rótulo do ProgressBar aparece dentro dos cards da zona pixel-tuned e é reescrito depois.
-const EXEMPT_EXTRA = ["/src/styles/tokens.ts", "/src/components/ions/ProgressBar.tsx"];
+const EXEMPT_EXTRA = ["/src/styles/tokens.ts"];
 
 const isExempt = (path: string) =>
   path.includes("/__tests__/") ||
