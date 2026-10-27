@@ -1,5 +1,6 @@
 import { useState } from "react";
 import styled from "styled-components";
+import { colors } from "../../styles/tokens";
 import type { CharacterSheet } from "../../types/characterSheet";
 import HpBar from "../atoms/HpBar";
 import SpBar from "../atoms/SpBar";
@@ -410,11 +411,16 @@ const NicknameInput = styled.input`
   &::placeholder {
     color: white;
   }
+  /* foco visível só por cor, sem alterar dimensões */
+  &:focus-visible {
+    box-shadow: 0 0 0 2px ${colors.actionHighlight};
+  }
 `;
 
 const CharacterClass = styled.h2`
   font-family: "Roboto", sans-serif;
-  font-size: min(3.6cqi, 2.2rem);
+  /* piso de 11px: legibilidade em cards estreitos */
+  font-size: max(min(3.6cqi, 2.2rem), 11px);
   font-weight: 600;
   color: white;
   display: inline-block;
@@ -455,6 +461,9 @@ const CharacterClassSelect = styled.select`
   }
   &:focus {
     outline: none;
+  }
+  &:focus-visible {
+    box-shadow: 0 0 0 2px ${colors.actionHighlight};
   }
   &:hover {
     filter: brightness(1.1);

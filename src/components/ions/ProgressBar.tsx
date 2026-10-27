@@ -78,7 +78,8 @@ const Label = styled.span`
   text-align: right;
 
   font-family: ${fonts.display};
-  font-size: 3.8cqi;
+  /* piso de 11px: legibilidade em cards estreitos */
+  font-size: max(3.8cqi, 11px);
   font-weight: 600;
   color: ${colors.textPrimary};
   text-shadow:

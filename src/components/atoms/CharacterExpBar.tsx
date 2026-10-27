@@ -32,13 +32,14 @@ const Container = styled.div`
 
 const sharedLabelStyles = `
   color: ${colors.textPrimary};
-  font-size: 3cqi;
+  /* piso de 11px: legibilidade em cards estreitos */
+  font-size: max(3cqi, 11px);
   font-weight: 600;
   text-shadow: 1px 1px 4px ${colors.shadowText};
   white-space: nowrap;
 
   @container (max-width: 609px) {
-    font-size: 4cqi;
+    font-size: max(4cqi, 11px);
   }
 `;
 
@@ -59,7 +60,7 @@ const RightLabels = styled.div`
 
 const LvLabel = styled.span`
   ${sharedLabelStyles}
-  font-size: 4cqi;
+  font-size: max(4cqi, 11px);
   margin-right: 2cqi;
 `;
 
