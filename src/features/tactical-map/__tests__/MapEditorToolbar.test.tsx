@@ -89,7 +89,7 @@ describe("MapEditorToolbar", () => {
   it("campo nome renderiza e escreve no store ao digitar", async () => {
     const store = makeStore();
     renderToolbar({}, store);
-    const nameInput = screen.getByPlaceholderText(/nome do mapa/i);
+    const nameInput = screen.getByLabelText("Nome do mapa");
     await userEvent.type(nameInput, "A");
     expect(store.getState().map.name).toBe("A");
   });

@@ -270,7 +270,7 @@ export default function MapEditorToolbar({
           <NameInput
             id="map-name"
             type="text"
-            placeholder="Nome do mapa"
+            placeholder="Ex.: Taverna do Porto"
             value={mapName}
             onChange={handleNameChange}
           />

@@ -54,6 +54,10 @@ export default function MatchSheetPanel({
 // BF1: container de bloco, não flex — como item de um flex column (o Wrapper da página),
 // margin auto cancelava o stretch e o container-type: inline-size do template ficava sem
 // largura de conteúdo (media 0px). Bloco dá ao template a largura do painel.
+const Wrapper = styled.div`
+  min-height: 0;
+`;
+
 // Estado vazio no meio do painel, não uma linha perdida no canto.
 const Empty = styled.div`
   flex: 1;
@@ -63,8 +67,4 @@ const Empty = styled.div`
   min-height: 160px;
   padding: 16px;
   text-align: center;
-`;
-
-const Wrapper = styled.div`
-  min-height: 0;
 `;

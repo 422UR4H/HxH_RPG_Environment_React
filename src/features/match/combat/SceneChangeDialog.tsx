@@ -6,7 +6,6 @@ import {
 } from "./dialogStyles";
 import { ChoiceLabel, Toggle, Toggles } from "./choiceStyles";
 import type { ChangeScenePayload, SceneCategory } from "./combatMessages";
-
 import { SCENE_LABEL } from "./sceneLabels";
 
 /** `change_scene`: fecha cena e rodada correntes e abre a nova. A categoria vai minúscula (contrato). */

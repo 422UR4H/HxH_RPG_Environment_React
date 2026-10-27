@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, within } from "@testing-library/react";
 import GeneralBar from "../GeneralBar";
 import CharacterBarsStrip from "../CharacterBarsStrip";
-import { fmt } from "../barsMath";
+import { barsRows, fmt } from "../barsMath";
 import OwnBars from "../OwnBars";
 import QueuePanel from "../QueuePanel";
 import CloseTurnRefusedDialog from "../CloseTurnRefusedDialog";
@@ -114,9 +114,13 @@ describe("GeneralBar", () => {
   });
 });
 
+function Strip({ bars, mode }: { bars: BarsPayload; mode: "Race" | "Free" }) {
+  return <CharacterBarsStrip rows={barsRows(bars, mode)} prices={bars.prices} roundMode={mode} nameOf={nameOf} />;
+}
+
 describe("CharacterBarsStrip", () => {
   it("Disputado: saldo com uma casa, velocidades e média", () => {
-    render(<CharacterBarsStrip bars={raceBars} roundMode="Race" nameOf={nameOf} />);
+    render(<Strip bars={raceBars} mode="Race" />);
     expect(screen.getByText("Gon")).toBeInTheDocument();
     expect(screen.getByText(`${MINUS}2.5`)).toBeInTheDocument();
     expect(screen.getByText("16 · 14")).toBeInTheDocument();
@@ -125,14 +129,14 @@ describe("CharacterBarsStrip", () => {
   });
 
   it("Livre: sem barras nem média, só as velocidades", () => {
-    render(<CharacterBarsStrip bars={{ ...raceBars, prices: {} }} roundMode="Free" nameOf={nameOf} />);
+    render(<Strip bars={{ ...raceBars, prices: {} }} mode="Free" />);
     expect(screen.queryAllByRole("meter")).toHaveLength(0);
     expect(screen.queryByText(/x̄/)).not.toBeInTheDocument();
     expect(screen.getByText("16 · 14")).toBeInTheDocument();
   });
 
   it("barra sem preço não é desenhada", () => {
-    render(<CharacterBarsStrip bars={{ ...raceBars, prices: { action: 14 } }} roundMode="Race" nameOf={nameOf} />);
+    render(<Strip bars={{ ...raceBars, prices: { action: 14 } }} mode="Race" />);
     expect(screen.getAllByRole("meter")).toHaveLength(1);
   });
 });
@@ -146,9 +150,21 @@ describe("CharacterBarsStrip — linhas sem dado", () => {
         { characterId: "c2", actionBalance: 0, moveBalance: 0, actionSpeeds: [], moveSpeeds: [] },
       ],
     };
-    render(<CharacterBarsStrip bars={mixed} roundMode="Free" nameOf={nameOf} />);
+    render(<Strip bars={mixed} mode="Free" />);
     expect(screen.getByText("Gon")).toBeInTheDocument();
     expect(screen.queryByText("Killua")).toBeNull();
+  });
+});
+
+describe("barsRows", () => {
+  it("keeps a Race row that has a price but no speed", () => {
+    const priced: BarsPayload = {
+      ...raceBars, prices: { action: 14 },
+      characters: [{ characterId: "c1", actionBalance: 0, moveBalance: 0, actionSpeeds: [], moveSpeeds: [] }],
+    };
+    expect(barsRows(priced, "Race")).toHaveLength(1);
+    expect(barsRows(priced, "Free")).toHaveLength(0);
+    expect(barsRows(null, "Race")).toEqual([]);
   });
 });
 

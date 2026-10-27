@@ -18,6 +18,11 @@ export const fmt = (n: number) => {
   return r === 0 ? "0" : `${n < 0 ? MINUS : ""}${r}`;
 };
 
+/** As linhas da tira: filtra uma vez só (o botão "Barras" e a tira usam o mesmo resultado). */
+export function barsRows(bars: BarsPayload | null | undefined, roundMode: RoundMode | ""): BarsPayload["characters"] {
+  return bars ? bars.characters.filter((c) => hasBarsData(c, bars, roundMode)) : [];
+}
+
 /** Uma linha só vale quando mostra algo além do nome: velocidade, ou (Disputado) uma barra já precificada. */
 export function hasBarsData(
   c: BarsPayload["characters"][number],

@@ -2,7 +2,7 @@ import styled from "styled-components";
 import { colors } from "../../../styles/tokens";
 import type { Bar, BarsPayload, RoundMode } from "./combatMessages";
 import { BAR_ICONS, BAR_LABELS } from "./combatText";
-import { fmt, hasBarsData, mean } from "./barsMath";
+import { fmt, mean } from "./barsMath";
 
 /**
  * Uma linha por personagem, só com o que `bars_updated` traz (I8): o jogador não vê a
@@ -10,18 +10,21 @@ import { fmt, hasBarsData, mean } from "./barsMath";
  * No regime Livre não há preço, média nem carry-over — só as velocidades que agiram.
  */
 export default function CharacterBarsStrip({
-  bars,
+  rows,
+  prices,
   roundMode,
   nameOf,
 }: {
-  bars: BarsPayload;
+  /** Já filtradas por `barsRows`: a tira não refiltra. */
+  rows: BarsPayload["characters"];
+  prices: BarsPayload["prices"];
   roundMode: RoundMode | "";
   nameOf: (id: string) => string;
 }) {
   const race = roundMode === "Race";
   return (
     <Strip aria-label="Barras de cada personagem">
-      {bars.characters.filter((c) => hasBarsData(c, bars, roundMode)).map((c) => {
+      {rows.map((c) => {
         const speeds = [...c.actionSpeeds, ...c.moveSpeeds];
         const avg = mean(speeds);
         return (
@@ -29,7 +32,7 @@ export default function CharacterBarsStrip({
             <Name>{nameOf(c.characterId)}</Name>
             {race &&
               (["action", "move"] as Bar[]).map((b) => {
-                const price = bars.prices[b];
+                const price = prices[b];
                 if (price === undefined) return null;
                 const balance = b === "action" ? c.actionBalance : c.moveBalance;
                 return <BalanceBar key={b} bar={b} balance={balance} price={price} />;

@@ -5,7 +5,7 @@ import { breakpoints } from "../../../styles/breakpoints";
 import type { Bar, BarsPayload, RoundMode } from "./combatMessages";
 import { BAR_ICONS, BAR_LABELS } from "./combatText";
 import CharacterBarsStrip from "./CharacterBarsStrip";
-import { hasBarsData } from "./barsMath";
+import { barsRows } from "./barsMath";
 
 /**
  * A barra geral, flutuando sobre o mapa: de quem é a vez, quem age em seguida (maior `key`
@@ -36,7 +36,8 @@ export default function GeneralBar({
   );
   const order = bars ? [...bars.order].sort((a, b) => b.key - a.key) : [];
   const priced = bars ? (Object.keys(bars.prices) as Bar[]).filter((b) => bars.prices[b] !== undefined) : [];
-  const hasCharacters = !!bars && bars.characters.some((c) => hasBarsData(c, bars, roundMode));
+  const rows = barsRows(bars, roundMode);
+  const hasCharacters = rows.length > 0;
 
   return (
     <Wrapper aria-label="Barra geral">
@@ -79,7 +80,7 @@ export default function GeneralBar({
           </StripToggle>
         )}
       </TopRow>
-      {hasCharacters && stripOpen && <CharacterBarsStrip bars={bars!} roundMode={roundMode} nameOf={nameOf} />}
+      {hasCharacters && stripOpen && <CharacterBarsStrip rows={rows} prices={bars!.prices} roundMode={roundMode} nameOf={nameOf} />}
     </Wrapper>
   );
 }
