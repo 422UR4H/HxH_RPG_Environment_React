@@ -2,44 +2,64 @@ import styled, { css } from "styled-components";
 import { colors } from "./tokens";
 
 /**
- * Cabeçalho de campanha, partida e lobby: título à esquerda, data/selo à direita.
+ * Cabeçalho de campanha, partida e lobby: título e bloco da data/selo.
  *
- * O arranjo só muda onde precisa: a linha quebra (flex-wrap) quando o título, que nunca
- * parte palavra (`min-width: min-content`), não cabe ao lado do bloco da data. O bloco cai
- * sozinho na linha de baixo, já no início (esquerda). Em notebook o arranjo antigo fica.
- * `HeaderBox` é o contêiner (largura da COLUNA CENTRAL, não da janela); o `@container`
- * só trata a coluna muito estreita, onde o conteúdo interno do bloco também alinha à esquerda.
+ * Empilhado por padrão (título em cima, bloco embaixo, tudo à esquerda); lado a lado, com o
+ * bloco à direita, só quando a COLUNA CENTRAL tem 900px ou mais. `HeaderBox` é o contêiner,
+ * então o `@container` mede a coluna, não a janela. Sem `flex-wrap`: ele deixava o título
+ * virar uma coluna estreita ao lado da data.
  */
-export const HEADER_NARROW_BELOW = 400;
-
-export const narrowHeader = `@container (max-width: ${HEADER_NARROW_BELOW - 1}px)`;
-
 export const HeaderBox = styled.div`
   container-type: inline-size;
   margin-bottom: 20px;
 `;
 
-/** Título: 42px (notebook) no máximo, 24px no mínimo; nunca parte palavra no meio. */
+/** Título: de 20px a 42px; só quebra palavra maior que a coluna inteira. */
 export const headerTitle = css`
-  font-size: clamp(24px, 5.8cqi, 42px);
+  font-size: clamp(20px, 6cqi, 42px);
+  line-height: 1.1;
   font-weight: 900;
   color: ${colors.textPrimary};
-  flex: 1 1 0;
-  min-width: min-content;
-  overflow-wrap: normal;
-  hyphens: manual; /* auto faria o min-content virar uma sílaba e o título encolher ao lado da data */
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: break-word;
+
+  @container (min-width: 900px) {
+    flex: 1 1 auto;
+  }
 `;
 
-/** Linha com título e bloco da data; quebra só quando o título não cabe ao lado. */
+/** Linha com título e bloco da data: empilhada, e lado a lado a partir de 900px. */
 export const headerRow = css`
   display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px 16px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+
+  @container (min-width: 900px) {
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 32px;
+  }
 `;
 
-/** Bloco da data/selo: largura natural, nunca encolhe; cai para a linha de baixo se faltar espaço. */
+/** Bloco da data/selo: à esquerda empilhado, à direita (selo acima da data) lado a lado. */
 export const headerAside = css`
-  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+  text-align: left;
+  max-width: 100%;
+
+  @container (min-width: 900px) {
+    flex: 0 0 auto;
+    align-items: flex-end;
+    text-align: right;
+  }
+`;
+
+/** Valor da data: não parte no meio; o rótulo antes dele é que quebra se faltar espaço. */
+export const headerDateValue = css`
+  white-space: nowrap;
 `;

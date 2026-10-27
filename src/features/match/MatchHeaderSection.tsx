@@ -8,6 +8,7 @@ import { colors } from "../../styles/tokens";
 import {
   HeaderBox,
   headerAside,
+  headerDateValue,
   headerRow,
   headerTitle,
 } from "../../styles/pageHeader";
@@ -48,7 +49,7 @@ export default function MatchHeaderSection({
             {status === "scheduled" ? (
               <DateLabel>
                 Agendada para:{" "}
-                <span>{formatDateTimeBR(match.gameScheduledAt)}</span>
+                <DateValue>{formatDateTimeBR(match.gameScheduledAt)}</DateValue>
               </DateLabel>
             ) : (
               <DateLabel>
@@ -95,7 +96,6 @@ export default function MatchHeaderSection({
 
 const MatchHeader = styled.div`
   ${headerRow}
-  align-items: flex-start;
 `;
 
 const MatchTitle = styled.h1`
@@ -104,24 +104,22 @@ const MatchTitle = styled.h1`
 
 const DateSection = styled.div`
   ${headerAside}
-  display: flex;
-  flex-direction: column;
-  /* Selo e data sempre alinhados entre si à esquerda do bloco: o CSS não sabe quando a linha
-     quebrou, e alinhar à direita deixava o selo solto quando o bloco desce para baixo do título. */
-  align-items: flex-start;
-  gap: 8px;
 `;
 
 const DateLabel = styled.div`
   font-weight: 400;
   font-size: 18px;
   color: ${colors.textPrimary};
-  text-align: left;
 `;
 
 const DateValueWithTooltip = styled.span`
+  ${headerDateValue}
   text-decoration: underline dotted;
   cursor: help;
+`;
+
+const DateValue = styled.span`
+  ${headerDateValue}
 `;
 
 const StoryDate = styled.div`

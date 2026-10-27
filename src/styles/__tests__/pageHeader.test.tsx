@@ -2,7 +2,6 @@ import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import styled from "styled-components";
 import {
-  HEADER_NARROW_BELOW,
   HeaderBox,
   headerAside,
   headerRow,
@@ -26,7 +25,7 @@ function injectedCss(): string {
 }
 
 describe("pageHeader", () => {
-  it("makes the header box a container and wraps only when the title does not fit", () => {
+  it("stacks by default and goes side by side only from a 900px column", () => {
     render(
       <HeaderBox>
         <Row>
@@ -37,19 +36,18 @@ describe("pageHeader", () => {
     );
     const css = injectedCss();
     expect(css).toContain("container-type:inline-size");
-    expect(css).toContain("flex-wrap:wrap");
-    expect(css).toContain("min-width:min-content");
-    expect(css).toContain("flex:1 1 0");
-    expect(css).toContain("flex:0 0 auto");
-    expect(css).not.toContain("flex-direction:column");
-    expect(HEADER_NARROW_BELOW).toBe(400);
+    expect(css).toContain("flex-direction:column");
+    expect(css).toContain("@container (min-width: 900px)");
+    expect(css).toContain("flex-direction:row");
+    expect(css).toContain("align-items:flex-end");
+    expect(css).not.toContain("flex-wrap");
   });
 
-  it("keeps words whole, without automatic hyphenation, with a clamped size", () => {
+  it("keeps the title fluid and breaks only a word larger than the column", () => {
     render(<Title>O GRANDE INÍCIO</Title>);
     const css = injectedCss();
-    expect(css).toContain("overflow-wrap:normal");
-    expect(css).toContain("hyphens:manual");
-    expect(css).toContain("clamp(24px, 5.8cqi, 42px)");
+    expect(css).toContain("clamp(20px, 6cqi, 42px)");
+    expect(css).toContain("overflow-wrap:break-word");
+    expect(css).toContain("min-width:0");
   });
 });
