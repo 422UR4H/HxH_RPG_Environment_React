@@ -12,8 +12,9 @@ interface CharacterExpBarProps {
 
 export default function CharacterExpBar({ currExp, maxExp, level, labelsInTooltip = false }: CharacterExpBarProps) {
   const percentage = maxExp > 0 ? Math.min((currExp / maxExp) * 100, 100) : 0;
-  const expText = `${currExp} / ${maxExp}`;
-  const label = level !== undefined ? `Lv ${level} · ${expText}` : expText;
+  const levelText = level !== undefined ? `Lv ${level}` : null;
+  const expText = maxExp > 0 ? `${currExp} / ${maxExp}` : null;
+  const label = [levelText, expText].filter(Boolean).join(" · ");
 
   const bar = (
     <BarBorder
@@ -30,6 +31,7 @@ export default function CharacterExpBar({ currExp, maxExp, level, labelsInToolti
   );
 
   if (labelsInTooltip) {
+    if (!label) return <Container>{bar}</Container>;
     return (
       <Container>
         <BarBubble label={label} align="right">
@@ -42,8 +44,8 @@ export default function CharacterExpBar({ currExp, maxExp, level, labelsInToolti
   return (
     <Container>
       <RightLabels>
-        {level !== undefined && <LvLabel>Lv {level}</LvLabel>}
-        {maxExp > 0 && <ExpLabel>{currExp} / {maxExp}</ExpLabel>}
+        {levelText && <LvLabel>{levelText}</LvLabel>}
+        {expText && <ExpLabel>{expText}</ExpLabel>}
       </RightLabels>
       {bar}
     </Container>

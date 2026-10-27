@@ -25,4 +25,11 @@ describe("CharacterExpBar", () => {
     fireEvent.mouseEnter(screen.getByRole("progressbar").parentElement as HTMLElement);
     expect(screen.getByText("10 / 30")).toBeInTheDocument();
   });
+
+  it("shows no bubble when there is no level and no max exp", () => {
+    render(<CharacterExpBar currExp={0} maxExp={0} labelsInTooltip />);
+    fireEvent.mouseEnter(screen.getByRole("progressbar").parentElement as HTMLElement);
+    expect(screen.queryByText("0 / 0")).toBeNull();
+    expect(screen.queryByText(/Lv/)).toBeNull();
+  });
 });
