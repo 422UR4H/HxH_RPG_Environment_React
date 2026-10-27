@@ -8,7 +8,8 @@ import ExpandableText from "../../components/molecules/ExpandableText";
 import { colors } from "../../styles/tokens";
 import {
   HeaderBox,
-  headerAside,
+  headerBadge,
+  headerDate,
   headerDateValue,
   headerRow,
   headerTitle,
@@ -44,27 +45,27 @@ export default function MatchHeaderSection({
     <>
       <HeaderBox>
         <MatchHeader>
+          <MatchBadge tone={statusTones[status]}>
+            {statusLabels[status]}
+          </MatchBadge>
           <MatchTitle>{match.title.toUpperCase()}</MatchTitle>
-          <DateSection>
-            <Badge tone={statusTones[status]}>{statusLabels[status]}</Badge>
-            {status === "scheduled" ? (
-              <DateLabel>
-                Agendada para:{" "}
-                <DateValue>{formatDateTimeBR(match.gameScheduledAt)}</DateValue>
-              </DateLabel>
-            ) : (
-              <DateLabel>
-                Iniciada em:{" "}
-                <Tooltip
-                  label={`Agendada para: ${formatDateTimeBR(match.gameScheduledAt)}`}
-                >
-                  <StartedAtValue tabIndex={0}>
-                    {formatDateTimeBR(match.gameStartAt!)}
-                  </StartedAtValue>
-                </Tooltip>
-              </DateLabel>
-            )}
-          </DateSection>
+          {status === "scheduled" ? (
+            <DateLabel>
+              Agendada para:{" "}
+              <DateValue>{formatDateTimeBR(match.gameScheduledAt)}</DateValue>
+            </DateLabel>
+          ) : (
+            <DateLabel>
+              Iniciada em:{" "}
+              <Tooltip
+                label={`Agendada para: ${formatDateTimeBR(match.gameScheduledAt)}`}
+              >
+                <StartedAtValue tabIndex={0}>
+                  {formatDateTimeBR(match.gameStartAt!)}
+                </StartedAtValue>
+              </Tooltip>
+            </DateLabel>
+          )}
         </MatchHeader>
       </HeaderBox>
 
@@ -105,11 +106,12 @@ const MatchTitle = styled.h1`
   ${headerTitle}
 `;
 
-const DateSection = styled.div`
-  ${headerAside}
+const MatchBadge = styled(Badge)`
+  ${headerBadge}
 `;
 
 const DateLabel = styled.div`
+  ${headerDate}
   font-weight: 400;
   font-size: 18px;
   color: ${colors.textPrimary};

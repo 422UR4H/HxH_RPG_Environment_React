@@ -2,60 +2,97 @@ import styled, { css } from "styled-components";
 import { colors } from "./tokens";
 
 /**
- * Cabeçalho de campanha, partida e lobby: título e bloco da data/selo.
+ * Cabeçalho de campanha, partida e lobby: título, selo e data.
  *
- * Empilhado por padrão (título em cima, bloco embaixo, tudo à esquerda); lado a lado, com o
- * bloco à direita, só quando a COLUNA CENTRAL tem 900px ou mais. `HeaderBox` é o contêiner,
- * então o `@container` mede a coluna, não a janela. Sem `flex-wrap`: ele deixava o título
- * virar uma coluna estreita ao lado da data.
+ * `HeaderBox` é o contêiner, então o `@container` mede a COLUNA CENTRAL, não a janela.
  */
 export const HeaderBox = styled.div`
   container-type: inline-size;
   margin-bottom: 20px;
 `;
 
-/** Título: de 20px a 42px; só quebra palavra maior que a coluna inteira. */
+/**
+ * Título: de 26px a 42px (22px abaixo de 340px). Ao lado do selo flutuante não quebra palavra:
+ * ela desce para a linha de baixo; só abaixo de 340px, sem selo ao lado, pode quebrar.
+ */
 export const headerTitle = css`
-  font-size: clamp(20px, 6cqi, 42px);
+  grid-area: title;
+  font-size: clamp(26px, 5.5cqi, 42px);
   line-height: 1.1;
   font-weight: 900;
   color: ${colors.textPrimary};
   max-width: 100%;
   min-width: 0;
-  overflow-wrap: break-word;
+  overflow-wrap: normal;
 
-  @container (min-width: 900px) {
-    flex: 1 1 auto;
+  @container (max-width: 339px) {
+    font-size: 22px;
+    overflow-wrap: break-word;
   }
 `;
 
-/** Linha com título e bloco da data: empilhada, e lado a lado a partir de 900px. */
+/**
+ * Linha do cabeçalho. Filhos diretos, nesta ordem: selo (opcional), título, data (opcional);
+ * o selo vem antes porque, na faixa média, ele flutua à direita do título.
+ * Coluna >= 560px: grade com o título à esquerda e selo/data à direita.
+ * 340-559px: fluxo normal, selo flutuando no canto superior direito. < 340px: empilhado.
+ */
 export const headerRow = css`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "title badge"
+    "title date";
+  column-gap: 32px;
+  row-gap: 0;
+  align-items: start;
 
-  @container (min-width: 900px) {
-    flex-direction: row;
-    justify-content: space-between;
-    gap: 32px;
+  @container (max-width: 559px) {
+    display: flow-root;
+  }
+
+  @container (max-width: 339px) {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
   }
 `;
 
-/** Bloco da data/selo: à esquerda empilhado, à direita (selo acima da data) lado a lado. */
-export const headerAside = css`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  align-items: flex-start;
-  text-align: left;
-  max-width: 100%;
+/** Selo no canto superior direito; a margem de baixo o separa da data. */
+export const headerBadge = css`
+  grid-area: badge;
+  justify-self: end;
+  margin-bottom: 8px;
 
-  @container (min-width: 900px) {
-    flex: 0 0 auto;
-    align-items: flex-end;
-    text-align: right;
+  @container (max-width: 559px) {
+    float: right;
+    margin: 4px 0 4px 16px;
+  }
+
+  @container (max-width: 339px) {
+    float: none;
+    margin: 0;
+    order: 1;
+  }
+`;
+
+/** Rótulo da data, abaixo do selo e alinhado à direita; sob o título nas telas estreitas. */
+export const headerDate = css`
+  grid-area: date;
+  justify-self: end;
+  text-align: right;
+
+  @container (max-width: 559px) {
+    clear: both;
+    padding-top: 10px;
+  }
+
+  @container (max-width: 339px) {
+    order: 2;
+    padding-top: 0;
+    justify-self: start;
+    text-align: left;
   }
 `;
 

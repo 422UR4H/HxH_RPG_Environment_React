@@ -3,7 +3,8 @@ import { describe, expect, it } from "vitest";
 import styled from "styled-components";
 import {
   HeaderBox,
-  headerAside,
+  headerBadge,
+  headerDate,
   headerRow,
   headerTitle,
 } from "../pageHeader";
@@ -11,8 +12,11 @@ import {
 const Row = styled.div`
   ${headerRow}
 `;
-const Aside = styled.div`
-  ${headerAside}
+const Badge = styled.span`
+  ${headerBadge}
+`;
+const DateLabel = styled.div`
+  ${headerDate}
 `;
 const Title = styled.h1`
   ${headerTitle}
@@ -25,29 +29,31 @@ function injectedCss(): string {
 }
 
 describe("pageHeader", () => {
-  it("stacks by default and goes side by side only from a 900px column", () => {
+  it("lays out title, badge and date on a grid with container-query fallbacks", () => {
     render(
       <HeaderBox>
         <Row>
+          <Badge>AGENDADA</Badge>
           <Title>REENCONTRAMOS</Title>
-          <Aside>01/01/2000</Aside>
+          <DateLabel>01/01/2000</DateLabel>
         </Row>
       </HeaderBox>,
     );
     const css = injectedCss();
     expect(css).toContain("container-type:inline-size");
-    expect(css).toContain("flex-direction:column");
-    expect(css).toContain("@container (min-width: 900px)");
-    expect(css).toContain("flex-direction:row");
-    expect(css).toContain("align-items:flex-end");
+    expect(css).toContain("grid-template-columns:minmax(0, 1fr) auto");
+    expect(css).toContain("@container (max-width: 559px)");
+    expect(css).toContain("display:flow-root");
+    expect(css).toContain("float:right");
+    expect(css).toContain("@container (max-width: 339px)");
     expect(css).not.toContain("flex-wrap");
   });
 
-  it("keeps the title fluid and breaks only a word larger than the column", () => {
+  it("keeps the title fluid with a 26px floor and no mid-word break beside the badge", () => {
     render(<Title>O GRANDE INÍCIO</Title>);
     const css = injectedCss();
-    expect(css).toContain("clamp(20px, 6cqi, 42px)");
-    expect(css).toContain("overflow-wrap:break-word");
+    expect(css).toContain("clamp(26px, 5.5cqi, 42px)");
+    expect(css).toContain("overflow-wrap:normal");
     expect(css).toContain("min-width:0");
   });
 });

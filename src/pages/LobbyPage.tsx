@@ -21,7 +21,7 @@ import DetailPageTemplate from "../components/templates/DetailPageTemplate";
 import CharactersSidebar from "../components/organisms/CharactersSidebar";
 import UpcomingRulesSidebar from "../components/organisms/UpcomingRulesSidebar";
 import LobbyConnectionSidebarItem from "../features/match/LobbyConnectionSidebarItem";
-import { HeaderBox, headerRow, headerTitle } from "../styles/pageHeader";
+import { HeaderBox, headerBadge, headerRow, headerTitle } from "../styles/pageHeader";
 import { colors, alpha } from "../styles/tokens";
 import { GAME_SERVER_WAKING, GAME_SERVER_UNREACHABLE } from "../services/serverWake";
 import type { WsStatus, LobbyFullState } from "../hooks/useLobbyWs";
@@ -270,8 +270,8 @@ export default function LobbyPage() {
       >
         <HeaderBox>
           <LobbyHeader>
-            <LobbyTitle>{match.title.toUpperCase()}</LobbyTitle>
             <LobbyStatusBadge tone="ongoing">LOBBY ABERTO</LobbyStatusBadge>
+            <LobbyTitle>{match.title.toUpperCase()}</LobbyTitle>
           </LobbyHeader>
         </HeaderBox>
 
@@ -455,5 +455,6 @@ const LobbyMapWaiting = styled(LobbyMapSection)`
 `;
 
 const LobbyStatusBadge = styled(Badge)`
+  ${headerBadge}
   flex-shrink: 0;
 `;
