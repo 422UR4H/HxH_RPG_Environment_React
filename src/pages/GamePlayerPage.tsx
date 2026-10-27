@@ -38,9 +38,10 @@ import { BoardWaitNotice } from "../features/match/combat/BoardWaitNotice";
 import { PanelMessage } from "../features/match/combat/panelStyles";
 import TacticalMapViewer from "../features/tactical-map/TacticalMapViewer";
 import {
-  CanvasWrapper, MapCornerStack, MapCornerStackButton, MapHint, MapHintButton, MapLoadingMessage, NoMapMessage,
+  CanvasWrapper, MapHint, MapHintButton, MapLoadingMessage, NoMapMessage,
   StageNotices,
 } from "../features/match/combat/mapCanvasStyles";
+import { MapCornerStack, MapCornerStackButton } from "../features/tactical-map/stage/mapCornerStyles";
 import type { SlotCoord, WallSegment } from "../types/tacticalMap";
 import { actorWallVerbs } from "../features/match/combat/wallVerbs";
 
@@ -132,56 +133,61 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
     [game.boardPieces],
   );
 
+  // Sem conexão viva ou sem tabuleiro não há onde tocar: o compositor espera a sala.
+  const composerUnavailable = composerUnavailableReason(combat.status, !!map);
+  // Com a sala fechada o mapa segue na tela, mas toque nele não pode editar o rascunho.
+  const composerClosed = composerUnavailable != null;
+
   const handlePieceTap = useCallback(
     (pieceId: string) => {
       const charId = pieceCharacter(pieceId);
-      if (!charId || !actorId) return;
+      if (!charId || !actorId || composerClosed) return;
       composer.onCharacterTap(charId);
       setRailActive("acao");
       setPanelOpen(true);
     },
-    [pieceCharacter, actorId, composer, setPanelOpen],
+    [pieceCharacter, actorId, composerClosed, composer, setPanelOpen],
   );
   const handlePieceHold = useCallback(
     (pieceId: string) => {
       const charId = pieceCharacter(pieceId);
-      if (!charId || !actorId) return;
+      if (!charId || !actorId || composerClosed) return;
       composer.onCharacterHold(charId);
       setRailActive("acao");
       setPanelOpen(true);
     },
-    [pieceCharacter, actorId, composer, setPanelOpen],
+    [pieceCharacter, actorId, composerClosed, composer, setPanelOpen],
   );
   // A parede é alvo como uma peça: o toque vai ao compositor (aproximação, verbo, arma).
   const handleWallTap = useCallback(
     (wall: WallSegment) => {
-      if (!actorId) return;
+      if (!actorId || composerClosed) return;
       composer.onWallTap(wall);
       setRailActive("acao");
       setPanelOpen(true);
     },
-    [actorId, composer, setPanelOpen],
+    [actorId, composerClosed, composer, setPanelOpen],
   );
   // Segurar numa parede a junta aos alvos (com personagens e outras paredes: golpe em área).
   const handleWallHold = useCallback(
     (wall: WallSegment) => {
-      if (!actorId) return;
+      if (!actorId || composerClosed) return;
       composer.onWallHold(wall);
       setRailActive("acao");
       setPanelOpen(true);
     },
-    [actorId, composer, setPanelOpen],
+    [actorId, composerClosed, composer, setPanelOpen],
   );
   const handleSlotTap = useCallback(
     (slot: SlotCoord) => {
       // A escolha da casa da fuga vem antes do compositor: o toque é dela.
       if (onSlotForPick(slot)) return;
-      if (!actorId) return;
+      if (!actorId || composerClosed) return;
       composer.onSlotTap(slot);
       setRailActive("acao");
       setPanelOpen(true);
     },
-    [onSlotForPick, actorId, composer, setPanelOpen],
+    [onSlotForPick, actorId, composerClosed, composer, setPanelOpen],
   );
 
   // O Esc é da escolha da casa só quando não é de outra coisa: um diálogo aberto ou um campo
@@ -228,9 +234,6 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
   const ownHp = actorId
     ? (state.hp[actorId] ?? (restHealth ? { hp: restHealth.current, maxHp: restHealth.max } : undefined))
     : undefined;
-
-  // Sem conexão viva ou sem tabuleiro não há onde tocar: o compositor espera a sala.
-  const composerUnavailable = composerUnavailableReason(combat.status, !!map);
 
   const actorChoices = useMemo(
     () => myCharacters.map((p) => ({ id: p.characterSheet.uuid, name: p.characterSheet.nickName })),

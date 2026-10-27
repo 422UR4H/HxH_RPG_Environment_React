@@ -1,5 +1,6 @@
 import styled from "styled-components";
 import { colors } from "../../styles/tokens";
+import usePointerVerb from "../../hooks/usePointerVerb";
 import type { WallMaterial, WallType } from "../../types/tacticalMap";
 
 type Props = {
@@ -33,6 +34,7 @@ const TYPE_LABELS: Record<WallType, string> = {
 export default function WallTypeChips({
   activeType, activeMaterial, drawMode, onTypeChange, onMaterialChange,
 }: Props) {
+  const verb = usePointerVerb();
   return (
     <Container>
       <ModeBadge $active={drawMode}>
@@ -61,8 +63,8 @@ export default function WallTypeChips({
         </ChipRow>
         <Hint>
           {drawMode
-            ? "Clique no tipo ativo para sair do modo Desenho"
-            : "Clique em um tipo para começar a desenhar"}
+            ? `${verb} no tipo ativo para sair do modo Desenho`
+            : `${verb} em um tipo para começar a desenhar`}
         </Hint>
       </Section>
 

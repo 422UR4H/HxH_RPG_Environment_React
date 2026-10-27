@@ -5,6 +5,7 @@ import { colors } from "../../styles/tokens";
 import { IMAGE_PICKER_TIP } from "../../constants/uiStrings";
 import { fitGridAndCover } from "../../features/tactical-map/utils/bgFit";
 import useToken from "../../hooks/useToken";
+import usePointerVerb from "../../hooks/usePointerVerb";
 import { usePresignedUpload } from "../../hooks/usePresignedUpload";
 import type { BgImage, GridShape } from "../../types/tacticalMap";
 
@@ -29,6 +30,7 @@ type Props = {
 
 export default function BgImagePanel({ bg, grid, mapId, onBgChange, onGridChange, onApplyBg, onUploadingChange, onRefit, onNaturalSizeChange }: Props) {
   const { token } = useToken();
+  const verb = usePointerVerb();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [urlInput, setUrlInput] = useState("");
   const [isUploading, setIsUploading] = useState(false);
@@ -144,7 +146,7 @@ export default function BgImagePanel({ bg, grid, mapId, onBgChange, onGridChange
           onDrop={handleDrop}
           onDragOver={(e) => e.preventDefault()}
         >
-          {isUploading ? "Enviando…" : "Clique ou solte uma imagem aqui"}
+          {isUploading ? "Enviando…" : `${verb} ou solte uma imagem aqui`}
         </Dropzone>
 
         <OrDivider>── ou ──</OrDivider>

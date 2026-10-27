@@ -855,6 +855,33 @@ describe("GamePlayerPage", () => {
     expect(declareButton).toHaveAttribute("aria-disabled", "true");
   });
 
+  it("map taps do not edit the draft while the composer is unavailable", async () => {
+    renderPlayerPage();
+    const ws = await waitForSocket();
+    act(() => ws.onopen?.());
+    act(() =>
+      ws.emit("map_full_state", {
+        grid: mapApiFixture.grid, bg: null,
+        pieces: [
+          { pieceId: "piece-c1", slot: { kind: "square", col: 1, row: 1 }, characterId: "c1", visible: true, z: 0 },
+          { pieceId: "piece-c2", slot: { kind: "square", col: 2, row: 2 }, characterId: "c2", visible: true, z: 0 },
+        ],
+        walls: [],
+        visiblePolygons: [],
+        fogMode: "explored",
+      }),
+    );
+    act(() => screen.getByTestId("select-actor-c2").click());
+    await waitFor(() => expect(storedDraft()?.act).toEqual({ targets: ["c2"] }));
+
+    // A sala fecha: o mapa continua na tela, mas o compositor está indisponível.
+    act(() => ws.onclose?.({ code: 1000 } as CloseEvent));
+    expect(await screen.findByRole("button", { name: /^declarar/i })).toHaveAttribute("aria-disabled", "true");
+    act(() => screen.getByTestId("empty-slot").click());
+    act(() => screen.getByTestId("select-actor-c1").click());
+    expect(storedDraft()?.act).toEqual({ targets: ["c2"] });
+  });
+
   // M4: sem isto, um link lento deixaria o jogador clicar Declarar de novo antes do ack
   // do primeiro envio, enfileirando a mesma ação duas vezes.
   it("Declarar fica desabilitado enquanto o meu próprio envio ainda não teve ack", async () => {

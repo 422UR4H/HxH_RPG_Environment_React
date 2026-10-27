@@ -122,7 +122,7 @@ describe("MapEditorToolbar", () => {
     const store = makeStore();
     store.getState().setActiveTool("bg");
     renderToolbar({}, store);
-    expect(screen.getByText(/clique ou solte/i)).toBeInTheDocument();
+    expect(screen.getByText(/(clique|toque) ou solte/i)).toBeInTheDocument();
   });
 
   it("labels the map name and description fields", () => {

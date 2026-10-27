@@ -49,9 +49,10 @@ import MatchCharactersSidebar from "../features/match/MatchCharactersSidebar";
 import { BoardWaitNotice } from "../features/match/combat/BoardWaitNotice";
 import TacticalMapViewer from "../features/tactical-map/TacticalMapViewer";
 import {
-  CanvasWrapper, MapCornerStack, MapCornerStackButton, MapHint, MapHintButton, MapLoadingMessage, NoMapMessage,
+  CanvasWrapper, MapHint, MapHintButton, MapLoadingMessage, NoMapMessage,
   StageNotices,
 } from "../features/match/combat/mapCanvasStyles";
+import { MapCornerStack, MapCornerStackButton } from "../features/tactical-map/stage/mapCornerStyles";
 import { isSameSlot, slotToTriple, tripleToSlot } from "../features/tactical-map/utils/coords";
 import type { SlotTriple } from "../features/tactical-map/utils/coords";
 import type { IntentPreview } from "../features/tactical-map/utils/intentGeometry";
