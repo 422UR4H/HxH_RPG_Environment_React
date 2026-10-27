@@ -72,7 +72,7 @@ const BarFill = styled.div<{
 // A etiqueta segue em fluxo: a altura da barra continua vindo dela.
 const Label = styled.span`
   display: block;
-  position: relative;
+  position: relative; /* pinta a etiqueta acima do preenchimento, que é absoluto */
   padding-right: 8px;
   white-space: nowrap;
   text-align: right;

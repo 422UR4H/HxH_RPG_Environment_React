@@ -411,9 +411,10 @@ const NicknameInput = styled.input`
   &::placeholder {
     color: white;
   }
-  /* foco visível só por cor, sem alterar dimensões */
+  /* Foco visível só por cor, sem alterar dimensões: a linha de baixo acende, como nos
+     outros campos (A11Y-01). */
   &:focus-visible {
-    box-shadow: 0 0 0 2px ${colors.actionHighlight};
+    border-bottom-color: ${colors.actionHighlight};
   }
 `;
 

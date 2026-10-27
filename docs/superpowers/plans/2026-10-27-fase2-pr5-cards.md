@@ -18,6 +18,16 @@
 - Antes de cada commit: `npm run typecheck && npm run lint && npm test`. Git: confira `git branch --show-current` = `fix/ux-cards`; só `git add` e `git commit`. Mensagem em português com `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. Sem servidores, sem `eslint-disable`.
 - **Piso legível:** `11px`. Aplica-se com `max(<valor atual>, 11px)` (ou `clamp(11px, <valor atual>, <teto atual>)` onde já houver `min()`), mantendo o valor atual onde ele já é maior.
 
+## Desvio na execução (registrado pelo coordenador, 27/10)
+
+O portão de prints reprovou o piso de 11 px duas vezes: (1) com o piso na classe e no Lv, a classe
+encostava no Lv nos cards estreitos (199 sobreposições novas); (2) com o piso no número da barra, a
+barra ficava mais alta que o card e o “90/90” saía cortado. Ficou: **Lv e EXP com piso de 10 px só em
+card de 220 px ou mais; número da barra e classe sem piso; o card do lobby (cerca de 180 px) igual ao
+de antes.** Abaixo do piso continuam: o número de HP/SP em todas as larguras (9,7 px num card de 256
+px, legível pelo contraste novo), Lv e EXP abaixo de 220 px e a classe. Pendente do designer: o card
+estreito do lobby só ganha números maiores redesenhando o card.
+
 ## Decisões deste plano
 
 1. **Contorno nítido**, não sombra difusa: `text-shadow` em quatro direções de 1 px (ou `paint-order: stroke fill` com `-webkit-text-stroke` fino) na cor `textOnLight`. A sombra difusa da EXP (`1px 1px 4px shadowText`) fica como está na EXP; a barra usa o contorno nítido, que é o que a linha D mostra.
