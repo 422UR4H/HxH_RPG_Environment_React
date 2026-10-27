@@ -94,4 +94,9 @@ describe("EditMapPage", () => {
       expect(screen.getByPlaceholderText(/nome do mapa/i)).toBeInTheDocument();
     });
   });
+
+  it("shows an Enquadrar control in the editor", async () => {
+    renderPage();
+    expect(await screen.findByRole("button", { name: "Enquadrar" })).toBeInTheDocument();
+  });
 });

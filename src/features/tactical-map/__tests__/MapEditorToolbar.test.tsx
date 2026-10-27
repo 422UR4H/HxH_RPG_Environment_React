@@ -65,10 +65,12 @@ describe("MapEditorToolbar", () => {
     expect(screen.getByRole("button", { name: /decorações/i })).toBeInTheDocument();
   });
 
-  it("aba decorações está desabilitada e walls está habilitada", () => {
-    renderToolbar();
+  it("aba decorações não abre nada e walls está habilitada", async () => {
+    const store = makeStore();
+    renderToolbar({}, store);
     expect(screen.getByRole("button", { name: /paredes/i })).not.toBeDisabled();
-    expect(screen.getByRole("button", { name: /decorações/i })).toBeDisabled();
+    await userEvent.click(screen.getByRole("button", { name: /decorações/i }));
+    expect(store.getState().activeTool).not.toBe("decorations");
   });
 
   it("aba grid está habilitada e mostra GridConfigPanel", () => {
@@ -121,5 +123,18 @@ describe("MapEditorToolbar", () => {
     store.getState().setActiveTool("bg");
     renderToolbar({}, store);
     expect(screen.getByText(/clique ou solte/i)).toBeInTheDocument();
+  });
+
+  it("labels the map name and description fields", () => {
+    renderToolbar();
+    expect(screen.getByLabelText("Nome do mapa")).toBeInTheDocument();
+    expect(screen.getByLabelText("Descrição")).toBeInTheDocument();
+  });
+
+  it("shows Decorações with the Em breve badge", () => {
+    renderToolbar();
+    const tab = screen.getByRole("button", { name: /decorações/i });
+    expect(tab).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getAllByText("Em breve").length).toBeGreaterThan(0);
   });
 });
