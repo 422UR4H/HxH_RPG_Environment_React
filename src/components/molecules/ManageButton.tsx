@@ -124,7 +124,7 @@ const Button = styled.button<{ $isFloating: boolean; $open: boolean }>`
       ? `
         border-radius: 50px;
         padding: 14px 22px;
-        box-shadow: ${floatingElevation(colors.shadowFloating, colors.borderFloating)};
+        box-shadow: ${floatingElevation(colors.shadowFloating, colors.borderFloating, colors.highlightFloating)};
         font-size: min(24px, 4cqi);
         @media (max-width: 609px) {
           padding: 0 0.9em;
