@@ -1,6 +1,6 @@
 import styled from "styled-components";
 import { colors } from "../../styles/tokens";
-import Tooltip from "../ions/Tooltip";
+import BarBubble, { BAR_BUBBLE_FONT_SIZE } from "../ions/BarBubble";
 
 interface CharacterExpBarProps {
   currExp: number;
@@ -12,9 +12,17 @@ interface CharacterExpBarProps {
 
 export default function CharacterExpBar({ currExp, maxExp, level, labelsInTooltip = false }: CharacterExpBarProps) {
   const percentage = maxExp > 0 ? Math.min((currExp / maxExp) * 100, 100) : 0;
+  const expText = `${currExp} / ${maxExp}`;
+  const label = level !== undefined ? `Lv ${level} · ${expText}` : expText;
 
   const bar = (
-    <BarBorder>
+    <BarBorder
+      role="progressbar"
+      aria-valuenow={currExp}
+      aria-valuemin={0}
+      aria-valuemax={maxExp}
+      aria-label="Experiência"
+    >
       <BarBackground>
         <BarFill $percentage={percentage} />
       </BarBackground>
@@ -22,24 +30,11 @@ export default function CharacterExpBar({ currExp, maxExp, level, labelsInToolti
   );
 
   if (labelsInTooltip) {
-    const expText = `${currExp} / ${maxExp}`;
-    const label = level !== undefined ? `Lv ${level} · ${expText}` : expText;
     return (
       <Container>
-        <Tooltip label={label} placement="bottom" stretch>
-          <BarBorder
-            role="progressbar"
-            tabIndex={0}
-            aria-valuenow={currExp}
-            aria-valuemin={0}
-            aria-valuemax={maxExp}
-            aria-label="Experiência"
-          >
-            <BarBackground>
-              <BarFill $percentage={percentage} />
-            </BarBackground>
-          </BarBorder>
-        </Tooltip>
+        <BarBubble label={label} align="right">
+          {bar}
+        </BarBubble>
       </Container>
     );
   }
@@ -55,27 +50,33 @@ export default function CharacterExpBar({ currExp, maxExp, level, labelsInToolti
   );
 }
 
-const Container = styled.div`
-  position: relative;
-  width: 100%;
-`;
-
-const sharedLabelStyles = `
-  color: ${colors.textPrimary};
-  font-size: 3cqi;
-  font-weight: 600;
-  text-shadow: 1px 1px 4px ${colors.shadowText};
-  white-space: nowrap;
+// O balão tem o tamanho das etiquetas que ele substitui.
+const labelFontSize = (property: string) => `
+  ${property}: 3cqi;
 
   @container (max-width: 609px) {
-    font-size: 4cqi;
+    ${property}: 4cqi;
   }
   /* Piso de 10 px (e não os 11 do plano: com 11 a classe encostava no Lv), só em card de
      220 px ou mais. No card do lobby (cerca de 180 px) qualquer piso cobre o fim da classe:
      ali o tamanho fica como estava, pendente do designer. */
   @container (min-width: 220px) and (max-width: 609px) {
-    font-size: max(4cqi, 10px);
+    ${property}: max(4cqi, 10px);
   }
+`;
+
+const Container = styled.div`
+  position: relative;
+  width: 100%;
+  ${labelFontSize(BAR_BUBBLE_FONT_SIZE)}
+`;
+
+const sharedLabelStyles = `
+  color: ${colors.textPrimary};
+  ${labelFontSize("font-size")}
+  font-weight: 600;
+  text-shadow: 1px 1px 4px ${colors.shadowText};
+  white-space: nowrap;
 `;
 
 const RightLabels = styled.div`

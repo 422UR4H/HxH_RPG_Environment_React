@@ -9,20 +9,20 @@ describe("CharacterExpBar", () => {
     expect(screen.getByText("10 / 30")).toBeInTheDocument();
   });
 
-  it("hides the labels and shows them in the tooltip when labelsInTooltip is set", () => {
+  it("hides the labels and shows them in the bubble on hover when labelsInTooltip is set", () => {
     render(<CharacterExpBar currExp={10} maxExp={30} level={2} labelsInTooltip />);
     expect(screen.queryByText("Lv 2")).not.toBeInTheDocument();
     expect(screen.queryByText("10 / 30")).not.toBeInTheDocument();
-    const bar = screen.getByRole("progressbar");
-    expect(bar).toHaveAttribute("tabindex", "0");
-    fireEvent.pointerEnter(bar, { pointerType: "mouse" });
-    expect(screen.getByRole("tooltip", { hidden: true })).toHaveTextContent("Lv 2 · 10 / 30");
+    const wrapper = screen.getByRole("progressbar").parentElement as HTMLElement;
+    fireEvent.mouseEnter(wrapper);
+    expect(screen.getByText("Lv 2 · 10 / 30")).toBeInTheDocument();
+    fireEvent.mouseLeave(wrapper);
+    expect(screen.queryByText("Lv 2 · 10 / 30")).not.toBeInTheDocument();
   });
 
-  it("omits the level from the tooltip label when there is none", () => {
+  it("omits the level from the bubble label when there is none", () => {
     render(<CharacterExpBar currExp={10} maxExp={30} labelsInTooltip />);
-    const bar = screen.getByRole("progressbar");
-    fireEvent.pointerEnter(bar, { pointerType: "mouse" });
-    expect(screen.getByRole("tooltip", { hidden: true })).toHaveTextContent(/^10 \/ 30$/);
+    fireEvent.mouseEnter(screen.getByRole("progressbar").parentElement as HTMLElement);
+    expect(screen.getByText("10 / 30")).toBeInTheDocument();
   });
 });

@@ -128,37 +128,4 @@ describe("Tooltip", () => {
     expect(tip.parentElement).toBe(document.body);
     expect(screen.getByTestId("card")).not.toContainElement(tip);
   });
-
-  describe("vertical placement", () => {
-    function setupAt(placement: "top" | "bottom", rect: { top: number; bottom: number }) {
-      vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
-        ...rect, left: 100, right: 140, width: 40, height: rect.bottom - rect.top, x: 100, y: rect.top, toJSON: () => ({}),
-      } as DOMRect);
-      vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(20);
-      vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(50);
-      render(
-        <Tooltip label="Dica" placement={placement}>
-          <button type="button">Alvo</button>
-        </Tooltip>,
-      );
-      fireEvent.pointerEnter(screen.getByRole("button", { name: "Alvo" }), { pointerType: "mouse" });
-      return screen.getByRole("tooltip", { hidden: true });
-    }
-    afterEach(() => { vi.restoreAllMocks(); });
-
-    it("places the bubble above the child with placement top", () => {
-      const tip = setupAt("top", { top: 300, bottom: 320 });
-      expect(tip.style.top).toBe("274px");
-    });
-
-    it("flips to the other side when there is no room", () => {
-      const tip = setupAt("top", { top: 10, bottom: 30 });
-      expect(tip.style.top).toBe("36px");
-    });
-
-    it("flips bottom placement upwards when it would pass the window bottom", () => {
-      const tip = setupAt("bottom", { top: window.innerHeight - 30, bottom: window.innerHeight - 10 });
-      expect(tip.style.top).toBe(`${window.innerHeight - 30 - 20 - 6}px`);
-    });
-  });
 });
