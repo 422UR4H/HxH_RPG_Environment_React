@@ -7,9 +7,9 @@ import {
 import { ChoiceLabel, Toggle, Toggles } from "./choiceStyles";
 import type { ChangeScenePayload, SceneCategory } from "./combatMessages";
 
-const CATEGORY_LABELS: Record<SceneCategory, string> = { battle: "Batalha", roleplay: "Roleplay" };
+import { SCENE_LABEL } from "./sceneLabels";
 
-/** `change_scene`: fecha cena e round correntes e abre a nova. A categoria vai minúscula (contrato). */
+/** `change_scene`: fecha cena e rodada correntes e abre a nova. A categoria vai minúscula (contrato). */
 export default function SceneChangeDialog({
   open,
   onConfirm,
@@ -38,11 +38,11 @@ export default function SceneChangeDialog({
     <Overlay onClick={onCancel}>
       <Dialog role="dialog" aria-modal aria-label="Nova cena" onClick={(e) => e.stopPropagation()}>
         <DialogTitle>Nova cena</DialogTitle>
-        <DialogHint>Fecha a cena e o round atuais e abre uma cena nova.</DialogHint>
+        <DialogHint>Fecha a cena e a rodada atuais e abre uma cena nova.</DialogHint>
         <Field>
           <ChoiceLabel id="scene-category">Categoria</ChoiceLabel>
           <Toggles role="radiogroup" aria-labelledby="scene-category">
-            {(Object.keys(CATEGORY_LABELS) as SceneCategory[]).map((c) => (
+            {(Object.keys(SCENE_LABEL) as SceneCategory[]).map((c) => (
               <Toggle
                 key={c}
                 type="button"
@@ -51,7 +51,7 @@ export default function SceneChangeDialog({
                 aria-checked={category === c}
                 onClick={() => setCategory(c)}
               >
-                {CATEGORY_LABELS[c]}
+                {SCENE_LABEL[c]}
               </Toggle>
             ))}
           </Toggles>

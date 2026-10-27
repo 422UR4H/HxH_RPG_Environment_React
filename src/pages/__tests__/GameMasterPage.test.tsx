@@ -588,7 +588,7 @@ describe("GameMasterPage", () => {
       const ws = await waitForSocket();
       openWithServerBoard(ws);
       await openFicha();
-      expect(screen.getByText("Toque numa peça no mapa ou num personagem em Personagens para ver a ficha.")).toBeInTheDocument();
+      expect(screen.getByText("Toque numa peça ou num personagem para abrir a ficha.")).toBeInTheDocument();
       expect(screen.getByText("Toque numa peça para ver a ficha.")).toBeInTheDocument();
       expect(screen.queryByText("Toque num NPC para agir por ele.")).not.toBeInTheDocument();
 
@@ -1105,14 +1105,14 @@ describe("GameMasterPage", () => {
     act(() => ws.emit("round_mode_changed", { mode: "Free" }, { timestamp: "2026-06-01T00:02:00Z" }));
     // Ao vivo, antes de o refetch responder: o regime na hora da mensagem, depois do turno.
     expect(texts()).toEqual([
-      expect.stringContaining("Cena: batalha"),
+      expect.stringContaining("Cena: Batalha"),
       expect.stringContaining("Turno de Capanga"),
       expect.stringContaining("Regime: Livre"),
     ]);
     await vi.waitFor(() => expect(calls).toBe(before + 1));
     // O REST chegou: a linha ao vivo saiu e a do REST ocupa a hora gravada, antes do turno.
     await vi.waitFor(() => expect(texts()).toEqual([
-      expect.stringContaining("Cena: batalha"),
+      expect.stringContaining("Cena: Batalha"),
       expect.stringContaining("Regime: Livre"),
       expect.stringContaining("Turno de Capanga"),
     ]));

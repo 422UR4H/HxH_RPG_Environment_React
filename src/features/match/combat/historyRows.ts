@@ -48,7 +48,7 @@ export function historyRows(
       }
       // O último round de uma cena fecha com a troca de cena, e ao vivo isso é só o
       // `scene_changed` — sem `round_closed`. Só o que acabou por falta de quem pagasse
-      // (outro round nasceu na mesma cena) é "Fim do round".
+      // (outro round nasceu na mesma cena) é "Fim da rodada".
       if (round.finishedAt && i < scene.rounds.length - 1) {
         rest.push({ source: "rest", kind: "round_closed", key: `rest:round_closed:${round.uuid}`, at: Date.parse(round.finishedAt) });
       }

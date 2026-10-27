@@ -294,7 +294,7 @@ describe("GamePlayerPage", () => {
     );
 
     // A página não crashou: a barra geral diz que a ordem está vazia e os saldos seguem lá.
-    expect(await screen.findByText("ordem vazia")).toBeInTheDocument();
+    expect(await screen.findByText("Fila vazia")).toBeInTheDocument();
     expect(screen.getByTestId("balance-action")).toBeInTheDocument();
     // Sem entradas na ordem projetada (order normalizou para []).
     expect(screen.queryByTestId("order-row")).not.toBeInTheDocument();
@@ -1083,7 +1083,7 @@ describe("GamePlayerPage", () => {
     const toggle = await screen.findByRole("button", { name: "Ver histórico" });
     act(() => toggle.click());
     await vi.waitFor(() => expect(calls).toBe(1));
-    await screen.findByText("Cena: batalha");
+    await screen.findByText("Cena: Batalha");
 
     const now = vi.spyOn(Date, "now").mockReturnValue(Date.parse("2026-06-01T00:01:00Z"));
     try {
@@ -1095,7 +1095,7 @@ describe("GamePlayerPage", () => {
       expect(await screen.findByText(`Turno de Gon — atacou Killua · Killua −3`)).toBeInTheDocument();
       const rows = screen.getAllByTestId("event-row");
       expect(rows).toHaveLength(2);
-      expect(rows[0]).toHaveTextContent("Cena: batalha");
+      expect(rows[0]).toHaveTextContent("Cena: Batalha");
       expect(screen.queryByText(/♥/)).toBeNull();
     } finally {
       now.mockRestore();

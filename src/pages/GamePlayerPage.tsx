@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import useUser from "../hooks/useUser";
 import { useMatchParticipants } from "../hooks/useMatchParticipants";
 import { useResizeObserver } from "../hooks/useResizeObserver";
+import usePointerVerb from "../hooks/usePointerVerb";
 import { useCombatCatalogue } from "../hooks/useCombatCatalogue";
 import { useMatchHistory } from "../hooks/useMatchHistory";
 import { useCharacterSheet } from "../hooks/useCharacterSheet";
@@ -60,6 +61,7 @@ const isActorWallTappable = (w: WallSegment) => actorWallVerbs(w).length > 0;
 export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const { width, height } = useResizeObserver(canvasRef);
+  const verb = usePointerVerb();
 
   // O ator: um dos personagens do jogador nesta partida (o primeiro, até ele trocar). A
   // query de participantes é a mesma que `useGameTable` usa — o React Query a compartilha.
@@ -364,7 +366,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
               />
             </StageNotices>
             {map && controls.pick && (
-              <MapHint>Toque na casa para onde {nameOf(controls.pick.actorId)} escapa.</MapHint>
+              <MapHint>{verb} na casa para onde {nameOf(controls.pick.actorId)} escapa.</MapHint>
             )}
             {showReactionHint && (
               <MapHintButton type="button" onClick={showReactionSection}>

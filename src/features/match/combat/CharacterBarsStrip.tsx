@@ -2,7 +2,7 @@ import styled from "styled-components";
 import { colors } from "../../../styles/tokens";
 import type { Bar, BarsPayload, RoundMode } from "./combatMessages";
 import { BAR_ICONS, BAR_LABELS } from "./combatText";
-import { fmt, mean } from "./barsMath";
+import { fmt, hasBarsData, mean } from "./barsMath";
 
 /**
  * Uma linha por personagem, só com o que `bars_updated` traz (I8): o jogador não vê a
@@ -21,7 +21,7 @@ export default function CharacterBarsStrip({
   const race = roundMode === "Race";
   return (
     <Strip aria-label="Barras de cada personagem">
-      {bars.characters.map((c) => {
+      {bars.characters.filter((c) => hasBarsData(c, bars, roundMode)).map((c) => {
         const speeds = [...c.actionSpeeds, ...c.moveSpeeds];
         const avg = mean(speeds);
         return (
@@ -74,7 +74,7 @@ const Strip = styled.div`
      "auto" também (CSS Overflow Module) — daí o ▲▼ vertical indesejado. A tira só rola
      na horizontal; na vertical ela cresce com as linhas (sem limite de altura aqui). */
   overflow-y: hidden;
-  font-size: 11px;
+  font-size: 12px;
 `;
 const Row = styled.div`
   display: flex;
