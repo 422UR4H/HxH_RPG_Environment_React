@@ -145,6 +145,7 @@ export default function CharacterSheetHeader({
                   ? charExp?.level
                   : undefined
               }
+              labelsInTooltip={mode === "create" || mode === "edit"}
             />
           </CharacterExpBarWrapper>
           <CharacterHpBarWrapper>
@@ -373,7 +374,7 @@ const NicknameInputContainer = styled.div`
   position: relative;
   display: flex;
   align-items: flex-end;
-  margin-bottom: 8px;
+  margin-bottom: min(1.4cqi, 8px);
 `;
 
 const PenIcon = styled.img`
@@ -438,9 +439,9 @@ const CharacterClassSelect = styled.select`
   font-weight: 600;
   color: white;
   background-color: #107135;
-  border: 4px solid #107135;
-  border-radius: 28px;
-  padding: 8px min(8cqi, 46px) 8px 16px;
+  border: min(0.6cqi, 4px) solid #107135;
+  border-radius: min(5cqi, 28px);
+  padding: min(1.4cqi, 8px) min(8cqi, 46px) min(1.4cqi, 8px) min(2.8cqi, 16px);
   cursor: pointer;
 
   /* remove down arrow */
@@ -451,7 +452,7 @@ const CharacterClassSelect = styled.select`
   /* add new down arrow */
   background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
   background-repeat: no-repeat;
-  background-position: right 12px center;
+  background-position: right min(2cqi, 12px) center;
   background-size: min(4.4cqi, 28px);
 
   &:active {

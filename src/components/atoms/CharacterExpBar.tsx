@@ -1,14 +1,48 @@
 import styled from "styled-components";
 import { colors } from "../../styles/tokens";
+import Tooltip from "../ions/Tooltip";
 
 interface CharacterExpBarProps {
   currExp: number;
   maxExp: number;
   level?: number;
+  /** Esconde as etiquetas à direita e as mostra num tooltip (criação/edição, onde colidem com o select). */
+  labelsInTooltip?: boolean;
 }
 
-export default function CharacterExpBar({ currExp, maxExp, level }: CharacterExpBarProps) {
+export default function CharacterExpBar({ currExp, maxExp, level, labelsInTooltip = false }: CharacterExpBarProps) {
   const percentage = maxExp > 0 ? Math.min((currExp / maxExp) * 100, 100) : 0;
+
+  const bar = (
+    <BarBorder>
+      <BarBackground>
+        <BarFill $percentage={percentage} />
+      </BarBackground>
+    </BarBorder>
+  );
+
+  if (labelsInTooltip) {
+    const expText = `${currExp} / ${maxExp}`;
+    const label = level !== undefined ? `Lv ${level} · ${expText}` : expText;
+    return (
+      <Container>
+        <Tooltip label={label} placement="bottom" stretch>
+          <BarBorder
+            role="progressbar"
+            tabIndex={0}
+            aria-valuenow={currExp}
+            aria-valuemin={0}
+            aria-valuemax={maxExp}
+            aria-label="Experiência"
+          >
+            <BarBackground>
+              <BarFill $percentage={percentage} />
+            </BarBackground>
+          </BarBorder>
+        </Tooltip>
+      </Container>
+    );
+  }
 
   return (
     <Container>
@@ -16,11 +50,7 @@ export default function CharacterExpBar({ currExp, maxExp, level }: CharacterExp
         {level !== undefined && <LvLabel>Lv {level}</LvLabel>}
         {maxExp > 0 && <ExpLabel>{currExp} / {maxExp}</ExpLabel>}
       </RightLabels>
-      <BarBorder>
-        <BarBackground>
-          <BarFill $percentage={percentage} />
-        </BarBackground>
-      </BarBorder>
+      {bar}
     </Container>
   );
 }
