@@ -1,4 +1,5 @@
 import ErrorIcon from "../ions/ErrorIcon";
+import BorderLabelField from "../ions/BorderLabelField";
 import styled from "styled-components";
 import { colors, alpha } from "../../styles/tokens";
 
@@ -13,7 +14,7 @@ interface SignFieldProps {
   error?: string | null;
 }
 
-// Campo das telas de entrada (login e cadastro): rótulo fixo sobre a borda, foco azul e erro por campo.
+// Campo das telas de entrada (login e cadastro): rótulo fixo sobre a borda (BorderLabelField), foco azul e erro por campo.
 export default function SignField({
   name,
   label,
@@ -28,7 +29,7 @@ export default function SignField({
   const errorId = `${id}-error`;
   return (
     <Block>
-      <Box>
+      <BorderLabelField tone="light" label={label} htmlFor={id}>
         <Input
           id={id}
           name={name}
@@ -40,8 +41,7 @@ export default function SignField({
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? errorId : undefined}
         />
-        <Label htmlFor={id}>{label}</Label>
-      </Box>
+      </BorderLabelField>
       {error && (
         <ErrorText id={errorId}>
           <ErrorIcon size={18} />
@@ -51,21 +51,6 @@ export default function SignField({
     </Block>
   );
 }
-
-const Label = styled.label`
-  position: absolute;
-  /* Centro do rótulo (18px) alinhado ao centro da borda de 3px. */
-  top: -8px;
-  left: 18px;
-  padding: 0 6px;
-  /* Cor do cartão: corta a linha da borda atrás do rótulo. */
-  background-color: ${colors.textPrimary};
-  font-size: 14px;
-  font-weight: 700;
-  line-height: 18px;
-  color: ${colors.textOnLight};
-  pointer-events: none;
-`;
 
 const Input = styled.input`
   box-sizing: border-box;
@@ -86,15 +71,9 @@ const Input = styled.input`
     border-color: ${colors.actionHighlightOnLight};
     box-shadow: 0 0 0 3px ${alpha(colors.actionHighlightOnLight, 0.35)};
   }
-  &:focus + ${Label} {
-    color: ${colors.actionHighlightOnLight};
-  }
 
   &[aria-invalid="true"] {
     border-color: ${colors.feedbackInputError};
-  }
-  &[aria-invalid="true"] + ${Label} {
-    color: ${colors.feedbackInputError};
   }
   &[aria-invalid="true"]:focus {
     box-shadow: 0 0 0 3px ${alpha(colors.feedbackInputError, 0.35)};
@@ -130,10 +109,6 @@ const Input = styled.input`
       0 0 0 1000px ${colors.textPrimary} inset,
       0 0 0 3px ${alpha(colors.feedbackInputError, 0.35)};
   }
-`;
-
-const Box = styled.div`
-  position: relative;
 `;
 
 const ErrorText = styled.p`
