@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/react";
 import styled from "styled-components";
-import { bottomBarVars, bottomBarReserve, floatingElevation } from "../bottomBar";
+import { bottomBarVars, bottomBarReserve, dockedBarAfterGap, floatingElevation } from "../bottomBar";
 import { ActionsList } from "../../components/atoms/ActionsList";
 
 const Host = styled.div`
@@ -26,6 +26,12 @@ describe("bottomBar", () => {
     render(<ActionsList />);
     expect(bottomBarReserve).toContain("+ 24px");
     expect(allCss().replace(/\s/g, "")).toContain(`padding-bottom:${bottomBarReserve.replace(/\s/g, "")}`);
+  });
+
+  it("docks the bar one list gap below the last item while keeping the floating clearance", () => {
+    const css = dockedBarAfterGap("20px").replace(/\s/g, "");
+    expect(css).toContain("--bottom-bar-offset:calc(128px-var(--bottom-bar-height,91px)-20px)");
+    expect(css).toContain("padding-bottom:128px");
   });
 
   it("builds the floating elevation as a deep shadow plus a 1px ring", () => {
