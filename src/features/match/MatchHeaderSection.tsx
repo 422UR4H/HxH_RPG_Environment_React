@@ -1,4 +1,5 @@
 // src/features/match/MatchHeaderSection.tsx
+import SignNotice from "../../components/atoms/SignNotice";
 import styled from "styled-components";
 import Tooltip from "../../components/ions/Tooltip";
 import Badge from "../../components/ions/Badge";
@@ -90,9 +91,10 @@ export default function MatchHeaderSection({
       )}
 
       {lobbyNotOpen && (
-        <LobbyNotOpenBanner>
-          O lobby ainda não foi aberto pelo mestre.
-        </LobbyNotOpenBanner>
+        <SignNotice
+          tone="dark"
+          message="O mestre ainda não abriu o lobby. Tente de novo daqui a pouco."
+        />
       )}
     </>
   );
@@ -153,12 +155,3 @@ const MatchFinalDescription = styled.p`
   margin-bottom: 20px;
 `;
 
-const LobbyNotOpenBanner = styled.div`
-  font-size: 16px;
-  padding: 10px 16px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  background-color: ${colors.overlayMedium};
-  color: ${colors.textMuted};
-  border: 1px solid ${colors.borderDivider};
-`;

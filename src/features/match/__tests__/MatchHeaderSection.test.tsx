@@ -38,4 +38,18 @@ describe("MatchHeaderSection", () => {
       `Agendada para: ${formatDateTimeBR(match.gameScheduledAt)}`,
     );
   });
+
+  it("shows the lobby-not-open notice as a status when lobbyNotOpen is set", () => {
+    renderWithProviders(
+      <MatchHeaderSection
+        match={match}
+        status="scheduled"
+        lobbyNotOpen
+        onDescriptionToggle={() => {}}
+      />,
+    );
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "O mestre ainda não abriu o lobby. Tente de novo daqui a pouco.",
+    );
+  });
 });
