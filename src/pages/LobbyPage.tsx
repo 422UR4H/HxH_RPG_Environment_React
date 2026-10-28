@@ -436,16 +436,10 @@ const StartButton = styled(BaseActionButton)`
   color: ${colors.textPrimary};
 `;
 
-// Destrutivo secundário: contorno e texto de perigo (o mesmo de DangerButton/BgImagePanel), mas com
-// fundo sólido — só contorno não garante contraste sobre a imagem do mapa-múndi.
+// Destrutivo cheio: o vermelho dos botões destrutivos do projeto (o dos diálogos de excluir).
 const CancelButton = styled(BaseActionButton)`
-  background-color: ${colors.surfaceSidebar};
-  border: 2px solid ${colors.feedbackDanger};
-  color: ${colors.feedbackDangerText};
-
-  &:disabled {
-    border-color: ${colors.surfaceDisabled};
-  }
+  background-color: ${colors.actionDestructive};
+  color: ${colors.textPrimary};
 `;
 
 const WaitingMessage = styled.p`
