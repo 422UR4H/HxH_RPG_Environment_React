@@ -5,7 +5,7 @@ import ManageButton from "./ManageButton";
 import type { ManageActions } from "./ManageButton";
 import styled from "styled-components";
 import { colors } from "../../styles/tokens";
-import { floatingElevation } from "../../styles/bottomBar";
+import { floatingElevation, dockedPillNudge } from "../../styles/bottomBar";
 
 interface BottomActionsProps {
   containerRef: RefObject<HTMLDivElement | null>;
@@ -127,7 +127,7 @@ const DockedGroup = styled.div`
   display: flex;
   gap: 12px;
   align-items: center;
-  margin-bottom: -2px;
+  margin-bottom: ${dockedPillNudge};
 `;
 
 // Um desenho só: encaixado ou flutuando, é a mesma pílula (CON-09). Muda a sombra e a largura.

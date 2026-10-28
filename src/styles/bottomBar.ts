@@ -15,6 +15,11 @@ export const bottomBarVars = css`
 /** Espaço que a barra ocupa no rodapé da coluna: altura + distância do fundo. */
 export const bottomBarSpace = "calc(var(--bottom-bar-height, 91px) + var(--bottom-bar-offset, 22px))";
 
+/** O flutuante fica a 20 px do fundo da janela; a faixa encaixada sobe `--bottom-bar-offset` (22 px).
+ *  Esta margem (negativa) desce a pílula encaixada a diferença, para ela assentar onde o flutuante
+ *  estava e não "pular" ao encaixar. Derivada da mesma variável: se a faixa mudar, acompanha. */
+export const dockedPillNudge = "calc(20px - var(--bottom-bar-offset, 22px))";
+
 /** Respiro no fim da lista: a barra inteira mais 24 px, para o último card nunca ficar escondido. */
 export const bottomBarReserve = `calc(${bottomBarSpace} + 24px)`;
 

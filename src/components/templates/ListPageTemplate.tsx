@@ -33,29 +33,37 @@ export default function ListPageTemplate({
   errorBack = { label: "Voltar para o início", to: "/home" },
   children,
 }: ListPageTemplateProps) {
+  // A barra marrom vale também nos estados de carregando e de erro do mundo.
+  const scrollbar = backdrop === "world" && <WorldScrollbar />;
   if (isPending) {
     return (
-      <PageLoading
-        label={loadingLabel}
-        backdrop={backdrop}
-        headerColor={headerColor}
-      />
+      <>
+        {scrollbar}
+        <PageLoading
+          label={loadingLabel}
+          backdrop={backdrop}
+          headerColor={headerColor}
+        />
+      </>
     );
   }
   if (isError) {
     return (
-      <PageError
-        title={errorLabel}
-        onRetry={onRetry}
-        back={errorBack}
-        backdrop={backdrop}
-        headerColor={headerColor}
-      />
+      <>
+        {scrollbar}
+        <PageError
+          title={errorLabel}
+          onRetry={onRetry}
+          back={errorBack}
+          backdrop={backdrop}
+          headerColor={headerColor}
+        />
+      </>
     );
   }
   return (
     <PageContainer $bgImage={bgImage} $bgAttachment={bgAttachment}>
-      {backdrop === "world" && <WorldScrollbar />}
+      {scrollbar}
       <PageHeader backgroundColor={headerColor} />
       <PageBody>{children}</PageBody>
     </PageContainer>

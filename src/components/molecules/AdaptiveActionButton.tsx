@@ -2,7 +2,7 @@ import { useRef, useEffect, useState, type ReactNode } from "react";
 import { useDebounce } from "../../hooks/useDebounce";
 import styled from "styled-components";
 import { colors } from "../../styles/tokens";
-import { floatingElevation } from "../../styles/bottomBar";
+import { floatingElevation, dockedPillNudge } from "../../styles/bottomBar";
 
 interface AdaptiveActionButtonProps {
   label: string;
@@ -118,8 +118,7 @@ const ButtonWrapper = styled.div<{
 }>`
   /* Absolute positioning so it doesn't affect document flow */
   position: absolute;
-  bottom: 0px;
-  ${({ $type }) => ($type === "character" ? "left: 0px;" : "left: 0px;")}
+  left: 0px;
   z-index: 10;
   height: var(--bottom-bar-height, 91px);
   width: 100%;
@@ -127,8 +126,15 @@ const ButtonWrapper = styled.div<{
   display: flex;
   align-items: flex-end;
 
-  ${({ $type, $isFloating }) =>
-    $type === "match" && $isFloating && "left: 0px;"}
+  /* "match" mora na faixa da coluna central, como o AnchoredWrapper do BottomActions: sobe o
+     mesmo respiro e vira container para o rótulo encolher por cqi. "character" fica no pé da barra lateral. */
+  ${({ $type }) =>
+    $type === "match"
+      ? `
+        bottom: var(--bottom-bar-offset, 22px);
+        container-type: inline-size;
+      `
+      : "bottom: 0px;"}
 `;
 
 const ActionButton = styled.button<{
@@ -147,7 +153,7 @@ const ActionButton = styled.button<{
   color: ${colors.textPrimary};
   gap: 10px;
   white-space: nowrap;
-  font-size: 26px;
+  font-size: ${({ $type }) => ($type === "match" ? "min(26px, 5cqi)" : "26px")};
   font-weight: 600;
 
   &:hover {
@@ -164,10 +170,12 @@ const ActionButton = styled.button<{
         position: fixed;
         bottom: 20px;
         ${$type === "character" ? "left: 20px;" : "left: 340px;"}
+        ${$type === "match" ? "@media (max-width: 749px) { left: 40px; }" : ""}
         box-shadow: ${floatingElevation(colors.shadowFloating, colors.borderFloating, colors.borderFloatingHighlight)};
       `
       : `
         position: relative;
+        ${$type === "match" ? `margin-bottom: ${dockedPillNudge};` : ""}
         box-shadow: none;
       `}
 `;

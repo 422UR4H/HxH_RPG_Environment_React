@@ -4,7 +4,7 @@ import ManageButton from "../../components/molecules/ManageButton";
 import type { ManageActions } from "../../components/molecules/ManageButton";
 import styled from "styled-components";
 import { colors, gradients } from "../../styles/tokens";
-import { floatingElevation } from "../../styles/bottomBar";
+import { floatingElevation, dockedPillNudge } from "../../styles/bottomBar";
 
 interface SheetBottomActionsProps {
   onCampaignClick?: () => void;
@@ -111,7 +111,7 @@ const DockedRow = styled.div`
   width: 100%;
   padding: 0 30px;
   box-sizing: border-box;
-  margin-bottom: -2px;
+  margin-bottom: ${dockedPillNudge};
 
   @media (max-width: 609px) {
     padding-inline: 20px;

@@ -4,7 +4,7 @@ import { computePopoverPlacement } from "./popoverPlacement";
 const popover = { width: 320, height: 431 };
 
 describe("computePopoverPlacement", () => {
-  it("abre abaixo do campo quando cabe embaixo", () => {
+  it("opens below the field when it fits below", () => {
     const r = computePopoverPlacement({
       field: { top: 100, bottom: 156, left: 40 },
       popover,
@@ -13,7 +13,7 @@ describe("computePopoverPlacement", () => {
     expect(r).toEqual({ top: 162, left: 40 });
   });
 
-  it("abre acima do campo quando só em cima cabe", () => {
+  it("opens above when only above fits", () => {
     const r = computePopoverPlacement({
       field: { top: 560, bottom: 616, left: 40 },
       popover,
@@ -22,7 +22,7 @@ describe("computePopoverPlacement", () => {
     expect(r.top).toBe(560 - 6 - 431);
   });
 
-  it("fica preso dentro da janela quando não cabe em nenhum lado", () => {
+  it("clamps inside the viewport when neither side fits", () => {
     const r = computePopoverPlacement({
       field: { top: 289, bottom: 345, left: 40 },
       popover,
@@ -32,7 +32,7 @@ describe("computePopoverPlacement", () => {
     expect(r.top + popover.height).toBeLessThanOrEqual(533 - 8);
   });
 
-  it("nunca passa do topo quando o popover é mais alto que a janela", () => {
+  it("never goes above the top when taller than the viewport", () => {
     const r = computePopoverPlacement({
       field: { top: 100, bottom: 156, left: 40 },
       popover: { width: 320, height: 600 },
@@ -41,7 +41,7 @@ describe("computePopoverPlacement", () => {
     expect(r.top).toBe(8);
   });
 
-  it("prende a lateral a 8 px da borda direita", () => {
+  it("clamps the left edge 8px from the right border", () => {
     const r = computePopoverPlacement({
       field: { top: 100, bottom: 156, left: 700 },
       popover,
