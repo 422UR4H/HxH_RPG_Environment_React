@@ -47,7 +47,17 @@ export const StyledSignTemplates = styled.div`
     font-size: min(20px, 6vw);
     font-weight: 600;
     line-height: 24px;
+    text-align: center;
     color: ${colors.textLinkOnLight};
+  }
+
+  /* O link mais largo (20px) ocupa ~262px. Com a barra de rolagem de 12px (o cadastro rola em
+     telas baixas), o cartão só o comporta de 346px de janela em diante; abaixo disso ele encolhe
+     para continuar numa linha só até 320px. */
+  @media (max-width: 345px) {
+    a {
+      font-size: 17px;
+    }
   }
 
   @media (max-width: 480px) {
