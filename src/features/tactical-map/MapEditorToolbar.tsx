@@ -372,9 +372,12 @@ const TabButton = styled.button<{ $active: boolean; $soon?: boolean }>`
   }
 `;
 
-/* Nunca encolhe abaixo do conteúdo (a rolagem é da coluna); cresce para empurrar o MetaSection ao rodapé. */
+/* Encolhe até o espaço disponível (rola por dentro), mas nunca abaixo de 240px;
+   quando nem o piso cabe, quem rola é a coluna (Toolbar). Em tela alta nada muda (EDI-03). */
 const PanelArea = styled.div`
-  flex: 1 0 auto;
+  flex: 1 1 auto;
+  min-height: 240px;
+  overflow-y: auto;
 `;
 
 const PiecesPanel = styled.div`
