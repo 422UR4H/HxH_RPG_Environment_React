@@ -118,7 +118,7 @@ const ButtonWrapper = styled.div<{
 }>`
   /* Absolute positioning so it doesn't affect document flow */
   position: absolute;
-  bottom: 0px;
+  bottom: var(--bottom-bar-offset, 22px);
   ${({ $type }) => ($type === "character" ? "left: 0px;" : "left: 0px;")}
   z-index: 10;
   height: var(--bottom-bar-height, 91px);

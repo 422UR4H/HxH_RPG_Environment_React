@@ -17,6 +17,7 @@ import BottomActions from "../components/molecules/BottomActions";
 import { getSortedCharacters } from "../features/campaign/utils/characterUtils";
 import { PageLoading, PageError, PageNotFound } from "../components/templates/PageState";
 import { ActionsList as BaseActionsList } from "../components/atoms/ActionsList";
+import { dockedBarAfterGap } from "../styles/bottomBar";
 import ExpandableText from "../components/molecules/ExpandableText";
 import ConfirmDialog from "../components/molecules/ConfirmDialog";
 import DetailPageTemplate from "../components/templates/DetailPageTemplate";
@@ -252,7 +253,7 @@ export default function CampaignPage() {
               ))}
             </MatchesList>
 
-            <ActionsList>
+            <ActionsList $gap={MATCHES_GAP}>
               {isMaster ? (
                 <BottomActions
                   containerRef={mainContentRef}
@@ -324,7 +325,7 @@ export default function CampaignPage() {
               )}
             </MapsGrid>
 
-            <ActionsList>
+            <ActionsList $gap={MAPS_GAP}>
               <AdaptiveActionButton
                 label="Criar Mapa"
                 icon={<PlusIcon />}
@@ -381,15 +382,19 @@ const CampaignBriefDescription = styled.p`
   ${headerSubtitle}
 `;
 
+const MATCHES_GAP = "20px";
+const MAPS_GAP = "12px";
+
 const MatchesList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: ${MATCHES_GAP};
   position: relative;
 `;
 
-const ActionsList = styled(BaseActionsList)`
-  margin-top: 24px;
+// Os botões encaixados ficam a um gap da lista: a distância até o último card é a mesma entre cards.
+const ActionsList = styled(BaseActionsList)<{ $gap: string }>`
+  ${({ $gap }) => dockedBarAfterGap($gap)}
 `;
 
 const InlineErrorMessage = styled.p`
@@ -416,8 +421,7 @@ const DeleteErrorMessage = styled(InlineErrorMessage)`
 const MapsGrid = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-bottom: 24px;
+  gap: ${MAPS_GAP};
 `;
 
 const MapsEmptyText = styled.p`
