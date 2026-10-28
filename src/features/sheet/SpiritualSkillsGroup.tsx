@@ -14,7 +14,7 @@ export default function SpiritualSkillsGroup({ attributes, skills }: SpiritualSk
     <SkillsGroupContainer>
       <AttributeSkillGroup
         attributeName="Spirit"
-        attributePower={attributes?.["spirit"]?.power}
+        attributeLevel={attributes?.["spirit"]?.level}
         attributeCurrExp={attributes?.["spirit"]?.currExp}
         attributeNextLvlBaseExp={attributes?.["spirit"]?.nextLvlBaseExp}
         skillsSubList={["focus", "willPower", "selfKnowledge", "coa", "mop", "aop"]}

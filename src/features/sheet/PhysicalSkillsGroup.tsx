@@ -14,7 +14,7 @@ export default function PhysicalSkillsGroup({ attributes, skills }: PhysicalSkil
     <SkillsGroupContainer>
       <AttributeSkillGroup
         attributeName="Resistance"
-        attributePower={attributes?.["resistance"]?.power}
+        attributeLevel={attributes?.["resistance"]?.level}
         attributeCurrExp={attributes?.["resistance"]?.currExp}
         attributeNextLvlBaseExp={attributes?.["resistance"]?.nextLvlBaseExp}
         skillsSubList={["defense", "energy", "vitality"]}
@@ -22,7 +22,7 @@ export default function PhysicalSkillsGroup({ attributes, skills }: PhysicalSkil
       />
       <AttributeSkillGroup
         attributeName="Strength"
-        attributePower={attributes?.["strength"]?.power}
+        attributeLevel={attributes?.["strength"]?.level}
         attributeCurrExp={attributes?.["strength"]?.currExp}
         attributeNextLvlBaseExp={attributes?.["strength"]?.nextLvlBaseExp}
         skillsSubList={["carry", "grab", "push"]}
@@ -30,7 +30,7 @@ export default function PhysicalSkillsGroup({ attributes, skills }: PhysicalSkil
       />
       <AttributeSkillGroup
         attributeName="Agility"
-        attributePower={attributes?.["agility"]?.power}
+        attributeLevel={attributes?.["agility"]?.level}
         attributeCurrExp={attributes?.["agility"]?.currExp}
         attributeNextLvlBaseExp={attributes?.["agility"]?.nextLvlBaseExp}
         skillsSubList={["accelerate", "brake", "quickness"]}
@@ -38,7 +38,7 @@ export default function PhysicalSkillsGroup({ attributes, skills }: PhysicalSkil
       />
       <AttributeSkillGroup
         attributeName="Celerity"
-        attributePower={attributes?.["celerity"]?.power}
+        attributeLevel={attributes?.["celerity"]?.level}
         attributeCurrExp={attributes?.["celerity"]?.currExp}
         attributeNextLvlBaseExp={attributes?.["celerity"]?.nextLvlBaseExp}
         skillsSubList={["legerity", "feint", "repel"]}
@@ -46,7 +46,7 @@ export default function PhysicalSkillsGroup({ attributes, skills }: PhysicalSkil
       />
       <AttributeSkillGroup
         attributeName="Flexibility"
-        attributePower={attributes?.["flexibility"]?.power}
+        attributeLevel={attributes?.["flexibility"]?.level}
         attributeCurrExp={attributes?.["flexibility"]?.currExp}
         attributeNextLvlBaseExp={attributes?.["flexibility"]?.nextLvlBaseExp}
         skillsSubList={["acrobatics", "evasion", "sneak"]}
@@ -54,7 +54,7 @@ export default function PhysicalSkillsGroup({ attributes, skills }: PhysicalSkil
       />
       <AttributeSkillGroup
         attributeName="Dexterity"
-        attributePower={attributes?.["dexterity"]?.power}
+        attributeLevel={attributes?.["dexterity"]?.level}
         attributeCurrExp={attributes?.["dexterity"]?.currExp}
         attributeNextLvlBaseExp={attributes?.["dexterity"]?.nextLvlBaseExp}
         skillsSubList={["accuracy", "reflex", "stealth"]}
@@ -62,7 +62,7 @@ export default function PhysicalSkillsGroup({ attributes, skills }: PhysicalSkil
       />
       <AttributeSkillGroup
         attributeName="Sense"
-        attributePower={attributes?.["sense"]?.power}
+        attributeLevel={attributes?.["sense"]?.level}
         attributeCurrExp={attributes?.["sense"]?.currExp}
         attributeNextLvlBaseExp={attributes?.["sense"]?.nextLvlBaseExp}
         skillsSubList={["hearing", "smell", "tact", "taste", "vision"]}
@@ -70,7 +70,7 @@ export default function PhysicalSkillsGroup({ attributes, skills }: PhysicalSkil
       />
       <AttributeSkillGroup
         attributeName="Constitution"
-        attributePower={attributes?.["constitution"]?.power}
+        attributeLevel={attributes?.["constitution"]?.level}
         attributeCurrExp={attributes?.["constitution"]?.currExp}
         attributeNextLvlBaseExp={attributes?.["constitution"]?.nextLvlBaseExp}
         skillsSubList={["breath", "heal", "tenacity"]}

@@ -28,7 +28,7 @@ function SkillCard({ name, value, level, currExp, nextLvlBaseExp }: SkillCardPro
 
 interface AttributeSkillGroupProps {
   attributeName: string;
-  attributePower?: number;
+  attributeLevel?: number;
   attributeCurrExp?: number;
   attributeNextLvlBaseExp?: number;
   skillsSubList: string[];
@@ -37,7 +37,7 @@ interface AttributeSkillGroupProps {
 
 export default function AttributeSkillGroup({
   attributeName,
-  attributePower = 0,
+  attributeLevel = 0,
   attributeCurrExp,
   attributeNextLvlBaseExp,
   skillsSubList,
@@ -47,7 +47,7 @@ export default function AttributeSkillGroup({
     <AttributeSkillContainer>
       <AttributeSectionTitle>
         <AttributeTitle>{attributeName}</AttributeTitle>
-        <AttributePower>Lv {attributePower}</AttributePower>
+        <AttributeLevel>Lv {attributeLevel}</AttributeLevel>
       </AttributeSectionTitle>
       <ExpBar currExp={attributeCurrExp ?? 0} maxExp={attributeNextLvlBaseExp ?? 1} tooltipAlign="right" />
       <SkillsSubList>
@@ -90,7 +90,7 @@ const AttributeTitle = styled.h3`
   color: ${colors.textLabelMuted};
 `;
 
-const AttributePower = styled.h3`
+const AttributeLevel = styled.h3`
   font-family: ${fonts.sans};
   font-size: 6cqi;
   color: ${colors.textMuted};
