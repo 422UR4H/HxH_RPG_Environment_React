@@ -58,9 +58,9 @@ export default function SheetBottomActions({
         <FloatingGroup>
           {manage && <ManageButton {...manage} isFloating={true} />}
           {onCampaignClick && (
-            <FloatingCampaignButton onClick={onCampaignClick}>
+            <CampaignButton $isFloating onClick={onCampaignClick}>
               <span>{campaignLabel}</span>
-            </FloatingCampaignButton>
+            </CampaignButton>
           )}
         </FloatingGroup>
       </FloatingWrapper>
@@ -69,12 +69,14 @@ export default function SheetBottomActions({
 
   return (
     <AnchoredWrapper>
-      {manage && <ManageButton {...manage} isFloating={false} />}
-      {onCampaignClick && (
-        <CampaignButton onClick={onCampaignClick}>
-          <span>{campaignLabel}</span>
-        </CampaignButton>
-      )}
+      <DockedRow>
+        {manage && <ManageButton {...manage} isFloating={false} />}
+        {onCampaignClick && (
+          <CampaignButton $isFloating={false} onClick={onCampaignClick}>
+            <span>{campaignLabel}</span>
+          </CampaignButton>
+        )}
+      </DockedRow>
     </AnchoredWrapper>
   );
 }
@@ -83,6 +85,7 @@ const FloatingWrapper = styled.div`
   container-type: inline-size;
 `;
 
+// O container fica sem recuo para o cqi dos botões ser o mesmo do flutuante; o recuo vai na linha de dentro.
 const AnchoredWrapper = styled.div`
   container-type: inline-size;
   position: absolute;
@@ -92,36 +95,57 @@ const AnchoredWrapper = styled.div`
   height: 91px;
   width: 100%;
   display: flex;
-  align-items: center;
-  padding: 0 30px;
-  gap: 20px;
-  box-sizing: border-box;
-
-  @media (max-width: 609px) {
-    padding-inline: 20px;
-    gap: 15px;
-  }
+  align-items: flex-end;
 
   @media (max-width: 440px) {
     height: 70px;
   }
 `;
 
-const CampaignButton = styled.button`
-  flex: 1;
-  height: 100%;
+// Mesmo arranjo do FloatingGroup (Gerenciar à esquerda, campanha à direita, 12 px de respiro); só a posição muda.
+const DockedRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 0 30px;
+  box-sizing: border-box;
+  margin-bottom: -2px;
+
+  @media (max-width: 609px) {
+    padding-inline: 20px;
+  }
+`;
+
+// Um desenho só: encaixado ou flutuando, é a mesma pílula (CON-09). Muda a sombra.
+const CampaignButton = styled.button<{ $isFloating: boolean }>`
+  margin-left: auto;
+  white-space: nowrap;
   border: none;
-  border-radius: 8px;
+  border-radius: 50px;
+  padding: min(15px, 3.6cqi) min(30px, 5cqi) min(15px, 3.6cqi) min(26px, 5cqi);
   background: ${gradients.orange};
   color: ${colors.textOnLight};
   font-size: min(26px, 5cqi);
   font-weight: 600;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: min(15px, 2cqi);
+  gap: 10px;
   cursor: pointer;
+  ${({ $isFloating }) =>
+    $isFloating
+      ? `box-shadow: ${floatingElevation(colors.shadowFloating, colors.borderFloating, colors.borderFloatingHighlight)};`
+      : ""}
   transition: all 0.3s ease;
+
+  @media (max-width: 609px) {
+    padding: 0 0.9em;
+    min-height: 44px;
+    font-size: clamp(13px, 3.75cqi, 20px);
+    gap: 4px;
+  }
+
   &:hover {
     transform: translateY(-5px);
     filter: brightness(1.1);
@@ -147,38 +171,5 @@ const FloatingGroup = styled.div`
 
   > * {
     pointer-events: auto;
-  }
-`;
-
-const FloatingCampaignButton = styled.button`
-  margin-left: auto;
-  white-space: nowrap;
-  border: none;
-  border-radius: 50px;
-  padding: min(15px, 3.6cqi) min(30px, 5cqi) min(15px, 3.6cqi) min(26px, 5cqi);
-  background: ${gradients.orange};
-  color: ${colors.textOnLight};
-  font-size: min(26px, 5cqi);
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
-  box-shadow: ${floatingElevation(colors.shadowFloating, colors.borderFloating, colors.borderFloatingHighlight)};
-  transition: all 0.3s ease;
-
-  @media (max-width: 609px) {
-    padding: 0 0.9em;
-    min-height: 44px;
-    font-size: clamp(13px, 3.75cqi, 20px);
-    gap: 4px;
-  }
-
-  &:hover {
-    transform: translateY(-5px);
-    filter: brightness(1.1);
-  }
-  &:active {
-    transform: scale(0.98);
   }
 `;

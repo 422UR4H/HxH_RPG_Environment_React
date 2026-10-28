@@ -79,13 +79,15 @@ export default function BottomActions({
 
   return (
     <AnchoredWrapper>
-      {manage && <ManageButton {...manage} isFloating={false} />}
-      {primaryButton && (
-        <PrimaryButton $isFloating={false} onClick={primaryButton.onClick}>
-          {primaryButton.icon}
-          <span>{primaryButton.label}</span>
-        </PrimaryButton>
-      )}
+      <DockedGroup>
+        {manage && <ManageButton {...manage} isFloating={false} />}
+        {primaryButton && (
+          <PrimaryButton $isFloating={false} onClick={primaryButton.onClick}>
+            {primaryButton.icon}
+            <span>{primaryButton.label}</span>
+          </PrimaryButton>
+        )}
+      </DockedGroup>
     </AnchoredWrapper>
   );
 }
@@ -117,12 +119,15 @@ const AnchoredWrapper = styled.div`
   height: var(--bottom-bar-height, 91px);
   width: 100%;
   display: flex;
-  align-items: center;
-  gap: 20px;
+  align-items: flex-end;
+`;
 
-  @media (max-width: 609px) {
-    gap: 15px;
-  }
+// Mesmo arranjo do FloatingGroup (pílulas do tamanho do conteúdo, 12 px entre elas); só a posição muda.
+const DockedGroup = styled.div`
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: -2px;
 `;
 
 // Um desenho só: encaixado ou flutuando, é a mesma pílula (CON-09). Muda a sombra e a largura.
@@ -137,18 +142,13 @@ const PrimaryButton = styled.button<{ $isFloating: boolean }>`
   display: flex;
   align-items: center;
   gap: 10px;
+  white-space: nowrap;
   cursor: pointer;
   transition: all 0.3s ease;
   ${({ $isFloating }) =>
     $isFloating
       ? `box-shadow: ${floatingElevation(colors.shadowFloating, colors.borderFloating, colors.borderFloatingHighlight)};`
-      : `
-        flex: 1;
-        justify-content: center;
-        /* A faixa encaixada é mais estreita que a área do flutuante: o recuo cede para o rótulo não quebrar. */
-        white-space: nowrap;
-        padding-inline: min(26px, 4cqi) min(30px, 4cqi);
-      `}
+      : ""}
   &:hover {
     transform: translateY(-5px);
     filter: brightness(1.1);

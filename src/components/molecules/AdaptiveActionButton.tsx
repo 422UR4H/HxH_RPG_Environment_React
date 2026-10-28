@@ -123,9 +123,9 @@ const ButtonWrapper = styled.div<{
   z-index: 10;
   height: var(--bottom-bar-height, 91px);
   width: 100%;
-  /* Encaixado, a pílula fica no centro da faixa em vez de esticar até a altura dela. */
+  /* Encaixado, a pílula assenta no pé da faixa, onde o flutuante fica no fim da rolagem. */
   display: flex;
-  align-items: center;
+  align-items: flex-end;
 
   ${({ $type, $isFloating }) =>
     $type === "match" && $isFloating && "left: 0px;"}
@@ -146,6 +146,7 @@ const ActionButton = styled.button<{
   background-color: ${colors.brandAccent};
   color: ${colors.textPrimary};
   gap: 10px;
+  white-space: nowrap;
   font-size: 26px;
   font-weight: 600;
 
@@ -167,8 +168,6 @@ const ActionButton = styled.button<{
       `
       : `
         position: relative;
-        width: 100%;
-        justify-content: center;
         box-shadow: none;
       `}
 `;
