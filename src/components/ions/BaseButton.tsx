@@ -24,7 +24,8 @@ const StyledButton = styled.button`
   color: ${colors.textOnLight};
 
   width: 429px;
-  height: 48px;
+  /* Mesma altura dos campos de SignField (52px). */
+  height: 52px;
   border-radius: 14px;
   cursor: pointer;
 
@@ -44,9 +45,5 @@ const StyledButton = styled.button`
 
   @media (max-width: 580px) {
     width: 100%;
-  }
-
-  @media (max-width: 360px) {
-    height: 55px;
   }
 `;
