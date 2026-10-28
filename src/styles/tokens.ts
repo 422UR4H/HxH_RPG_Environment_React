@@ -120,7 +120,7 @@ export const colors = {
   actionHighlight: palette.gold700, // controles do header (seta, logo): halo do hover e anel de foco
   actionHighlightOnLight: palette.blue700, // anel de foco sobre superfície clara: cartão do login e do cadastro
   actionDestructive: palette.red700, // botões que removem, excluem, rejeitam ou saem: nunca o vermelho do brand (é o da peça)
-  actionDestructiveText: palette.red600, // texto de ação destrutiva sobre painel escuro: o contraste manda
+  actionDestructiveText: palette.red500, // texto de ação destrutiva sobre painel escuro: o contraste manda (4,8:1 no hover #252525, 5,4:1 no painel #1c1c1c; o red600 dava 3,0 a 3,3)
   actionConfirm: palette.green500, // contorno da ação de aceitar sobre painel escuro (o verde da marca some ali)
 
   // feedback
