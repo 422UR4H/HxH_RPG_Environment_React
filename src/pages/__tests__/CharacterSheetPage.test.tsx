@@ -101,6 +101,36 @@ describe("CharacterSheetPage", () => {
     expect(screen.queryByRole("heading", { name: "Físicas" })).not.toBeInTheDocument();
   });
 
+  it("hides the Spiritual skills group and the principles at spiritual ability level 0", async () => {
+    renderPage({ user: userFixture });
+    expect(await screen.findByRole("heading", { name: "Physical" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Spiritual" })).not.toBeInTheDocument();
+    expect(screen.queryByText("PRINCÍPIOS")).not.toBeInTheDocument();
+  });
+
+  it("shows the Spiritual skills under Flame and Conscience at spiritual ability level > 0", async () => {
+    server.use(
+      http.get(`${baseUrl}/charactersheets/:id`, () =>
+        HttpResponse.json({
+          characterSheet: {
+            ...sheetApiFixture,
+            abilities: {
+              Spirituals: { level: 1, exp: 0, currExp: 0, nextLvlBaseExp: 100, bonus: 1 },
+            },
+            spiritualAttributes: {
+              Flame: { level: 2, exp: 0, currExp: 0, nextLvlBaseExp: 100, power: 9 },
+              Conscience: { level: 1, exp: 0, currExp: 0, nextLvlBaseExp: 100, power: 7 },
+            },
+          },
+        }),
+      ),
+    );
+    renderPage({ user: userFixture });
+    expect(await screen.findByRole("heading", { name: "Spiritual" })).toBeInTheDocument();
+    expect(screen.getByText(/^flame$/i).parentElement).toHaveTextContent("Lv 2");
+    expect(screen.getByText(/^conscience$/i).parentElement).toHaveTextContent("Lv 1");
+  });
+
   describe("delete from the Manage menu (CON-07)", () => {
     const blockedReason =
       "Ficha em campanha ou com envio pendente não pode ser excluída: o histórico é do grupo.";
