@@ -5,7 +5,7 @@ import ManageButton from "./ManageButton";
 import type { ManageActions } from "./ManageButton";
 import styled from "styled-components";
 import { colors } from "../../styles/tokens";
-import { floatingElevation } from "../../styles/bottomBar";
+import { floatingElevation, floatingBottomPx, dockThresholdPx } from "../../styles/bottomBar";
 
 interface BottomActionsProps {
   containerRef: RefObject<HTMLDivElement | null>;
@@ -49,7 +49,7 @@ export default function BottomActions({
         const el = containerRef.current;
         if (!el) return;
         setScrollPosition(el.scrollTop);
-        setIsFloating(el.scrollTop + el.clientHeight < el.scrollHeight - 30);
+        setIsFloating(el.scrollTop + el.clientHeight < el.scrollHeight - dockThresholdPx);
       }, t),
     );
     return () => timers.forEach(clearTimeout);
@@ -58,7 +58,7 @@ export default function BottomActions({
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    setIsFloating(debouncedScroll + el.clientHeight < el.scrollHeight - 30);
+    setIsFloating(debouncedScroll + el.clientHeight < el.scrollHeight - dockThresholdPx);
   }, [debouncedScroll, containerRef]);
 
   if (isFloating) {
@@ -96,7 +96,7 @@ const FloatingWrapper = styled.div`
 
 const FloatingGroup = styled.div`
   position: fixed;
-  bottom: 20px;
+  bottom: ${floatingBottomPx}px;
   left: 340px;
   z-index: 10;
   display: flex;

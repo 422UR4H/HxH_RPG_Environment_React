@@ -2,7 +2,7 @@ import { useRef, useEffect, useState, type ReactNode } from "react";
 import { useDebounce } from "../../hooks/useDebounce";
 import styled from "styled-components";
 import { colors } from "../../styles/tokens";
-import { floatingElevation } from "../../styles/bottomBar";
+import { floatingElevation, floatingBottomPx, dockThresholdPx } from "../../styles/bottomBar";
 
 interface AdaptiveActionButtonProps {
   label: string;
@@ -74,7 +74,7 @@ export default function AdaptiveActionButton({
 
         setScrollPosition(container.scrollTop);
         // Force direct state update
-        setIsFloating(scrollBottom < contentHeight - 30);
+        setIsFloating(scrollBottom < contentHeight - dockThresholdPx);
       }, time);
 
       timers.push(timer);
@@ -94,7 +94,7 @@ export default function AdaptiveActionButton({
 
     // Larger margin to avoid overly sensitive activation
     // The button only floats if it's far from the end
-    setIsFloating(scrollBottom < contentHeight - 30);
+    setIsFloating(scrollBottom < contentHeight - dockThresholdPx);
   }, [debouncedScrollPosition, containerRef]);
 
   return (
@@ -118,7 +118,7 @@ const ButtonWrapper = styled.div<{
 }>`
   /* Absolute positioning so it doesn't affect document flow */
   position: absolute;
-  bottom: var(--bottom-bar-offset, 22px);
+  bottom: var(--docked-bar-bottom, 0px);
   ${({ $type }) => ($type === "character" ? "left: 0px;" : "left: 0px;")}
   z-index: 10;
   height: var(--bottom-bar-height, 91px);
@@ -144,7 +144,7 @@ const ActionButton = styled.button<{
       ? `
         /* Floating */
         position: fixed;
-        bottom: 20px;
+        bottom: ${floatingBottomPx}px;
         ${$type === "character" ? "left: 20px;" : "left: 340px;"}
         ${$type === "match" ? "@media (max-width: 749px) { left: 40px; }" : ""}
         border-radius: 50px;
