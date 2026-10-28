@@ -13,6 +13,7 @@ import FormField from "../components/molecules/FormField";
 import FormRow from "../components/molecules/FormRow";
 import FormCheckbox from "../components/molecules/FormCheckbox";
 import FormInput from "../components/ions/FormInput";
+import DateField from "../components/molecules/DateField";
 import FormTextArea from "../components/ions/FormTextArea";
 import UpcomingRulesSidebar from "../components/organisms/UpcomingRulesSidebar";
 import { PageLoading, PageError, PageNotFound } from "../components/templates/PageState";
@@ -217,12 +218,10 @@ export default function EditCampaignPage() {
 
       <FormRow>
         <FormField label="Data de Início da História" htmlFor="storyStartAt">
-          <FormInput
+          <DateField
             id="storyStartAt"
-            name="storyStartAt"
-            type="date"
             value={form.storyStartAt}
-            onChange={handleForm}
+            onChange={(value) => setForm((prev) => ({ ...prev, storyStartAt: value }))}
             disabled={hasStartedMatch}
             required={!hasStartedMatch}
           />
@@ -234,12 +233,11 @@ export default function EditCampaignPage() {
           helpText="Data atual dentro do universo da campanha"
           optional
         >
-          <FormInput
+          <DateField
             id="storyCurrentAt"
-            name="storyCurrentAt"
-            type="datetime-local"
+            withTime
             value={form.storyCurrentAt}
-            onChange={handleForm}
+            onChange={(value) => setForm((prev) => ({ ...prev, storyCurrentAt: value }))}
             min={
               campaign.storyCurrentAt
                 ? toDateTimeLocalValue(campaign.storyCurrentAt)

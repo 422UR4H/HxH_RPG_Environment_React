@@ -100,35 +100,27 @@ describe("CreateMatchPage", () => {
     const u = userEvent.setup();
     await u.type(await screen.findByLabelText(/Título da Partida/i), "Nova Partida");
     await u.type(screen.getByLabelText(/Descrição Breve/i), "Brief partida");
-    await u.clear(screen.getByLabelText("Data e Hora da Sessão"));
+    await u.click(screen.getByLabelText("Data e Hora da Sessão"));
+    await u.click(screen.getByRole("button", { name: "Limpar" }));
     await u.click(screen.getByRole("button", { name: /Criar Partida/i }));
     expect(
       await screen.findByText("Preencha o campo obrigatório: Data e Hora da Sessão."),
     ).toBeInTheDocument();
   });
 
-  it("keeps the story start inside the campaign, as the browser did before noValidate", async () => {
-    let posted = false;
-    server.use(
-      http.post(`${baseUrl}/matches`, () => {
-        posted = true;
-        return HttpResponse.json({ match: { uuid: "m" } }, { status: 201 });
-      }),
-    );
+  it("keeps the story start inside the campaign: days before it cannot be picked", async () => {
     renderPage();
     const u = userEvent.setup();
     await u.type(await screen.findByLabelText(/Título da Partida/i), "Nova Partida");
-    await u.type(screen.getByLabelText(/Descrição Breve/i), "Brief partida");
     const storyStart = screen.getByLabelText("Data de Início na História");
-    await u.clear(storyStart);
-    await u.type(storyStart, "2024-12-31");
-    await u.click(screen.getByRole("button", { name: /Criar Partida/i }));
+    await waitFor(() => expect(storyStart).toHaveTextContent("01/01/2025"));
+    await u.click(storyStart);
+    const dialog = screen.getByRole("dialog", { name: "Escolher data" });
+    // O min do campo desabilita o dia antes do início da campanha (a regra da página segue de reserva).
+    await u.click(within(dialog).getByRole("button", { name: "Mês anterior" }));
     expect(
-      await screen.findByText(
-        "A data de início na história deve ser igual ou posterior ao início da campanha.",
-      ),
-    ).toBeInTheDocument();
-    expect(posted).toBe(false);
+      within(dialog).getByRole("button", { name: /31 de dezembro de 2024/i }),
+    ).toBeDisabled();
   });
 
   it("submete dados válidos e navega de volta", async () => {

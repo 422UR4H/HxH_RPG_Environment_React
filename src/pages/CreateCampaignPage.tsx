@@ -9,6 +9,7 @@ import FormField from "../components/molecules/FormField";
 import FormRow from "../components/molecules/FormRow";
 import FormCheckbox from "../components/molecules/FormCheckbox";
 import FormInput from "../components/ions/FormInput";
+import DateField from "../components/molecules/DateField";
 import FormTextArea from "../components/ions/FormTextArea";
 import UpcomingRulesSidebar from "../components/organisms/UpcomingRulesSidebar";
 import { CONNECTION_ERROR_MESSAGE, getApiErrorDetail, isConnectionError } from "../utils/apiError";
@@ -139,12 +140,10 @@ export default function CreateCampaignPage() {
 
       <FormRow>
         <FormField label="Data de Início da História" htmlFor="storyStartAt">
-          <FormInput
+          <DateField
             id="storyStartAt"
-            name="storyStartAt"
-            type="date"
             value={form.storyStartAt}
-            onChange={handleForm}
+            onChange={(value) => setForm((prev) => ({ ...prev, storyStartAt: value }))}
             required
           />
         </FormField>
