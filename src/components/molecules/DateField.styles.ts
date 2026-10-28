@@ -85,6 +85,7 @@ export const Popover = styled.div`
     display: flex;
     justify-content: center;
     min-height: 40px;
+    margin-bottom: 12px;
     padding: 0 44px;
   }
   .rdp-dropdowns {
