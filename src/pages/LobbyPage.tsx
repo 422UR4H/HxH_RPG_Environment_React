@@ -290,6 +290,7 @@ export default function LobbyPage() {
         )}
 
         {isMaster ? (
+          <MasterActionsBox>
             <MasterActions>
               <StartButton onClick={sendStartMatch} disabled={status !== "connected"}>
                 Iniciar Partida
@@ -301,10 +302,9 @@ export default function LobbyPage() {
                 Cancelar Lobby
               </CancelButton>
             </MasterActions>
-          ) : (
-            <WaitingMessage>
-              Aguardando o mestre iniciar a partida…
-            </WaitingMessage>
+          </MasterActionsBox>
+        ) : (
+          <WaitingMessage>Aguardando o mestre iniciar a partida…</WaitingMessage>
         )}
 
         {attachedMapId && !lobbyMap && (
@@ -387,14 +387,19 @@ const RetryButton = styled.button`
   }
 `;
 
+// Container query não consulta o próprio container: o wrapper é quem mede a largura da coluna.
+const MasterActionsBox = styled.div`
+  container-type: inline-size;
+  margin-top: 20px;
+`;
+
 const MasterActions = styled.div`
   display: flex;
   gap: 16px;
   flex-wrap: wrap;
-  margin-top: 20px;
 
-  /* Quebrando linha, os dois ficam com a mesma largura (padrão da barra de botões dos formulários). */
-  @media (max-width: 480px) {
+  /* Abaixo da soma natural dos dois botões + gap (194 + 16 + 207 = 417px) eles quebram linha: aí ficam com a mesma largura. */
+  @container (width < 417px) {
     & > * {
       flex: 1 1 100%;
     }

@@ -315,6 +315,8 @@ const CanvasArea = styled.div`
   position: relative;
   flex: 1;
   min-width: 0;
+  /* Espelho do min-width: em coluna, sem isto o item não encolhe abaixo da altura do stage medido antes da troca de layout. */
+  min-height: 0;
   height: 100%;
 `;
 
@@ -327,11 +329,6 @@ const RosterSidebar = styled.div`
   overflow: hidden;
   background: ${colors.surfaceSidebar};
   border-radius: 6px;
-
-  /* Aviso de lista vazia: textPlaceholder (#888) sobre este fundo dá ~4,4:1. */
-  [data-testid="npc-roster-empty"] {
-    color: ${colors.textPlaceholderStrong};
-  }
 
   @container (max-width: ${STACK_BELOW}) {
     width: 100%;

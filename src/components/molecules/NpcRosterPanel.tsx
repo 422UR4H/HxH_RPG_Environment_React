@@ -72,7 +72,7 @@ export default function NpcRosterPanel({
           </CardWrapper>
         ))}
         {available.length === 0 && (
-          <EmptyHint data-testid="npc-roster-empty">
+          <EmptyHint>
             {allChars.length === 0
               ? "Nenhum personagem na campanha."
               : "Todos os personagens estão no campo."}
@@ -147,7 +147,8 @@ const CardWrapper = styled.div<{ $isPlacing: boolean }>`
 
 const EmptyHint = styled.p`
   font-size: 12px;
-  color: ${colors.textPlaceholder};
+  /* Sobre surfaceSidebar, textPlaceholder não chega a 4,5:1. */
+  color: ${colors.textPlaceholderStrong};
   text-align: center;
   padding: 16px 0;
 `;
