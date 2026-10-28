@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import type { CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useDebounce } from "../../hooks/useDebounce";
 import ManageButton from "../../components/molecules/ManageButton";
 import type { ManageActions } from "../../components/molecules/ManageButton";
@@ -20,6 +21,31 @@ export default function SheetBottomActions({
   const [isFloating, setIsFloating] = useState(false);
   const [scrollPosition, setScrollPosition] = useState(0);
   const debouncedScroll = useDebounce(scrollPosition, 50);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  // Folga entre a janela e a coluna da ficha (só existe quando a coluna está
+  // limitada pelo max-width): o grupo fixo se prende às bordas da coluna.
+  const [columnGap, setColumnGap] = useState({ left: 0, right: 0 });
+
+  useLayoutEffect(() => {
+    if (!isFloating) return;
+    const measure = () => {
+      const el = wrapperRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const viewportWidth = document.documentElement.clientWidth;
+      // Coluna ocupando a largura toda (telas estreitas): comportamento atual.
+      const capped = rect.width < viewportWidth - 1 && rect.left > 1;
+      const next = capped
+        ? { left: Math.round(rect.left), right: Math.round(viewportWidth - rect.right) }
+        : { left: 0, right: 0 };
+      setColumnGap((prev) =>
+        prev.left === next.left && prev.right === next.right ? prev : next,
+      );
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [isFloating]);
 
   useEffect(() => {
     const root = document.getElementById("root");
@@ -54,8 +80,13 @@ export default function SheetBottomActions({
 
   if (isFloating) {
     return (
-      <FloatingWrapper>
-        <FloatingGroup>
+      <FloatingWrapper ref={wrapperRef}>
+        <FloatingGroup
+          style={{
+            "--column-left": `${columnGap.left}px`,
+            "--column-right": `${columnGap.right}px`,
+          } as CSSProperties}
+        >
           {manage && <ManageButton {...manage} isFloating={true} />}
           {onCampaignClick && (
             <FloatingCampaignButton onClick={onCampaignClick}>
@@ -136,8 +167,8 @@ const CampaignButton = styled.button`
 const FloatingGroup = styled.div`
   position: fixed;
   bottom: 20px;
-  left: max(16px, min(60px, 5cqi));
-  right: max(16px, min(60px, 5cqi));
+  left: calc(var(--column-left, 0px) + max(16px, min(60px, 5cqi)));
+  right: calc(var(--column-right, 0px) + max(16px, min(60px, 5cqi)));
   z-index: 10;
   display: flex;
   align-items: flex-end;
