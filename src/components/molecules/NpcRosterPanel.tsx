@@ -72,7 +72,7 @@ export default function NpcRosterPanel({
           </CardWrapper>
         ))}
         {available.length === 0 && (
-          <EmptyHint>
+          <EmptyHint data-testid="npc-roster-empty">
             {allChars.length === 0
               ? "Nenhum personagem na campanha."
               : "Todos os personagens estão no campo."}

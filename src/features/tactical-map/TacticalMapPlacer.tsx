@@ -195,6 +195,7 @@ export default function TacticalMapPlacer({
   }, [pendingSlot]);
 
   return (
+    <PlacerFrame>
     <PlacerRoot data-testid="tactical-map-placer">
       <CanvasArea ref={canvasRef}>
         {width > 0 && height > 0 && (
@@ -273,16 +274,34 @@ export default function TacticalMapPlacer({
           document.body,
         )}
     </PlacerRoot>
+    </PlacerFrame>
   );
 }
 
 // --- Styled components ---
+
+// Largura do contêiner (a coluna central do lobby, não a janela) abaixo da qual o
+// painel de NPCs desce para baixo do tabuleiro. Medido: com 220px de painel ao lado,
+// abaixo de ~520px sobra um tabuleiro de menos de 300px (1366 = 592 fica ao lado; 853 = 465 desce).
+const STACK_BELOW = "520px";
+
+// Um contêiner não consegue consultar a si mesmo: a moldura é quem mede a coluna,
+// e o PlacerRoot (dentro dela) muda de direção.
+const PlacerFrame = styled.div`
+  width: 100%;
+  height: 100%;
+  container-type: inline-size;
+`;
 
 const PlacerRoot = styled.div`
   display: flex;
   width: 100%;
   height: 100%;
   overflow: hidden;
+
+  @container (max-width: ${STACK_BELOW}) {
+    flex-direction: column;
+  }
 `;
 
 const CanvasArea = styled.div`
@@ -298,6 +317,19 @@ const RosterSidebar = styled.div`
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+  background: ${colors.surfaceSidebar};
+  border-radius: 6px;
+
+  /* Aviso de lista vazia: textPlaceholder (#888) sobre este fundo dá ~4,4:1. */
+  [data-testid="npc-roster-empty"] {
+    color: ${colors.textPlaceholderStrong};
+  }
+
+  @container (max-width: ${STACK_BELOW}) {
+    width: 100%;
+    height: 120px;
+    margin-top: 6px;
+  }
 `;
 
 // --- Player self-placement overlay ---
