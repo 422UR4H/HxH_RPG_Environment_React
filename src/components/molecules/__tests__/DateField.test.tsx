@@ -100,19 +100,20 @@ describe("DateField", () => {
       return screen.getByRole("dialog");
     }
 
-    it("opens below whenever it fits below", async () => {
+    it("renders in a portal on the body and opens below whenever it fits below", async () => {
       const dialog = await openAt(100);
-      expect(getComputedStyle(dialog).top).toBe("calc(100% + 6px)");
+      expect(dialog.parentElement).toBe(document.body);
+      expect(dialog.style.top).toBe("162px");
     });
 
     it("opens above only when below does not fit but above does", async () => {
       const dialog = await openAt(600);
-      expect(getComputedStyle(dialog).bottom).toBe("calc(100% + 6px)");
+      expect(dialog.style.top).toBe("294px");
     });
 
     it("opens below, without shrinking, when it fits neither side", async () => {
       const dialog = await openAt(250);
-      expect(getComputedStyle(dialog).top).toBe("calc(100% + 6px)");
+      expect(dialog.style.top).toBe("312px");
     });
   });
 });

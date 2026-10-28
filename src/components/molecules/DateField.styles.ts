@@ -62,11 +62,9 @@ const selectStyle = `
   background-size: 16px;
 `;
 
-export const Popover = styled.div<{ $above: boolean; $shift: number }>`
-  position: absolute;
-  z-index: 1000; /* mesma camada do Tooltip: nunca fica sob a barra do topo */
-  left: ${({ $shift }) => $shift}px;
-  ${({ $above }) => ($above ? "bottom: calc(100% + 6px);" : "top: calc(100% + 6px);")}
+export const Popover = styled.div`
+  position: fixed;
+  z-index: 1000; /* mesma camada do Tooltip, num portal no body: acima de toda a página */
   box-sizing: border-box;
   width: min(320px, calc(100vw - 32px));
   padding: 12px;

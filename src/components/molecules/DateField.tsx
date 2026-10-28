@@ -1,4 +1,5 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { DayPicker } from "react-day-picker";
 import { ptBR } from "react-day-picker/locale";
 import {
@@ -30,7 +31,9 @@ const TIME_PATTERN = /T(\d{2}):(\d{2})/;
 const START_MONTH = new Date(1900, 0, 1);
 const END_MONTH = new Date(2100, 11, 1);
 const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
-const MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0"));
+const MINUTES = Array.from({ length: 60 }, (_, i) =>
+  String(i).padStart(2, "0"),
+);
 
 // Lê os dígitos da string; `new Date("YYYY-MM-DD")` seria UTC e poderia mudar o dia.
 function parseDate(value: string | undefined): Date | undefined {
@@ -62,7 +65,7 @@ export default function DateField({
 }: DateFieldProps) {
   const [open, setOpen] = useState(false);
   const [draftTime, setDraftTime] = useState({ hour: "00", minute: "00" });
-  const [placement, setPlacement] = useState({ above: false, shift: 0 });
+  const [placement, setPlacement] = useState({ top: 0, left: 0 });
   const wrapperRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -73,26 +76,43 @@ export default function DateField({
   const minDate = parseDate(min);
   const maxDate = parseDate(max);
 
-  // Abaixo do campo; acima se não couber; sem sair pela lateral da janela.
+  // Abaixo do campo; só acima se não couber embaixo mas couber em cima sem cruzar o topo da
+  // janela; se não couber em nenhum lado, abaixo (a página rola). Lateral presa a 8 px da borda.
   useLayoutEffect(() => {
-    if (!open || !popoverRef.current || !wrapperRef.current) return;
-    const pop = popoverRef.current.getBoundingClientRect();
-    const field = wrapperRef.current.getBoundingClientRect();
-    // Prefere abaixo; só abre acima se couber sem cruzar o topo da janela. Se não couber em
-    // nenhum lado, abre abaixo e a página rola (o calendário não encolhe).
-    const fitsBelow = field.bottom + 6 + pop.height <= window.innerHeight - 8;
-    const fitsAbove = field.top - 6 - pop.height >= 8;
-    const above = !fitsBelow && fitsAbove;
-    const overflowRight = field.left + pop.width - (window.innerWidth - 16);
-    const shift = Math.min(0, -Math.max(0, overflowRight));
-    const minShift = 16 - field.left;
-    setPlacement({ above, shift: Math.max(shift, minShift) });
+    if (!open) return;
+    function place() {
+      if (!popoverRef.current || !triggerRef.current) return;
+      const pop = popoverRef.current.getBoundingClientRect();
+      const field = triggerRef.current.getBoundingClientRect();
+      const fitsBelow = field.bottom + 6 + pop.height <= window.innerHeight - 8;
+      const fitsAbove = field.top - 6 - pop.height >= 8;
+      const top =
+        !fitsBelow && fitsAbove ? field.top - 6 - pop.height : field.bottom + 6;
+      const maxLeft = window.innerWidth - 8 - pop.width;
+      const left = Math.max(8, Math.min(field.left, maxLeft));
+      setPlacement((prev) =>
+        prev.top === top && prev.left === left ? prev : { top, left },
+      );
+    }
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, { capture: true, passive: true });
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, { capture: true });
+    };
   }, [open]);
 
   useEffect(() => {
     if (!open) return;
     function handlePointerDown(e: PointerEvent) {
-      if (!wrapperRef.current?.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      if (
+        !wrapperRef.current?.contains(target) &&
+        !popoverRef.current?.contains(target)
+      ) {
+        setOpen(false);
+      }
     }
     document.addEventListener("pointerdown", handlePointerDown);
     return () => document.removeEventListener("pointerdown", handlePointerDown);
@@ -120,8 +140,12 @@ export default function DateField({
     if (selected) emit(selected, t);
   }
 
-  const day = selected ? toISODate(selected).split("-").reverse().join("/") : "";
-  const label = day ? `${day}${withTime ? ` às ${time.hour}:${time.minute}` : ""}` : "";
+  const day = selected
+    ? toISODate(selected).split("-").reverse().join("/")
+    : "";
+  const label = day
+    ? `${day}${withTime ? ` às ${time.hour}:${time.minute}` : ""}`
+    : "";
 
   return (
     <Wrapper
@@ -159,74 +183,75 @@ export default function DateField({
           <path d="M3 10h18M8 3v4M16 3v4" />
         </CalendarIcon>
       </Trigger>
-      {open && (
-        <Popover
-          ref={popoverRef}
-          id={dialogId}
-          role="dialog"
-          aria-label="Escolher data"
-          $above={placement.above}
-          $shift={placement.shift}
-        >
-          <DayPicker
-            mode="single"
-            locale={ptBR}
-            captionLayout="dropdown"
-            startMonth={START_MONTH}
-            endMonth={END_MONTH}
-            defaultMonth={selected ?? minDate ?? undefined}
-            selected={selected}
-            onSelect={handleSelectDay}
-            disabled={[
-              ...(minDate ? [{ before: minDate }] : []),
-              ...(maxDate ? [{ after: maxDate }] : []),
-            ]}
-            labels={{
-              labelPrevious: () => "Mês anterior",
-              labelNext: () => "Próximo mês",
-            }}
-            autoFocus
-          />
-          {withTime && (
-            <TimeRow>
-              <TimeSelect
-                aria-label="Hora"
-                value={time.hour}
-                onChange={(e) => handleTime("hour", e.target.value)}
-              >
-                {HOURS.map((h) => (
-                  <option key={h} value={h}>
-                    {h}
-                  </option>
-                ))}
-              </TimeSelect>
-              <span aria-hidden="true">:</span>
-              <TimeSelect
-                aria-label="Minuto"
-                value={time.minute}
-                onChange={(e) => handleTime("minute", e.target.value)}
-              >
-                {MINUTES.map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
-                ))}
-              </TimeSelect>
-            </TimeRow>
-          )}
-          {value && (
-            <ClearButton
-              type="button"
-              onClick={() => {
-                onChange("");
-                close();
+      {open &&
+        createPortal(
+          <Popover
+            ref={popoverRef}
+            id={dialogId}
+            role="dialog"
+            aria-label="Escolher data"
+            style={{ top: placement.top, left: placement.left }}
+          >
+            <DayPicker
+              mode="single"
+              locale={ptBR}
+              captionLayout="dropdown"
+              startMonth={START_MONTH}
+              endMonth={END_MONTH}
+              defaultMonth={selected ?? minDate ?? undefined}
+              selected={selected}
+              onSelect={handleSelectDay}
+              disabled={[
+                ...(minDate ? [{ before: minDate }] : []),
+                ...(maxDate ? [{ after: maxDate }] : []),
+              ]}
+              labels={{
+                labelPrevious: () => "Mês anterior",
+                labelNext: () => "Próximo mês",
               }}
-            >
-              Limpar
-            </ClearButton>
-          )}
-        </Popover>
-      )}
+              autoFocus
+            />
+            {withTime && (
+              <TimeRow>
+                <TimeSelect
+                  aria-label="Hora"
+                  value={time.hour}
+                  onChange={(e) => handleTime("hour", e.target.value)}
+                >
+                  {HOURS.map((h) => (
+                    <option key={h} value={h}>
+                      {h}
+                    </option>
+                  ))}
+                </TimeSelect>
+                <span aria-hidden="true">:</span>
+                <TimeSelect
+                  aria-label="Minuto"
+                  value={time.minute}
+                  onChange={(e) => handleTime("minute", e.target.value)}
+                >
+                  {MINUTES.map((m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
+                  ))}
+                </TimeSelect>
+              </TimeRow>
+            )}
+            {value && (
+              <ClearButton
+                type="button"
+                onClick={() => {
+                  onChange("");
+                  close();
+                }}
+              >
+                Limpar
+              </ClearButton>
+            )}
+          </Popover>,
+          document.body,
+        )}
     </Wrapper>
   );
 }
