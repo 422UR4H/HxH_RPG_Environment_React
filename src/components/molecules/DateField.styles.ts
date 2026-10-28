@@ -67,8 +67,10 @@ export const Popover = styled.div`
   z-index: 1000; /* mesma camada do Tooltip, num portal no body: acima de toda a página */
   box-sizing: border-box;
   width: min(320px, calc(100vw - 32px));
+  max-height: calc(100dvh - 16px); /* garantia: se nem preso na janela couber, rola por dentro */
+  overflow-y: auto;
   padding: 12px;
-  background-color: ${colors.surfaceModal};
+  background-color: ${colors.surfaceSidebar}; /* marrom mais escuro: os seletores (marrom de campo) se destacam */
   border: 2px solid ${colors.borderInput};
   border-radius: 8px;
   box-shadow: 0 8px 24px ${colors.shadowFloating};

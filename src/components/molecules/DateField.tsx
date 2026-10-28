@@ -2,6 +2,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { DayPicker } from "react-day-picker";
 import { ptBR } from "react-day-picker/locale";
+import { computePopoverPlacement } from "../../utils/popoverPlacement";
 import {
   CalendarIcon,
   ClearButton,
@@ -76,20 +77,18 @@ export default function DateField({
   const minDate = parseDate(min);
   const maxDate = parseDate(max);
 
-  // Abaixo do campo; só acima se não couber embaixo mas couber em cima sem cruzar o topo da
-  // janela; se não couber em nenhum lado, abaixo (a página rola). Lateral presa a 8 px da borda.
+  // Posição calculada por `computePopoverPlacement` (embaixo, em cima ou presa na janela).
   useLayoutEffect(() => {
     if (!open) return;
     function place() {
       if (!popoverRef.current || !triggerRef.current) return;
       const pop = popoverRef.current.getBoundingClientRect();
       const field = triggerRef.current.getBoundingClientRect();
-      const fitsBelow = field.bottom + 6 + pop.height <= window.innerHeight - 8;
-      const fitsAbove = field.top - 6 - pop.height >= 8;
-      const top =
-        !fitsBelow && fitsAbove ? field.top - 6 - pop.height : field.bottom + 6;
-      const maxLeft = window.innerWidth - 8 - pop.width;
-      const left = Math.max(8, Math.min(field.left, maxLeft));
+      const { top, left } = computePopoverPlacement({
+        field,
+        popover: { width: pop.width, height: pop.height },
+        viewport: { width: window.innerWidth, height: window.innerHeight },
+      });
       setPlacement((prev) =>
         prev.top === top && prev.left === left ? prev : { top, left },
       );
