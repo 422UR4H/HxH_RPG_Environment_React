@@ -8,7 +8,7 @@ import { useSubmitCharacterSheet } from "../hooks/useSubmitCharacterSheet";
 import { useDeleteCampaign } from "../hooks/useDeleteCampaign";
 import type { CharacterPrivateSummary } from "../types/campaign";
 import styled from "styled-components";
-import { HeaderBox, headerDate, headerRow, headerTitle } from "../styles/pageHeader";
+import { HeaderBox, SubtitleBox, headerDate, headerRow, headerSubtitle, headerTitle } from "../styles/pageHeader";
 import { colors } from "../styles/tokens";
 import CharacterSidebarItem from "../components/molecules/CharacterSidebarItem";
 import MatchItem from "../features/campaign/MatchItem";
@@ -213,9 +213,11 @@ export default function CampaignPage() {
           </CampaignHeader>
         </HeaderBox>
 
-        <CampaignBriefDescription>
-          {campaign.briefInitialDescription}
-        </CampaignBriefDescription>
+        <SubtitleBox>
+          <CampaignBriefDescription>
+            {campaign.briefInitialDescription}
+          </CampaignBriefDescription>
+        </SubtitleBox>
 
         <ExpandableText onToggle={() => setDescriptionSignal((s) => !s)}>
           {campaign.description}
@@ -376,12 +378,7 @@ const CampaignStartDate = styled.div`
 `;
 
 const CampaignBriefDescription = styled.p`
-  font-weight: 400;
-  font-size: 26px;
-  line-height: 1.5;
-  margin-bottom: 20px;
-  color: ${colors.textPrimary};
-  font-style: italic;
+  ${headerSubtitle}
 `;
 
 const MatchesList = styled.div`

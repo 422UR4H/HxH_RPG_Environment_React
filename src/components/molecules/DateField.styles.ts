@@ -1,5 +1,6 @@
 import styled from "styled-components";
 import { colors } from "../../styles/tokens";
+import { fieldFontSize } from "../../styles/formScale";
 
 export const Wrapper = styled.div`
   position: relative;
@@ -19,7 +20,7 @@ export const Trigger = styled.button`
   border: 2px solid ${colors.borderInput};
   border-radius: 6px;
   color: ${colors.textPrimary};
-  font-size: 24px;
+  ${fieldFontSize}
   font-family: inherit;
   text-align: left;
   cursor: pointer;

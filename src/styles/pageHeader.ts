@@ -102,3 +102,30 @@ export const headerDate = css`
 export const headerDateValue = css`
   white-space: nowrap;
 `;
+
+/**
+ * Contêiner do subtítulo: o subtítulo não fica dentro do `HeaderBox`, então precisa medir a
+ * própria coluna para usar o mesmo limiar do título. A margem de baixo mora aqui.
+ */
+export const SubtitleBox = styled.div`
+  container-type: inline-size;
+  margin-bottom: 20px;
+`;
+
+/**
+ * Subtítulo em itálico (descrição breve) logo abaixo do cabeçalho: 26px. Quando a coluna é
+ * estreita (< 560px, onde o título cai para menos de 31px) desce para 18px e o título volta a ser
+ * o maior texto. Precisa estar dentro de um `SubtitleBox`.
+ */
+export const headerSubtitle = css`
+  margin: 0;
+  font-weight: 400;
+  font-size: 26px;
+  line-height: 1.5;
+  color: ${colors.textPrimary};
+  font-style: italic;
+
+  @container (max-width: 559px) {
+    font-size: 18px;
+  }
+`;

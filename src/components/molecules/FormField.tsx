@@ -1,6 +1,7 @@
 import { type ReactNode } from "react";
 import styled from "styled-components";
 import { colors } from "../../styles/tokens";
+import { narrowForm, NARROW_LABEL_SIZE } from "../../styles/formScale";
 
 interface FormFieldProps {
   label: string;
@@ -34,6 +35,10 @@ const Label = styled.label`
   font-weight: 700;
   font-size: 26px;
   color: ${colors.textPrimary};
+
+  ${narrowForm} {
+    font-size: ${NARROW_LABEL_SIZE}px;
+  }
 `;
 
 const Optional = styled.span`

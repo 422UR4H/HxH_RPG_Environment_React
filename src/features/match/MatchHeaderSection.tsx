@@ -9,10 +9,12 @@ import ExpandableText from "../../components/molecules/ExpandableText";
 import { colors } from "../../styles/tokens";
 import {
   HeaderBox,
+  SubtitleBox,
   headerBadge,
   headerDate,
   headerDateValue,
   headerRow,
+  headerSubtitle,
   headerTitle,
 } from "../../styles/pageHeader";
 import { formatDateBR, formatDateTimeBR } from "../../utils/date";
@@ -72,9 +74,11 @@ export default function MatchHeaderSection({
 
       <StoryDate>Início na história: {formatDateBR(match.storyStartAt)}</StoryDate>
 
-      <MatchBriefDescription>
-        {match.briefInitialDescription}
-      </MatchBriefDescription>
+      <SubtitleBox>
+        <MatchBriefDescription>
+          {match.briefInitialDescription}
+        </MatchBriefDescription>
+      </SubtitleBox>
 
       <ExpandableText onToggle={onDescriptionToggle}>
         {match.description}
@@ -136,12 +140,7 @@ const StoryDate = styled.div`
 `;
 
 const MatchBriefDescription = styled.p`
-  font-weight: 400;
-  font-size: 26px;
-  line-height: 1.5;
-  margin-bottom: 20px;
-  color: ${colors.textPrimary};
-  font-style: italic;
+  ${headerSubtitle}
 `;
 
 const MatchFinalDescription = styled.p`

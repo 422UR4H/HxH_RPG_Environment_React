@@ -148,7 +148,7 @@ export default function CreateMatchPage() {
           name="title"
           value={form.title}
           onChange={handleForm}
-          placeholder="Digite o título da partida"
+          placeholder="Título da partida"
           autoComplete="off"
           required
         />

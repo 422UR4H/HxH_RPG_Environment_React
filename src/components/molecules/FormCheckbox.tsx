@@ -1,5 +1,6 @@
 import styled from "styled-components";
 import { colors } from "../../styles/tokens";
+import { narrowForm, NARROW_LABEL_SIZE } from "../../styles/formScale";
 
 interface FormCheckboxProps {
   id: string;
@@ -42,6 +43,10 @@ const GroupLabel = styled.span`
   font-weight: 700;
   font-size: 26px;
   color: ${colors.textPrimary};
+
+  ${narrowForm} {
+    font-size: ${NARROW_LABEL_SIZE}px;
+  }
 `;
 
 const CheckboxContainer = styled.div`
@@ -61,6 +66,10 @@ const CheckboxLabel = styled.label`
   font-weight: 500;
   font-size: 26px;
   cursor: pointer;
+
+  ${narrowForm} {
+    font-size: ${NARROW_LABEL_SIZE}px;
+  }
 `;
 
 const HelpText = styled.p`
