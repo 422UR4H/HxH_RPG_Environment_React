@@ -30,7 +30,7 @@ describe("bottomBar", () => {
 
   it("docks the bar one list gap below the last item while keeping the floating clearance", () => {
     const css = dockedBarAfterGap("20px").replace(/\s/g, "");
-    expect(css).toContain("--bottom-bar-offset:calc(130px-var(--bottom-bar-height,91px)-20px)");
+    expect(css).toContain("--docked-bar-bottom:calc(130px-var(--bottom-bar-height,91px)-20px)");
     expect(css).toContain("padding-bottom:130px");
   });
 
