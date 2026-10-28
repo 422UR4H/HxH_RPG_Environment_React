@@ -67,10 +67,10 @@ export default function BottomActions({
         <FloatingGroup>
           {manage && <ManageButton {...manage} isFloating={true} />}
           {primaryButton && (
-            <FloatingPrimary onClick={primaryButton.onClick}>
+            <PrimaryButton $isFloating onClick={primaryButton.onClick}>
               {primaryButton.icon}
               <span>{primaryButton.label}</span>
-            </FloatingPrimary>
+            </PrimaryButton>
           )}
         </FloatingGroup>
       </FloatingWrapper>
@@ -81,7 +81,7 @@ export default function BottomActions({
     <AnchoredWrapper>
       {manage && <ManageButton {...manage} isFloating={false} />}
       {primaryButton && (
-        <PrimaryButton onClick={primaryButton.onClick}>
+        <PrimaryButton $isFloating={false} onClick={primaryButton.onClick}>
           {primaryButton.icon}
           <span>{primaryButton.label}</span>
         </PrimaryButton>
@@ -108,29 +108,6 @@ const FloatingGroup = styled.div`
   }
 `;
 
-const FloatingPrimary = styled.button`
-  border: none;
-  border-radius: 50px;
-  padding: 15px 30px 15px 26px;
-  background-color: ${colors.brandAccent};
-  color: ${colors.textPrimary};
-  font-size: min(26px, 5cqi);
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
-  box-shadow: ${floatingElevation(colors.shadowFloating, colors.borderFloating, colors.borderFloatingHighlight)};
-  transition: all 0.3s ease;
-  &:hover {
-    transform: translateY(-5px);
-    filter: brightness(1.1);
-  }
-  &:active {
-    transform: scale(0.98);
-  }
-`;
-
 const AnchoredWrapper = styled.div`
   container-type: inline-size;
   position: absolute;
@@ -148,21 +125,30 @@ const AnchoredWrapper = styled.div`
   }
 `;
 
-const PrimaryButton = styled.button`
-  flex: 1;
-  height: 100%;
+// Um desenho só: encaixado ou flutuando, é a mesma pílula (CON-09). Muda a sombra e a largura.
+const PrimaryButton = styled.button<{ $isFloating: boolean }>`
   border: none;
-  border-radius: 8px;
+  border-radius: 50px;
+  padding: 15px 30px 15px 26px;
   background-color: ${colors.brandAccent};
   color: ${colors.textPrimary};
   font-size: min(26px, 5cqi);
   font-weight: 600;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: min(15px, 2cqi);
+  gap: 10px;
   cursor: pointer;
   transition: all 0.3s ease;
+  ${({ $isFloating }) =>
+    $isFloating
+      ? `box-shadow: ${floatingElevation(colors.shadowFloating, colors.borderFloating, colors.borderFloatingHighlight)};`
+      : `
+        flex: 1;
+        justify-content: center;
+        /* A faixa encaixada é mais estreita que a área do flutuante: o recuo cede para o rótulo não quebrar. */
+        white-space: nowrap;
+        padding-inline: min(26px, 4cqi) min(30px, 4cqi);
+      `}
   &:hover {
     transform: translateY(-5px);
     filter: brightness(1.1);

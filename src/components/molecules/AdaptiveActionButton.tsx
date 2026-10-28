@@ -123,6 +123,9 @@ const ButtonWrapper = styled.div<{
   z-index: 10;
   height: var(--bottom-bar-height, 91px);
   width: 100%;
+  /* Encaixado, a pílula fica no centro da faixa em vez de esticar até a altura dela. */
+  display: flex;
+  align-items: center;
 
   ${({ $type, $isFloating }) =>
     $type === "match" && $isFloating && "left: 0px;"}
@@ -132,60 +135,40 @@ const ActionButton = styled.button<{
   $type: "character" | "match";
   $isFloating: boolean;
 }>`
+  /* Um desenho só: encaixado ou flutuando, é a mesma pílula (CON-09). Muda a posição e a sombra. */
   border: none;
   display: flex;
   align-items: center;
   cursor: pointer;
   transition: all 0.3s ease;
+  border-radius: 50px;
+  padding: 15px 30px 15px 26px;
+  background-color: ${colors.brandAccent};
+  color: ${colors.textPrimary};
+  gap: 10px;
+  font-size: 26px;
+  font-weight: 600;
 
-  /* Styles based on floating state */
+  &:hover {
+    transform: translateY(-5px);
+    filter: brightness(1.1);
+  }
+  &:active {
+    transform: scale(0.98);
+  }
+
   ${({ $isFloating, $type }) =>
     $isFloating
       ? `
-        /* Floating */
         position: fixed;
         bottom: 20px;
         ${$type === "character" ? "left: 20px;" : "left: 340px;"}
-        border-radius: 50px;
-        padding: 15px 30px 15px 26px;
-        background-color: ${colors.brandAccent};
-        color: ${colors.textPrimary};
         box-shadow: ${floatingElevation(colors.shadowFloating, colors.borderFloating, colors.borderFloatingHighlight)};
-        gap: 10px;
-
-        font-size: 26px;
-        font-weight: 600;
-
-        &:hover {
-          transform: translateY(-5px);
-          filter: brightness(1.1);
-        }
-        &:active {
-          transform: scale(0.98);
-        }
       `
       : `
-        /* Normal (like a card) */
         position: relative;
         width: 100%;
-        height: 100%;
         justify-content: center;
-        padding: ${$type === "character" ? "15px" : "20px"};
-        border-radius: 8px;
-        background-color: ${colors.brandAccent};
-        color: ${colors.textPrimary};
         box-shadow: none;
-        gap: 15px;
-
-        font-size: 26px;
-        font-weight: 600;
-
-        &:hover {
-          transform: translateY(-5px);
-          filter: brightness(1.1);
-        }
-        &:active {
-          transform: scale(0.98);
-        }
       `}
 `;
