@@ -25,6 +25,8 @@ const Container = styled.div`
 const Message = styled.p`
   font-weight: 600;
   color: ${colors.textPrimary};
-  font-size: 28px;
+  font-size: clamp(20px, 6vw, 28px);
+  text-align: center;
+  padding: 0 24px;
   margin-bottom: 20px;
 `;
