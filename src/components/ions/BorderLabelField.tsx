@@ -115,5 +115,9 @@ const Frame = styled.div<{ $tone: BorderLabelTone }>`
           &:focus-within ${Label} {
             color: ${colors.textPrimary};
           }
+          /* O BaseSelect clareia no hover; o recorte do rótulo clareia junto, senão sobra um retângulo escuro. */
+          &:has(select:hover) ${Label} {
+            filter: brightness(1.1);
+          }
         `}
 `;
