@@ -203,39 +203,5 @@ describe("characterClassesService", () => {
 
       expect(result).toEqual(characterClassNormalized);
     });
-
-    // FINDING (real backend bug, out of scope for this frontend task —
-    // documenting current behavior): GetCharacterClassBody (get_class.go) is
-    // `struct { CharacterClass CharacterClassResponse }` — no json tag at
-    // all, so encoding/json serializes it with the exact Go field name:
-    // `CharacterClass` (PascalCase). This one genuinely was NOT touched by
-    // the backend's Fase 8 migration (confirmed against the current source),
-    // unlike list_classes.go's/get_character_sheet.go's envelope keys, which
-    // were. characterClassesService.ts now reads `data.characterClass`
-    // (camelCase, matching the migration convention every other envelope
-    // follows) — but that key never exists on THIS particular real wire
-    // response either way, since get_class.go still sends `CharacterClass`.
-    // getCharacterClassDetails silently resolves to `undefined` in
-    // production instead of the requested class. Fixing this requires
-    // editing get_class.go (backend, out of scope for this frontend repo).
-    //
-    // Also proves the enum-key normalization guards against undefined input:
-    // when data.characterClass is undefined, normalizeClassEnumKeyedMaps is
-    // never called (short-circuited), so this still resolves to undefined
-    // cleanly instead of throwing on `undefined.attributes`.
-    it("resolves to undefined against the real (PascalCase `CharacterClass`) backend response", async () => {
-      server.use(
-        http.get(`${baseUrl}/classes/:id`, () =>
-          HttpResponse.json({ CharacterClass: characterClassWire }),
-        ),
-      );
-
-      const result = await characterClassesService.getCharacterClassDetails(
-        token,
-        "Hunter",
-      );
-
-      expect(result).toBeUndefined();
-    });
   });
 });

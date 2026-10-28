@@ -32,6 +32,7 @@ export function createEmptyMentalAttributes(): Record<string, Attribute> {
 
 export function createEmptySpiritualAttributes(): Record<string, Attribute> {
   return {
-    spirit: createEmptyAttribute(),
+    flame: createEmptyAttribute(),
+    conscience: createEmptyAttribute(),
   };
 }

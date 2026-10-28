@@ -41,7 +41,10 @@ export function createEmptyPhysicalSkills(): Record<string, Skill> {
 export function createEmptySpiritualSkills(): Record<string, Skill> {
   return {
     focus: createEmptySkill(),
-    nen: createEmptySkill(),
     willPower: createEmptySkill(),
+    selfKnowledge: createEmptySkill(),
+    coa: createEmptySkill(),
+    mop: createEmptySkill(),
+    aop: createEmptySkill(),
   };
 }
