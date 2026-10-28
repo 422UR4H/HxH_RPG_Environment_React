@@ -5,7 +5,7 @@ import ManageButton from "./ManageButton";
 import type { ManageActions } from "./ManageButton";
 import styled from "styled-components";
 import { colors } from "../../styles/tokens";
-import { floatingElevation, dockedPillNudge } from "../../styles/bottomBar";
+import { floatingElevation } from "../../styles/bottomBar";
 
 interface BottomActionsProps {
   containerRef: RefObject<HTMLDivElement | null>;
@@ -67,10 +67,10 @@ export default function BottomActions({
         <FloatingGroup>
           {manage && <ManageButton {...manage} isFloating={true} />}
           {primaryButton && (
-            <PrimaryButton $isFloating onClick={primaryButton.onClick}>
+            <FloatingPrimary onClick={primaryButton.onClick}>
               {primaryButton.icon}
               <span>{primaryButton.label}</span>
-            </PrimaryButton>
+            </FloatingPrimary>
           )}
         </FloatingGroup>
       </FloatingWrapper>
@@ -79,15 +79,13 @@ export default function BottomActions({
 
   return (
     <AnchoredWrapper>
-      <DockedGroup>
-        {manage && <ManageButton {...manage} isFloating={false} />}
-        {primaryButton && (
-          <PrimaryButton $isFloating={false} onClick={primaryButton.onClick}>
-            {primaryButton.icon}
-            <span>{primaryButton.label}</span>
-          </PrimaryButton>
-        )}
-      </DockedGroup>
+      {manage && <ManageButton {...manage} isFloating={false} />}
+      {primaryButton && (
+        <PrimaryButton onClick={primaryButton.onClick}>
+          {primaryButton.icon}
+          <span>{primaryButton.label}</span>
+        </PrimaryButton>
+      )}
     </AnchoredWrapper>
   );
 }
@@ -110,28 +108,7 @@ const FloatingGroup = styled.div`
   }
 `;
 
-const AnchoredWrapper = styled.div`
-  container-type: inline-size;
-  position: absolute;
-  bottom: var(--bottom-bar-offset, 22px);
-  left: 0;
-  z-index: 10;
-  height: var(--bottom-bar-height, 91px);
-  width: 100%;
-  display: flex;
-  align-items: flex-end;
-`;
-
-// Mesmo arranjo do FloatingGroup (pílulas do tamanho do conteúdo, 12 px entre elas); só a posição muda.
-const DockedGroup = styled.div`
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  margin-bottom: ${dockedPillNudge};
-`;
-
-// Um desenho só: encaixado ou flutuando, é a mesma pílula (CON-09). Muda a sombra e a largura.
-const PrimaryButton = styled.button<{ $isFloating: boolean }>`
+const FloatingPrimary = styled.button`
   border: none;
   border-radius: 50px;
   padding: 15px 30px 15px 26px;
@@ -142,13 +119,50 @@ const PrimaryButton = styled.button<{ $isFloating: boolean }>`
   display: flex;
   align-items: center;
   gap: 10px;
-  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: ${floatingElevation(colors.shadowFloating, colors.borderFloating, colors.borderFloatingHighlight)};
+  transition: all 0.3s ease;
+  &:hover {
+    transform: translateY(-5px);
+    filter: brightness(1.1);
+  }
+  &:active {
+    transform: scale(0.98);
+  }
+`;
+
+const AnchoredWrapper = styled.div`
+  container-type: inline-size;
+  position: absolute;
+  bottom: var(--bottom-bar-offset, 22px);
+  left: 0;
+  z-index: 10;
+  height: var(--bottom-bar-height, 91px);
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+
+  @media (max-width: 609px) {
+    gap: 15px;
+  }
+`;
+
+const PrimaryButton = styled.button`
+  flex: 1;
+  height: 100%;
+  border: none;
+  border-radius: 8px;
+  background-color: ${colors.brandAccent};
+  color: ${colors.textPrimary};
+  font-size: min(26px, 5cqi);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: min(15px, 2cqi);
   cursor: pointer;
   transition: all 0.3s ease;
-  ${({ $isFloating }) =>
-    $isFloating
-      ? `box-shadow: ${floatingElevation(colors.shadowFloating, colors.borderFloating, colors.borderFloatingHighlight)};`
-      : ""}
   &:hover {
     transform: translateY(-5px);
     filter: brightness(1.1);

@@ -98,13 +98,14 @@ export default function ManageButton({
 const Wrapper = styled.div`
   position: relative;
   flex-shrink: 0;
+  height: 100%;
 `;
 
-// Um desenho só: encaixado ou flutuando, é a mesma pílula (CON-09). Muda a sombra e o hover.
 const Button = styled.button<{ $isFloating: boolean; $open: boolean }>`
   background: ${colors.surfacePanel};
   border: 1px solid ${({ $open }) => ($open ? colors.actionAccent : colors.borderMuted)};
   color: ${colors.textPrimary};
+  font-size: min(22px, 4cqi);
   font-weight: 600;
   cursor: pointer;
   display: flex;
@@ -112,24 +113,32 @@ const Button = styled.button<{ $isFloating: boolean; $open: boolean }>`
   gap: 8px;
   white-space: nowrap;
   transition: all 0.2s ease;
-  border-radius: 50px;
-  padding: 14px 22px;
-  font-size: min(24px, 4cqi);
 
   @media (max-width: 609px) {
+    padding-inline: 5cqi;
     gap: 15px;
-    padding: 0 0.9em;
-    min-height: 44px;
-    font-size: clamp(13px, 3.75cqi, 20px);
   }
 
   ${({ $isFloating }) =>
     $isFloating
       ? `
+        border-radius: 50px;
+        padding: 14px 22px;
         box-shadow: ${floatingElevation(colors.shadowFloating, colors.borderFloating, colors.borderFloatingHighlight)};
+        font-size: min(24px, 4cqi);
+        @media (max-width: 609px) {
+          padding: 0 0.9em;
+          min-height: 44px;
+          font-size: clamp(13px, 3.75cqi, 20px);
+        }
         &:hover { transform: translateY(-3px); filter: brightness(1.2); }
       `
       : `
+        border-radius: 8px;
+        height: 100%;
+        padding: 0 20px;
+        /* CON-09: mesmo corpo do rótulo do bloco primário (antes 22px/4cqi, 12px no celular). */
+        font-size: min(26px, 5cqi);
         &:hover { filter: brightness(1.2); }
       `}
 

@@ -2,7 +2,7 @@ import { useRef, useEffect, useState, type ReactNode } from "react";
 import { useDebounce } from "../../hooks/useDebounce";
 import styled from "styled-components";
 import { colors } from "../../styles/tokens";
-import { floatingElevation, dockedPillNudge } from "../../styles/bottomBar";
+import { floatingElevation } from "../../styles/bottomBar";
 
 interface AdaptiveActionButtonProps {
   label: string;
@@ -118,64 +118,75 @@ const ButtonWrapper = styled.div<{
 }>`
   /* Absolute positioning so it doesn't affect document flow */
   position: absolute;
-  left: 0px;
+  bottom: 0px;
+  ${({ $type }) => ($type === "character" ? "left: 0px;" : "left: 0px;")}
   z-index: 10;
   height: var(--bottom-bar-height, 91px);
   width: 100%;
-  /* Encaixado, a pílula assenta no pé da faixa, onde o flutuante fica no fim da rolagem. */
-  display: flex;
-  align-items: flex-end;
 
-  /* "match" mora na faixa da coluna central, como o AnchoredWrapper do BottomActions: sobe o
-     mesmo respiro e vira container para o rótulo encolher por cqi. "character" fica no pé da barra lateral. */
-  ${({ $type }) =>
-    $type === "match"
-      ? `
-        bottom: var(--bottom-bar-offset, 22px);
-        container-type: inline-size;
-      `
-      : "bottom: 0px;"}
+  ${({ $type, $isFloating }) =>
+    $type === "match" && $isFloating && "left: 0px;"}
 `;
 
 const ActionButton = styled.button<{
   $type: "character" | "match";
   $isFloating: boolean;
 }>`
-  /* Um desenho só: encaixado ou flutuando, é a mesma pílula (CON-09). Muda a posição e a sombra. */
   border: none;
   display: flex;
   align-items: center;
   cursor: pointer;
   transition: all 0.3s ease;
-  border-radius: 50px;
-  padding: 15px 30px 15px 26px;
-  background-color: ${colors.brandAccent};
-  color: ${colors.textPrimary};
-  gap: 10px;
-  white-space: nowrap;
-  font-size: ${({ $type }) => ($type === "match" ? "min(26px, 5cqi)" : "26px")};
-  font-weight: 600;
 
-  &:hover {
-    transform: translateY(-5px);
-    filter: brightness(1.1);
-  }
-  &:active {
-    transform: scale(0.98);
-  }
-
+  /* Styles based on floating state */
   ${({ $isFloating, $type }) =>
     $isFloating
       ? `
+        /* Floating */
         position: fixed;
         bottom: 20px;
         ${$type === "character" ? "left: 20px;" : "left: 340px;"}
         ${$type === "match" ? "@media (max-width: 749px) { left: 40px; }" : ""}
+        border-radius: 50px;
+        padding: 15px 30px 15px 26px;
+        background-color: ${colors.brandAccent};
+        color: ${colors.textPrimary};
         box-shadow: ${floatingElevation(colors.shadowFloating, colors.borderFloating, colors.borderFloatingHighlight)};
+        gap: 10px;
+
+        font-size: 26px;
+        font-weight: 600;
+
+        &:hover {
+          transform: translateY(-5px);
+          filter: brightness(1.1);
+        }
+        &:active {
+          transform: scale(0.98);
+        }
       `
       : `
+        /* Normal (like a card) */
         position: relative;
-        ${$type === "match" ? `margin-bottom: ${dockedPillNudge};` : ""}
+        width: 100%;
+        height: 100%;
+        justify-content: center;
+        padding: ${$type === "character" ? "15px" : "20px"};
+        border-radius: 8px;
+        background-color: ${colors.brandAccent};
+        color: ${colors.textPrimary};
         box-shadow: none;
+        gap: 15px;
+
+        font-size: 26px;
+        font-weight: 600;
+
+        &:hover {
+          transform: translateY(-5px);
+          filter: brightness(1.1);
+        }
+        &:active {
+          transform: scale(0.98);
+        }
       `}
 `;
