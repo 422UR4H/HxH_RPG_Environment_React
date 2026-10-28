@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import DateField from "../DateField";
@@ -77,5 +77,42 @@ describe("DateField", () => {
     await u.click(screen.getByRole("button"));
     await u.click(screen.getByRole("button", { name: "Limpar" }));
     expect(onChange).toHaveBeenCalledWith("");
+  });
+
+  describe("placement", () => {
+    afterEach(() => vi.restoreAllMocks());
+
+    // Campo em `top`/`bottom`; calendário com 300 px de altura; janela de 800 px.
+    async function openAt(top: number) {
+      vi.spyOn(window, "innerHeight", "get").mockReturnValue(800);
+      vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (
+        this: HTMLElement,
+      ) {
+        const isDialog = this.getAttribute("role") === "dialog";
+        const rect = isDialog
+          ? { top: 0, bottom: 300, left: 0, right: 320, width: 320, height: 300 }
+          : { top: top, bottom: top + 56, left: 20, right: 300, width: 280, height: 56 };
+        return { ...rect, x: rect.left, y: rect.top, toJSON: () => rect };
+      });
+      const u = userEvent.setup();
+      render(<Harness initial="" onChange={() => {}} />);
+      await u.click(screen.getByRole("button"));
+      return screen.getByRole("dialog");
+    }
+
+    it("opens below whenever it fits below", async () => {
+      const dialog = await openAt(100);
+      expect(getComputedStyle(dialog).top).toBe("calc(100% + 6px)");
+    });
+
+    it("opens above only when below does not fit but above does", async () => {
+      const dialog = await openAt(600);
+      expect(getComputedStyle(dialog).bottom).toBe("calc(100% + 6px)");
+    });
+
+    it("opens below, without shrinking, when it fits neither side", async () => {
+      const dialog = await openAt(250);
+      expect(getComputedStyle(dialog).top).toBe("calc(100% + 6px)");
+    });
   });
 });

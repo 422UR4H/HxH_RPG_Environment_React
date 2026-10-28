@@ -64,7 +64,7 @@ const selectStyle = `
 
 export const Popover = styled.div<{ $above: boolean; $shift: number }>`
   position: absolute;
-  z-index: 20;
+  z-index: 1000; /* mesma camada do Tooltip: nunca fica sob a barra do topo */
   left: ${({ $shift }) => $shift}px;
   ${({ $above }) => ($above ? "bottom: calc(100% + 6px);" : "top: calc(100% + 6px);")}
   box-sizing: border-box;

@@ -78,8 +78,11 @@ export default function DateField({
     if (!open || !popoverRef.current || !wrapperRef.current) return;
     const pop = popoverRef.current.getBoundingClientRect();
     const field = wrapperRef.current.getBoundingClientRect();
-    const spaceBelow = window.innerHeight - field.bottom;
-    const above = pop.height + 6 > spaceBelow && field.top > spaceBelow;
+    // Prefere abaixo; só abre acima se couber sem cruzar o topo da janela. Se não couber em
+    // nenhum lado, abre abaixo e a página rola (o calendário não encolhe).
+    const fitsBelow = field.bottom + 6 + pop.height <= window.innerHeight - 8;
+    const fitsAbove = field.top - 6 - pop.height >= 8;
+    const above = !fitsBelow && fitsAbove;
     const overflowRight = field.left + pop.width - (window.innerWidth - 16);
     const shift = Math.min(0, -Math.max(0, overflowRight));
     const minShift = 16 - field.left;
