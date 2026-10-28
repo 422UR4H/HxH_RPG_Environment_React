@@ -63,5 +63,6 @@ describe("ProgressBar", () => {
     expect(css).toContain("@container (max-width: 315px)");
     expect(css).toContain("font-variant-numeric:tabular-nums");
     expect(css).toContain("round(");
+    expect(css).toContain("min-resolution: 1.45dppx");
   });
 });

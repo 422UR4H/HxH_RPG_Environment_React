@@ -117,6 +117,13 @@ const Label = styled.span`
       font-size: calc(var(--cap) / 0.711);
       padding-top: var(--pad);
       padding-bottom: var(--pad);
+
+      /* O pixel CSS inteiro só coincide com o pixel físico em 1× e 2×; em 1,5× e 3× o valor
+         fracionário centraliza melhor (medido). */
+      @media (min-resolution: 1.45dppx) and (max-resolution: 1.9dppx), (min-resolution: 2.45dppx) {
+        --cap: max(4px, calc(var(--fs) * 0.745));
+        --pad: max(1px, calc((var(--fs) + 1px - var(--cap)) / 2));
+      }
     }
   }
 `;
