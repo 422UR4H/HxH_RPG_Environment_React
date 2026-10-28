@@ -151,6 +151,9 @@ function CharacterSheetTemplate({
 
   // Embutida na partida (F3): sem voltar (navegaria para fora dela) e sem ações de rodapé.
 
+  // Só na visualização: nos modos de edição os diagramas já trazem margens largas.
+  const isViewDiagrams = sheetMode.diagramsMode === "view";
+
   return (
     <SheetContainer>
       {!embedded && <BackButton />}
@@ -187,12 +190,14 @@ function CharacterSheetTemplate({
         <GridSection>
           <AttributesSection>
             <SectionTitle>ATRIBUTOS</SectionTitle>
+            {isViewDiagrams && <TitleSpacer />}
             <PhysicalsDiagram
               key={`physical-${charSheet?.characterClass ?? "none"}`}
               mode={sheetMode.diagramsMode}
               attributes={physicalAttributes}
               physicalAbility={physicalAbility}
             />
+            {isViewDiagrams && <DiagramSpacer />}
             <MentalsDiagram
               key={`mental-${charSheet?.characterClass ?? "none"}`}
               mode={sheetMode.diagramsMode}
@@ -202,7 +207,9 @@ function CharacterSheetTemplate({
 
             {(spiritualAbility?.level ?? 0) > 0 && (
               <>
+                {isViewDiagrams && <DiagramSpacer />}
                 <SectionTitle>PRINCÍPIOS</SectionTitle>
+                {isViewDiagrams && <TitleSpacer />}
                 <NenPrinciplesDiagram
                   mode={sheetMode.diagramsMode}
                   principles={principles}
@@ -372,14 +379,42 @@ const AttributesSection = styled.section`
   display: flex;
   flex-direction: column;
   align-items: center;
-  /* Título e diagramas encostados no topo; a altura que a coluna de perícias
-     impõe ao esticar sobra embaixo. O espaçamento entre eles vem das margens
-     próprias (cqi) de SectionTitle e dos diagramas, então diagramas novos
-     (ex.: espiritual da Consciência) entram sem redistribuir a coluna. */
+  /* Conteúdo no topo; a sobra de altura (coluna de perícias mais alta) vai
+     para o fim. Os espaços áureos vêm de TitleSpacer/DiagramSpacer. */
   justify-content: flex-start;
 
   @media (max-width: 589px) {
     padding-bottom: 0;
+  }
+`;
+
+/* Espaços extras da coluna de atributos, somados às margens dos diagramas, em
+   proporção áurea: título→1º diagrama = g; entre diagramas = g × 1,618.
+   Lado a lado (≥ 768): flex-basis 0 + flex-grow 1 : 1,618 repartem só a sobra
+   da altura que a coluna de perícias impõe, até o máximo; se faltar altura
+   (ex.: diagrama de Princípios), encolhem até o mínimo (0 = margens atuais) e
+   o que sobrar fica no fim da coluna. Coluna única (< 768): valor fixo. */
+const TitleSpacer = styled.div`
+  flex: 1 1 0;
+  min-height: 0;
+  max-height: 20px; /* g */
+
+  @media (max-width: 767px) {
+    flex: none;
+    height: 22px;
+    max-height: none;
+  }
+`;
+
+const DiagramSpacer = styled.div`
+  flex: 1.618 1 0;
+  min-height: 0;
+  max-height: 32px; /* g × 1,618 */
+
+  @media (max-width: 767px) {
+    flex: none;
+    height: 36px;
+    max-height: none;
   }
 `;
 
