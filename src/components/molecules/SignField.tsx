@@ -1,5 +1,4 @@
 import ErrorIcon from "../ions/ErrorIcon";
-import BorderLabelField from "../ions/BorderLabelField";
 import styled from "styled-components";
 import { colors, alpha } from "../../styles/tokens";
 
@@ -14,7 +13,7 @@ interface SignFieldProps {
   error?: string | null;
 }
 
-// Campo das telas de entrada (login e cadastro): rótulo fixo sobre a borda (BorderLabelField), foco azul e erro por campo.
+// Campo das telas de entrada (login e cadastro): rótulo fixo sobre a borda, foco azul e erro por campo.
 export default function SignField({
   name,
   label,
@@ -29,7 +28,7 @@ export default function SignField({
   const errorId = `${id}-error`;
   return (
     <Block>
-      <BorderLabelField tone="light" label={label} htmlFor={id}>
+      <Frame>
         <Input
           id={id}
           name={name}
@@ -41,7 +40,8 @@ export default function SignField({
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? errorId : undefined}
         />
-      </BorderLabelField>
+        <Label htmlFor={id}>{label}</Label>
+      </Frame>
       {error && (
         <ErrorText id={errorId}>
           <ErrorIcon size={18} />
@@ -126,6 +126,32 @@ const ErrorText = styled.p`
     flex-shrink: 0;
     margin-top: 1px;
   }
+`;
+
+// O campo vem antes do rótulo no DOM; o rótulo é posto por cima da linha da borda e a "corta" com um fundo da cor do cartão.
+const Frame = styled.div`
+  position: relative;
+
+  &:focus-within label {
+    color: ${colors.actionHighlightOnLight};
+  }
+  &:has([aria-invalid="true"]) label {
+    color: ${colors.feedbackInputError};
+  }
+`;
+
+const Label = styled.label`
+  position: absolute;
+  pointer-events: none;
+  /* Centro do rótulo (18px) alinhado ao centro da borda de 3px. */
+  top: -8px;
+  left: 18px;
+  padding: 0 6px;
+  background-color: ${colors.textPrimary};
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 18px;
+  color: ${colors.textOnLight};
 `;
 
 const Block = styled.div`

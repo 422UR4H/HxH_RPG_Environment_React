@@ -3,8 +3,8 @@ import BackgroundButton from "../../components/atoms/BackgroundButton";
 import type { Profile, CharacterSheet } from "../../types/characterSheet";
 import BaseOption from "../../components/ions/BaseOption";
 import BaseSelect from "../../components/ions/BaseSelect";
-import BorderLabelField from "../../components/ions/BorderLabelField";
 import { colors } from "../../styles/tokens";
+import { DetailItem, DetailLabel } from "./ProfileFieldStyles";
 import { toDateInputValue } from "../../utils/date";
 
 interface ProfileInputsProps {
@@ -63,7 +63,10 @@ export default function ProfileInputs({
 
   return (
     <ProfileContainer>
-      <SpacedField tone="dark" label="Nome completo" htmlFor="profile-fullname">
+      <SpacedField>
+        <DetailLabel as="label" htmlFor="profile-fullname">
+          Nome completo:
+        </DetailLabel>
         <ProfileNameInput
           id="profile-fullname"
           type="text"
@@ -74,7 +77,10 @@ export default function ProfileInputs({
         />
       </SpacedField>
 
-      <SpacedField tone="dark" label="Descrição breve" htmlFor="profile-brief-description">
+      <SpacedField>
+        <DetailLabel as="label" htmlFor="profile-brief-description">
+          Descrição breve:
+        </DetailLabel>
         <ProfileDescriptionTextarea
           id="profile-brief-description"
           autoComplete="off"
@@ -88,7 +94,8 @@ export default function ProfileInputs({
       <ProfileContent>
         <LeftDetails>
           <BirthdayAgeRow>
-            <BorderLabelField tone="dark" label="Aniversário" fieldColor={colors.brandAccent} pill>
+            <DetailItem role="group" aria-labelledby="profile-birthday-label">
+              <DetailLabel id="profile-birthday-label">Aniversário:</DetailLabel>
               <BirthdaySelects>
                 <BaseSelect
                   aria-label="Mês"
@@ -125,26 +132,26 @@ export default function ProfileInputs({
                   )}
                 </BaseSelect>
               </BirthdaySelects>
-            </BorderLabelField>
+            </DetailItem>
 
-            <BorderLabelField tone="dark" label="Idade" htmlFor="profile-age">
+            <DetailItem>
+              <DetailLabel as="label" htmlFor="profile-age">
+                Idade:
+              </DetailLabel>
               <AgeInput
                 id="profile-age"
                 type="number"
                 value={profile?.age || defaultAge}
                 onChange={(e) => handleInputChange("age", parseInt(e.target.value, 10) || 0)}
               />
-            </BorderLabelField>
+            </DetailItem>
           </BirthdayAgeRow>
 
           <AlignmentBackgroundRow>
-            <BorderLabelField
-              tone="dark"
-              label="Alinhamento"
-              htmlFor="profile-alignment"
-              fieldColor={colors.brandAccent}
-              pill
-            >
+            <DetailItem>
+              <DetailLabel as="label" htmlFor="profile-alignment">
+                Alinhamento:
+              </DetailLabel>
               <AlignmentContainer>
                 <BaseSelect
                   id="profile-alignment"
@@ -158,7 +165,7 @@ export default function ProfileInputs({
                   ))}
                 </BaseSelect>
               </AlignmentContainer>
-            </BorderLabelField>
+            </DetailItem>
             <MobileOnlyButton>
               <BackgroundButton onClick={onBackgroundClick} />
             </MobileOnlyButton>
@@ -226,8 +233,6 @@ const ProfileDescriptionTextarea = styled.textarea`
   width: 100%;
   resize: vertical;
   min-height: 80px;
-  /* Bloco: sem o vão de linha que o textarea inline deixa embaixo, a borda fecha o quadro do rótulo. */
-  display: block;
 
   &::placeholder {
     color: ${colors.textInputDisabled};
@@ -253,8 +258,7 @@ const ProfileContent = styled.div`
 const LeftDetails = styled.div`
   display: flex;
   flex-direction: column;
-  /* Espaço para o rótulo da borda de baixo não encostar no campo de cima. */
-  gap: max(2cqi, 14px);
+  gap: 12px;
   flex: 1;
 `;
 
@@ -334,8 +338,7 @@ const MobileOnlyButton = styled.div`
 `;
 
 const AgeInput = styled(DetailInput)`
-  /* Largo o bastante para o rótulo "Idade" caber na borda no celular. */
-  width: min(20cqi, 90px);
+  width: min(14cqi, 90px);
   font-size: min(3.8cqi, 28px);
   padding: 10px min(4cqi, 16px);
 `;
@@ -345,7 +348,6 @@ const AlignmentContainer = styled.div`
   gap: 12px;
 `;
 
-const SpacedField = styled(BorderLabelField)`
-  /* Espaço para o rótulo do campo de baixo não encostar neste. */
-  margin-bottom: max(2cqi, 14px);
+const SpacedField = styled(DetailItem)`
+  margin-bottom: 2cqi;
 `;

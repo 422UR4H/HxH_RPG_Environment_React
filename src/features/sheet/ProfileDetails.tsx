@@ -1,9 +1,9 @@
 import styled, { keyframes } from "styled-components";
 import BackgroundButton from "../../components/atoms/BackgroundButton";
-import BorderLabelField from "../../components/ions/BorderLabelField";
 import type { Profile } from "../../types/characterSheet";
 import { colors } from "../../styles/tokens";
 import { toDateInputValue } from "../../utils/date";
+import { DetailItem, DetailLabel } from "./ProfileFieldStyles";
 
 interface ProfileDetailsProps {
   profile: Profile;
@@ -22,7 +22,10 @@ export default function ProfileDetails({
     <ProfileContainer>
       <ProfileName>{fullname}</ProfileName>
       {onBriefDescriptionChange ? (
-        <BriefDescriptionField tone="dark" label="Descrição breve" htmlFor="profile-brief-description">
+        <DetailItem>
+          <DetailLabel as="label" htmlFor="profile-brief-description">
+            Descrição breve:
+          </DetailLabel>
           <BriefDescriptionTextarea
             id="profile-brief-description"
             value={briefDescription ?? ""}
@@ -31,7 +34,7 @@ export default function ProfileDetails({
             maxLength={255}
             rows={3}
           />
-        </BriefDescriptionField>
+        </DetailItem>
       ) : (
         <ProfileDescription>{briefDescription}</ProfileDescription>
       )}
@@ -122,22 +125,6 @@ const RightDetails = styled.div`
   justify-content: center;
 `;
 
-const DetailItem = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-`;
-
-const DetailLabel = styled.span`
-  font-size: min(3.4cqi, 24px);
-  color: ${colors.textInputDisabled};
-  font-weight: 500;
-
-  @media (max-width: 609px) {
-    font-size: 4cqi;
-  }
-`;
-
 const DetailValue = styled.span`
   font-size: min(3.8cqi, 28px);
   color: ${colors.textPrimary};
@@ -162,12 +149,11 @@ const BriefDescriptionTextarea = styled.textarea`
   border: 2px solid ${colors.borderStrong};
   border-radius: 6px;
   padding: 12px 16px;
+  margin-bottom: 2cqi;
   width: 100%;
   resize: vertical;
   min-height: 72px;
   box-sizing: border-box;
-  /* Bloco: sem o vão de linha que o textarea inline deixa embaixo, a borda fecha o quadro do rótulo. */
-  display: block;
 
   &::placeholder {
     color: ${colors.textInputDisabled};
@@ -180,10 +166,4 @@ const BriefDescriptionTextarea = styled.textarea`
   @media (max-width: 609px) {
     font-size: 4.6cqi;
   }
-`;
-
-const BriefDescriptionField = styled(BorderLabelField)`
-  /* O rótulo sobe acima da borda: espaço para não encostar no nome. */
-  margin-top: max(1cqi, 8px);
-  margin-bottom: max(2cqi, 14px);
 `;

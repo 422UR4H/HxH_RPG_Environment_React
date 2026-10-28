@@ -33,25 +33,25 @@ describe("CharacterProfile", () => {
     const bar = renderProfile("create");
     const content = document.getElementById(bar.getAttribute("aria-controls") ?? "");
     expect(content).not.toBeNull();
-    expect(within(content as HTMLElement).getByLabelText("Nome completo")).toBeInTheDocument();
+    expect(within(content as HTMLElement).getByLabelText("Nome completo:")).toBeInTheDocument();
     expect(content!.compareDocumentPosition(bar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(bar.parentElement!.lastElementChild).toBe(bar);
   });
 
-  it("reaches every create field by its border label", () => {
+  it("reaches every create field by its label", () => {
     renderProfile("create");
-    expect(screen.getByLabelText("Nome completo")).toHaveValue("Chrollo Lucilfer");
-    expect(screen.getByLabelText("Descrição breve")).toHaveValue("Líder");
-    expect(screen.getByLabelText("Idade").tagName).toBe("INPUT");
-    expect(screen.getByLabelText("Alinhamento").tagName).toBe("SELECT");
-    const birthday = screen.getByRole("group", { name: "Aniversário" });
+    expect(screen.getByLabelText("Nome completo:")).toHaveValue("Chrollo Lucilfer");
+    expect(screen.getByLabelText("Descrição breve:")).toHaveValue("Líder");
+    expect(screen.getByLabelText("Idade:").tagName).toBe("INPUT");
+    expect(screen.getByLabelText("Alinhamento:").tagName).toBe("SELECT");
+    const birthday = screen.getByRole("group", { name: "Aniversário:" });
     expect(within(birthday).getByLabelText("Mês").tagName).toBe("SELECT");
     expect(within(birthday).getByLabelText("Dia").tagName).toBe("SELECT");
   });
 
   it("labels the brief description field in edit mode", () => {
     renderProfile("edit");
-    expect(screen.getByLabelText("Descrição breve")).toHaveValue("Líder");
+    expect(screen.getByLabelText("Descrição breve:")).toHaveValue("Líder");
     // No modo editar o nome não é campo: continua texto.
     expect(screen.getByRole("heading", { name: "Chrollo Lucilfer" })).toBeInTheDocument();
   });
