@@ -82,6 +82,8 @@ export const headerDate = css`
   grid-area: date;
   justify-self: end;
   text-align: right;
+  /* O reset global zera a entrelinha; a data quebra em duas linhas nas colunas estreitas. */
+  line-height: 1.35;
 
   @container (max-width: 559px) {
     clear: both;

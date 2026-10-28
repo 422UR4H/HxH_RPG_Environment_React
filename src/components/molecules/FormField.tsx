@@ -1,5 +1,6 @@
 import { type ReactNode } from "react";
 import styled from "styled-components";
+import FieldHelpText from "../atoms/FieldHelpText";
 import { colors } from "../../styles/tokens";
 import { narrowForm, NARROW_LABEL_SIZE } from "../../styles/formScale";
 
@@ -20,7 +21,7 @@ export default function FormField({ label, htmlFor, helpText, optional, children
         {optional && <Optional> (opcional)</Optional>}
       </Label>
       {children}
-      {helpText && <HelpText>{helpText}</HelpText>}
+      {helpText && <FieldHelpText>{helpText}</FieldHelpText>}
     </Group>
   );
 }
@@ -45,11 +46,4 @@ const Optional = styled.span`
   font-weight: 400;
   font-size: 0.7em;
   color: ${colors.textPlaceholderStrong};
-`;
-
-const HelpText = styled.p`
-  font-weight: 400;
-  font-size: 18px;
-  color: ${colors.textPrimary};
-  margin-top: 4px;
 `;

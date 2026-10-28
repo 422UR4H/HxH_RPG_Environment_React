@@ -1,3 +1,4 @@
+import styled from "styled-components";
 import RulesSidebar from "./RulesSidebar";
 import RuleSection from "../molecules/RuleSection";
 import ComingSoonBadge from "../ions/ComingSoonBadge";
@@ -25,7 +26,7 @@ export default function UpcomingRulesSidebar({ scope }: { scope: RulesScope }) {
   return (
     <RulesSidebar
       badge={<ComingSoonBadge />}
-      footer="Mais opções de configuração serão adicionadas em breve."
+      footer={<Note>Mais opções de configuração serão adicionadas em breve.</Note>}
     >
       {SECTIONS[scope].map(({ title, body }) => (
         <RuleSection key={title} title={title}>
@@ -35,3 +36,8 @@ export default function UpcomingRulesSidebar({ scope }: { scope: RulesScope }) {
     </RulesSidebar>
   );
 }
+
+// O reset global zera a entrelinha; a nota quebra em duas linhas na coluna estreita.
+const Note = styled.span`
+  line-height: 1.35;
+`;

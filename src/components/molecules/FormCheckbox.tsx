@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import FieldHelpText from "../atoms/FieldHelpText";
 import { colors } from "../../styles/tokens";
 import { narrowForm, NARROW_LABEL_SIZE } from "../../styles/formScale";
 
@@ -28,7 +29,7 @@ export default function FormCheckbox({
         <Checkbox id={id} name={name} type="checkbox" checked={checked} onChange={onChange} />
         <CheckboxLabel htmlFor={id}>{label}</CheckboxLabel>
       </CheckboxContainer>
-      {helpText && <HelpText>{helpText}</HelpText>}
+      {helpText && <FieldHelpText>{helpText}</FieldHelpText>}
     </Group>
   );
 }
@@ -70,11 +71,4 @@ const CheckboxLabel = styled.label`
   ${narrowForm} {
     font-size: ${NARROW_LABEL_SIZE}px;
   }
-`;
-
-const HelpText = styled.p`
-  font-weight: 400;
-  font-size: 18px;
-  color: ${colors.textPrimary};
-  margin-top: 4px;
 `;
