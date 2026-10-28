@@ -29,6 +29,8 @@ describe("bottomBar", () => {
   });
 
   it("builds the floating elevation as a deep shadow plus a 1px ring", () => {
-    expect(floatingElevation("S", "O")).toBe("0 6px 18px S, 0 0 0 1px O");
+    expect(floatingElevation("S", "O", "H")).toBe(
+      "0 3px 6px S, 0 16px 40px S, 0 0 0 1px O, inset 0 1px 0 H",
+    );
   });
 });

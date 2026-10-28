@@ -1,5 +1,6 @@
 // src/features/match/MatchHeaderSection.tsx
 import styled from "styled-components";
+import Tooltip from "../../components/ions/Tooltip";
 import Badge from "../../components/ions/Badge";
 import type { BadgeTone } from "../../components/ions/Badge";
 import type { Match, MatchStatus } from "../../types/match";
@@ -7,7 +8,9 @@ import ExpandableText from "../../components/molecules/ExpandableText";
 import { colors } from "../../styles/tokens";
 import {
   HeaderBox,
-  headerAside,
+  headerBadge,
+  headerDate,
+  headerDateValue,
   headerRow,
   headerTitle,
 } from "../../styles/pageHeader";
@@ -42,25 +45,27 @@ export default function MatchHeaderSection({
     <>
       <HeaderBox>
         <MatchHeader>
+          <MatchBadge tone={statusTones[status]}>
+            {statusLabels[status]}
+          </MatchBadge>
           <MatchTitle>{match.title.toUpperCase()}</MatchTitle>
-          <DateSection>
-            <Badge tone={statusTones[status]}>{statusLabels[status]}</Badge>
-            {status === "scheduled" ? (
-              <DateLabel>
-                Agendada para:{" "}
-                <span>{formatDateTimeBR(match.gameScheduledAt)}</span>
-              </DateLabel>
-            ) : (
-              <DateLabel>
-                Iniciada em:{" "}
-                <DateValueWithTooltip
-                  title={`Agendada para: ${formatDateTimeBR(match.gameScheduledAt)}`}
-                >
+          {status === "scheduled" ? (
+            <DateLabel>
+              Agendada para:{" "}
+              <DateValue>{formatDateTimeBR(match.gameScheduledAt)}</DateValue>
+            </DateLabel>
+          ) : (
+            <DateLabel>
+              Iniciada em:{" "}
+              <Tooltip
+                label={`Agendada para: ${formatDateTimeBR(match.gameScheduledAt)}`}
+              >
+                <StartedAtValue tabIndex={0}>
                   {formatDateTimeBR(match.gameStartAt!)}
-                </DateValueWithTooltip>
-              </DateLabel>
-            )}
-          </DateSection>
+                </StartedAtValue>
+              </Tooltip>
+            </DateLabel>
+          )}
         </MatchHeader>
       </HeaderBox>
 
@@ -95,33 +100,30 @@ export default function MatchHeaderSection({
 
 const MatchHeader = styled.div`
   ${headerRow}
-  align-items: flex-start;
 `;
 
 const MatchTitle = styled.h1`
   ${headerTitle}
 `;
 
-const DateSection = styled.div`
-  ${headerAside}
-  display: flex;
-  flex-direction: column;
-  /* Selo e data sempre alinhados entre si à esquerda do bloco: o CSS não sabe quando a linha
-     quebrou, e alinhar à direita deixava o selo solto quando o bloco desce para baixo do título. */
-  align-items: flex-start;
-  gap: 8px;
+const MatchBadge = styled(Badge)`
+  ${headerBadge}
 `;
 
 const DateLabel = styled.div`
+  ${headerDate}
   font-weight: 400;
   font-size: 18px;
   color: ${colors.textPrimary};
-  text-align: left;
 `;
 
-const DateValueWithTooltip = styled.span`
+const DateValue = styled.span`
+  ${headerDateValue}
+`;
+
+// O sublinhado pontilhado avisa que há mais informação (o balão com a data agendada).
+const StartedAtValue = styled(DateValue)`
   text-decoration: underline dotted;
-  cursor: help;
 `;
 
 const StoryDate = styled.div`

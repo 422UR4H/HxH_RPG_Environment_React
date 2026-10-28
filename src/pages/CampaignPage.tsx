@@ -8,7 +8,7 @@ import { useSubmitCharacterSheet } from "../hooks/useSubmitCharacterSheet";
 import { useDeleteCampaign } from "../hooks/useDeleteCampaign";
 import type { CharacterPrivateSummary } from "../types/campaign";
 import styled from "styled-components";
-import { HeaderBox, headerAside, headerRow, headerTitle, narrowHeader } from "../styles/pageHeader";
+import { HeaderBox, headerDate, headerRow, headerTitle } from "../styles/pageHeader";
 import { colors } from "../styles/tokens";
 import CharacterSidebarItem from "../components/molecules/CharacterSidebarItem";
 import MatchItem from "../features/campaign/MatchItem";
@@ -221,13 +221,13 @@ export default function CampaignPage() {
           {campaign.description}
         </ExpandableText>
 
-        <CampaignDate>
+        <CampaignStartDate>
           Início:{" "}
           {(() => {
             const [year, month, day] = campaign.storyStartAt.split("-");
             return `${day}/${month}/${year}`;
           })()}
-        </CampaignDate>
+        </CampaignStartDate>
 
         <PageTabNav tabs={availableTabs} />
 
@@ -360,16 +360,19 @@ const CampaignTitle = styled.h1`
 `;
 
 const CampaignDate = styled.div`
-  ${headerAside}
+  ${headerDate}
+  font-weight: 400;
+  color: ${colors.textPrimary};
+  font-size: 18px;
+  line-height: 1.5;
+`;
+
+const CampaignStartDate = styled.div`
   font-weight: 400;
   text-align: right;
   color: ${colors.textPrimary};
   font-size: 18px;
   line-height: 1.5;
-
-  ${narrowHeader} {
-    text-align: left;
-  }
 `;
 
 const CampaignBriefDescription = styled.p`

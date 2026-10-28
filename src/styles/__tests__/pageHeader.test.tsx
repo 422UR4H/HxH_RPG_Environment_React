@@ -2,9 +2,9 @@ import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import styled from "styled-components";
 import {
-  HEADER_NARROW_BELOW,
   HeaderBox,
-  headerAside,
+  headerBadge,
+  headerDate,
   headerRow,
   headerTitle,
 } from "../pageHeader";
@@ -12,8 +12,11 @@ import {
 const Row = styled.div`
   ${headerRow}
 `;
-const Aside = styled.div`
-  ${headerAside}
+const Badge = styled.span`
+  ${headerBadge}
+`;
+const DateLabel = styled.div`
+  ${headerDate}
 `;
 const Title = styled.h1`
   ${headerTitle}
@@ -26,30 +29,42 @@ function injectedCss(): string {
 }
 
 describe("pageHeader", () => {
-  it("makes the header box a container and wraps only when the title does not fit", () => {
+  it("lays out title, badge and date on a grid with container-query fallbacks", () => {
     render(
       <HeaderBox>
         <Row>
+          <Badge>AGENDADA</Badge>
           <Title>REENCONTRAMOS</Title>
-          <Aside>01/01/2000</Aside>
+          <DateLabel>01/01/2000</DateLabel>
         </Row>
       </HeaderBox>,
     );
     const css = injectedCss();
     expect(css).toContain("container-type:inline-size");
-    expect(css).toContain("flex-wrap:wrap");
-    expect(css).toContain("min-width:min-content");
-    expect(css).toContain("flex:1 1 0");
-    expect(css).toContain("flex:0 0 auto");
-    expect(css).not.toContain("flex-direction:column");
-    expect(HEADER_NARROW_BELOW).toBe(400);
+    expect(css).toContain("grid-template-columns:minmax(min-content, 1fr) auto");
+    expect(css).toContain("@container (max-width: 559px)");
+    expect(css).toContain("display:flow-root");
+    expect(css).toContain("float:right");
+    expect(css).toContain("@container (max-width: 339px)");
+    expect(css).not.toContain("flex-wrap");
   });
 
-  it("keeps words whole, without automatic hyphenation, with a clamped size", () => {
+  it("keeps the title fluid with a 26px floor and no mid-word break beside the badge", () => {
     render(<Title>O GRANDE INÍCIO</Title>);
     const css = injectedCss();
+    expect(css).toContain("clamp(26px, 5.5cqi, 42px)");
     expect(css).toContain("overflow-wrap:normal");
-    expect(css).toContain("hyphens:manual");
-    expect(css).toContain("clamp(24px, 5.8cqi, 42px)");
+    expect(css).toContain("min-width:0");
+  });
+
+  it("left-aligns the date once it drops under the title", () => {
+    render(<DateLabel>01/01/2000</DateLabel>);
+    const css = injectedCss();
+    const block = css
+      .split("@container (max-width: 559px)")
+      .slice(1)
+      .find((part) => part.includes("clear:both")) ?? "";
+    expect(block).toContain("text-align:left");
+    expect(block).toContain("justify-self:start");
   });
 });

@@ -18,6 +18,7 @@ export const bottomBarSpace = "calc(var(--bottom-bar-height, 91px) + var(--botto
 /** Respiro no fim da lista: a barra inteira mais 24 px, para o último card nunca ficar escondido. */
 export const bottomBarReserve = `calc(${bottomBarSpace} + 24px)`;
 
-/** Sombra funda + contorno de 1 px dos botões flutuantes (CON-06). */
-export const floatingElevation = (shadow: string, outline: string) =>
-  `0 6px 18px ${shadow}, 0 0 0 1px ${outline}`;
+/** Elevação dos botões flutuantes (CON-06). No fundo escuro sombra preta quase não aparece:
+ *  quem separa é o aro claro e o brilho de 1 px no topo, com uma sombra mais larga. */
+export const floatingElevation = (shadow: string, outline: string, highlight: string) =>
+  `0 3px 6px ${shadow}, 0 16px 40px ${shadow}, 0 0 0 1px ${outline}, inset 0 1px 0 ${highlight}`;

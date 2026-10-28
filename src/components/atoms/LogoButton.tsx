@@ -37,7 +37,9 @@ const StyledLogoButton = styled(Link)`
   img {
     /* width: min(200px, 28vw); */
     /* 188 px → 78 px de altura, a da logo antiga: logos de proporção diferente se igualam pela altura. */
+    /* round(): largura em pixel físico inteiro nas densidades fracionárias. */
     width: min(188px, 28vw);
+    width: round(min(188px, 28vw), 4px);
     /* width: min(180px, 28%); */
     display: block;
 

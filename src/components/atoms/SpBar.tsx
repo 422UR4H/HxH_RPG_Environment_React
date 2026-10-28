@@ -12,6 +12,7 @@ export default function SpBar({ current = 0, max = 0 }: SpBarProps) {
       current={current}
       max={max}
       color={colors.vitalSp}
+      deepColor={colors.vitalSpDeep}
     />
   );
 }

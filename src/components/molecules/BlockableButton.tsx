@@ -1,7 +1,7 @@
 import type { ComponentPropsWithoutRef } from "react";
 import styled from "styled-components";
 import Tooltip from "../ions/Tooltip";
-import questionMark from "../../assets/icons/questionmark.svg";
+import questionMark from "../../assets/icons/questionmark-sm.svg";
 
 type BlockableButtonProps = ComponentPropsWithoutRef<"button"> & {
   /** Com motivo, a ação fica indisponível e o motivo é a explicação. Sem motivo, é um botão comum. */
@@ -42,8 +42,9 @@ export default function BlockableButton({
 }
 
 const HelpMark = styled.img`
-  width: 1.15em;
-  height: 1.15em;
+  height: 1.5em;
+  width: auto;
+  min-height: 20px;
   flex-shrink: 0;
   margin-left: 0.4em;
 `;

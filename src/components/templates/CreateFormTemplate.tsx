@@ -148,7 +148,18 @@ const Form = styled.form`
 
 const ButtonsContainer = styled.div`
   display: flex;
+  flex-wrap: wrap;
   gap: 15px;
+
+  @media (max-width: 480px) {
+    & > * {
+      flex: 1 1 100%;
+    }
+    /* && sobe a especificidade: o SubmitButton é declarado depois e a margem dele venceria. */
+    && > * {
+      margin: 0;
+    }
+  }
 `;
 
 const Button = styled.button`

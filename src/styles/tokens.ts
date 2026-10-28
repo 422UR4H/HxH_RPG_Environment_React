@@ -146,6 +146,9 @@ export const colors = {
   // vital — esquemáticas da ficha
   vitalHp: palette.red600,
   vitalSp: palette.green500,
+  // Tom escuro sob o número da barra (mesma família de cor; contraste do branco ≥ 6).
+  vitalHpDeep: palette.red800,
+  vitalSpDeep: palette.green700,
   vitalExp: palette.gold400, // barra de EXP do personagem
   vitalSkillExp: palette.red600, // barra de EXP de habilidade e atributo
   vitalPoints: palette.green500, // pontos a distribuir
@@ -197,8 +200,9 @@ export const colors = {
   shadowSoft: alpha(palette.neutral1000, 0.3),
   shadowStrong: alpha(palette.neutral1000, 0.4),
   shadowText: alpha(palette.neutral1000, 0.9), // sombra de texto sobre a barra de EXP
-  shadowFloating: alpha(palette.neutral1000, 0.6), // sombra funda dos botões flutuantes (CON-06)
-  borderFloating: alpha(palette.neutral0, 0.14), // contorno claro sutil dos botões flutuantes
+  shadowFloating: alpha(palette.neutral1000, 0.85), // sombra funda dos botões flutuantes (CON-06)
+  borderFloating: alpha(palette.neutral0, 0.3), // aro claro dos botões flutuantes
+  borderFloatingHighlight: alpha(palette.neutral0, 0.18), // brilho de 1 px no topo dos botões flutuantes
 } as const;
 
 export const fonts = {

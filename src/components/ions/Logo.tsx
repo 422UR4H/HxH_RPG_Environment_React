@@ -6,7 +6,9 @@ export default function Logo() {
 }
 
 const StyledLogo = styled.img`
+  /* round(): largura em pixel físico inteiro nas densidades fracionárias. */
   width: 60%;
+  width: round(60%, 4px);
   height: auto;
   object-fit: contain;
 `;

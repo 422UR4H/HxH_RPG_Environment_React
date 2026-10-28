@@ -39,6 +39,7 @@ export default function Tooltip({
   const [pos, setPos] = useState<CSSProperties | null>(null);
 
   const bubbleRef = useRef<HTMLSpanElement>(null);
+  const anchor = useRef({ top: 0, bottom: 0 });
 
   useEffect(
     () => () => {
@@ -71,10 +72,15 @@ export default function Tooltip({
   }, [isOpen]);
 
   // Mede a bolha e a mantém a 8px das bordas da tela (num celular de 390px ela cortaria).
+  // Se abaixo do filho ela passaria do rodapé, vira para cima dele.
   useLayoutEffect(() => {
     const el = bubbleRef.current;
     if (!el || !pos) return;
     const w = el.offsetWidth;
+    const h = el.offsetHeight;
+    if (anchor.current.bottom + 6 + h > window.innerHeight - 8) {
+      el.style.top = `${anchor.current.top - h - 6}px`;
+    }
     const center = Number(pos.left);
     el.style.transform = "none";
     el.style.left = `${Math.max(8, Math.min(center - w / 2, window.innerWidth - w - 8))}px`;
@@ -83,6 +89,7 @@ export default function Tooltip({
   const show = () => {
     if (!enabled) return;
     const rect = wrapRef.current?.getBoundingClientRect();
+    anchor.current = { top: rect?.top ?? 0, bottom: rect?.bottom ?? 0 };
     setPos({ top: (rect?.bottom ?? 0) + 6, left: (rect?.left ?? 0) + (rect?.width ?? 0) / 2 });
   };
   const hide = () => {
@@ -171,12 +178,12 @@ const Bubble = styled.span`
   user-select: none;
   /* Curta fica numa linha; frase longa (o motivo de uma ação indisponível) quebra sem passar da tela. */
   width: max-content;
-  max-width: min(280px, calc(100vw - 16px));
+  max-width: min(300px, calc(100vw - 16px));
   white-space: normal;
   line-height: 1.35;
-  padding: 4px 8px;
+  padding: 6px 10px;
   border-radius: 4px;
   background: ${colors.surfaceBar};
   color: ${colors.textPrimary};
-  font-size: 12px;
+  font-size: 15px;
 `;

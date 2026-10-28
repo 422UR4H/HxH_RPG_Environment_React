@@ -37,6 +37,8 @@ const SidebarContainer = styled.aside<{ $fluid?: boolean }>`
   padding: 20px;
   position: relative;
   overflow-y: auto;
+  /* Coluna lateral nunca rola na horizontal; o conteúdo é que cabe. */
+  overflow-x: hidden;
   flex-shrink: 0;
 `;
 
@@ -56,4 +58,10 @@ const CharactersList = styled.div`
   gap: 10px;
   position: relative;
   padding-bottom: 103px;
+
+  /* Item encolhe em vez de passar da borda da coluna. */
+  & > * {
+    min-width: 0;
+    max-width: 100%;
+  }
 `;

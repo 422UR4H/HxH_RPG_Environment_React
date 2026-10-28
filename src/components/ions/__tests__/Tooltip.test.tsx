@@ -128,4 +128,24 @@ describe("Tooltip", () => {
     expect(tip.parentElement).toBe(document.body);
     expect(screen.getByTestId("card")).not.toContainElement(tip);
   });
+
+  it("flips above the child when it would pass the window bottom", () => {
+    const rect = vi
+      .spyOn(HTMLElement.prototype, "getBoundingClientRect")
+      .mockReturnValue({ top: 700, bottom: 730, left: 100, right: 160, width: 60, height: 30, x: 100, y: 700, toJSON: () => ({}) });
+    const w = vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(120);
+    const h = vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(52);
+    const inner = vi.spyOn(window, "innerHeight", "get").mockReturnValue(768);
+    try {
+      const target = setup();
+      fireEvent.focus(target);
+      const tip = screen.getByRole("tooltip", { hidden: true });
+      expect(tip.style.top).toBe(`${700 - 52 - 6}px`);
+    } finally {
+      rect.mockRestore();
+      w.mockRestore();
+      h.mockRestore();
+      inner.mockRestore();
+    }
+  });
 });

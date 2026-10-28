@@ -183,6 +183,8 @@ const PanelZone = styled.section<{ $open: boolean; $wide?: boolean }>`
   display: ${({ $open }) => ($open ? "block" : "none")};
   max-height: 46dvh;
   overflow-y: auto;
+  /* Coluna lateral nunca rola na horizontal; o conteúdo é que cabe. */
+  overflow-x: hidden;
   overscroll-behavior: contain;
   background: ${colors.surfaceSidebar};
   border-top: 1px solid ${colors.surfaceInput};
@@ -208,6 +210,8 @@ const AsideZone = styled.aside<{ $open: boolean }>`
   z-index: ${ASIDE_DRAWER_Z_INDEX};
   display: ${({ $open }) => ($open ? "block" : "none")};
   overflow-y: auto;
+  /* Coluna lateral nunca rola na horizontal; o conteúdo é que cabe. */
+  overflow-x: hidden;
   background: ${colors.surfaceSidebar};
   border-left: 1px solid ${colors.surfaceInput};
   box-shadow: -8px 0 24px ${colors.shadowStrong};

@@ -13,6 +13,7 @@ import FormField from "../components/molecules/FormField";
 import FormRow from "../components/molecules/FormRow";
 import FormCheckbox from "../components/molecules/FormCheckbox";
 import FormInput from "../components/ions/FormInput";
+import DateField from "../components/molecules/DateField";
 import FormTextArea from "../components/ions/FormTextArea";
 import UpcomingRulesSidebar from "../components/organisms/UpcomingRulesSidebar";
 import { PageLoading, PageError, PageNotFound } from "../components/templates/PageState";
@@ -204,12 +205,11 @@ export default function EditMatchPage() {
           htmlFor="gameScheduledAt"
           helpText="Esta é a data e hora real em que a sessão de jogo acontecerá"
         >
-          <FormInput
+          <DateField
             id="gameScheduledAt"
-            name="gameScheduledAt"
-            type="datetime-local"
+            withTime
             value={form.gameScheduledAt}
-            onChange={handleForm}
+            onChange={(value) => setForm((prev) => ({ ...prev, gameScheduledAt: value }))}
             required
           />
         </FormField>
@@ -219,12 +219,10 @@ export default function EditMatchPage() {
           htmlFor="storyStartAt"
           helpText="Esta é a data dentro do universo da história"
         >
-          <FormInput
+          <DateField
             id="storyStartAt"
-            name="storyStartAt"
-            type="date"
             value={form.storyStartAt}
-            onChange={handleForm}
+            onChange={(value) => setForm((prev) => ({ ...prev, storyStartAt: value }))}
             required
           />
         </FormField>
