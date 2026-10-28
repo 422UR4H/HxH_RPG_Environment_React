@@ -23,14 +23,25 @@ export const bottomBarReserve = `calc(${bottomBarSpace} + 24px)`;
 export const floatingElevation = (shadow: string, outline: string, highlight: string) =>
   `0 3px 6px ${shadow}, 0 16px 40px ${shadow}, 0 0 0 1px ${outline}, inset 0 1px 0 ${highlight}`;
 
-/** Folga mínima entre o fim do conteúdo e o último item para o botão flutuante (20 px do fundo +
- *  72 px de altura, mais 4 px de folga) não cobrir o card: a barra só encaixa a 30 px do fim, e até lá ela flutua. */
-const floatingClearance = "128px";
+/** Distância do fundo da tela dos botões flutuantes (BottomActions e AdaptiveActionButton). */
+export const floatingBottomPx = 20;
+/** Altura medida dos botões flutuantes (padding 15 + texto 26): se o botão mudar de tamanho, mude aqui. */
+export const floatingHeightPx = 72;
+/** A barra só encaixa a 30 px do fim do conteúdo; até lá ela flutua (mesmo número dos dois componentes). */
+export const dockThresholdPx = 30;
+const floatingSafetyPx = 8;
+
+/** Folga mínima entre o fim do conteúdo e o último item para o botão flutuante não cobrir o card
+ *  pouco antes de encaixar: os px que faltam para encaixar + o quanto ele sobe do fundo + a altura dele + a margem de segurança. */
+const floatingClearance = `${dockThresholdPx + floatingBottomPx + floatingHeightPx + floatingSafetyPx}px`;
 
 /** Fim de lista em que a barra encaixada fica a exatamente `gap` do último item (o gap da própria
  *  lista). O fim do conteúdo fica sempre a `floatingClearance` do último item; quem se ajusta é o
- *  `bottom` da barra encaixada (via `--bottom-bar-offset`), então o desenho encaixado não muda. */
+ *  `bottom` da barra encaixada, então o desenho encaixado não muda. `--bottom-bar-offset` serve ao
+ *  BottomActions; `--docked-bar-bottom` ao AdaptiveActionButton, que fora deste bloco (Criar NPC na
+ *  sidebar) continua com `bottom: 0`. */
 export const dockedBarAfterGap = (gap: string) => `
-  --bottom-bar-offset: calc(${floatingClearance} - var(--bottom-bar-height, 91px) - ${gap});
+  --docked-bar-bottom: calc(${floatingClearance} - var(--bottom-bar-height, 91px) - ${gap});
+  --bottom-bar-offset: var(--docked-bar-bottom);
   padding-bottom: ${floatingClearance};
 `;
