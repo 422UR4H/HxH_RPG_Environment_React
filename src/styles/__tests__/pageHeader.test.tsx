@@ -56,4 +56,15 @@ describe("pageHeader", () => {
     expect(css).toContain("overflow-wrap:normal");
     expect(css).toContain("min-width:0");
   });
+
+  it("left-aligns the date once it drops under the title", () => {
+    render(<DateLabel>01/01/2000</DateLabel>);
+    const css = injectedCss();
+    const block = css
+      .split("@container (max-width: 559px)")
+      .slice(1)
+      .find((part) => part.includes("clear:both")) ?? "";
+    expect(block).toContain("text-align:left");
+    expect(block).toContain("justify-self:start");
+  });
 });

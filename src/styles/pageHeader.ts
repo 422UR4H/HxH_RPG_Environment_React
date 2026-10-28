@@ -77,7 +77,7 @@ export const headerBadge = css`
   }
 `;
 
-/** Rótulo da data, abaixo do selo e alinhado à direita; sob o título nas telas estreitas. */
+/** Rótulo da data, abaixo do selo e alinhado à direita; sob o título (à esquerda) nas telas estreitas. */
 export const headerDate = css`
   grid-area: date;
   justify-self: end;
@@ -86,6 +86,8 @@ export const headerDate = css`
   @container (max-width: 559px) {
     clear: both;
     padding-top: 10px;
+    text-align: left;
+    justify-self: start;
   }
 
   @container (max-width: 339px) {
