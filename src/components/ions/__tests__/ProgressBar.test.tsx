@@ -54,4 +54,14 @@ describe("ProgressBar", () => {
     expect(flat).not.toContain("linear-gradient");
     expect(flat).toContain("background:red");
   });
+
+  it("centers the label in whole pixels with Roboto inside small containers", () => {
+    render(<ProgressBar current={7} max={20} color="red" />);
+    const css = Array.from(document.querySelectorAll("style"))
+      .map((st) => st.textContent ?? "")
+      .join("");
+    expect(css).toContain("@container (max-width: 315px)");
+    expect(css).toContain("font-variant-numeric:tabular-nums");
+    expect(css).toContain("round(");
+  });
 });

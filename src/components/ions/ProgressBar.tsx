@@ -103,5 +103,20 @@ const Label = styled.span`
     text-box: trim-both cap alphabetic;
     padding-top: calc((1lh + 1px - 1cap) / 2);
     padding-bottom: calc((1lh + 1px - 1cap) / 2);
+
+    /* Em card (contêiner pequeno) o número usa a Roboto do Lv e da EXP; altura do algarismo (cap),
+       margem e barra em pixel inteiro, para a sobra ser par e o número ficar no meio
+       (0,745 = altura do algarismo de hoje; 0,711 = cap da Roboto). */
+    @container (max-width: 315px) {
+      --fs: 3.8cqi;
+      --cap: max(4px, round(calc(var(--fs) * 0.745), 1px));
+      --pad: max(1px, round(calc((var(--fs) + 1px - var(--cap)) / 2), 1px));
+      font-family: ${fonts.sans};
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      font-size: calc(var(--cap) / 0.711);
+      padding-top: var(--pad);
+      padding-bottom: var(--pad);
+    }
   }
 `;
