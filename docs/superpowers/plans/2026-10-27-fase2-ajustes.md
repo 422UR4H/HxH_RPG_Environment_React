@@ -166,6 +166,39 @@ Protótipo do coordenador (`protoshadow.mjs`, variante C): no fundo escuro, somb
 - [ ] Tokens: `shadowFloating: alpha(palette.neutral1000, 0.85)`, `borderFloating: alpha(palette.neutral0, 0.3)` e o novo `highlightFloating: alpha(palette.neutral0, 0.18)` (brilho de 1 px no topo dos flutuantes). Os quatro chamadores passam o terceiro argumento.
 - [ ] Commit — `fix(ui): flutuantes com aro claro e sombra larga, visíveis no fundo escuro`.
 
+## Terceira rodada do dono do produto (27/10, noite)
+
+### Task 12: Número das barras nos cards — Roboto e centralizado em pixel inteiro
+
+**Files:** `src/components/ions/ProgressBar.tsx` (+ o teste dele)
+
+Medido pelo coordenador (`barink2.mjs`, campanha com muitos personagens): em densidade 1× todos os números ficam 1 px acima do centro — a barra tem 10,25 px (a tela pinta 10 ou 11) e o texto encaixa no pixel por conta própria. Com cap, margem e altura em pixel inteiro, 0 desvio nas 40 barras × 4 larguras em 1×; nas outras densidades, ≤ 1 px físico, como hoje. Prototipado em `proto-bars-c.css` (variante escolhida: algarismo do tamanho de hoje, igual ao Lv/EXP do card).
+
+- [ ] Na `Label`, dentro do `@supports (text-box: trim-both cap alphabetic)` que já existe, um `@container (max-width: 315px)` (onde `3.8cqi` < 12 px: os cards e a ficha no celular) com: `--fs: 3.8cqi; --cap: max(4px, round(calc(var(--fs) * 0.745), 1px)); --pad: max(1px, round(calc((var(--fs) + 1px - var(--cap)) / 2), 1px)); font-family: ${fonts.sans}; font-weight: 700; font-variant-numeric: tabular-nums; font-size: calc(var(--cap) / 0.711); padding-top: var(--pad); padding-bottom: var(--pad);` (o `text-box` já vem do bloco de fora). Comentário: em card o número usa a Roboto do Lv e da EXP; altura do algarismo (cap), margem e barra em pixel inteiro, para a sobra ser par e o número ficar no meio (0,745 = altura do algarismo de hoje; 0,711 = cap da Roboto).
+- [ ] Fora do contêiner pequeno (ficha grande) e sem `text-box` (Firefox), nada muda.
+- [ ] Teste: o CSS gerado da etiqueta contém `@container (max-width: 315px)`, `font-variant-numeric: tabular-nums` e `round(`.
+- [ ] Commit — `fix(ui): número da barra no card em Roboto e centralizado em pixel inteiro`.
+
+### Task 13: Data à esquerda quando desce para baixo do título
+
+**Files:** `src/styles/pageHeader.ts` (+ teste)
+
+- [ ] No `headerDate`, na faixa `@container (max-width: 559px)`, `text-align: left; justify-self: start;` (só o selo fica no canto; a data, embaixo do título, encosta à esquerda, como o título). Vale para toda data dessa posição ("Agendada para", "Iniciada em", "Data Atual").
+- [ ] Commit — `fix(layout): data embaixo do título encostada à esquerda`.
+
+### Task 14: Seletor de data com a cara do site
+
+**Files:** `src/components/molecules/DateField.tsx` (novo, + `.styles.ts` se passar de ~150 linhas), as 4 páginas (`CreateCampaignPage`, `EditCampaignPage`, `CreateMatchPage`, `EditMatchPage`, 7 campos), os testes delas, `package.json`
+
+O seletor nativo (cinza e azul) não aceita estilo. Componente próprio com `react-day-picker` v9 (calendário acessível, teclado, locale pt-BR).
+
+- [ ] `DateField({ id, value, onChange, withTime?, required?, disabled?, min?, max?, "aria-describedby"? })`: `value`/`onChange` no MESMO formato do input nativo de hoje (`"YYYY-MM-DD"`, ou `"YYYY-MM-DDTHH:mm"` com `withTime`), para as páginas não mudarem a lógica nem a validação.
+- [ ] Campo: um botão com a aparência exata do `FormInput` de hoje (mesmos tokens, altura, borda, raio), mostrando `dd/mm/aaaa` (e ` às hh:mm`) ou o placeholder `dd/mm/aaaa`, com o ícone de calendário à direita; `aria-haspopup="dialog"`, `aria-expanded`. O `<label htmlFor>` da página aponta para ele.
+- [ ] Popover abaixo do campo (acima, se não couber na janela; sem sair pela lateral), `role="dialog"`, `aria-label="Escolher data"`: `DayPicker` `mode="single"`, `locale={ptBR}`, `captionLayout="dropdown"` com mês e ano em `select` (anos de 1900 a 2100: a data da história pode ser antiga), e, com `withTime`, dois `select` (hora 00–23, minuto 00–59) embaixo. Esc e clique fora fecham e o foco volta ao campo. Largura `min(320px, calc(100vw - 32px))`; alvos de toque ≥ 40 px.
+- [ ] Visual só com tokens que já existem: fundo `surfaceModal`, borda `borderInput`, raio 8 px, sombra `shadowFloating`; mês/ano `textPrimary`; dias da semana `textMuted`; dia no hover `surfaceInputHover`; dia escolhido `brandAccent` com `textPrimary`; hoje com contorno `actionHighlight`; dias de fora do mês `textFaint`; os `select` com o mesmo estilo dos `select` do site; foco pelo anel do reset.
+- [ ] As 4 páginas trocam os 7 `<input type="date|datetime-local">` pelo `DateField`. Testes das páginas atualizados para escolher a data pelo componente; teste do `DateField` (títulos em inglês): mostra o valor formatado; escolher um dia chama `onChange` com `"YYYY-MM-DD"`; com `withTime`, escolher a hora mantém o dia; Esc fecha e devolve o foco.
+- [ ] Commit — `feat(forms): seletor de data com a identidade do site`.
+
 ---
 
 ## Verificação final (coordenador)
