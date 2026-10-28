@@ -316,7 +316,9 @@ const Toolbar = styled.div`
   background: ${colors.surfaceSidebar};
   min-width: 240px;
   height: 100%;
-  overflow: hidden;
+  /* A coluna inteira rola como bloco quando falta altura (EDI-03); em tela alta nada rola. */
+  overflow-x: hidden;
+  overflow-y: auto;
 `;
 
 const TabRow = styled.div`
@@ -370,10 +372,9 @@ const TabButton = styled.button<{ $active: boolean; $soon?: boolean }>`
   }
 `;
 
+/* Nunca encolhe abaixo do conteúdo (a rolagem é da coluna); cresce para empurrar o MetaSection ao rodapé. */
 const PanelArea = styled.div`
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
+  flex: 1 0 auto;
 `;
 
 const PiecesPanel = styled.div`
