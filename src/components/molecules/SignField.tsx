@@ -54,15 +54,16 @@ export default function SignField({
 
 const Label = styled.label`
   position: absolute;
-  top: -10px;
-  left: 12px;
+  /* Centro do rótulo (18px) alinhado ao centro da borda de 3px. */
+  top: -8px;
+  left: 18px;
   padding: 0 6px;
   /* Cor do cartão: corta a linha da borda atrás do rótulo. */
   background-color: ${colors.textPrimary};
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   line-height: 18px;
-  color: ${colors.textHint};
+  color: ${colors.textOnLight};
   pointer-events: none;
 `;
 
@@ -71,8 +72,9 @@ const Input = styled.input`
   width: 100%;
   height: 52px;
   padding: 0 16px;
-  border: 2px solid ${colors.borderInputOnLight};
-  border-radius: 8px;
+  /* Mesmo traço do botão "Entrar" (BaseButton): contorno quase-preto e cantos de 14px; 3px porque o campo é menor. */
+  border: 3px solid ${colors.textOnLight};
+  border-radius: 14px;
   background-color: ${colors.textPrimary};
   font-size: 18px;
   font-weight: 400;

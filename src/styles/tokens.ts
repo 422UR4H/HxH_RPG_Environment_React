@@ -103,7 +103,7 @@ export const colors = {
   textLabelMuted: palette.neutral300, // rótulos dos grupos de atributos
   textDisabledOnDark: palette.neutral300, // rótulo de controle desativado sobre surfaceDisabled
   textFaint: palette.neutral600, // opção desabilitada de lista
-  textHint: palette.neutral500, // legenda e dica nas áreas de soltar; rótulo de campo em repouso sobre superfície clara (login, cadastro)
+  textHint: palette.neutral500, // legenda e dica nas áreas de soltar
   textLinkOnLight: palette.blue700, // links sobre fundo branco (telas de login e cadastro)
 
   // border
@@ -112,7 +112,6 @@ export const colors = {
   borderMuted: palette.neutral600, // borda neutra de uso geral
   borderStrong: palette.neutral500, // borda e texto neutro nas áreas de soltar
   borderLight: palette.neutral400, // borda em repouso do BackgroundButton
-  borderInputOnLight: palette.neutral400, // borda de campo em repouso sobre fundo claro: login e cadastro (3,5:1 sobre o branco)
   borderAccent: palette.red800, // borda de destaque: hover/ativo dos cards de ficha e de navegação
 
   // action
