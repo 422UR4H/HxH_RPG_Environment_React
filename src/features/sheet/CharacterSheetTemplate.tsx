@@ -372,8 +372,11 @@ const AttributesSection = styled.section`
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  /* justify-content: space-around; */
+  /* Título e diagramas encostados no topo; a altura que a coluna de perícias
+     impõe ao esticar sobra embaixo. O espaçamento entre eles vem das margens
+     próprias (cqi) de SectionTitle e dos diagramas, então diagramas novos
+     (ex.: espiritual da Consciência) entram sem redistribuir a coluna. */
+  justify-content: flex-start;
 
   @media (max-width: 589px) {
     padding-bottom: 0;
