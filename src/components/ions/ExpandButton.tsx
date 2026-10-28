@@ -10,12 +10,13 @@ export default function ExpandButton({
   isExpanded,
   setIsExpanded,
 }: ExpandButtonProps) {
+  // Sem setIsExpanded quem alterna é o botão em volta: a seta vira só decoração.
   return (
     <ExpandIcon
       src={expandIcon}
-      alt="Expandir/Retrair"
+      alt={setIsExpanded ? "Expandir/Retrair" : ""}
       $isExpanded={isExpanded}
-      onClick={() => setIsExpanded && setIsExpanded(!isExpanded)}
+      onClick={setIsExpanded ? () => setIsExpanded(!isExpanded) : undefined}
     />
   );
 }

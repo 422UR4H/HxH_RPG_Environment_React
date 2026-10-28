@@ -1,5 +1,6 @@
 import styled, { keyframes } from "styled-components";
 import BackgroundButton from "../../components/atoms/BackgroundButton";
+import BorderLabelField from "../../components/ions/BorderLabelField";
 import type { Profile } from "../../types/characterSheet";
 import { colors } from "../../styles/tokens";
 import { toDateInputValue } from "../../utils/date";
@@ -21,13 +22,16 @@ export default function ProfileDetails({
     <ProfileContainer>
       <ProfileName>{fullname}</ProfileName>
       {onBriefDescriptionChange ? (
-        <BriefDescriptionTextarea
-          value={briefDescription ?? ""}
-          onChange={(e) => onBriefDescriptionChange(e.target.value)}
-          placeholder="Faça uma breve descrição do seu personagem (roupas, físico e aparência - o que os outros veem ao olhar para ele)"
-          maxLength={255}
-          rows={3}
-        />
+        <BriefDescriptionField tone="dark" label="Descrição breve" htmlFor="profile-brief-description">
+          <BriefDescriptionTextarea
+            id="profile-brief-description"
+            value={briefDescription ?? ""}
+            onChange={(e) => onBriefDescriptionChange(e.target.value)}
+            placeholder="Faça uma breve descrição do seu personagem (roupas, físico e aparência - o que os outros veem ao olhar para ele)"
+            maxLength={255}
+            rows={3}
+          />
+        </BriefDescriptionField>
       ) : (
         <ProfileDescription>{briefDescription}</ProfileDescription>
       )}
@@ -158,11 +162,12 @@ const BriefDescriptionTextarea = styled.textarea`
   border: 2px solid ${colors.borderStrong};
   border-radius: 6px;
   padding: 12px 16px;
-  margin-bottom: 2cqi;
   width: 100%;
   resize: vertical;
   min-height: 72px;
   box-sizing: border-box;
+  /* Bloco: sem o vão de linha que o textarea inline deixa embaixo, a borda fecha o quadro do rótulo. */
+  display: block;
 
   &::placeholder {
     color: ${colors.textInputDisabled};
@@ -175,4 +180,10 @@ const BriefDescriptionTextarea = styled.textarea`
   @media (max-width: 609px) {
     font-size: 4.6cqi;
   }
+`;
+
+const BriefDescriptionField = styled(BorderLabelField)`
+  /* O rótulo sobe acima da borda: espaço para não encostar no nome. */
+  margin-top: max(1cqi, 8px);
+  margin-bottom: max(2cqi, 14px);
 `;

@@ -4,6 +4,8 @@ import { colors } from "../../styles/tokens";
 import type { BaseOptionProps } from "./BaseOption";
 
 interface BaseSelectProps {
+  id?: string;
+  "aria-label"?: string;
   value?: string;
   defaultValue?: string;
   onChange: (e: ChangeEvent<HTMLSelectElement>) => void;
@@ -11,6 +13,8 @@ interface BaseSelectProps {
 }
 
 export default function BaseSelect({
+  id,
+  "aria-label": ariaLabel,
   value,
   defaultValue,
   onChange,
@@ -18,6 +22,8 @@ export default function BaseSelect({
 }: BaseSelectProps) {
   return (
     <StyledBaseSelect
+      id={id}
+      aria-label={ariaLabel}
       value={value}
       defaultValue={defaultValue}
       onChange={onChange}

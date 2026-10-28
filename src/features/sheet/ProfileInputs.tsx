@@ -3,6 +3,7 @@ import BackgroundButton from "../../components/atoms/BackgroundButton";
 import type { Profile, CharacterSheet } from "../../types/characterSheet";
 import BaseOption from "../../components/ions/BaseOption";
 import BaseSelect from "../../components/ions/BaseSelect";
+import BorderLabelField from "../../components/ions/BorderLabelField";
 import { colors } from "../../styles/tokens";
 import { toDateInputValue } from "../../utils/date";
 
@@ -62,29 +63,35 @@ export default function ProfileInputs({
 
   return (
     <ProfileContainer>
-      <ProfileNameInput
-        type="text"
-        autoComplete="off"
-        placeholder="Nome completo do personagem"
-        value={profile?.fullname || ""}
-        onChange={(e) => handleInputChange("fullname", e.target.value)}
-      />
+      <SpacedField tone="dark" label="Nome completo" htmlFor="profile-fullname">
+        <ProfileNameInput
+          id="profile-fullname"
+          type="text"
+          autoComplete="off"
+          placeholder="Nome completo do personagem"
+          value={profile?.fullname || ""}
+          onChange={(e) => handleInputChange("fullname", e.target.value)}
+        />
+      </SpacedField>
 
-      <ProfileDescriptionTextarea
-        autoComplete="off"
-        placeholder="Breve descrição do personagem"
-        rows={2}
-        value={profile?.briefDescription || ""}
-        onChange={(e) => handleInputChange("briefDescription", e.target.value)}
-      />
+      <SpacedField tone="dark" label="Descrição breve" htmlFor="profile-brief-description">
+        <ProfileDescriptionTextarea
+          id="profile-brief-description"
+          autoComplete="off"
+          placeholder="Breve descrição do personagem"
+          rows={2}
+          value={profile?.briefDescription || ""}
+          onChange={(e) => handleInputChange("briefDescription", e.target.value)}
+        />
+      </SpacedField>
 
       <ProfileContent>
         <LeftDetails>
           <BirthdayAgeRow>
-            <DetailItem>
-              <DetailLabel>Aniversário:</DetailLabel>
+            <BorderLabelField tone="dark" label="Aniversário" fieldColor={colors.brandAccent} pill>
               <BirthdaySelects>
                 <BaseSelect
+                  aria-label="Mês"
                   value={String(currentMonth)}
                   onChange={(e) => {
                     const newMonth = parseInt(e.target.value);
@@ -101,6 +108,7 @@ export default function ProfileInputs({
                   ))}
                 </BaseSelect>
                 <BaseSelect
+                  aria-label="Dia"
                   value={String(currentDay)}
                   onChange={(e) => {
                     const mm = String(currentMonth).padStart(2, "0");
@@ -117,23 +125,29 @@ export default function ProfileInputs({
                   )}
                 </BaseSelect>
               </BirthdaySelects>
-            </DetailItem>
+            </BorderLabelField>
 
-            <DetailItem>
-              <DetailLabel>Idade:</DetailLabel>
+            <BorderLabelField tone="dark" label="Idade" htmlFor="profile-age">
               <AgeInput
+                id="profile-age"
                 type="number"
                 value={profile?.age || defaultAge}
                 onChange={(e) => handleInputChange("age", parseInt(e.target.value, 10) || 0)}
               />
-            </DetailItem>
+            </BorderLabelField>
           </BirthdayAgeRow>
 
           <AlignmentBackgroundRow>
-            <DetailItem>
-              <DetailLabel>Alinhamento:</DetailLabel>
+            <BorderLabelField
+              tone="dark"
+              label="Alinhamento"
+              htmlFor="profile-alignment"
+              fieldColor={colors.brandAccent}
+              pill
+            >
               <AlignmentContainer>
                 <BaseSelect
+                  id="profile-alignment"
                   value={profile?.alignment ?? ""}
                   onChange={(e) => handleInputChange("alignment", e.target.value)}
                 >
@@ -144,7 +158,7 @@ export default function ProfileInputs({
                   ))}
                 </BaseSelect>
               </AlignmentContainer>
-            </DetailItem>
+            </BorderLabelField>
             <MobileOnlyButton>
               <BackgroundButton onClick={onBackgroundClick} />
             </MobileOnlyButton>
@@ -184,7 +198,6 @@ const ProfileNameInput = styled.input`
   border: 2px solid ${colors.borderStrong};
   border-radius: 6px;
   padding: 12px 16px;
-  margin-bottom: 2cqi;
   width: 100%;
 
   &::placeholder {
@@ -210,10 +223,11 @@ const ProfileDescriptionTextarea = styled.textarea`
   border: 2px solid ${colors.borderStrong};
   border-radius: 6px;
   padding: 12px 16px;
-  margin-bottom: 2cqi;
   width: 100%;
   resize: vertical;
   min-height: 80px;
+  /* Bloco: sem o vão de linha que o textarea inline deixa embaixo, a borda fecha o quadro do rótulo. */
+  display: block;
 
   &::placeholder {
     color: ${colors.textInputDisabled};
@@ -239,7 +253,8 @@ const ProfileContent = styled.div`
 const LeftDetails = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  /* Espaço para o rótulo da borda de baixo não encostar no campo de cima. */
+  gap: max(2cqi, 14px);
   flex: 1;
 `;
 
@@ -250,22 +265,6 @@ const RightDetails = styled.div`
   /* @media (max-width: 609px) { */
   @media (max-width: 509px) {
     display: none;
-  }
-`;
-
-const DetailItem = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-`;
-
-const DetailLabel = styled.span`
-  font-size: min(3.4cqi, 24px);
-  color: ${colors.textInputDisabled};
-  font-weight: 500;
-
-  @media (max-width: 609px) {
-    font-size: 4cqi;
   }
 `;
 
@@ -335,7 +334,8 @@ const MobileOnlyButton = styled.div`
 `;
 
 const AgeInput = styled(DetailInput)`
-  width: min(14cqi, 90px);
+  /* Largo o bastante para o rótulo "Idade" caber na borda no celular. */
+  width: min(20cqi, 90px);
   font-size: min(3.8cqi, 28px);
   padding: 10px min(4cqi, 16px);
 `;
@@ -343,4 +343,9 @@ const AgeInput = styled(DetailInput)`
 const AlignmentContainer = styled.div`
   display: flex;
   gap: 12px;
+`;
+
+const SpacedField = styled(BorderLabelField)`
+  /* Espaço para o rótulo do campo de baixo não encostar neste. */
+  margin-bottom: max(2cqi, 14px);
 `;
