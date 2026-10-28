@@ -15,7 +15,6 @@ import { tableMap } from "../features/match/combat/tableMap";
 import { BoardWaitNotice } from "../features/match/combat/BoardWaitNotice";
 import { PageLoading, PageError, PageNotFound } from "../components/templates/PageState";
 import { isApiError } from "../services/httpClient";
-import { ActionsList } from "../components/atoms/ActionsList";
 import ConfirmDialog from "../components/molecules/ConfirmDialog";
 import DetailPageTemplate from "../components/templates/DetailPageTemplate";
 import CharactersSidebar from "../components/organisms/CharactersSidebar";
@@ -290,8 +289,7 @@ export default function LobbyPage() {
           </WsStatusBar>
         )}
 
-        <ActionsList>
-          {isMaster ? (
+        {isMaster ? (
             <MasterActions>
               <StartButton onClick={sendStartMatch} disabled={status !== "connected"}>
                 Iniciar Partida
@@ -307,8 +305,7 @@ export default function LobbyPage() {
             <WaitingMessage>
               Aguardando o mestre iniciar a partida…
             </WaitingMessage>
-          )}
-        </ActionsList>
+        )}
 
         {attachedMapId && !lobbyMap && (
           <LobbyMapWaiting>
@@ -395,6 +392,13 @@ const MasterActions = styled.div`
   gap: 16px;
   flex-wrap: wrap;
   margin-top: 20px;
+
+  /* Quebrando linha, os dois ficam com a mesma largura (padrão da barra de botões dos formulários). */
+  @media (max-width: 480px) {
+    & > * {
+      flex: 1 1 100%;
+    }
+  }
 `;
 
 const BaseActionButton = styled.button`
@@ -402,7 +406,7 @@ const BaseActionButton = styled.button`
   font-weight: 600;
   padding: 14px 32px;
   border-radius: 8px;
-  border: none;
+  border: 2px solid transparent;
   cursor: pointer;
   transition: all 0.2s ease;
 
@@ -427,9 +431,16 @@ const StartButton = styled(BaseActionButton)`
   color: ${colors.textPrimary};
 `;
 
+// Destrutivo secundário: contorno e texto de perigo (o mesmo de DangerButton/BgImagePanel), mas com
+// fundo sólido — só contorno não garante contraste sobre a imagem do mapa-múndi.
 const CancelButton = styled(BaseActionButton)`
-  background-color: ${colors.feedbackDanger};
-  color: ${colors.textPrimary};
+  background-color: ${colors.surfaceSidebar};
+  border: 2px solid ${colors.feedbackDanger};
+  color: ${colors.feedbackDangerText};
+
+  &:disabled {
+    border-color: ${colors.surfaceDisabled};
+  }
 `;
 
 const WaitingMessage = styled.p`

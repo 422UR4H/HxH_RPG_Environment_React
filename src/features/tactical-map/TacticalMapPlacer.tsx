@@ -4,6 +4,7 @@ import styled from "styled-components";
 import { colors } from "../../styles/tokens";
 import PieceDragGhost, { PieceDragGhostPortal } from "./PieceDragGhost";
 import TacticalMapStage from "./TacticalMapStage";
+import { MapCornerButton } from "./stage/mapCornerStyles";
 import NpcRosterPanel from "../../components/molecules/NpcRosterPanel";
 import { useResizeObserver } from "../../hooks/useResizeObserver";
 import { useCampaignDetails } from "../../hooks/useCampaignDetails";
@@ -53,6 +54,8 @@ export default function TacticalMapPlacer({
   const { width, height } = useResizeObserver(canvasRef);
 
   const [viewportScale, setViewportScale] = useState(1);
+  // Pedido de enquadramento: o mesmo `fitRequest` da mesa e do editor (1 ao abrir; o botão soma).
+  const [fitRequest, setFitRequest] = useState(1);
 
   // --- Player self-placement state ---
   // Set when a player clicks an empty slot and has characters available to place.
@@ -201,6 +204,7 @@ export default function TacticalMapPlacer({
         {width > 0 && height > 0 && (
           <TacticalMapStage
             map={{ ...map, pieces }}
+            fitRequest={fitRequest}
             width={width}
             height={height}
             piecesInteractive={true}
@@ -218,6 +222,9 @@ export default function TacticalMapPlacer({
             onViewportScaleChange={setViewportScale}
           />
         )}
+        <MapCornerButton type="button" onClick={() => setFitRequest((n) => n + 1)}>
+          Enquadrar
+        </MapCornerButton>
       </CanvasArea>
 
       {isMaster && (
@@ -305,6 +312,7 @@ const PlacerRoot = styled.div`
 `;
 
 const CanvasArea = styled.div`
+  position: relative;
   flex: 1;
   min-width: 0;
   height: 100%;
