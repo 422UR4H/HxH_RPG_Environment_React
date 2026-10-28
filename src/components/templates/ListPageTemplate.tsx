@@ -1,9 +1,10 @@
 import { type ReactNode } from "react";
-import styled from "styled-components";
+import styled, { createGlobalStyle } from "styled-components";
 import PageHeader from "../atoms/PageHeader";
 import { PageLoading, PageError } from "./PageState";
 import type { PageBackdrop, PageStateLink } from "./PageState";
 import { colors } from "../../styles/tokens";
+import { viewportScrollbar, scrollbarPalettes } from "../../styles/scrollbar";
 
 interface ListPageTemplateProps {
   bgImage: string;
@@ -54,11 +55,18 @@ export default function ListPageTemplate({
   }
   return (
     <PageContainer $bgImage={bgImage} $bgAttachment={bgAttachment}>
+      {backdrop === "world" && <WorldScrollbar />}
       <PageHeader backgroundColor={headerColor} />
       <PageBody>{children}</PageBody>
     </PageContainer>
   );
 }
+
+// Fundo de mapa-múndi: barra de rolagem marrom, como nas telas de campanha. A lista de
+// personagens (fundo de espaço) fica com a barra global.
+const WorldScrollbar = createGlobalStyle`
+  ${viewportScrollbar(scrollbarPalettes.earth)}
+`;
 
 const PageContainer = styled.div<{ $bgImage: string; $bgAttachment: string }>`
   display: flex;
