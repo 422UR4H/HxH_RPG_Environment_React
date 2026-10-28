@@ -135,7 +135,7 @@ export const Popover = styled.div`
   }
   .rdp-button_previous:hover,
   .rdp-button_next:hover {
-    background-color: ${colors.surfaceInputHover};
+    background-color: ${colors.surfaceInput};
   }
   .rdp-chevron {
     width: 20px;
@@ -173,7 +173,7 @@ export const Popover = styled.div`
     cursor: pointer;
   }
   .rdp-day_button:hover {
-    background-color: ${colors.surfaceInputHover};
+    background-color: ${colors.surfaceInput};
   }
   .rdp-today .rdp-day_button {
     border-color: ${colors.actionHighlight};
@@ -228,6 +228,6 @@ export const ClearButton = styled.button`
   cursor: pointer;
 
   &:hover {
-    background-color: ${colors.surfaceInputHover};
+    background-color: ${colors.surfaceInput};
   }
 `;
