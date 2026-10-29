@@ -151,8 +151,9 @@ function CharacterSheetTemplate({
 
   // Embutida na partida (F3): sem voltar (navegaria para fora dela) e sem ações de rodapé.
 
-  // Só na visualização: nos modos de edição os diagramas já trazem margens largas.
-  const isViewDiagrams = sheetMode.diagramsMode === "view";
+  // Os espaçadores áureos valem nos três modos; só a compensação muda (ver GoldenSpacer).
+  const isEdit = sheetMode.diagramsMode !== "view";
+  const hasPrinciples = (spiritualAbility?.level ?? 0) > 0;
 
   return (
     <SheetContainer>
@@ -190,14 +191,14 @@ function CharacterSheetTemplate({
         <GridSection>
           <AttributesSection>
             <SectionTitle>ATRIBUTOS</SectionTitle>
-            {isViewDiagrams && <TitleSpacer />}
+            <GoldenSpacer {...spacerProps("titleToPhysical", isEdit)} />
             <PhysicalsDiagram
               key={`physical-${charSheet?.characterClass ?? "none"}`}
               mode={sheetMode.diagramsMode}
               attributes={physicalAttributes}
               physicalAbility={physicalAbility}
             />
-            {isViewDiagrams && <DiagramSpacer />}
+            <GoldenSpacer {...spacerProps("physicalToMental", isEdit)} />
             <MentalsDiagram
               key={`mental-${charSheet?.characterClass ?? "none"}`}
               mode={sheetMode.diagramsMode}
@@ -205,11 +206,11 @@ function CharacterSheetTemplate({
               mentalAbility={mentalAbility}
             />
 
-            {(spiritualAbility?.level ?? 0) > 0 && (
+            {hasPrinciples && (
               <>
-                {isViewDiagrams && <DiagramSpacer />}
+                <GoldenSpacer {...spacerProps("mentalToPrinciples", isEdit)} />
                 <SectionTitle>PRINCÍPIOS</SectionTitle>
-                {isViewDiagrams && <TitleSpacer />}
+                <GoldenSpacer {...spacerProps("titleToPrinciples", isEdit)} />
                 <NenPrinciplesDiagram
                   mode={sheetMode.diagramsMode}
                   principles={principles}
@@ -217,6 +218,12 @@ function CharacterSheetTemplate({
                 />
               </>
             )}
+            <GoldenSpacer
+              {...spacerProps(
+                hasPrinciples ? "endAfterPrinciples" : "endAfterMental",
+                isEdit,
+              )}
+            />
           </AttributesSection>
 
           <SkillsSection>
@@ -378,56 +385,128 @@ const GroupTitle = styled.h3`
 const AttributesSection = styled.section`
   container-type: inline-size;
   margin-top: 12px;
-  /* 8cqi da ficha inteira: o container mais próximo agora é o GridSection, que é a ficha menos o
-     padding de 2 x 30 px (2 x 20 px até 609 px), por isso a soma de volta. */
-  padding-bottom: calc(0.08 * (100cqi + 60px));
+  /* Sem padding-bottom: o respiro do fim da coluna é o último GoldenSpacer. */
 
   display: flex;
   flex-direction: column;
   align-items: center;
-  /* Conteúdo no topo; a sobra de altura (coluna de perícias mais alta) vai
-     para o fim. Os espaços áureos vêm de TitleSpacer/DiagramSpacer. */
+  /* Conteúdo no topo; a altura que sobra (coluna de perícias mais alta) é repartida pelos
+     GoldenSpacer, não pelo justify-content. */
   justify-content: flex-start;
+`;
 
-  @media (max-width: 609px) {
-    padding-bottom: calc(0.08 * (100cqi + 40px));
+/* Distribuição áurea da coluna de atributos (1 : φ : φ), igual nos modos ver, editar e criar.
+   As lacunas são medidas pela TINTA (texto, linhas e círculos do SVG, botões +/− e "Pontos para
+   Distribuir"), não pelas caixas, porque no modo editar os controles transbordam a caixa do
+   diagrama. Lado a lado (container sheet-grid >= 550 px) a altura livre da coluna é repartida só
+   por flex-grow: título→diagrama = g; diagrama→próximo bloco = g × φ; último diagrama→fim = g × φ.
+   Mínimos: g >= 24 px e g × φ >= 39 px; se nem eles couberem (diagrama de Princípios) a coluna
+   cresce. Coluna única (< 550 px): sem altura para repartir, g = 10cqi e g × φ = 16,18cqi
+   (cqi da própria seção de atributos).
+   Para a lacuna visível ser exatamente o peso, cada espaçador anula com margem negativa (em cqi)
+   as margens dos blocos vizinhos e soma o quanto a tinta transborda a caixa (medido nos
+   diagramas, que são pixel-tuned e não mudam). Se os diagramas mudarem as margens ou a posição
+   dos controles, remeça: attrink.mjs deve dar as três lacunas em 1 : φ : φ. */
+const PHI = 1.618;
+const MIN_GAP = 24; // px: mínimo de g
+const MIN_GAP_PHI = 39; // px: mínimo de g × φ
+const GRID_ROW_GAP = 30; // px: o gap do GridSection, que entra entre a seção e as perícias
+const TITLE_OVERHANG = 0.75; // cqi que a tinta do h2 passa da caixa
+/* Transbordo da tinta abaixo do diagrama no modo editar ("−" e rótulos têm parte em px): reta até
+   a seção chegar a ~425 px, depois outra reta (as fontes em min(cqi, px) travam). */
+const EDIT_BOTTOM_OVERFLOW = "min(9.75cqi + 14.4px, 6.18cqi + 29.5px)";
+
+type SpacerKind =
+  | "titleToPhysical"
+  | "physicalToMental"
+  | "mentalToPrinciples"
+  | "titleToPrinciples"
+  | "endAfterMental"
+  | "endAfterPrinciples";
+
+/* Compensação (margem do espaçador) de cada posição. `narrow` espelha o @media (max-width: 589px)
+   dos próprios diagramas (margem inferior do mental na visualização e posição do "Pontos para
+   Distribuir" na edição). */
+const spacerCompensation = (
+  kind: SpacerKind,
+  isEdit: boolean,
+  narrow: boolean,
+): string => {
+  const mentalMarginBottom = isEdit || !narrow ? 16 : 4;
+  const physicalTopOverflow = !isEdit ? 0 : narrow ? 16.65 : 19.63;
+  const mentalTopOverflow = !isEdit ? 0 : narrow ? 16.65 : 17.63;
+  const bottomOverflow = isEdit ? EDIT_BOTTOM_OVERFLOW : "0px";
+  const physicalMarginTop = isEdit ? 16 : 0;
+  const mentalMarginTop = isEdit ? 16 : 8;
+  const physicalMarginBottom = isEdit ? 20 : 0;
+
+  let cqi: number;
+  let withOverflow = false;
+  switch (kind) {
+    case "titleToPhysical":
+      cqi = -5 + TITLE_OVERHANG - physicalMarginTop + physicalTopOverflow;
+      break;
+    case "physicalToMental":
+      cqi = -physicalMarginBottom - mentalMarginTop + mentalTopOverflow;
+      withOverflow = true;
+      break;
+    case "mentalToPrinciples":
+      cqi = -mentalMarginBottom + TITLE_OVERHANG;
+      withOverflow = true;
+      break;
+    case "titleToPrinciples":
+      cqi = -5 + TITLE_OVERHANG;
+      break;
+    case "endAfterMental":
+      cqi = -mentalMarginBottom;
+      withOverflow = true;
+      break;
+    case "endAfterPrinciples":
+      cqi = 0;
+      break;
   }
+  return withOverflow
+    ? `calc(${cqi.toFixed(2)}cqi + ${bottomOverflow})`
+    : `${cqi.toFixed(2)}cqi`;
+};
+
+const spacerProps = (kind: SpacerKind, isEdit: boolean) => ({
+  $kind: kind,
+  $comp: spacerCompensation(kind, isEdit, false),
+  $compNarrow: spacerCompensation(kind, isEdit, true),
+});
+
+const GoldenSpacer = styled.div<{
+  $kind: SpacerKind;
+  $comp: string;
+  $compNarrow: string;
+}>`
+  --comp: ${({ $comp }) => $comp};
+  --column-extra: 0px;
+  flex: ${({ $kind }) =>
+      $kind === "titleToPhysical" || $kind === "titleToPrinciples" ? 1 : PHI}
+    1 0;
+  min-height: ${({ $kind }) =>
+    $kind === "titleToPhysical" || $kind === "titleToPrinciples"
+      ? MIN_GAP
+      : MIN_GAP_PHI}px;
+  margin-top: calc(var(--comp) + var(--column-extra));
 
   @media (max-width: 589px) {
-    padding-bottom: 0;
+    --comp: ${({ $compNarrow }) => $compNarrow};
   }
-`;
-
-/* Espaços extras da coluna de atributos, somados às margens dos diagramas, em
-   proporção áurea: título→1º diagrama = g; entre diagramas = g × 1,618.
-   Lado a lado (≥ 768): flex-basis 0 + flex-grow 1 : 1,618 repartem só a sobra
-   da altura que a coluna de perícias impõe, até o máximo (20/32); se faltar altura
-   (ex.: diagrama de Princípios), encolhem até o mínimo (0 = margens atuais) e
-   o que sobrar fica no fim da coluna. Coluna única (conteúdo do grid < 550 px,
-   medido no container sheet-grid): valor fixo 22/36, um pouco acima do máximo
-   flexível, porque sem a altura da coluna de perícias para repartir não há
-   sobra a perder e o respiro tem de ser o mesmo em qualquer altura. */
-const TitleSpacer = styled.div`
-  flex: 1 1 0;
-  min-height: 0;
-  max-height: 20px; /* g */
 
   @container sheet-grid (width < 550px) {
     flex: none;
-    height: 22px;
-    max-height: none;
-  }
-`;
-
-const DiagramSpacer = styled.div`
-  flex: 1.618 1 0;
-  min-height: 0;
-  max-height: 32px; /* g × 1,618 */
-
-  @container sheet-grid (width < 550px) {
-    flex: none;
-    height: 36px;
-    max-height: none;
+    min-height: 0;
+    height: ${({ $kind }) =>
+      $kind === "titleToPhysical" || $kind === "titleToPrinciples"
+        ? "10cqi"
+        : `${(10 * PHI).toFixed(2)}cqi`};
+    --column-extra: ${({ $kind }) =>
+      $kind === "endAfterMental" || $kind === "endAfterPrinciples"
+        ? `-${GRID_ROW_GAP}px`
+        : "0px"};
   }
 `;
 
