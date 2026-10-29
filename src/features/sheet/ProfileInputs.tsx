@@ -1,10 +1,9 @@
+import { useMemo } from "react";
 import styled from "styled-components";
 import BackgroundButton from "../../components/atoms/BackgroundButton";
 import type { Profile, CharacterSheet } from "../../types/characterSheet";
-import BaseOption from "../../components/ions/BaseOption";
-import BaseSelect from "../../components/ions/BaseSelect";
 import { colors } from "../../styles/tokens";
-import { DetailItem, DetailLabel } from "./ProfileFieldStyles";
+import { DetailItem, DetailLabel, ProfilePillSelect } from "./ProfileFieldStyles";
 import { toDateInputValue } from "../../utils/date";
 
 interface ProfileInputsProps {
@@ -18,6 +17,21 @@ const MONTH_NAMES = [
   "Maio", "Junho", "Julho", "Agosto",
   "Setembro", "Outubro", "Novembro", "Dezembro",
 ] as const;
+
+const MONTH_OPTIONS = MONTH_NAMES.map((name, i) => ({ value: String(i + 1), label: name }));
+
+const ALIGNMENT_OPTIONS = [
+  { value: "", label: "Unaligned" },
+  { value: "Lawful-Good", label: "Lawful Good" },
+  { value: "Lawful-Neutral", label: "Lawful Neutral" },
+  { value: "Lawful-Evil", label: "Lawful Evil" },
+  { value: "Neutral-Good", label: "Neutral Good" },
+  { value: "Neutral-Neutral", label: "True Neutral" },
+  { value: "Neutral-Evil", label: "Neutral Evil" },
+  { value: "Chaotic-Good", label: "Chaotic Good" },
+  { value: "Chaotic-Neutral", label: "Chaotic Neutral" },
+  { value: "Chaotic-Evil", label: "Chaotic Evil" },
+];
 
 function maxDaysForMonth(month: number): number {
   if (month === 2) return 29;
@@ -48,18 +62,16 @@ export default function ProfileInputs({
   ).split("-");
   const currentMonth = parseInt(birthdayParts[1]);
   const currentDay = parseInt(birthdayParts[2]);
-  const alignmentOptions: { value: string; label: string }[] = [
-    { value: "", label: "Unaligned" },
-    { value: "Lawful-Good", label: "Lawful Good" },
-    { value: "Lawful-Neutral", label: "Lawful Neutral" },
-    { value: "Lawful-Evil", label: "Lawful Evil" },
-    { value: "Neutral-Good", label: "Neutral Good" },
-    { value: "Neutral-Neutral", label: "True Neutral" },
-    { value: "Neutral-Evil", label: "Neutral Evil" },
-    { value: "Chaotic-Good", label: "Chaotic Good" },
-    { value: "Chaotic-Neutral", label: "Chaotic Neutral" },
-    { value: "Chaotic-Evil", label: "Chaotic Evil" },
-  ];
+  // A lista de dias muda com o mês; a identidade estável evita recalcular a posição da lista aberta.
+  const maxDays = maxDaysForMonth(currentMonth);
+  const dayOptions = useMemo(
+    () =>
+      Array.from({ length: maxDays }, (_, i) => ({
+        value: String(i + 1),
+        label: String(i + 1),
+      })),
+    [maxDays],
+  );
 
   return (
     <ProfileContainer>
@@ -97,40 +109,28 @@ export default function ProfileInputs({
             <DetailItem role="group" aria-labelledby="profile-birthday-label">
               <DetailLabel id="profile-birthday-label">Aniversário:</DetailLabel>
               <BirthdaySelects>
-                <BaseSelect
+                <ProfilePillSelect
                   aria-label="Mês"
                   value={String(currentMonth)}
-                  onChange={(e) => {
-                    const newMonth = parseInt(e.target.value);
+                  options={MONTH_OPTIONS}
+                  onChange={(value) => {
+                    const newMonth = parseInt(value);
                     const clampedDay = Math.min(currentDay, maxDaysForMonth(newMonth));
                     const mm = String(newMonth).padStart(2, "0");
                     const dd = String(clampedDay).padStart(2, "0");
                     handleInputChange("birthday", `0000-${mm}-${dd}T00:00:00.000Z`);
                   }}
-                >
-                  {MONTH_NAMES.map((name, i) => (
-                    <BaseOption key={name} value={String(i + 1)}>
-                      {name}
-                    </BaseOption>
-                  ))}
-                </BaseSelect>
-                <BaseSelect
+                />
+                <ProfilePillSelect
                   aria-label="Dia"
                   value={String(currentDay)}
-                  onChange={(e) => {
+                  options={dayOptions}
+                  onChange={(value) => {
                     const mm = String(currentMonth).padStart(2, "0");
-                    const dd = String(parseInt(e.target.value)).padStart(2, "0");
+                    const dd = String(parseInt(value)).padStart(2, "0");
                     handleInputChange("birthday", `0000-${mm}-${dd}T00:00:00.000Z`);
                   }}
-                >
-                  {Array.from({ length: maxDaysForMonth(currentMonth) }, (_, i) => i + 1).map(
-                    (day) => (
-                      <BaseOption key={day} value={String(day)}>
-                        {String(day)}
-                      </BaseOption>
-                    )
-                  )}
-                </BaseSelect>
+                />
               </BirthdaySelects>
             </DetailItem>
 
@@ -149,21 +149,17 @@ export default function ProfileInputs({
 
           <AlignmentBackgroundRow>
             <DetailItem>
-              <DetailLabel as="label" htmlFor="profile-alignment">
+              <DetailLabel id="profile-alignment-label">
                 Alinhamento:
               </DetailLabel>
               <AlignmentContainer>
-                <BaseSelect
+                <ProfilePillSelect
                   id="profile-alignment"
+                  aria-labelledby="profile-alignment-label"
                   value={profile?.alignment ?? ""}
-                  onChange={(e) => handleInputChange("alignment", e.target.value)}
-                >
-                  {alignmentOptions.map((opt) => (
-                    <BaseOption key={opt.label} value={opt.value}>
-                      {opt.label}
-                    </BaseOption>
-                  ))}
-                </BaseSelect>
+                  options={ALIGNMENT_OPTIONS}
+                  onChange={(value) => handleInputChange("alignment", value)}
+                />
               </AlignmentContainer>
             </DetailItem>
             <MobileOnlyButton>

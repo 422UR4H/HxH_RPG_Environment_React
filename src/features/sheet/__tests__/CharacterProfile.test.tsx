@@ -43,10 +43,10 @@ describe("CharacterProfile", () => {
     expect(screen.getByLabelText("Nome completo:")).toHaveValue("Chrollo Lucilfer");
     expect(screen.getByLabelText("Descrição breve:")).toHaveValue("Líder");
     expect(screen.getByLabelText("Idade:").tagName).toBe("INPUT");
-    expect(screen.getByLabelText("Alinhamento:").tagName).toBe("SELECT");
+    expect(screen.getByLabelText("Alinhamento:")).toHaveAttribute("role", "combobox");
     const birthday = screen.getByRole("group", { name: "Aniversário:" });
-    expect(within(birthday).getByLabelText("Mês").tagName).toBe("SELECT");
-    expect(within(birthday).getByLabelText("Dia").tagName).toBe("SELECT");
+    expect(within(birthday).getByLabelText("Mês")).toHaveAttribute("role", "combobox");
+    expect(within(birthday).getByLabelText("Dia")).toHaveAttribute("role", "combobox");
   });
 
   it("labels the brief description field in edit mode", () => {
