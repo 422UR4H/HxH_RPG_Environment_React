@@ -202,7 +202,9 @@ describe("CreateCampaignPage", () => {
       await u.click(screen.getByRole("button", { name: "REGRAS" }));
       expect(screen.getByRole("heading", { name: /^REGRAS$/ })).toBeInTheDocument();
       await u.keyboard("{Escape}");
-      expect(screen.queryByRole("heading", { name: /^REGRAS$/ })).not.toBeInTheDocument();
+      await waitFor(() =>
+        expect(screen.queryByRole("heading", { name: /^REGRAS$/, hidden: true })).not.toBeInTheDocument(),
+      );
     });
 
     it("tocar no X fecha a gaveta", async () => {
@@ -211,7 +213,9 @@ describe("CreateCampaignPage", () => {
       renderPage();
       await u.click(screen.getByRole("button", { name: "REGRAS" }));
       await u.click(screen.getByRole("button", { name: "Fechar" }));
-      expect(screen.queryByRole("heading", { name: /^REGRAS$/ })).not.toBeInTheDocument();
+      await waitFor(() =>
+        expect(screen.queryByRole("heading", { name: /^REGRAS$/, hidden: true })).not.toBeInTheDocument(),
+      );
     });
   });
 });

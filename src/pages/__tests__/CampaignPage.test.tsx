@@ -295,7 +295,9 @@ describe("CampaignPage", () => {
       await u.click(tab);
       expect(screen.getByRole("heading", { name: "Sistema de Combate" })).toBeInTheDocument();
       await u.keyboard("{Escape}");
-      expect(screen.queryByRole("heading", { name: "Sistema de Combate" })).not.toBeInTheDocument();
+      await waitFor(() =>
+        expect(screen.queryByRole("heading", { name: "Sistema de Combate", hidden: true })).not.toBeInTheDocument(),
+      );
     });
   });
 
