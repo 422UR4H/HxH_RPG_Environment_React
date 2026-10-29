@@ -1,5 +1,6 @@
 import { Suspense, lazy, useState } from "react";
-import styled, { keyframes } from "styled-components";
+import styled from "styled-components";
+import Collapse from "../../components/atoms/Collapse";
 import ExpandButton from "../../components/ions/ExpandButton";
 import { colors } from "../../styles/tokens";
 import type { ProfileMode } from "./types/profileMode";
@@ -47,32 +48,28 @@ export default function CharacterProfile({
   return (
     <ProfileContainer>
       {/* Persiana: o conteúdo fica acima e a barra é a borda de baixo, que desce ao abrir. */}
-      <div id={PROFILE_CONTENT_ID}>
-        {isExpanded && (
-          <Unroll>
-            {profile && mode === "view" && (
-              <ProfileDetails profile={profile} onBackgroundClick={openBackground} />
-            )}
-            {profile && mode === "edit" && (
-              <ProfileDetails
-                profile={profile}
-                onBackgroundClick={openBackground}
-                onBriefDescriptionChange={(value) => {
-                  if (!charSheet || !setCharSheet) return;
-                  setCharSheet({ ...charSheet, profile: { ...charSheet.profile, briefDescription: value } });
-                }}
-              />
-            )}
-            {mode === "create" && (
-              <ProfileInputs
-                charSheet={charSheet}
-                setCharSheet={setCharSheet}
-                onBackgroundClick={openBackground}
-              />
-            )}
-          </Unroll>
+      <Collapse id={PROFILE_CONTENT_ID} open={isExpanded}>
+        {profile && mode === "view" && (
+          <ProfileDetails profile={profile} onBackgroundClick={openBackground} />
         )}
-      </div>
+        {profile && mode === "edit" && (
+          <ProfileDetails
+            profile={profile}
+            onBackgroundClick={openBackground}
+            onBriefDescriptionChange={(value) => {
+              if (!charSheet || !setCharSheet) return;
+              setCharSheet({ ...charSheet, profile: { ...charSheet.profile, briefDescription: value } });
+            }}
+          />
+        )}
+        {mode === "create" && (
+          <ProfileInputs
+            charSheet={charSheet}
+            setCharSheet={setCharSheet}
+            onBackgroundClick={openBackground}
+          />
+        )}
+      </Collapse>
 
       <ProfileBar
         type="button"
@@ -112,24 +109,6 @@ const ProfileContainer = styled.div`
 
   @media (max-width: 609px) {
     border-width: 0.6cqi;
-  }
-`;
-
-const unroll = keyframes`
-  from {
-    height: 0;
-  }
-`;
-
-// Abre da altura zero até a do conteúdo, levando a barra junto. Sem suporte a interpolate-size
-// (Firefox, Safari), abre de uma vez, como antes.
-const Unroll = styled.div`
-  interpolate-size: allow-keywords;
-  overflow: clip;
-  animation: ${unroll} 0.3s ease;
-
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
   }
 `;
 

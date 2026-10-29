@@ -1,4 +1,4 @@
-import styled, { keyframes } from "styled-components";
+import styled from "styled-components";
 import BackgroundButton from "../../components/atoms/BackgroundButton";
 import type { Profile } from "../../types/characterSheet";
 import { colors } from "../../styles/tokens";
@@ -67,21 +67,9 @@ export default function ProfileDetails({
   );
 }
 
-const slideDown = keyframes`
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-`;
-
 const ProfileContainer = styled.div`
   container-type: inline-size;
   padding: 20px 30px;
-  animation: ${slideDown} 0.3s ease;
 `;
 
 const ProfileName = styled.h2`

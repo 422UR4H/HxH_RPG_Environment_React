@@ -17,7 +17,7 @@ describe("CharacterProfile", () => {
     const bar = renderProfile("view");
     expect(bar).toHaveAttribute("aria-expanded", "false");
     expect(bar).toHaveAccessibleName("Mostrar perfil");
-    expect(screen.queryByText("Chrollo Lucilfer")).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Chrollo Lucilfer" })).not.toBeInTheDocument();
 
     await userEvent.click(bar);
     expect(bar).toHaveAttribute("aria-expanded", "true");
@@ -26,7 +26,7 @@ describe("CharacterProfile", () => {
 
     await userEvent.click(bar);
     expect(bar).toHaveAttribute("aria-expanded", "false");
-    expect(screen.queryByText("Chrollo Lucilfer")).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Chrollo Lucilfer" })).not.toBeInTheDocument();
   });
 
   it("places the bar after the content it controls when open", () => {
