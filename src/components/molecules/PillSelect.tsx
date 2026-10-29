@@ -96,6 +96,8 @@ export default function PillSelect({
   const typed = useRef({ text: "", timer: 0 });
   const closeRef = useRef<() => void>(() => {});
   const listId = useId();
+  // <dashed-ident> único por instância: o useId do React traz ":" (inválido em ident CSS).
+  const anchorName = `--pill-${listId.replace(/[^a-zA-Z0-9_-]/g, "")}`;
   const mounted = open || closing;
 
   const selectedIndex = options.findIndex((o) => o.value === value);
@@ -383,6 +385,7 @@ export default function PillSelect({
         aria-labelledby={ariaLabelledBy}
         aria-disabled={disabled || undefined}
         data-state={state}
+        style={{ "--pill-anchor": anchorName } as CSSProperties}
         onClick={() => {
           if (disabled) return;
           if (open) closeList();
@@ -412,12 +415,15 @@ export default function PillSelect({
             style={
               {
                 ...placement?.vars,
+                "--pill-anchor": anchorName,
                 "--list-scrollbar": `${scrollbarWidth}px`,
+                // Geometria do JS: só vale sem anchor positioning (ver PillSelect.styles). Com
+                // âncora, o navegador cola a lista à pílula; o JS decide apenas lado e altura.
                 // Em cima só `bottom`: `top` fica sem valor para a lista curta não descolar da pílula.
-                top: placement ? placement.top : 0,
-                bottom: placement?.bottom,
-                left: placement?.left ?? 0,
-                width: placement?.width,
+                "--fallback-top": placement?.top !== undefined ? `${placement.top}px` : placement ? "auto" : "0px",
+                "--fallback-bottom": placement?.bottom !== undefined ? `${placement.bottom}px` : "auto",
+                "--fallback-left": `${placement?.left ?? 0}px`,
+                "--fallback-width": placement?.width !== undefined ? `${placement.width}px` : "auto",
                 maxHeight: placement?.height,
               } as CSSProperties
             }

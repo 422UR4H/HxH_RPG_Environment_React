@@ -362,8 +362,8 @@ describe("PillSelect", () => {
     expect(list.style.getPropertyValue("--pill-radius")).toBe("28px");
     expect(trigger()).toHaveAttribute("data-state", "open");
     // Lista acima, presa pela base na pílula (sobe 4 px sobre a borda: 768 - 654), sem `top`.
-    expect(list.style.bottom).toBe("114px");
-    expect(list.style.top).toBe("");
+    expect(list.style.getPropertyValue("--fallback-bottom")).toBe("114px");
+    expect(list.style.getPropertyValue("--fallback-top")).toBe("auto");
   });
 
   it("keeps a short upward list flush with the pill: anchored by the bottom, never by the top", async () => {
@@ -376,9 +376,9 @@ describe("PillSelect", () => {
       const { unmount } = render(<Harness />);
       await userEvent.click(trigger());
       const list = screen.getByRole("listbox");
-      expect(list.style.top).toBe("");
+      expect(list.style.getPropertyValue("--fallback-top")).toBe("auto");
       expect(list.style.maxHeight).toBe(`${height}px`);
-      bottoms.push(list.style.bottom);
+      bottoms.push(list.style.getPropertyValue("--fallback-bottom"));
       unmount();
       heightSpy?.mockRestore();
     }
@@ -405,12 +405,12 @@ describe("PillSelect", () => {
     mockListHeight(220);
     render(<Harness />);
     await userEvent.click(trigger());
-    const before = screen.getByRole("listbox").style.top;
+    const before = screen.getByRole("listbox").style.getPropertyValue("--fallback-top");
     pillRect = { top: 120, bottom: 177, left: 50, right: 393, width: 343, height: 57 };
     act(() => {
       window.dispatchEvent(new Event("scroll"));
     });
-    expect(screen.getByRole("listbox").style.top).not.toBe(before);
+    expect(screen.getByRole("listbox").style.getPropertyValue("--fallback-top")).not.toBe(before);
   });
 
   it("removes the scroll and resize listeners on unmount", async () => {
@@ -456,5 +456,22 @@ describe("PillSelect", () => {
     parentClick.mockClear();
     await userEvent.click(screen.getByRole("option", { name: "Caçador" }));
     expect(parentClick).not.toHaveBeenCalled();
+  });
+
+  it("pairs a unique anchor-name on the pill with the position-anchor of its list", async () => {
+    restoreMotion = mockReducedMotion(true);
+    render(
+      <>
+        <PillSelect aria-label="Classe" value="" options={OPTIONS} onChange={() => {}} />
+        <PillSelect aria-label="Alinhamento" value="" options={OPTIONS} onChange={() => {}} />
+      </>,
+    );
+    const [first, second] = screen.getAllByRole("combobox");
+    const nameA = first.style.getPropertyValue("--pill-anchor");
+    const nameB = second.style.getPropertyValue("--pill-anchor");
+    expect(nameA).toMatch(/^--[\w-]+$/);
+    expect(nameA).not.toBe(nameB);
+    await userEvent.click(first);
+    expect(screen.getByRole("listbox").style.getPropertyValue("--pill-anchor")).toBe(nameA);
   });
 });

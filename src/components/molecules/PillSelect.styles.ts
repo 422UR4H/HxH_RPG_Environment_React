@@ -18,6 +18,8 @@ export const Trigger = styled.div<{ $side: Side }>`
   white-space: nowrap;
   user-select: none;
   -webkit-user-select: none;
+  /* A lista (portal) se prende a esta pílula por anchor positioning: o nome vem do componente. */
+  anchor-name: var(--pill-anchor);
 
   /* Aberto (e enrolando): a lista continua a pílula, então o lado dela fica reto, sem
      transição, e a lista cobre a borda desse lado (os cantos retos casam com os dela). */
@@ -90,6 +92,28 @@ interface ListProps {
 // fora do container query (cqi) onde a pílula calcula tamanhos.
 export const List = styled.div<ListProps>`
   position: fixed;
+  /* Sem anchor positioning: posição calculada em JS (variáveis --fallback-*). */
+  top: var(--fallback-top, 0);
+  bottom: var(--fallback-bottom, auto);
+  left: var(--fallback-left, 0);
+  width: var(--fallback-width, auto);
+  /* Com anchor positioning: o navegador move pílula e lista juntas no mesmo quadro, sem esperar
+     o JS da rolagem. A lista sobe sobre a borda da pílula (--pill-border-width). */
+  @supports (anchor-name: --a) {
+    position-anchor: var(--pill-anchor);
+    left: anchor(left);
+    width: anchor-size(width);
+    ${({ $side }) =>
+      $side === "below"
+        ? css`
+            top: calc(anchor(bottom) - var(--pill-border-width));
+            bottom: auto;
+          `
+        : css`
+            top: auto;
+            bottom: calc(anchor(top) - var(--pill-border-width));
+          `}
+  }
   z-index: 1000; /* mesma camada do Popover do DateField: acima de toda a página */
   box-sizing: border-box;
   margin: 0;
