@@ -395,19 +395,25 @@ const AttributesSection = styled.section`
   justify-content: flex-start;
 `;
 
-/* Distribuição áurea da coluna de atributos (1 : φ : φ), igual nos modos ver, editar e criar.
+/* Distribuição áurea da coluna de atributos (1 : φ : φ²), igual nos modos ver, editar e criar.
    As lacunas são medidas pela TINTA (texto, linhas e círculos do SVG, botões +/− e "Pontos para
    Distribuir"), não pelas caixas, porque no modo editar os controles transbordam a caixa do
    diagrama. Lado a lado (container sheet-grid >= 550 px) a altura livre da coluna é repartida só
-   por flex-grow: título→diagrama = g; diagrama→próximo bloco = g × φ; último diagrama→fim = g × φ.
-   Mínimos: g >= 24 px e g × φ >= 39 px; se nem eles couberem (diagrama de Princípios) a coluna
-   cresce. Coluna única (< 550 px): sem altura para repartir, g = 10cqi e g × φ = 16,18cqi
-   (cqi da própria seção de atributos).
+   por flex-grow: título→diagrama = g; diagrama→diagrama do mesmo grupo = g × φ; quebra de grupo = g × φ² (≈ 2,618 g): último
+   diagrama→fim da coluna e, quando o Nen aparece, diagrama Mental→título "PRINCÍPIOS". Gestalt: o
+   que separa grupos é maior do que o que separa itens do mesmo grupo (por isso o último diagrama
+   não fica solto antes de "Proficiências"). Com o Nen os pesos são 1 : φ : φ² : 1 : φ².
+   Mínimos: g >= 24 px, g × φ >= 39 px e g × φ² >= 63 px; se nem eles couberem (diagrama de
+   Princípios) a coluna cresce. Coluna única (< 550 px): sem altura para repartir, g = 10cqi,
+   g × φ = 16,18cqi e g × φ² = 26,18cqi (cqi da própria seção de atributos); o fim ainda desconta
+   o gap de linha do grid, para a lacuna visível até as perícias ser g × φ².
+   Alvos em 1366 (tinta): ver 95 / 155 / 250 px; editar 44 / 71 / 115 px; coluna única em 390:
+   34 / 55 / 89 px (título→d1 / d1→d2 / d2→fim).
    Para a lacuna visível ser exatamente o peso, cada espaçador anula com margem negativa (em cqi)
    as margens dos blocos vizinhos e soma o quanto a tinta transborda a caixa (medido nos
    diagramas, que são pixel-tuned e não mudam). Se os diagramas mudarem as margens ou a posição
    dos controles, remeça à mão (DevTools): meça as caixas da tinta (texto do h2, linhas e círculos do
-   SVG, botões +/− e "Pontos para Distribuir") e confira que as três lacunas ficam em 1 : φ : φ.
+   SVG, botões +/− e "Pontos para Distribuir") e confira que as três lacunas ficam em 1 : φ : φ².
    Os números de spacerCompensation (em cqi, salvo indicação):
    - 19.63 / 16.65: quanto os "+" e rótulos do diagrama Physical sobem acima da caixa no modo
      editar (largo / estreito);
@@ -417,6 +423,7 @@ const AttributesSection = styled.section`
 const PHI = 1.618;
 const MIN_GAP = 24; // px: mínimo de g
 const MIN_GAP_PHI = 39; // px: mínimo de g × φ
+const MIN_GAP_PHI2 = 63; // px: mínimo de g × φ² (quebra de grupo)
 const GRID_ROW_GAP = 30; // px: o gap do GridSection, que entra entre a seção e as perícias
 const TITLE_OVERHANG = 0.75; // cqi que a tinta do h2 passa da caixa
 /* Transbordo da tinta abaixo do diagrama no modo editar ("−" e rótulos têm parte em px): reta até
@@ -477,6 +484,20 @@ const spacerCompensation = (
     : `${cqi.toFixed(2)}cqi`;
 };
 
+const isTitleGap = (kind: SpacerKind) =>
+  kind === "titleToPhysical" || kind === "titleToPrinciples";
+const isGroupBreak = (kind: SpacerKind) =>
+  kind === "mentalToPrinciples" ||
+  kind === "endAfterMental" ||
+  kind === "endAfterPrinciples";
+
+/* Peso (flex-grow), mínimo (px) e altura em coluna única (cqi) de cada tipo de lacuna. */
+const gapWeight = (kind: SpacerKind) =>
+  isTitleGap(kind) ? 1 : isGroupBreak(kind) ? PHI * PHI : PHI;
+const gapMin = (kind: SpacerKind) =>
+  isTitleGap(kind) ? MIN_GAP : isGroupBreak(kind) ? MIN_GAP_PHI2 : MIN_GAP_PHI;
+const gapNarrowCqi = (kind: SpacerKind) => (10 * gapWeight(kind)).toFixed(2);
+
 const spacerProps = (kind: SpacerKind, isEdit: boolean) => ({
   $kind: kind,
   $comp: spacerCompensation(kind, isEdit, false),
@@ -490,13 +511,8 @@ const GoldenSpacer = styled.div<{
 }>`
   --comp: ${({ $comp }) => $comp};
   --column-extra: 0px;
-  flex: ${({ $kind }) =>
-      $kind === "titleToPhysical" || $kind === "titleToPrinciples" ? 1 : PHI}
-    1 0;
-  min-height: ${({ $kind }) =>
-    $kind === "titleToPhysical" || $kind === "titleToPrinciples"
-      ? MIN_GAP
-      : MIN_GAP_PHI}px;
+  flex: ${({ $kind }) => gapWeight($kind).toFixed(3)} 1 0;
+  min-height: ${({ $kind }) => gapMin($kind)}px;
   margin-top: calc(var(--comp) + var(--column-extra));
 
   @media (max-width: 589px) {
@@ -506,10 +522,7 @@ const GoldenSpacer = styled.div<{
   @container sheet-grid (width < 550px) {
     flex: none;
     min-height: 0;
-    height: ${({ $kind }) =>
-      $kind === "titleToPhysical" || $kind === "titleToPrinciples"
-        ? "10cqi"
-        : `${(10 * PHI).toFixed(2)}cqi`};
+    height: ${({ $kind }) => gapNarrowCqi($kind)}cqi;
     --column-extra: ${({ $kind }) =>
       $kind === "endAfterMental" || $kind === "endAfterPrinciples"
         ? `-${GRID_ROW_GAP}px`
