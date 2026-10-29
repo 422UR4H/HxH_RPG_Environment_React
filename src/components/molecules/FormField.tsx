@@ -45,5 +45,5 @@ const Label = styled.label`
 const Optional = styled.span`
   font-weight: 400;
   font-size: 0.7em;
-  color: ${colors.textPlaceholderStrong};
+  color: ${colors.textPrimary}; /* mesma cor do texto de ajuda: a hierarquia vem do peso e do tamanho */
 `;
