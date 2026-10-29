@@ -1,28 +1,11 @@
 import { useState } from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
+import { act } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import EdgeDrawer from "../EdgeDrawer";
+import { mockReducedMotion } from "../../../test/reducedMotion";
 
-// O React só escuta animationend se o ambiente tiver AnimationEvent (jsdom não tem);
-// precisa existir antes de o react-dom carregar.
-vi.hoisted(() => {
-  (window as unknown as { AnimationEvent: typeof Event }).AnimationEvent = class extends Event {};
-});
-
-const originalMatchMedia = window.matchMedia;
-
-function mockReducedMotion(reduce: boolean) {
-  window.matchMedia = ((query: string) => ({
-    matches: reduce && query.includes("prefers-reduced-motion"),
-    media: query,
-    onchange: null,
-    addListener: () => {},
-    removeListener: () => {},
-    addEventListener: () => {},
-    removeEventListener: () => {},
-    dispatchEvent: () => false,
-  })) as typeof window.matchMedia;
-}
+let restoreMotion: () => void = () => {};
 
 function Harness() {
   const [open, setOpen] = useState(true);
@@ -34,12 +17,13 @@ function Harness() {
 }
 
 afterEach(() => {
-  window.matchMedia = originalMatchMedia;
+  restoreMotion();
+  vi.useRealTimers();
 });
 
 describe("EdgeDrawer", () => {
   it("keeps the panel mounted (inert) while closing and unmounts on animationend", () => {
-    mockReducedMotion(false);
+    restoreMotion = mockReducedMotion(false);
     render(<Harness />);
     fireEvent.click(screen.getByLabelText("Fechar"));
     const content = screen.getByText("conteudo");
@@ -50,14 +34,14 @@ describe("EdgeDrawer", () => {
   });
 
   it("unmounts immediately with reduced motion", () => {
-    mockReducedMotion(true);
+    restoreMotion = mockReducedMotion(true);
     render(<Harness />);
     fireEvent.click(screen.getByLabelText("Fechar"));
     expect(screen.queryByText("conteudo")).not.toBeInTheDocument();
   });
 
   it("stays open when the tab is clicked mid-closing", () => {
-    mockReducedMotion(false);
+    restoreMotion = mockReducedMotion(false);
     render(<Harness />);
     fireEvent.click(screen.getByLabelText("Fechar"));
     fireEvent.click(screen.getByText("ABA"));
@@ -65,5 +49,15 @@ describe("EdgeDrawer", () => {
     expect(content.closest("[inert]")).toBeNull();
     fireEvent.animationEnd(content.parentElement!.parentElement!);
     expect(screen.getByText("conteudo")).toBeInTheDocument();
+  });
+
+  it("unmounts by itself if animationend never arrives", () => {
+    vi.useFakeTimers();
+    restoreMotion = mockReducedMotion(false);
+    render(<Harness />);
+    fireEvent.click(screen.getByLabelText("Fechar"));
+    expect(screen.getByText("conteudo")).toBeInTheDocument();
+    act(() => { vi.advanceTimersByTime(350); });
+    expect(screen.queryByText("conteudo")).not.toBeInTheDocument();
   });
 });

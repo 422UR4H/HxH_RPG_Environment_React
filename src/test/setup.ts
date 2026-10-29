@@ -29,6 +29,11 @@ Object.defineProperty(window, "matchMedia", {
   }),
 });
 
+// --- AnimationEvent stub -----------------------------------------------------
+// O React só escuta animationend se o ambiente tiver AnimationEvent (jsdom não tem);
+// precisa existir antes de o react-dom carregar, por isso fica aqui no setup.
+(window as unknown as { AnimationEvent: typeof Event }).AnimationEvent ??= class AnimationEvent extends Event {};
+
 // --- MSW lifecycle -------------------------------------------------------
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 afterEach(() => server.resetHandlers());

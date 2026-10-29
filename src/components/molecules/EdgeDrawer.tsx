@@ -3,13 +3,17 @@ import styled, { css, keyframes } from "styled-components";
 import CloseButton from "../ions/CloseButton";
 import { colors } from "../../styles/tokens";
 import { bottomBarSpace } from "../../styles/bottomBar";
+import { useClosingFallback } from "../../hooks/useClosingFallback";
 
 export const EDGE_TAB_WIDTH = 32;
 /** Largura da área de toque da aba (a aba desenhada + 12 px invisíveis); o conteúdo reserva isso. */
 export const EDGE_TAB_HIT = 44;
 const EDGE_TAB_HEIGHT = 110;
 
-const DRAWER_DURATION = "250ms";
+const DRAWER_MS = 250;
+const DRAWER_DURATION = `${DRAWER_MS}ms`;
+/** Folga além da animação antes de desmontar à força, se `animationend` não chegar. */
+const CLOSE_SAFETY_MS = 100;
 const DRAWER_EASING = "ease";
 
 const prefersReducedMotion = () =>
@@ -43,6 +47,7 @@ export default function EdgeDrawer({
     setPrevOpen(open);
     setClosing(!open && !prefersReducedMotion());
   }
+  useClosingFallback(closing, () => setClosing(false), DRAWER_MS + CLOSE_SAFETY_MS);
   const mounted = open || closing;
 
   useEffect(() => {
