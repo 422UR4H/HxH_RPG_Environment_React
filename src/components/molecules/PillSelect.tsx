@@ -1,4 +1,5 @@
 import {
+  Fragment,
   type CSSProperties,
   type KeyboardEvent,
   useCallback,
@@ -10,6 +11,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { computeAttachedListPlacement } from "../../utils/popoverPlacement";
+import { camelCaseSegments } from "../../utils/camelCaseSegments";
 import { prefersReducedMotion } from "../../utils/prefersReducedMotion";
 import {
   Check,
@@ -442,7 +444,14 @@ export default function PillSelect({
                   if (!o.disabled) commit(i);
                 }}
               >
-                <Label>{o.label}</Label>
+                <Label>
+                  {camelCaseSegments(o.label).map((part, n) => (
+                    <Fragment key={n}>
+                      {n > 0 && <wbr />}
+                      {part}
+                    </Fragment>
+                  ))}
+                </Label>
                 {i === selectedIndex && <Check aria-hidden="true">✓</Check>}
               </Option>
             ))}

@@ -162,8 +162,7 @@ export const Option = styled.div`
   align-items: center;
   box-sizing: border-box;
   min-height: 44px;
-  padding: 0 ${column} 0 var(--pill-padding-left);
-  white-space: nowrap;
+  padding: 4px ${column} 4px var(--pill-padding-left);
   cursor: pointer;
 
   &[data-active="true"] {
@@ -175,10 +174,11 @@ export const Option = styled.div`
   }
 `;
 
+// O texto da opção nunca é escondido: quebra em espaços e entre as palavras do CamelCase (<wbr>).
 export const Label = styled.span`
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow-wrap: normal;
 `;
 
 export const Check = styled.span`
