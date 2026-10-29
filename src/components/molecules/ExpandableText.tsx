@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import styled from "styled-components";
 import ExpandButton from "../ions/ExpandButton";
 import { COLLAPSE_DURATION, COLLAPSE_EASING } from "../atoms/Collapse";
@@ -19,13 +19,17 @@ export default function ExpandableText({
   const [showButton, setShowButton] = useState(false);
   const [fullHeight, setFullHeight] = useState(0);
   const textRef = useRef<HTMLParagraphElement>(null);
+  const innerRef = useRef<HTMLSpanElement>(null);
+  const textId = useId();
 
   // Mede o texto inteiro (scrollHeight vale mesmo com max-height) para animar o max-height
   // entre a altura recolhida (5 linhas) e a total, nos dois sentidos. O ResizeObserver remede
-  // quando a largura muda sem resize de janela (sidebar, container query, fonte tardia), para o
-  // texto aberto nunca ficar cortado por um max-height velho.
+  // quando o texto muda de tamanho sem resize de janela (sidebar, container query, fonte tardia),
+  // para o texto aberto nunca ficar cortado por um max-height velho. Observa o <span> interno
+  // (display: block, sem max-height), não o <p>: a altura do <p> aberto é presa pelo max-height e
+  // um refluxo sem mudança de largura não o dispararia.
   useEffect(() => {
-    if (!children || !textRef.current) return;
+    if (!children || !textRef.current || !innerRef.current) return;
     const el = textRef.current;
     const measure = () => {
       const lineHeight = parseFloat(getComputedStyle(el).lineHeight);
@@ -34,7 +38,7 @@ export default function ExpandableText({
     };
     measure();
     const observer = new ResizeObserver(measure);
-    observer.observe(el);
+    observer.observe(innerRef.current);
     return () => observer.disconnect();
   }, [children]);
 
@@ -52,10 +56,20 @@ export default function ExpandableText({
       $showButton={showButton}
       $backgroundColor={backgroundColor}
     >
-      <p ref={textRef}>{children}</p>
+      <p ref={textRef} id={textId}>
+        <span ref={innerRef}>{children}</span>
+      </p>
       {showButton && (
         <ButtonContainer>
-          <ExpandButton isExpanded={expanded} setIsExpanded={handleToggle} />
+          <ToggleButton
+            type="button"
+            onClick={handleToggle}
+            aria-expanded={expanded}
+            aria-controls={textId}
+            aria-label={expanded ? "Recolher descrição" : "Mostrar descrição completa"}
+          >
+            <ExpandButton isExpanded={expanded} />
+          </ToggleButton>
         </ButtonContainer>
       )}
     </Container>
@@ -80,6 +94,9 @@ const Container = styled.div<{
 
   p {
     line-height: 1.6;
+    span {
+      display: block;
+    }
     color: ${colors.textPrimary};
     max-height: ${({ $expanded, $fullHeight }) =>
       $expanded && $fullHeight ? `${$fullHeight}px` : "calc(1.6em * 5)"};
@@ -120,4 +137,19 @@ const ButtonContainer = styled.div`
   bottom: -22px;
   transform: translateX(-50%);
   width: 54px;
+`;
+
+/* Botão de verdade (foco e teclado) com a mesma aparência da seta solta de antes: sem moldura,
+   ocupa a largura do ButtonContainer, e a seta dentro é só decoração. */
+const ToggleButton = styled.button`
+  display: flex;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  cursor: pointer;
 `;
