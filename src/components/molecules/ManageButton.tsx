@@ -61,7 +61,7 @@ export default function ManageButton({
               </IconSlot>
               Editar
             </MenuItem>
-            <DeleteItem blockedReason={deleteBlockedReason} stretch onClick={handleDelete}>
+            <DeleteItem blockedReason={deleteBlockedReason} stretch labelAlign="start" onClick={handleDelete}>
               <IconSlot aria-hidden="true">🗑</IconSlot>
               Excluir
             </DeleteItem>
