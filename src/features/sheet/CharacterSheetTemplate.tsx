@@ -352,6 +352,10 @@ const SectionTitle = styled.h2`
 `;
 
 const GridSection = styled.div`
+  /* Container só para os espaçadores da coluna de atributos saberem se o grid está em duas colunas
+     (conteúdo >= 2 x 260 + gap 30 = 550 px) pela largura do próprio grid, não da janela: a ficha
+     dentro da partida fica num painel estreito mesmo com janela larga. */
+  container: sheet-grid / inline-size;
   padding: 30px;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -374,7 +378,9 @@ const GroupTitle = styled.h3`
 const AttributesSection = styled.section`
   container-type: inline-size;
   margin-top: 12px;
-  padding-bottom: 8cqi;
+  /* 8cqi da ficha inteira: o container mais próximo agora é o GridSection, que é a ficha menos o
+     padding de 2 x 30 px (2 x 20 px até 609 px), por isso a soma de volta. */
+  padding-bottom: calc(0.08 * (100cqi + 60px));
 
   display: flex;
   flex-direction: column;
@@ -382,6 +388,10 @@ const AttributesSection = styled.section`
   /* Conteúdo no topo; a sobra de altura (coluna de perícias mais alta) vai
      para o fim. Os espaços áureos vêm de TitleSpacer/DiagramSpacer. */
   justify-content: flex-start;
+
+  @media (max-width: 609px) {
+    padding-bottom: calc(0.08 * (100cqi + 40px));
+  }
 
   @media (max-width: 589px) {
     padding-bottom: 0;
@@ -391,15 +401,18 @@ const AttributesSection = styled.section`
 /* Espaços extras da coluna de atributos, somados às margens dos diagramas, em
    proporção áurea: título→1º diagrama = g; entre diagramas = g × 1,618.
    Lado a lado (≥ 768): flex-basis 0 + flex-grow 1 : 1,618 repartem só a sobra
-   da altura que a coluna de perícias impõe, até o máximo; se faltar altura
+   da altura que a coluna de perícias impõe, até o máximo (20/32); se faltar altura
    (ex.: diagrama de Princípios), encolhem até o mínimo (0 = margens atuais) e
-   o que sobrar fica no fim da coluna. Coluna única (< 768): valor fixo. */
+   o que sobrar fica no fim da coluna. Coluna única (conteúdo do grid < 550 px,
+   medido no container sheet-grid): valor fixo 22/36, um pouco acima do máximo
+   flexível, porque sem a altura da coluna de perícias para repartir não há
+   sobra a perder e o respiro tem de ser o mesmo em qualquer altura. */
 const TitleSpacer = styled.div`
   flex: 1 1 0;
   min-height: 0;
   max-height: 20px; /* g */
 
-  @media (max-width: 767px) {
+  @container sheet-grid (width < 550px) {
     flex: none;
     height: 22px;
     max-height: none;
@@ -411,7 +424,7 @@ const DiagramSpacer = styled.div`
   min-height: 0;
   max-height: 32px; /* g × 1,618 */
 
-  @media (max-width: 767px) {
+  @container sheet-grid (width < 550px) {
     flex: none;
     height: 36px;
     max-height: none;
