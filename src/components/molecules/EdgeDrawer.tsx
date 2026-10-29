@@ -4,6 +4,7 @@ import CloseButton from "../ions/CloseButton";
 import { colors } from "../../styles/tokens";
 import { iconButtonFx } from "../../styles/iconButtonFx";
 import { bottomBarSpace } from "../../styles/bottomBar";
+import { prefersReducedMotion } from "../../utils/prefersReducedMotion";
 
 export const EDGE_TAB_WIDTH = 32;
 /** Largura da área de toque da aba (a aba desenhada + 12 px invisíveis); o conteúdo reserva isso. */
@@ -12,10 +13,6 @@ const EDGE_TAB_HEIGHT = 110;
 
 const DRAWER_DURATION = "250ms";
 const DRAWER_EASING = "ease";
-
-const prefersReducedMotion = () =>
-  typeof window.matchMedia === "function" &&
-  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 interface EdgeDrawerProps {
   side: "left" | "right";
