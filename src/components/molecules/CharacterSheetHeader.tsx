@@ -13,6 +13,7 @@ import iconEmblem from "../../assets/icons/icon-emblem.svg";
 import plusIcon from "../../assets/icons/plus.svg";
 import penIcon from "../../assets/icons/pen.svg";
 import type { HeaderMode } from "../../features/sheet/types/headerMode";
+import PillSelect from "./PillSelect";
 import type { CharacterClass } from "../../types/characterClass";
 import { useCharSheetBuilder } from "../../features/sheet/hooks/useCharSheetBuilder";
 import ImagePickerModal from "./ImagePickerModal";
@@ -45,8 +46,14 @@ export default function CharacterSheetHeader({
   const { buildFromClass } = useCharSheetBuilder();
   const [avatarModalOpen, setAvatarModalOpen] = useState(false);
   const [coverModalOpen, setCoverModalOpen] = useState(false);
-  const handleClassChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const targetClass = event.target.value;
+  const classOptions = [
+    { value: "", label: "Selecione uma classe" },
+    ...(charClasses ?? []).map((cc) => ({
+      value: cc.profile.name,
+      label: cc.profile.name,
+    })),
+  ];
+  const handleClassChange = (targetClass: string) => {
     const charClass = charClasses?.find(
       (cc) => cc.profile.name === targetClass,
     );
@@ -114,18 +121,11 @@ export default function CharacterSheetHeader({
 
           <CharacterClass>Classe: </CharacterClass>
           <CharacterClassSelect
+            aria-label="Classe"
             value={charSheet?.characterClass ?? ""}
             onChange={handleClassChange}
-          >
-            <CharacterClassOption value="">
-              Selecione uma classe
-            </CharacterClassOption>
-            {charClasses?.map((charClass, i) => (
-              <CharacterClassOption key={i} value={charClass.profile.name}>
-                {charClass.profile.name}
-              </CharacterClassOption>
-            ))}
-          </CharacterClassSelect>
+            options={classOptions}
+          />
         </NicknameOverlay>
       ) : (
         <NicknameOverlay>
@@ -433,7 +433,7 @@ const CharacterClass = styled.h2`
   }
 `;
 
-const CharacterClassSelect = styled.select`
+const CharacterClassSelect = styled(PillSelect)`
   /* A área de hover do balão da EXP sobe 10 px e cobria a base do select. */
   position: relative;
   z-index: 1;
@@ -472,16 +472,6 @@ const CharacterClassSelect = styled.select`
   &:hover {
     filter: brightness(1.1);
   }
-`;
-
-const CharacterClassOption = styled.option`
-  font-family: "Roboto", sans-serif;
-  font-size: min(3.8cqi, 28px);
-  font-weight: 600;
-  color: white;
-  background-color: #555;
-  background-color: #107135;
-  padding-right: 40px;
 `;
 
 const StatusBarsContainer = styled.div`

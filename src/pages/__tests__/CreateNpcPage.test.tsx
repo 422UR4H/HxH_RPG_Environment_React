@@ -1,4 +1,5 @@
 // src/pages/__tests__/CreateNpcPage.test.tsx
+import { pickComboboxOption } from "../../test/pickCombobox";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { http, HttpResponse } from "msw";
 import { screen, waitFor, within } from "@testing-library/react";
@@ -70,10 +71,10 @@ async function fillRequiredFields() {
     screen.getByPlaceholderText("Nome completo do personagem"),
     "Haualu Teste",
   );
-  const classSelect = screen
-    .getByText(npcClassFixture.profile.name)
-    .closest("select")!;
-  await userEvent.selectOptions(classSelect, npcClassFixture.profile.name);
+  await pickComboboxOption(
+    screen.getByRole("combobox", { name: "Classe" }),
+    npcClassFixture.profile.name,
+  );
 }
 
 async function selectAvatar() {
