@@ -102,7 +102,7 @@ const FloatingWrapper = styled.div`
 
 /** Com os dois lado a lado, o grupo centraliza os filhos na vertical e passa o corpo do texto e a
  *  altura do "Gerenciar" pelas variáveis `--floating-label-size` e `--manage-floating-height`, que o
- *  ManageButton flutuante lê (sem elas vale o tamanho dele, como na ficha). */
+ *  ManageButton flutuante lê (sem `--manage-floating-height` vale o 100% do grupo esticado, como na ficha). */
 const FloatingGroup = styled.div<{ $paired: boolean }>`
   ${({ $paired }) =>
     $paired ? `--floating-label-size: ${floatingLabelSize}; --manage-floating-height: ${manageFloatingHeightPx}px;` : ""}

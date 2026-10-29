@@ -95,7 +95,8 @@ export default function ManageButton({
   );
 }
 
-// Flutuando, a altura é "auto" (o botão define a própria); encaixado, preenche a barra.
+// Flutuando, a altura é "auto": na ficha o grupo estica o wrapper e o `height: 100%` do botão segue o
+// vizinho; na campanha o grupo fixa a altura por `--manage-floating-height`. Encaixado, preenche a barra.
 const Wrapper = styled.div<{ $isFloating: boolean }>`
   position: relative;
   flex-shrink: 0;
