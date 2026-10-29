@@ -64,7 +64,7 @@ export default function BottomActions({
   if (isFloating) {
     return (
       <FloatingWrapper>
-        <FloatingGroup>
+        <FloatingGroup $paired={Boolean(manage && primaryButton)}>
           {manage && <ManageButton {...manage} isFloating={true} />}
           {primaryButton && (
             <FloatingPrimary onClick={primaryButton.onClick}>
@@ -94,17 +94,28 @@ const FloatingWrapper = styled.div`
   container-type: inline-size;
 `;
 
-const FloatingGroup = styled.div`
+/** Corpo do rótulo dos botões flutuantes: o do principal, com piso de 13 px (em 320 ele caía a 11 px). */
+const floatingLabelSize = "max(13px, min(26px, 5cqi))";
+
+/** Com os dois lado a lado, o grupo estica os filhos à mesma altura e passa o corpo do texto pela
+ *  variável `--floating-label-size`, que o ManageButton flutuante lê (sem ela vale o tamanho dele). */
+const FloatingGroup = styled.div<{ $paired: boolean }>`
+  ${({ $paired }) => ($paired ? `--floating-label-size: ${floatingLabelSize};` : "")}
   position: fixed;
   bottom: ${floatingBottomPx}px;
   left: 340px;
   z-index: 10;
   display: flex;
   gap: 12px;
-  align-items: center;
+  align-items: stretch;
 
   @media (max-width: 749px) {
     left: 40px;
+  }
+
+  /* Em 320 px o par (278 px) não cabe com o recuo de 40 px da aba lateral: a aba fica acima da faixa dos botões. */
+  @media (max-width: 340px) {
+    left: 16px;
   }
 `;
 
@@ -114,7 +125,7 @@ const FloatingPrimary = styled.button`
   padding: 15px 30px 15px 26px;
   background-color: ${colors.brandAccent};
   color: ${colors.textPrimary};
-  font-size: min(26px, 5cqi);
+  font-size: ${floatingLabelSize};
   font-weight: 600;
   display: flex;
   align-items: center;
