@@ -5,7 +5,13 @@ import ManageButton from "../../components/molecules/ManageButton";
 import type { ManageActions } from "../../components/molecules/ManageButton";
 import styled from "styled-components";
 import { colors, gradients } from "../../styles/tokens";
-import { dockThresholdPx, floatingBottomPx, floatingElevation } from "../../styles/bottomBar";
+import {
+  dockThresholdPx,
+  floatingBottomPx,
+  floatingElevation,
+  floatingLabelSize,
+  floatingLabelSizeCompact,
+} from "../../styles/bottomBar";
 
 interface SheetBottomActionsProps {
   onCampaignClick?: () => void;
@@ -82,6 +88,7 @@ export default function SheetBottomActions({
     return (
       <FloatingWrapper ref={wrapperRef}>
         <FloatingGroup
+          $paired={Boolean(manage && onCampaignClick)}
           style={{
             "--column-left": `${columnGap.left}px`,
             "--column-right": `${columnGap.right}px`,
@@ -164,14 +171,25 @@ const CampaignButton = styled.button`
 
 // Uma única faixa fixa: os dois botões dividem a largura e nunca se sobrepõem.
 // A faixa não captura toque; só os botões (e o menu de Gerenciar) capturam.
-const FloatingGroup = styled.div`
+// Com os dois botões, o grupo os estica à mesma altura e passa o corpo do texto por
+// `--floating-label-size` (lido pelo ManageButton flutuante e pelo botão de campanha).
+const FloatingGroup = styled.div<{ $paired: boolean }>`
+  ${({ $paired }) =>
+    $paired
+      ? `
+    --floating-label-size: ${floatingLabelSize};
+    @media (max-width: 609px) {
+      --floating-label-size: ${floatingLabelSizeCompact};
+    }
+  `
+      : ""}
   position: fixed;
   bottom: ${floatingBottomPx}px;
   left: calc(var(--column-left, 0px) + max(16px, min(60px, 5cqi)));
   right: calc(var(--column-right, 0px) + max(16px, min(60px, 5cqi)));
   z-index: 10;
   display: flex;
-  align-items: flex-end;
+  align-items: stretch;
   justify-content: space-between;
   gap: 12px;
   pointer-events: none;
@@ -189,7 +207,7 @@ const FloatingCampaignButton = styled.button`
   padding: min(15px, 3.6cqi) min(30px, 5cqi) min(15px, 3.6cqi) min(26px, 5cqi);
   background: ${gradients.orange};
   color: ${colors.textOnLight};
-  font-size: min(26px, 5cqi);
+  font-size: var(--floating-label-size, min(26px, 5cqi));
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -200,8 +218,8 @@ const FloatingCampaignButton = styled.button`
 
   @media (max-width: 609px) {
     padding: 0 0.9em;
-    min-height: 44px;
-    font-size: clamp(13px, 3.75cqi, 20px);
+    min-height: 52px;
+    font-size: var(--floating-label-size, clamp(13px, 4.25cqi, 20px));
     gap: 4px;
   }
 

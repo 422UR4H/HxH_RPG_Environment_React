@@ -45,3 +45,9 @@ export const dockedBarAfterGap = (gap: string) => `
   --bottom-bar-offset: var(--docked-bar-bottom);
   padding-bottom: ${floatingClearance};
 `;
+
+/** Corpo do rótulo dos botões flutuantes quando Gerenciar e o principal aparecem juntos: o do principal,
+ *  com piso de 13 px (em 320 ele caía a 11 px). Lido pelo grupo e repassado ao ManageButton por `--floating-label-size`. */
+export const floatingLabelSize = "max(13px, min(26px, 5cqi))";
+/** Mesma ideia na ficha em telas estreitas (até 609 px), onde o par é mais compacto. */
+export const floatingLabelSizeCompact = "clamp(13px, 4.25cqi, 20px)";
