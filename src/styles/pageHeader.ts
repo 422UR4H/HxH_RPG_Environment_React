@@ -39,7 +39,8 @@ export const headerTitle = css`
  */
 export const headerRow = css`
   display: grid;
-  grid-template-columns: minmax(min-content, 1fr) auto;
+  /* A coluna da data (selo + data) ocupa no máximo um terço; o rótulo quebra antes do valor. */
+  grid-template-columns: minmax(min-content, 1fr) fit-content(33.333%);
   grid-template-areas:
     "title badge"
     "title date";

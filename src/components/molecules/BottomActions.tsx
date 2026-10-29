@@ -5,7 +5,13 @@ import ManageButton from "./ManageButton";
 import type { ManageActions } from "./ManageButton";
 import styled from "styled-components";
 import { colors } from "../../styles/tokens";
-import { floatingElevation, floatingBottomPx, dockThresholdPx, floatingLabelSize } from "../../styles/bottomBar";
+import {
+  floatingElevation,
+  floatingBottomPx,
+  dockThresholdPx,
+  floatingLabelSize,
+  manageFloatingHeightPx,
+} from "../../styles/bottomBar";
 
 interface BottomActionsProps {
   containerRef: RefObject<HTMLDivElement | null>;
@@ -94,17 +100,19 @@ const FloatingWrapper = styled.div`
   container-type: inline-size;
 `;
 
-/** Com os dois lado a lado, o grupo estica os filhos à mesma altura e passa o corpo do texto pela
- *  variável `--floating-label-size`, que o ManageButton flutuante lê (sem ela vale o tamanho dele). */
+/** Com os dois lado a lado, o grupo centraliza os filhos na vertical e passa o corpo do texto e a
+ *  altura do "Gerenciar" pelas variáveis `--floating-label-size` e `--manage-floating-height`, que o
+ *  ManageButton flutuante lê (sem elas vale o tamanho dele, como na ficha). */
 const FloatingGroup = styled.div<{ $paired: boolean }>`
-  ${({ $paired }) => ($paired ? `--floating-label-size: ${floatingLabelSize};` : "")}
+  ${({ $paired }) =>
+    $paired ? `--floating-label-size: ${floatingLabelSize}; --manage-floating-height: ${manageFloatingHeightPx}px;` : ""}
   position: fixed;
   bottom: ${floatingBottomPx}px;
   left: 340px;
   z-index: 10;
   display: flex;
   gap: 12px;
-  align-items: stretch;
+  align-items: center;
 
   @media (max-width: 749px) {
     left: 40px;
