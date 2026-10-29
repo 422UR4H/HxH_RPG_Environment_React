@@ -99,19 +99,29 @@ export const List = styled.div<ListProps>`
   width: var(--fallback-width, auto);
   /* Com anchor positioning: o navegador move pílula e lista juntas no mesmo quadro, sem esperar
      o JS da rolagem. A lista sobe sobre a borda da pílula (--pill-border-width). */
-  @supports (anchor-name: --a) {
+  /* O segundo argumento de anchor()/anchor-size() é a reserva: se a âncora não for aceitável
+     (ex.: select dentro de <dialog> na top layer), vale a geometria do JS em vez de "auto".
+     Em top/bottom, a reserva soma a sobreposição da borda para que o calc() (que a subtrai) devolva
+     exatamente o --fallback-* do ramo sem anchor. */
+  @supports (anchor-name: --a) and (top: anchor(bottom)) and (width: anchor-size(width)) {
     position-anchor: var(--pill-anchor);
-    left: anchor(left);
-    width: anchor-size(width);
+    left: anchor(left, var(--fallback-left, 0px));
+    width: anchor-size(width, var(--fallback-width, auto));
     ${({ $side }) =>
       $side === "below"
         ? css`
-            top: calc(anchor(bottom) - var(--pill-border-width));
+            top: calc(
+              anchor(bottom, calc(var(--fallback-top, 0px) + var(--pill-border-width))) -
+                var(--pill-border-width)
+            );
             bottom: auto;
           `
         : css`
             top: auto;
-            bottom: calc(anchor(top) - var(--pill-border-width));
+            bottom: calc(
+              anchor(top, calc(var(--fallback-bottom, 0px) + var(--pill-border-width))) -
+                var(--pill-border-width)
+            );
           `}
   }
   z-index: 1000; /* mesma camada do Popover do DateField: acima de toda a página */
