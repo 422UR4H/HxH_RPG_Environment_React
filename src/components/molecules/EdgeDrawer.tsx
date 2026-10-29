@@ -2,6 +2,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import styled, { css, keyframes } from "styled-components";
 import CloseButton from "../ions/CloseButton";
 import { colors } from "../../styles/tokens";
+import { iconButtonFx } from "../../styles/iconButtonFx";
 import { bottomBarSpace } from "../../styles/bottomBar";
 
 export const EDGE_TAB_WIDTH = 32;
@@ -209,6 +210,7 @@ const CloseX = styled.button<{ $side: "left" | "right" }>`
   line-height: 0;
   top: -10px;
   right: ${({ $side }) => ($side === "left" ? "-8px" : "8px")};
+  ${iconButtonFx(1.15)}
 `;
 
 const XIcon = styled(CloseButton)`

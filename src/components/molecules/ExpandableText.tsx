@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import styled from "styled-components";
 import ExpandButton from "../ions/ExpandButton";
 import { COLLAPSE_DURATION, COLLAPSE_EASING } from "../atoms/Collapse";
+import { iconButtonFx } from "../../styles/iconButtonFx";
 import { colors } from "../../styles/tokens";
 
 interface ExpandableTextProps {
@@ -152,4 +153,5 @@ const ToggleButton = styled.button`
   font: inherit;
   line-height: inherit;
   cursor: pointer;
+  ${iconButtonFx(1.15)}
 `;

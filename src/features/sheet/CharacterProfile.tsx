@@ -2,6 +2,7 @@ import { Suspense, lazy, useState } from "react";
 import styled from "styled-components";
 import Collapse from "../../components/atoms/Collapse";
 import ExpandButton from "../../components/ions/ExpandButton";
+import { iconButtonFx } from "../../styles/iconButtonFx";
 import { colors } from "../../styles/tokens";
 import type { ProfileMode } from "./types/profileMode";
 import type { CharacterSheet } from "../../types/characterSheet";
@@ -130,6 +131,7 @@ const ProfileBar = styled.button`
   &:hover {
     filter: brightness(1.1);
   }
+  ${iconButtonFx(1.15)}
 `;
 
 const ExpandButtonContainer = styled.div`

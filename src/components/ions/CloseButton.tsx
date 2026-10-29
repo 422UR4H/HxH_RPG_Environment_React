@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import { iconFxTransition } from "../../styles/iconButtonFx";
 import closeIcon from "../../assets/icons/x.svg";
 
 const CloseButton = styled.img.attrs({
@@ -10,7 +11,7 @@ const CloseButton = styled.img.attrs({
   height: 24px;
   display: block;
   opacity: 0.85;
-  transition: opacity 0.15s;
+  transition: opacity 0.15s, ${iconFxTransition};
   -webkit-user-select: none;
 
   &:hover {

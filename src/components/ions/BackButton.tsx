@@ -1,9 +1,9 @@
 import { useNavigate } from "react-router-dom";
-import styled, { css } from "styled-components";
+import styled from "styled-components";
 // import backArrow from "../../assets/icons/setavoltarsemponta.svg"
 import backArrow from "../../assets/icons/setavoltarcomponta.svg";
 import { useNavGuard } from "../../contexts/NavGuardContext";
-import { alpha, colors } from "../../styles/tokens";
+import { iconButtonFx, iconFxTransition } from "../../styles/iconButtonFx";
 
 export default function BackButton() {
   const navigate = useNavigate();
@@ -19,17 +19,6 @@ export default function BackButton() {
     </StyledBackButton>
   );
 }
-
-/* Zoom: aparece no hover e no foco do teclado. */
-const lit = css`
-  transform: scale(1.05);
-`;
-
-/* Halo dourado: só no hover. Duas camadas, um núcleo curto e uma luz mais larga. No foco
-   quem sinaliza é o anel do botão; halo ali seria um segundo indicador. */
-const halo = css`
-  filter: drop-shadow(0 0 4px ${alpha(colors.actionHighlight, 0.9)}) drop-shadow(0 0 10px ${alpha(colors.actionHighlight, 0.5)});
-`;
 
 const StyledBackButton = styled.button`
   position: fixed;
@@ -61,19 +50,7 @@ const StyledBackButton = styled.button`
     outline-offset: 5px;
   }
 
-  /* Hover só se há mouse ou touchpad: num aparelho só de toque ele fica preso depois do toque. */
-  @media (any-hover: hover) {
-    &:hover > img {
-      ${lit}
-      ${halo}
-    }
-  }
-  &:focus-visible > img {
-    ${lit}
-  }
-  &:active > img {
-    transform: scale(0.98);
-  }
+  ${iconButtonFx(1.05)}
 `;
 
 const Arrow = styled.img`
@@ -86,5 +63,5 @@ const Arrow = styled.img`
   border: none;
   outline: none;
 
-  transition: transform 0.2s ease, filter 0.2s ease;
+  transition: ${iconFxTransition};
 `;
