@@ -45,8 +45,10 @@ export interface AttachedListPlacementInput {
 
 export interface AttachedListPlacement {
   side: "below" | "above";
-  /** Topo da lista (coordenadas da janela), já com a altura final. */
-  top: number;
+  /** Topo da lista (coordenadas da janela); só embaixo. Em cima a lista é presa pela base. */
+  top?: number;
+  /** Distância da base da lista até a base da janela (CSS `bottom`); só em cima. */
+  bottom?: number;
   /** Altura final: a natural, ou o espaço disponível menos a folga (a lista rola por dentro). */
   height: number;
 }
@@ -65,6 +67,8 @@ export function computeAttachedListPlacement({
   const roomAbove = Math.max(0, field.top - MARGIN);
   const side = listHeight <= roomBelow || roomBelow >= roomAbove ? "below" : "above";
   const height = Math.min(listHeight, side === "below" ? roomBelow : roomAbove);
-  const top = side === "below" ? field.bottom : field.top - height;
-  return { side, top, height };
+  // Em cima, ancora pela base: a lista pode ser mais curta que `height` (o teto) e mesmo assim encosta na pílula.
+  return side === "below"
+    ? { side, top: field.bottom, height }
+    : { side, bottom: viewportHeight - field.top, height };
 }

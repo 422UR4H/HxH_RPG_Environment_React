@@ -128,9 +128,6 @@ const ProfileBar = styled.button`
   transition: background-color 0.2s ease;
   overflow: visible;
 
-  &:hover {
-    filter: brightness(1.1);
-  }
   ${iconButtonFx(1.15)}
 `;
 

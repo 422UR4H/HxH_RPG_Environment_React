@@ -71,7 +71,7 @@ describe("computeAttachedListPlacement", () => {
         listHeight: 300,
         viewportHeight,
       }),
-    ).toEqual({ side: "above", top: 300, height: 300 });
+    ).toEqual({ side: "above", bottom: 768 - 600, height: 300 });
   });
 
   it("caps the height at the room minus 8 px and scrolls inside", () => {
@@ -87,7 +87,7 @@ describe("computeAttachedListPlacement", () => {
       listHeight: 900,
       viewportHeight,
     });
-    expect(above).toEqual({ side: "above", top: 8, height: 612 });
+    expect(above).toEqual({ side: "above", bottom: 768 - 620, height: 612 });
   });
 
   it("stays below when both sides are equally tight", () => {

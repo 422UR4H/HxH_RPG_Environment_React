@@ -46,7 +46,9 @@ interface PillSelectProps {
 
 interface Placement {
   side: "below" | "above";
-  top: number;
+  /** Embaixo a lista é presa pelo topo; em cima, pela base (`bottom`). */
+  top?: number;
+  bottom?: number;
   left: number;
   width: number;
   height: number;
@@ -126,7 +128,7 @@ export default function PillSelect({
       const border = parseFloat(cs.borderTopWidth) || 0;
       const natural = list.scrollHeight + (list.offsetHeight - list.clientHeight);
       // A lista sobe sobre a borda da pílula, para as laterais brancas seguirem contínuas.
-      const { side, top, height } = computeAttachedListPlacement({
+      const { side, top, bottom, height } = computeAttachedListPlacement({
         field: { top: rect.top + border, bottom: rect.bottom - border },
         listHeight: natural,
         viewportHeight: window.innerHeight,
@@ -147,12 +149,13 @@ export default function PillSelect({
         prev &&
         prev.side === side &&
         prev.top === top &&
+        prev.bottom === bottom &&
         prev.left === rect.left &&
         prev.width === rect.width &&
         prev.height === height &&
         Object.keys(vars).every((k) => prev.vars[k] === vars[k])
           ? prev
-          : { side, top, left: rect.left, width: rect.width, height, vars },
+          : { side, top, bottom, left: rect.left, width: rect.width, height, vars },
       );
     }
     place();
@@ -410,7 +413,9 @@ export default function PillSelect({
               {
                 ...placement?.vars,
                 "--list-scrollbar": `${scrollbarWidth}px`,
-                top: placement?.top ?? 0,
+                // Em cima só `bottom`: `top` fica sem valor para a lista curta não descolar da pílula.
+                top: placement ? placement.top : 0,
+                bottom: placement?.bottom,
                 left: placement?.left ?? 0,
                 width: placement?.width,
                 maxHeight: placement?.height,

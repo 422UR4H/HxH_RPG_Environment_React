@@ -34,7 +34,7 @@ function WeaponSlotSelect({ label, value, allowed, taken, onChange }: WeaponSlot
   // Identidade estável: a posição da lista aberta é recalculada quando o array muda.
   const options = useMemo(
     () => [
-      { value: "", label: "Escolher arma…" },
+      { value: "", label: "Escolher…" },
       ...allowed.map((weapon) => ({
         value: weapon,
         label: weapon,

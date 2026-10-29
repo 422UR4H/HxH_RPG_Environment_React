@@ -10,7 +10,7 @@ describe("camelCaseSegments", () => {
 
   it("leaves labels without internal capitals in one piece", () => {
     expect(camelCaseSegments("Bow")).toEqual(["Bow"]);
-    expect(camelCaseSegments("Escolher arma…")).toEqual(["Escolher arma…"]);
+    expect(camelCaseSegments("Escolher…")).toEqual(["Escolher…"]);
     expect(camelCaseSegments("Lawful Good")).toEqual(["Lawful Good"]);
     expect(camelCaseSegments("")).toEqual([""]);
   });

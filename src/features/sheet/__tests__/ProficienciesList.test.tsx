@@ -106,8 +106,8 @@ describe("ProficienciesList – slot behaviour", () => {
   it("slots start empty on initial render", async () => {
     render(<ClassChangeHarness />);
     const selects = screen.getAllByRole("combobox");
-    expect(selects[0]).toHaveTextContent("Escolher arma…");
-    expect(selects[1]).toHaveTextContent("Escolher arma…");
+    expect(selects[0]).toHaveTextContent("Escolher…");
+    expect(selects[1]).toHaveTextContent("Escolher…");
   });
 
   it("slot updates when user selects a weapon", async () => {
@@ -125,7 +125,7 @@ describe("ProficienciesList – slot behaviour", () => {
     const bow = within(await screen.findByRole("listbox")).getByRole("option", { name: "Bow" });
     expect(bow).toHaveAttribute("aria-disabled", "true");
     await userEvent.click(bow);
-    expect(slot1).toHaveTextContent("Escolher arma…");
+    expect(slot1).toHaveTextContent("Escolher…");
   });
 
   it("slots reset when class changes", async () => {
@@ -140,8 +140,8 @@ describe("ProficienciesList – slot behaviour", () => {
     fireEvent.click(screen.getByText("Change to Mercenary"));
 
     const newSlots = screen.getAllByRole("combobox");
-    expect(newSlots[0]).toHaveTextContent("Escolher arma…");
-    expect(newSlots[1]).toHaveTextContent("Escolher arma…");
+    expect(newSlots[0]).toHaveTextContent("Escolher…");
+    expect(newSlots[1]).toHaveTextContent("Escolher…");
   });
 
   it("slots reset on EVERY class change — no accumulation across multiple switches", async () => {
@@ -155,8 +155,8 @@ describe("ProficienciesList – slot behaviour", () => {
     // Switch to Mercenary
     fireEvent.click(screen.getByText("Change to Mercenary"));
     const mercSlots = screen.getAllByRole("combobox");
-    expect(mercSlots[0]).toHaveTextContent("Escolher arma…");
-    expect(mercSlots[1]).toHaveTextContent("Escolher arma…");
+    expect(mercSlots[0]).toHaveTextContent("Escolher…");
+    expect(mercSlots[1]).toHaveTextContent("Escolher…");
 
     // Fill one Mercenary slot
     await pickComboboxOption(mercSlots[0], "Dagger");
@@ -165,8 +165,8 @@ describe("ProficienciesList – slot behaviour", () => {
     // Switch BACK to Hunter — must reset again, no Mercenary weapons lingering
     fireEvent.click(screen.getByText("Change to Hunter"));
     const hunterSlots = screen.getAllByRole("combobox");
-    expect(hunterSlots[0]).toHaveTextContent("Escolher arma…");
-    expect(hunterSlots[1]).toHaveTextContent("Escolher arma…");
+    expect(hunterSlots[0]).toHaveTextContent("Escolher…");
+    expect(hunterSlots[1]).toHaveTextContent("Escolher…");
   });
 
   it("an external charSheet update does not clear slot selections", async () => {

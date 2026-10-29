@@ -361,8 +361,29 @@ describe("PillSelect", () => {
     const list = screen.getByRole("listbox");
     expect(list.style.getPropertyValue("--pill-radius")).toBe("28px");
     expect(trigger()).toHaveAttribute("data-state", "open");
-    // Lista acima, descendo até a borda da pílula (sobe 4 px sobre ela: 654 - 220).
-    expect(list.style.top).toBe("434px");
+    // Lista acima, presa pela base na pílula (sobe 4 px sobre a borda: 768 - 654), sem `top`.
+    expect(list.style.bottom).toBe("114px");
+    expect(list.style.top).toBe("");
+  });
+
+  it("keeps a short upward list flush with the pill: anchored by the bottom, never by the top", async () => {
+    restoreMotion = mockReducedMotion(true);
+    pillRect = { top: 650, bottom: 707, left: 50, right: 393, width: 343, height: 57 };
+    const bottoms: string[] = [];
+    // Alturas diferentes (menores que o espaço de cima): a base da lista não pode se mover.
+    for (const height of [90, 220]) {
+      mockListHeight(height);
+      const { unmount } = render(<Harness />);
+      await userEvent.click(trigger());
+      const list = screen.getByRole("listbox");
+      expect(list.style.top).toBe("");
+      expect(list.style.maxHeight).toBe(`${height}px`);
+      bottoms.push(list.style.bottom);
+      unmount();
+      heightSpy?.mockRestore();
+    }
+    // Base da lista = topo da pílula + borda: innerHeight - bottom. A borda do jsdom é 0.
+    expect(bottoms).toEqual([`${window.innerHeight - pillRect.top}px`, `${window.innerHeight - pillRect.top}px`]);
   });
 
   it("closes without changing when the pill scrolls out of the viewport", async () => {
