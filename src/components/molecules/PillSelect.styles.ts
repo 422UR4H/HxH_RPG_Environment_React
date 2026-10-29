@@ -1,7 +1,9 @@
 import styled, { css, keyframes } from "styled-components";
 import { colors } from "../../styles/tokens";
+import { scopedScrollbar, scrollbarPalettes } from "../../styles/scrollbar";
 
-export const PILL_SELECT_DURATION = "160ms";
+export const PILL_SELECT_DURATION_MS = 160;
+const DURATION = `${PILL_SELECT_DURATION_MS}ms`;
 const EASING = "ease";
 
 type Side = "below" | "above";
@@ -17,16 +19,12 @@ export const Trigger = styled.div<{ $side: Side }>`
   user-select: none;
   -webkit-user-select: none;
 
-  /* Aberto: a lista continua a pílula, então o lado dela fica reto e sem borda própria. */
+  /* Aberto (e enrolando): a lista continua a pílula, então o lado dela fica reto, sem
+     transição, e a lista cobre a borda desse lado (os cantos retos casam com os dela). */
   &&[data-state="open"],
   &&[data-state="closing"] {
     filter: none;
     box-shadow: none;
-    transition:
-      border-radius ${PILL_SELECT_DURATION} ${EASING},
-      border-color ${PILL_SELECT_DURATION} ${EASING};
-  }
-  &&[data-state="open"] {
     border-color: ${colors.textPrimary};
     ${({ $side }) =>
       $side === "below"
@@ -41,10 +39,15 @@ export const Trigger = styled.div<{ $side: Side }>`
             border-top-right-radius: 0;
           `}
   }
+  /* Lista já recolhida: a pílula volta a arredondar e a recuperar a cor da borda. */
+  &&[data-state="settling"] {
+    transition:
+      border-radius ${DURATION} ${EASING},
+      border-color ${DURATION} ${EASING};
+  }
 
   @media (prefers-reduced-motion: reduce) {
-    &&[data-state="open"],
-    &&[data-state="closing"] {
+    &&[data-state="settling"] {
       transition: none;
     }
   }
@@ -68,13 +71,13 @@ export const Sizer = styled.span`
 `;
 
 const unroll = (side: Side) => keyframes`
-  from { clip-path: inset(${side === "below" ? "0 0 100% 0" : "100% 0 0 0"}); }
-  to   { clip-path: inset(0 0 0 0); }
+  from { clip-path: inset(${side === "below" ? "0 0 100% 0" : "100% 0 0 0"}); opacity: 0.6; }
+  to   { clip-path: inset(0 0 0 0); opacity: 1; }
 `;
 
 const roll = (side: Side) => keyframes`
-  from { clip-path: inset(0 0 0 0); }
-  to   { clip-path: inset(${side === "below" ? "0 0 100% 0" : "100% 0 0 0"}); }
+  from { clip-path: inset(0 0 0 0); opacity: 1; }
+  to   { clip-path: inset(${side === "below" ? "0 0 100% 0" : "100% 0 0 0"}); opacity: 0.6; }
 `;
 
 interface ListProps {
@@ -99,21 +102,49 @@ export const List = styled.div<ListProps>`
   font-size: var(--pill-font-size);
   font-weight: var(--pill-font-weight);
   border: var(--pill-border-width) solid ${colors.textPrimary};
+  /* O lado da pílula não tem borda: a lista sobe sobre a borda da pílula e as laterais
+     brancas seguem contínuas. A linha fina que separa o valor das opções é um sticky
+     (fica fixa ao rolar), recuada para dentro das bordas. */
   ${({ $side }) =>
     $side === "below"
       ? css`
-          border-top: 1px solid ${colors.overlayHighlight};
+          border-top: 0;
           border-radius: 0 0 var(--pill-radius) var(--pill-radius);
+          &::before {
+            content: "";
+            display: block;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            height: 1px;
+            margin-bottom: -1px;
+            background: ${colors.overlayHighlight};
+          }
         `
       : css`
-          border-bottom: 1px solid ${colors.overlayHighlight};
+          border-bottom: 0;
           border-radius: var(--pill-radius) var(--pill-radius) 0 0;
+          &::after {
+            content: "";
+            display: block;
+            position: sticky;
+            bottom: 0;
+            z-index: 1;
+            height: 1px;
+            margin-top: -1px;
+            background: ${colors.overlayHighlight};
+          }
         `}
+  ${scopedScrollbar(scrollbarPalettes.pill)}
+  /* O polegar usa a borda transparente como respiro; sem isto o fundo passaria por baixo dela. */
+  &::-webkit-scrollbar-thumb {
+    background-clip: padding-box;
+  }
   visibility: ${({ $placed }) => ($placed ? "visible" : "hidden")};
   ${({ $placed, $closing, $side }) =>
     $placed &&
     css`
-      animation: ${$closing ? roll($side) : unroll($side)} ${PILL_SELECT_DURATION} ${EASING} both;
+      animation: ${$closing ? roll($side) : unroll($side)} ${DURATION} ${EASING} both;
     `}
 
   @media (prefers-reduced-motion: reduce) {
@@ -121,13 +152,17 @@ export const List = styled.div<ListProps>`
   }
 `;
 
+// A coluna da direita (largura = padding da pílula, onde fica o chevron) é reservada ao ✓;
+// se a lista rola, a barra de rolagem come essa coluna, não o texto.
+const column = "calc(var(--pill-padding-right) - var(--list-scrollbar, 0px))";
+
 export const Option = styled.div`
   position: relative;
   display: flex;
   align-items: center;
   box-sizing: border-box;
   min-height: 44px;
-  padding: 0 var(--pill-padding-right) 0 var(--pill-padding-left);
+  padding: 0 ${column} 0 var(--pill-padding-left);
   white-space: nowrap;
   cursor: pointer;
 
@@ -140,12 +175,18 @@ export const Option = styled.div`
   }
 `;
 
+export const Label = styled.span`
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
 export const Check = styled.span`
   position: absolute;
   top: 0;
   right: 0;
   bottom: 0;
-  width: var(--pill-padding-right);
+  width: ${column};
   display: flex;
   align-items: center;
   justify-content: center;

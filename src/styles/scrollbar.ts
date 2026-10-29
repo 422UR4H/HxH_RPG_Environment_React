@@ -24,6 +24,13 @@ export const scrollbarPalettes = {
     thumbHover: colors.surfaceScrollThumbHover,
     thumbBorder: colors.surfaceSidebar,
   },
+  /** Lista verde do PillSelect: trilho transparente (o fundo é o da pílula) e polegar claro. */
+  pill: {
+    track: "transparent",
+    thumb: colors.overlayLightStrong,
+    thumbHover: colors.textPrimary,
+    thumbBorder: "transparent",
+  },
 } as const satisfies Record<string, ScrollbarPalette>;
 
 function webkitRules(scopes: string[], p: ScrollbarPalette) {

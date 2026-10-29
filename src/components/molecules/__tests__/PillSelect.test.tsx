@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { act, render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import PillSelect, { type PillSelectOption } from "../PillSelect";
 
 // O React só escuta animationend se o ambiente tiver AnimationEvent (jsdom não tem);
@@ -25,8 +25,22 @@ function mockReducedMotion(reduce: boolean) {
   })) as typeof window.matchMedia;
 }
 
+// jsdom não tem layout: a pílula ocupa um retângulo fixo dentro da janela (768 de altura).
+let pillRect = { top: 100, bottom: 157, left: 50, right: 393, width: 343, height: 57 };
+const rectSpy = vi.spyOn(Element.prototype, "getBoundingClientRect");
+
+beforeEach(() => {
+  pillRect = { top: 100, bottom: 157, left: 50, right: 393, width: 343, height: 57 };
+  rectSpy.mockImplementation(function () {
+    return { ...pillRect, x: pillRect.left, y: pillRect.top, toJSON: () => ({}) } as DOMRect;
+  });
+});
+
 afterEach(() => {
   window.matchMedia = originalMatchMedia;
+  vi.useRealTimers();
+  heightSpy?.mockRestore();
+  heightSpy = undefined;
 });
 
 const OPTIONS: PillSelectOption[] = [
@@ -54,6 +68,12 @@ function Harness({ onChange }: { onChange?: (v: string) => void }) {
       <button>depois</button>
     </>
   );
+}
+
+// A lista tem 5 × 44 px de conteúdo; jsdom não mede, então `scrollHeight` é simulado.
+let heightSpy: { mockRestore: () => void } | undefined;
+function mockListHeight(height: number) {
+  heightSpy = vi.spyOn(HTMLElement.prototype, "scrollHeight", "get").mockReturnValue(height);
 }
 
 const trigger = () => screen.getByRole("combobox", { name: "Classe" });
@@ -201,16 +221,18 @@ describe("PillSelect", () => {
 
   it("jumps by typing, from closed and from open, and cycles repeated letters", async () => {
     mockReducedMotion(true);
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     render(<Harness />);
     trigger().focus();
-    await userEvent.keyboard("c"); // abre em Caçador
+    await user.keyboard("c"); // abre em Caçador
     expect(listbox()).not.toBeNull();
     expect(activeOptionName()).toContain("Caçador");
-    await new Promise((r) => setTimeout(r, 600));
-    await userEvent.keyboard("c"); // letra repetida: próxima com C
+    act(() => vi.advanceTimersByTime(600));
+    await user.keyboard("c"); // letra repetida: próxima com C
     expect(activeOptionName()).toContain("Curandeiro");
-    await new Promise((r) => setTimeout(r, 600));
-    await userEvent.keyboard("al");
+    act(() => vi.advanceTimersByTime(600));
+    await user.keyboard("al");
     expect(activeOptionName()).toContain("Alquimista");
   });
 
@@ -318,5 +340,115 @@ describe("PillSelect", () => {
       </>,
     );
     expect(screen.getByRole("combobox", { name: "Mês" })).toBeInTheDocument();
+  });
+
+  it("keeps focus on the trigger after clicking an option", async () => {
+    mockReducedMotion(true);
+    render(<Harness />);
+    await userEvent.click(trigger());
+    await userEvent.click(screen.getByRole("option", { name: "Caçador" }));
+    expect(trigger()).toHaveFocus();
+  });
+
+  it("opens upward when below does not fit, with the outer radius intact", async () => {
+    mockReducedMotion(true);
+    mockListHeight(220);
+    pillRect = { top: 650, bottom: 707, left: 50, right: 393, width: 343, height: 57 };
+    // O gatilho já está achatado no lado de baixo (lado padrão) quando a lista mede o raio.
+    const realComputed = window.getComputedStyle.bind(window);
+    const fake: Record<string, string> = {
+      borderTopWidth: "4px",
+      paddingLeft: "16px",
+      paddingRight: "46px",
+      borderTopLeftRadius: "28px",
+      borderBottomLeftRadius: "0px",
+    };
+    const computedSpy = vi.spyOn(window, "getComputedStyle").mockImplementation((el, pseudo) => {
+      const real = realComputed(el, pseudo);
+      if (el.getAttribute("role") !== "combobox") return real;
+      return new Proxy(real, {
+        get: (t, k: string) => (k in fake ? fake[k] : Reflect.get(t, k).bind?.(t) ?? Reflect.get(t, k)),
+      });
+    });
+    render(<Harness />);
+    try {
+      await userEvent.click(trigger());
+    } finally {
+      computedSpy.mockRestore();
+    }
+    const list = screen.getByRole("listbox");
+    expect(list.style.getPropertyValue("--pill-radius")).toBe("28px");
+    expect(trigger()).toHaveAttribute("data-state", "open");
+    // Lista acima, descendo até a borda da pílula (sobe 4 px sobre ela: 654 - 220).
+    expect(list.style.top).toBe("434px");
+  });
+
+  it("closes without changing when the pill scrolls out of the viewport", async () => {
+    mockReducedMotion(true);
+    const onChange = vi.fn();
+    render(<Harness onChange={onChange} />);
+    await userEvent.click(trigger());
+    expect(listbox()).not.toBeNull();
+    pillRect = { top: 900, bottom: 957, left: 50, right: 393, width: 343, height: 57 };
+    act(() => {
+      window.dispatchEvent(new Event("scroll"));
+    });
+    expect(listbox()).toBeNull();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("repositions on scroll while the pill stays visible", async () => {
+    mockReducedMotion(true);
+    mockListHeight(220);
+    render(<Harness />);
+    await userEvent.click(trigger());
+    const before = screen.getByRole("listbox").style.top;
+    pillRect = { top: 120, bottom: 177, left: 50, right: 393, width: 343, height: 57 };
+    act(() => {
+      window.dispatchEvent(new Event("scroll"));
+    });
+    expect(screen.getByRole("listbox").style.top).not.toBe(before);
+  });
+
+  it("removes the scroll and resize listeners on unmount", async () => {
+    mockReducedMotion(true);
+    const removed: string[] = [];
+    const spy = vi.spyOn(window, "removeEventListener").mockImplementation((type) => {
+      removed.push(type);
+    });
+    const { unmount } = render(<Harness />);
+    await userEvent.click(trigger());
+    unmount();
+    spy.mockRestore();
+    expect(removed).toEqual(expect.arrayContaining(["scroll", "resize"]));
+  });
+
+  it("unmounts by a safety timeout when animationend never arrives", async () => {
+    mockReducedMotion(false);
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    render(<Harness />);
+    await user.click(trigger());
+    await user.click(trigger());
+    expect(document.querySelector("[role=listbox]")).not.toBeNull();
+    act(() => vi.advanceTimersByTime(300));
+    expect(document.querySelector("[role=listbox]")).toBeNull();
+    expect(trigger()).toHaveAttribute("data-state", "settling");
+    act(() => vi.advanceTimersByTime(300));
+    expect(trigger()).toHaveAttribute("data-state", "closed");
+  });
+
+  it("does not let list clicks reach React ancestors of the select", async () => {
+    mockReducedMotion(true);
+    const parentClick = vi.fn();
+    render(
+      <div onClick={parentClick}>
+        <PillSelect aria-label="Classe" value="" options={OPTIONS} onChange={() => {}} />
+      </div>,
+    );
+    await userEvent.click(trigger());
+    parentClick.mockClear();
+    await userEvent.click(screen.getByRole("option", { name: "Caçador" }));
+    expect(parentClick).not.toHaveBeenCalled();
   });
 });

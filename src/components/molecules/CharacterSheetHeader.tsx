@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import styled from "styled-components";
 import { colors } from "../../styles/tokens";
 import type { CharacterSheet } from "../../types/characterSheet";
@@ -46,13 +46,16 @@ export default function CharacterSheetHeader({
   const { buildFromClass } = useCharSheetBuilder();
   const [avatarModalOpen, setAvatarModalOpen] = useState(false);
   const [coverModalOpen, setCoverModalOpen] = useState(false);
-  const classOptions = [
-    { value: "", label: "Selecione uma classe" },
-    ...(charClasses ?? []).map((cc) => ({
-      value: cc.profile.name,
-      label: cc.profile.name,
-    })),
-  ];
+  const classOptions = useMemo(
+    () => [
+      { value: "", label: "Selecione uma classe" },
+      ...(charClasses ?? []).map((cc) => ({
+        value: cc.profile.name,
+        label: cc.profile.name,
+      })),
+    ],
+    [charClasses],
+  );
   const handleClassChange = (targetClass: string) => {
     const charClass = charClasses?.find(
       (cc) => cc.profile.name === targetClass,

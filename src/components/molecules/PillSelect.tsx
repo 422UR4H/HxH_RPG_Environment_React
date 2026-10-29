@@ -1,6 +1,7 @@
 import {
   type CSSProperties,
   type KeyboardEvent,
+  useCallback,
   useEffect,
   useId,
   useLayoutEffect,
@@ -10,7 +11,16 @@ import {
 import { createPortal } from "react-dom";
 import { computeAttachedListPlacement } from "../../utils/popoverPlacement";
 import { prefersReducedMotion } from "../../utils/prefersReducedMotion";
-import { Check, List, Option, Sizer, Trigger, Value } from "./PillSelect.styles";
+import {
+  Check,
+  Label,
+  List,
+  Option,
+  PILL_SELECT_DURATION_MS,
+  Sizer,
+  Trigger,
+  Value,
+} from "./PillSelect.styles";
 
 export interface PillSelectOption {
   value: string;
@@ -26,6 +36,7 @@ interface PillSelectProps {
   className?: string;
   id?: string;
   disabled?: boolean;
+  /** O nome acessível vem de `aria-label` ou `aria-labelledby`: `<label htmlFor>` não funciona num `div` combobox. */
   "aria-label"?: string;
   "aria-labelledby"?: string;
 }
@@ -41,6 +52,16 @@ interface Placement {
 
 const PAGE_STEP = 10;
 const TYPEAHEAD_RESET_MS = 500;
+// Folga sobre a animação: se o animationend não vier (aba oculta, estilo cortado), a lista desmonta mesmo assim.
+const CLOSE_SAFETY_MS = PILL_SELECT_DURATION_MS + 100;
+
+// Os cantos do lado da lista leem 0 enquanto abertos; vale o maior dos dois lados.
+function largestRadius(a: string, b: string) {
+  const pa = parseFloat(a);
+  const pb = parseFloat(b);
+  if (!a.endsWith("px") || !b.endsWith("px")) return a;
+  return `${Math.max(pa, pb)}px`;
+}
 
 /**
  * Select-only combobox (padrão WAI-ARIA APG): o foco fica no gatilho e a lista, num portal,
@@ -60,11 +81,15 @@ export default function PillSelect({
   const [open, setOpen] = useState(false);
   // Fechando: a lista continua montada até a animação de saída terminar.
   const [closing, setClosing] = useState(false);
+  // Recolhida: a pílula leva um instante para voltar a arredondar (a lista já se foi).
+  const [settling, setSettling] = useState(false);
+  const [scrollbarWidth, setScrollbarWidth] = useState(0);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [placement, setPlacement] = useState<Placement | null>(null);
   const triggerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const typed = useRef({ text: "", timer: 0 });
+  const closeRef = useRef<() => void>(() => {});
   const listId = useId();
   const mounted = open || closing;
 
@@ -82,9 +107,24 @@ export default function PillSelect({
       if (!trigger || !list) return;
       const rect = trigger.getBoundingClientRect();
       const cs = getComputedStyle(trigger);
+      // Pílula fora da janela: a lista fixa ficaria flutuando sozinha. (Retângulo vazio = sem
+      // layout, como no jsdom; não é "fora da janela".)
+      const hasLayout = rect.width > 0 || rect.height > 0;
+      if (
+        hasLayout &&
+        (rect.bottom <= 0 ||
+          rect.top >= window.innerHeight ||
+          rect.right <= 0 ||
+          rect.left >= window.innerWidth)
+      ) {
+        closeRef.current();
+        return;
+      }
+      const border = parseFloat(cs.borderTopWidth) || 0;
       const natural = list.scrollHeight + (list.offsetHeight - list.clientHeight);
+      // A lista sobe sobre a borda da pílula, para as laterais brancas seguirem contínuas.
       const { side, top, height } = computeAttachedListPlacement({
-        field: rect,
+        field: { top: rect.top + border, bottom: rect.bottom - border },
         listHeight: natural,
         viewportHeight: window.innerHeight,
       });
@@ -97,9 +137,8 @@ export default function PillSelect({
         "--pill-border-width": cs.borderTopWidth,
         "--pill-padding-left": cs.paddingLeft,
         "--pill-padding-right": cs.paddingRight,
-        // Os cantos do lado da lista ficam retos enquanto aberto; lê-se o do lado oposto.
-        "--pill-radius":
-          side === "below" ? cs.borderTopLeftRadius : cs.borderBottomLeftRadius,
+        // Os cantos do lado da lista ficam retos enquanto aberto (0); o raio é o do outro lado.
+        "--pill-radius": largestRadius(cs.borderTopLeftRadius, cs.borderBottomLeftRadius),
       };
       setPlacement((prev) =>
         prev &&
@@ -120,7 +159,16 @@ export default function PillSelect({
       window.removeEventListener("resize", place);
       window.removeEventListener("scroll", place, { capture: true });
     };
-  }, [mounted, options]);
+  }, [mounted, options, placement?.side]);
+
+  // A barra de rolagem da lista come a coluna do ✓, não o texto: mede e compensa.
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    if (!list || !placement) return;
+    const border = parseFloat(placement.vars["--pill-border-width"]) || 0;
+    const bar = Math.max(0, list.offsetWidth - list.clientWidth - 2 * border);
+    setScrollbarWidth((prev) => (prev === bar ? prev : bar));
+  }, [placement]);
 
   // Clique fora fecha sem mudar nada.
   useEffect(() => {
@@ -172,7 +220,26 @@ export default function PillSelect({
     return current;
   }
 
+  const finishClosing = useCallback(() => {
+    setClosing(false);
+    setPlacement(null);
+    if (!prefersReducedMotion()) setSettling(true);
+  }, []);
+
+  useEffect(() => {
+    if (!closing) return;
+    const t = window.setTimeout(finishClosing, CLOSE_SAFETY_MS);
+    return () => window.clearTimeout(t);
+  }, [closing, finishClosing]);
+
+  useEffect(() => {
+    if (!settling) return;
+    const t = window.setTimeout(() => setSettling(false), PILL_SELECT_DURATION_MS);
+    return () => window.clearTimeout(t);
+  }, [settling]);
+
   function openList(index: number) {
+    setSettling(false);
     setClosing(false);
     setOpen(true);
     setActiveIndex(index);
@@ -292,8 +359,10 @@ export default function PillSelect({
     }
   }
 
+  closeRef.current = closeList;
+
   const side = placement?.side ?? "below";
-  const state = open ? "open" : closing ? "closing" : "closed";
+  const state = open ? "open" : closing ? "closing" : settling ? "settling" : "closed";
 
   return (
     <>
@@ -341,6 +410,7 @@ export default function PillSelect({
             style={
               {
                 ...placement?.vars,
+                "--list-scrollbar": `${scrollbarWidth}px`,
                 top: placement?.top ?? 0,
                 left: placement?.left ?? 0,
                 width: placement?.width,
@@ -350,11 +420,12 @@ export default function PillSelect({
             // Mantém o foco no gatilho ao clicar na lista.
             onMouseDown={(e) => e.preventDefault()}
             onAnimationEnd={(e) => {
-              if (e.target === e.currentTarget && closing) {
-                setClosing(false);
-                setPlacement(null);
-              }
+              if (e.target === e.currentTarget && closing) finishClosing();
             }}
+            // Eventos da lista (portal) não sobem pelos ancestrais React do campo (ex.: card clicável).
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+            onPointerUp={(e) => e.stopPropagation()}
           >
             {options.map((o, i) => (
               <Option
@@ -371,7 +442,7 @@ export default function PillSelect({
                   if (!o.disabled) commit(i);
                 }}
               >
-                {o.label}
+                <Label>{o.label}</Label>
                 {i === selectedIndex && <Check aria-hidden="true">✓</Check>}
               </Option>
             ))}
