@@ -21,7 +21,9 @@ export default function ExpandableText({
   const textRef = useRef<HTMLParagraphElement>(null);
 
   // Mede o texto inteiro (scrollHeight vale mesmo com max-height) para animar o max-height
-  // entre a altura recolhida (5 linhas) e a total, nos dois sentidos.
+  // entre a altura recolhida (5 linhas) e a total, nos dois sentidos. O ResizeObserver remede
+  // quando a largura muda sem resize de janela (sidebar, container query, fonte tardia), para o
+  // texto aberto nunca ficar cortado por um max-height velho.
   useEffect(() => {
     if (!children || !textRef.current) return;
     const el = textRef.current;
@@ -31,8 +33,9 @@ export default function ExpandableText({
       setShowButton(el.scrollHeight > lineHeight * 5);
     };
     measure();
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
   }, [children]);
 
   if (!children) return null;
