@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import styled from "styled-components";
 import { describe, expect, it } from "vitest";
 import BlockableButton from "../BlockableButton";
 
@@ -24,5 +25,28 @@ describe("BlockableButton", () => {
       <BlockableButton blockedReason="Motivo" labelAlign="start">Excluir</BlockableButton>,
     );
     expect(container.querySelectorAll("img")).toHaveLength(1);
+  });
+});
+
+describe("BlockableButton gap", () => {
+  const Gapped = styled(BlockableButton)`
+    display: flex;
+    gap: 10px;
+  `;
+
+  // O jsdom não propaga `gap` por herança, então o teste confere a cadeia de regras:
+  // botão (gap do consumidor) -> Inner (gap: inherit) -> Label (gap: inherit).
+  const rulesFor = (el: Element) => {
+    const css = Array.from(document.querySelectorAll("style")).map((s) => s.textContent).join("");
+    return el.className.split(" ").flatMap((c) => css.match(new RegExp(`\\.${c}\\s*\\{[^}]*\\}`, "g")) ?? []).join("");
+  };
+
+  it.each([[undefined], ["Motivo"]])("keeps the consumer gap reaching the label children (reason: %s)", (reason) => {
+    render(<Gapped blockedReason={reason}><span>icon</span>Texto</Gapped>);
+    const label = screen.getByText("icon").parentElement as HTMLElement;
+    const inner = label.parentElement as HTMLElement;
+    expect(rulesFor(screen.getByRole("button"))).toMatch(/gap:\s*10px/);
+    expect(rulesFor(inner)).toMatch(/gap:\s*inherit/);
+    expect(rulesFor(label)).toMatch(/gap:\s*inherit/);
   });
 });

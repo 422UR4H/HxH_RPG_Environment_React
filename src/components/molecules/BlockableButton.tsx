@@ -55,6 +55,7 @@ export default function BlockableButton({
 const Inner = styled.span`
   display: flex;
   align-items: center;
+  gap: inherit; /* herda o gap do botão; o Label herda do Inner */
   flex: 1 1 auto;
   width: 100%;
   min-width: 0;
