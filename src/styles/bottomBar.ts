@@ -27,7 +27,7 @@ export const floatingElevation = (shadow: string, outline: string, highlight: st
 export const floatingBottomPx = 20;
 /** Altura medida dos botões flutuantes (padding 15 + texto 26): se o botão mudar de tamanho, mude aqui. */
 export const floatingHeightPx = 72;
-/** A barra só encaixa a 30 px do fim do conteúdo; até lá ela flutua (mesmo número dos dois componentes). */
+/** A barra só encaixa a 30 px do fim do conteúdo; até lá ela flutua (mesmo número dos três componentes). */
 export const dockThresholdPx = 30;
 const floatingSafetyPx = 8;
 

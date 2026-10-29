@@ -5,7 +5,7 @@ import ManageButton from "../../components/molecules/ManageButton";
 import type { ManageActions } from "../../components/molecules/ManageButton";
 import styled from "styled-components";
 import { colors, gradients } from "../../styles/tokens";
-import { floatingElevation } from "../../styles/bottomBar";
+import { dockThresholdPx, floatingBottomPx, floatingElevation } from "../../styles/bottomBar";
 
 interface SheetBottomActionsProps {
   onCampaignClick?: () => void;
@@ -65,7 +65,7 @@ export default function SheetBottomActions({
     if (!root) return;
     const check = () => {
       setIsFloating(
-        root.scrollTop + root.clientHeight < root.scrollHeight - 30,
+        root.scrollTop + root.clientHeight < root.scrollHeight - dockThresholdPx,
       );
     };
     const timers = [0, 50, 150, 300, 500].map((t) => setTimeout(check, t));
@@ -75,7 +75,7 @@ export default function SheetBottomActions({
   useEffect(() => {
     const root = document.getElementById("root");
     if (!root) return;
-    setIsFloating(debouncedScroll + root.clientHeight < root.scrollHeight - 30);
+    setIsFloating(debouncedScroll + root.clientHeight < root.scrollHeight - dockThresholdPx);
   }, [debouncedScroll]);
 
   if (isFloating) {
@@ -166,7 +166,7 @@ const CampaignButton = styled.button`
 // A faixa não captura toque; só os botões (e o menu de Gerenciar) capturam.
 const FloatingGroup = styled.div`
   position: fixed;
-  bottom: 20px;
+  bottom: ${floatingBottomPx}px;
   left: calc(var(--column-left, 0px) + max(16px, min(60px, 5cqi)));
   right: calc(var(--column-right, 0px) + max(16px, min(60px, 5cqi)));
   z-index: 10;
