@@ -95,8 +95,7 @@ export default function ManageButton({
   );
 }
 
-// Flutuando, a altura é "auto" para o grupo esticar o botão à altura do vizinho (um percentual
-// impediria o stretch); encaixado, preenche a barra.
+// Flutuando, a altura é "auto" (o botão define a própria); encaixado, preenche a barra.
 const Wrapper = styled.div<{ $isFloating: boolean }>`
   position: relative;
   flex-shrink: 0;
@@ -127,8 +126,9 @@ const Button = styled.button<{ $isFloating: boolean; $open: boolean }>`
         border-radius: 50px;
         padding: 14px 22px;
         box-shadow: ${floatingElevation(colors.shadowFloating, colors.borderFloating, colors.borderFloatingHighlight)};
-        /* Ao lado do botão principal, o BottomActions define --floating-label-size (mesmo corpo e mesma altura). */
-        height: 100%;
+        /* Ao lado do botão principal, o BottomActions define --floating-label-size (mesmo corpo) e
+           --manage-floating-height (altura fixa, menor que a do principal). */
+        height: var(--manage-floating-height, 100%);
         font-size: var(--floating-label-size, min(24px, 4cqi));
         @media (max-width: 609px) {
           padding: 0 0.9em;
