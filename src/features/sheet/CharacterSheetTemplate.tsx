@@ -151,6 +151,10 @@ function CharacterSheetTemplate({
 
   // Embutida na partida (F3): sem voltar (navegaria para fora dela) e sem ações de rodapé.
 
+  // Os espaçadores áureos valem nos três modos; só a compensação muda (ver GoldenSpacer).
+  const isEdit = sheetMode.diagramsMode !== "view";
+  const hasPrinciples = (spiritualAbility?.level ?? 0) > 0;
+
   return (
     <SheetContainer>
       {!embedded && <BackButton />}
@@ -187,12 +191,14 @@ function CharacterSheetTemplate({
         <GridSection>
           <AttributesSection>
             <SectionTitle>ATRIBUTOS</SectionTitle>
+            <GoldenSpacer {...spacerProps("titleToPhysical", isEdit)} />
             <PhysicalsDiagram
               key={`physical-${charSheet?.characterClass ?? "none"}`}
               mode={sheetMode.diagramsMode}
               attributes={physicalAttributes}
               physicalAbility={physicalAbility}
             />
+            <GoldenSpacer {...spacerProps("physicalToMental", isEdit)} />
             <MentalsDiagram
               key={`mental-${charSheet?.characterClass ?? "none"}`}
               mode={sheetMode.diagramsMode}
@@ -200,9 +206,11 @@ function CharacterSheetTemplate({
               mentalAbility={mentalAbility}
             />
 
-            {(spiritualAbility?.level ?? 0) > 0 && (
+            {hasPrinciples && (
               <>
+                <GoldenSpacer {...spacerProps("mentalToPrinciples", isEdit)} />
                 <SectionTitle>PRINCÍPIOS</SectionTitle>
+                <GoldenSpacer {...spacerProps("titleToPrinciples", isEdit)} />
                 <NenPrinciplesDiagram
                   mode={sheetMode.diagramsMode}
                   principles={principles}
@@ -210,6 +218,12 @@ function CharacterSheetTemplate({
                 />
               </>
             )}
+            <GoldenSpacer
+              {...spacerProps(
+                hasPrinciples ? "endAfterPrinciples" : "endAfterMental",
+                isEdit,
+              )}
+            />
           </AttributesSection>
 
           <SkillsSection>
@@ -345,6 +359,10 @@ const SectionTitle = styled.h2`
 `;
 
 const GridSection = styled.div`
+  /* Container só para os espaçadores da coluna de atributos saberem se o grid está em duas colunas
+     (conteúdo >= 2 x 260 + gap 30 = 550 px) pela largura do próprio grid, não da janela: a ficha
+     dentro da partida fica num painel estreito mesmo com janela larga. */
+  container: sheet-grid / inline-size;
   padding: 30px;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -367,16 +385,148 @@ const GroupTitle = styled.h3`
 const AttributesSection = styled.section`
   container-type: inline-size;
   margin-top: 12px;
-  padding-bottom: 8cqi;
+  /* Sem padding-bottom: o respiro do fim da coluna é o último GoldenSpacer. */
 
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  /* justify-content: space-around; */
+  /* Conteúdo no topo; a altura que sobra (coluna de perícias mais alta) é repartida pelos
+     GoldenSpacer, não pelo justify-content. */
+  justify-content: flex-start;
+`;
+
+/* Distribuição áurea da coluna de atributos (1 : φ : φ²), igual nos modos ver, editar e criar.
+   As lacunas são medidas pela TINTA (texto, linhas e círculos do SVG, botões +/− e "Pontos para
+   Distribuir"), não pelas caixas, porque no modo editar os controles transbordam a caixa do
+   diagrama. Lado a lado (container sheet-grid >= 550 px) a altura livre da coluna é repartida só
+   por flex-grow: título→diagrama = g; diagrama→diagrama do mesmo grupo = g × φ; quebra de grupo = g × φ² (≈ 2,618 g): último
+   diagrama→fim da coluna e, quando o Nen aparece, diagrama Mental→título "PRINCÍPIOS". Gestalt: o
+   que separa grupos é maior do que o que separa itens do mesmo grupo (por isso o último diagrama
+   não fica solto antes de "Proficiências"). Com o Nen os pesos são 1 : φ : φ² : 1 : φ².
+   Mínimos: g >= 24 px, g × φ >= 39 px e g × φ² >= 63 px; se nem eles couberem (diagrama de
+   Princípios) a coluna cresce. Coluna única (< 550 px): sem altura para repartir, g = 10cqi,
+   g × φ = 16,18cqi e g × φ² = 26,18cqi (cqi da própria seção de atributos); o fim ainda desconta
+   o gap de linha do grid, para a lacuna visível até as perícias ser g × φ².
+   Alvos em 1366 (tinta): ver 95 / 155 / 250 px; editar 44 / 71 / 115 px; coluna única em 390:
+   34 / 55 / 89 px (título→d1 / d1→d2 / d2→fim).
+   Para a lacuna visível ser exatamente o peso, cada espaçador anula com margem negativa (em cqi)
+   as margens dos blocos vizinhos e soma o quanto a tinta transborda a caixa (medido nos
+   diagramas, que são pixel-tuned e não mudam). Se os diagramas mudarem as margens ou a posição
+   dos controles, remeça à mão (DevTools): meça as caixas da tinta (texto do h2, linhas e círculos do
+   SVG, botões +/− e "Pontos para Distribuir") e confira que as três lacunas ficam em 1 : φ : φ².
+   Os números de spacerCompensation (em cqi, salvo indicação):
+   - 19.63 / 16.65: quanto os "+" e rótulos do diagrama Physical sobem acima da caixa no modo
+     editar (largo / estreito);
+   - 17.63 / 16.65: o mesmo para o Mental;
+   - EDIT_BOTTOM_OVERFLOW: quanto o "−" e os rótulos descem abaixo da caixa no modo editar;
+   - o -5 de titleToPhysical / titleToPrinciples: anula o margin-bottom: 5cqi do SectionTitle. */
+const PHI = 1.618;
+const MIN_GAP = 24; // px: mínimo de g
+const MIN_GAP_PHI = 39; // px: mínimo de g × φ
+const MIN_GAP_PHI2 = 63; // px: mínimo de g × φ² (quebra de grupo)
+const GRID_ROW_GAP = 30; // px: o gap do GridSection, que entra entre a seção e as perícias
+const TITLE_OVERHANG = 0.75; // cqi que a tinta do h2 passa da caixa
+/* Transbordo da tinta abaixo do diagrama no modo editar ("−" e rótulos têm parte em px): reta até
+   a seção chegar a ~425 px, depois outra reta (as fontes em min(cqi, px) travam). */
+const EDIT_BOTTOM_OVERFLOW = "min(9.75cqi + 14.4px, 6.18cqi + 29.5px)";
+
+type SpacerKind =
+  | "titleToPhysical"
+  | "physicalToMental"
+  | "mentalToPrinciples"
+  | "titleToPrinciples"
+  | "endAfterMental"
+  | "endAfterPrinciples";
+
+/* Compensação (margem do espaçador) de cada posição. `narrow` espelha o @media (max-width: 589px)
+   dos próprios diagramas (margem inferior do mental na visualização e posição do "Pontos para
+   Distribuir" na edição). */
+const spacerCompensation = (
+  kind: SpacerKind,
+  isEdit: boolean,
+  narrow: boolean,
+): string => {
+  const mentalMarginBottom = isEdit || !narrow ? 16 : 4;
+  const physicalTopOverflow = !isEdit ? 0 : narrow ? 16.65 : 19.63;
+  const mentalTopOverflow = !isEdit ? 0 : narrow ? 16.65 : 17.63;
+  const bottomOverflow = isEdit ? EDIT_BOTTOM_OVERFLOW : "0px";
+  const physicalMarginTop = isEdit ? 16 : 0;
+  const mentalMarginTop = isEdit ? 16 : 8;
+  const physicalMarginBottom = isEdit ? 20 : 0;
+
+  let cqi: number;
+  let withOverflow = false;
+  switch (kind) {
+    case "titleToPhysical":
+      cqi = -5 + TITLE_OVERHANG - physicalMarginTop + physicalTopOverflow;
+      break;
+    case "physicalToMental":
+      cqi = -physicalMarginBottom - mentalMarginTop + mentalTopOverflow;
+      withOverflow = true;
+      break;
+    case "mentalToPrinciples":
+      cqi = -mentalMarginBottom + TITLE_OVERHANG;
+      withOverflow = true;
+      break;
+    case "titleToPrinciples":
+      cqi = -5 + TITLE_OVERHANG;
+      break;
+    case "endAfterMental":
+      cqi = -mentalMarginBottom;
+      withOverflow = true;
+      break;
+    case "endAfterPrinciples":
+      cqi = 0;
+      break;
+  }
+  return withOverflow
+    ? `calc(${cqi.toFixed(2)}cqi + ${bottomOverflow})`
+    : `${cqi.toFixed(2)}cqi`;
+};
+
+const isTitleGap = (kind: SpacerKind) =>
+  kind === "titleToPhysical" || kind === "titleToPrinciples";
+const isGroupBreak = (kind: SpacerKind) =>
+  kind === "mentalToPrinciples" ||
+  kind === "endAfterMental" ||
+  kind === "endAfterPrinciples";
+
+/* Peso (flex-grow), mínimo (px) e altura em coluna única (cqi) de cada tipo de lacuna. */
+const gapWeight = (kind: SpacerKind) =>
+  isTitleGap(kind) ? 1 : isGroupBreak(kind) ? PHI * PHI : PHI;
+const gapMin = (kind: SpacerKind) =>
+  isTitleGap(kind) ? MIN_GAP : isGroupBreak(kind) ? MIN_GAP_PHI2 : MIN_GAP_PHI;
+const gapNarrowCqi = (kind: SpacerKind) => (10 * gapWeight(kind)).toFixed(2);
+
+const spacerProps = (kind: SpacerKind, isEdit: boolean) => ({
+  $kind: kind,
+  $comp: spacerCompensation(kind, isEdit, false),
+  $compNarrow: spacerCompensation(kind, isEdit, true),
+});
+
+const GoldenSpacer = styled.div<{
+  $kind: SpacerKind;
+  $comp: string;
+  $compNarrow: string;
+}>`
+  --comp: ${({ $comp }) => $comp};
+  --column-extra: 0px;
+  flex: ${({ $kind }) => gapWeight($kind).toFixed(3)} 1 0;
+  min-height: ${({ $kind }) => gapMin($kind)}px;
+  margin-top: calc(var(--comp) + var(--column-extra));
 
   @media (max-width: 589px) {
-    padding-bottom: 0;
+    --comp: ${({ $compNarrow }) => $compNarrow};
+  }
+
+  @container sheet-grid (width < 550px) {
+    flex: none;
+    min-height: 0;
+    height: ${({ $kind }) => gapNarrowCqi($kind)}cqi;
+    --column-extra: ${({ $kind }) =>
+      $kind === "endAfterMental" || $kind === "endAfterPrinciples"
+        ? `-${GRID_ROW_GAP}px`
+        : "0px"};
   }
 `;
 

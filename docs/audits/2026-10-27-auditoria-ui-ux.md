@@ -356,6 +356,8 @@ O rótulo na borda, o espaçamento igual entre campos e botão e os erros por ca
 
 **O que está errado.** A partida abre na aba “Eventos”, mas ela não lista evento nenhum: só contém os botões (Gerenciar, Abrir Lobby, Entrar). Para o jogador é a única aba, então aparece uma barra de abas com uma aba só.
 
+> **Correção (28/10):** essa última frase está errada. A barra de abas some quando há uma aba só (`PageTabNav` retorna nada), então o jogador não vê a barra. Ele só vê abas na partida encerrada ("Eventos" e "Mapas").
+
 **Por que importa.** A aba promete um conteúdo que não existe. Se a banca clicar em “Eventos” esperando o histórico da partida, não acha nada.
 
 **Correção sugerida (recomendação: A).**

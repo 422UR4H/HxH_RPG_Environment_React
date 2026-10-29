@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import styled from "styled-components";
 import CloseButton from "../../../components/ions/CloseButton";
+import { iconButtonFx } from "../../../styles/iconButtonFx";
 import { colors } from "../../../styles/tokens";
 import { combatErrorText } from "./combatErrorMessages";
 import type { WsError } from "./combatErrorMessages";
@@ -51,4 +52,5 @@ const CloseWrap = styled.button`
   border: none;
   background: transparent;
   cursor: pointer;
+  ${iconButtonFx(1.15)}
 `;

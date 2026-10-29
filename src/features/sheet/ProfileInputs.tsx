@@ -1,9 +1,9 @@
-import styled, { keyframes } from "styled-components";
+import { useMemo } from "react";
+import styled from "styled-components";
 import BackgroundButton from "../../components/atoms/BackgroundButton";
 import type { Profile, CharacterSheet } from "../../types/characterSheet";
-import BaseOption from "../../components/ions/BaseOption";
-import BaseSelect from "../../components/ions/BaseSelect";
 import { colors } from "../../styles/tokens";
+import { DetailItem, DetailLabel, ProfilePillSelect } from "./ProfileFieldStyles";
 import { toDateInputValue } from "../../utils/date";
 
 interface ProfileInputsProps {
@@ -17,6 +17,21 @@ const MONTH_NAMES = [
   "Maio", "Junho", "Julho", "Agosto",
   "Setembro", "Outubro", "Novembro", "Dezembro",
 ] as const;
+
+const MONTH_OPTIONS = MONTH_NAMES.map((name, i) => ({ value: String(i + 1), label: name }));
+
+const ALIGNMENT_OPTIONS = [
+  { value: "", label: "Unaligned" },
+  { value: "Lawful-Good", label: "Lawful Good" },
+  { value: "Lawful-Neutral", label: "Lawful Neutral" },
+  { value: "Lawful-Evil", label: "Lawful Evil" },
+  { value: "Neutral-Good", label: "Neutral Good" },
+  { value: "Neutral-Neutral", label: "True Neutral" },
+  { value: "Neutral-Evil", label: "Neutral Evil" },
+  { value: "Chaotic-Good", label: "Chaotic Good" },
+  { value: "Chaotic-Neutral", label: "Chaotic Neutral" },
+  { value: "Chaotic-Evil", label: "Chaotic Evil" },
+];
 
 function maxDaysForMonth(month: number): number {
   if (month === 2) return 29;
@@ -47,81 +62,84 @@ export default function ProfileInputs({
   ).split("-");
   const currentMonth = parseInt(birthdayParts[1]);
   const currentDay = parseInt(birthdayParts[2]);
-  const alignmentOptions: { value: string; label: string }[] = [
-    { value: "", label: "Unaligned" },
-    { value: "Lawful-Good", label: "Lawful Good" },
-    { value: "Lawful-Neutral", label: "Lawful Neutral" },
-    { value: "Lawful-Evil", label: "Lawful Evil" },
-    { value: "Neutral-Good", label: "Neutral Good" },
-    { value: "Neutral-Neutral", label: "True Neutral" },
-    { value: "Neutral-Evil", label: "Neutral Evil" },
-    { value: "Chaotic-Good", label: "Chaotic Good" },
-    { value: "Chaotic-Neutral", label: "Chaotic Neutral" },
-    { value: "Chaotic-Evil", label: "Chaotic Evil" },
-  ];
+  // A lista de dias muda com o mês; a identidade estável evita recalcular a posição da lista aberta.
+  const maxDays = maxDaysForMonth(currentMonth);
+  const dayOptions = useMemo(
+    () =>
+      Array.from({ length: maxDays }, (_, i) => ({
+        value: String(i + 1),
+        label: String(i + 1),
+      })),
+    [maxDays],
+  );
 
   return (
     <ProfileContainer>
-      <ProfileNameInput
-        type="text"
-        autoComplete="off"
-        placeholder="Nome completo do personagem"
-        value={profile?.fullname || ""}
-        onChange={(e) => handleInputChange("fullname", e.target.value)}
-      />
+      <SpacedField>
+        <DetailLabel as="label" htmlFor="profile-fullname">
+          Nome completo:
+        </DetailLabel>
+        <ProfileNameInput
+          id="profile-fullname"
+          type="text"
+          autoComplete="off"
+          placeholder="Nome completo do personagem"
+          value={profile?.fullname || ""}
+          onChange={(e) => handleInputChange("fullname", e.target.value)}
+        />
+      </SpacedField>
 
-      <ProfileDescriptionTextarea
-        autoComplete="off"
-        placeholder="Breve descrição do personagem"
-        rows={2}
-        value={profile?.briefDescription || ""}
-        onChange={(e) => handleInputChange("briefDescription", e.target.value)}
-      />
+      <SpacedField>
+        <DetailLabel as="label" htmlFor="profile-brief-description">
+          Descrição breve:
+        </DetailLabel>
+        <ProfileDescriptionTextarea
+          id="profile-brief-description"
+          autoComplete="off"
+          placeholder="Breve descrição do personagem"
+          rows={2}
+          value={profile?.briefDescription || ""}
+          onChange={(e) => handleInputChange("briefDescription", e.target.value)}
+        />
+      </SpacedField>
 
       <ProfileContent>
         <LeftDetails>
           <BirthdayAgeRow>
-            <DetailItem>
-              <DetailLabel>Aniversário:</DetailLabel>
+            <DetailItem role="group" aria-labelledby="profile-birthday-label">
+              <DetailLabel id="profile-birthday-label">Aniversário:</DetailLabel>
               <BirthdaySelects>
-                <BaseSelect
+                <ProfilePillSelect
+                  aria-label="Mês"
                   value={String(currentMonth)}
-                  onChange={(e) => {
-                    const newMonth = parseInt(e.target.value);
+                  options={MONTH_OPTIONS}
+                  onChange={(value) => {
+                    const newMonth = parseInt(value);
                     const clampedDay = Math.min(currentDay, maxDaysForMonth(newMonth));
                     const mm = String(newMonth).padStart(2, "0");
                     const dd = String(clampedDay).padStart(2, "0");
                     handleInputChange("birthday", `0000-${mm}-${dd}T00:00:00.000Z`);
                   }}
-                >
-                  {MONTH_NAMES.map((name, i) => (
-                    <BaseOption key={name} value={String(i + 1)}>
-                      {name}
-                    </BaseOption>
-                  ))}
-                </BaseSelect>
-                <BaseSelect
+                />
+                <ProfilePillSelect
+                  aria-label="Dia"
                   value={String(currentDay)}
-                  onChange={(e) => {
+                  options={dayOptions}
+                  onChange={(value) => {
                     const mm = String(currentMonth).padStart(2, "0");
-                    const dd = String(parseInt(e.target.value)).padStart(2, "0");
+                    const dd = String(parseInt(value)).padStart(2, "0");
                     handleInputChange("birthday", `0000-${mm}-${dd}T00:00:00.000Z`);
                   }}
-                >
-                  {Array.from({ length: maxDaysForMonth(currentMonth) }, (_, i) => i + 1).map(
-                    (day) => (
-                      <BaseOption key={day} value={String(day)}>
-                        {String(day)}
-                      </BaseOption>
-                    )
-                  )}
-                </BaseSelect>
+                />
               </BirthdaySelects>
             </DetailItem>
 
             <DetailItem>
-              <DetailLabel>Idade:</DetailLabel>
+              <DetailLabel as="label" htmlFor="profile-age">
+                Idade:
+              </DetailLabel>
               <AgeInput
+                id="profile-age"
                 type="number"
                 value={profile?.age || defaultAge}
                 onChange={(e) => handleInputChange("age", parseInt(e.target.value, 10) || 0)}
@@ -131,18 +149,17 @@ export default function ProfileInputs({
 
           <AlignmentBackgroundRow>
             <DetailItem>
-              <DetailLabel>Alinhamento:</DetailLabel>
+              <DetailLabel id="profile-alignment-label">
+                Alinhamento:
+              </DetailLabel>
               <AlignmentContainer>
-                <BaseSelect
+                <ProfilePillSelect
+                  id="profile-alignment"
+                  aria-labelledby="profile-alignment-label"
                   value={profile?.alignment ?? ""}
-                  onChange={(e) => handleInputChange("alignment", e.target.value)}
-                >
-                  {alignmentOptions.map((opt) => (
-                    <BaseOption key={opt.label} value={opt.value}>
-                      {opt.label}
-                    </BaseOption>
-                  ))}
-                </BaseSelect>
+                  options={ALIGNMENT_OPTIONS}
+                  onChange={(value) => handleInputChange("alignment", value)}
+                />
               </AlignmentContainer>
             </DetailItem>
             <MobileOnlyButton>
@@ -159,21 +176,9 @@ export default function ProfileInputs({
   );
 }
 
-const slideDown = keyframes`
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-`;
-
 const ProfileContainer = styled.div`
   container-type: inline-size;
   padding: 20px 30px;
-  animation: ${slideDown} 0.3s ease;
 `;
 
 const ProfileNameInput = styled.input`
@@ -184,7 +189,6 @@ const ProfileNameInput = styled.input`
   border: 2px solid ${colors.borderStrong};
   border-radius: 6px;
   padding: 12px 16px;
-  margin-bottom: 2cqi;
   width: 100%;
 
   &::placeholder {
@@ -210,7 +214,6 @@ const ProfileDescriptionTextarea = styled.textarea`
   border: 2px solid ${colors.borderStrong};
   border-radius: 6px;
   padding: 12px 16px;
-  margin-bottom: 2cqi;
   width: 100%;
   resize: vertical;
   min-height: 80px;
@@ -250,22 +253,6 @@ const RightDetails = styled.div`
   /* @media (max-width: 609px) { */
   @media (max-width: 509px) {
     display: none;
-  }
-`;
-
-const DetailItem = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-`;
-
-const DetailLabel = styled.span`
-  font-size: min(3.4cqi, 24px);
-  color: ${colors.textInputDisabled};
-  font-weight: 500;
-
-  @media (max-width: 609px) {
-    font-size: 4cqi;
   }
 `;
 
@@ -343,4 +330,8 @@ const AgeInput = styled(DetailInput)`
 const AlignmentContainer = styled.div`
   display: flex;
   gap: 12px;
+`;
+
+const SpacedField = styled(DetailItem)`
+  margin-bottom: 2cqi;
 `;

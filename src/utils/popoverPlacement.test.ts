@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computePopoverPlacement } from "./popoverPlacement";
+import { computeAttachedListPlacement, computePopoverPlacement } from "./popoverPlacement";
 
 const popover = { width: 320, height: 431 };
 
@@ -48,5 +48,54 @@ describe("computePopoverPlacement", () => {
       viewport: { width: 853, height: 768 },
     });
     expect(r.left).toBe(853 - 8 - 320);
+  });
+});
+
+describe("computeAttachedListPlacement", () => {
+  const viewportHeight = 768;
+
+  it("opens below, flush with the field, when it fits", () => {
+    expect(
+      computeAttachedListPlacement({
+        field: { top: 100, bottom: 156 },
+        listHeight: 300,
+        viewportHeight,
+      }),
+    ).toEqual({ side: "below", top: 156, height: 300 });
+  });
+
+  it("opens above when below does not fit and above has more room", () => {
+    expect(
+      computeAttachedListPlacement({
+        field: { top: 600, bottom: 656 },
+        listHeight: 300,
+        viewportHeight,
+      }),
+    ).toEqual({ side: "above", bottom: 768 - 600, height: 300 });
+  });
+
+  it("caps the height at the room minus 8 px and scrolls inside", () => {
+    const below = computeAttachedListPlacement({
+      field: { top: 100, bottom: 156 },
+      listHeight: 900,
+      viewportHeight,
+    });
+    expect(below).toEqual({ side: "below", top: 156, height: 768 - 156 - 8 });
+
+    const above = computeAttachedListPlacement({
+      field: { top: 620, bottom: 676 },
+      listHeight: 900,
+      viewportHeight,
+    });
+    expect(above).toEqual({ side: "above", bottom: 768 - 620, height: 612 });
+  });
+
+  it("stays below when both sides are equally tight", () => {
+    const r = computeAttachedListPlacement({
+      field: { top: 380, bottom: 388 },
+      listHeight: 900,
+      viewportHeight,
+    });
+    expect(r.side).toBe("below");
   });
 });

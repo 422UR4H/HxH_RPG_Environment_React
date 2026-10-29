@@ -1,11 +1,12 @@
 import { type FormEvent, type ReactNode, useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
 import PageHeader from "../atoms/PageHeader";
+import SignFormError from "../atoms/SignFormError";
 import EdgeDrawer, { EDGE_TAB_HIT } from "../molecules/EdgeDrawer";
 import useMediaQuery from "../../hooks/useMediaQuery";
 import PageTitle from "../ions/PageTitle";
 import worldMap from "../../assets/images/worldmap.png";
-import { colors, alpha } from "../../styles/tokens";
+import { colors } from "../../styles/tokens";
 import { scopedScrollbar, scrollbarPalettes } from "../../styles/scrollbar";
 
 interface CreateFormTemplateProps {
@@ -50,7 +51,7 @@ export default function CreateFormTemplate({
           <FormColumn $reserveRight={isRulesCollapsed && !!rulesContent}>
             <PageTitle>{title}</PageTitle>
 
-            {error && <ErrorMessage>{error}</ErrorMessage>}
+            {error && <SignFormError message={error} tone="dark" />}
 
             {/* noValidate: sem balão do navegador; a página checa os obrigatórios e mostra o erro acima (FOR-06). */}
             <Form onSubmit={onSubmit} noValidate>
@@ -130,14 +131,6 @@ const FormColumn = styled.div<{ $reserveRight: boolean }>`
   padding: 30px;
   /* Aba REGRAS visível: a área de toque dela não cobre o formulário. */
   ${({ $reserveRight }) => $reserveRight && `padding-right: ${EDGE_TAB_HIT}px;`}
-`;
-
-const ErrorMessage = styled.div`
-  background-color: ${alpha(colors.feedbackDanger, 0.2)};
-  color: ${colors.feedbackDanger};
-  padding: 15px;
-  border-radius: 6px;
-  margin-bottom: 20px;
 `;
 
 const Form = styled.form`

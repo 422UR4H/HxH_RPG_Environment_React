@@ -30,7 +30,7 @@ export const floatingHeightPx = 72;
 /** Altura do "Gerenciar" flutuante ao lado do botão principal (72 px): maior que o botão antigo de
  *  44 px, mas menor que o principal, por ser a ação de menor relevância. */
 export const manageFloatingHeightPx = 58;
-/** A barra só encaixa a 30 px do fim do conteúdo; até lá ela flutua (mesmo número dos dois componentes). */
+/** A barra só encaixa a 30 px do fim do conteúdo; até lá ela flutua (mesmo número dos três componentes). */
 export const dockThresholdPx = 30;
 const floatingSafetyPx = 8;
 
@@ -48,3 +48,9 @@ export const dockedBarAfterGap = (gap: string) => `
   --bottom-bar-offset: var(--docked-bar-bottom);
   padding-bottom: ${floatingClearance};
 `;
+
+/** Corpo do rótulo dos botões flutuantes quando Gerenciar e o principal aparecem juntos: o do principal,
+ *  com piso de 13 px (em 320 ele caía a 11 px). Lido pelo grupo e repassado ao ManageButton por `--floating-label-size`. */
+export const floatingLabelSize = "max(13px, min(26px, 5cqi))";
+/** Mesma ideia na ficha em telas estreitas (até 609 px), onde o par é mais compacto. */
+export const floatingLabelSizeCompact = "clamp(13px, 4.25cqi, 20px)";

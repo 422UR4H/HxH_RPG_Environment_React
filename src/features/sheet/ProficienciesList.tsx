@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import styled from "styled-components";
 import type { ProficiencyMode } from "./types/proficiencyMode";
 import type {
@@ -9,6 +9,7 @@ import type {
 import type { Distribution } from "../../types/characterClass";
 import ProficiencyCard from "./ProficiencyCard";
 import { colors } from "../../styles/tokens";
+import { ProfilePillSelect } from "./ProfileFieldStyles";
 
 interface ProficienciesListProps {
   mode: ProficiencyMode;
@@ -17,6 +18,32 @@ interface ProficienciesListProps {
   distribution?: Distribution;
   charSheet?: CharacterSheet;
   setCharSheet?: (s: CharacterSheet) => void;
+}
+
+interface WeaponSlotSelectProps {
+  label: string;
+  value: string;
+  allowed: string[];
+  /** Armas já escolhidas nos outros espaços: aparecem apagadas e não selecionáveis. */
+  taken: string[];
+  onChange: (weapon: string) => void;
+}
+
+function WeaponSlotSelect({ label, value, allowed, taken, onChange }: WeaponSlotSelectProps) {
+  const takenKey = taken.join("|");
+  // Identidade estável: a posição da lista aberta é recalculada quando o array muda.
+  const options = useMemo(
+    () => [
+      { value: "", label: "Escolher…" },
+      ...allowed.map((weapon) => ({
+        value: weapon,
+        label: weapon,
+        disabled: takenKey.split("|").includes(weapon),
+      })),
+    ],
+    [allowed, takenKey],
+  );
+  return <SlotSelect aria-label={label} value={value} options={options} onChange={onChange} />;
 }
 
 export default function ProficienciesList({
@@ -98,21 +125,13 @@ export default function ProficienciesList({
               <SlotLevel>
                 Lv {point.level} <SlotExp>· {point.exp} XP</SlotExp>
               </SlotLevel>
-              <SlotSelect
+              <WeaponSlotSelect
+                label={`Arma do nível ${point.level}, espaço ${i + 1}`}
                 value={slotSelections[i]}
-                onChange={(e) => handleSlotChange(i, e.target.value)}
-              >
-                <SlotOption value="">Escolher arma…</SlotOption>
-                {distribution.proficienciesAllowed.map((weapon) => (
-                  <SlotOption
-                    key={weapon}
-                    value={weapon}
-                    disabled={otherSelected.includes(weapon)}
-                  >
-                    {weapon}
-                  </SlotOption>
-                ))}
-              </SlotSelect>
+                allowed={distribution.proficienciesAllowed}
+                taken={otherSelected}
+                onChange={(weapon) => handleSlotChange(i, weapon)}
+              />
             </DistributionSlot>
           );
         })}
@@ -159,35 +178,8 @@ const SlotExp = styled.span`
   color: ${colors.textInputDisabled};
 `;
 
-const SlotSelect = styled.select`
+const SlotSelect = styled(ProfilePillSelect)`
   width: 100%;
-  font-size: min(3.8cqi, 28px);
-  font-weight: 600;
-  color: ${colors.textPrimary};
-  background-color: ${colors.brandAccent};
-  border: 4px solid ${colors.brandAccent};
   border-radius: 14px;
-  padding: 8px min(8cqi, 46px) 8px 16px;
-  cursor: pointer;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
-  background-repeat: no-repeat;
   background-position: right 12px center;
-  background-size: min(4.4cqi, 28px);
-
-  /* Select fica fora do anel global: o foco é a borda branca. */
-  &:active, &:focus { outline: none; border-color: ${colors.textPrimary}; }
-  &:hover { filter: brightness(1.1); }
-
-  option:disabled { color: ${colors.textFaint}; background-color: ${colors.surfaceMuted}; }
-`;
-
-const SlotOption = styled.option`
-  font-size: min(3.8cqi, 28px);
-  font-weight: 600;
-  color: ${colors.textPrimary};
-  background-color: ${colors.brandAccent};
-  padding-right: 40px;
 `;

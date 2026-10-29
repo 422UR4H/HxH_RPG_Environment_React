@@ -1,6 +1,6 @@
 import ErrorIcon from "../ions/ErrorIcon";
 import styled from "styled-components";
-import { colors, alpha } from "../../styles/tokens";
+import { colors } from "../../styles/tokens";
 
 interface SignFieldProps {
   name: string;
@@ -28,7 +28,7 @@ export default function SignField({
   const errorId = `${id}-error`;
   return (
     <Block>
-      <Box>
+      <Frame>
         <Input
           id={id}
           name={name}
@@ -41,7 +41,7 @@ export default function SignField({
           aria-describedby={error ? errorId : undefined}
         />
         <Label htmlFor={id}>{label}</Label>
-      </Box>
+      </Frame>
       {error && (
         <ErrorText id={errorId}>
           <ErrorIcon size={18} />
@@ -52,28 +52,13 @@ export default function SignField({
   );
 }
 
-const Label = styled.label`
-  position: absolute;
-  /* Centro do rótulo (18px) alinhado ao centro da borda de 3px. */
-  top: -8px;
-  left: 18px;
-  padding: 0 6px;
-  /* Cor do cartão: corta a linha da borda atrás do rótulo. */
-  background-color: ${colors.textPrimary};
-  font-size: 14px;
-  font-weight: 700;
-  line-height: 18px;
-  color: ${colors.textOnLight};
-  pointer-events: none;
-`;
-
 const Input = styled.input`
   box-sizing: border-box;
   width: 100%;
   height: 52px;
   padding: 0 16px;
-  /* Mesmo traço do botão "Entrar" (BaseButton): contorno quase-preto e cantos de 14px; 3px porque o campo é menor. */
-  border: 3px solid ${colors.textOnLight};
+  /* Mesmo traço do botão "Entrar" (BaseButton): contorno quase-preto, 4px e cantos de 14px. */
+  border: 4px solid ${colors.textOnLight};
   border-radius: 14px;
   background-color: ${colors.textPrimary};
   font-size: 18px;
@@ -84,23 +69,14 @@ const Input = styled.input`
   &:focus {
     outline: none;
     border-color: ${colors.actionHighlightOnLight};
-    box-shadow: 0 0 0 3px ${alpha(colors.actionHighlightOnLight, 0.35)};
-  }
-  &:focus + ${Label} {
-    color: ${colors.actionHighlightOnLight};
   }
 
-  &[aria-invalid="true"] {
+  &[aria-invalid="true"],
+  &[aria-invalid="true"]:focus {
     border-color: ${colors.feedbackInputError};
   }
-  &[aria-invalid="true"] + ${Label} {
-    color: ${colors.feedbackInputError};
-  }
-  &[aria-invalid="true"]:focus {
-    box-shadow: 0 0 0 3px ${alpha(colors.feedbackInputError, 0.35)};
-  }
 
-  /* O preenchimento automático pinta o fundo; devolve a cor do cartão sem perder o anel de foco. */
+  /* O preenchimento automático pinta o fundo; devolve a cor do cartão; o sombreado interno não alcança a borda de 4px. */
   /* Regras separadas: um navegador que não conhece um dos seletores descartaria a lista inteira. */
   &:-webkit-autofill {
     -webkit-box-shadow: 0 0 0 1000px ${colors.textPrimary} inset;
@@ -110,30 +86,6 @@ const Input = styled.input`
     -webkit-box-shadow: 0 0 0 1000px ${colors.textPrimary} inset;
     -webkit-text-fill-color: ${colors.textOnLight};
   }
-  &:-webkit-autofill:focus {
-    -webkit-box-shadow:
-      0 0 0 1000px ${colors.textPrimary} inset,
-      0 0 0 3px ${alpha(colors.actionHighlightOnLight, 0.35)};
-  }
-  &:autofill:focus {
-    -webkit-box-shadow:
-      0 0 0 1000px ${colors.textPrimary} inset,
-      0 0 0 3px ${alpha(colors.actionHighlightOnLight, 0.35)};
-  }
-  &[aria-invalid="true"]:-webkit-autofill:focus {
-    -webkit-box-shadow:
-      0 0 0 1000px ${colors.textPrimary} inset,
-      0 0 0 3px ${alpha(colors.feedbackInputError, 0.35)};
-  }
-  &[aria-invalid="true"]:autofill:focus {
-    -webkit-box-shadow:
-      0 0 0 1000px ${colors.textPrimary} inset,
-      0 0 0 3px ${alpha(colors.feedbackInputError, 0.35)};
-  }
-`;
-
-const Box = styled.div`
-  position: relative;
 `;
 
 const ErrorText = styled.p`
@@ -151,6 +103,32 @@ const ErrorText = styled.p`
     flex-shrink: 0;
     margin-top: 1px;
   }
+`;
+
+// O campo vem antes do rótulo no DOM; o rótulo é posto por cima da linha da borda e a "corta" com um fundo da cor do cartão.
+const Frame = styled.div`
+  position: relative;
+
+  &:focus-within label {
+    color: ${colors.actionHighlightOnLight};
+  }
+  &:has([aria-invalid="true"]) label {
+    color: ${colors.feedbackInputError};
+  }
+`;
+
+const Label = styled.label`
+  position: absolute;
+  pointer-events: none;
+  /* Centro do rótulo (18px) alinhado ao centro da borda de 4px. */
+  top: -7px;
+  left: 18px;
+  padding: 0 6px;
+  background-color: ${colors.textPrimary};
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 18px;
+  color: ${colors.textOnLight};
 `;
 
 const Block = styled.div`

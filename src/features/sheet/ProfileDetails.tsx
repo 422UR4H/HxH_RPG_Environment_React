@@ -1,8 +1,9 @@
-import styled, { keyframes } from "styled-components";
+import styled from "styled-components";
 import BackgroundButton from "../../components/atoms/BackgroundButton";
 import type { Profile } from "../../types/characterSheet";
 import { colors } from "../../styles/tokens";
 import { toDateInputValue } from "../../utils/date";
+import { DetailItem, DetailLabel } from "./ProfileFieldStyles";
 
 interface ProfileDetailsProps {
   profile: Profile;
@@ -21,13 +22,19 @@ export default function ProfileDetails({
     <ProfileContainer>
       <ProfileName>{fullname}</ProfileName>
       {onBriefDescriptionChange ? (
-        <BriefDescriptionTextarea
-          value={briefDescription ?? ""}
-          onChange={(e) => onBriefDescriptionChange(e.target.value)}
-          placeholder="Faça uma breve descrição do seu personagem (roupas, físico e aparência - o que os outros veem ao olhar para ele)"
-          maxLength={255}
-          rows={3}
-        />
+        <DetailItem>
+          <DetailLabel as="label" htmlFor="profile-brief-description">
+            Descrição breve:
+          </DetailLabel>
+          <BriefDescriptionTextarea
+            id="profile-brief-description"
+            value={briefDescription ?? ""}
+            onChange={(e) => onBriefDescriptionChange(e.target.value)}
+            placeholder="Faça uma breve descrição do seu personagem (roupas, físico e aparência - o que os outros veem ao olhar para ele)"
+            maxLength={255}
+            rows={3}
+          />
+        </DetailItem>
       ) : (
         <ProfileDescription>{briefDescription}</ProfileDescription>
       )}
@@ -60,21 +67,9 @@ export default function ProfileDetails({
   );
 }
 
-const slideDown = keyframes`
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-`;
-
 const ProfileContainer = styled.div`
   container-type: inline-size;
   padding: 20px 30px;
-  animation: ${slideDown} 0.3s ease;
 `;
 
 const ProfileName = styled.h2`
@@ -116,22 +111,6 @@ const LeftDetails = styled.div`
 const RightDetails = styled.div`
   display: flex;
   justify-content: center;
-`;
-
-const DetailItem = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-`;
-
-const DetailLabel = styled.span`
-  font-size: min(3.4cqi, 24px);
-  color: ${colors.textInputDisabled};
-  font-weight: 500;
-
-  @media (max-width: 609px) {
-    font-size: 4cqi;
-  }
 `;
 
 const DetailValue = styled.span`

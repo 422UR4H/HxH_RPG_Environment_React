@@ -1,4 +1,5 @@
 // src/pages/__tests__/CreateCharacterSheetPage.test.tsx
+import { pickComboboxOption } from "../../test/pickCombobox";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { http, HttpResponse } from "msw";
 import { screen, waitFor, within } from "@testing-library/react";
@@ -68,10 +69,10 @@ async function fillRequiredFields() {
     screen.getByPlaceholderText("Nome completo do personagem"),
     "Haualu Teste",
   );
-  const classSelect = screen
-    .getByText(sheetClassFixture.profile.name)
-    .closest("select")!;
-  await userEvent.selectOptions(classSelect, sheetClassFixture.profile.name);
+  await pickComboboxOption(
+    screen.getByRole("combobox", { name: "Classe" }),
+    sheetClassFixture.profile.name,
+  );
 }
 
 async function selectAvatar() {

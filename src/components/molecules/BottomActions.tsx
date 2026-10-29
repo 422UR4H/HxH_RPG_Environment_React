@@ -5,7 +5,13 @@ import ManageButton from "./ManageButton";
 import type { ManageActions } from "./ManageButton";
 import styled from "styled-components";
 import { colors } from "../../styles/tokens";
-import { floatingElevation, floatingBottomPx, dockThresholdPx, manageFloatingHeightPx } from "../../styles/bottomBar";
+import {
+  floatingElevation,
+  floatingBottomPx,
+  dockThresholdPx,
+  floatingLabelSize,
+  manageFloatingHeightPx,
+} from "../../styles/bottomBar";
 
 interface BottomActionsProps {
   containerRef: RefObject<HTMLDivElement | null>;
@@ -93,9 +99,6 @@ export default function BottomActions({
 const FloatingWrapper = styled.div`
   container-type: inline-size;
 `;
-
-/** Corpo do rótulo dos botões flutuantes: o do principal, com piso de 13 px (em 320 ele caía a 11 px). */
-const floatingLabelSize = "max(13px, min(26px, 5cqi))";
 
 /** Com os dois lado a lado, o grupo centraliza os filhos na vertical e passa o corpo do texto e a
  *  altura do "Gerenciar" pelas variáveis `--floating-label-size` e `--manage-floating-height`, que o

@@ -33,3 +33,42 @@ export function computePopoverPlacement({
   const left = Math.max(MARGIN, Math.min(field.left, maxLeft));
   return { top, left };
 }
+
+export interface AttachedListPlacementInput {
+  /** Retângulo da pílula a que a lista fica presa (coordenadas da janela). */
+  field: { top: number; bottom: number };
+  /** Altura natural da lista, sem limite (bordas incluídas). */
+  listHeight: number;
+  /** Altura da janela (`innerHeight`). */
+  viewportHeight: number;
+}
+
+export interface AttachedListPlacement {
+  side: "below" | "above";
+  /** Topo da lista (coordenadas da janela); só embaixo. Em cima a lista é presa pela base. */
+  top?: number;
+  /** Distância da base da lista até a base da janela (CSS `bottom`); só em cima. */
+  bottom?: number;
+  /** Altura final: a natural, ou o espaço disponível menos a folga (a lista rola por dentro). */
+  height: number;
+}
+
+/**
+ * Lista que continua a pílula, sem folga entre as duas. Embaixo por padrão; em cima só se
+ * embaixo não couber e em cima houver mais espaço. Quando nenhum lado comporta a lista
+ * inteira, ela usa o espaço do lado escolhido (menos 8 px até a borda) e rola por dentro.
+ */
+export function computeAttachedListPlacement({
+  field,
+  listHeight,
+  viewportHeight,
+}: AttachedListPlacementInput): AttachedListPlacement {
+  const roomBelow = Math.max(0, viewportHeight - field.bottom - MARGIN);
+  const roomAbove = Math.max(0, field.top - MARGIN);
+  const side = listHeight <= roomBelow || roomBelow >= roomAbove ? "below" : "above";
+  const height = Math.min(listHeight, side === "below" ? roomBelow : roomAbove);
+  // Em cima, ancora pela base: a lista pode ser mais curta que `height` (o teto) e mesmo assim encosta na pílula.
+  return side === "below"
+    ? { side, top: field.bottom, height }
+    : { side, bottom: viewportHeight - field.top, height };
+}

@@ -1,6 +1,8 @@
 import { Suspense, lazy, useState } from "react";
 import styled from "styled-components";
+import Collapse from "../../components/atoms/Collapse";
 import ExpandButton from "../../components/ions/ExpandButton";
+import { iconButtonFx } from "../../styles/iconButtonFx";
 import { colors } from "../../styles/tokens";
 import type { ProfileMode } from "./types/profileMode";
 import type { CharacterSheet } from "../../types/characterSheet";
@@ -10,6 +12,8 @@ import ProfileInputs from "./ProfileInputs";
 const BackgroundEditorModal = lazy(
   () => import("../../components/molecules/BackgroundEditorModal")
 );
+
+const PROFILE_CONTENT_ID = "character-profile-content";
 
 interface CharacterProfileProps {
   mode: ProfileMode;
@@ -44,32 +48,41 @@ export default function CharacterProfile({
 
   return (
     <ProfileContainer>
-      <ProfileHeader onClick={toggleExpanded}>
+      {/* Persiana: o conteúdo fica acima e a barra é a borda de baixo, que desce ao abrir. */}
+      <Collapse id={PROFILE_CONTENT_ID} open={isExpanded}>
+        {profile && mode === "view" && (
+          <ProfileDetails profile={profile} onBackgroundClick={openBackground} />
+        )}
+        {profile && mode === "edit" && (
+          <ProfileDetails
+            profile={profile}
+            onBackgroundClick={openBackground}
+            onBriefDescriptionChange={(value) => {
+              if (!charSheet || !setCharSheet) return;
+              setCharSheet({ ...charSheet, profile: { ...charSheet.profile, briefDescription: value } });
+            }}
+          />
+        )}
+        {mode === "create" && (
+          <ProfileInputs
+            charSheet={charSheet}
+            setCharSheet={setCharSheet}
+            onBackgroundClick={openBackground}
+          />
+        )}
+      </Collapse>
+
+      <ProfileBar
+        type="button"
+        onClick={toggleExpanded}
+        aria-expanded={isExpanded}
+        aria-controls={PROFILE_CONTENT_ID}
+        aria-label={isExpanded ? "Ocultar perfil" : "Mostrar perfil"}
+      >
         <ExpandButtonContainer>
           <ExpandButton isExpanded={isExpanded} />
         </ExpandButtonContainer>
-      </ProfileHeader>
-
-      {isExpanded && profile && mode === "view" && (
-        <ProfileDetails profile={profile} onBackgroundClick={openBackground} />
-      )}
-      {isExpanded && profile && mode === "edit" && (
-        <ProfileDetails
-          profile={profile}
-          onBackgroundClick={openBackground}
-          onBriefDescriptionChange={(value) => {
-            if (!charSheet || !setCharSheet) return;
-            setCharSheet({ ...charSheet, profile: { ...charSheet.profile, briefDescription: value } });
-          }}
-        />
-      )}
-      {isExpanded && mode === "create" && (
-        <ProfileInputs
-          charSheet={charSheet}
-          setCharSheet={setCharSheet}
-          onBackgroundClick={openBackground}
-        />
-      )}
+      </ProfileBar>
 
       {isBackgroundOpen && (
         <Suspense fallback={null}>
@@ -100,23 +113,22 @@ const ProfileContainer = styled.div`
   }
 `;
 
-const ProfileHeader = styled.div`
-  width: 100%;
-  height: 3.8cqi;
-  /* border-bottom: 3px solid black; */
+const ProfileBar = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
   z-index: 1;
+  width: 100%;
+  height: 3.8cqi;
+  padding: 0;
+  border: none;
   cursor: pointer;
   background-color: ${colors.surfaceMuted};
   transition: background-color 0.2s ease;
   overflow: visible;
 
-  &:hover {
-    filter: brightness(1.1);
-  }
+  ${iconButtonFx(1.15)}
 `;
 
 const ExpandButtonContainer = styled.div`
