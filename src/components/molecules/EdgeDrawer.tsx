@@ -1,13 +1,24 @@
-import { type ReactNode, useEffect } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import styled, { css, keyframes } from "styled-components";
 import CloseButton from "../ions/CloseButton";
 import { colors } from "../../styles/tokens";
 import { bottomBarSpace } from "../../styles/bottomBar";
+import { useClosingFallback } from "../../hooks/useClosingFallback";
 
 export const EDGE_TAB_WIDTH = 32;
 /** Largura da área de toque da aba (a aba desenhada + 12 px invisíveis); o conteúdo reserva isso. */
 export const EDGE_TAB_HIT = 44;
 const EDGE_TAB_HEIGHT = 110;
+
+const DRAWER_MS = 250;
+const DRAWER_DURATION = `${DRAWER_MS}ms`;
+/** Folga além da animação antes de desmontar à força, se `animationend` não chegar. */
+const CLOSE_SAFETY_MS = 100;
+const DRAWER_EASING = "ease";
+
+const prefersReducedMotion = () =>
+  typeof window.matchMedia === "function" &&
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 interface EdgeDrawerProps {
   side: "left" | "right";
@@ -29,6 +40,16 @@ export default function EdgeDrawer({
   width,
   children,
 }: EdgeDrawerProps) {
+  // Fechando: o painel continua montado até a animação de saída terminar.
+  const [prevOpen, setPrevOpen] = useState(open);
+  const [closing, setClosing] = useState(false);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    setClosing(!open && !prefersReducedMotion());
+  }
+  useClosingFallback(closing, () => setClosing(false), DRAWER_MS + CLOSE_SAFETY_MS);
+  const mounted = open || closing;
+
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -40,10 +61,19 @@ export default function EdgeDrawer({
     <>
       <EdgeTab $side={side} onClick={onOpen}>{label}</EdgeTab>
 
-      {open && <Backdrop onClick={onClose} />}
+      {mounted && <Backdrop $closing={closing} onClick={onClose} />}
 
-      {open && (
-        <Panel $side={side} $width={width}>
+      {mounted && (
+        <Panel
+          $side={side}
+          $width={width}
+          $closing={closing}
+          inert={closing}
+          aria-hidden={closing || undefined}
+          onAnimationEnd={(e) => {
+            if (e.target === e.currentTarget && closing) setClosing(false);
+          }}
+        >
           <CloseX $side={side} onClick={onClose} aria-label="Fechar">
             <XIcon />
           </CloseX>
@@ -62,6 +92,26 @@ const slideInFromLeft = keyframes`
 const slideInFromRight = keyframes`
   from { transform: translateX(100%); }
   to   { transform: translateX(0); }
+`;
+
+const fadeIn = keyframes`
+  from { opacity: 0; }
+  to   { opacity: 1; }
+`;
+
+const fadeOut = keyframes`
+  from { opacity: 1; }
+  to   { opacity: 0; }
+`;
+
+const slideOutToLeft = keyframes`
+  from { transform: translateX(0); }
+  to   { transform: translateX(-100%); }
+`;
+
+const slideOutToRight = keyframes`
+  from { transform: translateX(0); }
+  to   { transform: translateX(100%); }
 `;
 
 const EdgeTab = styled.button<{ $side: "left" | "right" }>`
@@ -109,14 +159,20 @@ const EdgeTab = styled.button<{ $side: "left" | "right" }>`
         `}
 `;
 
-const Backdrop = styled.div`
+const Backdrop = styled.div<{ $closing: boolean }>`
   position: absolute;
   inset: 0;
   background-color: ${colors.overlay};
   z-index: 200;
+  animation: ${({ $closing }) => ($closing ? fadeOut : fadeIn)} ${DRAWER_DURATION} ${DRAWER_EASING} forwards;
+  pointer-events: ${({ $closing }) => ($closing ? "none" : "auto")};
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 `;
 
-const Panel = styled.div<{ $side: "left" | "right"; $width: number }>`
+const Panel = styled.div<{ $side: "left" | "right"; $width: number; $closing: boolean }>`
   position: absolute;
   top: 0;
   bottom: 0;
@@ -128,16 +184,16 @@ const Panel = styled.div<{ $side: "left" | "right"; $width: number }>`
   width: ${({ $width }) => $width}px;
   max-width: 100%;
 
-  ${({ $side }) =>
-    $side === "left"
-      ? css`
-          left: 0;
-          animation: ${slideInFromLeft} 250ms ease;
-        `
-      : css`
-          right: 0;
-          animation: ${slideInFromRight} 250ms ease;
-        `}
+  ${({ $side }) => ($side === "left" ? "left: 0;" : "right: 0;")}
+  animation: ${({ $side, $closing }) =>
+      $closing
+        ? $side === "left" ? slideOutToLeft : slideOutToRight
+        : $side === "left" ? slideInFromLeft : slideInFromRight}
+    ${DRAWER_DURATION} ${DRAWER_EASING} forwards;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 `;
 
 const Body = styled.div`

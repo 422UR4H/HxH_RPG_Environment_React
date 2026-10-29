@@ -1,5 +1,7 @@
 import styled from "styled-components";
+import FieldHelpText from "../atoms/FieldHelpText";
 import { colors } from "../../styles/tokens";
+import { narrowForm, NARROW_LABEL_SIZE } from "../../styles/formScale";
 
 interface FormCheckboxProps {
   id: string;
@@ -27,7 +29,7 @@ export default function FormCheckbox({
         <Checkbox id={id} name={name} type="checkbox" checked={checked} onChange={onChange} />
         <CheckboxLabel htmlFor={id}>{label}</CheckboxLabel>
       </CheckboxContainer>
-      {helpText && <HelpText>{helpText}</HelpText>}
+      {helpText && <FieldHelpText>{helpText}</FieldHelpText>}
     </Group>
   );
 }
@@ -42,6 +44,10 @@ const GroupLabel = styled.span`
   font-weight: 700;
   font-size: 26px;
   color: ${colors.textPrimary};
+
+  ${narrowForm} {
+    font-size: ${NARROW_LABEL_SIZE}px;
+  }
 `;
 
 const CheckboxContainer = styled.div`
@@ -55,17 +61,17 @@ const Checkbox = styled.input`
   width: 24px;
   height: 24px;
   cursor: pointer;
+  /* Contorno escuro para o check não sumir nas partes claras do mapa.
+     box-shadow, não outline: o outline é o anel de foco global. */
+  box-shadow: 0 0 0 2px ${colors.surfaceSidebar};
 `;
 
 const CheckboxLabel = styled.label`
   font-weight: 500;
   font-size: 26px;
   cursor: pointer;
-`;
 
-const HelpText = styled.p`
-  font-weight: 400;
-  font-size: 18px;
-  color: ${colors.textPrimary};
-  margin-top: 4px;
+  ${narrowForm} {
+    font-size: ${NARROW_LABEL_SIZE}px;
+  }
 `;

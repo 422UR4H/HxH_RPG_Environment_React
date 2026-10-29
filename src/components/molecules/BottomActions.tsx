@@ -5,7 +5,7 @@ import ManageButton from "./ManageButton";
 import type { ManageActions } from "./ManageButton";
 import styled from "styled-components";
 import { colors } from "../../styles/tokens";
-import { floatingElevation } from "../../styles/bottomBar";
+import { floatingElevation, floatingBottomPx, dockThresholdPx, manageFloatingHeightPx } from "../../styles/bottomBar";
 
 interface BottomActionsProps {
   containerRef: RefObject<HTMLDivElement | null>;
@@ -49,7 +49,7 @@ export default function BottomActions({
         const el = containerRef.current;
         if (!el) return;
         setScrollPosition(el.scrollTop);
-        setIsFloating(el.scrollTop + el.clientHeight < el.scrollHeight - 30);
+        setIsFloating(el.scrollTop + el.clientHeight < el.scrollHeight - dockThresholdPx);
       }, t),
     );
     return () => timers.forEach(clearTimeout);
@@ -58,13 +58,13 @@ export default function BottomActions({
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    setIsFloating(debouncedScroll + el.clientHeight < el.scrollHeight - 30);
+    setIsFloating(debouncedScroll + el.clientHeight < el.scrollHeight - dockThresholdPx);
   }, [debouncedScroll, containerRef]);
 
   if (isFloating) {
     return (
       <FloatingWrapper>
-        <FloatingGroup>
+        <FloatingGroup $paired={Boolean(manage && primaryButton)}>
           {manage && <ManageButton {...manage} isFloating={true} />}
           {primaryButton && (
             <FloatingPrimary onClick={primaryButton.onClick}>
@@ -94,9 +94,17 @@ const FloatingWrapper = styled.div`
   container-type: inline-size;
 `;
 
-const FloatingGroup = styled.div`
+/** Corpo do rótulo dos botões flutuantes: o do principal, com piso de 13 px (em 320 ele caía a 11 px). */
+const floatingLabelSize = "max(13px, min(26px, 5cqi))";
+
+/** Com os dois lado a lado, o grupo centraliza os filhos na vertical e passa o corpo do texto e a
+ *  altura do "Gerenciar" pelas variáveis `--floating-label-size` e `--manage-floating-height`, que o
+ *  ManageButton flutuante lê (sem `--manage-floating-height` vale o 100% do grupo esticado, como na ficha). */
+const FloatingGroup = styled.div<{ $paired: boolean }>`
+  ${({ $paired }) =>
+    $paired ? `--floating-label-size: ${floatingLabelSize}; --manage-floating-height: ${manageFloatingHeightPx}px;` : ""}
   position: fixed;
-  bottom: 20px;
+  bottom: ${floatingBottomPx}px;
   left: 340px;
   z-index: 10;
   display: flex;
@@ -106,6 +114,11 @@ const FloatingGroup = styled.div`
   @media (max-width: 749px) {
     left: 40px;
   }
+
+  /* Em 320 px o par (278 px) não cabe com o recuo de 40 px da aba lateral: a aba fica acima da faixa dos botões. */
+  @media (max-width: 340px) {
+    left: 16px;
+  }
 `;
 
 const FloatingPrimary = styled.button`
@@ -114,7 +127,7 @@ const FloatingPrimary = styled.button`
   padding: 15px 30px 15px 26px;
   background-color: ${colors.brandAccent};
   color: ${colors.textPrimary};
-  font-size: min(26px, 5cqi);
+  font-size: ${floatingLabelSize};
   font-weight: 600;
   display: flex;
   align-items: center;

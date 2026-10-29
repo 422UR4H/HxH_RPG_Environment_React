@@ -1,6 +1,8 @@
 import { type ReactNode } from "react";
 import styled from "styled-components";
+import FieldHelpText from "../atoms/FieldHelpText";
 import { colors } from "../../styles/tokens";
+import { narrowForm, NARROW_LABEL_SIZE } from "../../styles/formScale";
 
 interface FormFieldProps {
   label: string;
@@ -19,7 +21,7 @@ export default function FormField({ label, htmlFor, helpText, optional, children
         {optional && <Optional> (opcional)</Optional>}
       </Label>
       {children}
-      {helpText && <HelpText>{helpText}</HelpText>}
+      {helpText && <FieldHelpText>{helpText}</FieldHelpText>}
     </Group>
   );
 }
@@ -34,17 +36,14 @@ const Label = styled.label`
   font-weight: 700;
   font-size: 26px;
   color: ${colors.textPrimary};
+
+  ${narrowForm} {
+    font-size: ${NARROW_LABEL_SIZE}px;
+  }
 `;
 
 const Optional = styled.span`
   font-weight: 400;
   font-size: 0.7em;
-  color: ${colors.textPlaceholderStrong};
-`;
-
-const HelpText = styled.p`
-  font-weight: 400;
-  font-size: 18px;
-  color: ${colors.textPrimary};
-  margin-top: 4px;
+  color: ${colors.textPrimary}; /* mesma cor do texto de ajuda: a hierarquia vem do peso e do tamanho */
 `;

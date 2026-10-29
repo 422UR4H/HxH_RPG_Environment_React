@@ -39,7 +39,8 @@ export const headerTitle = css`
  */
 export const headerRow = css`
   display: grid;
-  grid-template-columns: minmax(min-content, 1fr) auto;
+  /* A coluna da data (selo + data) ocupa no máximo um terço; o rótulo quebra antes do valor. */
+  grid-template-columns: minmax(min-content, 1fr) fit-content(33.333%);
   grid-template-areas:
     "title badge"
     "title date";
@@ -82,6 +83,8 @@ export const headerDate = css`
   grid-area: date;
   justify-self: end;
   text-align: right;
+  /* O reset global zera a entrelinha; a data quebra em duas linhas nas colunas estreitas. */
+  line-height: 1.35;
 
   @container (max-width: 559px) {
     clear: both;
@@ -101,4 +104,31 @@ export const headerDate = css`
 /** Valor da data: não parte no meio; o rótulo antes dele é que quebra se faltar espaço. */
 export const headerDateValue = css`
   white-space: nowrap;
+`;
+
+/**
+ * Contêiner do subtítulo: o subtítulo não fica dentro do `HeaderBox`, então precisa medir a
+ * própria coluna para usar o mesmo limiar do título. A margem de baixo mora aqui.
+ */
+export const SubtitleBox = styled.div`
+  container-type: inline-size;
+  margin-bottom: 20px;
+`;
+
+/**
+ * Subtítulo em itálico (descrição breve) logo abaixo do cabeçalho: 26px. Quando a coluna é
+ * estreita (< 560px, onde o título cai para menos de 31px) desce para 18px e o título volta a ser
+ * o maior texto. Precisa estar dentro de um `SubtitleBox`.
+ */
+export const headerSubtitle = css`
+  margin: 0;
+  font-weight: 400;
+  font-size: 26px;
+  line-height: 1.5;
+  color: ${colors.textPrimary};
+  font-style: italic;
+
+  @container (max-width: 559px) {
+    font-size: 18px;
+  }
 `;

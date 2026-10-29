@@ -52,7 +52,7 @@ export default function ManageButton({
 
   return (
     <>
-      <Wrapper ref={ref}>
+      <Wrapper ref={ref} $isFloating={isFloating}>
         {open && (
           <Menu>
             <MenuItem type="button" onClick={handleEdit}>
@@ -95,10 +95,12 @@ export default function ManageButton({
   );
 }
 
-const Wrapper = styled.div`
+// Flutuando, a altura é "auto": na ficha o grupo estica o wrapper e o `height: 100%` do botão segue o
+// vizinho; na campanha o grupo fixa a altura por `--manage-floating-height`. Encaixado, preenche a barra.
+const Wrapper = styled.div<{ $isFloating: boolean }>`
   position: relative;
   flex-shrink: 0;
-  height: 100%;
+  height: ${({ $isFloating }) => ($isFloating ? "auto" : "100%")};
 `;
 
 const Button = styled.button<{ $isFloating: boolean; $open: boolean }>`
@@ -125,11 +127,14 @@ const Button = styled.button<{ $isFloating: boolean; $open: boolean }>`
         border-radius: 50px;
         padding: 14px 22px;
         box-shadow: ${floatingElevation(colors.shadowFloating, colors.borderFloating, colors.borderFloatingHighlight)};
-        font-size: min(24px, 4cqi);
+        /* Ao lado do botão principal, o BottomActions define --floating-label-size (mesmo corpo) e
+           --manage-floating-height (altura fixa, menor que a do principal). */
+        height: var(--manage-floating-height, 100%);
+        font-size: var(--floating-label-size, min(24px, 4cqi));
         @media (max-width: 609px) {
           padding: 0 0.9em;
           min-height: 44px;
-          font-size: clamp(13px, 3.75cqi, 20px);
+          font-size: var(--floating-label-size, clamp(13px, 3.75cqi, 20px));
         }
         &:hover { transform: translateY(-3px); filter: brightness(1.2); }
       `
@@ -137,6 +142,8 @@ const Button = styled.button<{ $isFloating: boolean; $open: boolean }>`
         border-radius: 8px;
         height: 100%;
         padding: 0 20px;
+        /* CON-09: mesmo corpo do rótulo do bloco primário (antes 22px/4cqi, 12px no celular). */
+        font-size: min(26px, 5cqi);
         &:hover { filter: brightness(1.2); }
       `}
 

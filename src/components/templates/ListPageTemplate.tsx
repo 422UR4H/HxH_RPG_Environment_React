@@ -1,9 +1,10 @@
 import { type ReactNode } from "react";
-import styled from "styled-components";
+import styled, { createGlobalStyle } from "styled-components";
 import PageHeader from "../atoms/PageHeader";
 import { PageLoading, PageError } from "./PageState";
 import type { PageBackdrop, PageStateLink } from "./PageState";
 import { colors } from "../../styles/tokens";
+import { viewportScrollbar, scrollbarPalettes } from "../../styles/scrollbar";
 
 interface ListPageTemplateProps {
   bgImage: string;
@@ -32,33 +33,48 @@ export default function ListPageTemplate({
   errorBack = { label: "Voltar para o início", to: "/home" },
   children,
 }: ListPageTemplateProps) {
+  // A barra marrom vale também nos estados de carregando e de erro do mundo.
+  const scrollbar = backdrop === "world" && <WorldScrollbar />;
   if (isPending) {
     return (
-      <PageLoading
-        label={loadingLabel}
-        backdrop={backdrop}
-        headerColor={headerColor}
-      />
+      <>
+        {scrollbar}
+        <PageLoading
+          label={loadingLabel}
+          backdrop={backdrop}
+          headerColor={headerColor}
+        />
+      </>
     );
   }
   if (isError) {
     return (
-      <PageError
-        title={errorLabel}
-        onRetry={onRetry}
-        back={errorBack}
-        backdrop={backdrop}
-        headerColor={headerColor}
-      />
+      <>
+        {scrollbar}
+        <PageError
+          title={errorLabel}
+          onRetry={onRetry}
+          back={errorBack}
+          backdrop={backdrop}
+          headerColor={headerColor}
+        />
+      </>
     );
   }
   return (
     <PageContainer $bgImage={bgImage} $bgAttachment={bgAttachment}>
+      {scrollbar}
       <PageHeader backgroundColor={headerColor} />
       <PageBody>{children}</PageBody>
     </PageContainer>
   );
 }
+
+// Fundo de mapa-múndi: barra de rolagem marrom, como nas telas de campanha. A lista de
+// personagens (fundo de espaço) fica com a barra global.
+const WorldScrollbar = createGlobalStyle`
+  ${viewportScrollbar(scrollbarPalettes.earth)}
+`;
 
 const PageContainer = styled.div<{ $bgImage: string; $bgAttachment: string }>`
   display: flex;

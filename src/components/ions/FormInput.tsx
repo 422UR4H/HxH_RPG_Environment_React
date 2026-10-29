@@ -1,5 +1,6 @@
 import styled from "styled-components";
 import { colors } from "../../styles/tokens";
+import { fieldFontSize } from "../../styles/formScale";
 
 const FormInput = styled.input`
   padding: 12px 16px;
@@ -7,7 +8,7 @@ const FormInput = styled.input`
   border: 2px solid ${colors.borderInput};
   border-radius: 6px;
   color: ${colors.textPrimary};
-  font-size: 24px;
+  ${fieldFontSize}
 
   &:focus {
     outline: none;

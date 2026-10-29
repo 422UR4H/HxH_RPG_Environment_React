@@ -97,7 +97,7 @@ export default function CreateCampaignPage() {
           name="name"
           value={form.name}
           onChange={handleForm}
-          placeholder="Digite o nome da sua campanha"
+          placeholder="Nome da campanha"
           autoComplete="off"
           required
         />
@@ -133,7 +133,7 @@ export default function CreateCampaignPage() {
           name="callLink"
           value={form.callLink}
           onChange={handleForm}
-          placeholder="Link para chamada de vídeo/áudio (Discord, Google Meet, etc.)"
+          placeholder="Discord, Meet, etc."
           autoComplete="off"
         />
       </FormField>

@@ -71,3 +71,18 @@ export const scopedScrollbar = (p: ScrollbarPalette) => css`
     scrollbar-color: ${p.thumb} ${p.track};
   }
 `;
+
+/**
+ * Para páginas cuja rolagem é a da janela: a barra do viewport pertence ao `html`, que um
+ * container não alcança. Use dentro de `createGlobalStyle`, montado só enquanto a página existe;
+ * o seletor `html` vence o `*` do `globalScrollbar`; no fallback do Firefox, `html:root` empata
+ * em especificidade com o `:root` do `globalScrollbar` e, vindo depois, vence.
+ */
+export const viewportScrollbar = (p: ScrollbarPalette) => css`
+  ${webkitRules(["html", "html *"], p)}
+  @supports not selector(::-webkit-scrollbar) {
+    html:root {
+      scrollbar-color: ${p.thumb} ${p.track};
+    }
+  }
+`;
