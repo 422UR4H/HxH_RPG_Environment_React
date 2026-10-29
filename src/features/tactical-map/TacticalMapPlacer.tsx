@@ -4,6 +4,7 @@ import styled from "styled-components";
 import { colors } from "../../styles/tokens";
 import PieceDragGhost, { PieceDragGhostPortal } from "./PieceDragGhost";
 import TacticalMapStage from "./TacticalMapStage";
+import { MapCornerButton } from "./stage/mapCornerStyles";
 import NpcRosterPanel from "../../components/molecules/NpcRosterPanel";
 import { useResizeObserver } from "../../hooks/useResizeObserver";
 import { useCampaignDetails } from "../../hooks/useCampaignDetails";
@@ -53,6 +54,8 @@ export default function TacticalMapPlacer({
   const { width, height } = useResizeObserver(canvasRef);
 
   const [viewportScale, setViewportScale] = useState(1);
+  // Pedido de enquadramento: o mesmo `fitRequest` da mesa e do editor (1 ao abrir; o botão soma).
+  const [fitRequest, setFitRequest] = useState(1);
 
   // --- Player self-placement state ---
   // Set when a player clicks an empty slot and has characters available to place.
@@ -195,11 +198,13 @@ export default function TacticalMapPlacer({
   }, [pendingSlot]);
 
   return (
+    <PlacerFrame>
     <PlacerRoot data-testid="tactical-map-placer">
       <CanvasArea ref={canvasRef}>
         {width > 0 && height > 0 && (
           <TacticalMapStage
             map={{ ...map, pieces }}
+            fitRequest={fitRequest}
             width={width}
             height={height}
             piecesInteractive={true}
@@ -217,6 +222,9 @@ export default function TacticalMapPlacer({
             onViewportScaleChange={setViewportScale}
           />
         )}
+        <MapCornerButton type="button" onClick={() => setFitRequest((n) => n + 1)}>
+          Enquadrar
+        </MapCornerButton>
       </CanvasArea>
 
       {isMaster && (
@@ -273,21 +281,42 @@ export default function TacticalMapPlacer({
           document.body,
         )}
     </PlacerRoot>
+    </PlacerFrame>
   );
 }
 
 // --- Styled components ---
+
+// Largura do contêiner (a coluna central do lobby, não a janela) abaixo da qual o
+// painel de NPCs desce para baixo do tabuleiro. Medido: com 220px de painel ao lado,
+// abaixo de ~520px sobra um tabuleiro de menos de 300px (1366 = 592 fica ao lado; 853 = 465 desce).
+const STACK_BELOW = "520px";
+
+// Um contêiner não consegue consultar a si mesmo: a moldura é quem mede a coluna,
+// e o PlacerRoot (dentro dela) muda de direção.
+const PlacerFrame = styled.div`
+  width: 100%;
+  height: 100%;
+  container-type: inline-size;
+`;
 
 const PlacerRoot = styled.div`
   display: flex;
   width: 100%;
   height: 100%;
   overflow: hidden;
+
+  @container (max-width: ${STACK_BELOW}) {
+    flex-direction: column;
+  }
 `;
 
 const CanvasArea = styled.div`
+  position: relative;
   flex: 1;
   min-width: 0;
+  /* Espelho do min-width: em coluna, sem isto o item não encolhe abaixo da altura do stage medido antes da troca de layout. */
+  min-height: 0;
   height: 100%;
 `;
 
@@ -298,6 +327,14 @@ const RosterSidebar = styled.div`
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+  background: ${colors.surfaceSidebar};
+  border-radius: 6px;
+
+  @container (max-width: ${STACK_BELOW}) {
+    width: 100%;
+    height: 120px;
+    margin-top: 6px;
+  }
 `;
 
 // --- Player self-placement overlay ---

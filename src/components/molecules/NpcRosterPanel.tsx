@@ -147,7 +147,8 @@ const CardWrapper = styled.div<{ $isPlacing: boolean }>`
 
 const EmptyHint = styled.p`
   font-size: 12px;
-  color: ${colors.textPlaceholder};
+  /* Sobre surfaceSidebar, textPlaceholder não chega a 4,5:1. */
+  color: ${colors.textPlaceholderStrong};
   text-align: center;
   padding: 16px 0;
 `;

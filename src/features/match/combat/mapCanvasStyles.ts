@@ -14,6 +14,8 @@ export const MapLoadingMessage = styled.p`
   align-items: center;
   justify-content: center;
   margin: 0;
+  padding: 0 24px;
+  text-align: center;
   color: ${colors.textMuted};
   font-size: 16px;
 `;
@@ -21,8 +23,6 @@ export const MapLoadingMessage = styled.p`
 /** A falha do tabuleiro: mesma posição do aviso de carga, em cor de erro. */
 export const MapErrorMessage = styled(MapLoadingMessage)`
   color: ${colors.feedbackDanger};
-  text-align: center;
-  padding: 0 24px;
 `;
 
 export const NoMapMessage = styled(MapLoadingMessage)`

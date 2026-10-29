@@ -316,7 +316,9 @@ const Toolbar = styled.div`
   background: ${colors.surfaceSidebar};
   min-width: 240px;
   height: 100%;
-  overflow: hidden;
+  /* A coluna inteira rola como bloco quando falta altura (EDI-03); em tela alta nada rola. */
+  overflow-x: hidden;
+  overflow-y: auto;
 `;
 
 const TabRow = styled.div`
@@ -370,9 +372,11 @@ const TabButton = styled.button<{ $active: boolean; $soon?: boolean }>`
   }
 `;
 
+/* Encolhe até o espaço disponível (rola por dentro), mas nunca abaixo de 240px;
+   quando nem o piso cabe, quem rola é a coluna (Toolbar). Em tela alta nada muda (EDI-03). */
 const PanelArea = styled.div`
-  flex: 1;
-  min-height: 0;
+  flex: 1 1 auto;
+  min-height: 240px;
   overflow-y: auto;
 `;
 

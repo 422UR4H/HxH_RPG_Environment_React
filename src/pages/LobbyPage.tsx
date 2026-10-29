@@ -15,7 +15,6 @@ import { tableMap } from "../features/match/combat/tableMap";
 import { BoardWaitNotice } from "../features/match/combat/BoardWaitNotice";
 import { PageLoading, PageError, PageNotFound } from "../components/templates/PageState";
 import { isApiError } from "../services/httpClient";
-import { ActionsList } from "../components/atoms/ActionsList";
 import ConfirmDialog from "../components/molecules/ConfirmDialog";
 import DetailPageTemplate from "../components/templates/DetailPageTemplate";
 import CharactersSidebar from "../components/organisms/CharactersSidebar";
@@ -290,8 +289,8 @@ export default function LobbyPage() {
           </WsStatusBar>
         )}
 
-        <ActionsList>
-          {isMaster ? (
+        {isMaster ? (
+          <MasterActionsBox>
             <MasterActions>
               <StartButton onClick={sendStartMatch} disabled={status !== "connected"}>
                 Iniciar Partida
@@ -303,12 +302,10 @@ export default function LobbyPage() {
                 Cancelar Lobby
               </CancelButton>
             </MasterActions>
-          ) : (
-            <WaitingMessage>
-              Aguardando o mestre iniciar a partida…
-            </WaitingMessage>
-          )}
-        </ActionsList>
+          </MasterActionsBox>
+        ) : (
+          <WaitingMessage>Aguardando o mestre iniciar a partida…</WaitingMessage>
+        )}
 
         {attachedMapId && !lobbyMap && (
           <LobbyMapWaiting>
@@ -390,11 +387,23 @@ const RetryButton = styled.button`
   }
 `;
 
+// Container query não consulta o próprio container: o wrapper é quem mede a largura da coluna.
+const MasterActionsBox = styled.div`
+  container-type: inline-size;
+  margin-top: 20px;
+`;
+
 const MasterActions = styled.div`
   display: flex;
   gap: 16px;
   flex-wrap: wrap;
-  margin-top: 20px;
+
+  /* Abaixo da soma natural dos dois botões + gap (194 + 16 + 207 = 417px) eles quebram linha: aí ficam com a mesma largura. */
+  @container (width < 417px) {
+    & > * {
+      flex: 1 1 100%;
+    }
+  }
 `;
 
 const BaseActionButton = styled.button`
@@ -402,7 +411,7 @@ const BaseActionButton = styled.button`
   font-weight: 600;
   padding: 14px 32px;
   border-radius: 8px;
-  border: none;
+  border: 2px solid transparent;
   cursor: pointer;
   transition: all 0.2s ease;
 
@@ -427,8 +436,9 @@ const StartButton = styled(BaseActionButton)`
   color: ${colors.textPrimary};
 `;
 
+// Destrutivo cheio: o vermelho dos botões destrutivos do projeto (o dos diálogos de excluir).
 const CancelButton = styled(BaseActionButton)`
-  background-color: ${colors.feedbackDanger};
+  background-color: ${colors.actionDestructive};
   color: ${colors.textPrimary};
 `;
 
