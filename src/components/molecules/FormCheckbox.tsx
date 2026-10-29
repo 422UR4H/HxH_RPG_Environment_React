@@ -61,6 +61,9 @@ const Checkbox = styled.input`
   width: 24px;
   height: 24px;
   cursor: pointer;
+  /* Contorno escuro para o check não sumir nas partes claras do mapa.
+     box-shadow, não outline: o outline é o anel de foco global. */
+  box-shadow: 0 0 0 2px ${colors.surfaceSidebar};
 `;
 
 const CheckboxLabel = styled.label`
