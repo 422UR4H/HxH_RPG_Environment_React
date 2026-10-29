@@ -12,20 +12,20 @@ export const iconFxTransition = "scale 0.2s ease, filter 0.2s ease";
 
 /* Halo dourado: só no hover. Duas camadas, um núcleo curto e uma luz mais larga. No foco
    quem sinaliza é o anel do botão; halo ali seria um segundo indicador. */
-const halo = css`
-  filter: drop-shadow(0 0 4px ${alpha(colors.actionHighlight, 0.9)}) drop-shadow(0 0 10px ${alpha(colors.actionHighlight, 0.5)});
-`;
+const haloShadows = `drop-shadow(0 0 4px ${alpha(colors.actionHighlight, 0.9)}) drop-shadow(0 0 10px ${alpha(colors.actionHighlight, 0.5)})`;
 
 /**
  * CSS para o botão que hospeda o ícone (o <img> dentro dele reage). `scale` é o quanto o
  * ícone cresce: 1.05 num ícone grande (Voltar), 1.15 nos pequenos (até 40 px), onde 5% não se vê.
+ * `baseFilter` é um filtro que o próprio <img> já tem em repouso (ex.: `brightness(1.1)` da seta
+ * "Voltar"): no hover o halo soma a ele em vez de substituí-lo. Quem passa também o declara no <img>.
  */
-export const iconButtonFx = (scale: number) => css`
+export const iconButtonFx = (scale: number, baseFilter = "") => css`
   /* Hover só se há mouse ou touchpad: num aparelho só de toque ele fica preso depois do toque. */
   @media (any-hover: hover) {
     &:hover img {
       scale: ${scale};
-      ${halo}
+      filter: ${baseFilter ? `${baseFilter} ` : ""}${haloShadows};
     }
   }
   /* Foco do teclado: só o zoom (o anel global sinaliza). */

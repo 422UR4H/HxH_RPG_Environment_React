@@ -20,6 +20,10 @@ export default function BackButton() {
   );
 }
 
+/* Brilho de 10% permanente (repouso, hover, foco e clique): sem ele a seta parece embaçada até o
+   hover. O halo do hover soma a este filtro (ver `iconButtonFx`). */
+const backArrowBrightness = "brightness(1.1)";
+
 const StyledBackButton = styled.button`
   position: fixed;
   z-index: 10;
@@ -50,7 +54,7 @@ const StyledBackButton = styled.button`
     outline-offset: 5px;
   }
 
-  ${iconButtonFx(1.05)}
+  ${iconButtonFx(1.05, backArrowBrightness)}
 `;
 
 const Arrow = styled.img`
@@ -63,5 +67,6 @@ const Arrow = styled.img`
   border: none;
   outline: none;
 
+  filter: ${backArrowBrightness};
   transition: ${iconFxTransition};
 `;
