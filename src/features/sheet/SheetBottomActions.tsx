@@ -219,7 +219,7 @@ const FloatingCampaignButton = styled.button`
   @media (max-width: 609px) {
     padding: 0 0.9em;
     min-height: 52px;
-    font-size: var(--floating-label-size, clamp(13px, 4.25cqi, 20px));
+    font-size: var(--floating-label-size, ${floatingLabelSizeCompact});
     gap: 4px;
   }
 

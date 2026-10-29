@@ -2,28 +2,10 @@ import { useState } from "react";
 import { act, render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { mockReducedMotion } from "../../../test/reducedMotion";
 import PillSelect, { type PillSelectOption } from "../PillSelect";
 
-// O React só escuta animationend se o ambiente tiver AnimationEvent (jsdom não tem);
-// precisa existir antes de o react-dom carregar.
-vi.hoisted(() => {
-  (window as unknown as { AnimationEvent: typeof Event }).AnimationEvent = class extends Event {};
-});
-
-const originalMatchMedia = window.matchMedia;
-
-function mockReducedMotion(reduce: boolean) {
-  window.matchMedia = ((query: string) => ({
-    matches: reduce && query.includes("prefers-reduced-motion"),
-    media: query,
-    onchange: null,
-    addListener: () => {},
-    removeListener: () => {},
-    addEventListener: () => {},
-    removeEventListener: () => {},
-    dispatchEvent: () => false,
-  })) as typeof window.matchMedia;
-}
+let restoreMotion: () => void = () => {};
 
 // jsdom não tem layout: a pílula ocupa um retângulo fixo dentro da janela (768 de altura).
 let pillRect = { top: 100, bottom: 157, left: 50, right: 393, width: 343, height: 57 };
@@ -37,7 +19,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  window.matchMedia = originalMatchMedia;
+  restoreMotion();
   vi.useRealTimers();
   heightSpy?.mockRestore();
   heightSpy = undefined;
@@ -86,7 +68,7 @@ function activeOptionName() {
 
 describe("PillSelect", () => {
   it("exposes the combobox ARIA contract, closed and open", async () => {
-    mockReducedMotion(true);
+    restoreMotion = mockReducedMotion(true);
     render(<Harness />);
     expect(trigger()).toHaveAttribute("aria-haspopup", "listbox");
     expect(trigger()).toHaveAttribute("aria-expanded", "false");
@@ -119,7 +101,7 @@ describe("PillSelect", () => {
   it.each(["{ArrowDown}", "{ArrowUp}", "{Enter}", " ", "{Alt>}{ArrowDown}{/Alt}"])(
     "opens with %s when closed",
     async (keys) => {
-      mockReducedMotion(true);
+      restoreMotion = mockReducedMotion(true);
       render(<Harness />);
       trigger().focus();
       await userEvent.keyboard(keys);
@@ -128,7 +110,7 @@ describe("PillSelect", () => {
   );
 
   it("opens on the first or last enabled option with Home and End", async () => {
-    mockReducedMotion(true);
+    restoreMotion = mockReducedMotion(true);
     render(<Harness />);
     trigger().focus();
     await userEvent.keyboard("{End}");
@@ -139,7 +121,7 @@ describe("PillSelect", () => {
   });
 
   it("moves with arrows, skipping disabled options, and stops at the ends", async () => {
-    mockReducedMotion(true);
+    restoreMotion = mockReducedMotion(true);
     render(<Harness />);
     trigger().focus();
     await userEvent.keyboard("{ArrowDown}"); // abre em Selecione
@@ -154,7 +136,7 @@ describe("PillSelect", () => {
   });
 
   it("moves with Home, End, PageUp and PageDown while open", async () => {
-    mockReducedMotion(true);
+    restoreMotion = mockReducedMotion(true);
     render(<Harness />);
     trigger().focus();
     await userEvent.keyboard("{ArrowDown}{End}");
@@ -170,7 +152,7 @@ describe("PillSelect", () => {
   it.each(["{Enter}", " ", "{Alt>}{ArrowUp}{/Alt}"])(
     "chooses the active option and closes with %s",
     async (key) => {
-      mockReducedMotion(true);
+      restoreMotion = mockReducedMotion(true);
       const onChange = vi.fn();
       render(<Harness onChange={onChange} />);
       trigger().focus();
@@ -184,7 +166,7 @@ describe("PillSelect", () => {
   );
 
   it("closes with Escape without changing", async () => {
-    mockReducedMotion(true);
+    restoreMotion = mockReducedMotion(true);
     const onChange = vi.fn();
     render(<Harness onChange={onChange} />);
     trigger().focus();
@@ -195,7 +177,7 @@ describe("PillSelect", () => {
   });
 
   it("does not let Escape reach outer listeners while open", async () => {
-    mockReducedMotion(true);
+    restoreMotion = mockReducedMotion(true);
     const outer = vi.fn();
     document.addEventListener("keydown", outer);
     render(<Harness />);
@@ -208,7 +190,7 @@ describe("PillSelect", () => {
   });
 
   it("Tab chooses the active option, closes and lets focus move on", async () => {
-    mockReducedMotion(true);
+    restoreMotion = mockReducedMotion(true);
     const onChange = vi.fn();
     render(<Harness onChange={onChange} />);
     trigger().focus();
@@ -220,7 +202,7 @@ describe("PillSelect", () => {
   });
 
   it("jumps by typing, from closed and from open, and cycles repeated letters", async () => {
-    mockReducedMotion(true);
+    restoreMotion = mockReducedMotion(true);
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     render(<Harness />);
@@ -237,7 +219,7 @@ describe("PillSelect", () => {
   });
 
   it("never lands on a disabled option when typing", async () => {
-    mockReducedMotion(true);
+    restoreMotion = mockReducedMotion(true);
     render(<Harness />);
     trigger().focus();
     await userEvent.keyboard("b");
@@ -245,7 +227,7 @@ describe("PillSelect", () => {
   });
 
   it("toggles with a click on the trigger", async () => {
-    mockReducedMotion(true);
+    restoreMotion = mockReducedMotion(true);
     render(<Harness />);
     await userEvent.click(trigger());
     expect(listbox()).not.toBeNull();
@@ -254,7 +236,7 @@ describe("PillSelect", () => {
   });
 
   it("chooses with a click on an option and ignores disabled ones", async () => {
-    mockReducedMotion(true);
+    restoreMotion = mockReducedMotion(true);
     const onChange = vi.fn();
     render(<Harness onChange={onChange} />);
     await userEvent.click(trigger());
@@ -267,7 +249,7 @@ describe("PillSelect", () => {
   });
 
   it("highlights the option under the mouse", async () => {
-    mockReducedMotion(true);
+    restoreMotion = mockReducedMotion(true);
     render(<Harness />);
     await userEvent.click(trigger());
     await userEvent.hover(screen.getByRole("option", { name: "Curandeiro" }));
@@ -275,7 +257,7 @@ describe("PillSelect", () => {
   });
 
   it("closes on an outside click without changing", async () => {
-    mockReducedMotion(true);
+    restoreMotion = mockReducedMotion(true);
     const onChange = vi.fn();
     render(<Harness onChange={onChange} />);
     await userEvent.click(trigger());
@@ -285,7 +267,7 @@ describe("PillSelect", () => {
   });
 
   it("does not call onChange when the same option is chosen again", async () => {
-    mockReducedMotion(true);
+    restoreMotion = mockReducedMotion(true);
     const onChange = vi.fn();
     render(<Harness onChange={onChange} />);
     await userEvent.click(trigger());
@@ -294,7 +276,7 @@ describe("PillSelect", () => {
   });
 
   it("marks only the selected option with the check", async () => {
-    mockReducedMotion(true);
+    restoreMotion = mockReducedMotion(true);
     render(<Harness />);
     await userEvent.click(trigger());
     await userEvent.click(screen.getByRole("option", { name: "Caçador" }));
@@ -304,7 +286,7 @@ describe("PillSelect", () => {
   });
 
   it("keeps the list mounted but inert while closing, then unmounts on animation end", async () => {
-    mockReducedMotion(false);
+    restoreMotion = mockReducedMotion(false);
     render(<Harness />);
     await userEvent.click(trigger());
     await userEvent.click(trigger());
@@ -318,7 +300,7 @@ describe("PillSelect", () => {
   });
 
   it("unmounts at once under reduced motion", async () => {
-    mockReducedMotion(true);
+    restoreMotion = mockReducedMotion(true);
     render(<Harness />);
     await userEvent.click(trigger());
     await userEvent.click(trigger());
@@ -343,7 +325,7 @@ describe("PillSelect", () => {
   });
 
   it("keeps focus on the trigger after clicking an option", async () => {
-    mockReducedMotion(true);
+    restoreMotion = mockReducedMotion(true);
     render(<Harness />);
     await userEvent.click(trigger());
     await userEvent.click(screen.getByRole("option", { name: "Caçador" }));
@@ -351,7 +333,7 @@ describe("PillSelect", () => {
   });
 
   it("opens upward when below does not fit, with the outer radius intact", async () => {
-    mockReducedMotion(true);
+    restoreMotion = mockReducedMotion(true);
     mockListHeight(220);
     pillRect = { top: 650, bottom: 707, left: 50, right: 393, width: 343, height: 57 };
     // O gatilho já está achatado no lado de baixo (lado padrão) quando a lista mede o raio.
@@ -384,7 +366,7 @@ describe("PillSelect", () => {
   });
 
   it("closes without changing when the pill scrolls out of the viewport", async () => {
-    mockReducedMotion(true);
+    restoreMotion = mockReducedMotion(true);
     const onChange = vi.fn();
     render(<Harness onChange={onChange} />);
     await userEvent.click(trigger());
@@ -398,7 +380,7 @@ describe("PillSelect", () => {
   });
 
   it("repositions on scroll while the pill stays visible", async () => {
-    mockReducedMotion(true);
+    restoreMotion = mockReducedMotion(true);
     mockListHeight(220);
     render(<Harness />);
     await userEvent.click(trigger());
@@ -411,20 +393,23 @@ describe("PillSelect", () => {
   });
 
   it("removes the scroll and resize listeners on unmount", async () => {
-    mockReducedMotion(true);
-    const removed: string[] = [];
-    const spy = vi.spyOn(window, "removeEventListener").mockImplementation((type) => {
-      removed.push(type);
-    });
+    restoreMotion = mockReducedMotion(true);
+    const addSpy = vi.spyOn(window, "addEventListener");
+    const removeSpy = vi.spyOn(window, "removeEventListener");
     const { unmount } = render(<Harness />);
     await userEvent.click(trigger());
     unmount();
-    spy.mockRestore();
-    expect(removed).toEqual(expect.arrayContaining(["scroll", "resize"]));
+    for (const type of ["scroll", "resize"]) {
+      const added = addSpy.mock.calls.find((c) => c[0] === type);
+      expect(added).toBeDefined();
+      expect(removeSpy.mock.calls.some((c) => c[0] === type && c[1] === added![1])).toBe(true);
+    }
+    addSpy.mockRestore();
+    removeSpy.mockRestore();
   });
 
   it("unmounts by a safety timeout when animationend never arrives", async () => {
-    mockReducedMotion(false);
+    restoreMotion = mockReducedMotion(false);
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     render(<Harness />);
@@ -439,7 +424,7 @@ describe("PillSelect", () => {
   });
 
   it("does not let list clicks reach React ancestors of the select", async () => {
-    mockReducedMotion(true);
+    restoreMotion = mockReducedMotion(true);
     const parentClick = vi.fn();
     render(
       <div onClick={parentClick}>

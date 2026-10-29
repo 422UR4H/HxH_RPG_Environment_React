@@ -12,6 +12,7 @@ import {
 import { createPortal } from "react-dom";
 import { computeAttachedListPlacement } from "../../utils/popoverPlacement";
 import { camelCaseSegments } from "../../utils/camelCaseSegments";
+import { useClosingFallback } from "../../hooks/useClosingFallback";
 import { prefersReducedMotion } from "../../utils/prefersReducedMotion";
 import {
   Check,
@@ -228,11 +229,7 @@ export default function PillSelect({
     if (!prefersReducedMotion()) setSettling(true);
   }, []);
 
-  useEffect(() => {
-    if (!closing) return;
-    const t = window.setTimeout(finishClosing, CLOSE_SAFETY_MS);
-    return () => window.clearTimeout(t);
-  }, [closing, finishClosing]);
+  useClosingFallback(closing, finishClosing, CLOSE_SAFETY_MS);
 
   useEffect(() => {
     if (!settling) return;

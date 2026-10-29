@@ -406,7 +406,14 @@ const AttributesSection = styled.section`
    Para a lacuna visível ser exatamente o peso, cada espaçador anula com margem negativa (em cqi)
    as margens dos blocos vizinhos e soma o quanto a tinta transborda a caixa (medido nos
    diagramas, que são pixel-tuned e não mudam). Se os diagramas mudarem as margens ou a posição
-   dos controles, remeça: attrink.mjs deve dar as três lacunas em 1 : φ : φ. */
+   dos controles, remeça à mão (DevTools): meça as caixas da tinta (texto do h2, linhas e círculos do
+   SVG, botões +/− e "Pontos para Distribuir") e confira que as três lacunas ficam em 1 : φ : φ.
+   Os números de spacerCompensation (em cqi, salvo indicação):
+   - 19.63 / 16.65: quanto os "+" e rótulos do diagrama Physical sobem acima da caixa no modo
+     editar (largo / estreito);
+   - 17.63 / 16.65: o mesmo para o Mental;
+   - EDIT_BOTTOM_OVERFLOW: quanto o "−" e os rótulos descem abaixo da caixa no modo editar;
+   - o -5 de titleToPhysical / titleToPrinciples: anula o margin-bottom: 5cqi do SectionTitle. */
 const PHI = 1.618;
 const MIN_GAP = 24; // px: mínimo de g
 const MIN_GAP_PHI = 39; // px: mínimo de g × φ
