@@ -60,4 +60,9 @@ describe("EdgeDrawer", () => {
     act(() => { vi.advanceTimersByTime(350); });
     expect(screen.queryByText("conteudo")).not.toBeInTheDocument();
   });
+
+  it("never scrolls horizontally inside the drawer body", () => {
+    render(<Harness />);
+    expect(screen.getByText("conteudo").parentElement).toHaveStyle({ "overflow-x": "hidden" });
+  });
 });

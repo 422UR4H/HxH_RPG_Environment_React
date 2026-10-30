@@ -113,6 +113,9 @@ const MainContentContainer = styled.div`
   justify-content: center;
   align-items: flex-start;
   overflow-y: auto;
+  /* A barra de rolagem come uns 12 px só do lado direito. Reservar a mesma faixa dos
+     dois lados mantém as margens do formulário iguais, com ou sem barra. */
+  scrollbar-gutter: stable both-edges;
 
   /* world map */
   background-image: url(${worldMap});
@@ -129,8 +132,9 @@ const FormColumn = styled.div<{ $reserveRight: boolean }>`
   max-width: 940px;
   width: 100%;
   padding: 30px;
-  /* Aba REGRAS visível: a área de toque dela não cobre o formulário. */
-  ${({ $reserveRight }) => $reserveRight && `padding-right: ${EDGE_TAB_HIT}px;`}
+  /* Aba REGRAS visível: a área de toque dela não cobre o formulário. A reserva vale
+     dos dois lados para a margem esquerda ficar igual à direita. */
+  ${({ $reserveRight }) => $reserveRight && `padding-inline: ${EDGE_TAB_HIT}px;`}
 `;
 
 const Form = styled.form`
