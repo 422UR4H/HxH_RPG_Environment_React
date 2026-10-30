@@ -410,6 +410,21 @@ describe("PillSelect", () => {
     expect(screen.getByRole("listbox").style.maxHeight).toBe("112px");
   });
 
+  it("closes when the chosen side has no room left for even one option", async () => {
+    restoreMotion = mockReducedMotion(true);
+    pillRect = { top: 650, bottom: 707, left: 50, right: 393, width: 343, height: 57 };
+    mockListHeight(300);
+    render(<Harness />);
+    await userEvent.click(trigger());
+    expect(listbox()).not.toBeNull();
+    // Em cima sobram 30 px (38 - 8): menos que uma opção.
+    pillRect = { top: 38, bottom: 95, left: 50, right: 393, width: 343, height: 57 };
+    act(() => {
+      window.dispatchEvent(new Event("scroll"));
+    });
+    expect(listbox()).toBeNull();
+  });
+
   it("closes without changing when the pill scrolls out of the viewport", async () => {
     restoreMotion = mockReducedMotion(true);
     const onChange = vi.fn();

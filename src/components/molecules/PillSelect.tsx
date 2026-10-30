@@ -138,6 +138,12 @@ export default function PillSelect({
         viewportHeight: window.innerHeight,
         side: sideRef.current,
       });
+      // Não cabe nem uma opção do lado escolhido: fechar, em vez de ficar aberta com altura 0.
+      const rowHeight = list.querySelector<HTMLElement>('[role="option"]')?.offsetHeight || 44;
+      if (height < Math.min(rowHeight, natural)) {
+        closeRef.current();
+        return;
+      }
       sideRef.current = side;
       const vars: Record<string, string> = {
         "--pill-bg": cs.backgroundColor,

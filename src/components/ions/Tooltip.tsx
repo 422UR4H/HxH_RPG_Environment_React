@@ -75,7 +75,7 @@ export default function Tooltip({
   useEffect(() => {
     if (!isOpen) return;
     const onDown = (e: PointerEvent) => {
-      if (wrapRef.current?.contains(e.target as Node)) return;
+      if (e.target instanceof Node && wrapRef.current?.contains(e.target)) return;
       clearTimeout(timer.current);
       setPos(null);
     };
