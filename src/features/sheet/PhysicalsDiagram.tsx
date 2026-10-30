@@ -13,6 +13,8 @@ interface PhysicalsDiagramProps {
   attributes?: {
     [key: string]: Attribute;
   };
+  /** Pede ao dono da ficha que some `delta` aos pontos do atributo; o diagrama não muta `attributes`. */
+  onAttributePointsChange?: (name: string, delta: 1 | -1) => void;
   physicalAbility?: Ability;
 }
 
@@ -34,6 +36,7 @@ const primaryAttributeNames = new Set(
 const PhysicalsDiagram = ({
   mode,
   attributes = {},
+  onAttributePointsChange,
   physicalAbility = { level: 0, bonus: 0 },
 }: PhysicalsDiagramProps) => {
   const spent = Object.entries(attributes)
@@ -50,14 +53,16 @@ const PhysicalsDiagram = ({
     setDistributionPoints((prev) => (prev > 0 ? prev - 1 : 0));
   };
 
-  const incAttributePoints = (attr: Attribute) => {
+  const incAttributePoints = (name: string) => {
     if (distributionPoints <= 0) return;
-    if (attr?.points !== undefined) attr.points += 1;
+    if (attributes[name]?.points !== undefined)
+      onAttributePointsChange?.(name, 1);
     decDistributionPoints();
   };
-  const decAttributePoints = (attr: Attribute) => {
-    if (attr?.points === undefined || attr.points <= 0) return;
-    attr.points -= 1;
+  const decAttributePoints = (name: string) => {
+    const points = attributes[name]?.points;
+    if (points === undefined || points <= 0) return;
+    onAttributePointsChange?.(name, -1);
     incDistributionPoints();
   };
 
@@ -119,7 +124,7 @@ const PhysicalsDiagram = ({
               {isDistributeMode && pos.isPrimary && (
                 <PlusButton
                   isDisabled={!canIncrement}
-                  onClick={() => incAttributePoints(attr)}
+                  onClick={() => incAttributePoints(pos.name)}
                 />
               )}
 
@@ -142,7 +147,7 @@ const PhysicalsDiagram = ({
               {isDistributeMode && pos.isPrimary && (
                 <MinusButton
                   isDisabled={!canDecrement}
-                  onClick={() => decAttributePoints(attr)}
+                  onClick={() => decAttributePoints(pos.name)}
                 />
               )}
             </AttributeMarker>

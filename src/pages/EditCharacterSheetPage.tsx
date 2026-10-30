@@ -76,7 +76,8 @@ function EditCharacterSheetPage() {
   const coverBlobUrlRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
-    if (existingSheet) setCharSheet(existingSheet);
+    // Cópia: o estado de edição nunca pode ser o mesmo objeto do cache do React Query.
+    if (existingSheet) setCharSheet(structuredClone(existingSheet));
   }, [existingSheet]);
 
   useEffect(() => {

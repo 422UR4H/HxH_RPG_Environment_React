@@ -10,6 +10,7 @@ import CharacterSheetHeader from "../../components/molecules/CharacterSheetHeade
 import CharacterProfile from "./CharacterProfile";
 import PhysicalsDiagram from "./PhysicalsDiagram";
 import MentalsDiagram from "./MentalsDiagram";
+import { withAttributePointsChanged } from "./utils/attributePoints";
 import NenPrinciplesDiagram from "./NenPrinciplesDiagram";
 import PhysicalSkillsGroup from "./PhysicalSkillsGroup";
 import SpiritualSkillsGroup from "./SpiritualSkillsGroup";
@@ -197,6 +198,11 @@ function CharacterSheetTemplate({
               mode={sheetMode.diagramsMode}
               attributes={physicalAttributes}
               physicalAbility={physicalAbility}
+              onAttributePointsChange={(name, delta) =>
+                setCharSheet?.(
+                  withAttributePointsChanged(charSheet, "physicalAttributes", name, delta),
+                )
+              }
             />
             <GoldenSpacer {...spacerProps("physicalToMental", isEdit)} />
             <MentalsDiagram
@@ -204,6 +210,11 @@ function CharacterSheetTemplate({
               mode={sheetMode.diagramsMode}
               attributes={mentalAttributes}
               mentalAbility={mentalAbility}
+              onAttributePointsChange={(name, delta) =>
+                setCharSheet?.(
+                  withAttributePointsChanged(charSheet, "mentalAttributes", name, delta),
+                )
+              }
             />
 
             {hasPrinciples && (
