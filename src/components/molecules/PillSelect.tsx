@@ -39,6 +39,8 @@ interface PillSelectProps {
   className?: string;
   id?: string;
   disabled?: boolean;
+  /** Texto da pílula fechada enquanto o valor não casa com nenhuma opção. */
+  placeholder?: string;
   /** O nome acessível vem de `aria-label` ou `aria-labelledby`: `<label htmlFor>` não funciona num `div` combobox. */
   "aria-label"?: string;
   "aria-labelledby"?: string;
@@ -80,6 +82,7 @@ export default function PillSelect({
   className,
   id,
   disabled,
+  placeholder,
   "aria-label": ariaLabel,
   "aria-labelledby": ariaLabelledBy,
 }: PillSelectProps) {
@@ -406,7 +409,7 @@ export default function PillSelect({
         onKeyDown={handleKeyDown}
         onBlur={closeList}
       >
-        <Value>{selected?.label ?? ""}</Value>
+        <Value>{selected?.label ?? placeholder ?? ""}</Value>
         {options.map((o) => (
           <Sizer key={o.value} data-label={o.label} aria-hidden="true" />
         ))}

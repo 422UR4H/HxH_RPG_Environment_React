@@ -3,6 +3,7 @@
 import { useState } from "react";
 import usePointerVerb from "../../../hooks/usePointerVerb";
 import styled, { css } from "styled-components";
+import PillSelect from "../../../components/molecules/PillSelect";
 import Tooltip from "../../../components/ions/Tooltip";
 import { colors } from "../../../styles/tokens";
 import { media } from "../../../styles/breakpoints";
@@ -160,13 +161,14 @@ export function AddNpcPicker({
   if (candidates.length === 0) return null;
   return (
     <AddBlock>
-      <PanelTitle as="label" htmlFor="add-npc-select">Adicionar à partida</PanelTitle>
-      <NpcSelect id="add-npc-select" value={chosen} onChange={(e) => setChosen(e.target.value)}>
-        <option value="">Escolha um NPC da campanha</option>
-        {candidates.map((c) => (
-          <option key={c.id} value={c.id}>{c.name}</option>
-        ))}
-      </NpcSelect>
+      <PanelTitle id="add-npc-title">Adicionar à partida</PanelTitle>
+      <NpcSelect
+        aria-labelledby="add-npc-title"
+        value={chosen}
+        onChange={setChosen}
+        placeholder="Escolha um NPC da campanha"
+        options={candidates.map((c) => ({ value: c.id, label: c.name }))}
+      />
       <SmallButton type="button" disabled={!chosen} onClick={() => { onAdd(chosen); setChosen(""); }}>
         Adicionar
       </SmallButton>
@@ -395,15 +397,30 @@ const AddBlock = styled.section`
   gap: 6px;
 `;
 
-const NpcSelect = styled.select`
+// Pílula do site sobre o painel escuro: verde de marca, texto branco (mesmo desenho da ficha, em px).
+const NpcSelect = styled(PillSelect)`
   width: 100%;
   min-width: 0;
-  background: ${colors.surfaceInput};
-  color: ${colors.textPrimary};
-  border: 1px solid ${colors.surfaceInputHover};
-  border-radius: 6px;
   font-size: 13px;
-  padding: 4px 6px;
+  font-weight: 600;
+  color: ${colors.textPrimary};
+  background-color: ${colors.brandAccent};
+  border: 2px solid ${colors.brandAccent};
+  border-radius: 999px;
+  padding: 5px 32px 5px 12px;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 14px;
+
+  &:focus {
+    outline: none;
+    border-color: ${colors.textPrimary};
+  }
+  &:hover {
+    filter: brightness(1.1);
+  }
 `;
 
 /** Painel da fila no celular: o regime vem para cá (ver `RoundModeSwitch`). */
@@ -488,6 +505,13 @@ const Picker = styled.section`
   flex-direction: column;
   gap: 6px;
   padding: 12px 12px 0;
+
+  /* Último bloco do painel: o mesmo 12px que os blocos usam em cima, para as pílulas não
+     encostarem na barra de abas de baixo (celular) nem no fim do painel. Com outro bloco
+     depois, é o padding de cima dele que separa — sem dobrar. */
+  &:last-child {
+    padding-bottom: 12px;
+  }
 `;
 
 const PickerList = styled.div`

@@ -514,3 +514,20 @@ describe("PillSelect", () => {
     expect(screen.getByRole("listbox").style.getPropertyValue("--pill-anchor")).toBe(nameA);
   });
 });
+
+describe("PillSelect — placeholder", () => {
+  const NPCS: PillSelectOption[] = [
+    { value: "a", label: "Alquimista" },
+    { value: "c", label: "Caçador" },
+  ];
+
+  it("shows the placeholder only while the value matches no option", () => {
+    const { rerender } = render(
+      <PillSelect value="" onChange={() => {}} options={NPCS} placeholder="Escolha um" aria-label="Campo" />,
+    );
+    expect(screen.getByRole("combobox", { name: "Campo" })).toHaveTextContent("Escolha um");
+    rerender(<PillSelect value="a" onChange={() => {}} options={NPCS} placeholder="Escolha um" aria-label="Campo" />);
+    expect(screen.getByRole("combobox", { name: "Campo" })).not.toHaveTextContent("Escolha um");
+    expect(screen.getByRole("combobox", { name: "Campo" })).toHaveTextContent("Alquimista");
+  });
+});
