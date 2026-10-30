@@ -7,7 +7,7 @@ import LogoutButton from "../components/atoms/LogoutButton";
 import NavigationCard from "../components/atoms/NavigationCard";
 import space from "../assets/images/space.png";
 import worldMap from "../assets/images/worldmap.png";
-import { colors } from "../styles/tokens";
+import { colors, gradients } from "../styles/tokens";
 
 function HomePage() {
   const { token } = useToken();
@@ -45,8 +45,10 @@ export default HomePage;
 const PageContainer = styled.div`
   display: flex;
   flex-direction: column;
-  min-height: 100%;
-  background-color: ${colors.surfaceBar};
+  min-height: 100vh;
+  min-height: 100dvh;
+  /* Mesmo fundo azul do signin; o cabeçalho escuro e os cards ficam por cima. */
+  background: ${gradients.signBg};
 `;
 
 // Os dois cards cabem inteiros na tela sem rolar: em pé, empilhados e limitados pela
