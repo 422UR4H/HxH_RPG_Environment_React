@@ -1,6 +1,7 @@
 import styled from "styled-components";
-import minusIcon from "../../assets/icons/minus.svg";
+import minusIcon from "../../assets/icons/minus-red.svg";
 
+// O ícone é cópia recolorida de `minus.svg` (desenho do designer, mantido no repositório): regere-o se o original mudar.
 interface MinusButtonProps {
   onClick?: () => void;
   isDisabled?: boolean;

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { RegencyControls } from "../MasterControls";
+import userEvent from "@testing-library/user-event";
+import { AddNpcPicker, RegencyControls } from "../MasterControls";
 import type { RoundMode } from "../combatMessages";
 
 function setup(mode: RoundMode, queueLength: number, orderLength: number, roundTurns?: number) {
@@ -65,5 +66,32 @@ describe("RegencyControls — Abrir próxima", () => {
     expect(onOpenNext).toHaveBeenCalledTimes(1);
     fireEvent.pointerEnter(btn, { pointerType: "mouse" });
     expect(screen.queryByRole("tooltip", { hidden: true })).toBeNull();
+  });
+});
+
+describe("AddNpcPicker", () => {
+  const candidates = [{ id: "n1", name: "Goblin" }, { id: "n2", name: "Orc" }];
+
+  it("shows the site select with the prompt and a disabled Adicionar button", () => {
+    render(<AddNpcPicker candidates={candidates} onAdd={vi.fn()} />);
+    expect(screen.getByRole("combobox", { name: "Adicionar à partida" })).toHaveTextContent(
+      "Escolha um NPC da campanha",
+    );
+    expect(screen.getByRole("button", { name: "Adicionar" })).toBeDisabled();
+  });
+
+  it("adds the chosen NPC and returns to the prompt", async () => {
+    const onAdd = vi.fn();
+    const user = userEvent.setup();
+    render(<AddNpcPicker candidates={candidates} onAdd={onAdd} />);
+    await user.click(screen.getByRole("combobox", { name: "Adicionar à partida" }));
+    await user.click(await screen.findByRole("option", { name: "Orc" }));
+    expect(screen.getByRole("combobox", { name: "Adicionar à partida" })).toHaveTextContent("Orc");
+    await user.click(screen.getByRole("button", { name: "Adicionar" }));
+    expect(onAdd).toHaveBeenCalledWith("n2");
+    expect(screen.getByRole("combobox", { name: "Adicionar à partida" })).toHaveTextContent(
+      "Escolha um NPC da campanha",
+    );
+    expect(screen.getByRole("button", { name: "Adicionar" })).toBeDisabled();
   });
 });

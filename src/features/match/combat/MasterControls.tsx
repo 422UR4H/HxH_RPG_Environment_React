@@ -1,8 +1,10 @@
 // Os controles que só a tela do mestre monta: regência (regime, abrir, fechar), a escolha
 // do NPC por quem agir, a ação direta numa porta/janela e o painel de arrumar o tabuleiro. Nenhum pergunta "sou mestre?" — a página é que decide montá-los.
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import usePointerVerb from "../../../hooks/usePointerVerb";
 import styled, { css } from "styled-components";
+import PillSelect from "../../../components/molecules/PillSelect";
+import { pillLook } from "../../../components/molecules/PillSelect.styles";
 import Tooltip from "../../../components/ions/Tooltip";
 import { colors } from "../../../styles/tokens";
 import { media } from "../../../styles/breakpoints";
@@ -157,16 +159,18 @@ export function AddNpcPicker({
   onAdd: (id: string) => void;
 }) {
   const [chosen, setChosen] = useState("");
+  const options = useMemo(() => candidates.map((c) => ({ value: c.id, label: c.name })), [candidates]);
   if (candidates.length === 0) return null;
   return (
     <AddBlock>
-      <PanelTitle as="label" htmlFor="add-npc-select">Adicionar à partida</PanelTitle>
-      <NpcSelect id="add-npc-select" value={chosen} onChange={(e) => setChosen(e.target.value)}>
-        <option value="">Escolha um NPC da campanha</option>
-        {candidates.map((c) => (
-          <option key={c.id} value={c.id}>{c.name}</option>
-        ))}
-      </NpcSelect>
+      <PanelTitle id="add-npc-title">Adicionar à partida</PanelTitle>
+      <NpcSelect
+        aria-labelledby="add-npc-title"
+        value={chosen}
+        onChange={setChosen}
+        placeholder="Escolha um NPC da campanha"
+        options={options}
+      />
       <SmallButton type="button" disabled={!chosen} onClick={() => { onAdd(chosen); setChosen(""); }}>
         Adicionar
       </SmallButton>
@@ -395,15 +399,17 @@ const AddBlock = styled.section`
   gap: 6px;
 `;
 
-const NpcSelect = styled.select`
+// Pílula do site sobre o painel escuro: o desenho vem de `pillLook`; aqui só os tamanhos em px (`ProfilePillSelect` usa `cqi`, da ficha).
+const NpcSelect = styled(PillSelect)`
+  ${pillLook}
   width: 100%;
   min-width: 0;
-  background: ${colors.surfaceInput};
-  color: ${colors.textPrimary};
-  border: 1px solid ${colors.surfaceInputHover};
-  border-radius: 6px;
   font-size: 13px;
-  padding: 4px 6px;
+  border-width: 2px;
+  border-radius: 999px;
+  padding: 5px 32px 5px 12px;
+  background-position: right 10px center;
+  background-size: 14px;
 `;
 
 /** Painel da fila no celular: o regime vem para cá (ver `RoundModeSwitch`). */
@@ -488,6 +494,13 @@ const Picker = styled.section`
   flex-direction: column;
   gap: 6px;
   padding: 12px 12px 0;
+
+  /* Último bloco do painel: o mesmo 12px que os blocos usam em cima, para as pílulas não
+     encostarem na barra de abas de baixo (celular) nem no fim do painel. Com outro bloco
+     depois, é o padding de cima dele que separa — sem dobrar. */
+  &:last-child {
+    padding-bottom: 12px;
+  }
 `;
 
 const PickerList = styled.div`

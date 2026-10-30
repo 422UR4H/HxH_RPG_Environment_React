@@ -161,6 +161,8 @@ describe("CreateCharacterSheetPage", () => {
       expect(createCount).toBe(1);
       expect(presignedCallCount).toBe(2);
     },
+    // Dois envios com o formulário pesado remontado entre eles: ~5 s sozinho, estoura os 10 s globais com a suíte inteira em paralelo.
+    20_000,
   );
 
   it(

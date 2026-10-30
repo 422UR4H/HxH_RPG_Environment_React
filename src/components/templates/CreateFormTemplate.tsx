@@ -1,4 +1,10 @@
-import { type FormEvent, type ReactNode, useCallback, useEffect, useState } from "react";
+import {
+  type FormEvent,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 import styled from "styled-components";
 import PageHeader from "../atoms/PageHeader";
 import SignFormError from "../atoms/SignFormError";
@@ -48,7 +54,7 @@ export default function CreateFormTemplate({
       <PageHeader backgroundColor={headerColor} />
       <PageBody>
         <MainContentContainer>
-          <FormColumn $reserveRight={isRulesCollapsed && !!rulesContent}>
+          <FormColumn $reserveEdges={isRulesCollapsed && !!rulesContent}>
             <PageTitle>{title}</PageTitle>
 
             {error && <SignFormError message={error} tone="dark" />}
@@ -58,12 +64,14 @@ export default function CreateFormTemplate({
               {children}
 
               <ButtonsContainer>
-                <CancelButton type="button" onClick={onCancel}>
-                  Cancelar
-                </CancelButton>
-                <SubmitButton type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? submittingLabel : submitLabel}
-                </SubmitButton>
+                <ButtonsRow>
+                  <CancelButton type="button" onClick={onCancel}>
+                    Cancelar
+                  </CancelButton>
+                  <SubmitButton type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? submittingLabel : submitLabel}
+                  </SubmitButton>
+                </ButtonsRow>
               </ButtonsContainer>
             </Form>
           </FormColumn>
@@ -113,6 +121,9 @@ const MainContentContainer = styled.div`
   justify-content: center;
   align-items: flex-start;
   overflow-y: auto;
+  /* A barra de rolagem come uns 12 px só do lado direito. Reservar a mesma faixa dos
+     dois lados mantém as margens do formulário iguais, com ou sem barra. */
+  scrollbar-gutter: stable both-edges;
 
   /* world map */
   background-image: url(${worldMap});
@@ -122,15 +133,16 @@ const MainContentContainer = styled.div`
   background-attachment: fixed;
 `;
 
-const FormColumn = styled.div<{ $reserveRight: boolean }>`
+const FormColumn = styled.div<{ $reserveEdges: boolean }>`
   display: flex;
   flex-direction: column;
   gap: 30px;
   max-width: 940px;
   width: 100%;
   padding: 30px;
-  /* Aba REGRAS visível: a área de toque dela não cobre o formulário. */
-  ${({ $reserveRight }) => $reserveRight && `padding-right: ${EDGE_TAB_HIT}px;`}
+  /* Aba REGRAS visível: a área de toque dela não cobre o formulário. A reserva vale
+     dos dois lados para a margem esquerda ficar igual à direita. */
+  ${({ $reserveEdges }) => $reserveEdges && `padding-inline: ${EDGE_TAB_HIT}px;`}
 `;
 
 const Form = styled.form`
@@ -139,18 +151,32 @@ const Form = styled.form`
   gap: 18px;
 `;
 
+/* Largura mínima do contêiner para "Cancelar" + "Salvar Alterações" ficarem lado a lado:
+   169 + 15 (gap) + 270 + 2 × 16 (margem do SubmitButton) = 486 px; 500 dá folga. Abaixo
+   disso empilha, em vez de deixar o flex-wrap quebrar com larguras próprias e recuo. */
+const STACK_BELOW = "500px";
+
+/* Contêiner de consulta: a decisão depende da largura do próprio bloco dos botões, não da tela. */
 const ButtonsContainer = styled.div`
+  container-type: inline-size;
+`;
+
+const ButtonsRow = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 15px;
 
-  @media (max-width: 480px) {
+  @container (max-width: ${STACK_BELOW}) {
     & > * {
       flex: 1 1 100%;
     }
     /* && sobe a especificidade: o SubmitButton é declarado depois e a margem dele venceria. */
     && > * {
       margin: 0;
+      /* Rótulo numa linha só até 320 px: primeiro encolhe o padding lateral (32 -> 12 px),
+         depois a fonte. O rótulo ocupa ~8,4 × a fonte; 28 px = padding 2 × 12 + borda. Piso de 20 px. */
+      padding-inline: 12px;
+      font-size: clamp(20px, calc((100cqw - 28px) / 8.4), 26px);
     }
   }
 `;

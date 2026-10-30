@@ -198,6 +198,8 @@ const Body = styled.div`
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  /* Proteção: a gaveta nunca rola na horizontal, mesmo se algum conteúdo exceder a largura útil. */
+  overflow-x: hidden;
 `;
 
 // X fora do fluxo do flex, vazando 10px para cima — imita o X da logo HxH.

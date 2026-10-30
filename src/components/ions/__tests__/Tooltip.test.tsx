@@ -58,8 +58,27 @@ describe("Tooltip", () => {
     fireEvent.pointerDown(btn, { pointerType: "touch" });
     fireEvent.click(btn);
     expect(screen.getByRole("tooltip", { hidden: true })).toBeInTheDocument();
-    act(() => { vi.advanceTimersByTime(3000); });
+    act(() => { vi.advanceTimersByTime(6000); });
+    expect(screen.getByRole("tooltip", { hidden: true })).toBeInTheDocument();
+    act(() => { vi.advanceTimersByTime(250); });
     expect(screen.queryByRole("tooltip", { hidden: true })).toBeNull();
+  });
+
+  it("touch shows the tip and closes it on a touch elsewhere", () => {
+    const btn = setup();
+    fireEvent.pointerDown(btn, { pointerType: "touch" });
+    fireEvent.click(btn);
+    expect(screen.getByRole("tooltip", { hidden: true })).toBeInTheDocument();
+    fireEvent.pointerDown(document.body, { pointerType: "touch" });
+    expect(screen.queryByRole("tooltip", { hidden: true })).toBeNull();
+  });
+
+  it("touching the trigger itself does not close the tip as an outside touch", () => {
+    const btn = setup();
+    fireEvent.pointerDown(btn, { pointerType: "touch" });
+    fireEvent.click(btn);
+    fireEvent.pointerDown(btn, { pointerType: "touch" });
+    expect(screen.getByRole("tooltip", { hidden: true })).toBeInTheDocument();
   });
 
   it("clique de mouse não abre a dica", () => {

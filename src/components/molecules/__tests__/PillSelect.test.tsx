@@ -386,6 +386,90 @@ describe("PillSelect", () => {
     expect(bottoms).toEqual([`${window.innerHeight - pillRect.top}px`, `${window.innerHeight - pillRect.top}px`]);
   });
 
+  it("keeps the side chosen on open while scrolling, only re-measuring the height", async () => {
+    restoreMotion = mockReducedMotion(true);
+    pillRect = { top: 650, bottom: 707, left: 50, right: 393, width: 343, height: 57 };
+    mockListHeight(300);
+    render(<Harness />);
+    await userEvent.click(trigger());
+    const list = screen.getByRole("listbox");
+    expect(list.style.getPropertyValue("--fallback-top")).toBe("auto");
+    // A página rola: embaixo agora há muito mais espaço, mas a lista não troca de lado.
+    pillRect = { top: 200, bottom: 257, left: 50, right: 393, width: 343, height: 57 };
+    act(() => {
+      window.dispatchEvent(new Event("scroll"));
+    });
+    const after = screen.getByRole("listbox");
+    expect(after.style.getPropertyValue("--fallback-top")).toBe("auto");
+    expect(after.style.getPropertyValue("--fallback-bottom")).toBe(`${window.innerHeight - 200}px`);
+    // Rola de novo até pouco espaço em cima: encolhe naquele lado.
+    pillRect = { top: 120, bottom: 177, left: 50, right: 393, width: 343, height: 57 };
+    act(() => {
+      window.dispatchEvent(new Event("scroll"));
+    });
+    expect(screen.getByRole("listbox").style.maxHeight).toBe("112px");
+  });
+
+  it("closes when the chosen side has no room left for even one option", async () => {
+    restoreMotion = mockReducedMotion(true);
+    pillRect = { top: 650, bottom: 707, left: 50, right: 393, width: 343, height: 57 };
+    mockListHeight(300);
+    render(<Harness />);
+    await userEvent.click(trigger());
+    expect(listbox()).not.toBeNull();
+    // Em cima sobram 30 px (38 - 8): menos que uma opção.
+    pillRect = { top: 38, bottom: 95, left: 50, right: 393, width: 343, height: 57 };
+    act(() => {
+      window.dispatchEvent(new Event("scroll"));
+    });
+    expect(listbox()).toBeNull();
+  });
+
+  it("sizes the list to its content plus the border copied from the pill (no overflow)", async () => {
+    restoreMotion = mockReducedMotion(true);
+    mockListHeight(44);
+    const realComputed = window.getComputedStyle.bind(window);
+    const computedSpy = vi.spyOn(window, "getComputedStyle").mockImplementation((el, pseudo) => {
+      const real = realComputed(el, pseudo);
+      if (el.getAttribute("role") !== "combobox") return real;
+      return new Proxy(real, {
+        get: (t, k: string) => (k === "borderTopWidth" ? "2px" : Reflect.get(t, k).bind?.(t) ?? Reflect.get(t, k)),
+      });
+    });
+    render(<Harness />);
+    try {
+      await userEvent.click(trigger());
+    } finally {
+      computedSpy.mockRestore();
+    }
+    expect(screen.getByRole("listbox").style.maxHeight).toBe("46px");
+  });
+
+  it("measures the list only after it carries the pill's copied style", async () => {
+    restoreMotion = mockReducedMotion(true);
+    // Sem as variáveis da pílula a lista usa a fonte do body e mede menos; com elas, o conteúdo real.
+    heightSpy = vi
+      .spyOn(HTMLElement.prototype, "scrollHeight", "get")
+      .mockImplementation(function (this: HTMLElement) {
+        return this.style.getPropertyValue("--pill-font-size") ? 300 : 100;
+      });
+    const realComputed = window.getComputedStyle.bind(window);
+    const computedSpy = vi.spyOn(window, "getComputedStyle").mockImplementation((el, pseudo) => {
+      const real = realComputed(el, pseudo);
+      if (el.getAttribute("role") !== "combobox") return real;
+      return new Proxy(real, {
+        get: (t, k: string) => (k === "fontSize" ? "20px" : Reflect.get(t, k).bind?.(t) ?? Reflect.get(t, k)),
+      });
+    });
+    render(<Harness />);
+    try {
+      await userEvent.click(trigger());
+    } finally {
+      computedSpy.mockRestore();
+    }
+    expect(parseFloat(screen.getByRole("listbox").style.maxHeight)).toBeGreaterThanOrEqual(300);
+  });
+
   it("closes without changing when the pill scrolls out of the viewport", async () => {
     restoreMotion = mockReducedMotion(true);
     const onChange = vi.fn();
@@ -473,5 +557,22 @@ describe("PillSelect", () => {
     expect(nameA).not.toBe(nameB);
     await userEvent.click(first);
     expect(screen.getByRole("listbox").style.getPropertyValue("--pill-anchor")).toBe(nameA);
+  });
+});
+
+describe("PillSelect — placeholder", () => {
+  const NPCS: PillSelectOption[] = [
+    { value: "a", label: "Alquimista" },
+    { value: "c", label: "Caçador" },
+  ];
+
+  it("shows the placeholder only while the value matches no option", () => {
+    const { rerender } = render(
+      <PillSelect value="" onChange={() => {}} options={NPCS} placeholder="Escolha um" aria-label="Campo" />,
+    );
+    expect(screen.getByRole("combobox", { name: "Campo" })).toHaveTextContent("Escolha um");
+    rerender(<PillSelect value="a" onChange={() => {}} options={NPCS} placeholder="Escolha um" aria-label="Campo" />);
+    expect(screen.getByRole("combobox", { name: "Campo" })).not.toHaveTextContent("Escolha um");
+    expect(screen.getByRole("combobox", { name: "Campo" })).toHaveTextContent("Alquimista");
   });
 });

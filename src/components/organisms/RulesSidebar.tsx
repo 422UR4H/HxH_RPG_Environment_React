@@ -31,6 +31,9 @@ export default function RulesSidebar({
 
 const SidebarContainer = styled.aside`
   width: 400px;
+  /* Dentro da gaveta, a largura útil é menor que a da coluna (a barra vertical come ~12 px):
+     o teto de 100% faz a coluna caber sem rolagem horizontal. No desktop não muda nada. */
+  max-width: 100%;
   background-color: ${colors.surfaceSidebar};
   padding: 20px;
   position: relative;

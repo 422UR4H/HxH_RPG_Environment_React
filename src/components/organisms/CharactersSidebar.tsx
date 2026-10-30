@@ -33,6 +33,9 @@ export default function CharactersSidebar<T>({
 
 const SidebarContainer = styled.aside<{ $fluid?: boolean }>`
   width: ${({ $fluid }) => ($fluid ? "100%" : "300px")};
+  /* Dentro da gaveta, a largura útil é menor que a da coluna (a barra vertical come ~12 px):
+     o teto de 100% faz a coluna caber sem rolagem horizontal. No desktop não muda nada. */
+  max-width: 100%;
   background-color: ${colors.surfaceSidebar};
   padding: 20px;
   position: relative;

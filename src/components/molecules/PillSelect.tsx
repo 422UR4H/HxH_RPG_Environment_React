@@ -19,6 +19,7 @@ import {
   Label,
   List,
   Option,
+  PILL_OPTION_MIN_HEIGHT,
   PILL_SELECT_DURATION_MS,
   Sizer,
   Trigger,
@@ -39,6 +40,8 @@ interface PillSelectProps {
   className?: string;
   id?: string;
   disabled?: boolean;
+  /** Texto da pílula fechada enquanto o valor não casa com nenhuma opção. */
+  placeholder?: string;
   /** O nome acessível vem de `aria-label` ou `aria-labelledby`: `<label htmlFor>` não funciona num `div` combobox. */
   "aria-label"?: string;
   "aria-labelledby"?: string;
@@ -80,6 +83,7 @@ export default function PillSelect({
   className,
   id,
   disabled,
+  placeholder,
   "aria-label": ariaLabel,
   "aria-labelledby": ariaLabelledBy,
 }: PillSelectProps) {
@@ -95,6 +99,8 @@ export default function PillSelect({
   const listRef = useRef<HTMLDivElement>(null);
   const typed = useRef({ text: "", timer: 0 });
   const closeRef = useRef<() => void>(() => {});
+  // Lado escolhido ao abrir: rolar/redimensionar com a lista aberta não o troca (piscava perto da borda).
+  const sideRef = useRef<"below" | "above" | undefined>(undefined);
   const listId = useId();
   // <dashed-ident> único por instância: o useId do React traz ":" (inválido em ident CSS).
   const anchorName = `--pill-${listId.replace(/[^a-zA-Z0-9_-]/g, "")}`;
@@ -127,14 +133,6 @@ export default function PillSelect({
         closeRef.current();
         return;
       }
-      const border = parseFloat(cs.borderTopWidth) || 0;
-      const natural = list.scrollHeight + (list.offsetHeight - list.clientHeight);
-      // A lista sobe sobre a borda da pílula, para as laterais brancas seguirem contínuas.
-      const { side, top, bottom, height } = computeAttachedListPlacement({
-        field: { top: rect.top + border, bottom: rect.bottom - border },
-        listHeight: natural,
-        viewportHeight: window.innerHeight,
-      });
       const vars: Record<string, string> = {
         "--pill-bg": cs.backgroundColor,
         "--pill-fg": cs.color,
@@ -147,6 +145,27 @@ export default function PillSelect({
         // Os cantos do lado da lista ficam retos enquanto aberto (0); o raio é o do outro lado.
         "--pill-radius": largestRadius(cs.borderTopLeftRadius, cs.borderBottomLeftRadius),
       };
+      // A 1ª medição acontece antes de o React aplicar o estilo: sem copiar o visual da pílula (e a
+      // largura) já na lista, ela mediria com a fonte do body e sem padding, e a altura sairia errada.
+      for (const [k, v] of Object.entries(vars)) list.style.setProperty(k, v);
+      list.style.setProperty("--fallback-width", `${rect.width}px`);
+      const border = parseFloat(cs.borderTopWidth) || 0;
+      // A lista tem uma só borda vertical (a do lado da pílula não existe); é a do gatilho, que ela copia.
+      const natural = list.scrollHeight + border;
+      // A lista sobe sobre a borda da pílula, para as laterais brancas seguirem contínuas.
+      const { side, top, bottom, height } = computeAttachedListPlacement({
+        field: { top: rect.top + border, bottom: rect.bottom - border },
+        listHeight: natural,
+        viewportHeight: window.innerHeight,
+        side: sideRef.current,
+      });
+      // Não cabe nem uma opção do lado escolhido: fechar, em vez de ficar aberta com altura 0.
+      const rowHeight = list.querySelector<HTMLElement>('[role="option"]')?.offsetHeight || PILL_OPTION_MIN_HEIGHT;
+      if (height < Math.min(rowHeight, natural)) {
+        closeRef.current();
+        return;
+      }
+      sideRef.current = side;
       setPlacement((prev) =>
         prev &&
         prev.side === side &&
@@ -167,7 +186,7 @@ export default function PillSelect({
       window.removeEventListener("resize", place);
       window.removeEventListener("scroll", place, { capture: true });
     };
-  }, [mounted, options, placement?.side]);
+  }, [mounted, open, options]);
 
   // A barra de rolagem da lista come a coluna do ✓, não o texto: mede e compensa.
   useLayoutEffect(() => {
@@ -229,6 +248,7 @@ export default function PillSelect({
   }
 
   const finishClosing = useCallback(() => {
+    sideRef.current = undefined;
     setClosing(false);
     setPlacement(null);
     if (!prefersReducedMotion()) setSettling(true);
@@ -243,6 +263,7 @@ export default function PillSelect({
   }, [settling]);
 
   function openList(index: number) {
+    sideRef.current = undefined;
     setSettling(false);
     setClosing(false);
     setOpen(true);
@@ -394,10 +415,11 @@ export default function PillSelect({
         onKeyDown={handleKeyDown}
         onBlur={closeList}
       >
-        <Value>{selected?.label ?? ""}</Value>
+        <Value>{selected?.label ?? placeholder ?? ""}</Value>
         {options.map((o) => (
           <Sizer key={o.value} data-label={o.label} aria-hidden="true" />
         ))}
+        {placeholder && <Sizer data-label={placeholder} aria-hidden="true" />}
       </Trigger>
       {mounted &&
         createPortal(

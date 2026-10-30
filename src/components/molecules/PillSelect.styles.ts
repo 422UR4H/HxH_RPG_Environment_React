@@ -2,9 +2,40 @@ import styled, { css, keyframes } from "styled-components";
 import { colors } from "../../styles/tokens";
 import { scopedScrollbar, scrollbarPalettes } from "../../styles/scrollbar";
 
+/** Altura mínima de uma opção (px); o componente a usa também como reserva quando a opção ainda não tem layout. */
+export const PILL_OPTION_MIN_HEIGHT = 44;
 export const PILL_SELECT_DURATION_MS = 160;
 const DURATION = `${PILL_SELECT_DURATION_MS}ms`;
 const EASING = "ease";
+
+/** Seta (chevron) da pílula fechada, usada como `background-image` por quem estiliza o `PillSelect` e o `DateField`. */
+export const PILL_CHEVRON = `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`;
+
+/**
+ * O desenho da pílula verde do site (cor, borda, seta, foco, hover) sem tamanhos: quem estiliza
+ * o `PillSelect` acrescenta `border-width`, raio, padding e posição/tamanho da seta na sua unidade
+ * (`cqi` na ficha, px fora dela).
+ */
+export const pillLook = css`
+  font-weight: 600;
+  color: ${colors.textPrimary};
+  background-color: ${colors.brandAccent};
+  border-style: solid;
+  border-color: ${colors.brandAccent};
+  cursor: pointer;
+  background-image: ${PILL_CHEVRON};
+  background-repeat: no-repeat;
+
+  /* Fora do anel global (como os campos de texto): o foco é a borda branca. */
+  &:active,
+  &:focus {
+    outline: none;
+    border-color: ${colors.textPrimary};
+  }
+  &:hover {
+    filter: brightness(1.1);
+  }
+`;
 
 type Side = "below" | "above";
 
@@ -195,7 +226,7 @@ export const Option = styled.div`
   display: flex;
   align-items: center;
   box-sizing: border-box;
-  min-height: 44px;
+  min-height: ${PILL_OPTION_MIN_HEIGHT}px;
   padding: 4px ${column} 4px var(--pill-padding-left);
   cursor: pointer;
 
