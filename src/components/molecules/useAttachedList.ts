@@ -121,9 +121,10 @@ export function useAttachedList<T extends HTMLElement>({
       const border = parseFloat(cs.borderTopWidth) || 0;
       let align: AttachedAlign = "start";
       if (growToContent) {
-        // Largura natural do conteúdo (inline vence a folha de estilo só durante a medida).
+        // Largura natural do conteúdo (inline vence a folha de estilo só durante a medida). Arredonda
+        // para cima: o offsetWidth (inteiro) pode perder a fração e quebrar uma palavra no meio.
         list.style.width = "max-content";
-        const content = list.offsetWidth;
+        const content = Math.ceil(list.getBoundingClientRect().width);
         list.style.width = "";
         const width = Math.min(Math.max(rect.width, content), window.innerWidth - 2 * VIEWPORT_MARGIN);
         if (rect.left + width > window.innerWidth - VIEWPORT_MARGIN) align = "end";

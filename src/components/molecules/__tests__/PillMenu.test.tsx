@@ -190,12 +190,12 @@ describe("PillMenu — width", () => {
     restoreMotion = mockReducedMotion(true);
     Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
     spies.push(
-      vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function () {
+      vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (this: Element) {
+        if (this instanceof HTMLElement && this.style.width === "max-content") {
+          return { top: 0, bottom: 0, left: 0, right: contentWidth, width: contentWidth, height: 0, x: 0, y: 0, toJSON: () => ({}) } as DOMRect;
+        }
         const r = { top: 700, bottom: 744, left: pill.left, right: pill.left + pill.width, width: pill.width, height: 44 };
         return { ...r, x: r.left, y: r.top, toJSON: () => ({}) } as DOMRect;
-      }),
-      vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockImplementation(function (this: HTMLElement) {
-        return this.style.width === "max-content" ? contentWidth : pill.width;
       }),
     );
   });
@@ -225,6 +225,14 @@ describe("PillMenu — width", () => {
     expect(list().style.getPropertyValue("--joint-width")).toBe("119px");
     expect(list().style.getPropertyValue("--fallback-right")).toBe(`${390 - 159}px`);
     expect(list()).toHaveAttribute("data-align", "start");
+  });
+
+  it("rounds a fractional content width up, so a word never wraps by a sub-pixel", async () => {
+    pill = { left: 40, width: 119 };
+    contentWidth = 169.3;
+    setup({ blocked: true });
+    await userEvent.click(trigger());
+    expect(list().style.getPropertyValue("--list-width")).toBe("170px");
   });
 
   it("grows to the left when growing right would leave the window", async () => {
