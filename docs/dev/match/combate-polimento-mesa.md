@@ -111,8 +111,8 @@ só renderiza. A fila do mestre aparece **na ordem em que as ações vão abrir*
 
 `components/ions/Tooltip.tsx` (`label`, `enabled`, filho único):
 
-- Hover de mouse e foco mostram; **toque** mostra por 2,5 s (`TOUCH_MS`, não há "sair" no toque).
-  Esc dispensa sem tirar foco/hover.
+- Hover de mouse e foco mostram; **toque** mostra por 6,25 s (`TOUCH_MS`; não há "sair" no toque, mas tocar
+  fora do gatilho e da bolha fecha na hora). Esc dispensa sem tirar foco/hover.
 - A bolha é **`position: fixed`**, medida a partir do filho ao abrir, com `z-index: 1000` e
   `pointer-events: none`. Motivo: a Regência da topbar rola na horizontal (`overflow`) e cortaria
   uma bolha absoluta. Um `useLayoutEffect` mede a bolha e a prende a 8 px das bordas da tela

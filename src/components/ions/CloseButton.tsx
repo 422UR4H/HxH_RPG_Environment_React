@@ -2,6 +2,7 @@ import styled from "styled-components";
 import { iconFxTransition } from "../../styles/iconButtonFx";
 import closeIcon from "../../assets/icons/x-red.svg";
 
+// O ícone é cópia recolorida de `x.svg` (desenho do designer, mantido no repositório): regere-o se o original mudar.
 const CloseButton = styled.img.attrs({
   src: closeIcon,
   alt: "Fechar",

@@ -19,6 +19,7 @@ import {
   Label,
   List,
   Option,
+  PILL_OPTION_MIN_HEIGHT,
   PILL_SELECT_DURATION_MS,
   Sizer,
   Trigger,
@@ -132,24 +133,6 @@ export default function PillSelect({
         closeRef.current();
         return;
       }
-      const border = parseFloat(cs.borderTopWidth) || 0;
-      // A lista tem uma só borda vertical (a do lado da pílula não existe). Vem do gatilho, que é o que
-      // ela copia: medir da própria lista na 1ª passada dá 0, as variáveis ainda não foram aplicadas.
-      const natural = list.scrollHeight + border;
-      // A lista sobe sobre a borda da pílula, para as laterais brancas seguirem contínuas.
-      const { side, top, bottom, height } = computeAttachedListPlacement({
-        field: { top: rect.top + border, bottom: rect.bottom - border },
-        listHeight: natural,
-        viewportHeight: window.innerHeight,
-        side: sideRef.current,
-      });
-      // Não cabe nem uma opção do lado escolhido: fechar, em vez de ficar aberta com altura 0.
-      const rowHeight = list.querySelector<HTMLElement>('[role="option"]')?.offsetHeight || 44;
-      if (height < Math.min(rowHeight, natural)) {
-        closeRef.current();
-        return;
-      }
-      sideRef.current = side;
       const vars: Record<string, string> = {
         "--pill-bg": cs.backgroundColor,
         "--pill-fg": cs.color,
@@ -162,6 +145,27 @@ export default function PillSelect({
         // Os cantos do lado da lista ficam retos enquanto aberto (0); o raio é o do outro lado.
         "--pill-radius": largestRadius(cs.borderTopLeftRadius, cs.borderBottomLeftRadius),
       };
+      // A 1ª medição acontece antes de o React aplicar o estilo: sem copiar o visual da pílula (e a
+      // largura) já na lista, ela mediria com a fonte do body e sem padding, e a altura sairia errada.
+      for (const [k, v] of Object.entries(vars)) list.style.setProperty(k, v);
+      list.style.setProperty("--fallback-width", `${rect.width}px`);
+      const border = parseFloat(cs.borderTopWidth) || 0;
+      // A lista tem uma só borda vertical (a do lado da pílula não existe); é a do gatilho, que ela copia.
+      const natural = list.scrollHeight + border;
+      // A lista sobe sobre a borda da pílula, para as laterais brancas seguirem contínuas.
+      const { side, top, bottom, height } = computeAttachedListPlacement({
+        field: { top: rect.top + border, bottom: rect.bottom - border },
+        listHeight: natural,
+        viewportHeight: window.innerHeight,
+        side: sideRef.current,
+      });
+      // Não cabe nem uma opção do lado escolhido: fechar, em vez de ficar aberta com altura 0.
+      const rowHeight = list.querySelector<HTMLElement>('[role="option"]')?.offsetHeight || PILL_OPTION_MIN_HEIGHT;
+      if (height < Math.min(rowHeight, natural)) {
+        closeRef.current();
+        return;
+      }
+      sideRef.current = side;
       setPlacement((prev) =>
         prev &&
         prev.side === side &&
@@ -415,6 +419,7 @@ export default function PillSelect({
         {options.map((o) => (
           <Sizer key={o.value} data-label={o.label} aria-hidden="true" />
         ))}
+        {placeholder && <Sizer data-label={placeholder} aria-hidden="true" />}
       </Trigger>
       {mounted &&
         createPortal(

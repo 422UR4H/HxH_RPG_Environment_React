@@ -64,7 +64,7 @@ describe("Tooltip", () => {
     expect(screen.queryByRole("tooltip", { hidden: true })).toBeNull();
   });
 
-  it("toque mostra e fecha ao tocar em outro lugar", () => {
+  it("touch shows the tip and closes it on a touch elsewhere", () => {
     const btn = setup();
     fireEvent.pointerDown(btn, { pointerType: "touch" });
     fireEvent.click(btn);
@@ -73,7 +73,7 @@ describe("Tooltip", () => {
     expect(screen.queryByRole("tooltip", { hidden: true })).toBeNull();
   });
 
-  it("tocar no próprio gatilho não fecha a dica pelo toque fora", () => {
+  it("touching the trigger itself does not close the tip as an outside touch", () => {
     const btn = setup();
     fireEvent.pointerDown(btn, { pointerType: "touch" });
     fireEvent.click(btn);

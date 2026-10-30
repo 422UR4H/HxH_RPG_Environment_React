@@ -445,6 +445,31 @@ describe("PillSelect", () => {
     expect(screen.getByRole("listbox").style.maxHeight).toBe("46px");
   });
 
+  it("measures the list only after it carries the pill's copied style", async () => {
+    restoreMotion = mockReducedMotion(true);
+    // Sem as variáveis da pílula a lista usa a fonte do body e mede menos; com elas, o conteúdo real.
+    heightSpy = vi
+      .spyOn(HTMLElement.prototype, "scrollHeight", "get")
+      .mockImplementation(function (this: HTMLElement) {
+        return this.style.getPropertyValue("--pill-font-size") ? 300 : 100;
+      });
+    const realComputed = window.getComputedStyle.bind(window);
+    const computedSpy = vi.spyOn(window, "getComputedStyle").mockImplementation((el, pseudo) => {
+      const real = realComputed(el, pseudo);
+      if (el.getAttribute("role") !== "combobox") return real;
+      return new Proxy(real, {
+        get: (t, k: string) => (k === "fontSize" ? "20px" : Reflect.get(t, k).bind?.(t) ?? Reflect.get(t, k)),
+      });
+    });
+    render(<Harness />);
+    try {
+      await userEvent.click(trigger());
+    } finally {
+      computedSpy.mockRestore();
+    }
+    expect(parseFloat(screen.getByRole("listbox").style.maxHeight)).toBeGreaterThanOrEqual(300);
+  });
+
   it("closes without changing when the pill scrolls out of the viewport", async () => {
     restoreMotion = mockReducedMotion(true);
     const onChange = vi.fn();

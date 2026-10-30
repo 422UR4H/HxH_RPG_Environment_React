@@ -1,10 +1,10 @@
 // Os controles que só a tela do mestre monta: regência (regime, abrir, fechar), a escolha
 // do NPC por quem agir, a ação direta numa porta/janela e o painel de arrumar o tabuleiro. Nenhum pergunta "sou mestre?" — a página é que decide montá-los.
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import usePointerVerb from "../../../hooks/usePointerVerb";
 import styled, { css } from "styled-components";
 import PillSelect from "../../../components/molecules/PillSelect";
-import { PILL_CHEVRON } from "../../../components/molecules/PillSelect.styles";
+import { pillLook } from "../../../components/molecules/PillSelect.styles";
 import Tooltip from "../../../components/ions/Tooltip";
 import { colors } from "../../../styles/tokens";
 import { media } from "../../../styles/breakpoints";
@@ -159,6 +159,7 @@ export function AddNpcPicker({
   onAdd: (id: string) => void;
 }) {
   const [chosen, setChosen] = useState("");
+  const options = useMemo(() => candidates.map((c) => ({ value: c.id, label: c.name })), [candidates]);
   if (candidates.length === 0) return null;
   return (
     <AddBlock>
@@ -168,7 +169,7 @@ export function AddNpcPicker({
         value={chosen}
         onChange={setChosen}
         placeholder="Escolha um NPC da campanha"
-        options={candidates.map((c) => ({ value: c.id, label: c.name }))}
+        options={options}
       />
       <SmallButton type="button" disabled={!chosen} onClick={() => { onAdd(chosen); setChosen(""); }}>
         Adicionar
@@ -398,30 +399,17 @@ const AddBlock = styled.section`
   gap: 6px;
 `;
 
-// Pílula do site sobre o painel escuro. Refaz em px o desenho de `ProfilePillSelect`, que não serve aqui por usar `cqi` (container query da ficha).
+// Pílula do site sobre o painel escuro: o desenho vem de `pillLook`; aqui só os tamanhos em px (`ProfilePillSelect` usa `cqi`, da ficha).
 const NpcSelect = styled(PillSelect)`
+  ${pillLook}
   width: 100%;
   min-width: 0;
   font-size: 13px;
-  font-weight: 600;
-  color: ${colors.textPrimary};
-  background-color: ${colors.brandAccent};
-  border: 2px solid ${colors.brandAccent};
+  border-width: 2px;
   border-radius: 999px;
   padding: 5px 32px 5px 12px;
-  cursor: pointer;
-  background-image: ${PILL_CHEVRON};
-  background-repeat: no-repeat;
   background-position: right 10px center;
   background-size: 14px;
-
-  &:focus {
-    outline: none;
-    border-color: ${colors.textPrimary};
-  }
-  &:hover {
-    filter: brightness(1.1);
-  }
 `;
 
 /** Painel da fila no celular: o regime vem para cá (ver `RoundModeSwitch`). */

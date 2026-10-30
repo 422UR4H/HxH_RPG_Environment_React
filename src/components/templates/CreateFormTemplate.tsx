@@ -48,7 +48,7 @@ export default function CreateFormTemplate({
       <PageHeader backgroundColor={headerColor} />
       <PageBody>
         <MainContentContainer>
-          <FormColumn $reserveRight={isRulesCollapsed && !!rulesContent}>
+          <FormColumn $reserveEdges={isRulesCollapsed && !!rulesContent}>
             <PageTitle>{title}</PageTitle>
 
             {error && <SignFormError message={error} tone="dark" />}
@@ -125,7 +125,7 @@ const MainContentContainer = styled.div`
   background-attachment: fixed;
 `;
 
-const FormColumn = styled.div<{ $reserveRight: boolean }>`
+const FormColumn = styled.div<{ $reserveEdges: boolean }>`
   display: flex;
   flex-direction: column;
   gap: 30px;
@@ -134,7 +134,7 @@ const FormColumn = styled.div<{ $reserveRight: boolean }>`
   padding: 30px;
   /* Aba REGRAS visível: a área de toque dela não cobre o formulário. A reserva vale
      dos dois lados para a margem esquerda ficar igual à direita. */
-  ${({ $reserveRight }) => $reserveRight && `padding-inline: ${EDGE_TAB_HIT}px;`}
+  ${({ $reserveEdges }) => $reserveEdges && `padding-inline: ${EDGE_TAB_HIT}px;`}
 `;
 
 const Form = styled.form`
