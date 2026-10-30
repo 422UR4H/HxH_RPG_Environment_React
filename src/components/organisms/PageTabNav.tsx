@@ -6,21 +6,19 @@ type Tab = { id: string; label: string };
 
 interface PageTabNavProps {
   tabs: Tab[];
+  activeTab: string;
 }
 
-export default function PageTabNav({ tabs }: PageTabNavProps) {
-  const [searchParams, setSearchParams] = useSearchParams();
-
-  if (tabs.length <= 1) return null;
-
-  const activeTab = searchParams.get("tab") ?? tabs[0].id;
+export default function PageTabNav({ tabs, activeTab }: PageTabNavProps) {
+  const [, setSearchParams] = useSearchParams();
 
   return (
-    <Nav>
+    <Nav aria-label="Seções">
       {tabs.map((tab) => (
         <TabButton
           key={tab.id}
           $active={activeTab === tab.id}
+          aria-current={activeTab === tab.id ? "true" : undefined}
           onClick={() => setSearchParams({ tab: tab.id }, { replace: true })}
         >
           {tab.label}
@@ -32,27 +30,35 @@ export default function PageTabNav({ tabs }: PageTabNavProps) {
 
 const Nav = styled.nav`
   display: flex;
-  gap: 4px;
-  border-bottom: 2px solid ${colors.borderDivider};
-  margin-bottom: 24px;
+  gap: 6px;
+  /* Sobe sobre o painel para a aba ativa cobrir o traço de cima dele. */
+  position: relative;
+  z-index: 1;
 `;
 
 const TabButton = styled.button<{ $active: boolean }>`
   font-size: 16px;
-  font-weight: ${({ $active }) => ($active ? "700" : "400")};
-  color: ${({ $active }) =>
-    $active ? colors.textPrimary : colors.textPlaceholderStrong};
-  background: none;
-  border: none;
-  border-bottom: 3px solid
-    ${({ $active }) => ($active ? colors.brandAccent : "transparent")};
-  min-height: 44px;
-  padding: 10px 20px;
-  margin-bottom: -2px;
+  font-weight: 700;
+  color: ${({ $active }) => ($active ? colors.textPrimary : colors.textMuted)};
+  background: ${({ $active }) =>
+    $active ? colors.surfaceTabPanel : colors.surfaceTabInactive};
+  border: 3px solid ${colors.borderTab};
+  border-bottom: none;
+  border-radius: 12px 12px 0 0;
+  padding: 0 20px ${({ $active }) => ($active ? "3px" : "0")};
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
+  transition: color 0.15s, background-color 0.15s;
+  position: relative;
+  /* A ativa desce 3px sobre a borda do painel; a inativa fica 4px mais baixa, apoiada no traço. */
+  margin-bottom: ${({ $active }) => ($active ? "-3px" : "0")};
+  margin-top: ${({ $active }) => ($active ? "0" : "4px")};
+  /* A altura da aba inativa define a linha da barra; a ativa estica junto e ainda avança 3px sobre o painel. */
+  min-height: ${({ $active }) => ($active ? "auto" : "44px")};
+  z-index: ${({ $active }) => ($active ? 2 : 0)};
 
   &:hover {
     color: ${colors.textPrimary};
+    background: ${({ $active }) =>
+      $active ? colors.surfaceTabPanel : colors.surfaceTabInactiveHover};
   }
 `;

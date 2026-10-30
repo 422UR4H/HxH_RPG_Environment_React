@@ -1,16 +1,15 @@
 // src/features/match/MatchMapsPanel.tsx
 import styled from "styled-components";
 import type { TacticalMap, MatchMapResponse } from "../../types/tacticalMap";
+import SignFormError from "../../components/atoms/SignFormError";
 import Badge from "../../components/ions/Badge";
 import MapCard from "../../components/molecules/MapCard";
 import { colors } from "../../styles/tokens";
+import { TabPanelEmpty } from "../../components/organisms/TabbedPanel";
 import { formatDateBR } from "../../utils/date";
 import type { BoardSource } from "../../hooks/useInheritableBoards";
 
 interface MatchMapsPanelProps {
-  activeTab: string;
-  isMaster: boolean;
-  matchEnded: boolean;
   matchStarted: boolean;
   mapsPending: boolean;
   maps: TacticalMap[] | undefined;
@@ -30,9 +29,6 @@ interface MatchMapsPanelProps {
 }
 
 export default function MatchMapsPanel({
-  activeTab,
-  isMaster,
-  matchEnded,
   matchStarted,
   mapsPending,
   maps,
@@ -47,112 +43,79 @@ export default function MatchMapsPanel({
   onDetach,
   onInherit,
 }: MatchMapsPanelProps) {
-  if (activeTab !== "maps") return null;
-
-  if (isMaster) {
-    return (
-      <MapsGrid>
-        {changeError && <MapChangeError role="alert">{changeError}</MapChangeError>}
-        {changeNotice && <MapChangeNotice role="status">{changeNotice}</MapChangeNotice>}
-        {mapsPending ? (
-          <MapsEmptyText>Carregando mapas…</MapsEmptyText>
-        ) : (maps ?? []).length === 0 ? (
-          <MapsEmptyText>Nenhum mapa criado ainda.</MapsEmptyText>
-        ) : (
-          (maps ?? []).map((map) => {
-            const isAttached = matchMap?.mapUuid === map.id;
-            const sources = boardSources[map.id] ?? [];
-            return (
-              <MapCardWrapper key={map.id}>
-                <MapCard map={map} onClick={() => onMapClick(map.id)} />
-                {!matchStarted && (
-                  <MapAttachRow>
-                    {isAttached ? (
-                      <>
-                        <Badge tone="ongoing" uppercase={false}>Anexado</Badge>
-                        <DetachButton onClick={onDetach} disabled={isDetaching}>
-                          {isDetaching ? "Desanexando…" : "Desanexar"}
-                        </DetachButton>
-                      </>
-                    ) : (
-                      <AttachButton
-                        onClick={() => onAttach(map.id)}
+  return (
+    <MapsGrid>
+      {changeError && <SignFormError tone="dark" message={changeError} />}
+      {changeNotice && <MapChangeNotice role="status">{changeNotice}</MapChangeNotice>}
+      {mapsPending ? (
+        <TabPanelEmpty>Carregando mapas…</TabPanelEmpty>
+      ) : (maps ?? []).length === 0 ? (
+        <TabPanelEmpty>Nenhum mapa criado ainda.</TabPanelEmpty>
+      ) : (
+        (maps ?? []).map((map) => {
+          const isAttached = matchMap?.mapUuid === map.id;
+          const sources = boardSources[map.id] ?? [];
+          return (
+            <MapCardWrapper key={map.id}>
+              <MapCard map={map} onClick={() => onMapClick(map.id)} />
+              {!matchStarted && (
+                <MapAttachRow>
+                  {isAttached ? (
+                    <>
+                      <Badge tone="ongoing" uppercase={false}>Anexado</Badge>
+                      <DetachButton onClick={onDetach} disabled={isDetaching}>
+                        {isDetaching ? "Desanexando…" : "Desanexar"}
+                      </DetachButton>
+                    </>
+                  ) : (
+                    <AttachButton
+                      onClick={() => onAttach(map.id)}
+                      disabled={isAttaching}
+                    >
+                      {isAttaching ? "Anexando…" : "Anexar"}
+                    </AttachButton>
+                  )}
+                </MapAttachRow>
+              )}
+              {!matchStarted && sources.length > 0 && (
+                <InheritBlock>
+                  <InheritLabel>Continuar o tabuleiro de…</InheritLabel>
+                  <InheritList>
+                    {sources.map((s) => (
+                      <InheritButton
+                        key={s.matchUuid}
+                        onClick={() => onInherit(map.id, s.matchUuid)}
                         disabled={isAttaching}
                       >
-                        {isAttaching ? "Anexando…" : "Anexar"}
-                      </AttachButton>
-                    )}
-                  </MapAttachRow>
-                )}
-                {!matchStarted && sources.length > 0 && (
-                  <InheritBlock>
-                    <InheritLabel>Continuar o tabuleiro de…</InheritLabel>
-                    <InheritList>
-                      {sources.map((s) => (
-                        <InheritButton
-                          key={s.matchUuid}
-                          onClick={() => onInherit(map.id, s.matchUuid)}
-                          disabled={isAttaching}
-                        >
-                          {`${s.title} · ${formatDateBR(s.startedAt)}`}
-                        </InheritButton>
-                      ))}
-                    </InheritList>
-                    <InheritHint>
-                      {isAttached
-                        ? "Substitui o tabuleiro atual desta partida."
-                        : "Anexa este mapa e substitui o tabuleiro atual desta partida."}
-                    </InheritHint>
-                    {/* Contrato B16: a sala do lobby aberta guarda o tabuleiro antigo em memória e
-                        o próximo salvamento dela sobrescreve o herdado. */}
-                    <InheritHint>
-                      Faça isso com o lobby fechado: com ele aberto, a próxima peça movida lá
-                      desfaz a continuação.
-                    </InheritHint>
-                  </InheritBlock>
-                )}
-              </MapCardWrapper>
-            );
-          })
-        )}
-      </MapsGrid>
-    );
-  }
-
-  if (matchEnded) {
-    return (
-      <MapsPlaceholder>
-        Os mapas jogados nesta partida estarão disponíveis em breve.
-      </MapsPlaceholder>
-    );
-  }
-
-  return null;
+                        {`${s.title} · ${formatDateBR(s.startedAt)}`}
+                      </InheritButton>
+                    ))}
+                  </InheritList>
+                  <InheritHint>
+                    {isAttached
+                      ? "Substitui o tabuleiro atual desta partida."
+                      : "Anexa este mapa e substitui o tabuleiro atual desta partida."}
+                  </InheritHint>
+                  {/* Contrato B16: a sala do lobby aberta guarda o tabuleiro antigo em memória e
+                      o próximo salvamento dela sobrescreve o herdado. */}
+                  <InheritHint>
+                    Faça isso com o lobby fechado: com ele aberto, a próxima peça movida lá
+                    desfaz a continuação.
+                  </InheritHint>
+                </InheritBlock>
+              )}
+            </MapCardWrapper>
+          );
+        })
+      )}
+    </MapsGrid>
+  );
 }
 
 const MapsGrid = styled.div`
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding-bottom: 112px;
-`;
-
-const MapsEmptyText = styled.p`
-  font-size: 16px;
-  color: ${colors.textMuted};
-  padding: 20px 0;
-`;
-
-const MapsPlaceholder = styled.p`
-  font-size: 16px;
-  color: ${colors.textMuted};
-  padding: 40px 0;
-  text-align: center;
-`;
-
-const MapChangeError = styled.p`
-  font-size: 14px;
-  color: ${colors.feedbackDanger};
 `;
 
 const MapChangeNotice = styled.p`

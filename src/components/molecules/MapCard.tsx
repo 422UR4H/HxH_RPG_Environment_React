@@ -2,6 +2,7 @@
 import styled from "styled-components";
 import type { TacticalMap } from "../../types/tacticalMap";
 import { colors } from "../../styles/tokens";
+import { cardSurface } from "../../styles/card";
 
 interface MapCardProps {
   map: TacticalMap;
@@ -24,17 +25,10 @@ const Card = styled.button`
   flex-direction: column;
   gap: 8px;
   padding: 20px;
-  background-color: ${colors.surfaceInput};
-  border: 1px solid ${colors.borderInput};
-  border-radius: 8px;
+  ${cardSurface}
   cursor: pointer;
   text-align: left;
   width: 100%;
-  transition: background-color 0.15s;
-
-  &:hover {
-    background-color: ${colors.surfaceInputHover};
-  }
 `;
 
 const MapName = styled.h3`

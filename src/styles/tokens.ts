@@ -73,7 +73,10 @@ export const colors = {
   // surface — opacas
   surfaceSidebar: palette.brown900, // fundo da sidebar de personagens/regras
   surfaceInput: palette.brown700, // fundo de campo de formulário e de seção de regra
-  surfaceInputHover: palette.brown850, // hover de item de partida
+  surfaceInputHover: palette.brown850, // hover de linha e de item na mesa (fila, eventos, compositor)
+  surfaceTabPanel: palette.brown700, // painel das abas de pasta e a aba ativa, que se funde a ele
+  surfaceTabInactive: palette.brown900, // aba de pasta inativa
+  surfaceTabInactiveHover: palette.brown850, // aba inativa sob o ponteiro
   surfaceScrollTrack: palette.brown700, // trilho da scrollbar (tema earth)
   surfaceScrollThumbHover: palette.brown600, // polegar da scrollbar no hover (tema earth)
   surfaceScrollThumbAccent: palette.red800, // polegar da scrollbar (tema dark, o global)
@@ -98,7 +101,7 @@ export const colors = {
   textDisabled: palette.neutral200,
   textOnLight: palette.neutral1000,
   textPlaceholder: palette.neutral400, // rótulos de formulário, legenda da área de soltar
-  textPlaceholderStrong: palette.neutral300, // aba inativa, texto de ajuda
+  textPlaceholderStrong: palette.neutral300, // texto de ajuda e rótulo secundário
   textInputDisabled: palette.neutral300, // campo desabilitado ou vazio
   textLabelMuted: palette.neutral300, // rótulos dos grupos de atributos
   textDisabledOnDark: palette.neutral300, // rótulo de controle desativado sobre surfaceDisabled
@@ -109,6 +112,7 @@ export const colors = {
   // border
   borderInput: palette.brown500,
   borderDivider: palette.neutral500,
+  borderTab: palette.brown900, // traço das abas de pasta e do painel: marrom-escuro, para não pesar sobre o mapa (aprovado pelo dono e pelo designer)
   borderMuted: palette.neutral600, // borda neutra de uso geral
   borderStrong: palette.neutral500, // borda e texto neutro nas áreas de soltar
   borderLight: palette.neutral400, // borda em repouso do BackgroundButton

@@ -15,7 +15,8 @@ import { useMatchMap } from "../hooks/useMatchMap";
 import { useAttachMatchMap } from "../hooks/useAttachMatchMap";
 import { useDetachMatchMap } from "../hooks/useDetachMatchMap";
 import { useInheritableBoards } from "../hooks/useInheritableBoards";
-import PageTabNav from "../components/organisms/PageTabNav";
+import TabbedPanel, { TabPanelEmpty, TabPanelHeading } from "../components/organisms/TabbedPanel";
+import ComingSoonBadge from "../components/ions/ComingSoonBadge";
 import MatchCharactersSidebar from "../features/match/MatchCharactersSidebar";
 import MatchHeaderSection from "../features/match/MatchHeaderSection";
 import MatchMapsPanel from "../features/match/MatchMapsPanel";
@@ -155,10 +156,9 @@ export default function MatchPage() {
 
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const matchEnded = !!match?.storyEndAt;
-
+  // Só o mestre tem o que fazer com mapas; o jogador fica só com Eventos (sem barra de abas).
   const availableTabs =
-    isMaster || matchEnded
+    isMaster
       ? [
           { id: "events", label: "Eventos" },
           { id: "maps", label: "Mapas" },
@@ -313,7 +313,38 @@ export default function MatchPage() {
           onDescriptionToggle={() => setDescriptionSignal((s) => !s)}
         />
 
-        <PageTabNav tabs={availableTabs} />
+        <TabbedPanel tabs={availableTabs} activeTab={activeTab}>
+          {activeTab === "events" && (
+            <>
+              {availableTabs.length === 1 && <TabPanelHeading>Eventos</TabPanelHeading>}
+              <TabPanelEmpty>
+                Nenhum evento ainda. <ComingSoonBadge />
+              </TabPanelEmpty>
+            </>
+          )}
+          {activeTab === "maps" && (
+            <MatchMapsPanel
+              matchStarted={matchStarted}
+              mapsPending={mapsPending}
+              maps={maps}
+              matchMap={matchMap}
+              isAttaching={isAttaching}
+              isDetaching={isDetaching}
+              changeError={mapChangeError}
+              changeNotice={mapChangeNotice}
+              boardSources={boardSources}
+              onMapClick={(mapId) =>
+                navigate(`/campaigns/${campaignId}/maps/${mapId}/edit`)
+              }
+              onAttach={(mapId) => attachMap({ mapId }, mapChangeCallbacks)}
+              onDetach={() => detachMap(undefined, mapChangeCallbacks)}
+              onInherit={handleInherit}
+            />
+          )}
+        </TabbedPanel>
+
+        {/* O respiro do fim da página fica fora do painel: dentro dele viraria uma faixa vazia. */}
+        {activeTab === "maps" && <ActionsList />}
 
         {activeTab === "events" && (
           <ActionsList>
@@ -358,27 +389,6 @@ export default function MatchPage() {
             ) : null}
           </ActionsList>
         )}
-
-        <MatchMapsPanel
-          activeTab={activeTab}
-          isMaster={isMaster}
-          matchEnded={matchEnded}
-          matchStarted={matchStarted}
-          mapsPending={mapsPending}
-          maps={maps}
-          matchMap={matchMap}
-          isAttaching={isAttaching}
-          isDetaching={isDetaching}
-          changeError={mapChangeError}
-          changeNotice={mapChangeNotice}
-          boardSources={boardSources}
-          onMapClick={(mapId) =>
-            navigate(`/campaigns/${campaignId}/maps/${mapId}/edit`)
-          }
-          onAttach={(mapId) => attachMap({ mapId }, mapChangeCallbacks)}
-          onDetach={() => detachMap(undefined, mapChangeCallbacks)}
-          onInherit={handleInherit}
-        />
       </DetailPageTemplate>
 
       {showLobbyConfirm && (

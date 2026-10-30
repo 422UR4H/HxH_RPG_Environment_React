@@ -26,7 +26,7 @@ import PlusIcon from "../components/ions/PlusIcon";
 import UpcomingRulesSidebar from "../components/organisms/UpcomingRulesSidebar";
 import { isApiError } from "../services/httpClient";
 import { useMaps } from "../hooks/useMaps";
-import PageTabNav from "../components/organisms/PageTabNav";
+import TabbedPanel, { TabPanelEmpty, TabPanelHeading } from "../components/organisms/TabbedPanel";
 import MapCard from "../components/molecules/MapCard";
 import { formatDateBR } from "../utils/date";
 
@@ -90,7 +90,8 @@ export default function CampaignPage() {
     isMaster ? id : undefined,
   );
 
-  const hasStartedMatch = (campaign?.matches ?? []).some(
+  const matches = campaign?.matches ?? [];
+  const hasStartedMatch = matches.some(
     (m) => !!m.gameStartAt,
   );
 
@@ -232,27 +233,56 @@ export default function CampaignPage() {
           })()}
         </CampaignStartDate>
 
-        <PageTabNav tabs={availableTabs} />
+        <TabbedPanel tabs={availableTabs} activeTab={activeTab}>
+          {activeTab === "matches" && (
+            <>
+              {availableTabs.length === 1 && <TabPanelHeading>Partidas</TabPanelHeading>}
+              <MatchesList>
+                {matches.length === 0 ? (
+                  <TabPanelEmpty>Nenhuma partida ainda.</TabPanelEmpty>
+                ) : (
+                  matches.map((match) => (
+                    <MatchItem
+                      key={match.uuid}
+                      match={match}
+                      onClick={() =>
+                        navigate(
+                          `/campaigns/${campaign.uuid}/matches/${match.uuid}`,
+                          {
+                            state: { sheetId: playerSheetId },
+                          },
+                        )
+                      }
+                    />
+                  ))
+                )}
+              </MatchesList>
+            </>
+          )}
+
+          {activeTab === "maps" && (
+            <MapsGrid>
+              {mapsPending ? (
+                <TabPanelEmpty>Carregando mapas…</TabPanelEmpty>
+              ) : (maps ?? []).length === 0 ? (
+                <TabPanelEmpty>Nenhum mapa criado ainda.</TabPanelEmpty>
+              ) : (
+                (maps ?? []).map((map) => (
+                  <MapCard
+                    key={map.id}
+                    map={map}
+                    onClick={() =>
+                      navigate(`/campaigns/${id}/maps/${map.id}/edit`)
+                    }
+                  />
+                ))
+              )}
+            </MapsGrid>
+          )}
+        </TabbedPanel>
 
         {activeTab === "matches" && (
           <>
-            <MatchesList>
-              {(campaign.matches ?? []).map((match) => (
-                <MatchItem
-                  key={match.uuid}
-                  match={match}
-                  onClick={() =>
-                    navigate(
-                      `/campaigns/${campaign.uuid}/matches/${match.uuid}`,
-                      {
-                        state: { sheetId: playerSheetId },
-                      },
-                    )
-                  }
-                />
-              ))}
-            </MatchesList>
-
             <ActionsList $gap={MATCHES_GAP}>
               {isMaster ? (
                 <BottomActions
@@ -307,24 +337,6 @@ export default function CampaignPage() {
 
         {activeTab === "maps" && (
           <>
-            <MapsGrid>
-              {mapsPending ? (
-                <MapsEmptyText>Carregando mapas…</MapsEmptyText>
-              ) : (maps ?? []).length === 0 ? (
-                <MapsEmptyText>Nenhum mapa criado ainda.</MapsEmptyText>
-              ) : (
-                (maps ?? []).map((map) => (
-                  <MapCard
-                    key={map.id}
-                    map={map}
-                    onClick={() =>
-                      navigate(`/campaigns/${id}/maps/${map.id}/edit`)
-                    }
-                  />
-                ))
-              )}
-            </MapsGrid>
-
             <ActionsList $gap={MAPS_GAP}>
               <AdaptiveActionButton
                 label="Criar Mapa"
@@ -392,7 +404,7 @@ const MatchesList = styled.div`
   position: relative;
 `;
 
-// Os botões encaixados ficam a um gap da lista: a distância até o último card é a mesma entre cards.
+// Os botões encaixados ficam a um gap do painel: a distância até ele é a mesma entre cards.
 const ActionsList = styled(BaseActionsList)<{ $gap: string }>`
   ${({ $gap }) => dockedBarAfterGap($gap)}
 `;
@@ -422,10 +434,4 @@ const MapsGrid = styled.div`
   display: flex;
   flex-direction: column;
   gap: ${MAPS_GAP};
-`;
-
-const MapsEmptyText = styled.p`
-  font-size: 16px;
-  color: ${colors.textMuted};
-  padding: 20px 0;
 `;
