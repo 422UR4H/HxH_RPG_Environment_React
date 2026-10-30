@@ -85,3 +85,12 @@ Pedido do dono (30/10, depois de testar o #96). **Medido pelo controlador** nas 
 - [ ] Faça a troca empilhado/lado a lado depender da **largura do contêiner dos botões** (container query), não da largura da tela, com o limite no ponto em que o par mais largo do produto ("Cancelar" + "Salvar Alterações" + o gap) deixa de caber; tire o recuo que aparece quando quebra (margem lateral do 2º botão).
 - [ ] O lado a lado (≥ ~600 px de tela) e o desktop ficam idênticos ao de hoje (o controlador compara prints em 620, 900 e 1366 px).
 - [ ] Commit `fix(ui): botões do formulário empilhados quando não cabem lado a lado`.
+
+### Task 6: brilho dourado nos x/− e campos lado a lado alinhados
+
+Pedidos do dono (30/10):
+1. **Ícones:** ele escolheu a versão "meio-termo + dourado". Substitua `src/assets/icons/x-red.svg` e `src/assets/icons/minus-red.svg` pelo conteúdo exato de `/tmp/claude-1000/-home-azzurah-Documentos-HxH-RPG-Environment-Project-System-X-System-Project/6bbef6df-6072-4536-8d66-94586a43395a/scratchpad/redicons/x-red-meio-dourado.svg` e `/tmp/claude-1000/-home-azzurah-Documentos-HxH-RPG-Environment-Project-System-X-System-Project/6bbef6df-6072-4536-8d66-94586a43395a/scratchpad/redicons/minus-red-meio-dourado.svg` (cópia byte a byte; mesmos nomes de destino, nenhum import muda).
+2. **Campos lado a lado desalinhados** (`FormRow` + `FormField`, telas de criar/editar campanha e partida). Medido: na edição de campanha, em 768–900 px e ~1150 px de tela, o rótulo "Data Corrente da História (opcional)" quebra em 2 linhas (52 px contra 26 px) e o campo dele desce 26 px em relação ao "Data de Início da História" ao lado. Correção: os campos de uma mesma linha do `FormRow` compartilham as faixas de rótulo, campo e ajuda (`grid-template-rows: subgrid` com `grid-row: span 3` em cada `FormField`), com o rótulo encostado embaixo da sua faixa (`align-self: end`), para que os campos fiquem sempre na mesma altura e o texto de ajuda logo abaixo de cada um. Mantenha os mesmos espaços de hoje (6 px entre rótulo/campo/ajuda; 30 px entre colunas e entre linhas do `FormRow`). Sem suporte a `subgrid` (`@supports`), fica como hoje. Campo empilhado (uma coluna) e qualquer `FormField` fora de `FormRow` não mudam.
+
+**Files:** `src/assets/icons/x-red.svg`, `src/assets/icons/minus-red.svg`, `src/components/molecules/FormRow.tsx`, `src/components/molecules/FormField.tsx`.
+- [ ] Commits: `feat(ui): x e − vermelhos com brilho dourado` e `fix(ui): campos lado a lado alinhados mesmo com rótulo de duas linhas`.
