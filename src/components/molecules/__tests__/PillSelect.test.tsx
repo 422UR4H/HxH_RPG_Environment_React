@@ -386,6 +386,30 @@ describe("PillSelect", () => {
     expect(bottoms).toEqual([`${window.innerHeight - pillRect.top}px`, `${window.innerHeight - pillRect.top}px`]);
   });
 
+  it("keeps the side chosen on open while scrolling, only re-measuring the height", async () => {
+    restoreMotion = mockReducedMotion(true);
+    pillRect = { top: 650, bottom: 707, left: 50, right: 393, width: 343, height: 57 };
+    mockListHeight(300);
+    render(<Harness />);
+    await userEvent.click(trigger());
+    const list = screen.getByRole("listbox");
+    expect(list.style.getPropertyValue("--fallback-top")).toBe("auto");
+    // A página rola: embaixo agora há muito mais espaço, mas a lista não troca de lado.
+    pillRect = { top: 200, bottom: 257, left: 50, right: 393, width: 343, height: 57 };
+    act(() => {
+      window.dispatchEvent(new Event("scroll"));
+    });
+    const after = screen.getByRole("listbox");
+    expect(after.style.getPropertyValue("--fallback-top")).toBe("auto");
+    expect(after.style.getPropertyValue("--fallback-bottom")).toBe(`${window.innerHeight - 200}px`);
+    // Rola de novo até pouco espaço em cima: encolhe naquele lado.
+    pillRect = { top: 120, bottom: 177, left: 50, right: 393, width: 343, height: 57 };
+    act(() => {
+      window.dispatchEvent(new Event("scroll"));
+    });
+    expect(screen.getByRole("listbox").style.maxHeight).toBe("112px");
+  });
+
   it("closes without changing when the pill scrolls out of the viewport", async () => {
     restoreMotion = mockReducedMotion(true);
     const onChange = vi.fn();

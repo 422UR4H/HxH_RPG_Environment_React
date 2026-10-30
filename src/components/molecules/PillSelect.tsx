@@ -95,6 +95,8 @@ export default function PillSelect({
   const listRef = useRef<HTMLDivElement>(null);
   const typed = useRef({ text: "", timer: 0 });
   const closeRef = useRef<() => void>(() => {});
+  // Lado escolhido ao abrir: rolar/redimensionar com a lista aberta não o troca (piscava perto da borda).
+  const sideRef = useRef<"below" | "above" | undefined>(undefined);
   const listId = useId();
   // <dashed-ident> único por instância: o useId do React traz ":" (inválido em ident CSS).
   const anchorName = `--pill-${listId.replace(/[^a-zA-Z0-9_-]/g, "")}`;
@@ -134,7 +136,9 @@ export default function PillSelect({
         field: { top: rect.top + border, bottom: rect.bottom - border },
         listHeight: natural,
         viewportHeight: window.innerHeight,
+        side: sideRef.current,
       });
+      sideRef.current = side;
       const vars: Record<string, string> = {
         "--pill-bg": cs.backgroundColor,
         "--pill-fg": cs.color,
@@ -167,7 +171,7 @@ export default function PillSelect({
       window.removeEventListener("resize", place);
       window.removeEventListener("scroll", place, { capture: true });
     };
-  }, [mounted, options, placement?.side]);
+  }, [mounted, open, options]);
 
   // A barra de rolagem da lista come a coluna do ✓, não o texto: mede e compensa.
   useLayoutEffect(() => {
@@ -229,6 +233,7 @@ export default function PillSelect({
   }
 
   const finishClosing = useCallback(() => {
+    sideRef.current = undefined;
     setClosing(false);
     setPlacement(null);
     if (!prefersReducedMotion()) setSettling(true);
@@ -243,6 +248,7 @@ export default function PillSelect({
   }, [settling]);
 
   function openList(index: number) {
+    sideRef.current = undefined;
     setSettling(false);
     setClosing(false);
     setOpen(true);

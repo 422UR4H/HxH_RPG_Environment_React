@@ -98,4 +98,21 @@ describe("computeAttachedListPlacement", () => {
     });
     expect(r.side).toBe("below");
   });
+
+  it("keeps the given side even when the other one has more room", () => {
+    const above = computeAttachedListPlacement({
+      field: { top: 100, bottom: 156 },
+      listHeight: 300,
+      viewportHeight,
+      side: "above",
+    });
+    expect(above).toEqual({ side: "above", bottom: 768 - 100, height: 92 });
+    const below = computeAttachedListPlacement({
+      field: { top: 600, bottom: 656 },
+      listHeight: 300,
+      viewportHeight,
+      side: "below",
+    });
+    expect(below).toEqual({ side: "below", top: 656, height: 768 - 656 - 8 });
+  });
 });

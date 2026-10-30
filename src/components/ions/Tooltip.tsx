@@ -5,7 +5,7 @@ import styled from "styled-components";
 import { colors } from "../../styles/tokens";
 
 /** Quanto a dica fica de pé depois de um toque (no toque não há "sair" para esconder). */
-const TOUCH_MS = 2500;
+const TOUCH_MS = 6250;
 /** Segurar o dedo por isto mostra a dica sem acionar o filho. */
 const LONG_PRESS_MS = 500;
 
@@ -69,6 +69,18 @@ export default function Tooltip({
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
+  }, [isOpen]);
+
+  // Tocar/clicar em outro lugar dispensa a dica (o gatilho cuida do próprio toque).
+  useEffect(() => {
+    if (!isOpen) return;
+    const onDown = (e: PointerEvent) => {
+      if (wrapRef.current?.contains(e.target as Node)) return;
+      clearTimeout(timer.current);
+      setPos(null);
+    };
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
   }, [isOpen]);
 
   // Mede a bolha e a mantém a 8px das bordas da tela (num celular de 390px ela cortaria).

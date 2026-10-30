@@ -41,6 +41,8 @@ export interface AttachedListPlacementInput {
   listHeight: number;
   /** Altura da janela (`innerHeight`). */
   viewportHeight: number;
+  /** Fixa o lado (o já escolhido ao abrir); sem ele, o lado é decidido pelo espaço. */
+  side?: "below" | "above";
 }
 
 export interface AttachedListPlacement {
@@ -57,15 +59,18 @@ export interface AttachedListPlacement {
  * Lista que continua a pílula, sem folga entre as duas. Embaixo por padrão; em cima só se
  * embaixo não couber e em cima houver mais espaço. Quando nenhum lado comporta a lista
  * inteira, ela usa o espaço do lado escolhido (menos 8 px até a borda) e rola por dentro.
+ * Com `side`, o lado não é reavaliado: só a altura se ajusta ao espaço que sobra nele.
  */
 export function computeAttachedListPlacement({
   field,
   listHeight,
   viewportHeight,
+  side: fixedSide,
 }: AttachedListPlacementInput): AttachedListPlacement {
   const roomBelow = Math.max(0, viewportHeight - field.bottom - MARGIN);
   const roomAbove = Math.max(0, field.top - MARGIN);
-  const side = listHeight <= roomBelow || roomBelow >= roomAbove ? "below" : "above";
+  const side =
+    fixedSide ?? (listHeight <= roomBelow || roomBelow >= roomAbove ? "below" : "above");
   const height = Math.min(listHeight, side === "below" ? roomBelow : roomAbove);
   // Em cima, ancora pela base: a lista pode ser mais curta que `height` (o teto) e mesmo assim encosta na pílula.
   return side === "below"
