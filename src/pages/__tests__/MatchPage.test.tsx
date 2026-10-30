@@ -236,6 +236,15 @@ describe("MatchPage", () => {
       expect(screen.queryByText(/disponíveis em breve/)).not.toBeInTheDocument();
     });
 
+    it("falls back to events when a player opens the maps tab on an ended match", async () => {
+      server.use(
+        http.get(`${baseUrl}/matches/:id`, () => HttpResponse.json({ match: matchEndedApi() })),
+      );
+      renderPage({ user: userFixture, route: "/campaigns/campaign-1/matches/match-1?tab=maps" });
+      expect(await screen.findByRole("heading", { name: /Eventos/ })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /Mapas/i })).not.toBeInTheDocument();
+    });
+
     it("shows the coming-soon events section", async () => {
       renderPage({ user: userFixture });
       const heading = await screen.findByRole("heading", { name: /Eventos/ });

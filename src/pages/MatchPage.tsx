@@ -313,7 +313,7 @@ export default function MatchPage() {
           onDescriptionToggle={() => setDescriptionSignal((s) => !s)}
         />
 
-        <TabbedPanel tabs={availableTabs}>
+        <TabbedPanel tabs={availableTabs} activeTab={activeTab}>
           {activeTab === "events" && (
             <>
               <TabPanelHeading>
@@ -324,8 +324,6 @@ export default function MatchPage() {
           )}
           {activeTab === "maps" && (
             <MatchMapsPanel
-              activeTab={activeTab}
-              isMaster={isMaster}
               matchStarted={matchStarted}
               mapsPending={mapsPending}
               maps={maps}
@@ -344,6 +342,9 @@ export default function MatchPage() {
             />
           )}
         </TabbedPanel>
+
+        {/* O respiro do fim da página fica fora do painel: dentro dele viraria uma faixa vazia. */}
+        {activeTab === "maps" && <ActionsList />}
 
         {activeTab === "events" && (
           <ActionsList>

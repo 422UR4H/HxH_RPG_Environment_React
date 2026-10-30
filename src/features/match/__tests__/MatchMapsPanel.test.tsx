@@ -9,8 +9,6 @@ type Props = ComponentProps<typeof MatchMapsPanel>;
 
 function renderPanel(overrides: Partial<Props> = {}) {
   const props: Props = {
-    activeTab: "maps",
-    isMaster: true,
     matchStarted: false,
     mapsPending: false,
     maps: [mapFixture, { ...mapFixture, id: "map-2", name: "Outro Mapa" }],

@@ -6,19 +6,19 @@ type Tab = { id: string; label: string };
 
 interface PageTabNavProps {
   tabs: Tab[];
+  activeTab: string;
 }
 
-export default function PageTabNav({ tabs }: PageTabNavProps) {
-  const [searchParams, setSearchParams] = useSearchParams();
-
-  const activeTab = searchParams.get("tab") ?? tabs[0].id;
+export default function PageTabNav({ tabs, activeTab }: PageTabNavProps) {
+  const [, setSearchParams] = useSearchParams();
 
   return (
-    <Nav>
+    <Nav aria-label="Seções">
       {tabs.map((tab) => (
         <TabButton
           key={tab.id}
           $active={activeTab === tab.id}
+          aria-current={activeTab === tab.id ? "true" : undefined}
           onClick={() => setSearchParams({ tab: tab.id }, { replace: true })}
         >
           {tab.label}

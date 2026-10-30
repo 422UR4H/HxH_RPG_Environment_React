@@ -5,15 +5,17 @@ import PageTabNav from "./PageTabNav";
 
 interface TabbedPanelProps {
   tabs: { id: string; label: string }[];
+  /** Aba ativa já validada pela página (fonte única; a URL crua pode trazer lixo). */
+  activeTab: string;
   children: ReactNode;
 }
 
-export default function TabbedPanel({ tabs, children }: TabbedPanelProps) {
+export default function TabbedPanel({ tabs, activeTab, children }: TabbedPanelProps) {
   const hasTabs = tabs.length > 1;
 
   return (
     <Wrapper>
-      {hasTabs && <PageTabNav tabs={tabs} />}
+      {hasTabs && <PageTabNav tabs={tabs} activeTab={activeTab} />}
       <Panel $hasTabs={hasTabs}>{children}</Panel>
     </Wrapper>
   );

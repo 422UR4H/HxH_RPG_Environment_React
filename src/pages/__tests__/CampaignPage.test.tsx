@@ -475,6 +475,25 @@ describe("CampaignPage", () => {
       expect(screen.queryByRole("button", { name: "Mapas" })).not.toBeInTheDocument();
     });
 
+    it("marks the first tab active when the tab param is unknown", async () => {
+      server.use(
+        http.get(`${baseUrl}/campaigns/:id`, () =>
+          HttpResponse.json({
+            campaign: campaignAsMasterApi(masterUserFixture.user.uuid),
+          }),
+        ),
+      );
+      renderWithProviders(<CampaignPage />, {
+        route: "/campaigns/campaign-1?tab=foo",
+        path: "/campaigns/:id",
+        user: masterUserFixture,
+      });
+      const matchesTab = await screen.findByRole("button", { name: "Partidas" });
+      expect(matchesTab).toHaveAttribute("aria-current", "true");
+      expect(screen.getByRole("button", { name: "Mapas" })).not.toHaveAttribute("aria-current");
+      expect(screen.getByRole("navigation", { name: "Seções" })).toBeInTheDocument();
+    });
+
     it("shows the 'Partidas' heading inside the panel for a player", async () => {
       renderWithProviders(<CampaignPage />, {
         route: "/campaigns/campaign-1",

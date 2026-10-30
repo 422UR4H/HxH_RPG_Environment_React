@@ -233,10 +233,10 @@ export default function CampaignPage() {
           })()}
         </CampaignStartDate>
 
-        <TabbedPanel tabs={availableTabs}>
+        <TabbedPanel tabs={availableTabs} activeTab={activeTab}>
           {activeTab === "matches" && (
             <>
-              {!isMaster && <TabPanelHeading>Partidas</TabPanelHeading>}
+              {availableTabs.length === 1 && <TabPanelHeading>Partidas</TabPanelHeading>}
               <MatchesList>
                 {matches.length === 0 ? (
                   <PanelEmptyText>Nenhuma partida ainda.</PanelEmptyText>
@@ -404,7 +404,7 @@ const MatchesList = styled.div`
   position: relative;
 `;
 
-// Os botões encaixados ficam a um gap da lista: a distância até o último card é a mesma entre cards.
+// Os botões encaixados ficam a um gap do painel: a distância até ele é a mesma entre cards.
 const ActionsList = styled(BaseActionsList)<{ $gap: string }>`
   ${({ $gap }) => dockedBarAfterGap($gap)}
 `;
