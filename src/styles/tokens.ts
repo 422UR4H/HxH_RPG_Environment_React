@@ -217,7 +217,7 @@ export const fonts = {
 export const gradients = {
   // botões laranja (CreateButton / submit)
   orange: `linear-gradient(to bottom, ${palette.gold300} 0%, ${palette.gold300} 20%, ${palette.red600} 100%)`,
-  // fundo das telas de login e cadastro
+  // fundo das telas de login, cadastro e início (home)
   signBg: `linear-gradient(to bottom, ${palette.blue600} 0%, ${palette.blue700} 100%)`,
   // véu sob o texto de um card com imagem de fundo: limpo no topo, escuro onde o texto fica
   cardScrim: `linear-gradient(to bottom, transparent 30%, ${colors.overlaySoft} 55%, ${colors.overlayDark} 100%)`,
