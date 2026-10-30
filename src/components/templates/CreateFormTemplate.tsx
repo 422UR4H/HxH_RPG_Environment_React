@@ -173,9 +173,10 @@ const ButtonsRow = styled.div`
     /* && sobe a especificidade: o SubmitButton é declarado depois e a margem dele venceria. */
     && > * {
       margin: 0;
-      /* Rótulo numa linha só até 320 px: cabe ~8,4 × o tamanho da fonte na largura útil
-         (contêiner menos o padding lateral de 64 px). Piso legível de 20 px. */
-      font-size: clamp(20px, calc((100cqw - 64px) / 8.4), 26px);
+      /* Rótulo numa linha só até 320 px: primeiro encolhe o padding lateral (32 -> 12 px),
+         depois a fonte. O rótulo ocupa ~8,4 × a fonte; 28 px = padding 2 × 12 + borda. Piso de 20 px. */
+      padding-inline: 12px;
+      font-size: clamp(20px, calc((100cqw - 28px) / 8.4), 26px);
     }
   }
 `;
