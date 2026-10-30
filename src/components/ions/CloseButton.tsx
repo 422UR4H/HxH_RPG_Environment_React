@@ -1,6 +1,6 @@
 import styled from "styled-components";
 import { iconFxTransition } from "../../styles/iconButtonFx";
-import closeIcon from "../../assets/icons/x.svg";
+import closeIcon from "../../assets/icons/x-red.svg";
 
 const CloseButton = styled.img.attrs({
   src: closeIcon,

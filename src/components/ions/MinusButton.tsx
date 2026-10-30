@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import minusIcon from "../../assets/icons/minus.svg";
+import minusIcon from "../../assets/icons/minus-red.svg";
 
 interface MinusButtonProps {
   onClick?: () => void;
