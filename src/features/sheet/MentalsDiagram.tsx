@@ -12,12 +12,15 @@ interface MentalsDiagramProps {
   attributes?: {
     [key: string]: Attribute;
   };
+  /** Pede ao dono da ficha que some `delta` aos pontos do atributo; o diagrama não muta `attributes`. */
+  onAttributePointsChange?: (name: string, delta: 1 | -1) => void;
   mentalAbility?: Ability;
 }
 
 const MentalsDiagram = ({
   mode,
   attributes = {},
+  onAttributePointsChange,
   mentalAbility = { level: 0, bonus: 0 },
 }: MentalsDiagramProps) => {
   const spent = Object.values(attributes).reduce((sum, a) => sum + (a?.points || 0), 0);
@@ -32,14 +35,16 @@ const MentalsDiagram = ({
     setDistributionPoints((prev) => (prev > 0 ? prev - 1 : 0));
   };
 
-  const incAttributePoints = (attr: Attribute) => {
+  const incAttributePoints = (name: string) => {
     if (distributionPoints <= 0) return;
-    if (attr?.points !== undefined) attr.points += 1;
+    if (attributes[name]?.points !== undefined)
+      onAttributePointsChange?.(name, 1);
     decDistributionPoints();
   };
-  const decAttributePoints = (attr: Attribute) => {
-    if (attr?.points === undefined || attr.points <= 0) return;
-    attr.points -= 1;
+  const decAttributePoints = (name: string) => {
+    const points = attributes[name]?.points;
+    if (points === undefined || points <= 0) return;
+    onAttributePointsChange?.(name, -1);
     incDistributionPoints();
   };
 
@@ -102,7 +107,7 @@ const MentalsDiagram = ({
                 mode === "edit") && (
                 <PlusButton
                   isDisabled={!canIncrement}
-                  onClick={() => incAttributePoints(attr)}
+                  onClick={() => incAttributePoints(pos.name)}
                 />
               )}
 
@@ -119,7 +124,7 @@ const MentalsDiagram = ({
                 mode === "edit") && (
                 <MinusButton
                   isDisabled={!canDecrement}
-                  onClick={() => decAttributePoints(attr)}
+                  onClick={() => decAttributePoints(pos.name)}
                 />
               )}
             </AttributeMarker>
