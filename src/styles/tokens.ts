@@ -112,7 +112,7 @@ export const colors = {
   // border
   borderInput: palette.brown500,
   borderDivider: palette.neutral500,
-  borderTab: palette.brown900, // traço das abas de pasta e do painel, no marrom dos cards para não pesar sobre o mapa
+  borderTab: palette.brown900, // traço das abas de pasta e do painel: marrom-escuro, para não pesar sobre o mapa (aprovado pelo dono e pelo designer)
   borderMuted: palette.neutral600, // borda neutra de uso geral
   borderStrong: palette.neutral500, // borda e texto neutro nas áreas de soltar
   borderLight: palette.neutral400, // borda em repouso do BackgroundButton

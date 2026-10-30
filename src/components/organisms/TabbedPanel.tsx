@@ -51,6 +51,8 @@ export const TabPanelEmpty = styled.p`
   align-items: center;
   flex-wrap: wrap;
   gap: 12px;
+  /* Os 8 px mais os 12 px do painel devolvem os 20 px de respiro do antigo texto de vazio. */
+  padding: 8px;
   font-size: 16px;
   color: ${colors.textMuted};
 `;
