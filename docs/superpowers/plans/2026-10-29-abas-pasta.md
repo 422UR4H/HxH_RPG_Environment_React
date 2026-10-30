@@ -98,3 +98,41 @@
 - [ ] **Step 3:** `MatchPage`, `MatchMapsPanel`.
 - [ ] **Step 4:** arquivo de teste passa; suíte inteira, `typecheck`, `lint`.
 - [ ] **Step 5:** commit `feat(ui): abas de pasta na partida; jogador sem abas e Eventos em breve`.
+
+### Task 3: cards no padrão do site e vazios iguais (pedido do dono depois do teste)
+
+O dono do produto testou o PR #95: os cards de partida e de mapa ficaram cada um com uma cara, e nenhum segue o padrão de card que o site já tem, o **card de campanha** (`src/components/atoms/CampaignCard.tsx`, listas de campanhas). Ele e o designer aprovaram o painel e a borda marrom-escura das abas; o que muda é o que vai **dentro** do painel. Também pediu vazios iguais aos da campanha nas abas da partida.
+
+**Files:**
+- Create: `src/styles/card.ts`
+- Modify: `src/components/atoms/CampaignCard.tsx`, `src/features/campaign/MatchItem.tsx`, `src/components/molecules/MapCard.tsx`
+- Modify: `src/components/organisms/TabbedPanel.tsx`, `src/pages/CampaignPage.tsx`, `src/pages/MatchPage.tsx`, `src/features/match/MatchMapsPanel.tsx`
+- Modify: `src/styles/tokens.ts`, `src/components/CLAUDE.md`
+- Test: `src/pages/__tests__/MatchPage.test.tsx` (e os outros que quebrarem por texto)
+
+**Interfaces:**
+- Produces: `cardSurface` (`css` do styled-components) em `src/styles/card.ts` — a moldura e o hover do card de campanha, com estes valores exatos, tirados do `CampaignCard` atual:
+  - `background-color: colors.surfaceInput; color: colors.textPrimary;`
+  - `border: 4px solid colors.borderInput; border-radius: 12px;`
+  - `box-shadow: 0 4px 6px colors.shadowSoft; transition: transform 0.2s, box-shadow 0.2s;`
+  - `&:hover { transform: translateY(-5px); box-shadow: 0 8px 15px colors.shadowStrong; border-color: colors.brandAccent; }`
+  - `&:active { transform: scale(0.98); }`
+  - O fundo **não** muda no hover.
+- Produces: `TabPanelEmpty` (exportado de `TabbedPanel.tsx`): a linha de vazio/carregando dentro do painel — 16 px, `textMuted`, `display: flex; align-items: center; flex-wrap: wrap; gap: 12px` (cabe um selo ao lado). Substitui o `PanelEmptyText` da `CampaignPage` e o `MapsEmptyText` do `MatchMapsPanel`.
+- Remove: `TabPanelNote` (fica sem uso) e os tokens `surfaceTabItem`/`surfaceTabItemHover` (os cards voltam a usar `surfaceInput`).
+
+**Mudanças:**
+- `CampaignCard` passa a usar `cardSurface` e mantém só o que é dele (`display`, `text-decoration`, `overflow`, `cursor`, largura, o corte de 500 px que tira as bordas laterais). **O card de campanha não pode mudar nem 1 pixel**, parado nem no hover (o controlador compara prints antes/depois).
+- `MatchItem` (`MatchContainer`) e `MapCard` (`Card`) usam `cardSurface` no lugar do fundo, da borda e do hover próprios; mantêm padding, layout interno e `cursor`. A borda de 1 px do `MapCard` e o raio de 8 px saem.
+- **Vazios iguais:** a lista de partidas vazia ("Nenhuma partida ainda."), a de mapas vazia ("Nenhum mapa criado ainda.") e "Carregando mapas…", na campanha e na partida, usam `TabPanelEmpty`.
+- **Eventos com a mesma regra de Partidas:** o título `TabPanelHeading` "Eventos" só aparece quando não há barra de abas (jogador); para o mestre, a aba já é o título. O conteúdo é a linha de vazio com o selo: `<TabPanelEmpty>Nenhum evento ainda. <ComingSoonBadge /></TabPanelEmpty>`. Sai a frase "A lista do que aconteceu na partida vai aparecer aqui.".
+- `src/components/CLAUDE.md`: registre `cardSurface` como **o** card do site (campanha, partida, mapa) e `TabPanelEmpty`.
+
+- [ ] **Step 1: testes que falham** em `MatchPage.test.tsx` (substituem o teste "shows the coming-soon events section"):
+  - `it("shows the events empty line with the coming-soon badge")`: mestre; `expect(await screen.findByText("Nenhum evento ainda.")).toBeInTheDocument()`; o selo "Em breve" está dentro do mesmo elemento da linha (`within(...)`).
+  - `it("does not repeat the events heading for the master")`: mestre; espera a aba "Eventos" (`button`) e `expect(screen.queryByRole("heading", { name: /Eventos/ })).not.toBeInTheDocument()`.
+  - `it("shows the events heading for a player")`: jogador; `expect(await screen.findByRole("heading", { name: /Eventos/ })).toBeInTheDocument()` e a linha "Nenhum evento ainda.".
+- [ ] **Step 2:** rode o arquivo — falham.
+- [ ] **Step 3:** implemente.
+- [ ] **Step 4:** arquivo passa; suíte inteira, `typecheck`, `lint`.
+- [ ] **Step 5:** commit `fix(ui): cards de partida e mapa no padrão do card de campanha; vazios iguais nas abas`.
