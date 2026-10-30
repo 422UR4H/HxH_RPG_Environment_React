@@ -1,4 +1,10 @@
-import { type FormEvent, type ReactNode, useCallback, useEffect, useState } from "react";
+import {
+  type FormEvent,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 import styled from "styled-components";
 import PageHeader from "../atoms/PageHeader";
 import SignFormError from "../atoms/SignFormError";
@@ -58,12 +64,14 @@ export default function CreateFormTemplate({
               {children}
 
               <ButtonsContainer>
-                <CancelButton type="button" onClick={onCancel}>
-                  Cancelar
-                </CancelButton>
-                <SubmitButton type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? submittingLabel : submitLabel}
-                </SubmitButton>
+                <ButtonsRow>
+                  <CancelButton type="button" onClick={onCancel}>
+                    Cancelar
+                  </CancelButton>
+                  <SubmitButton type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? submittingLabel : submitLabel}
+                  </SubmitButton>
+                </ButtonsRow>
               </ButtonsContainer>
             </Form>
           </FormColumn>
@@ -143,18 +151,31 @@ const Form = styled.form`
   gap: 18px;
 `;
 
+/* Largura mínima do contêiner para "Cancelar" + "Salvar Alterações" ficarem lado a lado:
+   169 + 15 (gap) + 270 + 2 × 16 (margem do SubmitButton) = 486 px; 500 dá folga. Abaixo
+   disso empilha, em vez de deixar o flex-wrap quebrar com larguras próprias e recuo. */
+const STACK_BELOW = "500px";
+
+/* Contêiner de consulta: a decisão depende da largura do próprio bloco dos botões, não da tela. */
 const ButtonsContainer = styled.div`
+  container-type: inline-size;
+`;
+
+const ButtonsRow = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 15px;
 
-  @media (max-width: 480px) {
+  @container (max-width: ${STACK_BELOW}) {
     & > * {
       flex: 1 1 100%;
     }
     /* && sobe a especificidade: o SubmitButton é declarado depois e a margem dele venceria. */
     && > * {
       margin: 0;
+      /* Rótulo numa linha só até 320 px: cabe ~8,4 × o tamanho da fonte na largura útil
+         (contêiner menos o padding lateral de 64 px). Piso legível de 20 px. */
+      font-size: clamp(20px, calc((100cqw - 64px) / 8.4), 26px);
     }
   }
 `;
