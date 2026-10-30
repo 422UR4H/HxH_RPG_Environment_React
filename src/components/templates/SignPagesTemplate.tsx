@@ -1,6 +1,7 @@
 import { styled } from "styled-components";
 import { type ReactNode } from "react";
 import Logo from "../ions/Logo";
+import RisingClouds from "../atoms/RisingClouds";
 import { colors, gradients } from "../../styles/tokens";
 
 interface SignPagesTemplateProps {
@@ -12,6 +13,7 @@ export default function SignPagesTemplate({
 }: SignPagesTemplateProps) {
   return (
     <StyledSignTemplates>
+      <RisingClouds />
       <div className="form-div">
         <Logo />
         {children}
@@ -22,6 +24,8 @@ export default function SignPagesTemplate({
 
 export const StyledSignTemplates = styled.div`
   background: ${gradients.signBg};
+  /* Contexto de empilhamento: as nuvens (z-index -1) ficam entre o fundo e o cartão. */
+  isolation: isolate;
   display: flex;
   justify-content: center;
   align-items: center;
