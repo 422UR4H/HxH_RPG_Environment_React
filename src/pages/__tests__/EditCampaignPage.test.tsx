@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { http, HttpResponse } from "msw";
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { server } from "../../test/server";
 import { renderWithProviders } from "../../test/render";
@@ -64,5 +64,62 @@ describe("EditCampaignPage — required fields (FOR-06)", () => {
     expect(
       await screen.findByText("Preencha o campo obrigatório: Descrição Breve."),
     ).toBeInTheDocument();
+  });
+});
+
+describe("EditCampaignPage — empty optional fields", () => {
+  beforeEach(() => mockNavigate.mockReset());
+
+  function serveFilledCampaign() {
+    const campaign = campaignAsMasterApi(masterUserFixture.user.uuid);
+    server.use(
+      http.get(`${baseUrl}/campaigns/:id`, () =>
+        HttpResponse.json({
+          campaign: {
+            ...campaign,
+            description: "Descrição atual",
+            callLink: "https://meet.example/abc",
+            matches: [],
+          },
+        }),
+      ),
+    );
+  }
+
+  function capturePatch() {
+    const captured: { body?: Record<string, unknown> } = {};
+    server.use(
+      http.patch(`${baseUrl}/campaigns/:id`, async ({ request }) => {
+        captured.body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ campaign: {} });
+      }),
+    );
+    return captured;
+  }
+
+  it("sends empty strings when description and call link are cleared", async () => {
+    serveFilledCampaign();
+    const captured = capturePatch();
+    renderPage();
+    const u = userEvent.setup();
+    await u.clear(await screen.findByLabelText(/Descrição Completa/));
+    await u.clear(screen.getByLabelText(/Link da Chamada/));
+    await u.click(screen.getByRole("button", { name: /Salvar/i }));
+    await waitFor(() => expect(captured.body).toBeDefined());
+    expect(captured.body).toMatchObject({ description: "", callLink: "" });
+  });
+
+  it("keeps sending the current description and call link when untouched", async () => {
+    serveFilledCampaign();
+    const captured = capturePatch();
+    renderPage();
+    const u = userEvent.setup();
+    await screen.findByDisplayValue("Descrição atual");
+    await u.click(screen.getByRole("button", { name: /Salvar/i }));
+    await waitFor(() => expect(captured.body).toBeDefined());
+    expect(captured.body).toMatchObject({
+      description: "Descrição atual",
+      callLink: "https://meet.example/abc",
+    });
   });
 });

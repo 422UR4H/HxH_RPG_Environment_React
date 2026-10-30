@@ -141,9 +141,9 @@ export default function EditCampaignPage() {
     setError(null);
     const campaignData: Record<string, unknown> = {
       briefInitialDescription: form.briefInitialDescription,
-      description: form.description || undefined,
+      description: form.description,
       isPublic: form.isPublic,
-      callLink: form.callLink || undefined,
+      callLink: form.callLink,
       storyCurrentAt: form.storyCurrentAt
         ? `${form.storyCurrentAt}:00Z`
         : undefined,
