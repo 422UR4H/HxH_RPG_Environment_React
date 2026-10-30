@@ -90,7 +90,8 @@ export default function CampaignPage() {
     isMaster ? id : undefined,
   );
 
-  const hasStartedMatch = (campaign?.matches ?? []).some(
+  const matches = campaign?.matches ?? [];
+  const hasStartedMatch = matches.some(
     (m) => !!m.gameStartAt,
   );
 
@@ -237,10 +238,10 @@ export default function CampaignPage() {
             <>
               {!isMaster && <TabPanelHeading>Partidas</TabPanelHeading>}
               <MatchesList>
-                {(campaign.matches ?? []).length === 0 ? (
-                  <MapsEmptyText>Nenhuma partida ainda.</MapsEmptyText>
+                {matches.length === 0 ? (
+                  <PanelEmptyText>Nenhuma partida ainda.</PanelEmptyText>
                 ) : (
-                  (campaign.matches ?? []).map((match) => (
+                  matches.map((match) => (
                     <MatchItem
                       key={match.uuid}
                       match={match}
@@ -262,9 +263,9 @@ export default function CampaignPage() {
           {activeTab === "maps" && (
             <MapsGrid>
               {mapsPending ? (
-                <MapsEmptyText>Carregando mapas…</MapsEmptyText>
+                <PanelEmptyText>Carregando mapas…</PanelEmptyText>
               ) : (maps ?? []).length === 0 ? (
-                <MapsEmptyText>Nenhum mapa criado ainda.</MapsEmptyText>
+                <PanelEmptyText>Nenhum mapa criado ainda.</PanelEmptyText>
               ) : (
                 (maps ?? []).map((map) => (
                   <MapCard
@@ -435,7 +436,7 @@ const MapsGrid = styled.div`
   gap: ${MAPS_GAP};
 `;
 
-const MapsEmptyText = styled.p`
+const PanelEmptyText = styled.p`
   font-size: 16px;
   color: ${colors.textMuted};
   padding: 20px 0;

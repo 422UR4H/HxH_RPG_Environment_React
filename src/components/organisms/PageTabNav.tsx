@@ -47,14 +47,15 @@ const TabButton = styled.button<{ $active: boolean }>`
   border: 3px solid ${colors.borderTab};
   border-bottom: none;
   border-radius: 12px 12px 0 0;
-  padding: 0 20px;
+  padding: 0 20px ${({ $active }) => ($active ? "3px" : "0")};
   cursor: pointer;
   transition: color 0.15s, background-color 0.15s;
   position: relative;
   /* A ativa desce 3px sobre a borda do painel; a inativa fica 4px mais baixa, apoiada no traço. */
   margin-bottom: ${({ $active }) => ($active ? "-3px" : "0")};
   margin-top: ${({ $active }) => ($active ? "0" : "4px")};
-  min-height: ${({ $active }) => ($active ? "44px" : "40px")};
+  /* A altura da aba inativa define a linha da barra; a ativa estica junto e ainda avança 3px sobre o painel. */
+  min-height: ${({ $active }) => ($active ? "auto" : "44px")};
   z-index: ${({ $active }) => ($active ? 2 : 0)};
 
   &:hover {
