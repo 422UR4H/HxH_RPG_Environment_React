@@ -24,7 +24,7 @@ const Card = styled.button`
   flex-direction: column;
   gap: 8px;
   padding: 20px;
-  background-color: ${colors.surfaceInput};
+  background-color: ${colors.surfaceTabItem};
   border: 1px solid ${colors.borderInput};
   border-radius: 8px;
   cursor: pointer;
@@ -33,7 +33,7 @@ const Card = styled.button`
   transition: background-color 0.15s;
 
   &:hover {
-    background-color: ${colors.surfaceInputHover};
+    background-color: ${colors.surfaceTabItemHover};
   }
 `;
 

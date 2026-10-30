@@ -74,6 +74,11 @@ export const colors = {
   surfaceSidebar: palette.brown900, // fundo da sidebar de personagens/regras
   surfaceInput: palette.brown700, // fundo de campo de formulário e de seção de regra
   surfaceInputHover: palette.brown850, // hover de item de partida
+  surfaceTabPanel: palette.brown700, // painel das abas de pasta e a aba ativa, que se funde a ele
+  surfaceTabInactive: palette.brown900, // aba de pasta inativa
+  surfaceTabInactiveHover: palette.brown850, // aba inativa sob o ponteiro
+  surfaceTabItem: palette.brown900, // card dentro do painel das abas (partida, mapa)
+  surfaceTabItemHover: palette.brown850, // card dentro do painel sob o ponteiro
   surfaceScrollTrack: palette.brown700, // trilho da scrollbar (tema earth)
   surfaceScrollThumbHover: palette.brown600, // polegar da scrollbar no hover (tema earth)
   surfaceScrollThumbAccent: palette.red800, // polegar da scrollbar (tema dark, o global)
@@ -109,6 +114,7 @@ export const colors = {
   // border
   borderInput: palette.brown500,
   borderDivider: palette.neutral500,
+  borderTab: palette.neutral1000, // traço das abas de pasta e do painel
   borderMuted: palette.neutral600, // borda neutra de uso geral
   borderStrong: palette.neutral500, // borda e texto neutro nas áreas de soltar
   borderLight: palette.neutral400, // borda em repouso do BackgroundButton

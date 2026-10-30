@@ -1,0 +1,49 @@
+import type { ReactNode } from "react";
+import styled from "styled-components";
+import { colors } from "../../styles/tokens";
+import PageTabNav from "./PageTabNav";
+
+interface TabbedPanelProps {
+  tabs: { id: string; label: string }[];
+  children: ReactNode;
+}
+
+export default function TabbedPanel({ tabs, children }: TabbedPanelProps) {
+  const hasTabs = tabs.length > 1;
+
+  return (
+    <Wrapper>
+      <PageTabNav tabs={tabs} />
+      <Panel $hasTabs={hasTabs}>{children}</Panel>
+    </Wrapper>
+  );
+}
+
+const Wrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+const Panel = styled.div<{ $hasTabs: boolean }>`
+  background: ${colors.surfaceTabPanel};
+  border: 3px solid ${colors.borderTab};
+  border-radius: ${({ $hasTabs }) => ($hasTabs ? "0 12px 12px 12px" : "12px")};
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+export const TabPanelHeading = styled.h2`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 20px;
+  font-weight: 700;
+  color: ${colors.textPrimary};
+`;
+
+export const TabPanelNote = styled.p`
+  font-size: 16px;
+  color: ${colors.textMuted};
+`;

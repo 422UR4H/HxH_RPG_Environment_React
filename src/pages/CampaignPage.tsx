@@ -26,7 +26,7 @@ import PlusIcon from "../components/ions/PlusIcon";
 import UpcomingRulesSidebar from "../components/organisms/UpcomingRulesSidebar";
 import { isApiError } from "../services/httpClient";
 import { useMaps } from "../hooks/useMaps";
-import PageTabNav from "../components/organisms/PageTabNav";
+import TabbedPanel, { TabPanelHeading } from "../components/organisms/TabbedPanel";
 import MapCard from "../components/molecules/MapCard";
 import { formatDateBR } from "../utils/date";
 
@@ -232,27 +232,56 @@ export default function CampaignPage() {
           })()}
         </CampaignStartDate>
 
-        <PageTabNav tabs={availableTabs} />
+        <TabbedPanel tabs={availableTabs}>
+          {activeTab === "matches" && (
+            <>
+              {!isMaster && <TabPanelHeading>Partidas</TabPanelHeading>}
+              <MatchesList>
+                {(campaign.matches ?? []).length === 0 ? (
+                  <MapsEmptyText>Nenhuma partida ainda.</MapsEmptyText>
+                ) : (
+                  (campaign.matches ?? []).map((match) => (
+                    <MatchItem
+                      key={match.uuid}
+                      match={match}
+                      onClick={() =>
+                        navigate(
+                          `/campaigns/${campaign.uuid}/matches/${match.uuid}`,
+                          {
+                            state: { sheetId: playerSheetId },
+                          },
+                        )
+                      }
+                    />
+                  ))
+                )}
+              </MatchesList>
+            </>
+          )}
+
+          {activeTab === "maps" && (
+            <MapsGrid>
+              {mapsPending ? (
+                <MapsEmptyText>Carregando mapas…</MapsEmptyText>
+              ) : (maps ?? []).length === 0 ? (
+                <MapsEmptyText>Nenhum mapa criado ainda.</MapsEmptyText>
+              ) : (
+                (maps ?? []).map((map) => (
+                  <MapCard
+                    key={map.id}
+                    map={map}
+                    onClick={() =>
+                      navigate(`/campaigns/${id}/maps/${map.id}/edit`)
+                    }
+                  />
+                ))
+              )}
+            </MapsGrid>
+          )}
+        </TabbedPanel>
 
         {activeTab === "matches" && (
           <>
-            <MatchesList>
-              {(campaign.matches ?? []).map((match) => (
-                <MatchItem
-                  key={match.uuid}
-                  match={match}
-                  onClick={() =>
-                    navigate(
-                      `/campaigns/${campaign.uuid}/matches/${match.uuid}`,
-                      {
-                        state: { sheetId: playerSheetId },
-                      },
-                    )
-                  }
-                />
-              ))}
-            </MatchesList>
-
             <ActionsList $gap={MATCHES_GAP}>
               {isMaster ? (
                 <BottomActions
@@ -307,24 +336,6 @@ export default function CampaignPage() {
 
         {activeTab === "maps" && (
           <>
-            <MapsGrid>
-              {mapsPending ? (
-                <MapsEmptyText>Carregando mapas…</MapsEmptyText>
-              ) : (maps ?? []).length === 0 ? (
-                <MapsEmptyText>Nenhum mapa criado ainda.</MapsEmptyText>
-              ) : (
-                (maps ?? []).map((map) => (
-                  <MapCard
-                    key={map.id}
-                    map={map}
-                    onClick={() =>
-                      navigate(`/campaigns/${id}/maps/${map.id}/edit`)
-                    }
-                  />
-                ))
-              )}
-            </MapsGrid>
-
             <ActionsList $gap={MAPS_GAP}>
               <AdaptiveActionButton
                 label="Criar Mapa"

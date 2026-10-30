@@ -36,7 +36,7 @@ export default function MatchItem({ match, onClick }: MatchItemProps) {
 }
 
 const MatchContainer = styled.div`
-  background-color: ${colors.surfaceInput};
+  background-color: ${colors.surfaceTabItem};
   border-radius: 8px;
   padding: 20px;
   cursor: pointer;
@@ -47,7 +47,7 @@ const MatchContainer = styled.div`
   container-type: inline-size;
 
   &:hover {
-    background-color: ${colors.surfaceInputHover};
+    background-color: ${colors.surfaceTabItemHover};
   }
 `;
 
