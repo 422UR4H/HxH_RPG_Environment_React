@@ -542,6 +542,16 @@ describe("PillSelect", () => {
     expect(parentClick).not.toHaveBeenCalled();
   });
 
+  it("keeps the list exactly as wide as the pill, never growing to its content", async () => {
+    restoreMotion = mockReducedMotion(true);
+    render(<Harness />);
+    await userEvent.click(trigger());
+    const list = screen.getByRole("listbox");
+    expect(list.style.getPropertyValue("--fallback-width")).toBe(`${pillRect.width}px`);
+    expect(list.style.getPropertyValue("--list-width")).toBe("");
+    expect(list).not.toHaveAttribute("data-align");
+  });
+
   it("pairs a unique anchor-name on the pill with the position-anchor of its list", async () => {
     restoreMotion = mockReducedMotion(true);
     render(

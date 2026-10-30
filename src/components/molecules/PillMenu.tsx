@@ -34,6 +34,8 @@ interface PillMenuProps {
 
 type Edge = "first" | "last";
 
+const MENU_ITEM_MAX_FONT_PX = 17;
+
 /**
  * Menu de ações (padrão WAI-ARIA APG *menu button*) com a mesma lista presa à pílula do
  * `PillSelect`: o foco entra nos itens (roving focus), Esc devolve o foco à pílula e Tab fecha
@@ -44,6 +46,8 @@ export default function PillMenu({ items, label, className }: PillMenuProps) {
     rowSelector: '[role="menuitem"]',
     // Assinatura, não o array: quem usa costuma montar os itens a cada render.
     remeasureKey: items.map((it) => `${it.key}:${it.blockedReason ?? ""}`).join("|"),
+    // Ícone + rótulo + "?" de indisponível não cabem numa pílula estreita (celular): a lista cresce.
+    growToContent: true,
   });
   const { open, mounted, placement, side, state, listId, anchorName, triggerRef, listRef } = list;
   const triggerId = useId();
@@ -206,6 +210,11 @@ const Item = styled(BlockableButton)`
   border: none;
   color: inherit;
   font: inherit;
+  /* O corpo do menu de antes (17 px), ou o da pílula, se ela for menor (celular). */
+  font-size: min(1em, ${MENU_ITEM_MAX_FONT_PX}px);
+  /* Defesa: se ainda assim não couber, o rótulo quebra em vez de passar por baixo do "?". */
+  white-space: normal;
+  overflow-wrap: anywhere;
   text-align: left;
   cursor: pointer;
 

@@ -6,6 +6,8 @@ import { ATTACHED_LIST_DURATION_MS, ATTACHED_ROW_MIN_HEIGHT } from "./AttachedLi
 
 export type AttachedSide = "below" | "above";
 export type AttachedState = "open" | "closing" | "settling" | "closed";
+/** De que borda da pílula a lista mais larga que ela parte: "start" cresce para a direita. */
+export type AttachedAlign = "start" | "end";
 
 export interface AttachedPlacement {
   side: AttachedSide;
@@ -15,6 +17,8 @@ export interface AttachedPlacement {
   left: number;
   width: number;
   height: number;
+  /** Só com `growToContent`: o lado para onde a lista mais larga que a pílula cresce. */
+  align: AttachedAlign;
   vars: Record<string, string>;
 }
 
@@ -25,10 +29,18 @@ interface UseAttachedListOptions {
   remeasureKey?: unknown;
   /** Chamado a cada fechamento, venha de onde vier (clique fora, pílula fora da janela...). */
   onClose?: () => void;
+  /**
+   * A lista nunca fica mais estreita que o conteúdo: largura = max(pílula, conteúdo), presa à
+   * borda esquerda da pílula (ou à direita, se crescer para a direita sair da janela). Sem isto
+   * (padrão), a largura é sempre a da pílula.
+   */
+  growToContent?: boolean;
 }
 
 // Folga sobre a animação: se o animationend não vier (aba oculta, estilo cortado), a lista desmonta mesmo assim.
 const CLOSE_SAFETY_MS = ATTACHED_LIST_DURATION_MS + 100;
+// Respiro da lista larga até a borda da janela.
+const VIEWPORT_MARGIN = 8;
 
 // Os cantos do lado da lista leem 0 enquanto abertos; vale o maior dos dois lados.
 function largestRadius(a: string, b: string) {
@@ -48,6 +60,7 @@ export function useAttachedList<T extends HTMLElement>({
   rowSelector,
   remeasureKey,
   onClose,
+  growToContent = false,
 }: UseAttachedListOptions) {
   const [open, setOpen] = useState(false);
   // Fechando: a lista continua montada até a animação de saída terminar.
@@ -106,8 +119,27 @@ export function useAttachedList<T extends HTMLElement>({
       for (const [k, v] of Object.entries(vars)) list.style.setProperty(k, v);
       list.style.setProperty("--fallback-width", `${rect.width}px`);
       const border = parseFloat(cs.borderTopWidth) || 0;
+      let align: AttachedAlign = "start";
+      if (growToContent) {
+        // Largura natural do conteúdo (inline vence a folha de estilo só durante a medida).
+        list.style.width = "max-content";
+        const content = list.offsetWidth;
+        list.style.width = "";
+        const width = Math.min(Math.max(rect.width, content), window.innerWidth - 2 * VIEWPORT_MARGIN);
+        if (rect.left + width > window.innerWidth - VIEWPORT_MARGIN) align = "end";
+        const overhang = Math.max(0, width - rect.width);
+        vars["--list-width"] = `${width}px`;
+        vars["--joint-width"] = `${rect.width}px`;
+        vars["--fallback-right"] = `${window.innerWidth - rect.right}px`;
+        // O canto que sobra ao lado da pílula arredonda como ela, sem passar do pedaço que sobra.
+        vars["--overhang-radius"] = `${Math.min(parseFloat(vars["--pill-radius"]) || 0, overhang)}px`;
+        for (const k of ["--list-width", "--joint-width", "--fallback-right", "--overhang-radius"]) {
+          list.style.setProperty(k, vars[k]);
+        }
+      }
       // A lista tem uma só borda vertical (a do lado da pílula não existe); é a do gatilho, que ela copia.
-      const natural = list.scrollHeight + border;
+      // Crescendo ao conteúdo, ela tem as duas (a do lado da pílula fica mascarada na junção).
+      const natural = list.scrollHeight + (growToContent ? 2 : 1) * border;
       // A lista sobe sobre a borda da pílula, para as laterais brancas seguirem contínuas.
       const { side, top, bottom, height } = computeAttachedListPlacement({
         field: { top: rect.top + border, bottom: rect.bottom - border },
@@ -130,9 +162,10 @@ export function useAttachedList<T extends HTMLElement>({
         prev.left === rect.left &&
         prev.width === rect.width &&
         prev.height === height &&
+        prev.align === align &&
         Object.keys(vars).every((k) => prev.vars[k] === vars[k])
           ? prev
-          : { side, top, bottom, left: rect.left, width: rect.width, height, vars },
+          : { side, top, bottom, left: rect.left, width: rect.width, height, align, vars },
       );
     }
     place();
@@ -142,7 +175,7 @@ export function useAttachedList<T extends HTMLElement>({
       window.removeEventListener("resize", place);
       window.removeEventListener("scroll", place, { capture: true });
     };
-  }, [mounted, open, remeasureKey, rowSelector]);
+  }, [mounted, open, remeasureKey, rowSelector, growToContent]);
 
   // Clique fora fecha.
   useEffect(() => {
@@ -199,6 +232,7 @@ export function useAttachedList<T extends HTMLElement>({
     mounted,
     state,
     side: placement?.side ?? "below",
+    growToContent,
     placement,
     listId,
     anchorName,

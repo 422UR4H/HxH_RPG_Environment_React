@@ -2,6 +2,7 @@ import { useState } from "react";
 import styled from "styled-components";
 import ConfirmDialog from "./ConfirmDialog";
 import PillMenu from "./PillMenu";
+import { ATTACHED_LIST_DURATION_MS } from "./AttachedList.styles";
 import penIcon from "../../assets/icons/pen.svg";
 import { colors } from "../../styles/tokens";
 import { floatingElevation } from "../../styles/bottomBar";
@@ -142,6 +143,15 @@ const Menu = styled(PillMenu)<{ $isFloating: boolean }>`
   &&[data-state="closing"] {
     transform: none;
     transition: none;
+  }
+  /* Enrolada: soma a volta dos cantos/borda da pílula ao "all" do hover, em vez de trocá-lo. */
+  @media (prefers-reduced-motion: no-preference) {
+    &&&[data-state="settling"] {
+      transition:
+        all 0.2s ease,
+        border-radius ${ATTACHED_LIST_DURATION_MS}ms ease,
+        border-color ${ATTACHED_LIST_DURATION_MS}ms ease;
+    }
   }
 `;
 

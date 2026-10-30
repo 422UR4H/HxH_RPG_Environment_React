@@ -67,7 +67,49 @@ interface ListProps {
   $side: Side;
   $placed: boolean;
   $closing: boolean;
+  /** `growToContent`: a lista pode ser mais larga que a pílula. */
+  $grow: boolean;
+  $align: "start" | "end";
 }
+
+// Lista mais larga que a pílula (`growToContent`): ganha a borda do lado da pílula também, para o
+// pedaço que sobra fechar com o canto arredondado; na junção essa borda é escondida por máscara e
+// aparece a da própria pílula, como sem crescer. (A cor da máscara só vale pelo alfa: opaca.)
+const grown = ({ $side, $align }: ListProps) => {
+  const pillEdge = $side === "below" ? "top" : "bottom";
+  const overhangCorner = `${pillEdge}-${$align === "start" ? "right" : "left"}`;
+  const solid = colors.textPrimary;
+  return css`
+    width: var(--list-width, var(--fallback-width, auto));
+    ${$align === "end" &&
+    css`
+      left: auto;
+      right: var(--fallback-right, 0px);
+    `}
+    @supports (anchor-name: --a) and (top: anchor(bottom)) and (width: anchor-size(width)) {
+      width: var(--list-width, anchor-size(width, var(--fallback-width, auto)));
+      ${$align === "end" &&
+      css`
+        left: auto;
+        right: anchor(right, var(--fallback-right, 0px));
+      `}
+    }
+    border-${pillEdge}: var(--pill-border-width) solid ${colors.textPrimary};
+    border-${overhangCorner}-radius: var(--overhang-radius, 0);
+    mask-image:
+      linear-gradient(${solid}, ${solid}),
+      linear-gradient(
+        to ${$align === "start" ? "right" : "left"},
+        transparent var(--joint-width, 100%),
+        ${solid} var(--joint-width, 100%)
+      );
+    mask-size:
+      100% calc(100% - var(--pill-border-width)),
+      100% var(--pill-border-width);
+    mask-position: ${$side === "below" ? "bottom, top" : "top, bottom"};
+    mask-repeat: no-repeat;
+  `;
+};
 
 // As medidas da pílula chegam por variáveis CSS (lidas do gatilho): a lista vive no body,
 // fora do container query (cqi) onde a pílula calcula tamanhos.
@@ -155,6 +197,7 @@ export const AttachedListBox = styled.div<ListProps>`
   &::-webkit-scrollbar-thumb {
     background-clip: padding-box;
   }
+  ${(p) => p.$grow && grown(p)}
   visibility: ${({ $placed }) => ($placed ? "visible" : "hidden")};
   ${({ $placed, $closing, $side }) =>
     $placed &&

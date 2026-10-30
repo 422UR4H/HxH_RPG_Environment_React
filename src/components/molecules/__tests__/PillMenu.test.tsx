@@ -1,6 +1,6 @@
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mockReducedMotion } from "../../../test/reducedMotion";
 import PillMenu, { type PillMenuItem } from "../PillMenu";
 
@@ -175,5 +175,73 @@ describe("PillMenu", () => {
     expect(menu()).toBeNull();
     expect(trigger()).toHaveAttribute("data-state", "closing");
     expect(document.querySelector('[role="menu"]')).toHaveAttribute("inert");
+  });
+});
+
+// jsdom não tem layout: a pílula ganha um retângulo e a lista, uma largura natural de conteúdo
+// (lida enquanto ela está com `width: max-content`).
+describe("PillMenu — width", () => {
+  const realInnerWidth = window.innerWidth;
+  let pill = { left: 0, width: 0 };
+  let contentWidth = 0;
+  const spies: { mockRestore: () => void }[] = [];
+
+  beforeEach(() => {
+    restoreMotion = mockReducedMotion(true);
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
+    spies.push(
+      vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function () {
+        const r = { top: 700, bottom: 744, left: pill.left, right: pill.left + pill.width, width: pill.width, height: 44 };
+        return { ...r, x: r.left, y: r.top, toJSON: () => ({}) } as DOMRect;
+      }),
+      vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockImplementation(function (this: HTMLElement) {
+        return this.style.width === "max-content" ? contentWidth : pill.width;
+      }),
+    );
+  });
+
+  afterEach(() => {
+    spies.splice(0).forEach((s) => s.mockRestore());
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: realInnerWidth });
+  });
+
+  const list = () => screen.getByRole("menu");
+
+  it("keeps the pill's width when the items fit", async () => {
+    pill = { left: 40, width: 208 };
+    contentWidth = 160;
+    setup({ blocked: true });
+    await userEvent.click(trigger());
+    expect(list().style.getPropertyValue("--list-width")).toBe("208px");
+    expect(list().style.getPropertyValue("--overhang-radius")).toBe("0px");
+  });
+
+  it("grows to the right to fit the items when the pill is narrower", async () => {
+    pill = { left: 40, width: 119 };
+    contentWidth = 170;
+    setup({ blocked: true });
+    await userEvent.click(trigger());
+    expect(list().style.getPropertyValue("--list-width")).toBe("170px");
+    expect(list().style.getPropertyValue("--joint-width")).toBe("119px");
+    expect(list().style.getPropertyValue("--fallback-right")).toBe(`${390 - 159}px`);
+    expect(list()).toHaveAttribute("data-align", "start");
+  });
+
+  it("grows to the left when growing right would leave the window", async () => {
+    pill = { left: 255, width: 119 };
+    contentWidth = 170;
+    setup({ blocked: true });
+    await userEvent.click(trigger());
+    expect(list().style.getPropertyValue("--list-width")).toBe("170px");
+    expect(list().style.getPropertyValue("--fallback-right")).toBe(`${390 - 374}px`);
+    expect(list()).toHaveAttribute("data-align", "end");
+  });
+
+  it("never grows past the window", async () => {
+    pill = { left: 40, width: 119 };
+    contentWidth = 500;
+    setup({ blocked: true });
+    await userEvent.click(trigger());
+    expect(list().style.getPropertyValue("--list-width")).toBe(`${390 - 16}px`);
   });
 });

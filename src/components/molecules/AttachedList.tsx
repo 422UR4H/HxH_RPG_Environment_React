@@ -29,7 +29,7 @@ export default function AttachedList({
   onBlur,
   children,
 }: AttachedListProps) {
-  const { mounted, placement, closing, side, anchorName, listId, listRef, finishClosing } = list;
+  const { mounted, placement, closing, side, growToContent, anchorName, listId, listRef, finishClosing } = list;
   if (!mounted) return null;
   return createPortal(
     <AttachedListBox
@@ -41,6 +41,9 @@ export default function AttachedList({
       $side={side}
       $placed={placement !== null}
       $closing={closing}
+      $grow={growToContent}
+      $align={placement?.align ?? "start"}
+      data-align={growToContent ? placement?.align : undefined}
       inert={closing}
       aria-hidden={closing || undefined}
       style={
