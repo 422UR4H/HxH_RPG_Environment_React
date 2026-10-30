@@ -404,7 +404,7 @@ describe("CampaignPage", () => {
       });
       const user = userEvent.setup();
       await user.click(await screen.findByText(/Gerenciar/i));
-      const deleteButton = screen.getByRole("button", { name: /Excluir/i });
+      const deleteButton = screen.getByRole("menuitem", { name: /Excluir/i });
       expect(deleteButton).toHaveAttribute("aria-disabled", "true");
       expect(deleteButton).toHaveAccessibleDescription(
         "Campanha com partida iniciada não pode ser excluída: o histórico é do grupo.",

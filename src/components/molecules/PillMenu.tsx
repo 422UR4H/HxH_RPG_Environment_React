@@ -42,7 +42,8 @@ type Edge = "first" | "last";
 export default function PillMenu({ items, label, className }: PillMenuProps) {
   const list = useAttachedList<HTMLButtonElement>({
     rowSelector: '[role="menuitem"]',
-    remeasureKey: items,
+    // Assinatura, não o array: quem usa costuma montar os itens a cada render.
+    remeasureKey: items.map((it) => `${it.key}:${it.blockedReason ?? ""}`).join("|"),
   });
   const { open, mounted, placement, side, state, listId, anchorName, triggerRef, listRef } = list;
   const triggerId = useId();
