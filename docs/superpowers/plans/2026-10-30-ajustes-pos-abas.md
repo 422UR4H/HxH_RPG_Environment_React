@@ -70,3 +70,18 @@ Pedido do dono (30/10): dois SVGs novos, o x e o − em vermelho, e todos os bot
 - [ ] Copie os dois arquivos, troque os dois imports, rode typecheck/lint/testes (algum teste pode procurar o caminho da imagem).
 - [ ] Não toque nos diagramas da ficha (zona pixel-tuned): a troca é só dentro do ion; o desenho tem o mesmo viewBox e a mesma geometria.
 - [ ] Commit `feat(ui): x e − vermelhos nos botões de fechar e de tirar ponto`.
+
+### Task 5: botões do formulário — lado a lado ou empilhados, nunca no meio-termo
+
+Pedido do dono (30/10, depois de testar o #96). **Medido pelo controlador** nas 4 telas (criar/editar campanha e partida):
+- ≤ 480 px: empilhados, largura total, iguais (bom), mas em 320 px o rótulo "Criar Campanha"/"Salvar Alterações" quebra em 2 linhas dentro do botão (altura 92 em vez de 62).
+- 481 até ~597 px (até ~559 em "Criar Partida", que é mais curto): o `flex-wrap` quebra os dois em linhas diferentes **com a largura de cada um** (Cancelar 169 px, o outro 213–270 px) e o segundo **recuado 16 px** (x=72 contra 56) — mal diagramado.
+- ≥ ~600 px: lado a lado, larguras próprias (bom; o desktop não muda).
+
+**Regra:** se os dois não cabem lado a lado, ficam empilhados, com a mesma largura (a do formulário) e sem recuo, em qualquer tela; se cabem, lado a lado como hoje. Em modo empilhado, o rótulo cabe numa linha só até 320 px (reduza a fonte só o necessário, sem passar de um piso legível de 20 px; no lado a lado e no desktop a fonte não muda).
+
+**Files:** `src/components/templates/CreateFormTemplate.tsx` (`ButtonsContainer`, `Button`), e `src/components/ions/BaseButton.tsx` se o botão principal vier dele.
+
+- [ ] Faça a troca empilhado/lado a lado depender da **largura do contêiner dos botões** (container query), não da largura da tela, com o limite no ponto em que o par mais largo do produto ("Cancelar" + "Salvar Alterações" + o gap) deixa de caber; tire o recuo que aparece quando quebra (margem lateral do 2º botão).
+- [ ] O lado a lado (≥ ~600 px de tela) e o desktop ficam idênticos ao de hoje (o controlador compara prints em 620, 900 e 1366 px).
+- [ ] Commit `fix(ui): botões do formulário empilhados quando não cabem lado a lado`.
