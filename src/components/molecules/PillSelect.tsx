@@ -133,7 +133,9 @@ export default function PillSelect({
         return;
       }
       const border = parseFloat(cs.borderTopWidth) || 0;
-      const natural = list.scrollHeight + (list.offsetHeight - list.clientHeight);
+      // A lista tem uma só borda vertical (a do lado da pílula não existe). Vem do gatilho, que é o que
+      // ela copia: medir da própria lista na 1ª passada dá 0, as variáveis ainda não foram aplicadas.
+      const natural = list.scrollHeight + border;
       // A lista sobe sobre a borda da pílula, para as laterais brancas seguirem contínuas.
       const { side, top, bottom, height } = computeAttachedListPlacement({
         field: { top: rect.top + border, bottom: rect.bottom - border },

@@ -425,6 +425,26 @@ describe("PillSelect", () => {
     expect(listbox()).toBeNull();
   });
 
+  it("sizes the list to its content plus the border copied from the pill (no overflow)", async () => {
+    restoreMotion = mockReducedMotion(true);
+    mockListHeight(44);
+    const realComputed = window.getComputedStyle.bind(window);
+    const computedSpy = vi.spyOn(window, "getComputedStyle").mockImplementation((el, pseudo) => {
+      const real = realComputed(el, pseudo);
+      if (el.getAttribute("role") !== "combobox") return real;
+      return new Proxy(real, {
+        get: (t, k: string) => (k === "borderTopWidth" ? "2px" : Reflect.get(t, k).bind?.(t) ?? Reflect.get(t, k)),
+      });
+    });
+    render(<Harness />);
+    try {
+      await userEvent.click(trigger());
+    } finally {
+      computedSpy.mockRestore();
+    }
+    expect(screen.getByRole("listbox").style.maxHeight).toBe("46px");
+  });
+
   it("closes without changing when the pill scrolls out of the viewport", async () => {
     restoreMotion = mockReducedMotion(true);
     const onChange = vi.fn();
