@@ -6,6 +6,9 @@ export const PILL_SELECT_DURATION_MS = 160;
 const DURATION = `${PILL_SELECT_DURATION_MS}ms`;
 const EASING = "ease";
 
+/** Seta (chevron) da pílula fechada, usada como `background-image` por quem estiliza o `PillSelect` e o `DateField`. */
+export const PILL_CHEVRON = `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`;
+
 type Side = "below" | "above";
 
 // O consumidor estiliza a pílula (`styled(PillSelect)`); aqui só o que o componente precisa.

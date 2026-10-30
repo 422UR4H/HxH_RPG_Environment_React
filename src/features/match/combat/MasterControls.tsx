@@ -4,6 +4,7 @@ import { useState } from "react";
 import usePointerVerb from "../../../hooks/usePointerVerb";
 import styled, { css } from "styled-components";
 import PillSelect from "../../../components/molecules/PillSelect";
+import { PILL_CHEVRON } from "../../../components/molecules/PillSelect.styles";
 import Tooltip from "../../../components/ions/Tooltip";
 import { colors } from "../../../styles/tokens";
 import { media } from "../../../styles/breakpoints";
@@ -397,7 +398,7 @@ const AddBlock = styled.section`
   gap: 6px;
 `;
 
-// Pílula do site sobre o painel escuro: verde de marca, texto branco (mesmo desenho da ficha, em px).
+// Pílula do site sobre o painel escuro. Refaz em px o desenho de `ProfilePillSelect`, que não serve aqui por usar `cqi` (container query da ficha).
 const NpcSelect = styled(PillSelect)`
   width: 100%;
   min-width: 0;
@@ -409,7 +410,7 @@ const NpcSelect = styled(PillSelect)`
   border-radius: 999px;
   padding: 5px 32px 5px 12px;
   cursor: pointer;
-  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-image: ${PILL_CHEVRON};
   background-repeat: no-repeat;
   background-position: right 10px center;
   background-size: 14px;
