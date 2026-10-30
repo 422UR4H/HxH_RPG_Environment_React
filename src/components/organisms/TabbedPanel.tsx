@@ -45,7 +45,12 @@ export const TabPanelHeading = styled.h2`
   color: ${colors.textPrimary};
 `;
 
-export const TabPanelNote = styled.p`
+/** Linha de vazio/carregando dentro do painel; cabe um selo ao lado do texto. */
+export const TabPanelEmpty = styled.p`
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
   font-size: 16px;
   color: ${colors.textMuted};
 `;

@@ -26,7 +26,7 @@ import PlusIcon from "../components/ions/PlusIcon";
 import UpcomingRulesSidebar from "../components/organisms/UpcomingRulesSidebar";
 import { isApiError } from "../services/httpClient";
 import { useMaps } from "../hooks/useMaps";
-import TabbedPanel, { TabPanelHeading } from "../components/organisms/TabbedPanel";
+import TabbedPanel, { TabPanelEmpty, TabPanelHeading } from "../components/organisms/TabbedPanel";
 import MapCard from "../components/molecules/MapCard";
 import { formatDateBR } from "../utils/date";
 
@@ -239,7 +239,7 @@ export default function CampaignPage() {
               {availableTabs.length === 1 && <TabPanelHeading>Partidas</TabPanelHeading>}
               <MatchesList>
                 {matches.length === 0 ? (
-                  <PanelEmptyText>Nenhuma partida ainda.</PanelEmptyText>
+                  <TabPanelEmpty>Nenhuma partida ainda.</TabPanelEmpty>
                 ) : (
                   matches.map((match) => (
                     <MatchItem
@@ -263,9 +263,9 @@ export default function CampaignPage() {
           {activeTab === "maps" && (
             <MapsGrid>
               {mapsPending ? (
-                <PanelEmptyText>Carregando mapas…</PanelEmptyText>
+                <TabPanelEmpty>Carregando mapas…</TabPanelEmpty>
               ) : (maps ?? []).length === 0 ? (
-                <PanelEmptyText>Nenhum mapa criado ainda.</PanelEmptyText>
+                <TabPanelEmpty>Nenhum mapa criado ainda.</TabPanelEmpty>
               ) : (
                 (maps ?? []).map((map) => (
                   <MapCard
@@ -434,10 +434,4 @@ const MapsGrid = styled.div`
   display: flex;
   flex-direction: column;
   gap: ${MAPS_GAP};
-`;
-
-const PanelEmptyText = styled.p`
-  font-size: 16px;
-  color: ${colors.textMuted};
-  padding: 20px 0;
 `;

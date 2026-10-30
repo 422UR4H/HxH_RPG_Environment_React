@@ -5,6 +5,7 @@ import SignFormError from "../../components/atoms/SignFormError";
 import Badge from "../../components/ions/Badge";
 import MapCard from "../../components/molecules/MapCard";
 import { colors } from "../../styles/tokens";
+import { TabPanelEmpty } from "../../components/organisms/TabbedPanel";
 import { formatDateBR } from "../../utils/date";
 import type { BoardSource } from "../../hooks/useInheritableBoards";
 
@@ -47,9 +48,9 @@ export default function MatchMapsPanel({
       {changeError && <SignFormError tone="dark" message={changeError} />}
       {changeNotice && <MapChangeNotice role="status">{changeNotice}</MapChangeNotice>}
       {mapsPending ? (
-        <MapsEmptyText>Carregando mapas…</MapsEmptyText>
+        <TabPanelEmpty>Carregando mapas…</TabPanelEmpty>
       ) : (maps ?? []).length === 0 ? (
-        <MapsEmptyText>Nenhum mapa criado ainda.</MapsEmptyText>
+        <TabPanelEmpty>Nenhum mapa criado ainda.</TabPanelEmpty>
       ) : (
         (maps ?? []).map((map) => {
           const isAttached = matchMap?.mapUuid === map.id;
@@ -115,12 +116,6 @@ const MapsGrid = styled.div`
   display: flex;
   flex-direction: column;
   gap: 12px;
-`;
-
-const MapsEmptyText = styled.p`
-  font-size: 16px;
-  color: ${colors.textMuted};
-  padding: 20px 0;
 `;
 
 const MapChangeNotice = styled.p`

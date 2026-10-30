@@ -77,8 +77,6 @@ export const colors = {
   surfaceTabPanel: palette.brown700, // painel das abas de pasta e a aba ativa, que se funde a ele
   surfaceTabInactive: palette.brown900, // aba de pasta inativa
   surfaceTabInactiveHover: palette.brown850, // aba inativa sob o ponteiro
-  surfaceTabItem: palette.brown900, // card dentro do painel das abas (partida, mapa)
-  surfaceTabItemHover: palette.brown850, // card dentro do painel sob o ponteiro
   surfaceScrollTrack: palette.brown700, // trilho da scrollbar (tema earth)
   surfaceScrollThumbHover: palette.brown600, // polegar da scrollbar no hover (tema earth)
   surfaceScrollThumbAccent: palette.red800, // polegar da scrollbar (tema dark, o global)

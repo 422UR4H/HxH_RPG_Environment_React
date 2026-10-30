@@ -2,6 +2,7 @@ import styled from "styled-components";
 import { Link } from "react-router-dom";
 import type { CampaignSummary } from "../../types/campaigns";
 import { colors } from "../../styles/tokens";
+import { cardSurface } from "../../styles/card";
 import { daysFromToday, formatDateBR } from "../../utils/date";
 
 function formatNextGame(dateStr: string): string {
@@ -52,28 +53,14 @@ export default function CampaignCard({ campaign, to, nextGameScheduledAt, state 
 }
 
 const CardContainer = styled(Link)`
+  ${cardSurface}
   display: block;
-  background-color: ${colors.surfaceInput};
-  color: ${colors.textPrimary};
   text-decoration: none;
   overflow: hidden;
-  transition: transform 0.2s, box-shadow 0.2s;
-  box-shadow: 0 4px 6px ${colors.shadowSoft};
   cursor: pointer;
 
   width: 80vw;
   max-width: 940px;
-  border: 4px solid ${colors.borderInput};
-  border-radius: 12px;
-
-  &:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 15px ${colors.shadowStrong};
-    border-color: ${colors.brandAccent};
-  }
-  &:active {
-    transform: scale(0.98);
-  }
 
   @media (max-width: 500px) {
     width: 100%;

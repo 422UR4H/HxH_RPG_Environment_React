@@ -225,6 +225,32 @@ describe("MatchPage", () => {
     });
   });
 
+  describe("events as master", () => {
+    function useMasterMatch() {
+      server.use(
+        http.get(`${baseUrl}/matches/:id`, () =>
+          HttpResponse.json({ match: matchAsMasterApi(masterUserFixture.user.uuid) }),
+        ),
+      );
+    }
+
+    it("shows the events empty line with the coming-soon badge", async () => {
+      useMasterMatch();
+      renderPage({ user: masterUserFixture });
+      const line = (await screen.findByText("Nenhum evento ainda.")).closest("p, div") as HTMLElement;
+      expect(line).toBeInTheDocument();
+      // A coluna de Regras também tem um selo "Em breve"; este é o da linha de Eventos.
+      expect(within(line).getByText("Em breve")).toBeInTheDocument();
+    });
+
+    it("does not repeat the events heading for the master", async () => {
+      useMasterMatch();
+      renderPage({ user: masterUserFixture });
+      await screen.findByRole("button", { name: /Eventos/ });
+      expect(screen.queryByRole("heading", { name: /Eventos/ })).not.toBeInTheDocument();
+    });
+  });
+
   describe("como Player", () => {
     it("does not show the 'Mapas' tab to a player on an ended match", async () => {
       server.use(
@@ -245,14 +271,10 @@ describe("MatchPage", () => {
       expect(screen.queryByRole("button", { name: /Mapas/i })).not.toBeInTheDocument();
     });
 
-    it("shows the coming-soon events section", async () => {
+    it("shows the events heading for a player", async () => {
       renderPage({ user: userFixture });
-      const heading = await screen.findByRole("heading", { name: /Eventos/ });
-      // A coluna de Regras também tem um selo "Em breve"; este é o do título de Eventos.
-      expect(within(heading).getByText("Em breve")).toBeInTheDocument();
-      expect(
-        screen.getByText("A lista do que aconteceu na partida vai aparecer aqui."),
-      ).toBeInTheDocument();
+      expect(await screen.findByRole("heading", { name: /Eventos/ })).toBeInTheDocument();
+      expect(screen.getByText("Nenhum evento ainda.")).toBeInTheDocument();
     });
 
     it("exibe 'Inscrever-se' se há sheetId no state e partida não começou", async () => {

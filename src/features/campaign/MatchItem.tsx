@@ -1,6 +1,7 @@
 import styled from "styled-components";
 import type { Match } from "../../types/campaign";
 import { colors } from "../../styles/tokens";
+import { cardSurface } from "../../styles/card";
 import { formatDateBR } from "../../utils/date";
 
 interface MatchItemProps {
@@ -36,19 +37,13 @@ export default function MatchItem({ match, onClick }: MatchItemProps) {
 }
 
 const MatchContainer = styled.div`
-  background-color: ${colors.surfaceTabItem};
-  border-radius: 8px;
+  ${cardSurface}
   padding: 20px;
   cursor: pointer;
   position: relative;
-  transition: background-color 0.2s;
   /* Os filhos consultam a largura útil do card (não da tela; sem o padding) para decidir
      onde a data fica. */
   container-type: inline-size;
-
-  &:hover {
-    background-color: ${colors.surfaceTabItemHover};
-  }
 `;
 
 const MatchTitle = styled.h3`

@@ -15,7 +15,7 @@ import { useMatchMap } from "../hooks/useMatchMap";
 import { useAttachMatchMap } from "../hooks/useAttachMatchMap";
 import { useDetachMatchMap } from "../hooks/useDetachMatchMap";
 import { useInheritableBoards } from "../hooks/useInheritableBoards";
-import TabbedPanel, { TabPanelHeading, TabPanelNote } from "../components/organisms/TabbedPanel";
+import TabbedPanel, { TabPanelEmpty, TabPanelHeading } from "../components/organisms/TabbedPanel";
 import ComingSoonBadge from "../components/ions/ComingSoonBadge";
 import MatchCharactersSidebar from "../features/match/MatchCharactersSidebar";
 import MatchHeaderSection from "../features/match/MatchHeaderSection";
@@ -316,10 +316,10 @@ export default function MatchPage() {
         <TabbedPanel tabs={availableTabs} activeTab={activeTab}>
           {activeTab === "events" && (
             <>
-              <TabPanelHeading>
-                Eventos <ComingSoonBadge />
-              </TabPanelHeading>
-              <TabPanelNote>A lista do que aconteceu na partida vai aparecer aqui.</TabPanelNote>
+              {availableTabs.length === 1 && <TabPanelHeading>Eventos</TabPanelHeading>}
+              <TabPanelEmpty>
+                Nenhum evento ainda. <ComingSoonBadge />
+              </TabPanelEmpty>
             </>
           )}
           {activeTab === "maps" && (
