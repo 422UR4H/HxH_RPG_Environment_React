@@ -217,7 +217,7 @@ export default function EditCampaignPage() {
       </FormField>
 
       <FormRow>
-        <FormField label="Data de Início da História" htmlFor="storyStartAt">
+        <FormField label="Início da História" htmlFor="storyStartAt">
           <DateField
             id="storyStartAt"
             value={form.storyStartAt}
@@ -228,7 +228,7 @@ export default function EditCampaignPage() {
         </FormField>
 
         <FormField
-          label="Data Corrente da História"
+          label="História Corrente"
           htmlFor="storyCurrentAt"
           helpText="Data atual dentro do universo da campanha"
           optional
