@@ -11,8 +11,6 @@ interface PageTabNavProps {
 export default function PageTabNav({ tabs }: PageTabNavProps) {
   const [searchParams, setSearchParams] = useSearchParams();
 
-  if (tabs.length <= 1) return null;
-
   const activeTab = searchParams.get("tab") ?? tabs[0].id;
 
   return (

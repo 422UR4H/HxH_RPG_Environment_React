@@ -13,7 +13,7 @@ export default function TabbedPanel({ tabs, children }: TabbedPanelProps) {
 
   return (
     <Wrapper>
-      <PageTabNav tabs={tabs} />
+      {hasTabs && <PageTabNav tabs={tabs} />}
       <Panel $hasTabs={hasTabs}>{children}</Panel>
     </Wrapper>
   );

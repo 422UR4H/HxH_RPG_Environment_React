@@ -11,7 +11,6 @@ function renderPanel(overrides: Partial<Props> = {}) {
   const props: Props = {
     activeTab: "maps",
     isMaster: true,
-    matchEnded: false,
     matchStarted: false,
     mapsPending: false,
     maps: [mapFixture, { ...mapFixture, id: "map-2", name: "Outro Mapa" }],

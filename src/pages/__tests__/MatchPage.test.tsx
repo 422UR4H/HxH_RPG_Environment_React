@@ -226,6 +226,26 @@ describe("MatchPage", () => {
   });
 
   describe("como Player", () => {
+    it("does not show the 'Mapas' tab to a player on an ended match", async () => {
+      server.use(
+        http.get(`${baseUrl}/matches/:id`, () => HttpResponse.json({ match: matchEndedApi() })),
+      );
+      renderPage({ user: userFixture });
+      await screen.findByText("ENCERRADA");
+      expect(screen.queryByRole("button", { name: /Mapas/i })).not.toBeInTheDocument();
+      expect(screen.queryByText(/disponíveis em breve/)).not.toBeInTheDocument();
+    });
+
+    it("shows the coming-soon events section", async () => {
+      renderPage({ user: userFixture });
+      const heading = await screen.findByRole("heading", { name: /Eventos/ });
+      // A coluna de Regras também tem um selo "Em breve"; este é o do título de Eventos.
+      expect(within(heading).getByText("Em breve")).toBeInTheDocument();
+      expect(
+        screen.getByText("A lista do que aconteceu na partida vai aparecer aqui."),
+      ).toBeInTheDocument();
+    });
+
     it("exibe 'Inscrever-se' se há sheetId no state e partida não começou", async () => {
       renderPage({ user: userFixture, state: { sheetId: "sheet-1" } });
       expect(await screen.findByText(/Inscrever-se/i)).toBeInTheDocument();

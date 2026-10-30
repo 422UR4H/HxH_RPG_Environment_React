@@ -10,7 +10,6 @@ import type { BoardSource } from "../../hooks/useInheritableBoards";
 interface MatchMapsPanelProps {
   activeTab: string;
   isMaster: boolean;
-  matchEnded: boolean;
   matchStarted: boolean;
   mapsPending: boolean;
   maps: TacticalMap[] | undefined;
@@ -32,7 +31,6 @@ interface MatchMapsPanelProps {
 export default function MatchMapsPanel({
   activeTab,
   isMaster,
-  matchEnded,
   matchStarted,
   mapsPending,
   maps,
@@ -119,14 +117,6 @@ export default function MatchMapsPanel({
     );
   }
 
-  if (matchEnded) {
-    return (
-      <MapsPlaceholder>
-        Os mapas jogados nesta partida estarão disponíveis em breve.
-      </MapsPlaceholder>
-    );
-  }
-
   return null;
 }
 
@@ -141,13 +131,6 @@ const MapsEmptyText = styled.p`
   font-size: 16px;
   color: ${colors.textMuted};
   padding: 20px 0;
-`;
-
-const MapsPlaceholder = styled.p`
-  font-size: 16px;
-  color: ${colors.textMuted};
-  padding: 40px 0;
-  text-align: center;
 `;
 
 const MapChangeError = styled.p`
