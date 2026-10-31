@@ -1,9 +1,12 @@
 import styled, { keyframes } from "styled-components";
 import cloudImage from "../../assets/images/cloud.webp";
 import cloud2Image from "../../assets/images/cloud2.webp";
+import cloud3Image from "../../assets/images/cloud3.webp";
+import cloud4Image from "../../assets/images/cloud4.webp";
+import cloud5Image from "../../assets/images/cloud5.webp";
+import cloud6Image from "../../assets/images/cloud6.webp";
 import {
-  CLOUD_OPACITY,
-  IMAGE_SIZES,
+  IMAGES,
   CLOUDS,
   CROSSING_SECONDS,
   DRIFT,
@@ -13,10 +16,17 @@ import {
   type CloudImageKey,
 } from "./risingCloudsLayout";
 
-// Os parâmetros ajustáveis (velocidade, ângulo, sentido, largura, opacidade) e a disposição
+// Os parâmetros ajustáveis (velocidade, ângulo, sentido, tamanhos, opacidade) e a disposição
 // das nuvens ficam em `risingCloudsLayout.ts`, onde o teste prova que nenhuma cobre outra.
 
-const IMAGE_SOURCES: Record<CloudImageKey, string> = { cloud: cloudImage, cloud2: cloud2Image };
+const IMAGE_SOURCES: Record<CloudImageKey, string> = {
+  cloud: cloudImage,
+  cloud2: cloud2Image,
+  cloud3: cloud3Image,
+  cloud4: cloud4Image,
+  cloud5: cloud5Image,
+  cloud6: cloud6Image,
+};
 
 /**
  * Nuvens decorativas subindo inclinadas atrás do conteúdo (abertura de Hunter x Hunter, 2011).
@@ -29,14 +39,15 @@ export default function RisingClouds() {
   return (
     <Layer aria-hidden="true">
       {CLOUDS.map((cloud, index) => {
-        const { widthVmax, startLeft } = cloudGeometry(cloud);
-        const size = IMAGE_SIZES[cloud.image];
+        const { widthVmax, startLeft, opacity } = cloudGeometry(cloud);
+        const size = IMAGES[cloud.image].file;
         return (
           <Cloud
             key={index}
             data-testid="rising-cloud"
             $left={toCss(startLeft)}
             $width={widthVmax}
+            $opacity={opacity}
             $delay={-cloud.phase * CROSSING_SECONDS}
           >
             <CloudImage
@@ -75,13 +86,13 @@ const Layer = styled.div`
 `;
 
 // Mesmo percurso e mesma duração para todas: sobem juntas, como um bloco só.
-const Cloud = styled.div<{ $left: string; $width: number; $delay: number }>`
+const Cloud = styled.div<{ $left: string; $width: number; $opacity: number; $delay: number }>`
   position: absolute;
   /* Ponto de partida logo abaixo da borda de baixo da tela. */
   top: 100%;
   left: ${({ $left }) => $left};
   width: ${({ $width }) => $width.toFixed(2)}vmax;
-  opacity: ${CLOUD_OPACITY};
+  opacity: ${({ $opacity }) => $opacity};
   will-change: transform;
   animation: ${rise} ${CROSSING_SECONDS}s linear ${({ $delay }) => $delay.toFixed(2)}s infinite;
 
