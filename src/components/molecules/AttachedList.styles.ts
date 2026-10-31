@@ -15,7 +15,7 @@ type Side = "below" | "above";
  * (lido de `data-state`). `&&` garante que o estado aberto vença o estilo do consumidor, qualquer que
  * seja a ordem.
  */
-export const attachedTrigger = css<{ $side: Side }>`
+export const attachedTrigger = css<{ $side: Side; $capOpenRadius?: boolean }>`
   /* A lista (portal) se prende a esta pílula por anchor positioning: o nome vem do componente. */
   anchor-name: var(--pill-anchor);
 
@@ -39,6 +39,26 @@ export const attachedTrigger = css<{ $side: Side }>`
             border-top-right-radius: 0;
           `}
   }
+  ${({ $side, $capOpenRadius }) => {
+    if (!$capOpenRadius) return "";
+    // `maxOpenRadius`: os cantos externos (os do lado oposto à lista) diminuem até o raio aberto,
+    // na mesma duração da lista. `&&&` vence o `&&` do consumidor (que zera a transição aberto).
+    const outer = $side === "below" ? "top" : "bottom";
+    return css`
+      &&&[data-state="open"],
+      &&&[data-state="closing"] {
+        border-${outer}-left-radius: var(--attached-open-radius);
+        border-${outer}-right-radius: var(--attached-open-radius);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        &&&[data-state="open"] {
+          transition:
+            border-${outer}-left-radius ${DURATION} ${EASING},
+            border-${outer}-right-radius ${DURATION} ${EASING};
+        }
+      }
+    `;
+  }}
   /* Lista já recolhida: a pílula volta a arredondar e a recuperar a cor da borda. */
   &&[data-state="settling"] {
     transition:

@@ -552,6 +552,27 @@ describe("PillSelect", () => {
     expect(list).not.toHaveAttribute("data-align");
   });
 
+  it("keeps the list on the pill's own radius, however large (no open-radius cap)", async () => {
+    restoreMotion = mockReducedMotion(true);
+    const realComputed = window.getComputedStyle.bind(window);
+    const fake: Record<string, string> = { borderTopLeftRadius: "50px", borderBottomLeftRadius: "0px" };
+    const computedSpy = vi.spyOn(window, "getComputedStyle").mockImplementation((el, pseudo) => {
+      const real = realComputed(el, pseudo);
+      if (el.getAttribute("role") !== "combobox") return real;
+      return new Proxy(real, {
+        get: (t, k: string) => (k in fake ? fake[k] : Reflect.get(t, k).bind?.(t) ?? Reflect.get(t, k)),
+      });
+    });
+    render(<Harness />);
+    try {
+      await userEvent.click(trigger());
+    } finally {
+      computedSpy.mockRestore();
+    }
+    expect(screen.getByRole("listbox").style.getPropertyValue("--pill-radius")).toBe("50px");
+    expect(trigger().style.getPropertyValue("--attached-open-radius")).toBe("");
+  });
+
   it("pairs a unique anchor-name on the pill with the position-anchor of its list", async () => {
     restoreMotion = mockReducedMotion(true);
     render(

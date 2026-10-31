@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mockReducedMotion } from "../../../test/reducedMotion";
 import PillMenu, { type PillMenuItem } from "../PillMenu";
+import { capRadius } from "../useAttachedList";
 
 let restoreMotion: () => void = () => {};
 
@@ -251,5 +252,43 @@ describe("PillMenu — width", () => {
     setup({ blocked: true });
     await userEvent.click(trigger());
     expect(list().style.getPropertyValue("--list-width")).toBe(`${390 - 16}px`);
+  });
+});
+
+describe("PillMenu — open radius", () => {
+  // A pílula fechada tem o raio `closed` nos dois lados (jsdom não calcula o estilo do consumidor).
+  function mockTriggerRadius(closed: string) {
+    const realComputed = window.getComputedStyle.bind(window);
+    const fake: Record<string, string> = { borderTopLeftRadius: closed, borderBottomLeftRadius: closed };
+    return vi.spyOn(window, "getComputedStyle").mockImplementation((el, pseudo) => {
+      const real = realComputed(el, pseudo);
+      if (el.getAttribute("aria-haspopup") !== "menu") return real;
+      return new Proxy(real, {
+        get: (t, k: string) => (k in fake ? fake[k] : Reflect.get(t, k).bind?.(t) ?? Reflect.get(t, k)),
+      });
+    });
+  }
+
+  it("computes the open radius as min(closed, 16px)", () => {
+    expect(capRadius("50px", 16)).toBe("16px");
+    expect(capRadius("8px", 16)).toBe("8px");
+    expect(capRadius("16px", 16)).toBe("16px");
+  });
+
+  it.each([
+    ["50px", "16px"],
+    ["8px", "8px"],
+  ])("opens a %s pill with %s outer corners on the pill and the list", async (closed, open) => {
+    restoreMotion = mockReducedMotion(true);
+    const spy = mockTriggerRadius(closed);
+    setup();
+    try {
+      await userEvent.click(trigger());
+    } finally {
+      spy.mockRestore();
+    }
+    expect(trigger()).toHaveAttribute("data-state", "open");
+    expect(trigger().style.getPropertyValue("--attached-open-radius")).toBe(open);
+    expect(menu()?.style.getPropertyValue("--pill-radius")).toBe(open);
   });
 });

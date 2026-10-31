@@ -35,6 +35,9 @@ interface PillMenuProps {
 type Edge = "first" | "last";
 
 const MENU_ITEM_MAX_FONT_PX = 17;
+// Aberto, a forma (pílula + lista) não arredonda mais que isto: a pílula de 50 px de raio com uma
+// lista curta virava uma bolha.
+const MENU_MAX_OPEN_RADIUS_PX = 16;
 
 /**
  * Menu de ações (padrão WAI-ARIA APG *menu button*) com a mesma lista presa à pílula do
@@ -48,8 +51,9 @@ export default function PillMenu({ items, label, className }: PillMenuProps) {
     remeasureKey: items.map((it) => `${it.key}:${it.blockedReason ?? ""}`).join("|"),
     // Ícone + rótulo + "?" de indisponível não cabem numa pílula estreita (celular): a lista cresce.
     growToContent: true,
+    maxOpenRadius: MENU_MAX_OPEN_RADIUS_PX,
   });
-  const { open, mounted, placement, side, state, listId, anchorName, triggerRef, listRef } = list;
+  const { open, mounted, placement, side, state, openRadius, listId, anchorName, triggerRef, listRef } = list;
   const triggerId = useId();
   // Item a focar assim que a lista estiver posicionada (antes disso ela está invisível).
   const pendingFocus = useRef<Edge | null>(null);
@@ -159,11 +163,15 @@ export default function PillMenu({ items, label, className }: PillMenuProps) {
         type="button"
         className={className}
         $side={side}
+        $capOpenRadius
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={mounted ? listId : undefined}
-        data-state={state}
-        style={{ "--pill-anchor": anchorName } as CSSProperties}
+        // Até a lista ser medida, a pílula segue fechada: o lado da lista (quais cantos ficam retos e
+        // quais diminuem) só se sabe depois, e a transição dos cantos partiria do valor errado. Tudo
+        // antes da pintura: na tela, a pílula já abre do lado certo.
+        data-state={state === "open" && !placement ? "closed" : state}
+        style={{ "--pill-anchor": anchorName, "--attached-open-radius": openRadius } as CSSProperties}
         onClick={handleTriggerClick}
         onKeyDown={handleTriggerKeyDown}
         onBlur={handleBlur}
@@ -171,39 +179,47 @@ export default function PillMenu({ items, label, className }: PillMenuProps) {
         {label(open)}
       </Trigger>
       <AttachedList list={list} role="menu" aria-labelledby={triggerId} onKeyDown={handleListKeyDown} onBlur={handleBlur}>
-        {items.map((it) => (
-          <Item
-            key={it.key}
-            role="menuitem"
-            tabIndex={-1}
-            blockedReason={it.blockedReason}
-            stretch
-            labelAlign="start"
-            onClick={() => {
-              closeToTrigger();
-              it.onSelect();
-            }}
-          >
-            {it.content}
-          </Item>
-        ))}
+        <Items role="none">
+          {items.map((it) => (
+            <Item
+              key={it.key}
+              role="menuitem"
+              tabIndex={-1}
+              blockedReason={it.blockedReason}
+              stretch
+              labelAlign="start"
+              onClick={() => {
+                closeToTrigger();
+                it.onSelect();
+              }}
+            >
+              {it.content}
+            </Item>
+          ))}
+        </Items>
       </AttachedList>
     </>
   );
 }
 
-const Trigger = styled.button<{ $side: "below" | "above" }>`
+const Trigger = styled.button<{ $side: "below" | "above"; $capOpenRadius: boolean }>`
   ${attachedTrigger}
 `;
 
-// Itens de 48 px (o alvo de toque do menu de antes). O recuo é o da pílula: o ícone do item fica na coluna do primeiro caractere dela.
+// Respiro igual em cima e embaixo dos itens. Fica dentro da lista, depois da linha que a separa da
+// pílula: a linha continua colada à junção.
+const Items = styled.div`
+  padding-block: 4px;
+`;
+
+// Itens de 44 px (o alvo de toque mínimo). O recuo é o da pílula: o ícone do item fica na coluna do primeiro caractere dela.
 const Item = styled(BlockableButton)`
   display: flex;
   align-items: center;
   gap: 10px;
   width: 100%;
   box-sizing: border-box;
-  min-height: 48px;
+  min-height: 44px;
   padding: 4px var(--pill-padding-right) 4px var(--pill-padding-left);
   margin: 0;
   background: none;

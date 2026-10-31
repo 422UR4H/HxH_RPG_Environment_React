@@ -35,6 +35,11 @@ interface UseAttachedListOptions {
    * (padrão), a largura é sempre a da pílula.
    */
   growToContent?: boolean;
+  /**
+   * Raio máximo (px) dos cantos externos enquanto aberto: a forma inteira (pílula + lista) usa
+   * `min(raio fechado, maxOpenRadius)`. Sem isto (padrão), a lista copia o raio da pílula.
+   */
+  maxOpenRadius?: number;
 }
 
 // Folga sobre a animação: se o animationend não vier (aba oculta, estilo cortado), a lista desmonta mesmo assim.
@@ -50,6 +55,12 @@ function largestRadius(a: string, b: string) {
   return `${Math.max(pa, pb)}px`;
 }
 
+/** O raio aberto: o fechado, sem passar de `max` px. */
+export function capRadius(radius: string, max: number) {
+  if (radius.endsWith("px")) return `${Math.min(parseFloat(radius), max)}px`;
+  return radius ? `min(${radius}, ${max}px)` : `${max}px`;
+}
+
 /**
  * A mecânica da lista presa à pílula, comum ao `PillSelect` (escolher um valor) e ao `PillMenu`
  * (menu de ações): estados aberto/fechando/assentando, lado e altura por
@@ -61,6 +72,7 @@ export function useAttachedList<T extends HTMLElement>({
   remeasureKey,
   onClose,
   growToContent = false,
+  maxOpenRadius,
 }: UseAttachedListOptions) {
   const [open, setOpen] = useState(false);
   // Fechando: a lista continua montada até a animação de saída terminar.
@@ -68,6 +80,8 @@ export function useAttachedList<T extends HTMLElement>({
   // Recolhida: a pílula leva um instante para voltar a arredondar (a lista já se foi).
   const [settling, setSettling] = useState(false);
   const [placement, setPlacement] = useState<AttachedPlacement | null>(null);
+  // Com `maxOpenRadius`: o raio da forma aberta, medido na pílula ainda fechada (ao abrir).
+  const [openRadius, setOpenRadius] = useState<string | undefined>(undefined);
   const triggerRef = useRef<T>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<() => void>(() => {});
@@ -112,7 +126,7 @@ export function useAttachedList<T extends HTMLElement>({
         "--pill-padding-left": cs.paddingLeft,
         "--pill-padding-right": cs.paddingRight,
         // Os cantos do lado da lista ficam retos enquanto aberto (0); o raio é o do outro lado.
-        "--pill-radius": largestRadius(cs.borderTopLeftRadius, cs.borderBottomLeftRadius),
+        "--pill-radius": openRadius ?? largestRadius(cs.borderTopLeftRadius, cs.borderBottomLeftRadius),
       };
       // A 1ª medição acontece antes de o React aplicar o estilo: sem copiar o visual da pílula (e a
       // largura) já na lista, ela mediria com a fonte do body e sem padding, e a altura sairia errada.
@@ -176,7 +190,7 @@ export function useAttachedList<T extends HTMLElement>({
       window.removeEventListener("resize", place);
       window.removeEventListener("scroll", place, { capture: true });
     };
-  }, [mounted, open, remeasureKey, rowSelector, growToContent]);
+  }, [mounted, open, remeasureKey, rowSelector, growToContent, openRadius]);
 
   // Clique fora fecha.
   useEffect(() => {
@@ -208,6 +222,13 @@ export function useAttachedList<T extends HTMLElement>({
 
   function openList() {
     sideRef.current = undefined;
+    const trigger = triggerRef.current;
+    if (maxOpenRadius !== undefined && trigger) {
+      // Fechada, a pílula mostra o raio de verdade nos dois lados. (Ainda voltando a arredondar, o
+      // raio está entre o aberto e o fechado: o mínimo dá o mesmo.)
+      const cs = getComputedStyle(trigger);
+      setOpenRadius(capRadius(largestRadius(cs.borderTopLeftRadius, cs.borderBottomLeftRadius), maxOpenRadius));
+    }
     setSettling(false);
     setClosing(false);
     setOpen(true);
@@ -234,6 +255,7 @@ export function useAttachedList<T extends HTMLElement>({
     state,
     side: placement?.side ?? "below",
     growToContent,
+    openRadius,
     placement,
     listId,
     anchorName,

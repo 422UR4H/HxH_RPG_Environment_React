@@ -138,7 +138,8 @@ const Menu = styled(PillMenu)<{ $isFloating: boolean }>`
   }
 
   /* Aberta, a pílula fica parada no lugar: a lista se prende a ela (e a mede) sem o deslocamento
-     do hover/clique, e os cantos mudam na hora, como no PillSelect. */
+     do hover/clique. O lado da lista fica reto na hora; os cantos externos o PillMenu diminui até
+     o raio aberto (no máximo 16 px) junto com a lista. */
   &&[data-state="open"],
   &&[data-state="closing"] {
     transform: none;
