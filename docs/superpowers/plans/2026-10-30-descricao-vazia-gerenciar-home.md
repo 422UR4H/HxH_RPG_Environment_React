@@ -97,3 +97,26 @@
 - Sem rolagem extra: a camada não pode criar barra de rolagem horizontal nem vertical em nenhuma tela; o cadastro, que já rola em telas baixas, continua rolando normalmente com as nuvens fixas atrás.
 - Teste: renderiza decorativo (`aria-hidden`, imagens `alt=""`), quantidade de nuvens, e não intercepta clique (pointer-events) — o visual é verificado no navegador pelo controlador.
 - [ ] typecheck + lint + test; commit `feat(ui): nuvens subindo na home, no login e no cadastro`.
+
+### Task 6: nuvens como câmera subindo por um céu parado (retorno do dono do produto)
+
+**Retorno do dono (30/10), sobre a Task 5:** "As nuvens precisam subir na mesma velocidade. A cloud.svg que está passando no fundo, à direita, ficou muito legal: ela é referência por conta do seu aspecto de profundidade. O efeito que deve parecer é que as nuvens estão paradas e a câmera está subindo filmando o céu. Mas não mexa no degradê do fundo. As nuvens subindo de forma estática vão proporcionar melhor esse efeito. Evite uma nuvem na frente da outra. Pode usar isso mais nos cantos da tela. Não precisa ter uma densidade de nuvens tão grande; pode reduzir um pouco."
+
+**Files:** `src/components/atoms/RisingClouds.tsx` e o teste dele. Nada fora disso (o fundo azul, `SignPagesTemplate` e `HomePage` ficam como estão).
+
+**A referência** é a nuvem `{ image: "cloud", left: 60, plane: "far", phase: 0.75, mirror: true }` da Task 5: `cloud.webp` espelhada, 22 vmax de largura, opacidade 0.5, uma travessia a cada 7 × 2.4 = 16.8 s.
+
+**Decisões do controlador:**
+- **Sem paralaxe.** Todas as nuvens com a **mesma velocidade em px/s** e a mesma trajetória inclinada (12°, mesmo sentido): o conjunto se move como um bloco rígido, sem posições relativas mudando. Isso garante que duas nuvens que não se sobrepõem num quadro nunca se sobreponham.
+  - Cuidado: velocidade igual **não** é duração igual quando o percurso depende da altura da nuvem (`100vh + altura`). Todas devem usar o **mesmo percurso** (`100vh + altura da maior nuvem`), partindo de `top: 100%`, com a mesma duração.
+  - A velocidade é a da referência: a duração que dá à nuvem de referência o percurso de hoje em 16.8 s. Na prática, uma constante de segundos por travessia, por volta de 17 s, ajustável no topo do arquivo.
+- **Visual de profundidade da referência para todas:** opacidade ~0.5 e largura em torno de 22 vmax. Uma variação pequena de tamanho (±15%) é permitida para não parecerem carimbos, e a opacidade fica igual. Use `cloud` na maioria e `cloud2` no máximo em uma, espelhando algumas.
+- **Menos nuvens, nos cantos:** de 4 a 5, em duas colunas, uma sangrando pela borda esquerda e outra pela direita. O meio fica livre: é onde estão o cartão de login e os cards da home.
+  - Fases intercaladas, para as colunas não ficarem alinhadas na mesma altura (ex.: esquerda 0 e 0.5, direita 0.25 e 0.75).
+  - Compense a deriva horizontal na coluna de partida, para que a nuvem esteja junto à borda no meio da travessia, e não só no começo.
+- **Nenhuma sobreposição em momento nenhum, inclusive na volta do loop.** Numa coluna, a distância vertical entre nuvens consecutivas (fase × percurso) tem de ser maior que a altura da nuvem mais alta, e a última precisa de folga até a primeira, que volta por baixo. Entre colunas, o vão horizontal tem de ficar positivo no celular em pé (390 px), onde 22 vmax ≈ 186 px.
+  - Escreva o raciocínio num comentário curto.
+  - Um teste prende a regra: a configuração exportada, ou uma função pura que calcula as caixas, não tem pares sobrepostos na faixa de tela para as proporções 390×844, 820×1180, 1180×820, 1366×768 e 1920×1080.
+- Continua igual: só `transform`, `will-change`, atraso negativo para abrir com o céu já povoado, reduced-motion pausado, `aria-hidden`, `pointer-events: none`, sem rolagem extra.
+- Remova o que ficar sem uso (`LAYER_*`, planos), deixando os parâmetros ajustáveis no topo com comentário em português: segundos por travessia, ângulo, sentido, largura base, opacidade.
+- [ ] typecheck + lint + test; commit `fix(ui): nuvens sobem juntas, como câmera subindo pelo céu`.
