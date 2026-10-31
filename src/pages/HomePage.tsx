@@ -5,9 +5,10 @@ import useToken from "../hooks/useToken";
 import PageHeader from "../components/atoms/PageHeader";
 import LogoutButton from "../components/atoms/LogoutButton";
 import NavigationCard from "../components/atoms/NavigationCard";
+import RisingClouds from "../components/atoms/RisingClouds";
 import space from "../assets/images/space.png";
 import worldMap from "../assets/images/worldmap.png";
-import { colors } from "../styles/tokens";
+import { colors, gradients } from "../styles/tokens";
 
 function HomePage() {
   const { token } = useToken();
@@ -18,6 +19,7 @@ function HomePage() {
 
   return (
     <PageContainer>
+      <RisingClouds />
       <PageHeader
         backgroundColor={colors.surfaceHeaderDark}
         showBack={false}
@@ -45,8 +47,12 @@ export default HomePage;
 const PageContainer = styled.div`
   display: flex;
   flex-direction: column;
-  min-height: 100%;
-  background-color: ${colors.surfaceBar};
+  min-height: 100vh;
+  min-height: 100dvh;
+  /* Mesmo fundo azul do signin; o cabeçalho escuro e os cards ficam por cima. */
+  background: ${gradients.signBg};
+  /* Contexto de empilhamento: as nuvens (z-index -1) ficam entre o fundo e o conteúdo. */
+  isolation: isolate;
 `;
 
 // Os dois cards cabem inteiros na tela sem rolar: em pé, empilhados e limitados pela

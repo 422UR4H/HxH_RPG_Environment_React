@@ -146,7 +146,7 @@ describe("CharacterSheetPage", () => {
     async function openManageMenu() {
       const u = userEvent.setup();
       await u.click(await screen.findByRole("button", { name: /Gerenciar/i }));
-      return { u, deleteButton: screen.getByRole("button", { name: /Excluir/i }) };
+      return { u, deleteButton: screen.getByRole("menuitem", { name: /Excluir/i }) };
     }
 
     it("lets the owner delete a sheet outside any campaign", async () => {

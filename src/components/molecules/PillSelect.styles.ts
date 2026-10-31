@@ -1,12 +1,6 @@
-import styled, { css, keyframes } from "styled-components";
+import styled, { css } from "styled-components";
 import { colors } from "../../styles/tokens";
-import { scopedScrollbar, scrollbarPalettes } from "../../styles/scrollbar";
-
-/** Altura mínima de uma opção (px); o componente a usa também como reserva quando a opção ainda não tem layout. */
-export const PILL_OPTION_MIN_HEIGHT = 44;
-export const PILL_SELECT_DURATION_MS = 160;
-const DURATION = `${PILL_SELECT_DURATION_MS}ms`;
-const EASING = "ease";
+import { ATTACHED_ROW_MIN_HEIGHT, attachedTrigger } from "./AttachedList.styles";
 
 /** Seta (chevron) da pílula fechada, usada como `background-image` por quem estiliza o `PillSelect` e o `DateField`. */
 export const PILL_CHEVRON = `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`;
@@ -37,11 +31,8 @@ export const pillLook = css`
   }
 `;
 
-type Side = "below" | "above";
-
 // O consumidor estiliza a pílula (`styled(PillSelect)`); aqui só o que o componente precisa.
-// `&&` garante que o estado aberto vença o estilo do consumidor, qualquer que seja a ordem.
-export const Trigger = styled.div<{ $side: Side }>`
+export const Trigger = styled.div<{ $side: "below" | "above" }>`
   display: inline-grid;
   box-sizing: border-box;
   text-align: left;
@@ -49,41 +40,7 @@ export const Trigger = styled.div<{ $side: Side }>`
   white-space: nowrap;
   user-select: none;
   -webkit-user-select: none;
-  /* A lista (portal) se prende a esta pílula por anchor positioning: o nome vem do componente. */
-  anchor-name: var(--pill-anchor);
-
-  /* Aberto (e enrolando): a lista continua a pílula, então o lado dela fica reto, sem
-     transição, e a lista cobre a borda desse lado (os cantos retos casam com os dela). */
-  &&[data-state="open"],
-  &&[data-state="closing"] {
-    filter: none;
-    box-shadow: none;
-    border-color: ${colors.textPrimary};
-    ${({ $side }) =>
-      $side === "below"
-        ? css`
-            border-bottom-color: transparent;
-            border-bottom-left-radius: 0;
-            border-bottom-right-radius: 0;
-          `
-        : css`
-            border-top-color: transparent;
-            border-top-left-radius: 0;
-            border-top-right-radius: 0;
-          `}
-  }
-  /* Lista já recolhida: a pílula volta a arredondar e a recuperar a cor da borda. */
-  &&[data-state="settling"] {
-    transition:
-      border-radius ${DURATION} ${EASING},
-      border-color ${DURATION} ${EASING};
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    &&[data-state="settling"] {
-      transition: none;
-    }
-  }
+  ${attachedTrigger}
 `;
 
 // Todos os rótulos empilhados na mesma célula: a largura fechada é a da opção mais longa,
@@ -103,120 +60,6 @@ export const Sizer = styled.span`
   }
 `;
 
-const unroll = (side: Side) => keyframes`
-  from { clip-path: inset(${side === "below" ? "0 0 100% 0" : "100% 0 0 0"}); opacity: 0.6; }
-  to   { clip-path: inset(0 0 0 0); opacity: 1; }
-`;
-
-const roll = (side: Side) => keyframes`
-  from { clip-path: inset(0 0 0 0); opacity: 1; }
-  to   { clip-path: inset(${side === "below" ? "0 0 100% 0" : "100% 0 0 0"}); opacity: 0.6; }
-`;
-
-interface ListProps {
-  $side: Side;
-  $placed: boolean;
-  $closing: boolean;
-}
-
-// As medidas da pílula chegam por variáveis CSS (lidas do gatilho): a lista vive no body,
-// fora do container query (cqi) onde a pílula calcula tamanhos.
-export const List = styled.div<ListProps>`
-  position: fixed;
-  /* Sem anchor positioning: posição calculada em JS (variáveis --fallback-*). */
-  top: var(--fallback-top, 0);
-  bottom: var(--fallback-bottom, auto);
-  left: var(--fallback-left, 0);
-  width: var(--fallback-width, auto);
-  /* Com anchor positioning: o navegador move pílula e lista juntas no mesmo quadro, sem esperar
-     o JS da rolagem. A lista sobe sobre a borda da pílula (--pill-border-width). */
-  /* O segundo argumento de anchor()/anchor-size() é a reserva: se a âncora não for aceitável
-     (ex.: select dentro de <dialog> na top layer), vale a geometria do JS em vez de "auto".
-     Em top/bottom, a reserva soma a sobreposição da borda para que o calc() (que a subtrai) devolva
-     exatamente o --fallback-* do ramo sem anchor. */
-  @supports (anchor-name: --a) and (top: anchor(bottom)) and (width: anchor-size(width)) {
-    position-anchor: var(--pill-anchor);
-    left: anchor(left, var(--fallback-left, 0px));
-    width: anchor-size(width, var(--fallback-width, auto));
-    ${({ $side }) =>
-      $side === "below"
-        ? css`
-            top: calc(
-              anchor(bottom, calc(var(--fallback-top, 0px) + var(--pill-border-width))) -
-                var(--pill-border-width)
-            );
-            bottom: auto;
-          `
-        : css`
-            top: auto;
-            bottom: calc(
-              anchor(top, calc(var(--fallback-bottom, 0px) + var(--pill-border-width))) -
-                var(--pill-border-width)
-            );
-          `}
-  }
-  z-index: 1000; /* mesma camada do Popover do DateField: acima de toda a página */
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  background-color: var(--pill-bg);
-  color: var(--pill-fg);
-  font-family: var(--pill-font-family);
-  font-size: var(--pill-font-size);
-  font-weight: var(--pill-font-weight);
-  border: var(--pill-border-width) solid ${colors.textPrimary};
-  /* O lado da pílula não tem borda: a lista sobe sobre a borda da pílula e as laterais
-     brancas seguem contínuas. A linha fina que separa o valor das opções é um sticky
-     (fica fixa ao rolar), recuada para dentro das bordas. */
-  ${({ $side }) =>
-    $side === "below"
-      ? css`
-          border-top: 0;
-          border-radius: 0 0 var(--pill-radius) var(--pill-radius);
-          &::before {
-            content: "";
-            display: block;
-            position: sticky;
-            top: 0;
-            z-index: 1;
-            height: 1px;
-            margin-bottom: -1px;
-            background: ${colors.overlayHighlight};
-          }
-        `
-      : css`
-          border-bottom: 0;
-          border-radius: var(--pill-radius) var(--pill-radius) 0 0;
-          &::after {
-            content: "";
-            display: block;
-            position: sticky;
-            bottom: 0;
-            z-index: 1;
-            height: 1px;
-            margin-top: -1px;
-            background: ${colors.overlayHighlight};
-          }
-        `}
-  ${scopedScrollbar(scrollbarPalettes.pill)}
-  /* O polegar usa a borda transparente como respiro; sem isto o fundo passaria por baixo dela. */
-  &::-webkit-scrollbar-thumb {
-    background-clip: padding-box;
-  }
-  visibility: ${({ $placed }) => ($placed ? "visible" : "hidden")};
-  ${({ $placed, $closing, $side }) =>
-    $placed &&
-    css`
-      animation: ${$closing ? roll($side) : unroll($side)} ${DURATION} ${EASING} both;
-    `}
-
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-  }
-`;
-
 // A coluna da direita (largura = padding da pílula, onde fica o chevron) é reservada ao ✓;
 // se a lista rola, a barra de rolagem come essa coluna, não o texto.
 const column = "calc(var(--pill-padding-right) - var(--list-scrollbar, 0px))";
@@ -226,7 +69,7 @@ export const Option = styled.div`
   display: flex;
   align-items: center;
   box-sizing: border-box;
-  min-height: ${PILL_OPTION_MIN_HEIGHT}px;
+  min-height: ${ATTACHED_ROW_MIN_HEIGHT}px;
   padding: 4px ${column} 4px var(--pill-padding-left);
   cursor: pointer;
 

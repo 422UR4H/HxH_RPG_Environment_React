@@ -139,7 +139,7 @@ export default function EditMatchPage() {
     const matchData = {
       title: form.title,
       briefInitialDescription: form.briefInitialDescription,
-      description: form.description || undefined,
+      description: form.description,
       isPublic: form.isPublic,
       gameScheduledAt: `${form.gameScheduledAt}:00Z`,
       storyStartAt: form.storyStartAt,

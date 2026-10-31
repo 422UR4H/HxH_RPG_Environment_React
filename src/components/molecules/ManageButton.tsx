@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import styled from "styled-components";
 import ConfirmDialog from "./ConfirmDialog";
-import BlockableButton from "./BlockableButton";
+import PillMenu from "./PillMenu";
+import { ATTACHED_LIST_DURATION_MS } from "./AttachedList.styles";
 import penIcon from "../../assets/icons/pen.svg";
 import { colors } from "../../styles/tokens";
 import { floatingElevation } from "../../styles/bottomBar";
@@ -25,56 +26,40 @@ export default function ManageButton({
   onEdit,
   onDelete,
 }: ManageButtonProps) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [open]);
-
-  const handleEdit = () => {
-    setOpen(false);
-    onEdit();
-  };
-
-  const handleDelete = () => {
-    setOpen(false);
-    setShowDeleteConfirm(true);
-  };
 
   return (
     <>
-      <Wrapper ref={ref} $isFloating={isFloating}>
-        {open && (
-          <Menu>
-            <MenuItem type="button" onClick={handleEdit}>
-              <IconSlot>
-                <PenIcon src={penIcon} alt="" />
-              </IconSlot>
-              Editar
-            </MenuItem>
-            <DeleteItem blockedReason={deleteBlockedReason} stretch labelAlign="start" onClick={handleDelete}>
-              <IconSlot aria-hidden="true">🗑</IconSlot>
-              Excluir
-            </DeleteItem>
-          </Menu>
-        )}
-        <Button
-          type="button"
+      <Wrapper $isFloating={isFloating}>
+        <Menu
           $isFloating={isFloating}
-          $open={open}
-          onClick={() => setOpen((v) => !v)}
-        >
-          ⚙ Gerenciar {open ? "▴" : "▾"}
-        </Button>
+          label={(open) => `⚙ Gerenciar ${open ? "▴" : "▾"}`}
+          items={[
+            {
+              key: "edit",
+              content: (
+                <>
+                  <IconSlot>
+                    <PenIcon src={penIcon} alt="" />
+                  </IconSlot>
+                  Editar
+                </>
+              ),
+              onSelect: onEdit,
+            },
+            {
+              key: "delete",
+              content: (
+                <DeleteTone>
+                  <IconSlot aria-hidden="true">🗑</IconSlot>
+                  Excluir
+                </DeleteTone>
+              ),
+              onSelect: () => setShowDeleteConfirm(true),
+              blockedReason: deleteBlockedReason,
+            },
+          ]}
+        />
       </Wrapper>
       {showDeleteConfirm && (
         <ConfirmDialog
@@ -98,14 +83,15 @@ export default function ManageButton({
 // Flutuando, a altura é "auto": na ficha o grupo estica o wrapper e o `height: 100%` do botão segue o
 // vizinho; na campanha o grupo fixa a altura por `--manage-floating-height`. Encaixado, preenche a barra.
 const Wrapper = styled.div<{ $isFloating: boolean }>`
-  position: relative;
   flex-shrink: 0;
   height: ${({ $isFloating }) => ($isFloating ? "auto" : "100%")};
 `;
 
-const Button = styled.button<{ $isFloating: boolean; $open: boolean }>`
+// A pílula fechada é a escura de sempre; aberta, o PillMenu a deixa com a borda branca e o lado da
+// lista reto, e a lista copia daqui fundo, cor, fonte, borda, recuo e raio.
+const Menu = styled(PillMenu)<{ $isFloating: boolean }>`
   background: ${colors.surfacePanel};
-  border: 1px solid ${({ $open }) => ($open ? colors.actionAccent : colors.borderMuted)};
+  border: 1px solid ${colors.borderMuted};
   color: ${colors.textPrimary};
   font-size: min(22px, 4cqi);
   font-weight: 600;
@@ -150,65 +136,27 @@ const Button = styled.button<{ $isFloating: boolean; $open: boolean }>`
   &:active {
     transform: scale(0.98);
   }
-`;
 
-const Menu = styled.div`
-  position: absolute;
-  bottom: calc(100% + 6px);
-  left: 0;
-  background: ${colors.surfacePanel};
-  border: 1px solid ${colors.borderMuted};
-  border-radius: 8px;
-  overflow: hidden;
-  min-width: 200px;
-  box-shadow: 0 -4px 16px ${colors.overlayMedium};
-  z-index: 20;
-`;
-
-// Os dois itens com a mesma altura, o mesmo recuo e o ícone numa coluna de largura fixa,
-// para "Editar" e "Excluir" (e o "?" de indisponível) ficarem alinhados.
-const itemCss = `
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  min-height: 48px;
-  padding: 0 18px;
-  background: none;
-  border: none;
-  border-bottom: 1px solid ${colors.surfaceMuted};
-  font: inherit;
-  font-size: 17px;
-  font-weight: 600;
-  text-align: left;
-  white-space: nowrap;
-  cursor: pointer;
-  &:last-child {
-    border-bottom: none;
+  /* Aberta, a pílula fica parada no lugar: a lista se prende a ela (e a mede) sem o deslocamento
+     do hover/clique. O lado da lista fica reto na hora; os cantos externos o PillMenu diminui até
+     o raio aberto (no máximo 16 px) junto com a lista. */
+  &&[data-state="open"],
+  &&[data-state="closing"] {
+    transform: none;
+    transition: none;
   }
-  &:hover {
-    background: ${colors.surfaceModal};
+  /* Enrolada: soma a volta dos cantos/borda da pílula ao "all" do hover, em vez de trocá-lo. */
+  @media (prefers-reduced-motion: no-preference) {
+    &&&[data-state="settling"] {
+      transition:
+        all 0.2s ease,
+        border-radius ${ATTACHED_LIST_DURATION_MS}ms ease,
+        border-color ${ATTACHED_LIST_DURATION_MS}ms ease;
+    }
   }
 `;
 
-const MenuItem = styled.button`
-  ${itemCss}
-  color: ${colors.textPrimary};
-`;
-
-const DeleteItem = styled(BlockableButton)`
-  ${itemCss}
-  color: ${colors.actionDestructiveText};
-
-  &[aria-disabled="true"] {
-    color: ${colors.textDisabled};
-    cursor: not-allowed;
-  }
-  &[aria-disabled="true"]:hover {
-    background: none;
-  }
-`;
-
+// Ícone numa coluna de largura fixa, para "Editar" e "Excluir" (e o "?" de indisponível) alinharem.
 const IconSlot = styled.span`
   display: inline-flex;
   justify-content: center;
@@ -220,4 +168,14 @@ const IconSlot = styled.span`
 const PenIcon = styled.img`
   width: 1.4em;
   height: 1.4em;
+`;
+
+// Só a cor: `display: contents` deixa ícone e rótulo como filhos diretos do item (mesmo espaçamento).
+const DeleteTone = styled.span`
+  display: contents;
+  color: ${colors.actionDestructiveText};
+
+  [aria-disabled="true"] & {
+    color: ${colors.textDisabled};
+  }
 `;
