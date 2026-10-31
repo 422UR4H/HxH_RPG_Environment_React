@@ -120,3 +120,59 @@
 - Continua igual: só `transform`, `will-change`, atraso negativo para abrir com o céu já povoado, reduced-motion pausado, `aria-hidden`, `pointer-events: none`, sem rolagem extra.
 - Remova o que ficar sem uso (`LAYER_*`, planos), deixando os parâmetros ajustáveis no topo com comentário em português: segundos por travessia, ângulo, sentido, largura base, opacidade.
 - [ ] typecheck + lint + test; commit `fix(ui): nuvens sobem juntas, como câmera subindo pelo céu`.
+
+### Task 7: "Gerenciar" aberto sem o raio exagerado (retorno do dono do produto)
+
+**Retorno do dono (30/10):** "O botão Gerenciar não está nada legal. O border radius está muito grande, tá realmente estranho! Melhore aquele trabalho lá, porque ficou feio."
+
+**Causa (medida pelo controlador):** no modo flutuante, o botão fechado é uma pílula com `border-radius: 50px` (altura 58 px). A lista aberta copia esse raio (`--pill-radius`), então a forma aberta (lista de ~98 px + botão) fica com cantos de 50 px. Na lista, os cantos de cima comem a área dos itens; no botão, os de baixo viram meio-círculo, e o conjunto vira uma bolha. No seletor da ficha isso não acontece porque a lista é alta e o raio é menor (`min(5cqi, 28px)`). No modo encaixado (raio 8 px) já fica bom.
+
+**Files:** `src/components/molecules/ManageButton.tsx`, `src/components/molecules/PillMenu.tsx` (+ estilos), `src/components/molecules/AttachedList*.ts(x)`/`useAttachedList.ts` só se precisar de uma opção nova (padrão = comportamento atual do `PillSelect`), testes.
+
+**Decisões do controlador:**
+- **Fechado: nada muda.** A pílula flutuante com 50 px e o encaixado com 8 px continuam iguais.
+- **Aberto (e abrindo/fechando):** a forma inteira (lista + botão) usa um raio de canto externo `R = min(raio fechado, 16px)`.
+  - Os cantos externos do botão (o lado oposto à lista) animam de 50 → 16 px junto com a abertura, na mesma duração/curva da lista (160 ms), e voltam a 50 ao fechar, como o "settling" do seletor já faz.
+  - O lado colado à lista continua reto.
+  - Os cantos externos da lista e o canto saliente (lista mais larga que o botão no celular) usam o mesmo R.
+  - Com reduced-motion, a troca é sem animação.
+- **Acabamento da lista:**
+  - Os ícones dos itens alinhados com o ⚙ do botão: mesmo recuo à esquerda.
+  - Itens com altura mínima de 44 px, respiro vertical igual em cima e embaixo.
+  - A linha que separa a lista do botão continua.
+  - Hover/foco visível só por token.
+  - Nada de cor nova.
+- `PillSelect` intocado. O seletor da ficha continua idêntico, com seu raio próprio e sua lista. Qualquer opção nova na peça compartilhada tem o padrão de hoje.
+- Testes: o raio aberto é calculado como `min(fechado, 16px)`, e o `PillSelect` não recebe essa regra.
+- [ ] typecheck + lint + test; commit `fix(ui): Gerenciar aberto com cantos de 16 px`.
+
+### Task 8: seis nuvens diferentes, cada uma no seu tamanho (retorno do dono do produto)
+
+**Retorno do dono (30/10):** "Pode usar o webp sim. Adicionei mais nuvens para você não precisar repeti-las em loop; pode ajustar para utilizar estas outras também. Leve em consideração o tamanho das nuvens em si, para que elas tenham mais ou menos a mesma densidade. Tem umas muito esparsas, que podem ficar estranhas se você expandi-las, tornando-as mais esparsas ainda, e outras mais sólidas. Leve isso em consideração pra ficar uma obra de arte."
+
+**Assets (já prontos pelo controlador, em `src/assets/images/`):** `cloud.webp` e `cloud2.webp` (os de antes), mais `cloud3.webp` (274×195), `cloud4.webp` (518×186), `cloud5.webp` (1200×584, reduzido da nova nuvem de 2242×1092) e `cloud6.webp` (705×492). Os `.svg` originais estão em `src/assets/icons/` e ficam fora do git, por decisão do dono.
+
+**Medição do controlador (canal alfa de cada original):**
+
+| nuvem | corpo (px) | borda esfumaçada (px) | borda / largura | núcleo sólido |
+|---|---|---|---|---|
+| cloud (antiga, a referência) | 1467×729 | 16.7 | 1.1% | 90% |
+| cloud2 | 675×474 | 14.9 | 2.2% | 85% |
+| cloud5 (nova grande) | 2193×1043 | 20.7 | 0.9% | 89% |
+| cloud3 | 200×138 | 14.2 | 7.1% | 57% |
+| cloud4 | 455×126 | 12.7 | 2.8% | 60% |
+| cloud6 | 656×443 | 20.0 | 3.1% | 78% |
+
+**Regra de tamanho (densidade parecida):**
+- A borda esfumaçada na tela (`borda/largura × largura renderizada`) não passa de **0.5 vmax**, o dobro da referência: cloud a 22 vmax dá 0.25 vmax. Isso dá um teto por nuvem, em vmax de largura do corpo: cloud3 ≈ 7, cloud4 ≈ 18, cloud6 ≈ 16, cloud2 ≈ 22, cloud ≈ 22 (mantém) e cloud5 ≈ 26, este por composição, não por nitidez.
+- As esfumaçadas ficam pequenas, como nuvens mais distantes; as sólidas, maiores.
+- Opacidade base 0.5. As de núcleo fraco (cloud3, cloud4) podem subir até ~0.6 para a densidade aparente se igualar. O controlador confere no navegador.
+- Use a largura do **corpo** ao converter. O PNG tem ~15–35 px de margem transparente; o tamanho do `<img>` é o do arquivo inteiro.
+
+**Composição:**
+- Cada uma das 6 nuvens aparece **uma vez** no ciclo (nada de repetir a mesma imagem). Espelhar uma ou outra pode, para variar o sentido da luz.
+- Continua tudo da Task 6: bloco rígido com a mesma velocidade da referência (a mesma de hoje em px/s relativos à altura da tela), 12°, duas colunas nas bordas, centro livre, **nenhuma sobreposição em momento nenhum**, inclusive na volta do loop.
+- Para caberem 6 sem aumentar a densidade, o período do padrão pode passar de uma tela (ex.: ~1,6 tela), mantendo de 3 a 4 nuvens visíveis a qualquer momento, como hoje.
+- As colunas alternam grandes e pequenas, para não haver duas grandes seguidas do mesmo lado.
+- O teste de não sobreposição cobre o ciclo inteiro nas 5 proporções de tela (390×844, 820×1180, 1180×820, 1366×768, 1920×1080), com as caixas do **corpo**, não do arquivo.
+- [ ] typecheck + lint + test; commit `feat(ui): seis nuvens diferentes, cada uma no tamanho da sua nitidez`.
