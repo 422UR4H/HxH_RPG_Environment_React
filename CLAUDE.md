@@ -75,7 +75,9 @@ Cor só existe em `src/styles/tokens.ts` (duas camadas: `palette` × `colors` se
 
 ## Feature: character sheet
 
-See `src/features/sheet/CLAUDE.md` for sheet-specific conventions (factories, distribute utils, SheetMode pattern).
+See `src/features/sheet/CLAUDE.md` for sheet-specific conventions (factories, distribute utils, SheetMode pattern, live preview).
+
+The sheet assembly is **mirrored from the Go backend** in `src/features/sheet/engine/` (self-contained, see its `CLAUDE.md`) to preview create/edit live; the backend stays the source of truth. Parity is enforced by a golden file generated in the backend — after a backend sheet-rule change run `npm run sync:sheet-fixtures` then `npm run test`.
 
 ## Feature: match combat
 

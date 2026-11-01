@@ -71,24 +71,47 @@ Pontos de atenção copiados à risca do Go:
 
 ### Integração na UI
 
-- `useLiveSheet` (ou função pura equivalente) recalcula a ficha exibida a partir de
+- `withLivePreview` (função pura, `utils/livePreview.ts`) recalcula a ficha exibida a partir de
   `charSheet` (estado da página) + classe selecionada, a cada mudança.
 - `PhysicalsDiagram`/`MentalsDiagram`: pontos disponíveis = nível da habilidade − pontos gastos,
   derivados a cada render (sem `useState`).
 - Proficiência: trocar a arma de um slot não muda o total de exp (cada slot tem exp fixo), então
   não muda o nível de Físicos. Preencher/esvaziar um slot muda — ver "Regras a confirmar".
 
-## Regras a confirmar com o dono do produto
+## O que a implementação encontrou
 
-(preenchidas ao longo da implementação; ver seção final do relatório da sessão)
+- **Proficiência não muda o nível de Físicos** com as classes de hoje (conferido pela fixture, em
+  todas as classes com distribuição): a quantidade de pontos de atributo não muda. Mas **muda o
+  nível do personagem** (ex.: Hunter 6 → 7) — e a prévia agora mostra isso.
+- **A ordem da cascata não muda a ficha** (o back gera a fixture 6 vezes e exige o mesmo resultado).
+- **A criação mandava pontos em atributos derivados** (Força…), que o back recusa. Criação e
+  edição agora usam o mesmo `buildSheetInput`, que manda só os primários.
+- **Pontos além do disponível**: só aconteceriam se o nível de Físicos/Mentais caísse depois de
+  distribuir (impossível com as classes de hoje). O diagrama mostra o saldo negativo e a validação
+  bloqueia o envio com "Há N ponto(s) … além do disponível: remova antes de …" (o back exige soma
+  exata). Decisão tomada pelo padrão atual (validação no envio); revisar se surgir o caso.
+
+## Pontos para o dono do produto avaliar (não bloqueiam)
+
+- **Editar uma ficha apaga o hexágono Nen/categoria?** `UpdateCharacterSheetUC` remonta com
+  `hexValue`/`category` nulos (comportamento anterior a este trabalho). A prévia mostra
+  exatamente isso (categoria vazia). Se uma ficha livre puder ter hexágono definido, a edição o
+  perde.
+- **Leitura x criação**: o GET remonta a ficha a partir do banco (`read_character_sheet.go`) por
+  outro caminho (restaura proficiências comuns antes das conjuntas). Hoje dá o mesmo resultado;
+  divergiria se uma arma escolhida também pertencesse a uma proficiência conjunta da classe
+  (nenhuma classe tem os dois hoje).
 
 ## Status / checklist de continuação
 
-- [ ] Back: `definition` no `CharacterClassResponse` + teste
-- [ ] Back: `AssembleCharacterSheet` (create e update usam) + teste
-- [ ] Back: gerador/verificador de fixtures + `testdata/sheet_parity.json`
-- [ ] Back: docs (EN + PT-BR) + `AGENTS.md`
-- [ ] Front: motor TS + teste de paridade + script de sync
-- [ ] Front: `buildSheetInput` compartilhado pelo service e pela prévia
-- [ ] Front: prévia ao vivo na criação/edição + correção do `PhysicalsDiagram`
-- [ ] `npm run build`, `npm run lint`, `npm run test`; `go vet ./...`, `go test ./...`
+- [x] Back: `definition` no `CharacterClassResponse`
+- [x] Back: `AssembleCharacterSheet` (create e update usam)
+- [x] Back: gerador/verificador de fixtures + `testdata/sheet_parity.json`
+- [x] Back: docs (spec EN + PT-BR, `factory.md`, `api/character-sheet.md`, `AGENTS.md`, mapa)
+- [x] Front: motor TS (`src/features/sheet/engine`) + teste de paridade + guarda de fronteira + `npm run sync:sheet-fixtures`
+- [x] Front: `buildSheetInput` compartilhado pelo service e pela prévia
+- [x] Front: prévia ao vivo na criação/edição/NPC (`withLivePreview` no `CharacterSheetTemplate`)
+- [x] Front: `PhysicalsDiagram`/`MentalsDiagram` com pontos derivados (bug corrigido)
+- [x] Verificado no navegador (Playwright, `/classes` simulado com a fixture): Hunter, 3 pontos em
+  Resistência → vida 25→40, estamina 150→300, poder/perícias iguais à resposta do Go
+- [ ] PRs (não abertos — pedir ao dono do produto)
