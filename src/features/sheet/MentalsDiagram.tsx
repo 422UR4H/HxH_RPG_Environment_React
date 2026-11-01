@@ -4,7 +4,6 @@ import { type Ability, type Attribute } from "../../types/characterSheet.ts";
 import type { DiagramsMode } from "./types/diagramsMode.ts";
 import styled from "styled-components";
 import MinusButton from "../../components/ions/MinusButton.tsx";
-import { useState } from "react";
 import { colors } from "../../styles/tokens";
 
 interface MentalsDiagramProps {
@@ -24,28 +23,18 @@ const MentalsDiagram = ({
   mentalAbility = { level: 0, bonus: 0 },
 }: MentalsDiagramProps) => {
   const spent = Object.values(attributes).reduce((sum, a) => sum + (a?.points || 0), 0);
-  const [distributionPoints, setDistributionPoints] = useState(
-    Math.max(0, (mentalAbility?.level || 0) - spent)
-  );
-
-  const incDistributionPoints = () => {
-    setDistributionPoints((prev) => prev + 1);
-  };
-  const decDistributionPoints = () => {
-    setDistributionPoints((prev) => (prev > 0 ? prev - 1 : 0));
-  };
+  // Derivado a cada render (ver PhysicalsDiagram): nada de contador guardado.
+  const distributionPoints = (mentalAbility?.level || 0) - spent;
 
   const incAttributePoints = (name: string) => {
     if (distributionPoints <= 0) return;
     if (attributes[name]?.points !== undefined)
       onAttributePointsChange?.(name, 1);
-    decDistributionPoints();
   };
   const decAttributePoints = (name: string) => {
     const points = attributes[name]?.points;
     if (points === undefined || points <= 0) return;
     onAttributePointsChange?.(name, -1);
-    incDistributionPoints();
   };
 
   const attributePositions = [

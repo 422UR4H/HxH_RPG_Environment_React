@@ -1,3 +1,4 @@
+import type { ClassDefinition } from "../features/sheet/engine";
 import type {
   Ability,
   Attribute,
@@ -40,6 +41,13 @@ export interface CharacterClass {
   attributes: Record<string, Attribute>;
   abilities: Record<string, Ability>;
   indicatedCategories: string[];
+  /**
+   * Dados brutos com que a classe monta uma ficha (chaves como enums Go, sem
+   * normalização). Entrada do motor de prévia (`features/sheet/engine`); os
+   * campos acima são a ficha-modelo já calculada. Opcional: back anterior a
+   * 2026-11-01 não envia, e aí a tela fica sem prévia.
+   */
+  definition?: ClassDefinition;
 }
 
 export interface CharacterClassResponse {
