@@ -7,6 +7,7 @@ import type {
 import type { CharacterClass } from "../types/characterClass";
 import config from "./config";
 import { lowercaseFirstKeys } from "../utils/lowercaseFirstKeys";
+import { buildSheetInput } from "../features/sheet/utils/sheetInput";
 
 export type CatalogueWeapon = {
   name: string;
@@ -27,7 +28,7 @@ export type CombatCatalogue = {
 // src/utils/lowercaseFirstKeys.ts for the full explanation. `status` is
 // excluded (already lowercased server-side) and `jointProficiencies` is
 // excluded (free-form DM-defined names, not enum-derived).
-function normalizeSheetEnumKeyedMaps(sheet: CharacterSheet): CharacterSheet {
+export function normalizeSheetEnumKeyedMaps(sheet: CharacterSheet): CharacterSheet {
   return {
     ...sheet,
     abilities: lowercaseFirstKeys(sheet.abilities),
@@ -96,28 +97,7 @@ export const characterSheetsService = {
     charClass?: CharacterClass,
     campaignUuid?: string
   ): Promise<{ uuid: string }> => {
-    const allowedSkills = new Set(charClass?.distribution?.skillsAllowed ?? []);
-    const skillsExps: Record<string, number> = {};
-    const allSkills = { ...charSheet.physicalSkills, ...charSheet.spiritualSkills };
-    Object.entries(allSkills).forEach(([name, skill]) => {
-      const apiKey = name.charAt(0).toUpperCase() + name.slice(1);
-      if (skill.exp && skill.exp > 0 && allowedSkills.has(apiKey)) {
-        skillsExps[apiKey] = skill.exp;
-      }
-    });
-
-    const allowedProfs = new Set(charClass?.distribution?.proficienciesAllowed ?? []);
-    const proficienciesExps: Record<string, number> = {};
-    Object.entries(charSheet.commonProficiencies).forEach(([name, prof]) => {
-      if (prof.exp && prof.exp > 0 && allowedProfs.has(name)) proficienciesExps[name] = prof.exp;
-    });
-
-    const attributePoints: Record<string, number> = {};
-    const allAttrs = { ...charSheet.physicalAttributes, ...charSheet.mentalAttributes };
-    Object.entries(allAttrs).forEach(([name, attr]) => {
-      const apiKey = name.charAt(0).toUpperCase() + name.slice(1);
-      if (attr.points > 0) attributePoints[apiKey] = attr.points;
-    });
+    const { skillsExps, proficienciesExps, attributePoints } = buildSheetInput(charSheet, charClass);
 
     return httpClient
       .post<{ characterSheet: { uuid: string } }>(
@@ -155,40 +135,7 @@ export const characterSheetsService = {
     charSheet: CharacterSheet,
     charClass?: CharacterClass
   ): Promise<CharacterSheet> => {
-    const allowedSkills = new Set(charClass?.distribution?.skillsAllowed ?? []);
-    const skillsExps: Record<string, number> = {};
-    const allSkills = { ...charSheet.physicalSkills, ...charSheet.spiritualSkills };
-    Object.entries(allSkills).forEach(([name, skill]) => {
-      const apiKey = name.charAt(0).toUpperCase() + name.slice(1);
-      if (skill.exp && skill.exp > 0 && allowedSkills.has(apiKey)) {
-        skillsExps[apiKey] = skill.exp;
-      }
-    });
-
-    const toCamel = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
-    const camelToOriginal = new Map<string, string>();
-    (charClass?.distribution?.proficienciesAllowed ?? []).forEach((w) => {
-      camelToOriginal.set(toCamel(w), w);
-      camelToOriginal.set(w, w);
-    });
-    const proficienciesExps: Record<string, number> = {};
-    Object.entries(charSheet.commonProficiencies).forEach(([name, prof]) => {
-      const originalName = camelToOriginal.get(name);
-      if (originalName && prof.exp && prof.exp > 0) proficienciesExps[originalName] = prof.exp;
-    });
-
-    // Middle physical attrs (Strength, Celerity, Dexterity, Constitution) derive
-    // their points from primaries — ApplyInitialAttributePoints only accepts primaries.
-    const PRIMARY_PHYS_ATTRS = new Set(["Resistance", "Agility", "Flexibility", "Sense"]);
-    const attributePoints: Record<string, number> = {};
-    Object.entries(charSheet.physicalAttributes).forEach(([name, attr]) => {
-      const apiKey = name.charAt(0).toUpperCase() + name.slice(1);
-      if (attr.points > 0 && PRIMARY_PHYS_ATTRS.has(apiKey)) attributePoints[apiKey] = attr.points;
-    });
-    Object.entries(charSheet.mentalAttributes).forEach(([name, attr]) => {
-      const apiKey = name.charAt(0).toUpperCase() + name.slice(1);
-      if (attr.points > 0) attributePoints[apiKey] = attr.points;
-    });
+    const { skillsExps, proficienciesExps, attributePoints } = buildSheetInput(charSheet, charClass);
 
     return httpClient
       .patch<{ characterSheet: CharacterSheet }>(

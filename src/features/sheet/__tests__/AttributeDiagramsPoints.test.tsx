@@ -28,21 +28,21 @@ describe("PhysicalsDiagram — attribute points callback", () => {
   });
 
   it("stops calling the callback once the budget is spent", () => {
+    const attributes = createEmptyPhysicalAttributes();
+    attributes.resistance.points = 1; // o pai já aplicou o único ponto
     const onChange = vi.fn();
     render(
       <PhysicalsDiagram
         mode="create"
-        attributes={createEmptyPhysicalAttributes()}
+        attributes={attributes}
         physicalAbility={{ level: 1, bonus: 0 }}
         onAttributePointsChange={onChange}
       />,
     );
 
-    const plus = screen.getAllByAltText("+");
-    fireEvent.click(plus[0]);
-    fireEvent.click(plus[1]);
+    fireEvent.click(screen.getAllByAltText("+")[1]);
 
-    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).not.toHaveBeenCalled();
   });
 
   it("reports -1 for a refund and ignores it when there are no points", () => {

@@ -21,3 +21,16 @@ All base attribute/skill lists per type (`physical | mental | spiritual`) live i
 ## useCharSheetBuilder
 
 `useCharSheetBuilder.buildFromClass(charClass, sheet?)` orchestrates the distribute utils. `CharacterSheetHeader` calls it on class-select change.
+
+## Live preview (create/edit)
+
+`CharacterSheetTemplate` shows `withLivePreview(charSheet, selectedClass)` whenever
+`diagramsMode !== "view"`: the sheet as the backend will compute it from what is about to be sent.
+`charSheet` stays the page state (changes start from it); the computed fields come from the engine
+(`engine/`, see its `CLAUDE.md`). Rules:
+
+- The request body is built **only** by `utils/sheetInput.ts` (`buildSheetInput`) — POST, PATCH and
+  the preview share it, so the preview computes exactly what is sent.
+- Points to distribute are derived (`level − spent primaries`) on every render — never keep a
+  counter in state. Validation (`validateCharacterSheet`) reads the level from the preview.
+- A class without `definition` (older backend) simply renders without preview.

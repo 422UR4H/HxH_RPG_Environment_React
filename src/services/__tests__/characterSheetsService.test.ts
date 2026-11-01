@@ -529,9 +529,9 @@ describe("rejectSheetSubmission", () => {
 // "Bow"] below are exercised with THREE entries per map: one allowed+exp>0
 // (must appear), one allowed+exp==0 (must be dropped by the exp filter), one
 // NOT allowed+exp>0 (must be dropped by the allow-list filter). Attribute
-// points get NO allow-list filtering in createCharacterSheet (unlike update) —
-// every attribute with points>0 is sent, proven by including a non-primary
-// attribute (Strength) alongside a primary one (Resistance).
+// points: create and update share buildSheetInput, which sends only PRIMARY
+// attributes — the backend (ApplyInitialAttributePoints) rejects points on a
+// derived one (Strength), proven by including it alongside Resistance.
 
 describe("createCharacterSheet", () => {
   const charClass = buildCharClass();
@@ -552,7 +552,7 @@ describe("createCharacterSheet", () => {
     },
     physicalAttributes: {
       resistance: attr(3), // points>0 -> included as "Resistance"
-      strength: attr(2), // points>0 -> included as "Strength" (NO primary-only filter in create)
+      strength: attr(2), // NOT primary (derived), points>0 -> excluded (backend rejects it)
       agility: attr(0), // points==0 -> excluded
     },
     mentalAttributes: {
@@ -599,7 +599,7 @@ describe("createCharacterSheet", () => {
       characterClass: "Especialista",
       skillsExps: { Vitality: 10 },
       proficienciesExps: { Dagger: 20 },
-      attributePoints: { Resistance: 3, Strength: 2, Resilience: 1 },
+      attributePoints: { Resistance: 3, Resilience: 1 },
     });
   });
 
@@ -632,7 +632,7 @@ describe("createCharacterSheet", () => {
     expect(body.skillsExps).toEqual({});
     expect(body.proficienciesExps).toEqual({});
     // attributePoints is NOT allow-list filtered, so it's unaffected by a missing charClass
-    expect(body.attributePoints).toEqual({ Resistance: 3, Strength: 2, Resilience: 1 });
+    expect(body.attributePoints).toEqual({ Resistance: 3, Resilience: 1 });
   });
 
   it("returns { uuid } read from the characterSheet envelope", async () => {

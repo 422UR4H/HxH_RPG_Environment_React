@@ -1,5 +1,7 @@
 import type { CharacterClass } from "../../../types/characterClass";
 import type { CharacterSheet } from "../../../types/characterSheet";
+import { spentPrimaryPoints } from "./sheetInput";
+import { withLivePreview } from "./livePreview";
 
 export function validateCharacterSheet(
   charSheet: CharacterSheet,
@@ -7,7 +9,11 @@ export function validateCharacterSheet(
   context: "create" | "edit" = "create",
 ): string | null {
   const errors: string[] = [];
-  const { profile, characterClass, abilities, physicalAttributes, mentalAttributes } = charSheet;
+  const { profile, characterClass, physicalAttributes, mentalAttributes } = charSheet;
+  const selectedClass = charClasses?.find((cc) => cc.profile.name === characterClass);
+  // o nível que define os pontos é o que o back vai calcular com as escolhas
+  // feitas (proficiência escolhida pode subir nível), não o da classe pura
+  const { abilities } = withLivePreview(charSheet, selectedClass);
   const action = context === "create" ? "criar a ficha" : "salvar a ficha";
 
   if (!characterClass) errors.push("Selecione uma classe para o personagem.");
@@ -25,23 +31,24 @@ export function validateCharacterSheet(
 
   if (profile.age < 0) errors.push("Idade não pode ser negativa.");
 
-  const physicalsBudget = abilities["physicals"]?.level ?? 0;
-  const physicalsSpent = Object.values(physicalAttributes).reduce(
-    (sum, attr) => sum + (attr.points || 0),
-    0,
-  );
-  if (physicalsBudget - physicalsSpent > 0)
-    errors.push(`Distribua todos os pontos de atributos físicos antes de ${action}.`);
+  // Como o back (ApplyInitialAttributePoints): a soma dos primários tem que
+  // fechar exatamente no nível. Os intermediários (força etc.) são derivados e
+  // chegam com pontos no GET da edição — não contam.
+  const pointsError = (kind: "physical" | "mental", label: string) => {
+    const budget = abilities[kind === "physical" ? "physicals" : "mentals"]?.level ?? 0;
+    const spent = spentPrimaryPoints(
+      kind === "physical" ? physicalAttributes : mentalAttributes,
+      kind,
+    );
+    if (spent < budget) return `Distribua todos os pontos de atributos ${label} antes de ${action}.`;
+    if (spent > budget)
+      return `Há ${spent - budget} ponto(s) de atributos ${label} além do disponível: remova antes de ${action}.`;
+    return null;
+  };
+  for (const err of [pointsError("physical", "físicos"), pointsError("mental", "mentais")]) {
+    if (err) errors.push(err);
+  }
 
-  const mentalsBudget = abilities["mentals"]?.level ?? 0;
-  const mentalsSpent = Object.values(mentalAttributes).reduce(
-    (sum, attr) => sum + (attr.points || 0),
-    0,
-  );
-  if (mentalsBudget - mentalsSpent > 0)
-    errors.push(`Distribua todos os pontos de atributos mentais antes de ${action}.`);
-
-  const selectedClass = charClasses?.find((cc) => cc.profile.name === characterClass);
   if (selectedClass?.distribution) {
     const d = selectedClass.distribution;
     const toCamel = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);

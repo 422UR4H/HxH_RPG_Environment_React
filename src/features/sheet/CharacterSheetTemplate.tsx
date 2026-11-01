@@ -11,6 +11,7 @@ import CharacterProfile from "./CharacterProfile";
 import PhysicalsDiagram from "./PhysicalsDiagram";
 import MentalsDiagram from "./MentalsDiagram";
 import { withAttributePointsChanged } from "./utils/attributePoints";
+import { withLivePreview } from "./utils/livePreview";
 import NenPrinciplesDiagram from "./NenPrinciplesDiagram";
 import PhysicalSkillsGroup from "./PhysicalSkillsGroup";
 import SpiritualSkillsGroup from "./SpiritualSkillsGroup";
@@ -114,6 +115,15 @@ function CharacterSheetTemplate({
     );
   }
 
+  const selectedClass = charClasses?.find(
+    (cc) => cc.profile.name === charSheet.characterClass,
+  );
+  // Distribuindo (criação, NPC, edição completa): mostra a ficha como o back vai
+  // calculá-la a partir do que está prestes a ser enviado. `charSheet` continua
+  // sendo o estado da página — as mudanças partem dele, a exibição vem de `shown`.
+  const isDistributing = sheetMode.diagramsMode !== "view";
+  const shown = isDistributing ? withLivePreview(charSheet, selectedClass) : charSheet;
+
   const {
     // categoryName,
     // characterExp,
@@ -128,13 +138,10 @@ function CharacterSheetTemplate({
     // categories,
     commonProficiencies,
     jointProficiencies,
-  } = charSheet;
+  } = shown;
   const spiritualAbility = abilities?.spirituals;
   const physicalAbility = abilities?.physicals;
   const mentalAbility = abilities?.mentals;
-  const selectedClass = charClasses?.find(
-    (cc) => cc.profile.name === charSheet.characterClass,
-  );
 
   const mode = sheetMode.headerMode;
   if ((mode === "create" || mode === "edit") && !charClasses) {
@@ -163,7 +170,7 @@ function CharacterSheetTemplate({
       <CharacterSheetHeader
         mode={sheetMode.headerMode}
         data={{
-          charSheet,
+          charSheet: shown,
           setCharSheet,
           charClasses,
           onAvatarSelected,

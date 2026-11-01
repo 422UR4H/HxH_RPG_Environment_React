@@ -4,7 +4,6 @@ import type { DiagramsMode } from "./types/diagramsMode";
 import styled from "styled-components";
 import PlusButton from "../../components/ions/PlusButton";
 import MinusButton from "../../components/ions/MinusButton";
-import { useState } from "react";
 import { deriveMiddlePoints } from "./utils/distribute";
 import { colors } from "../../styles/tokens";
 
@@ -42,28 +41,20 @@ const PhysicalsDiagram = ({
   const spent = Object.entries(attributes)
     .filter(([name]) => primaryAttributeNames.has(name))
     .reduce((sum, [, a]) => sum + (a?.points || 0), 0);
-  const [distributionPoints, setDistributionPoints] = useState(
-    Math.max(0, (physicalAbility?.level || 0) - spent)
-  );
-
-  const incDistributionPoints = () => {
-    setDistributionPoints((prev) => prev + 1);
-  };
-  const decDistributionPoints = () => {
-    setDistributionPoints((prev) => (prev > 0 ? prev - 1 : 0));
-  };
+  // Derivado a cada render: o nível de Físicos muda com a classe e com as
+  // escolhas (a prévia recalcula), e um contador guardado na montagem ficava
+  // velho. Pode ficar negativo se o nível cair abaixo do que já foi gasto.
+  const distributionPoints = (physicalAbility?.level || 0) - spent;
 
   const incAttributePoints = (name: string) => {
     if (distributionPoints <= 0) return;
     if (attributes[name]?.points !== undefined)
       onAttributePointsChange?.(name, 1);
-    decDistributionPoints();
   };
   const decAttributePoints = (name: string) => {
     const points = attributes[name]?.points;
     if (points === undefined || points <= 0) return;
     onAttributePointsChange?.(name, -1);
-    incDistributionPoints();
   };
 
   const positions = attributePositions.map((p) => ({ ...p }));

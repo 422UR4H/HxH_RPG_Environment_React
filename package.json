@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "sync:sheet-fixtures": "node scripts/sync-sheet-fixtures.mjs"
   },
   "dependencies": {
     "@pixi/react": "^8.0.5",
