@@ -12,7 +12,7 @@ import styled from "styled-components";
 import AttachedList from "./AttachedList";
 import BlockableButton from "./BlockableButton";
 import { attachedTrigger } from "./AttachedList.styles";
-import { useAttachedList } from "./useAttachedList";
+import { ROW_FONT_VAR, useAttachedList } from "./useAttachedList";
 import { colors } from "../../styles/tokens";
 
 export interface PillMenuItem {
@@ -34,7 +34,9 @@ interface PillMenuProps {
 
 type Edge = "first" | "last";
 
+// O corpo do menu de antes (17 px) é o teto; abaixo de 10 px o rótulo quebra linha em vez de encolher mais.
 const MENU_ITEM_MAX_FONT_PX = 17;
+const MENU_ITEM_MIN_FONT_PX = 10;
 // Aberto, a forma (pílula + lista) não arredonda mais que isto: a pílula de 50 px de raio com uma
 // lista curta virava uma bolha.
 const MENU_MAX_OPEN_RADIUS_PX = 16;
@@ -49,8 +51,9 @@ export default function PillMenu({ items, label, className }: PillMenuProps) {
     rowSelector: '[role="menuitem"]',
     // Assinatura, não o array: quem usa costuma montar os itens a cada render.
     remeasureKey: items.map((it) => `${it.key}:${it.blockedReason ?? ""}`).join("|"),
-    // Ícone + rótulo + "?" de indisponível não cabem numa pílula estreita (celular): a lista cresce.
-    growToContent: true,
+    // A lista é sempre da largura da pílula: numa pílula estreita (celular) é o texto que encolhe
+    // para ícone + rótulo + "?" de indisponível caberem, como o texto da própria pílula.
+    fitRowFont: { min: MENU_ITEM_MIN_FONT_PX, max: MENU_ITEM_MAX_FONT_PX },
     maxOpenRadius: MENU_MAX_OPEN_RADIUS_PX,
   });
   const { open, mounted, placement, side, state, openRadius, listId, anchorName, triggerRef, listRef } = list;
@@ -213,10 +216,11 @@ const Items = styled.div`
 `;
 
 // Itens de 44 px (o alvo de toque mínimo). O recuo é o da pílula: o ícone do item fica na coluna do primeiro caractere dela.
+// Fora o recuo, tudo em `em` (vão, ícone, "?"): a largura escala com a fonte e o ajuste dela é uma conta só.
 const Item = styled(BlockableButton)`
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: calc(10em / 17); /* 10 px no corpo de 17 px */
   width: 100%;
   box-sizing: border-box;
   min-height: 44px;
@@ -226,9 +230,9 @@ const Item = styled(BlockableButton)`
   border: none;
   color: inherit;
   font: inherit;
-  /* O corpo do menu de antes (17 px), ou o da pílula, se ela for menor (celular). */
-  font-size: min(1em, ${MENU_ITEM_MAX_FONT_PX}px);
-  /* Defesa: se ainda assim não couber, o rótulo quebra em vez de passar por baixo do "?". */
+  /* A fonte que cabe na largura da pílula (useAttachedList); antes de medir, a de referência. */
+  font-size: var(${ROW_FONT_VAR}, min(1em, ${MENU_ITEM_MAX_FONT_PX}px));
+  /* No piso de 10 px, se ainda assim não couber, o rótulo quebra em vez de passar por baixo do "?". */
   white-space: normal;
   overflow-wrap: anywhere;
   text-align: left;
@@ -244,5 +248,9 @@ const Item = styled(BlockableButton)`
   }
   &[aria-disabled="true"] {
     cursor: not-allowed;
+  }
+  /* O "?" escala só com a fonte (sem o piso de 20 px do BlockableButton), como o resto do item. */
+  & [data-help-mark] {
+    min-height: 0;
   }
 `;

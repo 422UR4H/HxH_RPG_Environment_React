@@ -44,7 +44,7 @@ export default function BlockableButton({
             <HelpMark $ghost src={questionMark} alt="" aria-hidden="true" />
           )}
           <Label $align={labelAlign}>{children}</Label>
-          {blocked && <HelpMark src={questionMark} alt="" aria-hidden="true" />}
+          {blocked && <HelpMark src={questionMark} alt="" aria-hidden="true" data-help-mark />}
         </Inner>
       </button>
     </Tooltip>

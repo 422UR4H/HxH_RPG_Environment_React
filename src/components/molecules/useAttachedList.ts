@@ -6,8 +6,6 @@ import { ATTACHED_LIST_DURATION_MS, ATTACHED_ROW_MIN_HEIGHT } from "./AttachedLi
 
 export type AttachedSide = "below" | "above";
 export type AttachedState = "open" | "closing" | "settling" | "closed";
-/** De que borda da pílula a lista mais larga que ela parte: "start" cresce para a direita. */
-export type AttachedAlign = "start" | "end";
 
 export interface AttachedPlacement {
   side: AttachedSide;
@@ -17,8 +15,6 @@ export interface AttachedPlacement {
   left: number;
   width: number;
   height: number;
-  /** Só com `growToContent`: o lado para onde a lista mais larga que a pílula cresce. */
-  align: AttachedAlign;
   vars: Record<string, string>;
 }
 
@@ -30,11 +26,12 @@ interface UseAttachedListOptions {
   /** Chamado a cada fechamento, venha de onde vier (clique fora, pílula fora da janela...). */
   onClose?: () => void;
   /**
-   * A lista nunca fica mais estreita que o conteúdo: largura = max(pílula, conteúdo), presa à
-   * borda esquerda da pílula (ou à direita, se crescer para a direita sair da janela). Sem isto
-   * (padrão), a largura é sempre a da pílula.
+   * A lista tem sempre a largura da pílula; com isto, a fonte das linhas (`--attached-row-font-size`)
+   * encolhe até a linha mais larga caber: a maior entre `min` e `max` px (e sem passar da fonte da
+   * pílula). Calculada ao abrir, no resize e quando o conteúdo muda; rolar nunca a muda. O layout da
+   * linha precisa ser todo em `em`, para a largura escalar com a fonte. Sem isto (padrão), nada muda.
    */
-  growToContent?: boolean;
+  fitRowFont?: { min: number; max: number };
   /**
    * Raio máximo (px) dos cantos externos enquanto aberto: a forma inteira (pílula + lista) usa
    * `min(raio fechado, maxOpenRadius)`. Sem isto (padrão), a lista copia o raio da pílula.
@@ -44,8 +41,12 @@ interface UseAttachedListOptions {
 
 // Folga sobre a animação: se o animationend não vier (aba oculta, estilo cortado), a lista desmonta mesmo assim.
 const CLOSE_SAFETY_MS = ATTACHED_LIST_DURATION_MS + 100;
-// Respiro da lista larga até a borda da janela.
-const VIEWPORT_MARGIN = 8;
+// A fonte ajustada é arredondada para baixo neste passo (px): nunca passa da largura.
+const ROW_FONT_STEP = 0.25;
+// Defesa contra a largura do texto não escalar exatamente com a fonte (hinting): no máximo estes
+// passos a menos depois da conta.
+const ROW_FONT_RETRIES = 3;
+export const ROW_FONT_VAR = "--attached-row-font-size";
 
 // Os cantos do lado da lista leem 0 enquanto abertos; vale o maior dos dois lados.
 function largestRadius(a: string, b: string) {
@@ -62,6 +63,53 @@ export function capRadius(radius: string, max: number) {
 }
 
 /**
+ * A largura da caixa de borda sem transformações: ao abrir, a pílula pode estar no `:active` com
+ * `scale(0.98)`, e o retângulo mediria menos que a largura em que a lista vai ficar. Sem estilo
+ * calculado (jsdom), o retângulo.
+ */
+function layoutWidth(cs: CSSStyleDeclaration, rect: DOMRect) {
+  const width = parseFloat(cs.width);
+  if (!Number.isFinite(width)) return rect.width;
+  if (cs.boxSizing === "border-box") return width;
+  const sum = (...v: string[]) => v.reduce((acc, x) => acc + (parseFloat(x) || 0), 0);
+  return width + sum(cs.paddingLeft, cs.paddingRight, cs.borderLeftWidth, cs.borderRightWidth);
+}
+
+/**
+ * A maior fonte das linhas (px) com que a mais larga cabe na lista da largura da pílula. Mede a
+ * lista em `max-content` com o visual da pílula já aplicado; como o layout da linha é em `em`, a
+ * largura natural é proporcional à fonte: f = f_ref × (largura útil / largura natural em f_ref).
+ */
+function fitRowFontSize(
+  list: HTMLElement,
+  pillWidth: number,
+  cs: CSSStyleDeclaration,
+  { min, max }: { min: number; max: number },
+) {
+  const ref = Math.min(parseFloat(cs.fontSize) || max, max);
+  const border = parseFloat(cs.borderTopWidth) || 0;
+  // Fora do conteúdo: as bordas laterais da lista e o recuo da pílula (o mesmo dos itens) dos dois lados.
+  const chrome = 2 * border + (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
+  const room = pillWidth - chrome;
+  // Largura natural do conteúdo com a fonte `size` (inline vence a folha só durante a medida).
+  const contentAt = (size: number) => {
+    list.style.setProperty(ROW_FONT_VAR, `${size}px`);
+    list.style.width = "max-content";
+    const width = list.getBoundingClientRect().width - chrome;
+    list.style.width = "";
+    return width;
+  };
+  const natural = contentAt(ref);
+  // Sem layout (jsdom) ou já cabe: a fonte de referência.
+  if (pillWidth <= 0 || natural <= room) return ref;
+  let size = Math.max(min, Math.floor((ref * room) / natural / ROW_FONT_STEP) * ROW_FONT_STEP);
+  for (let i = 0; i < ROW_FONT_RETRIES && size > min && contentAt(size) > room; i++) {
+    size = Math.max(min, size - ROW_FONT_STEP);
+  }
+  return size;
+}
+
+/**
  * A mecânica da lista presa à pílula, comum ao `PillSelect` (escolher um valor) e ao `PillMenu`
  * (menu de ações): estados aberto/fechando/assentando, lado e altura por
  * `computeAttachedListPlacement`, cópia do visual da pílula em variáveis CSS, fechar quando a
@@ -71,7 +119,7 @@ export function useAttachedList<T extends HTMLElement>({
   rowSelector,
   remeasureKey,
   onClose,
-  growToContent = false,
+  fitRowFont,
   maxOpenRadius,
 }: UseAttachedListOptions) {
   const [open, setOpen] = useState(false);
@@ -88,6 +136,10 @@ export function useAttachedList<T extends HTMLElement>({
   const onCloseRef = useRef(onClose);
   // Lado escolhido ao abrir: rolar/redimensionar com a lista aberta não o troca (piscava perto da borda).
   const sideRef = useRef<AttachedSide | undefined>(undefined);
+  // Com `fitRowFont`: a fonte calculada fica guardada para a rolagem não recalculá-la.
+  const rowFontRef = useRef<number | undefined>(undefined);
+  const fitMin = fitRowFont?.min;
+  const fitMax = fitRowFont?.max;
   const listId = useId();
   // <dashed-ident> único por instância: o useId do React traz ":" (inválido em ident CSS).
   const anchorName = `--pill-${listId.replace(/[^a-zA-Z0-9_-]/g, "")}`;
@@ -97,7 +149,7 @@ export function useAttachedList<T extends HTMLElement>({
   // copiado do gatilho (a lista fica fora do container query onde a pílula calcula `cqi`).
   useLayoutEffect(() => {
     if (!mounted) return;
-    function place() {
+    function place(e?: Event) {
       const trigger = triggerRef.current;
       const list = listRef.current;
       if (!trigger || !list) return;
@@ -133,28 +185,16 @@ export function useAttachedList<T extends HTMLElement>({
       for (const [k, v] of Object.entries(vars)) list.style.setProperty(k, v);
       list.style.setProperty("--fallback-width", `${rect.width}px`);
       const border = parseFloat(cs.borderTopWidth) || 0;
-      let align: AttachedAlign = "start";
-      if (growToContent) {
-        // Largura natural do conteúdo (inline vence a folha de estilo só durante a medida). Arredonda
-        // para cima: o offsetWidth (inteiro) pode perder a fração e quebrar uma palavra no meio.
-        list.style.width = "max-content";
-        const content = Math.ceil(list.getBoundingClientRect().width);
-        list.style.width = "";
-        const width = Math.min(Math.max(rect.width, content), window.innerWidth - 2 * VIEWPORT_MARGIN);
-        if (rect.left + width > window.innerWidth - VIEWPORT_MARGIN) align = "end";
-        const overhang = Math.max(0, width - rect.width);
-        vars["--list-width"] = `${width}px`;
-        vars["--joint-width"] = `${rect.width}px`;
-        vars["--fallback-right"] = `${window.innerWidth - rect.right}px`;
-        // O canto que sobra ao lado da pílula arredonda como ela, sem passar do pedaço que sobra.
-        vars["--overhang-radius"] = `${Math.min(parseFloat(vars["--pill-radius"]) || 0, overhang)}px`;
-        for (const k of ["--list-width", "--joint-width", "--fallback-right", "--overhang-radius"]) {
-          list.style.setProperty(k, vars[k]);
+      if (fitMin !== undefined && fitMax !== undefined) {
+        // Ao abrir, no resize e quando o conteúdo muda; na rolagem, a fonte que já estava.
+        if (rowFontRef.current === undefined || e?.type !== "scroll") {
+          rowFontRef.current = fitRowFontSize(list, layoutWidth(cs, rect), cs, { min: fitMin, max: fitMax });
         }
+        vars[ROW_FONT_VAR] = `${rowFontRef.current}px`;
+        list.style.setProperty(ROW_FONT_VAR, vars[ROW_FONT_VAR]);
       }
       // A lista tem uma só borda vertical (a do lado da pílula não existe); é a do gatilho, que ela copia.
-      // Crescendo ao conteúdo, ela tem as duas (a do lado da pílula fica mascarada na junção).
-      const natural = list.scrollHeight + (growToContent ? 2 : 1) * border;
+      const natural = list.scrollHeight + border;
       // A lista sobe sobre a borda da pílula, para as laterais brancas seguirem contínuas.
       const { side, top, bottom, height } = computeAttachedListPlacement({
         field: { top: rect.top + border, bottom: rect.bottom - border },
@@ -177,10 +217,9 @@ export function useAttachedList<T extends HTMLElement>({
         prev.left === rect.left &&
         prev.width === rect.width &&
         prev.height === height &&
-        prev.align === align &&
         Object.keys(vars).every((k) => prev.vars[k] === vars[k])
           ? prev
-          : { side, top, bottom, left: rect.left, width: rect.width, height, align, vars },
+          : { side, top, bottom, left: rect.left, width: rect.width, height, vars },
       );
     }
     place();
@@ -190,7 +229,7 @@ export function useAttachedList<T extends HTMLElement>({
       window.removeEventListener("resize", place);
       window.removeEventListener("scroll", place, { capture: true });
     };
-  }, [mounted, open, remeasureKey, rowSelector, growToContent, openRadius]);
+  }, [mounted, open, remeasureKey, rowSelector, fitMin, fitMax, openRadius]);
 
   // Clique fora fecha.
   useEffect(() => {
@@ -254,7 +293,6 @@ export function useAttachedList<T extends HTMLElement>({
     mounted,
     state,
     side: placement?.side ?? "below",
-    growToContent,
     openRadius,
     placement,
     listId,

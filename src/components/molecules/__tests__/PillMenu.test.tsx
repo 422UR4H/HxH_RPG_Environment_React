@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mockReducedMotion } from "../../../test/reducedMotion";
 import PillMenu, { type PillMenuItem } from "../PillMenu";
-import { capRadius } from "../useAttachedList";
+import { capRadius, ROW_FONT_VAR } from "../useAttachedList";
 
 let restoreMotion: () => void = () => {};
 
@@ -179,21 +179,36 @@ describe("PillMenu", () => {
   });
 });
 
-// jsdom não tem layout: a pílula ganha um retângulo e a lista, uma largura natural de conteúdo
-// (lida enquanto ela está com `width: max-content`).
-describe("PillMenu — width", () => {
+// jsdom não tem layout: a pílula ganha um retângulo e um estilo calculado, e a lista, uma largura
+// natural de conteúdo (lida enquanto ela está com `width: max-content`) proporcional à fonte das linhas.
+describe("PillMenu — width and row font", () => {
   const realInnerWidth = window.innerWidth;
   let pill = { left: 0, width: 0 };
-  let contentWidth = 0;
+  let pillStyle: Record<string, string> = {};
+  // Largura do conteúdo (sem bordas nem recuo) com a fonte `f` das linhas.
+  let contentAt: (f: number) => number = () => 0;
   const spies: { mockRestore: () => void }[] = [];
+
+  const chrome = () =>
+    2 * parseFloat(pillStyle.borderTopWidth) + parseFloat(pillStyle.paddingLeft) + parseFloat(pillStyle.paddingRight);
 
   beforeEach(() => {
     restoreMotion = mockReducedMotion(true);
     Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
+    pillStyle = { fontSize: "13px", paddingLeft: "12px", paddingRight: "12px", borderTopWidth: "1px" };
+    const realComputed = window.getComputedStyle.bind(window);
     spies.push(
+      vi.spyOn(window, "getComputedStyle").mockImplementation((el, pseudo) => {
+        const real = realComputed(el, pseudo);
+        if (el.getAttribute("aria-haspopup") !== "menu") return real;
+        return new Proxy(real, {
+          get: (t, k: string) => (k in pillStyle ? pillStyle[k] : Reflect.get(t, k).bind?.(t) ?? Reflect.get(t, k)),
+        });
+      }),
       vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (this: Element) {
         if (this instanceof HTMLElement && this.style.width === "max-content") {
-          return { top: 0, bottom: 0, left: 0, right: contentWidth, width: contentWidth, height: 0, x: 0, y: 0, toJSON: () => ({}) } as DOMRect;
+          const width = chrome() + contentAt(parseFloat(this.style.getPropertyValue(ROW_FONT_VAR)));
+          return { top: 0, bottom: 0, left: 0, right: width, width, height: 0, x: 0, y: 0, toJSON: () => ({}) } as DOMRect;
         }
         const r = { top: 700, bottom: 744, left: pill.left, right: pill.left + pill.width, width: pill.width, height: 44 };
         return { ...r, x: r.left, y: r.top, toJSON: () => ({}) } as DOMRect;
@@ -207,51 +222,92 @@ describe("PillMenu — width", () => {
   });
 
   const list = () => screen.getByRole("menu");
+  const rowFont = () => list().style.getPropertyValue(ROW_FONT_VAR);
 
-  it("keeps the pill's width when the items fit", async () => {
+  it("keeps the list exactly as wide as the pill, never growing to its content", async () => {
+    pill = { left: 40, width: 119 };
+    contentAt = (f) => 30 * f;
+    setup({ blocked: true });
+    await userEvent.click(trigger());
+    expect(list().style.getPropertyValue("--fallback-width")).toBe("119px");
+    expect(list().style.getPropertyValue("--list-width")).toBe("");
+    expect(list()).not.toHaveAttribute("data-align");
+  });
+
+  it("keeps the pill's font when the widest row fits", async () => {
     pill = { left: 40, width: 208 };
-    contentWidth = 160;
+    contentAt = (f) => 7 * f;
     setup({ blocked: true });
     await userEvent.click(trigger());
-    expect(list().style.getPropertyValue("--list-width")).toBe("208px");
-    expect(list().style.getPropertyValue("--overhang-radius")).toBe("0px");
+    expect(rowFont()).toBe("13px");
   });
 
-  it("grows to the right to fit the items when the pill is narrower", async () => {
+  it("caps the row font at 17px on a larger pill", async () => {
+    pillStyle.fontSize = "22px";
+    pill = { left: 40, width: 300 };
+    contentAt = (f) => 7 * f;
+    setup({ blocked: true });
+    await userEvent.click(trigger());
+    expect(rowFont()).toBe("17px");
+  });
+
+  it("shrinks the row font, rounded down to 0.25px, until the widest row fits a narrow pill", async () => {
+    // Largura útil: 119 − 2 − 24 = 93 px; a 13 px o conteúdo tem 104 → 13 × 93/104 = 11.625 → 11.5.
     pill = { left: 40, width: 119 };
-    contentWidth = 170;
+    contentAt = (f) => 8 * f;
     setup({ blocked: true });
     await userEvent.click(trigger());
-    expect(list().style.getPropertyValue("--list-width")).toBe("170px");
-    expect(list().style.getPropertyValue("--joint-width")).toBe("119px");
-    expect(list().style.getPropertyValue("--fallback-right")).toBe(`${390 - 159}px`);
-    expect(list()).toHaveAttribute("data-align", "start");
+    expect(rowFont()).toBe("11.5px");
+    expect(8 * parseFloat(rowFont())).toBeLessThanOrEqual(93);
   });
 
-  it("rounds a fractional content width up, so a word never wraps by a sub-pixel", async () => {
+  it("steps further down when the text does not scale exactly with the font", async () => {
+    // Abaixo da referência sobra 1,5 px (hinting): a conta dá 11.5 (93,5 px), o passo seguinte cabe.
     pill = { left: 40, width: 119 };
-    contentWidth = 169.3;
+    contentAt = (f) => 8 * f + (f < 13 ? 1.5 : 0);
     setup({ blocked: true });
     await userEvent.click(trigger());
-    expect(list().style.getPropertyValue("--list-width")).toBe("170px");
+    expect(rowFont()).toBe("11.25px");
   });
 
-  it("grows to the left when growing right would leave the window", async () => {
-    pill = { left: 255, width: 119 };
-    contentWidth = 170;
+  it("fits to the pill's layout width, not to its pressed (scaled) rectangle", async () => {
+    // Ao clicar, a pílula está no `:active` com scale(0.98): o retângulo encolhe, a caixa não.
+    pillStyle = { ...pillStyle, width: "119px", boxSizing: "border-box" };
+    pill = { left: 40, width: 119 * 0.98 };
+    contentAt = (f) => 8 * f;
     setup({ blocked: true });
     await userEvent.click(trigger());
-    expect(list().style.getPropertyValue("--list-width")).toBe("170px");
-    expect(list().style.getPropertyValue("--fallback-right")).toBe(`${390 - 374}px`);
-    expect(list()).toHaveAttribute("data-align", "end");
+    expect(rowFont()).toBe("11.5px");
   });
 
-  it("never grows past the window", async () => {
+  it("never goes below the 10px floor", async () => {
+    pill = { left: 40, width: 60 };
+    contentAt = (f) => 8 * f;
+    setup({ blocked: true });
+    await userEvent.click(trigger());
+    expect(rowFont()).toBe("10px");
+  });
+
+  it("keeps width and row font while scrolling, and refits on resize", async () => {
     pill = { left: 40, width: 119 };
-    contentWidth = 500;
+    contentAt = (f) => 8 * f;
     setup({ blocked: true });
     await userEvent.click(trigger());
-    expect(list().style.getPropertyValue("--list-width")).toBe(`${390 - 16}px`);
+    expect(rowFont()).toBe("11.5px");
+
+    // A medida mudaria (ex.: fonte trocada), mas rolar não recalcula.
+    contentAt = (f) => 6 * f;
+    act(() => {
+      window.dispatchEvent(new Event("scroll"));
+    });
+    expect(rowFont()).toBe("11.5px");
+    expect(list().style.getPropertyValue("--fallback-width")).toBe("119px");
+
+    act(() => {
+      window.dispatchEvent(new Event("resize"));
+    });
+    expect(rowFont()).toBe("13px");
+    expect(list().style.getPropertyValue("--fallback-width")).toBe("119px");
   });
 });
 
