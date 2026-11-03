@@ -49,4 +49,18 @@ describe("BlockableButton gap", () => {
     expect(rulesFor(inner)).toMatch(/gap:\s*inherit/);
     expect(rulesFor(label)).toMatch(/gap:\s*inherit/);
   });
+
+  it("reserves the help mark's loaded width before the image loads (aspect ratio of its viewBox)", () => {
+    const { container } = render(
+      <BlockableButton blockedReason="Motivo" labelAlign="start">Excluir</BlockableButton>,
+    );
+    const mark = container.querySelector("img");
+    const css = Array.from(document.querySelectorAll("style"))
+      .map((el) => el.textContent)
+      .join("");
+    const rules = Array.from(mark?.classList ?? []).flatMap(
+      (cls) => css.match(new RegExp(`\\.${cls}\\{[^}]*\\}`, "g")) ?? [],
+    );
+    expect(rules.join("")).toMatch(/aspect-ratio:\s*268\s*\/\s*256/);
+  });
 });

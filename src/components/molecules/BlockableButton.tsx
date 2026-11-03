@@ -71,9 +71,14 @@ const Label = styled.span<{ $align: "center" | "start" }>`
   ${({ $align }) => ($align === "center" ? "margin-inline: auto;" : "margin-right: auto;")}
 `;
 
+const HELP_MARK_ASPECT_RATIO = "268 / 256";
+
 const HelpMark = styled.img<{ $ghost?: boolean }>`
   height: 1.5em;
   width: auto;
+  /* A proporção do viewBox do ícone (268 × 256): antes de a imagem carregar, a largura já é a de
+     depois (sem isto seria 0, e quem mede a linha na 1ª abertura erraria). */
+  aspect-ratio: ${HELP_MARK_ASPECT_RATIO};
   min-height: 20px;
   flex-shrink: 0;
   box-sizing: content-box;

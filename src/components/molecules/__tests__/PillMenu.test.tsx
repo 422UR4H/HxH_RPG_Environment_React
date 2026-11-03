@@ -295,6 +295,31 @@ describe("PillMenu — width and row font", () => {
     expect(trigger().style.transition).toBe("");
   });
 
+  it("refits the row font when an image that was still loading arrives", async () => {
+    // Na 1ª abertura o "?" ainda não carregou: sem largura, a linha mede só 8 px por px de fonte
+    // (cabe a 13 px); carregado, ganha 2 px por px de fonte e a fonte tem de cair.
+    let loaded = false;
+    const complete = vi
+      .spyOn(HTMLImageElement.prototype, "complete", "get")
+      .mockImplementation(() => loaded);
+    spies.push(complete);
+    pill = { left: 40, width: 135 };
+    contentAt = (f) => (loaded ? 10 : 8) * f;
+    setup({ blocked: true });
+    await userEvent.click(trigger());
+    expect(rowFont()).toBe("13px");
+
+    const mark = list().querySelector("[data-help-mark]");
+    expect(mark).not.toBeNull();
+    loaded = true;
+    act(() => {
+      mark?.dispatchEvent(new Event("load"));
+    });
+    // Largura útil: 135 − 2 − 24 = 109 → 13 × 109/130 = 10.9 → 10.75.
+    expect(rowFont()).toBe("10.75px");
+    expect(list().style.getPropertyValue("--fallback-width")).toBe("135px");
+  });
+
   it("never goes below the 10px floor", async () => {
     pill = { left: 40, width: 60 };
     contentAt = (f) => 8 * f;

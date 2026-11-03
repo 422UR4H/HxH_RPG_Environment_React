@@ -193,6 +193,7 @@ export function useAttachedList<T extends HTMLElement>({
         // Ao abrir, no resize e quando o conteúdo muda; na rolagem, a fonte que já estava.
         if (rowFontRef.current === undefined || e?.type !== "scroll") {
           rowFontRef.current = fitRowFontSize(list, rect.width, cs, { min: fitMin, max: fitMax });
+          watchPendingImages(list);
         }
         vars[ROW_FONT_VAR] = `${rowFontRef.current}px`;
         list.style.setProperty(ROW_FONT_VAR, vars[ROW_FONT_VAR]);
@@ -226,12 +227,39 @@ export function useAttachedList<T extends HTMLElement>({
           : { side, top, bottom, left: rect.left, width: rect.width, height, vars },
       );
     }
+    // Imagem ainda sem carregar (ex.: o "?" na 1ª abertura) mede sem largura: a fonte sairia
+    // grande demais e o rótulo quebraria quando ela chegasse. Ao carregar, só a fonte é refeita.
+    const pendingImages = new Set<HTMLImageElement>();
+    function watchPendingImages(list: HTMLElement) {
+      for (const img of list.querySelectorAll("img")) {
+        if (img.complete || pendingImages.has(img)) continue;
+        pendingImages.add(img);
+        img.addEventListener("load", refitRowFont, { once: true });
+      }
+    }
+    function refitRowFont(e: Event) {
+      pendingImages.delete(e.currentTarget as HTMLImageElement);
+      const trigger = triggerRef.current;
+      const list = listRef.current;
+      if (!trigger || !list || fitMin === undefined || fitMax === undefined) return;
+      const size = fitRowFontSize(list, untransformedRect(trigger).width, getComputedStyle(trigger), {
+        min: fitMin,
+        max: fitMax,
+      });
+      rowFontRef.current = size;
+      const value = `${size}px`;
+      list.style.setProperty(ROW_FONT_VAR, value);
+      setPlacement((prev) =>
+        prev && prev.vars[ROW_FONT_VAR] !== value ? { ...prev, vars: { ...prev.vars, [ROW_FONT_VAR]: value } } : prev,
+      );
+    }
     place();
     window.addEventListener("resize", place);
     window.addEventListener("scroll", place, { capture: true, passive: true });
     return () => {
       window.removeEventListener("resize", place);
       window.removeEventListener("scroll", place, { capture: true });
+      for (const img of pendingImages) img.removeEventListener("load", refitRowFont);
     };
   }, [mounted, open, remeasureKey, rowSelector, fitMin, fitMax, openRadius]);
 
