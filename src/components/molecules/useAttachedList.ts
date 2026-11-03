@@ -70,6 +70,10 @@ export function capRadius(radius: string, max: number) {
  * os valores inline de antes: não há pintura no meio.
  */
 function untransformedRect(trigger: HTMLElement) {
+  // Sem transformação (o caso comum, e sempre o do PillSelect) não mexe em nada: o estilo inline
+  // cortaria uma transição em andamento (ex.: os cantos, ao rolar logo depois de abrir).
+  const computed = getComputedStyle(trigger).transform;
+  if (!computed || computed === "none") return trigger.getBoundingClientRect();
   const { transform, transition } = trigger.style;
   trigger.style.transition = "none";
   trigger.style.transform = "none";

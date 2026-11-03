@@ -282,6 +282,7 @@ describe("PillMenu — width and row font", () => {
     // No `:active` (preso no iOS) a pílula está com scale(0.98): o retângulo só é o de verdade sem a
     // transformação. Sem anchor positioning, a geometria do JS é a que vale.
     pressed = true;
+    pillStyle.transform = "matrix(0.98, 0, 0, 0.98, 0, 0)";
     pill = { left: 40, width: 119 };
     contentAt = (f) => 8 * f;
     setup({ blocked: true });
@@ -318,6 +319,25 @@ describe("PillMenu — width and row font", () => {
     // Largura útil: 135 − 2 − 24 = 109 → 13 × 109/130 = 10.9 → 10.75.
     expect(rowFont()).toBe("10.75px");
     expect(list().style.getPropertyValue("--fallback-width")).toBe("135px");
+  });
+
+  it("never touches the trigger's inline transform or transition when it has no transform", async () => {
+    pillStyle.transform = "none";
+    pill = { left: 40, width: 119 };
+    contentAt = (f) => 8 * f;
+    setup({ blocked: true });
+    // Espiões nas propriedades do estilo inline desta pílula (o jsdom não as põe no protótipo).
+    const setters = ["transform", "transition"].map((prop) => {
+      const set = vi.fn();
+      Object.defineProperty(trigger().style, prop, { configurable: true, get: () => "", set });
+      return set;
+    });
+    await userEvent.click(trigger());
+    act(() => {
+      window.dispatchEvent(new Event("scroll"));
+    });
+    expect(list().style.getPropertyValue("--fallback-width")).toBe("119px");
+    setters.forEach((s) => expect(s).not.toHaveBeenCalled());
   });
 
   it("never goes below the 10px floor", async () => {
