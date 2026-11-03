@@ -184,6 +184,8 @@ describe("PillMenu", () => {
 describe("PillMenu — width and row font", () => {
   const realInnerWidth = window.innerWidth;
   let pill = { left: 0, width: 0 };
+  // A pílula "apertada": o retângulo encolhe 2% em torno do centro enquanto a transformação vale.
+  let pressed = false;
   let pillStyle: Record<string, string> = {};
   // Largura do conteúdo (sem bordas nem recuo) com a fonte `f` das linhas.
   let contentAt: (f: number) => number = () => 0;
@@ -195,6 +197,7 @@ describe("PillMenu — width and row font", () => {
   beforeEach(() => {
     restoreMotion = mockReducedMotion(true);
     Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
+    pressed = false;
     pillStyle = { fontSize: "13px", paddingLeft: "12px", paddingRight: "12px", borderTopWidth: "1px" };
     const realComputed = window.getComputedStyle.bind(window);
     spies.push(
@@ -210,7 +213,12 @@ describe("PillMenu — width and row font", () => {
           const width = chrome() + contentAt(parseFloat(this.style.getPropertyValue(ROW_FONT_VAR)));
           return { top: 0, bottom: 0, left: 0, right: width, width, height: 0, x: 0, y: 0, toJSON: () => ({}) } as DOMRect;
         }
-        const r = { top: 700, bottom: 744, left: pill.left, right: pill.left + pill.width, width: pill.width, height: 44 };
+        let r = { top: 700, bottom: 744, left: pill.left, right: pill.left + pill.width, width: pill.width, height: 44 };
+        if (pressed && this instanceof HTMLElement && this.style.transform !== "none") {
+          const dx = pill.width * 0.01;
+          const dy = 44 * 0.01;
+          r = { top: 700 + dy, bottom: 744 - dy, left: pill.left + dx, right: pill.left + pill.width - dx, width: pill.width * 0.98, height: 44 * 0.98 };
+        }
         return { ...r, x: r.left, y: r.top, toJSON: () => ({}) } as DOMRect;
       }),
     );
@@ -270,14 +278,21 @@ describe("PillMenu — width and row font", () => {
     expect(rowFont()).toBe("11.25px");
   });
 
-  it("fits to the pill's layout width, not to its pressed (scaled) rectangle", async () => {
-    // Ao clicar, a pílula está no `:active` com scale(0.98): o retângulo encolhe, a caixa não.
-    pillStyle = { ...pillStyle, width: "119px", boxSizing: "border-box" };
-    pill = { left: 40, width: 119 * 0.98 };
+  it("places and fits the list on the pill's untransformed box, not its pressed (scaled) rectangle", async () => {
+    // No `:active` (preso no iOS) a pílula está com scale(0.98): o retângulo só é o de verdade sem a
+    // transformação. Sem anchor positioning, a geometria do JS é a que vale.
+    pressed = true;
+    pill = { left: 40, width: 119 };
     contentAt = (f) => 8 * f;
     setup({ blocked: true });
     await userEvent.click(trigger());
+    expect(list().style.getPropertyValue("--fallback-left")).toBe("40px");
+    expect(list().style.getPropertyValue("--fallback-width")).toBe("119px");
+    expect(list().style.getPropertyValue("--fallback-top")).toBe("743px");
     expect(rowFont()).toBe("11.5px");
+    // A transformação inline de antes volta.
+    expect(trigger().style.transform).toBe("");
+    expect(trigger().style.transition).toBe("");
   });
 
   it("never goes below the 10px floor", async () => {

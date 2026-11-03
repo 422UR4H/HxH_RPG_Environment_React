@@ -63,16 +63,20 @@ export function capRadius(radius: string, max: number) {
 }
 
 /**
- * A largura da caixa de borda sem transformações: ao abrir, a pílula pode estar no `:active` com
- * `scale(0.98)`, e o retângulo mediria menos que a largura em que a lista vai ficar. Sem estilo
- * calculado (jsdom), o retângulo.
+ * O retângulo da pílula sem a transformação dela. Ao abrir, a pílula pode estar no `:active`
+ * (`scale(0.98)`) ou no `:hover` (`translateY(-3px)`); no iOS os dois ficam presos depois do toque.
+ * Sem anchor positioning (Safari), a lista usaria esse retângulo encolhido/deslocado até a próxima
+ * rolagem. Tira a transformação (e a transição, para valer na hora) só durante a leitura e devolve
+ * os valores inline de antes: não há pintura no meio.
  */
-function layoutWidth(cs: CSSStyleDeclaration, rect: DOMRect) {
-  const width = parseFloat(cs.width);
-  if (!Number.isFinite(width)) return rect.width;
-  if (cs.boxSizing === "border-box") return width;
-  const sum = (...v: string[]) => v.reduce((acc, x) => acc + (parseFloat(x) || 0), 0);
-  return width + sum(cs.paddingLeft, cs.paddingRight, cs.borderLeftWidth, cs.borderRightWidth);
+function untransformedRect(trigger: HTMLElement) {
+  const { transform, transition } = trigger.style;
+  trigger.style.transition = "none";
+  trigger.style.transform = "none";
+  const rect = trigger.getBoundingClientRect();
+  trigger.style.transform = transform;
+  trigger.style.transition = transition;
+  return rect;
 }
 
 /**
@@ -153,7 +157,7 @@ export function useAttachedList<T extends HTMLElement>({
       const trigger = triggerRef.current;
       const list = listRef.current;
       if (!trigger || !list) return;
-      const rect = trigger.getBoundingClientRect();
+      const rect = untransformedRect(trigger);
       const cs = getComputedStyle(trigger);
       // Pílula fora da janela: a lista fixa ficaria flutuando sozinha. (Retângulo vazio = sem
       // layout, como no jsdom; não é "fora da janela".)
@@ -188,7 +192,7 @@ export function useAttachedList<T extends HTMLElement>({
       if (fitMin !== undefined && fitMax !== undefined) {
         // Ao abrir, no resize e quando o conteúdo muda; na rolagem, a fonte que já estava.
         if (rowFontRef.current === undefined || e?.type !== "scroll") {
-          rowFontRef.current = fitRowFontSize(list, layoutWidth(cs, rect), cs, { min: fitMin, max: fitMax });
+          rowFontRef.current = fitRowFontSize(list, rect.width, cs, { min: fitMin, max: fitMax });
         }
         vars[ROW_FONT_VAR] = `${rowFontRef.current}px`;
         list.style.setProperty(ROW_FONT_VAR, vars[ROW_FONT_VAR]);
