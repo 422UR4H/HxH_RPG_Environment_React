@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mockReducedMotion } from "../../../test/reducedMotion";
 import PillSelect, { type PillSelectOption } from "../PillSelect";
+import { ROW_FONT_VAR } from "../useAttachedList";
 
 let restoreMotion: () => void = () => {};
 
@@ -550,6 +551,8 @@ describe("PillSelect", () => {
     expect(list.style.getPropertyValue("--fallback-width")).toBe(`${pillRect.width}px`);
     expect(list.style.getPropertyValue("--list-width")).toBe("");
     expect(list).not.toHaveAttribute("data-align");
+    // Nem a fonte ajustada das linhas (só do PillMenu).
+    expect(list.style.getPropertyValue(ROW_FONT_VAR)).toBe("");
   });
 
   it("keeps the list on the pill's own radius, however large (no open-radius cap)", async () => {
