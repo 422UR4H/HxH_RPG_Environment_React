@@ -80,7 +80,7 @@ export default function GeneralBar({
           </StripToggle>
         )}
       </TopRow>
-      {hasCharacters && stripOpen && <CharacterBarsStrip rows={rows} prices={bars!.prices} roundMode={roundMode} nameOf={nameOf} />}
+      {hasCharacters && stripOpen && <CharacterBarsStrip rows={rows} bars={bars!} roundMode={roundMode} nameOf={nameOf} />}
     </Wrapper>
   );
 }

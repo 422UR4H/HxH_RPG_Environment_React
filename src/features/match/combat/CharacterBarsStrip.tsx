@@ -2,47 +2,65 @@ import styled from "styled-components";
 import { colors } from "../../../styles/tokens";
 import type { Bar, BarsPayload, RoundMode } from "./combatMessages";
 import { BAR_ICONS, BAR_LABELS } from "./combatText";
-import { fmt, mean } from "./barsMath";
+import { fmt, mean, priceOf } from "./barsMath";
 
 /**
  * Uma linha por personagem, só com o que `bars_updated` traz (I8): o jogador não vê a
  * velocidade de ação nenhuma antes de ela abrir porque o servidor não a manda antes disso.
- * No regime Livre não há preço, média nem carry-over — só as velocidades que agiram.
+ * Só existe em Disputado (D5): no regime Livre `barsRows` devolve vazio. Por barra: saldo vivo,
+ * velocidades que agiram, pendentes (mais fracas), "Próximo round" + adiadas, e a média própria.
  */
 export default function CharacterBarsStrip({
   rows,
-  prices,
+  bars,
   roundMode,
   nameOf,
 }: {
   /** Já filtradas por `barsRows`: a tira não refiltra. */
   rows: BarsPayload["characters"];
-  prices: BarsPayload["prices"];
+  bars: BarsPayload;
   roundMode: RoundMode | "";
   nameOf: (id: string) => string;
 }) {
-  const race = roundMode === "Race";
+  if (roundMode !== "Race") return null;
+  // Ordem estável por nome: quem acompanha uma barra a acha sempre no mesmo lugar.
+  const sorted = rows
+    .map((c) => ({ c, name: nameOf(c.characterId) }))
+    .sort((x, y) => x.name.localeCompare(y.name, "pt-BR"));
   return (
     <Strip aria-label="Barras de cada personagem">
-      {rows.map((c) => {
-        const speeds = [...c.actionSpeeds, ...c.moveSpeeds];
-        const avg = mean(speeds);
-        return (
-          <Row key={c.characterId}>
-            <Name>{nameOf(c.characterId)}</Name>
-            {race &&
-              (["action", "move"] as Bar[]).map((b) => {
-                const price = prices[b];
-                if (price === undefined) return null;
-                const balance = b === "action" ? c.actionBalance : c.moveBalance;
-                return <BalanceBar key={b} bar={b} balance={balance} price={price} />;
-              })}
-            {speeds.length > 0 && <Speeds>{speeds.join(" · ")}</Speeds>}
-            {race && avg !== undefined && <Speeds>{`x̄ ${Math.round(avg * 10) / 10}`}</Speeds>}
-          </Row>
-        );
-      })}
+      {sorted.map(({ c, name }) => (
+        <Row key={c.characterId}>
+          <Name>{name}</Name>
+          {(["action", "move"] as Bar[]).map((b) => (
+            <BarGroup key={b} bar={b} c={c} bars={bars} />
+          ))}
+        </Row>
+      ))}
     </Strip>
+  );
+}
+
+function BarGroup({ bar, c, bars }: { bar: Bar; c: BarsPayload["characters"][number]; bars: BarsPayload }) {
+  const acted = bar === "action" ? c.actionSpeeds : c.moveSpeeds;
+  const pending = bar === "action" ? c.pendingActionSpeeds : c.pendingMoveSpeeds;
+  const deferred = bar === "action" ? c.deferredActionSpeeds : c.deferredMoveSpeeds;
+  const balance = bar === "action" ? c.actionBalance : c.moveBalance;
+  const priced = priceOf(bars, bar);
+  const avg = mean([...acted, ...pending]);
+  return (
+    <>
+      {priced && <BalanceBar bar={bar} balance={balance} price={priced.price} />}
+      {acted.length > 0 && <Speeds>{acted.join(" · ")}</Speeds>}
+      {pending.length > 0 && <PendingSpeeds>{pending.join(" · ")}</PendingSpeeds>}
+      {deferred.length > 0 && (
+        <>
+          <PendingSpeeds>Próximo round</PendingSpeeds>
+          <Speeds>{deferred.join(" · ")}</Speeds>
+        </>
+      )}
+      {avg !== undefined && <Speeds>{`x̄ ${Math.round(avg * 10) / 10}`}</Speeds>}
+    </>
   );
 }
 
@@ -117,4 +135,7 @@ const Num = styled.span`
 `;
 const Speeds = styled.span`
   color: ${colors.textPlaceholderStrong};
+`;
+const PendingSpeeds = styled.span`
+  color: ${colors.textPlaceholder};
 `;

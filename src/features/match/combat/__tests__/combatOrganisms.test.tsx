@@ -116,7 +116,7 @@ describe("GeneralBar", () => {
 });
 
 function Strip({ bars, mode }: { bars: BarsPayload; mode: "Race" | "Free" }) {
-  return <CharacterBarsStrip rows={barsRows(bars, mode)} prices={bars.prices} roundMode={mode} nameOf={nameOf} />;
+  return <CharacterBarsStrip rows={barsRows(bars, mode)} bars={bars} roundMode={mode} nameOf={nameOf} />;
 }
 
 describe("CharacterBarsStrip", () => {
@@ -129,11 +129,51 @@ describe("CharacterBarsStrip", () => {
     expect(screen.getAllByRole("meter")).toHaveLength(2);
   });
 
-  it("Livre: sem barras nem média, só as velocidades", () => {
+  it("renders nothing in the Free regime", () => {
     render(<Strip bars={{ ...raceBars, prices: {} }} mode="Free" />);
+    expect(screen.queryByText("Gon")).toBeNull();
     expect(screen.queryAllByRole("meter")).toHaveLength(0);
-    expect(screen.queryByText(/x̄/)).not.toBeInTheDocument();
-    expect(screen.getByText("16 · 14")).toBeInTheDocument();
+    expect(screen.queryByText("16 · 14")).toBeNull();
+  });
+
+  const empty = { actionCarry: 0, moveCarry: 0, actionBalance: 0, moveBalance: 0, actionSpeeds: [], moveSpeeds: [], pendingActionSpeeds: [], pendingMoveSpeeds: [], deferredActionSpeeds: [], deferredMoveSpeeds: [] };
+
+  it("shows a row the moment a master payload carries a pending speed", () => {
+    const b: BarsPayload = { ...raceBars, prices: {}, provisionalPrices: { action: 11 },
+      characters: [{ characterId: "c1", ...empty, actionBalance: 12, pendingActionSpeeds: [23] }] };
+    render(<Strip bars={b} mode="Race" />);
+    expect(screen.getByText("Gon")).toBeInTheDocument();
+    expect(screen.getByRole("meter")).toHaveAttribute("aria-valuenow", "12");
+    expect(screen.getByText("23")).toBeInTheDocument();
+  });
+
+  it("lists deferred speeds after a \"Próximo round\" separator", () => {
+    const b: BarsPayload = { ...raceBars,
+      characters: [{ characterId: "c1", ...empty, actionSpeeds: [16], deferredActionSpeeds: [9] }] };
+    render(<Strip bars={b} mode="Race" />);
+    const label = screen.getByText("Próximo round");
+    const nine = screen.getByText("9");
+    expect(label.compareDocumentPosition(nine) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(nine).not.toHaveStyle("text-decoration: line-through");
+  });
+
+  it("averages each bar on its own", () => {
+    const b: BarsPayload = { ...raceBars,
+      characters: [{ characterId: "c1", ...empty, actionSpeeds: [23], pendingActionSpeeds: [17], moveSpeeds: [12] }] };
+    render(<Strip bars={b} mode="Race" />);
+    expect(screen.getByText("x̄ 20")).toBeInTheDocument();
+    expect(screen.getByText("x̄ 12")).toBeInTheDocument();
+    expect(screen.queryByText("x̄ 17.3")).toBeNull();
+  });
+
+  it("keeps rows sorted by name across updates", () => {
+    const row = (id: string) => ({ characterId: id, ...empty, actionSpeeds: [10] });
+    const a: BarsPayload = { ...raceBars, characters: [row("c2"), row("c1")] };
+    const { container, rerender } = render(<Strip bars={a} mode="Race" />);
+    const names = () => Array.from(container.querySelectorAll("span")).map((e) => e.textContent).filter((t) => t === "Gon" || t === "Killua");
+    expect(names()).toEqual(["Gon", "Killua"]);
+    rerender(<Strip bars={{ ...a, characters: [row("c1"), row("c2")] }} mode="Race" />);
+    expect(names()).toEqual(["Gon", "Killua"]);
   });
 
   it("barra sem preço não é desenhada", () => {
@@ -151,7 +191,7 @@ describe("CharacterBarsStrip — linhas sem dado", () => {
         { characterId: "c2", actionCarry: 0, moveCarry: 0, actionBalance: 0, moveBalance: 0, actionSpeeds: [], moveSpeeds: [], pendingActionSpeeds: [], pendingMoveSpeeds: [], deferredActionSpeeds: [], deferredMoveSpeeds: [] },
       ],
     };
-    render(<Strip bars={mixed} mode="Free" />);
+    render(<Strip bars={mixed} mode="Race" />);
     expect(screen.getByText("Gon")).toBeInTheDocument();
     expect(screen.queryByText("Killua")).toBeNull();
   });

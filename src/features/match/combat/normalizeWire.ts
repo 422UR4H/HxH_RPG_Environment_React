@@ -52,10 +52,12 @@ type WireBars = {
 /**
  * bars_updated / match_full_state.bars. Go's BarsUpdatedPayload (message.go ~L420):
  * `Prices map[string]int`, `Characters []CharacterBarsPayload`, `Order []BarSlotPayload` —
- * none has `omitempty`. `CharacterBarsPayload.ActionSpeeds`/`MoveSpeeds` don't either (and
- * `append([]int(nil), speeds...)` in room.go's newBarsUpdatedPayload returns nil for an
- * empty round). `BarSlotPayload.Bars` also lacks `omitempty`, normalized here defensively
- * even though today's only constructor (room.go) always `make`s it non-nil.
+ * sem `omitempty` (o `append([]int(nil), speeds...)` de room.go devolve nil num round vazio,
+ * por isso as velocidades abertas também são normalizadas). Já os campos que só o mestre
+ * recebe — `provisionalPrices` e as velocidades pendentes/adiadas — SÃO omitidos para o
+ * jogador (`omitempty`), então chegam ausentes e viram `{}`/`[]` aqui. `BarSlotPayload.Bars`
+ * não tem `omitempty`; é normalizado por defesa, embora o único construtor (room.go) sempre
+ * o crie não-nulo.
  */
 export function normalizeBars(raw: WireBars): BarsPayload {
   return {
