@@ -11,6 +11,8 @@ import { useMatchHistory } from "../hooks/useMatchHistory";
 import { useGameTable } from "../features/match/combat/useGameTable";
 import { defaultMoveCategory } from "../features/match/combat/defaultMoveCategory";
 import { useReactionControls } from "../features/match/combat/useReactionControls";
+import { usePiecePerspective } from "../features/match/combat/usePiecePerspective";
+import { boardThroughPiece } from "../features/match/combat/piecePerspective";
 import { masterPanelDismissible, useStageOverlays } from "../features/match/combat/useStageOverlays";
 import MatchStageTemplate from "../components/templates/MatchStageTemplate";
 import MatchTopBar from "../features/match/combat/MatchTopBar";
@@ -542,6 +544,21 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     ? game.boardPieces.find((p) => p.characterId === inspectedId)?.id
     : undefined;
 
+  // O tabuleiro pelos olhos da peça selecionada (o NPC ator, senão a peça inspecionada): fog
+  // fora da visão dela, só as paredes e peças que ela vê. Sem peça, e sempre no Arrumar, o
+  // tabuleiro inteiro, sem fog.
+  const perspectivePieceId = boardMode === "play" ? (composer.actorPiece?.id ?? inspectedPieceId) : undefined;
+  const pieceView = usePiecePerspective(
+    perspectivePieceId, game.pieceView, combat.status, combat.send.watchPieceView, game.fullStateSeq,
+  );
+  const board = useMemo(
+    () =>
+      pieceView
+        ? boardThroughPiece(live.liveWalls, game.boardPieces, pieceView, live.fog.fogMode)
+        : { walls: live.liveWalls, pieces: game.boardPieces, fog: undefined },
+    [pieceView, live.liveWalls, game.boardPieces, live.fog.fogMode],
+  );
+
   // Botões de reação (abaixo da peça) e balões (acima): a mesma camada, os mesmos helpers nas duas telas.
   const anchoredItems: PieceAnchoredItem[] = useCombatAnchoredItems(controls, nameOf, game.balloons);
 
@@ -723,9 +740,8 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                 <BoardWaitNotice boardUnavailable={game.boardUnavailable} status={combat.status} />
               ) : map && width > 0 && height > 0 ? (
                 <TacticalMapViewer
-                  map={{ ...map, walls: live.liveWalls, pieces: game.boardPieces }}
-                  fog={live.fog}
-                  isMaster
+                  map={{ ...map, walls: board.walls, pieces: board.pieces }}
+                  fog={board.fog}
                   width={width}
                   height={height}
                   npcMap={live.npcMap}

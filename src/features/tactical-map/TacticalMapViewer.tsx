@@ -13,8 +13,8 @@ type Props = {
   onWallClick?: (wall: WallSegment) => void;
   onWallLongPress?: (wall: WallSegment) => void;
   isWallTappable?: (wall: WallSegment) => boolean;
+  // Sem fog, nada se esconde: quem não deve ter névoa (o mestre sem peça selecionada) não passa.
   fog?: FogState;
-  isMaster?: boolean;
   // Combat interaction (game pages only). Left undefined by any other caller —
   // piecesInteractive defaults to falsy in TacticalMapStage, so pieces stay inert.
   piecesInteractive?: boolean;
@@ -41,7 +41,7 @@ type Props = {
 };
 
 export default function TacticalMapViewer({
-  map, width, height, npcMap, onWallClick, onWallLongPress, isWallTappable, fog, isMaster,
+  map, width, height, npcMap, onWallClick, onWallLongPress, isWallTappable, fog,
   piecesInteractive, draggablePieceIds, onPieceSelect, onPieceLongPress,
   selectedPieceId, inspectedPieceId, targetPieceIds, activePieceId, onEmptySlotClick,
   suppressPanOnPiecePress, intentPreview, intentGhosts, highlightHoverSlot, fitRequest,
@@ -58,7 +58,7 @@ export default function TacticalMapViewer({
       onWallLongPress={onWallLongPress}
       isWallTappable={isWallTappable}
       fog={fog}
-      fogDisabled={!!isMaster || !fog}
+      fogDisabled={!fog}
       piecesInteractive={piecesInteractive}
       draggablePieceIds={draggablePieceIds}
       onPieceSelect={onPieceSelect}

@@ -321,7 +321,6 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
                 <TacticalMapViewer
                   map={{ ...map, walls: live.liveWalls, pieces: game.boardPieces }}
                   fog={live.fog}
-                  isMaster={false}
                   width={width}
                   height={height}
                   npcMap={live.npcMap}

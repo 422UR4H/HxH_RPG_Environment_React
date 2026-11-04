@@ -34,6 +34,7 @@ vi.mock("../../features/tactical-map/TacticalMapViewer", () => ({
     onPieceMove?: (pieceId: string, slot: { kind: "square"; col: number; row: number } | { kind: "hex"; q: number; r: number }) => void;
     placingNpcId?: string | null;
     onNpcPlaced?: (slot: { kind: "square"; col: number; row: number }) => void;
+    fog?: unknown;
   }) => (
     <div
       data-testid="map-stub"
@@ -52,6 +53,8 @@ vi.mock("../../features/tactical-map/TacticalMapViewer", () => ({
       // F12: o pré-visualizar do destino pendente e o "pôr" do placer do lobby.
       data-intent-preview={props.intentPreview ? JSON.stringify(props.intentPreview) : ""}
       data-placing-npc-id={props.placingNpcId ?? ""}
+      // O tabuleiro pelos olhos da peça: o fog que o viewer recebe ("" = sem fog).
+      data-fog={props.fog ? JSON.stringify(props.fog) : ""}
     >
       {props.map.pieces.map((piece) => (
         <button
@@ -819,8 +822,9 @@ describe("GameMasterPage", () => {
     const sentBefore = ws.send.mock.calls.length;
     act(() => pcButton.click());
 
-    // Nada de novo é enviado pelo clique.
-    expect(ws.send.mock.calls.length).toBe(sentBefore);
+    // Nada de novo é enviado pelo clique além de observar a peça (o tabuleiro pelos olhos dela).
+    const sentAfter = ws.send.mock.calls.slice(sentBefore).map((c) => (JSON.parse(c[0] as string) as { type: string }).type);
+    expect(sentAfter).toEqual(["watch_piece_view"]);
     // A gaveta começa fechada nesta viewport de teste (sem setAsideOpen no tap agora) — abrir
     // pra inspecionar em qual aba ela ficou.
     act(() => screen.getByRole("button", { name: "Ver histórico" }).click());
@@ -1674,6 +1678,122 @@ describe("GameMasterPage", () => {
 
       act(() => within(screen.getByTestId("queue-open")).getByRole("button", { name: "Dar a palavra" }).click());
       expect(ws.sent("open_reaction")).toEqual([{ reactionId: "r1" }]);
+    });
+  });
+
+  // O mestre vê o tabuleiro pelos olhos da peça selecionada (ator ou inspecionada).
+  describe("board through the selected piece", () => {
+    const mapStub = () => screen.getByTestId("map-stub");
+    const secretWall = {
+      id: "sd-1", p1: [0, 0], p2: [1, 0], wallType: "secret_door", material: "wood",
+      move: true, sense: "full", direction: "both", open: true, locked: false, revealed: false,
+      hp: 5, maxHp: 5, resistance: 1, destroyed: false,
+    };
+    const plainWall = { ...secretWall, id: "w-2", wallType: "wall", open: false };
+    const emitView = (ws: FakeWS, pieceId: string, over: Record<string, unknown> = {}) =>
+      act(() =>
+        ws.emit("piece_view", {
+          pieceId,
+          visiblePolygons: [[{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 10, y: 10 }]],
+          wallIds: ["sd-1"],
+          pieceIds: [pieceId],
+          ...over,
+        }),
+      );
+
+    it("watches the actor NPC piece when the master picks it", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      act(() => screen.getByTestId("select-actor-npc1").click());
+      expect(ws.sent("watch_piece_view")).toEqual([{ pieceId: "piece-npc1" }]);
+    });
+
+    it("watches the inspected character piece", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      act(() => screen.getByTestId("select-actor-c1").click());
+      expect(mapStub()).toHaveAttribute("data-inspected-piece-id", "piece-c1");
+      expect(ws.sent("watch_piece_view")).toEqual([{ pieceId: "piece-c1" }]);
+    });
+
+    it("stops watching when the actor is cleared", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      act(() => screen.getByRole("button", { name: "Agir" }).click());
+      act(() => screen.getByRole("button", { name: "Capanga" }).click());
+      act(() => screen.getByRole("button", { name: "Capanga" }).click());
+      expect(ws.sent("watch_piece_view")).toEqual([{ pieceId: "piece-npc1" }, { pieceId: "" }]);
+    });
+
+    it("does not watch while arranging", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws, piecesFixture, [secretWall, plainWall]);
+      act(() => screen.getByTestId("select-actor-npc1").click());
+      emitView(ws, "piece-npc1");
+      expect(mapStub()).not.toHaveAttribute("data-fog", "");
+
+      act(() => screen.getByRole("button", { name: "Arrumar" }).click());
+      act(() => screen.getByTestId("select-actor-c1").click());
+      expect(ws.sent("watch_piece_view")).toEqual([{ pieceId: "piece-npc1" }, { pieceId: "" }]);
+      // No Arrumar o tabuleiro é inteiro, sem fog.
+      expect(mapStub()).toHaveAttribute("data-fog", "");
+      expect(screen.getByTestId("select-actor-c1")).toBeInTheDocument();
+      expect(screen.getByTestId("wall-w-2")).toBeInTheDocument();
+    });
+
+    it("draws the board through the watched piece", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws, piecesFixture, [secretWall, plainWall]);
+      act(() => screen.getByTestId("select-actor-npc1").click());
+      emitView(ws, "piece-npc1");
+
+      expect(JSON.parse(mapStub().getAttribute("data-fog") ?? "")).toEqual({
+        fogMode: "explored",
+        visiblePolygons: [[[0, 0], [10, 0], [10, 10]]],
+      });
+      expect(screen.getByTestId("select-actor-npc1")).toBeInTheDocument();
+      expect(screen.queryByTestId("select-actor-c1")).not.toBeInTheDocument();
+      expect(screen.getByTestId("wall-sd-1")).toBeInTheDocument();
+      expect(screen.queryByTestId("wall-w-2")).not.toBeInTheDocument();
+    });
+
+    it("ignores a piece_view for a different piece", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws, piecesFixture, [secretWall, plainWall]);
+      act(() => screen.getByTestId("select-actor-npc1").click());
+      emitView(ws, "piece-c1");
+
+      expect(mapStub()).toHaveAttribute("data-fog", "");
+      expect(screen.getByTestId("select-actor-c1")).toBeInTheDocument();
+      expect(screen.getByTestId("select-actor-npc1")).toBeInTheDocument();
+      expect(screen.getByTestId("wall-w-2")).toBeInTheDocument();
+    });
+
+    it("shows the full board without fog when nothing is selected", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws, piecesFixture, [secretWall, plainWall]);
+      expect(await screen.findByTestId("map-stub")).toHaveAttribute("data-fog", "");
+      expect(ws.sent("watch_piece_view")).toEqual([]);
+    });
+
+    it("re-sends the watch after a reconnect", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      act(() => screen.getByTestId("select-actor-npc1").click());
+      expect(ws.sent("watch_piece_view")).toEqual([{ pieceId: "piece-npc1" }]);
+
+      act(() => ws.onclose?.({ code: 1006 } as CloseEvent));
+      const ws2 = await waitForSocket(1);
+      openWithServerBoard(ws2);
+      await vi.waitFor(() => expect(ws2.sent("watch_piece_view")).toContainEqual({ pieceId: "piece-npc1" }));
     });
   });
 });
