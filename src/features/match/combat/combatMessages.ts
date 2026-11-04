@@ -18,12 +18,22 @@ export type BarsPayload = {
   seq: number;
   /** Uma barra que ainda não precificou está AUSENTE do mapa. */
   prices: Partial<Record<Bar, number>>;
+  /** Preço provisório (só mestre, round disputado sem ação aberta). Normalizado para `{}` quando ausente. */
+  provisionalPrices: Partial<Record<Bar, number>>;
   characters: Array<{
     characterId: string;
+    /** Saldo que a barra carrega para a próxima rodada (público). */
+    actionCarry: number;
+    moveCarry: number;
     actionBalance: number;
     moveBalance: number;
     actionSpeeds: number[];
     moveSpeeds: number[];
+    /** Só o mestre vê as pendentes/adiadas; para o jogador chegam como `[]`. */
+    pendingActionSpeeds: number[];
+    pendingMoveSpeeds: number[];
+    deferredActionSpeeds: number[];
+    deferredMoveSpeeds: number[];
   }>;
   /** Ordem projetada, maior `key` primeiro. Não identifica ação nenhuma. */
   order: Array<{ actorId: string; bars: Bar[]; key: number }>;

@@ -22,17 +22,29 @@ import type {
  */
 
 /** `BarsPayload` as it actually arrives on the wire: nil-able array/map fields as `null`. */
+type WireBarsCharacter = Omit<
+  BarsPayload["characters"][number],
+  | "actionCarry" | "moveCarry"
+  | "actionSpeeds" | "moveSpeeds"
+  | "pendingActionSpeeds" | "pendingMoveSpeeds" | "deferredActionSpeeds" | "deferredMoveSpeeds"
+> & {
+  // Carry ausente = servidor antigo: cai para o saldo.
+  actionCarry?: number;
+  moveCarry?: number;
+  actionSpeeds: number[] | null;
+  moveSpeeds: number[] | null;
+  // omitempty no Go e escondidos do jogador: chegam ausentes (ou null).
+  pendingActionSpeeds?: number[] | null;
+  pendingMoveSpeeds?: number[] | null;
+  deferredActionSpeeds?: number[] | null;
+  deferredMoveSpeeds?: number[] | null;
+};
+
 type WireBars = {
   seq: number;
   prices: BarsPayload["prices"] | null;
-  characters:
-    | Array<
-        Omit<BarsPayload["characters"][number], "actionSpeeds" | "moveSpeeds"> & {
-          actionSpeeds: number[] | null;
-          moveSpeeds: number[] | null;
-        }
-      >
-    | null;
+  provisionalPrices?: BarsPayload["provisionalPrices"] | null;
+  characters: WireBarsCharacter[] | null;
   order: Array<Omit<BarsPayload["order"][number], "bars"> & { bars: string[] | null }> | null;
   roundTurns?: number;
 };
@@ -49,10 +61,17 @@ export function normalizeBars(raw: WireBars): BarsPayload {
   return {
     seq: raw.seq,
     prices: raw.prices ?? {},
+    provisionalPrices: raw.provisionalPrices ?? {},
     characters: (raw.characters ?? []).map((c) => ({
       ...c,
+      actionCarry: c.actionCarry ?? c.actionBalance,
+      moveCarry: c.moveCarry ?? c.moveBalance,
       actionSpeeds: c.actionSpeeds ?? [],
       moveSpeeds: c.moveSpeeds ?? [],
+      pendingActionSpeeds: c.pendingActionSpeeds ?? [],
+      pendingMoveSpeeds: c.pendingMoveSpeeds ?? [],
+      deferredActionSpeeds: c.deferredActionSpeeds ?? [],
+      deferredMoveSpeeds: c.deferredMoveSpeeds ?? [],
     })),
     order: (raw.order ?? []).map((o) => ({ ...o, bars: (o.bars ?? []) as BarsPayload["order"][number]["bars"] })),
     ...(raw.roundTurns !== undefined ? { roundTurns: raw.roundTurns } : {}),

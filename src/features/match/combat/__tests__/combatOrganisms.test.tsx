@@ -42,7 +42,7 @@ const resolutionNameOf = (id: string) => ({ c2: "Hisoka", c3: "Killua", c9: "Fan
 const MINUS = "−";
 
 const bars = (over: Partial<BarsPayload> = {}): BarsPayload => ({
-  seq: 1, prices: {}, characters: [], order: [], ...over,
+  seq: 1, prices: {}, provisionalPrices: {}, characters: [], order: [], ...over,
 });
 
 // Fixture do brief (T12): um personagem em Disputado, com as duas velocidades que agiram e
@@ -50,7 +50,8 @@ const bars = (over: Partial<BarsPayload> = {}): BarsPayload => ({
 const raceBars: BarsPayload = {
   seq: 1,
   prices: { action: 14, move: 12 },
-  characters: [{ characterId: "c1", actionBalance: -2.5, moveBalance: 3, actionSpeeds: [16, 14], moveSpeeds: [] }],
+  provisionalPrices: {},
+  characters: [{ characterId: "c1", actionCarry: -2.5, moveCarry: 3, actionBalance: -2.5, moveBalance: 3, actionSpeeds: [16, 14], moveSpeeds: [], pendingActionSpeeds: [], pendingMoveSpeeds: [], deferredActionSpeeds: [], deferredMoveSpeeds: [] }],
   order: [{ actorId: "c1", bars: ["action"], key: 18 }],
 };
 
@@ -102,7 +103,7 @@ describe("GeneralBar", () => {
   it("hides the Barras button when nobody has data", () => {
     const empty: BarsPayload = {
       ...raceBars, prices: {},
-      characters: [{ characterId: "c1", actionBalance: 0, moveBalance: 0, actionSpeeds: [], moveSpeeds: [] }],
+      characters: [{ characterId: "c1", actionCarry: 0, moveCarry: 0, actionBalance: 0, moveBalance: 0, actionSpeeds: [], moveSpeeds: [], pendingActionSpeeds: [], pendingMoveSpeeds: [], deferredActionSpeeds: [], deferredMoveSpeeds: [] }],
     };
     render(<GeneralBar bars={empty} roundMode="Race" nameOf={nameOf} />);
     expect(screen.queryByRole("button", { name: /Barras/ })).toBeNull();
@@ -146,8 +147,8 @@ describe("CharacterBarsStrip — linhas sem dado", () => {
     const mixed: BarsPayload = {
       ...raceBars, prices: {},
       characters: [
-        { characterId: "c1", actionBalance: 0, moveBalance: 0, actionSpeeds: [16], moveSpeeds: [] },
-        { characterId: "c2", actionBalance: 0, moveBalance: 0, actionSpeeds: [], moveSpeeds: [] },
+        { characterId: "c1", actionCarry: 0, moveCarry: 0, actionBalance: 0, moveBalance: 0, actionSpeeds: [16], moveSpeeds: [], pendingActionSpeeds: [], pendingMoveSpeeds: [], deferredActionSpeeds: [], deferredMoveSpeeds: [] },
+        { characterId: "c2", actionCarry: 0, moveCarry: 0, actionBalance: 0, moveBalance: 0, actionSpeeds: [], moveSpeeds: [], pendingActionSpeeds: [], pendingMoveSpeeds: [], deferredActionSpeeds: [], deferredMoveSpeeds: [] },
       ],
     };
     render(<Strip bars={mixed} mode="Free" />);
@@ -160,7 +161,7 @@ describe("barsRows", () => {
   it("keeps a Race row that has a price but no speed", () => {
     const priced: BarsPayload = {
       ...raceBars, prices: { action: 14 },
-      characters: [{ characterId: "c1", actionBalance: 0, moveBalance: 0, actionSpeeds: [], moveSpeeds: [] }],
+      characters: [{ characterId: "c1", actionCarry: 0, moveCarry: 0, actionBalance: 0, moveBalance: 0, actionSpeeds: [], moveSpeeds: [], pendingActionSpeeds: [], pendingMoveSpeeds: [], deferredActionSpeeds: [], deferredMoveSpeeds: [] }],
     };
     expect(barsRows(priced, "Race")).toHaveLength(1);
     expect(barsRows(priced, "Free")).toHaveLength(0);
@@ -194,7 +195,7 @@ describe("OwnBars", () => {
         characterId="c1"
         bars={bars({
           characters: [
-            { characterId: "c1", actionBalance: -2.5, moveBalance: 3, actionSpeeds: [], moveSpeeds: [] },
+            { characterId: "c1", actionCarry: -2.5, moveCarry: 3, actionBalance: -2.5, moveBalance: 3, actionSpeeds: [], moveSpeeds: [], pendingActionSpeeds: [], pendingMoveSpeeds: [], deferredActionSpeeds: [], deferredMoveSpeeds: [] },
           ],
         })}
       />,
