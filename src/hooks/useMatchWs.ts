@@ -242,15 +242,23 @@ export function useMatchWs({
    * ainda reconectando) nascia um fantasma que nunca ganharia ack nem erro: fantasma órfão
    * (spec §8 só previa "morre no error", não "nunca chegou a ser enviado").
    */
-  const sendRaw = useCallback((type: string, payload: unknown = {}): boolean => {
+  const sendUntracked = useCallback((type: string, payload: unknown = {}): boolean => {
     const ws = wsRef.current;
     if (ws && ws.readyState === WebSocket.OPEN) {
-      lastSentTypeRef.current = type;
       ws.send(JSON.stringify({ type, payload }));
       return true;
     }
     return false;
   }, []);
+  // Comando do usuário: o reducer atribui o próximo `error` ao último tipo enviado por aqui.
+  const sendRaw = useCallback(
+    (type: string, payload: unknown = {}): boolean => {
+      const sent = sendUntracked(type, payload);
+      if (sent) lastSentTypeRef.current = type;
+      return sent;
+    },
+    [sendUntracked],
+  );
 
   useEffect(() => {
     if (!matchUuid) return;
@@ -533,10 +541,12 @@ export function useMatchWs({
     [sendRaw],
   );
 
-  // Mestre: `null` para de observar (vai como "" no fio).
+  // Mestre: `null` para de observar (vai como "" no fio). Não é comando do usuário — sai a
+  // cada seleção e a cada match_full_state —, então não entra na atribuição de erro: um
+  // `error` que chegue depois continua sendo do último comando de verdade.
   const sendWatchPieceView = useCallback(
-    (pieceId: string | null) => sendRaw("watch_piece_view", { pieceId: pieceId ?? "" }),
-    [sendRaw],
+    (pieceId: string | null) => sendUntracked("watch_piece_view", { pieceId: pieceId ?? "" }),
+    [sendUntracked],
   );
 
   return {

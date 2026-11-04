@@ -507,6 +507,24 @@ describe("useMatchWs error handling", () => {
     });
   });
 
+  it("keeps attributing an error to the last user command after a sendWatchPieceView", () => {
+    const onWsError = vi.fn();
+    const { result } = renderHook(() =>
+      useMatchWs({ matchUuid: "m1", token: "t", onWsError }),
+    );
+    const ws = flushConnect();
+    ws.onopen?.();
+    act(() => { result.current.sendAction({ targetId: ["w1"] }); });
+    act(() => { result.current.sendWatchPieceView("p1"); });
+    ws.emit("error", { code: "invalid_action", message: "actorId is required" });
+    expect(ws.sent("watch_piece_view")).toEqual([{ pieceId: "p1" }]);
+    expect(onWsError).toHaveBeenCalledWith({
+      code: "invalid_action",
+      message: "actorId is required",
+      sentType: "enqueue_action",
+    });
+  });
+
   it("does not throw on an unknown message type", () => {
     renderHook(() => useMatchWs({ matchUuid: "m1", token: "t" }));
     const ws = flushConnect();

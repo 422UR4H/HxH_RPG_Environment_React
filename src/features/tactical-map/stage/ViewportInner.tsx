@@ -7,7 +7,7 @@ import type { SlotCoord } from "../../../types/tacticalMap";
 import MapHandlesLayer from "../MapHandlesLayer";
 import WallsLayer from "../WallsLayer";
 import FogLayer from "../FogLayer";
-import { focusFrame, wholeMapScale } from "../utils/focusFrame";
+import { cellPitch, focusFrame, wholeMapScale } from "../utils/focusFrame";
 import { worldToSlot, slotToWorld, isSlotInBounds, slotCorners, gridWorldBounds, polygonsToWorld } from "../utils/coords";
 import type { ViewportTransform } from "../utils/screenAnchor";
 import type { TacticalMapStageProps } from "./stageProps";
@@ -224,9 +224,9 @@ export default function ViewportInner({
       const grid = gridRef.current;
       ({ scale, center } = focusFrame(
         focusSlots.map((s) => slotToWorld(s, grid)),
-        grid.cellSize,
+        cellPitch(grid),
         view,
-        whole,
+        { scale: whole, center },
       ));
     }
     vp.setZoom(scale, true);

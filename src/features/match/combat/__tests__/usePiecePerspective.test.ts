@@ -66,4 +66,21 @@ describe("usePiecePerspective", () => {
     rerender({ pieceId: "p1", status: "connected", resyncKey: 1 });
     expect(watch.mock.calls).toEqual([["p1"], ["p1"]]);
   });
+
+  it("does not show a stale view when the same piece is selected again", () => {
+    const old = view("p1");
+    const { watch, result, rerender } = setup({ pieceId: "p1", view: undefined, status: "connected", resyncKey: 0 });
+    rerender({ pieceId: "p1", view: old, status: "connected", resyncKey: 0 });
+    expect(result.current).toBe(old);
+
+    // Deseleciona e seleciona de novo: a visão antiga continua guardada, mas é de antes do watch novo.
+    rerender({ view: old, status: "connected", resyncKey: 0 });
+    rerender({ pieceId: "p1", view: old, status: "connected", resyncKey: 0 });
+    expect(watch.mock.calls).toEqual([["p1"], [null], ["p1"]]);
+    expect(result.current).toBeUndefined();
+
+    const fresh = view("p1");
+    rerender({ pieceId: "p1", view: fresh, status: "connected", resyncKey: 0 });
+    expect(result.current).toBe(fresh);
+  });
 });
