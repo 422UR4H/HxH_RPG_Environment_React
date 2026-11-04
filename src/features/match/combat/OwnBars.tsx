@@ -5,7 +5,8 @@ import type { BarsPayload } from "./combatMessages";
 const signed = (n: number) => `${n >= 0 ? "+" : "−"}${Math.abs(n).toFixed(1)}`;
 
 /**
- * Vida e as duas barras do próprio personagem. O saldo é fracionário — uma casa, nunca
+ * Vida e as duas barras do próprio personagem. O saldo é ao vivo (muda a cada ação que
+ * fecha, não só no fim do round) e fracionário — uma casa, nunca
  * arredondado — e atravessa rounds como crédito ou dívida (`barra-de-acao.md`).
  */
 export default function OwnBars({

@@ -60,6 +60,7 @@ describe("GeneralBar", () => {
     render(
       <GeneralBar
         nameOf={nameOf}
+        showOrder
         roundMode=""
         openTurnActorId="n1"
         highlightActorIds={new Set(["c1"])}
@@ -90,13 +91,13 @@ describe("GeneralBar", () => {
   });
 
   it("shows Fila vazia when nobody is queued", () => {
-    render(<GeneralBar nameOf={nameOf} roundMode="" bars={null} />);
+    render(<GeneralBar showOrder nameOf={nameOf} roundMode="" bars={null} />);
     expect(screen.getByText("Fila vazia")).toBeInTheDocument();
     expect(screen.queryByText("ordem vazia")).toBeNull();
   });
 
   it("prefixes the names with Fila:", () => {
-    render(<GeneralBar bars={raceBars} roundMode="Race" nameOf={nameOf} />);
+    render(<GeneralBar showOrder bars={raceBars} roundMode="Race" nameOf={nameOf} />);
     expect(screen.getByLabelText("Ordem")).toHaveTextContent(/^Fila:\s*Gon/);
   });
 
@@ -110,8 +111,28 @@ describe("GeneralBar", () => {
   });
 
   it("mostra a key de cada slot", () => {
-    render(<GeneralBar bars={raceBars} roundMode="Race" nameOf={() => "Gon"} />);
+    render(<GeneralBar showOrder bars={raceBars} roundMode="Race" nameOf={() => "Gon"} />);
     expect(screen.getByTestId("order-row")).toHaveTextContent("18");
+  });
+
+  it("prints the order key with one decimal", () => {
+    const b = bars({ order: [{ actorId: "c1", bars: ["action"], key: -5.333333333333332 }] });
+    render(<GeneralBar showOrder bars={b} roundMode="Race" nameOf={nameOf} />);
+    expect(screen.getByTestId("order-row")).toHaveTextContent(`${MINUS}5.3`);
+    expect(screen.getByTestId("order-row")).not.toHaveTextContent("5.33");
+  });
+
+  it("hides the queue from players", () => {
+    render(<GeneralBar bars={raceBars} roundMode="Race" nameOf={nameOf} />);
+    expect(screen.queryByText(/Fila/)).toBeNull();
+    expect(screen.queryByTestId("order-row")).toBeNull();
+  });
+
+  it("marks a provisional price", () => {
+    render(<GeneralBar nameOf={nameOf} roundMode="Race" bars={bars({ prices: { action: 11 }, provisionalPrices: { move: 9 } })} />);
+    expect(screen.getByTestId("prices")).toHaveTextContent("⚔ 11");
+    expect(screen.getByTestId("prices")).not.toHaveTextContent("⚔ 11 (provisório)");
+    expect(screen.getByTestId("prices")).toHaveTextContent("9 (provisório)");
   });
 });
 
@@ -315,8 +336,40 @@ describe("QueuePanel", () => {
     expect(rows[0]).toHaveTextContent("Hisoka");
     expect(rows[1]).toHaveTextContent("Gon");
     expect(rows[2]).toHaveTextContent("Killua");
-    expect(within(rows[0]).queryByText("próxima rodada")).not.toBeInTheDocument();
-    expect(within(rows[2]).getByText("próxima rodada")).toBeInTheDocument();
+    expect(screen.queryByText("próxima rodada")).not.toBeInTheDocument();
+  });
+
+  it("groups deferred actions under one \"Próximo round\" separator", () => {
+    render(
+      <QueuePanel
+        nameOf={nameOf}
+        gridKind="square"
+        order={[{ actorId: "c1", bars: ["action"], key: 5 }]}
+        queue={[
+          { actionId: "a1", actorId: "c1", bars: ["action"] },
+          { actionId: "a2", actorId: "n1", bars: ["move"] },
+          { actionId: "a3", actorId: "c2", bars: ["action"] },
+        ]}
+        onPull={() => {}}
+      />,
+    );
+    expect(screen.getAllByText("Próximo round")).toHaveLength(1);
+    const items = screen.getAllByTestId(/queue-row|next-round-separator/).map((e) => e.dataset.testid);
+    expect(items).toEqual(["queue-row", "next-round-separator", "queue-row", "queue-row"]);
+    expect(screen.queryByText("próxima rodada")).not.toBeInTheDocument();
+  });
+
+  it("prints the order key with one decimal", () => {
+    render(
+      <QueuePanel
+        nameOf={nameOf}
+        gridKind="square"
+        order={[{ actorId: "n1", bars: ["move"], key: -5.333333333333332 }]}
+        queue={[{ actionId: "a2", actorId: "n1", bars: ["move"], action: fullAction }]}
+        onPull={() => {}}
+      />,
+    );
+    expect(within(screen.getByTestId("queue-row")).getByText(`Ordem geral: chave ${MINUS}5.3`)).toBeInTheDocument();
   });
 
   describe("ajustes do mestre na fila", () => {

@@ -5,13 +5,13 @@ import { breakpoints } from "../../../styles/breakpoints";
 import type { Bar, BarsPayload, RoundMode } from "./combatMessages";
 import { BAR_ICONS, BAR_LABELS } from "./combatText";
 import CharacterBarsStrip from "./CharacterBarsStrip";
-import { barsRows } from "./barsMath";
+import { barsRows, fmt, priceOf } from "./barsMath";
 
 /**
  * A barra geral, flutuando sobre o mapa: de quem é a vez, quem age em seguida (maior `key`
- * primeiro) e o preço da rodada. Pública — é ela que diz a cada um quanto tempo tem para
- * montar a próxima ação. Uma barra ausente de `prices` ainda não foi precificada (no
- * regime livre, nunca é). Abaixo da linha de hoje, `CharacterBarsStrip` (F6) — recolhida
+ * primeiro, só para o mestre: a fila é segredo dele) e o preço da rodada. Uma barra sem preço
+ * ainda não foi precificada (no regime livre, nunca é); o preço provisório, que só o mestre
+ * recebe, leva a marca "(provisório)". Abaixo da linha de hoje, `CharacterBarsStrip` (F6) — recolhida
  * por padrão abaixo de `tabletUp`, aberta a partir dali (estado de UI local, sem
  * persistência).
  */
@@ -21,6 +21,7 @@ export default function GeneralBar({
   openTurnActorId,
   nameOf,
   highlightActorIds,
+  showOrder = false,
 }: {
   bars: BarsPayload | null;
   roundMode: RoundMode | "";
@@ -28,6 +29,8 @@ export default function GeneralBar({
   nameOf: (characterId: string) => string;
   /** Os atores de quem está olhando (o próprio personagem; os NPCs do mestre). */
   highlightActorIds?: Set<string>;
+  /** A fila (ordem) é do mestre: o jogador não a vê. Só a GameMasterPage liga. */
+  showOrder?: boolean;
 }) {
   const [stripOpen, setStripOpen] = useState(
     () =>
@@ -35,7 +38,12 @@ export default function GeneralBar({
       window.matchMedia?.(`(min-width: ${breakpoints.tabletUp}px)`).matches !== false,
   );
   const order = bars ? [...bars.order].sort((a, b) => b.key - a.key) : [];
-  const priced = bars ? (Object.keys(bars.prices) as Bar[]).filter((b) => bars.prices[b] !== undefined) : [];
+  const prices = bars
+    ? (["action", "move"] as Bar[]).flatMap((b) => {
+        const p = priceOf(bars, b);
+        return p ? [{ bar: b, ...p }] : [];
+      })
+    : [];
   const rows = barsRows(bars, roundMode);
   const hasCharacters = rows.length > 0;
 
@@ -50,7 +58,7 @@ export default function GeneralBar({
           ) : (
             <Idle>Nenhum turno aberto</Idle>
           )}
-          <Order aria-label="Ordem">
+          {showOrder && <Order aria-label="Ordem">
             {order.length > 0 && <Idle>Fila:</Idle>}
             {order.length === 0 ? (
               <Idle>Fila vazia</Idle>
@@ -63,14 +71,15 @@ export default function GeneralBar({
                   title={entry.bars.map((b) => BAR_LABELS[b]).join(" + ")}
                 >
                   {nameOf(entry.actorId)} <Icons aria-hidden>{entry.bars.map((b) => BAR_ICONS[b]).join("")}</Icons>{" "}
-                  <Key>{entry.key}</Key>
+                  <Key>{fmt(entry.key)}</Key>
                 </OrderChip>
               ))
             )}
-          </Order>
-          {priced.length > 0 && (
+          </Order>}
+          {prices.length > 0 && (
             <Prices data-testid="prices">
-              preço {priced.map((b) => `${BAR_ICONS[b]} ${bars!.prices[b]}`).join(" · ")}
+              preço{" "}
+              {prices.map((p) => `${BAR_ICONS[p.bar]} ${p.price}${p.provisional ? " (provisório)" : ""}`).join(" · ")}
             </Prices>
           )}
         </Scroll>

@@ -269,10 +269,12 @@ describe("GamePlayerPage", () => {
         order: [{ actorId: "c1", bars: ["action"], key: 18 }],
       }),
     );
-    expect(await screen.findByTestId("order-row")).toHaveTextContent("Gon");
+    // O jogador não vê a fila (order-row); o preço prova que o snapshot foi aplicado.
+    expect(await screen.findByTestId("prices")).toHaveTextContent("⚔ 14");
+    expect(screen.queryByTestId("order-row")).not.toBeInTheDocument();
 
     act(() => ws.emit("bars_updated", { seq: 2, prices: {}, characters: [], order: [] }));
-    expect(screen.getAllByTestId("order-row")).toHaveLength(1);
+    expect(screen.getByTestId("prices")).toHaveTextContent("⚔ 14");
   });
 
   // R33 regression (post-PR#67): Go serializes a nil slice as JSON `null`, not `[]` — an
@@ -293,8 +295,8 @@ describe("GamePlayerPage", () => {
       }),
     );
 
-    // A página não crashou: a barra geral diz que a ordem está vazia e os saldos seguem lá.
-    expect(await screen.findByText("Fila vazia")).toBeInTheDocument();
+    // A página não crashou: a barra geral segue lá (sem a fila, que é do mestre) e os saldos também.
+    expect(await screen.findByLabelText("Barra geral")).toBeInTheDocument();
     expect(screen.getByTestId("balance-action")).toBeInTheDocument();
     // Sem entradas na ordem projetada (order normalizou para []).
     expect(screen.queryByTestId("order-row")).not.toBeInTheDocument();

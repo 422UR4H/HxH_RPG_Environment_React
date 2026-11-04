@@ -797,6 +797,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
               height={height}
             />
             <GeneralBar
+              showOrder
               bars={state.bars}
               roundMode={state.roundMode}
               openTurnActorId={state.openTurn?.actorId}
