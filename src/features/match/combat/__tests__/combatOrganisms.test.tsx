@@ -178,6 +178,26 @@ describe("CharacterBarsStrip", () => {
     expect(nine).not.toHaveStyle("text-decoration: line-through");
   });
 
+  it("puts the mean before the \"Próximo round\" separator", () => {
+    const b: BarsPayload = { ...raceBars,
+      characters: [{ characterId: "c1", ...empty, actionSpeeds: [20], deferredActionSpeeds: [16] }] };
+    render(<Strip bars={b} mode="Race" />);
+    const avg = screen.getByText("x̄ 20");
+    const label = screen.getByText("Próximo round");
+    expect(avg.compareDocumentPosition(label) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("shows the bar icon on a bar with speeds but no price", () => {
+    const b: BarsPayload = { ...raceBars, prices: { action: 14 },
+      characters: [{ characterId: "c1", ...empty, actionSpeeds: [16], moveSpeeds: [18] }] };
+    render(<Strip bars={b} mode="Race" />);
+    expect(screen.getAllByRole("meter")).toHaveLength(1);
+    const icon = screen.getByRole("img", { name: "movimento" });
+    expect(icon).toHaveTextContent("➜");
+    const speed = screen.getByText("18");
+    expect(icon.compareDocumentPosition(speed) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it("averages each bar on its own", () => {
     const b: BarsPayload = { ...raceBars,
       characters: [{ characterId: "c1", ...empty, actionSpeeds: [23], pendingActionSpeeds: [17], moveSpeeds: [12] }] };
@@ -200,6 +220,8 @@ describe("CharacterBarsStrip", () => {
   it("barra sem preço não é desenhada", () => {
     render(<Strip bars={{ ...raceBars, prices: { action: 14 } }} mode="Race" />);
     expect(screen.getAllByRole("meter")).toHaveLength(1);
+    // Sem preço e sem velocidade, o grupo inteiro some — ícone incluso.
+    expect(screen.queryByText("➜")).toBeNull();
   });
 });
 

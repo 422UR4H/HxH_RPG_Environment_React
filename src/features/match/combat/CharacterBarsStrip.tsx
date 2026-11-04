@@ -7,8 +7,8 @@ import { fmt, mean, priceOf } from "./barsMath";
 /**
  * Uma linha por personagem, só com o que `bars_updated` traz (I8): o jogador não vê a
  * velocidade de ação nenhuma antes de ela abrir porque o servidor não a manda antes disso.
- * Só existe em Disputado (D5): no regime Livre `barsRows` devolve vazio. Por barra: saldo vivo,
- * velocidades que agiram, pendentes (mais fracas), "Próximo round" + adiadas, e a média própria.
+ * Só existe em Disputado (D5): no regime Livre `barsRows` devolve vazio. Por barra: ícone, saldo
+ * vivo, velocidades que agiram, pendentes (mais fracas), a média própria e "Próximo round" + adiadas.
  */
 export default function CharacterBarsStrip({
   rows,
@@ -47,29 +47,39 @@ function BarGroup({ bar, c, bars }: { bar: Bar; c: BarsPayload["characters"][num
   const deferred = bar === "action" ? c.deferredActionSpeeds : c.deferredMoveSpeeds;
   const balance = bar === "action" ? c.actionBalance : c.moveBalance;
   const priced = priceOf(bars, bar);
+  // Sem preço e sem velocidade nenhuma, o grupo não desenha nada — nem o ícone.
+  if (!priced && acted.length + pending.length + deferred.length === 0) return null;
   const avg = mean([...acted, ...pending]);
+  // Ordem dentro do grupo: ícone, medidor (se tem preço), agiram · pendentes, média, e só então
+  // "Próximo round" + adiadas — a média não conta as adiadas e não pode parecer que conta.
   return (
     <>
-      {priced && <BalanceBar bar={bar} balance={balance} price={priced.price} />}
+      <BarHead bar={bar} balance={balance} price={priced?.price} />
       {acted.length > 0 && <Speeds>{acted.join(" · ")}</Speeds>}
       {pending.length > 0 && <PendingSpeeds>{pending.join(" · ")}</PendingSpeeds>}
+      {avg !== undefined && <Speeds>{`x̄ ${Math.round(avg * 10) / 10}`}</Speeds>}
       {deferred.length > 0 && (
         <>
           <PendingSpeeds>Próximo round</PendingSpeeds>
           <Speeds>{deferred.join(" · ")}</Speeds>
         </>
       )}
-      {avg !== undefined && <Speeds>{`x̄ ${Math.round(avg * 10) / 10}`}</Speeds>}
     </>
   );
 }
 
-/** Centrada no zero: crédito enche para a direita, débito para a esquerda, até ±preço. */
-function BalanceBar({ bar, balance, price }: { bar: Bar; balance: number; price: number }) {
+/**
+ * O ícone da barra, sempre: é ele que diz a quem pertencem os números que seguem. Com preço, o
+ * medidor vem junto — centrado no zero: crédito enche para a direita, débito para a esquerda,
+ * até ±preço.
+ */
+function BarHead({ bar, balance, price }: { bar: Bar; balance: number; price: number | undefined }) {
+  const icon = <span role="img" aria-label={BAR_LABELS[bar]}>{BAR_ICONS[bar]}</span>;
+  if (price === undefined) return <BarBox>{icon}</BarBox>;
   const frac = Math.max(-1, Math.min(1, balance / price));
   return (
     <BarBox title={`${BAR_LABELS[bar]}: saldo ${fmt(balance)} de ${price}`}>
-      <span aria-hidden>{BAR_ICONS[bar]}</span>
+      {icon}
       <Track
         role="meter"
         aria-label={`Saldo de ${BAR_LABELS[bar]}`}
