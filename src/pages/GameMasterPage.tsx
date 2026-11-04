@@ -546,8 +546,8 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
 
   // O tabuleiro pelos olhos da peça selecionada (o NPC ator, senão a peça inspecionada): fog
   // fora da visão dela, só as paredes e peças que ela vê. Sem peça, e sempre no Arrumar, o
-  // tabuleiro inteiro, sem fog.
-  const perspectivePieceId = boardMode === "play" ? (composer.actorPiece?.id ?? inspectedPieceId) : undefined;
+  // tabuleiro inteiro, sem fog. Na escolha da casa (onde cai, fuga) a peça que já estava ativa fica.
+  const perspectivePieceId = arranging ? undefined : (composer.actorPiece?.id ?? inspectedPieceId);
   const pieceView = usePiecePerspective(
     perspectivePieceId, game.pieceView, combat.status, combat.send.watchPieceView, game.fullStateSeq,
   );

@@ -1745,6 +1745,33 @@ describe("GameMasterPage", () => {
       expect(screen.getByTestId("wall-w-2")).toBeInTheDocument();
     });
 
+    it("keeps the actor perspective during a fall/escape pick", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      act(() => screen.getByTestId("select-actor-npc1").click());
+      emitView(ws, "piece-npc1");
+
+      // O Gon ataca o Capanga; o mestre arma a casa da fuga pelo NPC.
+      act(() => screen.getByRole("button", { name: /Fila/ }).click());
+      act(() => ws.emit("action_queued", { actionId: "a1", actorId: "c1", bars: ["action"] }));
+      act(() =>
+        ws.emit("turn_opened", {
+          turnId: "t1", actorId: "c1", actionId: "a1", actionType: "",
+          action: { uuid: "a1", actorId: "c1", reactionKind: "", targetId: ["npc1"], attack: {} },
+        }),
+      );
+      fireEvent.keyDown(
+        within(screen.getByRole("group", { name: "Reagir — Capanga" }))
+          .getByRole("button", { name: "Escapar — segure para configurar" }),
+        { key: "Enter" },
+      );
+      expect(screen.getByText("Toque na casa para onde Capanga escapa.")).toBeInTheDocument();
+
+      expect(ws.sent("watch_piece_view")).toEqual([{ pieceId: "piece-npc1" }]);
+      expect(mapStub()).not.toHaveAttribute("data-fog", "");
+    });
+
     it("draws the board through the watched piece", async () => {
       renderMasterPage();
       const ws = await waitForSocket();
