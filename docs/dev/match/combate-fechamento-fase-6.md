@@ -18,7 +18,7 @@ seções que ficaram velhas lá apontam para cá.
 | F3 | Tocar num card de Personagens abre a ficha **no painel**, que alarga só para ela. Não navega. |
 | F4 | O Histórico vem do REST (`GET /matches/{id}/history`): turnos, cenas, regime, fim de round e master actions, com o ao vivo por cima até o REST cobrir. |
 | F5 | Os cards de Personagens usam o dado público da ficha (avatar, capa, etiqueta de NPC). |
-| F6 | A faixa de barras por personagem, no topo do mapa: saldo, velocidades que agiram, média e preço (no Disputado). Igual para mestre e jogador. |
+| F6 | A faixa de barras por personagem, no topo do mapa: saldo, velocidades que agiram, média e preço (no Disputado). *Revisto em 2026-11: por destinatário (o mestre vê também pendentes, adiadas e preço provisório), escondida no Livre, uma média por barra — ver `combate-polimento-mesa.md`, "Barras ao vivo, por destinatário".* |
 | F7 | O card "em andamento" da Fila mostra o cálculo do turno aberto e, com I1, a declaração da ação. |
 | F8 | "Nova cena" (categoria + descrição), bloqueada com turno aberto. |
 | F10 | A lista de declaradas segue o servidor: o que ele não tem sai **com aviso** e o rascunho volta. |

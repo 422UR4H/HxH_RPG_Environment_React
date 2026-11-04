@@ -77,8 +77,8 @@ duplo) — antes a pinça sobre o véu ampliava a página. O canvas do Pixi mant
 `combat/queueOrder.ts` — `orderQueue(queue, order, mode)` devolve `{ action, inOrder, key? }[]`; o `QueuePanel`
 só renderiza. A fila do mestre aparece **na ordem em que as ações vão abrir**.
 
-- **De onde vem:** `bars_updated.order` (maior chave primeiro). Ele é público e **não carrega id de
-  ação**, então casa por **ator + conjunto de barras** (`sameBars`, ignora ordem): cada entrada
+- **De onde vem:** `bars_updated.order` (maior chave primeiro). Só o mestre o recebe (ver "Barras
+  ao vivo, por destinatário"); ele **não carrega id de ação**, então casa por **ator + conjunto de barras** (`sameBars`, ignora ordem): cada entrada
   consome uma ação da fila.
 - **Desempate** entre ações do mesmo ator e das mesmas barras: o servidor pega a de maior chave,
   que cresce com a velocidade, então **maior velocidade primeiro, depois chegada** (`>` estrito).
@@ -94,9 +94,59 @@ só renderiza. A fila do mestre aparece **na ordem em que as ações vão abrir*
   **ou** fora do Race com ordem vazia (no Free não há portão: a ordem só vem vazia com a fila
   vazia). No **Race, ordem vazia com fila cheia** quer dizer que nenhuma ação consegue pagar:
   todas ficam `inOrder: false` ("próxima rodada") — o mesmo estado em que o botão do mestre vira
-  "Encerrar rodada". O `QueuePanel` recebe `order` (opcional) e `mode`.
+  "Encerrar rodada". O `QueuePanel` recebe `order` (opcional) e `mode`. As ações `!inOrder` ficam
+  juntas no fim, sob **um** separador `Próximo round` (`data-testid="next-round-separator"`), não
+  mais uma etiqueta por linha; a "Ordem geral: chave N" do card sai por `fmt`.
 - Entrada da ordem sem ação correspondente é pulada (só acontece de passagem, quando
   `bars_updated` chega antes de `action_queued`).
+
+## Barras ao vivo, por destinatário
+
+> Spec: `System_X_System/docs/superpowers/specs/2026-11-04-live-bars-design.pt-br.md`. Contrato:
+> [`bars_updated`](../../../../System_X_System/docs/dev/api/match-combat-ws.md#bars_updated).
+> Código: `combat/GeneralBar.tsx`, `CharacterBarsStrip.tsx`, `barsMath.ts`, `OwnBars.tsx`,
+> `normalizeWire.ts`. Isto corrige o que as fases 6 e o fechamento diziam da barra geral e da faixa
+> ("igual para mestre e jogador", saldo congelado no round).
+
+**O que chega.** `bars_updated` (e `match_full_state.bars`) é **por destinatário**:
+
+- O **mestre** recebe tudo: velocidades abertas, **pendentes** (na fila, abrem neste round) e
+  **adiadas** (não cabem; abrem no próximo), `provisionalPrices` (preço das barras ainda não
+  congeladas, só Disputado) e `order` (já pontuada contra o preço provisório). Ele vê cada envio na
+  hora, dele e dos jogadores.
+- O **jogador** recebe só o que o mestre já abriu: `order: []`, sem pendentes, sem adiadas, sem
+  preço provisório. A ação que ele mesmo enviou não aparece nas barras até ser aberta. E ele só
+  recebe `bars_updated` quando **a visão dele mudou** (um envio de outro jogador não gera nada).
+- `actionBalance`/`moveBalance` são o **saldo ao vivo** (carry + média das velocidades − n × preço),
+  não mais o carry congelado do round. O que atravessou do round anterior é
+  `actionCarry`/`moveCarry`. Para o jogador o saldo só conta as velocidades já públicas e pode
+  pular quando uma abre: é esperado.
+- Os campos só do mestre chegam ausentes ao jogador; `normalizeBars` os transforma em `{}`/`[]`
+  (ver a tabela em `combate-fase-6.md`). `carry` ausente (servidor antigo) cai para o saldo.
+
+**`barsMath.ts`** (fora do componente, por Fast Refresh): `fmt` (uma casa; o sinal vem do valor já
+arredondado, `−` U+2212, nunca "−0"), `mean`, `priceOf(bars, bar)` (o congelado vence o provisório;
+devolve `{ price, provisional }`) e `barsRows(bars, roundMode)` — as linhas da faixa, vazias fora do
+Disputado.
+
+**`GeneralBar`.**
+- "Fila" (os chips da ordem) só com `showOrder`, ligado só pela `GameMasterPage`; o jogador nunca vê
+  "Fila" nem "Fila vazia". A chave de cada chip sai por `fmt` (antes era o número cru, ex.
+  `-5.333333333333332`).
+- O preço mostrado vem de `priceOf`; o provisório leva a marca `(provisório)`.
+- O botão "Barras" e a faixa **somem no Livre** (lá não há preço nem média).
+
+**`CharacterBarsStrip`.**
+- Escondida no Livre (`barsRows` vazio; o componente também devolve `null`). Linhas **ordenadas
+  pelo nome exibido** (localeCompare pt-BR), estáveis entre atualizações.
+- A linha existe quando o personagem tem alguma velocidade (aberta, pendente ou adiada) ou alguma
+  barra tem preço (congelado, ou provisório para o mestre).
+- Por barra (⚔ ação, ➜ movimento): medidor centrado no zero contra o preço **congelado ou
+  provisório** (`priceOf`) com o saldo ao vivo; sem preço, sem medidor; velocidades que agiram no
+  tom normal, **pendentes** mais fracas, e as **adiadas** depois de `Próximo round`. Um `x̄` **por
+  barra**, sobre as velocidades abertas e pendentes dessa barra (as que compõem o saldo).
+
+**`OwnBars`** mostra `actionBalance`/`moveBalance`, agora o saldo ao vivo.
 
 ## "Abrir próxima" / "Encerrar rodada" e o `Tooltip`
 
