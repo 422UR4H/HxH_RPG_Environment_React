@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { BgImage, GridShape, Piece, SlotCoord, WallSegment } from "../types/tacticalMap";
+import type { BgImage, GridShape, Piece, PieceView, SlotCoord, WallSegment } from "../types/tacticalMap";
 import type {
   AttachReactionPayload, ChangeScenePayload, CombatServerMessage, EditActionPayload, EnqueueActionPayload, MasterActionPayload, RoundMode,
 } from "../features/match/combat/combatMessages";
@@ -131,6 +131,8 @@ type UseMatchWsOptions = {
   onVisibilityUpdated?: (
     visiblePolygons: Array<Array<[number, number]>>,
   ) => void;
+  /** Mestre: o ponto de vista da peça observada (`piece_view`), a cada mudança dele. */
+  onPieceView?: (view: PieceView) => void;
   /** Called when a secret door is revealed by the master. */
   onWallRevealed?: (wall: WallSegment) => void;
   /**
@@ -189,6 +191,7 @@ export function useMatchWs({
   onWallHpChanged,
   onMapFullState,
   onVisibilityUpdated,
+  onPieceView,
   onWallRevealed,
   onPieceMoved,
   onPieceRemoved,
@@ -211,6 +214,8 @@ export function useMatchWs({
   onMapFullStateRef.current = onMapFullState;
   const onVisibilityUpdatedRef = useRef(onVisibilityUpdated);
   onVisibilityUpdatedRef.current = onVisibilityUpdated;
+  const onPieceViewRef = useRef(onPieceView);
+  onPieceViewRef.current = onPieceView;
   const onWallRevealedRef = useRef(onWallRevealed);
   onWallRevealedRef.current = onWallRevealed;
   const onPieceMovedRef = useRef(onPieceMoved);
@@ -237,15 +242,23 @@ export function useMatchWs({
    * ainda reconectando) nascia um fantasma que nunca ganharia ack nem erro: fantasma órfão
    * (spec §8 só previa "morre no error", não "nunca chegou a ser enviado").
    */
-  const sendRaw = useCallback((type: string, payload: unknown = {}): boolean => {
+  const sendUntracked = useCallback((type: string, payload: unknown = {}): boolean => {
     const ws = wsRef.current;
     if (ws && ws.readyState === WebSocket.OPEN) {
-      lastSentTypeRef.current = type;
       ws.send(JSON.stringify({ type, payload }));
       return true;
     }
     return false;
   }, []);
+  // Comando do usuário: o reducer atribui o próximo `error` ao último tipo enviado por aqui.
+  const sendRaw = useCallback(
+    (type: string, payload: unknown = {}): boolean => {
+      const sent = sendUntracked(type, payload);
+      if (sent) lastSentTypeRef.current = type;
+      return sent;
+    },
+    [sendUntracked],
+  );
 
   useEffect(() => {
     if (!matchUuid) return;
@@ -330,6 +343,19 @@ export function useMatchWs({
               visiblePolygons?: Array<Array<{ x: number; y: number }>>;
             };
             onVisibilityUpdatedRef.current?.(parsePolys(p.visiblePolygons ?? []));
+          } else if (msg.type === "piece_view") {
+            const p = msg.payload as {
+              pieceId: string;
+              visiblePolygons?: Array<Array<{ x: number; y: number }>>;
+              wallIds?: string[];
+              pieceIds?: string[];
+            };
+            onPieceViewRef.current?.({
+              pieceId: p.pieceId,
+              visiblePolygons: parsePolys(p.visiblePolygons ?? []),
+              wallIds: p.wallIds ?? [],
+              pieceIds: p.pieceIds ?? [],
+            });
           } else if (msg.type === "wall_revealed") {
             const p = msg.payload as { wall: Record<string, unknown> };
             onWallRevealedRef.current?.(p.wall as unknown as WallSegment);
@@ -515,9 +541,18 @@ export function useMatchWs({
     [sendRaw],
   );
 
+  // Mestre: `null` para de observar (vai como "" no fio). Não é comando do usuário — sai a
+  // cada seleção e a cada match_full_state —, então não entra na atribuição de erro: um
+  // `error` que chegue depois continua sendo do último comando de verdade.
+  const sendWatchPieceView = useCallback(
+    (pieceId: string | null) => sendUntracked("watch_piece_view", { pieceId: pieceId ?? "" }),
+    [sendUntracked],
+  );
+
   return {
     status,
     reconnect,
+    sendWatchPieceView,
     sendAction,
     sendMasterAction,
     sendEnqueueAction,

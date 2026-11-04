@@ -66,6 +66,38 @@ describe("useMatchWs fog events", () => {
     expect(onVisibilityUpdated).toHaveBeenCalledWith([[[1, 1], [2, 1], [2, 2]]]);
   });
 
+  it("parses piece_view into PieceView", () => {
+    const onPieceView = vi.fn();
+    renderHook(() => useMatchWs({ matchUuid: "m1", token: "t", onPieceView }));
+    const ws = flushConnect();
+    ws.onopen?.();
+    ws.emit("piece_view", {
+      pieceId: "p1",
+      visiblePolygons: [[{ x: 1, y: 1 }, { x: 2, y: 1 }, { x: 2, y: 2 }]],
+      wallIds: ["w1"],
+      pieceIds: ["p2"],
+    });
+    ws.emit("piece_view", { pieceId: "p1" });
+    expect(onPieceView).toHaveBeenNthCalledWith(1, {
+      pieceId: "p1",
+      visiblePolygons: [[[1, 1], [2, 1], [2, 2]]],
+      wallIds: ["w1"],
+      pieceIds: ["p2"],
+    });
+    expect(onPieceView).toHaveBeenNthCalledWith(2, {
+      pieceId: "p1", visiblePolygons: [], wallIds: [], pieceIds: [],
+    });
+  });
+
+  it("sendWatchPieceView(null) sends an empty pieceId", () => {
+    const { result } = renderHook(() => useMatchWs({ matchUuid: "m1", token: "t" }));
+    const ws = flushConnect();
+    act(() => { ws.onopen?.(); });
+    act(() => { result.current.sendWatchPieceView(null); });
+    act(() => { result.current.sendWatchPieceView("p9"); });
+    expect(ws.sent("watch_piece_view")).toEqual([{ pieceId: "" }, { pieceId: "p9" }]);
+  });
+
   // The server's piece shape is flat (pieceId/slot as siblings); the renderer reads
   // piece.coord.slot and piece.id. Forwarding the raw payload throws "Cannot read
   // properties of undefined (reading 'slot')" inside PieceSprite, which takes down the
@@ -468,6 +500,24 @@ describe("useMatchWs error handling", () => {
     ws.onopen?.();
     act(() => { result.current.sendAction({ targetId: ["w1"] }); });
     ws.emit("error", { code: "invalid_action", message: "actorId is required" });
+    expect(onWsError).toHaveBeenCalledWith({
+      code: "invalid_action",
+      message: "actorId is required",
+      sentType: "enqueue_action",
+    });
+  });
+
+  it("keeps attributing an error to the last user command after a sendWatchPieceView", () => {
+    const onWsError = vi.fn();
+    const { result } = renderHook(() =>
+      useMatchWs({ matchUuid: "m1", token: "t", onWsError }),
+    );
+    const ws = flushConnect();
+    ws.onopen?.();
+    act(() => { result.current.sendAction({ targetId: ["w1"] }); });
+    act(() => { result.current.sendWatchPieceView("p1"); });
+    ws.emit("error", { code: "invalid_action", message: "actorId is required" });
+    expect(ws.sent("watch_piece_view")).toEqual([{ pieceId: "p1" }]);
     expect(onWsError).toHaveBeenCalledWith({
       code: "invalid_action",
       message: "actorId is required",

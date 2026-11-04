@@ -10,6 +10,7 @@ import { useMatchParticipants } from "../../../hooks/useMatchParticipants";
 import { useCampaignDetails } from "../../../hooks/useCampaignDetails";
 import { isSameSlot, slotToTriple, tripleToSlot } from "../../tactical-map/utils/coords";
 import type { SlotTriple } from "../../tactical-map/utils/coords";
+import type { PieceView } from "../../../types/tacticalMap";
 import type { QueuedAction } from "./combatMessages";
 import { tableMap } from "./tableMap";
 import { useLiveMapSync } from "./useLiveMapSync";
@@ -101,6 +102,8 @@ export function useGameTable({
   // Conta os `match_full_state`: a página zera por ele o que não sobrevive a uma reconexão
   // (a confirmação pendente do Arrumar, F12).
   const [fullStateSeq, setFullStateSeq] = useState(0);
+  // Mestre: o último `piece_view` recebido; some a cada `match_full_state` (reconexão).
+  const [pieceView, setPieceView] = useState<PieceView | undefined>(undefined);
   const combat = useMatchCombat({
     matchUuid: matchId,
     userUuid: user?.uuid,
@@ -111,6 +114,7 @@ export function useGameTable({
     onMapFullState,
     onBoardUnavailable,
     onVisibilityUpdated: live.handleVisibilityUpdated,
+    onPieceView: setPieceView,
     onWallRevealed: live.handleWallRevealed,
     onPieceMoved: live.handlePieceMoved,
     onPieceRemoved: live.handlePieceRemoved,
@@ -120,6 +124,7 @@ export function useGameTable({
     // Toda (re)conexão: o que mudou enquanto a conexão estava caída só volta pelo REST.
     onFullState: () => {
       setFullStateSeq((n) => n + 1);
+      setPieceView(undefined);
       void refetchParticipants();
       void invalidateHistory();
       void queryClient.invalidateQueries({ queryKey: ["characterSheet", token] });
@@ -323,6 +328,7 @@ export function useGameTable({
     refit,
     openTurnPieceId,
     fullStateSeq,
+    pieceView,
     viewport,
     setViewport: viewport.set,
     pieceByCharacter,
