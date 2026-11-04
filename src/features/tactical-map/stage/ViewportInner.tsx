@@ -7,7 +7,8 @@ import type { SlotCoord } from "../../../types/tacticalMap";
 import MapHandlesLayer from "../MapHandlesLayer";
 import WallsLayer from "../WallsLayer";
 import FogLayer from "../FogLayer";
-import { worldToSlot, isSlotInBounds, slotCorners, gridWorldBounds, polygonsToWorld } from "../utils/coords";
+import { focusFrame, wholeMapScale } from "../utils/focusFrame";
+import { worldToSlot, slotToWorld, isSlotInBounds, slotCorners, gridWorldBounds, polygonsToWorld } from "../utils/coords";
 import type { ViewportTransform } from "../utils/screenAnchor";
 import type { TacticalMapStageProps } from "./stageProps";
 import BgLayer from "./BgLayer";
@@ -61,6 +62,7 @@ export default function ViewportInner({
   activePieceId,
   highlightHoverSlot,
   fitRequest,
+  fitFocusSlots,
   refitOnGridChange = true,
   onPieceDragToRoster,
   onPieceDragStart,
@@ -195,6 +197,12 @@ export default function ViewportInner({
   const gridRef = useRef(map.grid);
   gridRef.current = map.grid;
   const gridTrigger = refitOnGridChange ? map.grid : null;
+  // Idem para as casas do foco: ler pelo ref evita reenquadrar a cada movimento da peça; só a
+  // presença (`hasFocus`) entra nas dependências, para enquadrar uma vez quando a primeira
+  // peça própria aparece (sujeito à regra do `userMovedRef`).
+  const focusSlotsRef = useRef(fitFocusSlots);
+  focusSlotsRef.current = fitFocusSlots;
+  const hasFocus = !!fitFocusSlots?.length;
   const fittedRequestRef = useRef<number | undefined>(undefined);
   useEffect(() => {
     const vp = vpRef.current;
@@ -207,11 +215,24 @@ export default function ViewportInner({
     const w = wb.maxX - wb.minX;
     const h = wb.maxY - wb.minY;
     if (w <= 0 || h <= 0) return;
-    const scale = Math.min(Math.max(Math.min(width / w, height / h) * 0.94, 0.25), 1.75);
+    const view = { width, height };
+    const whole = wholeMapScale(view, w, h);
+    const focusSlots = focusSlotsRef.current;
+    let scale = whole;
+    let center = { x: (wb.minX + wb.maxX) / 2, y: (wb.minY + wb.maxY) / 2 };
+    if (focusSlots?.length) {
+      const grid = gridRef.current;
+      ({ scale, center } = focusFrame(
+        focusSlots.map((s) => slotToWorld(s, grid)),
+        grid.cellSize,
+        view,
+        whole,
+      ));
+    }
     vp.setZoom(scale, true);
-    vp.moveCenter((wb.minX + wb.maxX) / 2, (wb.minY + wb.maxY) / 2);
+    vp.moveCenter(center.x, center.y);
     setVpScale(scale);
-  }, [fitRequest, vpReady, width, height, gridTrigger]);
+  }, [fitRequest, vpReady, width, height, gridTrigger, hasFocus]);
 
   // ─── Viewport pan via DOM events ─────────────────────────────────────────
   //

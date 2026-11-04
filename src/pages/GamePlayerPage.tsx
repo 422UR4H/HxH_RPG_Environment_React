@@ -222,6 +222,11 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
 
   // Personagens: quem o mapa deste jogador mostra (o fog do servidor já recortou), mais os
   // próprios personagens mesmo antes da peça chegar.
+  // Casas das peças próprias, para o enquadramento (o stage só reage à presença, não ao movimento).
+  const myPieceSlots = useMemo(
+    () => game.boardPieces.filter((p) => myActorIds.has(p.characterId)).map((p) => p.coord.slot),
+    [game.boardPieces, myActorIds],
+  );
   const visibleParticipants = useMemo(() => {
     const onBoard = new Set(game.boardPieces.map((p) => p.characterId));
     const mine = new Set(myCharacters.map((p) => p.characterSheet.uuid));
@@ -342,6 +347,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
                   intentGhosts={game.ghosts}
                   highlightHoverSlot={!!actorId}
                   fitRequest={game.fitRequest}
+                  fitFocusSlots={myPieceSlots}
                   onEmptySlotClick={handleSlotTap}
                   onViewportTransform={game.setViewport}
                 />

@@ -50,6 +50,9 @@ export type TacticalMapStageProps = {
   highlightHoverSlot?: boolean;
   // Game only: fit the whole grid on screen on mount, and again whenever this changes.
   fitRequest?: number;
+  // Game (jogador): casas das peças próprias. Com alguma, o enquadramento centra nelas (cerca de
+  // 9 células no lado menor, sem afastar além do mapa inteiro); vazio/ausente = mapa inteiro.
+  fitFocusSlots?: SlotCoord[];
   // Padrão `true` (mesa): mudar a grade reenquadra enquanto a câmera não foi mexida. O editor
   // passa `false`: ali a grade muda a cada edição/arraste de alça, e reenquadrar brigaria com
   // a mão (zoom a cada tecla; laço no arraste de canto). Só `fitRequest` e o tamanho do canvas

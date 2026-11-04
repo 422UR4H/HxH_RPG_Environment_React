@@ -31,6 +31,8 @@ type Props = {
   intentGhosts?: Array<{ from?: SlotTriple; to: SlotTriple }>;
   highlightHoverSlot?: boolean;
   fitRequest?: number;
+  // See stageProps.ts — player framing on their own pieces.
+  fitFocusSlots?: SlotCoord[];
   onEmptySlotClick?: (slot: SlotCoord, clientX: number, clientY: number) => void;
   // Arrumar do mestre (F12): o mesmo arrastar e pôr do placer do lobby, só repassados.
   onPieceMove?: (pieceId: string, slot: SlotCoord) => void;
@@ -44,7 +46,7 @@ export default function TacticalMapViewer({
   map, width, height, npcMap, onWallClick, onWallLongPress, isWallTappable, fog,
   piecesInteractive, draggablePieceIds, onPieceSelect, onPieceLongPress,
   selectedPieceId, inspectedPieceId, targetPieceIds, activePieceId, onEmptySlotClick,
-  suppressPanOnPiecePress, intentPreview, intentGhosts, highlightHoverSlot, fitRequest,
+  suppressPanOnPiecePress, intentPreview, intentGhosts, highlightHoverSlot, fitRequest, fitFocusSlots,
   onPieceMove, placingNpcId, onNpcPlaced, onViewportTransform,
 }: Props) {
   return (
@@ -71,6 +73,7 @@ export default function TacticalMapViewer({
       intentGhosts={intentGhosts}
       highlightHoverSlot={highlightHoverSlot}
       fitRequest={fitRequest}
+      fitFocusSlots={fitFocusSlots}
       onEmptySlotClick={onEmptySlotClick}
       suppressPanOnPiecePress={suppressPanOnPiecePress}
       onPieceMove={onPieceMove}
