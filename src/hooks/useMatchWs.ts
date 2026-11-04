@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { BgImage, GridShape, Piece, SlotCoord, WallSegment } from "../types/tacticalMap";
+import type { BgImage, GridShape, Piece, PieceView, SlotCoord, WallSegment } from "../types/tacticalMap";
 import type {
   AttachReactionPayload, ChangeScenePayload, CombatServerMessage, EditActionPayload, EnqueueActionPayload, MasterActionPayload, RoundMode,
 } from "../features/match/combat/combatMessages";
@@ -131,6 +131,8 @@ type UseMatchWsOptions = {
   onVisibilityUpdated?: (
     visiblePolygons: Array<Array<[number, number]>>,
   ) => void;
+  /** Mestre: o ponto de vista da peça observada (`piece_view`), a cada mudança dele. */
+  onPieceView?: (view: PieceView) => void;
   /** Called when a secret door is revealed by the master. */
   onWallRevealed?: (wall: WallSegment) => void;
   /**
@@ -189,6 +191,7 @@ export function useMatchWs({
   onWallHpChanged,
   onMapFullState,
   onVisibilityUpdated,
+  onPieceView,
   onWallRevealed,
   onPieceMoved,
   onPieceRemoved,
@@ -211,6 +214,8 @@ export function useMatchWs({
   onMapFullStateRef.current = onMapFullState;
   const onVisibilityUpdatedRef = useRef(onVisibilityUpdated);
   onVisibilityUpdatedRef.current = onVisibilityUpdated;
+  const onPieceViewRef = useRef(onPieceView);
+  onPieceViewRef.current = onPieceView;
   const onWallRevealedRef = useRef(onWallRevealed);
   onWallRevealedRef.current = onWallRevealed;
   const onPieceMovedRef = useRef(onPieceMoved);
@@ -330,6 +335,19 @@ export function useMatchWs({
               visiblePolygons?: Array<Array<{ x: number; y: number }>>;
             };
             onVisibilityUpdatedRef.current?.(parsePolys(p.visiblePolygons ?? []));
+          } else if (msg.type === "piece_view") {
+            const p = msg.payload as {
+              pieceId: string;
+              visiblePolygons?: Array<Array<{ x: number; y: number }>>;
+              wallIds?: string[];
+              pieceIds?: string[];
+            };
+            onPieceViewRef.current?.({
+              pieceId: p.pieceId,
+              visiblePolygons: parsePolys(p.visiblePolygons ?? []),
+              wallIds: p.wallIds ?? [],
+              pieceIds: p.pieceIds ?? [],
+            });
           } else if (msg.type === "wall_revealed") {
             const p = msg.payload as { wall: Record<string, unknown> };
             onWallRevealedRef.current?.(p.wall as unknown as WallSegment);
@@ -515,9 +533,16 @@ export function useMatchWs({
     [sendRaw],
   );
 
+  // Mestre: `null` para de observar (vai como "" no fio).
+  const sendWatchPieceView = useCallback(
+    (pieceId: string | null) => sendRaw("watch_piece_view", { pieceId: pieceId ?? "" }),
+    [sendRaw],
+  );
+
   return {
     status,
     reconnect,
+    sendWatchPieceView,
     sendAction,
     sendMasterAction,
     sendEnqueueAction,

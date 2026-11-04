@@ -56,6 +56,17 @@ export type Piece = {
   visible: boolean;    // Fase 7. Default true. Evolui pra visibleTo: 'all' | UserId[]
 };
 
+/**
+ * Ponto de vista de uma peça, só para o mestre (`piece_view`): o que ela enxerga agora.
+ * Os polígonos têm o mesmo formato parseado de `visibility_updated`.
+ */
+export type PieceView = {
+  pieceId: string;
+  visiblePolygons: Array<Array<[number, number]>>;
+  wallIds: string[];
+  pieceIds: string[];
+};
+
 // ─── Paredes ────────────────────────────────────────────────────────────────
 export type WallType =
   | "wall"

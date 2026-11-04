@@ -28,6 +28,7 @@ type Options = {
 } & Pick<
   Parameters<typeof useMatchWs>[0],
   | "onWallStateChanged" | "onWallHpChanged" | "onMapFullState" | "onVisibilityUpdated"
+  | "onPieceView"
   | "onWallRevealed" | "onPieceMoved" | "onPieceRemoved" | "onBoardUnavailable"
 >;
 
@@ -158,6 +159,7 @@ export function useMatchCombat({
       editAction: ws.sendEditAction,
       attachReaction,
       openReaction: ws.sendOpenReaction,
+      watchPieceView: ws.sendWatchPieceView,
     },
     dismissError: useCallback(() => dispatch({ type: "ERROR_DISMISSED" }), []),
     dismissCloseTurnDialog: useCallback(() => dispatch({ type: "CLOSE_TURN_DIALOG_DISMISSED" }), []),
