@@ -118,7 +118,8 @@ só renderiza. A fila do mestre aparece **na ordem em que as ações vão abrir*
   preço provisório. A ação que ele mesmo enviou não aparece nas barras até ser aberta. E ele só
   recebe `bars_updated` quando **a visão dele mudou** (um envio de outro jogador não gera nada).
 - `actionBalance`/`moveBalance` são o **saldo ao vivo** (carry + média das velocidades − n × preço),
-  não mais o carry congelado do round. O que atravessou do round anterior é
+  não mais o carry congelado do round. Para o mestre as velocidades são as que agiram **mais a
+  próxima pendente** (D7): o saldo é o que sobra depois que a próxima ação pagar. O que atravessou do round anterior é
   `actionCarry`/`moveCarry`. Para o jogador o saldo só conta as velocidades já públicas e pode
   pular quando uma abre: é esperado.
 - Os campos só do mestre chegam ausentes ao jogador; `normalizeBars` os transforma em `{}`/`[]`
@@ -126,8 +127,19 @@ só renderiza. A fila do mestre aparece **na ordem em que as ações vão abrir*
 
 **`barsMath.ts`** (fora do componente, por Fast Refresh): `fmt` (uma casa; o sinal vem do valor já
 arredondado, `−` U+2212, nunca "−0"), `mean`, `priceOf(bars, bar)` (o congelado vence o provisório;
-devolve `{ price, provisional }`) e `barsRows(bars, roundMode)` — as linhas da faixa, vazias fora do
-Disputado.
+devolve `{ price, provisional }`), `barsRows(bars, roundMode)` — as linhas da faixa, vazias fora do
+Disputado — e, para a faixa (D7 de `2026-11-06-stacked-moves-design.md`):
+
+- `barFields(c, bar)` — os campos de uma barra sem o prefixo `action`/`move`.
+- `barTotal(c, bar)` — o total da **próxima** ação: `carry + mean(agiram ++ pendentes[:1])`. A
+  primeira pendente é a próxima (o mestre recebe as pendentes já na ordem projetada); as demais não
+  contam. O jogador não recebe pendentes: para ele é `carry + mean(agiram)`. Sem velocidade o total
+  é o carry (média vazia = 0, como no servidor); sem velocidade e sem carry, `undefined`.
+- `barScale(rows, bars, bar)` — a largura cheia, comum à faixa toda: o maior `max(total, preço)`.
+- `barTicks(price, scale)` — os múltiplos do preço estritamente dentro da escala.
+
+O saldo que chega (`actionBalance`/`moveBalance`) já pagou a próxima ação no servidor (D7
+"Servidor"), então o que ela gasta é `total − saldo`.
 
 **`GeneralBar`.**
 - "Fila" (os chips da ordem) só com `showOrder`, ligado só pela `GameMasterPage`; o jogador nunca vê
@@ -141,10 +153,26 @@ Disputado.
   pelo nome exibido** (localeCompare pt-BR), estáveis entre atualizações.
 - A linha existe quando o personagem tem alguma velocidade (aberta, pendente ou adiada) ou alguma
   barra tem preço (congelado, ou provisório para o mestre).
-- Por barra (⚔ ação, ➜ movimento): medidor centrado no zero contra o preço **congelado ou
-  provisório** (`priceOf`) com o saldo ao vivo; sem preço, sem medidor; velocidades que agiram no
-  tom normal, **pendentes** mais fracas, e as **adiadas** depois de `Próximo round`. Um `x̄` **por
-  barra**, sobre as velocidades abertas e pendentes dessa barra (as que compõem o saldo).
+- **Uma grade só** (`display: grid`; a linha é `display: contents`). Cada linha desenha **todas** as
+  células — nome e, por barra, caixa / agiram / pendentes / adiadas —, vazias quando não há o que
+  mostrar: a barra de movimento nunca anda porque a de ação ganhou uma velocidade. Um valor mais
+  largo alarga a coluna em todas as linhas (a grade faz isso). Sem `column-gap`: a célula não vazia
+  leva 8 px à esquerda, e uma coluna vazia em todas as linhas fica com largura zero.
+- Números em `tabular-nums`; cada velocidade com `min-width: 3ch`, o total com `5ch` (cabe uma casa).
+- Por barra (⚔ ação, ➜ movimento), a caixa tem ícone, trilho e número. O trilho enche até o
+  **total** (`barTotal`) contra a escala comum (`barScale`), na cor da barra (`vitalActionBar` = o
+  vermelho do ataque, `vitalMoveBar` = o azul do movimento) sobre o mesmo matiz a 18 %
+  (`vital*BarTrack`); um traço de 1 px (`overlayDark`) em cada múltiplo do preço. Nenhum verde.
+- **Hover e foco** (a caixa é focável, `tabIndex=0`) escurecem `[0, gasto]` com `overlayMedium` e
+  trocam o número por **"saldo X"** em negrito, texto primário. Saldo negativo escurece o
+  preenchimento inteiro ("saldo −3"). O texto fora de vista fica no mesmo lugar, invisível
+  (`visibility: hidden`), para a troca não mudar a largura da coluna.
+- O `Tooltip` do projeto diz `"Ação: saldo 6 de 9"` (preço congelado ou provisório); não há mais
+  `title` nativo.
+- Sem preço: a célula fica, trilho vazio, sem traços, o número é o total (se há velocidade), sem
+  troca no hover e sem foco. Sem preço **e** sem velocidade: célula vazia, nem o ícone.
+- Velocidades que agiram no tom mais forte, **pendentes** mais fracas, e as **adiadas** depois de
+  `Próximo round` (não entram no total). O `x̄` saiu: o total ao lado da barra o substitui.
 
 **`OwnBars`** mostra `actionBalance`/`moveBalance`, agora o saldo ao vivo.
 

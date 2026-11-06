@@ -1,8 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, within } from "@testing-library/react";
 import GeneralBar from "../GeneralBar";
-import CharacterBarsStrip from "../CharacterBarsStrip";
-import { barsRows, fmt } from "../barsMath";
 import OwnBars from "../OwnBars";
 import QueuePanel from "../QueuePanel";
 import CloseTurnRefusedDialog from "../CloseTurnRefusedDialog";
@@ -136,140 +134,7 @@ describe("GeneralBar", () => {
   });
 });
 
-function Strip({ bars, mode }: { bars: BarsPayload; mode: "Race" | "Free" }) {
-  return <CharacterBarsStrip rows={barsRows(bars, mode)} bars={bars} roundMode={mode} nameOf={nameOf} />;
-}
-
-describe("CharacterBarsStrip", () => {
-  it("Disputado: saldo com uma casa, velocidades e média", () => {
-    render(<Strip bars={raceBars} mode="Race" />);
-    expect(screen.getByText("Gon")).toBeInTheDocument();
-    expect(screen.getByText(`${MINUS}2.5`)).toBeInTheDocument();
-    expect(screen.getByText("16 · 14")).toBeInTheDocument();
-    expect(screen.getByText("x̄ 15")).toBeInTheDocument();
-    expect(screen.getAllByRole("meter")).toHaveLength(2);
-  });
-
-  it("renders nothing in the Free regime", () => {
-    render(<Strip bars={{ ...raceBars, prices: {} }} mode="Free" />);
-    expect(screen.queryByText("Gon")).toBeNull();
-    expect(screen.queryAllByRole("meter")).toHaveLength(0);
-    expect(screen.queryByText("16 · 14")).toBeNull();
-  });
-
-  const empty = { actionCarry: 0, moveCarry: 0, actionBalance: 0, moveBalance: 0, actionSpeeds: [], moveSpeeds: [], pendingActionSpeeds: [], pendingMoveSpeeds: [], deferredActionSpeeds: [], deferredMoveSpeeds: [] };
-
-  it("shows a row the moment a master payload carries a pending speed", () => {
-    const b: BarsPayload = { ...raceBars, prices: {}, provisionalPrices: { action: 11 },
-      characters: [{ characterId: "c1", ...empty, actionBalance: 12, pendingActionSpeeds: [23] }] };
-    render(<Strip bars={b} mode="Race" />);
-    expect(screen.getByText("Gon")).toBeInTheDocument();
-    expect(screen.getByRole("meter")).toHaveAttribute("aria-valuenow", "12");
-    expect(screen.getByText("23")).toBeInTheDocument();
-  });
-
-  it("lists deferred speeds after a \"Próximo round\" separator", () => {
-    const b: BarsPayload = { ...raceBars,
-      characters: [{ characterId: "c1", ...empty, actionSpeeds: [16], deferredActionSpeeds: [9] }] };
-    render(<Strip bars={b} mode="Race" />);
-    const label = screen.getByText("Próximo round");
-    const nine = screen.getByText("9");
-    expect(label.compareDocumentPosition(nine) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(nine).not.toHaveStyle("text-decoration: line-through");
-  });
-
-  it("puts the mean before the \"Próximo round\" separator", () => {
-    const b: BarsPayload = { ...raceBars,
-      characters: [{ characterId: "c1", ...empty, actionSpeeds: [20], deferredActionSpeeds: [16] }] };
-    render(<Strip bars={b} mode="Race" />);
-    const avg = screen.getByText("x̄ 20");
-    const label = screen.getByText("Próximo round");
-    expect(avg.compareDocumentPosition(label) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  });
-
-  it("shows the bar icon on a bar with speeds but no price", () => {
-    const b: BarsPayload = { ...raceBars, prices: { action: 14 },
-      characters: [{ characterId: "c1", ...empty, actionSpeeds: [16], moveSpeeds: [18] }] };
-    render(<Strip bars={b} mode="Race" />);
-    expect(screen.getAllByRole("meter")).toHaveLength(1);
-    const icon = screen.getByRole("img", { name: "movimento" });
-    expect(icon).toHaveTextContent("➜");
-    const speed = screen.getByText("18");
-    expect(icon.compareDocumentPosition(speed) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  });
-
-  it("averages each bar on its own", () => {
-    const b: BarsPayload = { ...raceBars,
-      characters: [{ characterId: "c1", ...empty, actionSpeeds: [23], pendingActionSpeeds: [17], moveSpeeds: [12] }] };
-    render(<Strip bars={b} mode="Race" />);
-    expect(screen.getByText("x̄ 20")).toBeInTheDocument();
-    expect(screen.getByText("x̄ 12")).toBeInTheDocument();
-    expect(screen.queryByText("x̄ 17.3")).toBeNull();
-  });
-
-  it("keeps rows sorted by name across updates", () => {
-    const row = (id: string) => ({ characterId: id, ...empty, actionSpeeds: [10] });
-    const a: BarsPayload = { ...raceBars, characters: [row("c2"), row("c1")] };
-    const { container, rerender } = render(<Strip bars={a} mode="Race" />);
-    const names = () => Array.from(container.querySelectorAll("span")).map((e) => e.textContent).filter((t) => t === "Gon" || t === "Killua");
-    expect(names()).toEqual(["Gon", "Killua"]);
-    rerender(<Strip bars={{ ...a, characters: [row("c1"), row("c2")] }} mode="Race" />);
-    expect(names()).toEqual(["Gon", "Killua"]);
-  });
-
-  it("barra sem preço não é desenhada", () => {
-    render(<Strip bars={{ ...raceBars, prices: { action: 14 } }} mode="Race" />);
-    expect(screen.getAllByRole("meter")).toHaveLength(1);
-    // Sem preço e sem velocidade, o grupo inteiro some — ícone incluso.
-    expect(screen.queryByText("➜")).toBeNull();
-  });
-});
-
-describe("CharacterBarsStrip — linhas sem dado", () => {
-  it("lists only characters with speed or balance", () => {
-    const mixed: BarsPayload = {
-      ...raceBars, prices: {},
-      characters: [
-        { characterId: "c1", actionCarry: 0, moveCarry: 0, actionBalance: 0, moveBalance: 0, actionSpeeds: [16], moveSpeeds: [], pendingActionSpeeds: [], pendingMoveSpeeds: [], deferredActionSpeeds: [], deferredMoveSpeeds: [] },
-        { characterId: "c2", actionCarry: 0, moveCarry: 0, actionBalance: 0, moveBalance: 0, actionSpeeds: [], moveSpeeds: [], pendingActionSpeeds: [], pendingMoveSpeeds: [], deferredActionSpeeds: [], deferredMoveSpeeds: [] },
-      ],
-    };
-    render(<Strip bars={mixed} mode="Race" />);
-    expect(screen.getByText("Gon")).toBeInTheDocument();
-    expect(screen.queryByText("Killua")).toBeNull();
-  });
-});
-
-describe("barsRows", () => {
-  it("keeps a Race row that has a price but no speed", () => {
-    const priced: BarsPayload = {
-      ...raceBars, prices: { action: 14 },
-      characters: [{ characterId: "c1", actionCarry: 0, moveCarry: 0, actionBalance: 0, moveBalance: 0, actionSpeeds: [], moveSpeeds: [], pendingActionSpeeds: [], pendingMoveSpeeds: [], deferredActionSpeeds: [], deferredMoveSpeeds: [] }],
-    };
-    expect(barsRows(priced, "Race")).toHaveLength(1);
-    expect(barsRows(priced, "Free")).toHaveLength(0);
-    expect(barsRows(null, "Race")).toEqual([]);
-  });
-});
-
-describe("fmt (barsMath)", () => {
-  it("negativo que arredonda para zero perde o sinal — não existe \"−0\"", () => {
-    expect(fmt(-0.04)).toBe("0");
-    expect(fmt(-0.049)).toBe("0");
-  });
-
-  it("zero é \"0\", sem sinal", () => {
-    expect(fmt(0)).toBe("0");
-  });
-
-  it("inteiro não ganha \".0\"", () => {
-    expect(fmt(3)).toBe("3");
-  });
-
-  it("negativo de verdade mantém o sinal e a casa decimal", () => {
-    expect(fmt(-2.5)).toBe(`${MINUS}2.5`);
-  });
-});
+// Faixa de barras (CharacterBarsStrip) e barsMath: em CharacterBarsStrip.test.tsx e barsMath.test.ts (D7).
 
 describe("OwnBars", () => {
   it("mostra os saldos fracionários com sinal e uma casa decimal", () => {
@@ -338,7 +203,7 @@ describe("QueuePanel", () => {
   });
 
   describe("action speed line", () => {
-    const emptySpeed = { bar: 0, rollCheck: { skillName: "", skillValue: 0, result: 0 } };
+    const emptySpeed = { bar: 0, rollCheck: { skillName: "", skillValue: 0, attempts: { primary: [] }, result: 0 } };
     const renderOne = (queued: React.ComponentProps<typeof QueuePanel>["queue"][number]) =>
       render(<QueuePanel nameOf={nameOf} order={[]} gridKind="square" queue={[queued]} onPull={() => {}} />);
 

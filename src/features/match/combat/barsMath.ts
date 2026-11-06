@@ -45,3 +45,40 @@ export function hasBarsData(
   if (speeds.some((l) => l.length > 0)) return true;
   return roundMode === "Race" && (["action", "move"] as Bar[]).some((b) => priceOf(bars, b) !== undefined);
 }
+
+type BarsRow = BarsPayload["characters"][number];
+
+/** Os campos de uma barra de uma linha, sem o prefixo action/move. */
+export function barFields(c: BarsRow, bar: Bar) {
+  return bar === "action"
+    ? { carry: c.actionCarry, balance: c.actionBalance, acted: c.actionSpeeds, pending: c.pendingActionSpeeds, deferred: c.deferredActionSpeeds }
+    : { carry: c.moveCarry, balance: c.moveBalance, acted: c.moveSpeeds, pending: c.pendingMoveSpeeds, deferred: c.deferredMoveSpeeds };
+}
+
+/**
+ * O total da PRÓXIMA ação (D7): `carry + mean(agiram ++ [próxima])`. A próxima é a primeira pendente
+ * (o mestre recebe as pendentes já na ordem projetada); as demais não contam. O jogador não recebe
+ * pendentes, então para ele é `carry + mean(agiram)`. Sem velocidade nenhuma o total é o carry — a
+ * média vazia vale 0, como no servidor (`BarEconomy.Mean`) —, e sem carry também não há total.
+ * O que a próxima ação gasta é `total − saldo` (o saldo que chega já pagou ela).
+ */
+export function barTotal(c: BarsRow, bar: Bar): number | undefined {
+  const { carry, acted, pending } = barFields(c, bar);
+  const speeds = [...acted, ...pending.slice(0, 1)];
+  if (speeds.length === 0 && carry === 0) return undefined;
+  return carry + (mean(speeds) ?? 0);
+}
+
+/** Largura cheia de uma barra, a mesma para a faixa inteira: o maior `max(total, preço)` entre as linhas. */
+export function barScale(rows: BarsRow[], bars: BarsPayload, bar: Bar): number {
+  const price = priceOf(bars, bar)?.price ?? 0;
+  return rows.reduce((m, c) => Math.max(m, barTotal(c, bar) ?? 0), Math.max(0, price));
+}
+
+/** Um traço em cada múltiplo do preço estritamente dentro da escala (na borda o fim da barra já marca). */
+export function barTicks(price: number | undefined, scale: number): number[] {
+  if (!price || price <= 0) return [];
+  const ticks: number[] = [];
+  for (let at = price; at < scale; at += price) ticks.push(at);
+  return ticks;
+}
