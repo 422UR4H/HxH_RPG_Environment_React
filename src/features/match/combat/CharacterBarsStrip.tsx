@@ -212,8 +212,9 @@ const Box = styled.span`
   align-items: center;
   gap: 4px;
   border-radius: 2px;
+  /* Só o afastamento é próprio (2 px; o global tem 3): as células da tira são coladas. O
+     contorno e a cor vêm do anel global (--focus-ring). */
   &:focus-visible {
-    outline: 1px solid ${colors.textPrimary};
     outline-offset: 2px;
   }
 `;
