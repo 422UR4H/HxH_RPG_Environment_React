@@ -337,6 +337,29 @@ describe("QueuePanel", () => {
     expect(onPull).toHaveBeenCalledWith("a2");
   });
 
+  describe("action speed line", () => {
+    const emptySpeed = { bar: 0, rollCheck: { skillName: "", skillValue: 0, result: 0 } };
+    const renderOne = (queued: React.ComponentProps<typeof QueuePanel>["queue"][number]) =>
+      render(<QueuePanel nameOf={nameOf} order={[]} gridKind="square" queue={[queued]} onPull={() => {}} />);
+
+    it("a pure move shows only the move speed", () => {
+      renderOne({ actionId: "m1", actorId: "n1", bars: ["move"], action: { ...fullAction, speed: emptySpeed, attack: undefined } });
+      expect(screen.getByText(/Velocidade de movimento/)).toBeInTheDocument();
+      expect(screen.queryByText(/Velocidade de ação/)).not.toBeInTheDocument();
+    });
+
+    it("a combined move + attack shows both speeds", () => {
+      renderOne({ actionId: "c1", actorId: "n1", bars: ["action", "move"], action: fullAction });
+      expect(screen.getByText(/Velocidade de movimento/)).toBeInTheDocument();
+      expect(screen.getByText(/Velocidade de ação/)).toBeInTheDocument();
+    });
+
+    it("without bars (open card after reconnect) an empty skillName hides the action speed", () => {
+      renderOne({ actionId: "m2", actorId: "n1", bars: [], action: { ...fullAction, speed: emptySpeed } });
+      expect(screen.queryByText(/Velocidade de ação/)).not.toBeInTheDocument();
+    });
+  });
+
   it("mostra as linhas na ordem do servidor, não da chegada; fora da ordem leva a etiqueta", () => {
     render(
       <QueuePanel
@@ -438,8 +461,8 @@ describe("QueuePanel", () => {
       <QueuePanel
         nameOf={nameOf}
         gridKind="square"
-        order={[{ actorId: "n1", bars: ["move"], key: 9 }]}
-        queue={[{ actionId: "a2", actorId: "n1", bars: ["move"], action: fullAction }]}
+        order={[{ actorId: "n1", bars: ["action", "move"], key: 9 }]}
+        queue={[{ actionId: "a2", actorId: "n1", bars: ["action", "move"], action: fullAction }]}
         onPull={() => {}}
       />,
     );

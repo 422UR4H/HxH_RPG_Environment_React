@@ -56,6 +56,16 @@ function QueuedActionEdits({
 }
 
 /**
+ * Só a ação que cobra a barra de ação tem velocidade de ação (D1): um movimento puro chega com
+ * `speed.rollCheck` vazio (sem perícia, resultado 0). Sem `bars` (card em andamento após
+ * reconexão), o `skillName` vazio é o que diz que a velocidade não existe.
+ */
+function chargesActionBar(bars: Bar[] | undefined, detail: QueuedActionDetail): boolean {
+  if (bars?.length) return bars.includes("action");
+  return !!detail.speed?.rollCheck?.skillName;
+}
+
+/**
  * O detalhe de uma ação (T13/F1) — tudo que a declaração carrega, no nível Full que só o
  * mestre recebe. Sem declaração (servidor antigo), quem chama nem monta este componente.
  * `orderKey` é a chave da entrada da ordem que `orderQueue` casou com ESTA ação (a em
@@ -86,7 +96,7 @@ function QueueRowDetails({
         </DetailLine>
       )}
       {!!detail.skills?.length && <DetailLine>Perícias: {detail.skills.map((s) => s.skillName).join(", ")}</DetailLine>}
-      {detail.speed?.rollCheck && (
+      {chargesActionBar(bars, detail) && detail.speed?.rollCheck && (
         <DetailLine>
           Velocidade de ação: {detail.speed.rollCheck.skillName}
           {detail.speed.rollCheck.attempts?.primary && ` ${detail.speed.rollCheck.attempts.primary.join(" + ")}`}

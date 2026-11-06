@@ -102,6 +102,16 @@ describe("orderQueue", () => {
     expect(orderQueue([A], [], "Race")[0].key).toBeUndefined();
   });
 
+  it("a move with an empty action speed (result 0) is ordered by its move speed only", () => {
+    const pure = (id: string, mov: number) =>
+      ({ ...q(id, "A", ["move"]), action: { uuid: id, actorId: "A", reactionKind: "", speed: { bar: 0, rollCheck: { skillName: "", result: 0 } }, move: { category: "Dash", finalSpeed: mov } } }) as QueuedAction;
+    const order = [
+      { actorId: "A", bars: ["move" as const], key: 9 },
+      { actorId: "A", bars: ["move" as const], key: 3 },
+    ];
+    expect(ids(orderQueue([pure("slow", 3), pure("fast", 9)], order))).toEqual(["fast", "slow"]);
+  });
+
   it("ação nas duas barras desempata pela menor das duas velocidades", () => {
     const both = (id: string, act: number, mov: number) =>
       ({ ...q(id, "A", ["action", "move"]), action: { uuid: id, actorId: "A", reactionKind: "", speed: { bar: 0, rollCheck: { result: act } }, move: { category: "Dash", finalSpeed: mov } } }) as QueuedAction;

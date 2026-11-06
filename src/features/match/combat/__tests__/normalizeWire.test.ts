@@ -157,6 +157,15 @@ describe("normalizeWire — R33", () => {
 
   // T13/B1: `action` (actionwire.Full) não tem lista nil-ável nenhuma (toda `omitempty`) —
   // passa intacto, byte a byte, enquanto `bars` continua normalizado como sempre.
+  it("action_queued keeps move.stackedOn", () => {
+    const action = {
+      uuid: "a2", actorId: "c1", reactionKind: "",
+      move: { category: "Dash", position: [6, 4, 0] as [number, number, number], stackedOn: "a1", finalSpeed: 12 },
+    };
+    const out = normalizeQueuedAction({ actionId: "a2", actorId: "c1", bars: ["move"], action });
+    expect(out.action?.move?.stackedOn).toBe("a1");
+  });
+
   it("action_queued com a action completa e bars null: action intacta, bars vira []", () => {
     const action = {
       uuid: "a1",
