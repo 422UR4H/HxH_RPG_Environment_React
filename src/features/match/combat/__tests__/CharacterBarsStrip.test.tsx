@@ -170,10 +170,32 @@ describe("CharacterBarsStrip — bars without price", () => {
     expect(bar).not.toHaveAccessibleDescription();
   });
 
-  it("a bar with no price and no speed leaves an empty cell (no icon)", () => {
-    render(<Strip bars={payload([row("c1", { actionSpeeds: [16], actionBalance: 2 })], { action: 14 })} />);
-    expect(screen.queryByText("➜")).toBeNull();
-    expect(screen.getByRole("img", { name: "ação" })).toHaveTextContent("⚔");
+  it("a bar with no price and no speed still renders icon and empty track", () => {
+    // Antes: sem nada, nem o ícone (a coluna colapsava e as barras de movimento pulavam depois).
+    const b = payload([row("c1", { moveSpeeds: [16], moveBalance: 2 })], { move: 14 });
+    render(<Strip bars={b} />);
+    const bar = barOf("Gon", "ação");
+    expect(within(bar).getByRole("img", { name: "ação" })).toHaveTextContent("⚔");
+    expect(within(bar).getByRole("meter")).toHaveAttribute("aria-valuenow", "0");
+    expect(within(bar).queryByTestId("bar-fill")).toBeNull();
+    expect(within(bar).queryAllByTestId("bar-tick")).toHaveLength(0);
+    expect(bar).not.toHaveAttribute("tabindex");
+    expect(bar).not.toHaveAccessibleDescription();
+  });
+
+  it("with no action-bar data anywhere, every row keeps the action icon and the move bar cell index", () => {
+    const moveOnly = payload([row("c1", { moveSpeeds: [16], moveBalance: 2 }), row("c2", { moveSpeeds: [9], moveBalance: 1 })], { move: 14 });
+    const withAction = payload([row("c1", { moveSpeeds: [16], moveBalance: 2, actionSpeeds: [10], actionBalance: 1 }), row("c2", { moveSpeeds: [9], moveBalance: 1 })], { move: 14 });
+    const moveColumn = (b: BarsPayload) => {
+      const { unmount } = render(<Strip bars={b} />);
+      const rows = screen.getAllByTestId("bars-row");
+      rows.forEach((r) => expect(within(r).getByRole("img", { name: "ação" })).toBeInTheDocument());
+      const cols = rows.map((r) =>
+        Array.from(r.children).findIndex((cell) => within(cell as HTMLElement).queryByRole("group", { name: "Barra de movimento" })));
+      unmount();
+      return cols;
+    };
+    expect(moveColumn(moveOnly)).toEqual(moveColumn(withAction));
   });
 });
 

@@ -63,17 +63,15 @@ function BarCells({
   scale: number;
 }) {
   const { balance, acted, pending, deferred } = barFields(c, bar);
-  const hasSpeeds = acted.length + pending.length + deferred.length > 0;
-  // As células existem sempre (alinhamento); sem preço e sem velocidade, a caixa fica vazia — nem o ícone.
+  // As células existem sempre (alinhamento): o ícone e o trilho ficam mesmo sem preço e sem
+  // velocidade, para a coluna não colapsar e as barras de movimento não pularem quando chegar o primeiro dado.
   return (
     <>
       <Cell>
-        {(price !== undefined || hasSpeeds) && (
-          <BarBox bar={bar} total={barTotal(c, bar)} balance={balance} price={price} scale={scale} />
-        )}
+        <BarBox bar={bar} total={barTotal(c, bar)} balance={balance} price={price} scale={scale} />
       </Cell>
-      <Cell data-testid={`${bar}-acted`}>{acted.length > 0 && <Speeds><SpeedList speeds={acted} /></Speeds>}</Cell>
-      <Cell data-testid={`${bar}-pending`}>
+      <Cell $reserve data-testid={`${bar}-acted`}>{acted.length > 0 && <Speeds><SpeedList speeds={acted} /></Speeds>}</Cell>
+      <Cell $reserve data-testid={`${bar}-pending`}>
         {pending.length > 0 && <PendingSpeeds><SpeedList speeds={pending} /></PendingSpeeds>}
       </Cell>
       {/* As adiadas vêm por último, depois de "Próximo round": não entram no total. */}
@@ -199,12 +197,15 @@ const Name = styled.span`
   text-overflow: ellipsis;
 `;
 /** Sem espaçamento fixo entre colunas: uma coluna vazia em todas as linhas fica com largura zero. */
-const Cell = styled.span`
+const Cell = styled.span<{ $reserve?: boolean }>`
   display: flex;
   align-items: center;
   &:not(:empty) {
     padding-left: 8px;
   }
+  /* Colunas de velocidade reservam espaço para uma velocidade (3ch + afastamento) mesmo vazias:
+     a primeira velocidade a chegar não empurra a barra de movimento. */
+  ${({ $reserve }) => ($reserve ? "min-width: calc(3ch + 8px); padding-left: 8px;" : "")}
 `;
 const Box = styled.span`
   display: flex;

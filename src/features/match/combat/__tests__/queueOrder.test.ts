@@ -133,4 +133,31 @@ describe("orderQueue", () => {
     expect(ids(out)).toEqual(["a"]);
     expect(out[0].inOrder).toBe(true);
   });
+
+  describe("movimentos empilhados (D4)", () => {
+    const mv = (actionId: string, speed: number, stackedOn?: string): QueuedAction =>
+      ({
+        actionId, actorId: "A", bars: ["move"],
+        action: { uuid: actionId, actorId: "A", reactionKind: "", move: { finalSpeed: speed, ...(stackedOn && { stackedOn }) } },
+      }) as unknown as QueuedAction;
+    const order = [{ actorId: "A", bars: ["move" as const], key: 18 }];
+
+    it("a entrada da ordem é da de baixo da pilha, não da mais veloz empilhada", () => {
+      const a = mv("a", 18);
+      const b = mv("b", 23, "a");
+      const out = orderQueue([a, b], order);
+      expect(out.map((i) => [i.action.actionId, i.inOrder, i.key])).toEqual([["a", true, 18], ["b", false, undefined]]);
+    });
+
+    it("sem a de baixo na fila, a empilhada casa normalmente", () => {
+      const b = mv("b", 23, "a");
+      const out = orderQueue([b], [{ actorId: "A", bars: ["move"], key: 23 }]);
+      expect(out.map((i) => [i.action.actionId, i.inOrder])).toEqual([["b", true]]);
+    });
+
+    it("cadeia de três: só a base está na ordem", () => {
+      const out = orderQueue([mv("c", 30, "b"), mv("b", 23, "a"), mv("a", 18)], order);
+      expect(out.map((i) => [i.action.actionId, i.inOrder])).toEqual([["a", true], ["c", false], ["b", false]]);
+    });
+  });
 });
