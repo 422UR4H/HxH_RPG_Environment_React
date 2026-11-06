@@ -528,7 +528,31 @@ describe("stacked move origin", () => {
 
   it("the approach departs from the chain tail", () => {
     const r = resolveDraft(chooseTarget(emptyDraft(), "hisoka"), { ...ctx, actorSlot: sq(6, 4), standingSlot: positions.gon }, "Dash");
+    expect(r.move).toEqual({ category: "Dash", to: [7, 4, 0], auto: true });
     expect(r.targetSteps).toBe(2);
+  });
+
+  it("an action without a move is measured from the piece: it does not stack and may open before the chain", () => {
+    const stay: ActionDraft = { ...chooseTarget(emptyDraft(), "hisoka"), moveMode: "stay" };
+    const r = resolveDraft(stay, { ...ctx, actorSlot: sq(7, 4), standingSlot: positions.gon }, "Dash");
+    expect(r.move).toBeUndefined();
+    expect(r.targetSteps).toBe(6);
+  });
+
+  it("a pure attack's preview starts at the piece, not at the chain tail", () => {
+    const pieces = [
+      { id: "p1", characterId: "gon", coord: { slot: sq(2, 4), z: 0 }, visible: true },
+      { id: "p2", characterId: "hisoka", coord: { slot: sq(8, 4), z: 0 }, visible: true },
+    ];
+    const { result } = renderHook(() =>
+      useActionComposerState({
+        matchId: "m1", actorId: "gon", boardPieces: pieces, grid, defaultCategory: "Dash", moveOrigin: [7, 4, 0],
+      }),
+    );
+    act(() => result.current.updateDraft({ ...chooseTarget(emptyDraft(), "hisoka"), moveMode: "stay" }));
+    expect(result.current.resolved.move).toBeUndefined();
+    expect(result.current.preview?.from).toEqual(sq(2, 4));
+    expect(result.current.resolved.targetSteps).toBe(6);
   });
 
   it("the composer arrow, reach and payload origin start at the chain tail when given", () => {

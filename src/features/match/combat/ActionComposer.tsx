@@ -92,8 +92,11 @@ export default function ActionComposer({
   const category = move?.category ?? draft.category ?? defaultCategory;
   const selectedWeapon = act?.weapon ?? "Fist";
   const primaryTarget = act?.targets[0];
+  // Um verbo de parede só pede "ligue Mover" quando a parede está mesmo fora de alcance (medido da
+  // peça, como o servidor faz); o ataque mostra a distância sempre ("ataque à distância").
   const farTarget =
-    actOn && primaryTarget && resolved.targetSteps !== undefined && resolved.targetSteps > 1;
+    actOn && primaryTarget && resolved.targetSteps !== undefined && resolved.targetSteps > 1 &&
+    (actKind === "attack" || resolved.approachBlocked || !!resolved.outOfReach);
 
   return (
     <S.Sheet aria-label="Compor ação">

@@ -54,7 +54,7 @@ export default function CancelDeclaredDialog({
         <DialogHint>Ela sai da fila e não acontece.</DialogHint>
         {stacked.length > 0 && (
           <>
-            <DialogHint>Os movimentos empilhados nele também serão cancelados:</DialogHint>
+            <DialogHint>Os movimentos empilhados nela também serão cancelados:</DialogHint>
             <StackedList>
               {stacked.map((m, i) => <li key={i}>{describeAction(m, nameOf, gridKind)}</li>)}
             </StackedList>

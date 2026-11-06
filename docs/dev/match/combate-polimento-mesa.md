@@ -246,7 +246,7 @@ preenchimentos não levam contorno.
   ação (cada um cancela o que declarou).
 - **Movimentos empilhados vão junto** (2026-11-06, D5): cancelar um movimento cancela os
   empilhados nele. As páginas passam `stacked` = `stackedAfter(id, game.chainMoves)` ao
-  `CancelDeclaredDialog`, que lista cada um (`describeAction`) sob "Os movimentos empilhados nele
+  `CancelDeclaredDialog`, que lista cada um (`describeAction`) sob "Os movimentos empilhados nela
   também serão cancelados:" e troca o botão para "Cancelar os N movimentos" (N conta o pedido).
   O servidor manda um `action_cancelled` por ação, então cada linha some pelo caminho de sempre.
   Ver [Movimentos empilhados](#movimentos-empilhados) abaixo.
@@ -282,10 +282,12 @@ movimento não entra na cadeia nem a quebra. O servidor não abre um empilhado a
   o re-apontou) a regra do servidor: o último pendente do mesmo personagem antes dele. Assim um
   `stackedOn` velho vale "não empilhado" quando não há outro antes, como o contrato pede.
   `useGameTable` expõe a lista como `chainMoves`.
-- **Composição:** `useActionComposerState({ moveOrigin })` recebe `chainTailOf(actor)?.to`. A seta,
-  a distância ao alvo, a aproximação e o `isPathClear` partem dali (`ReachContext.actorSlot`). Uma
-  interação com parede **sem** movimento continua julgada pela peça (`standingSlot`), porque é de
-  lá que o servidor checa o alcance.
+- **Composição:** `useActionComposerState({ moveOrigin })` recebe `chainTailOf(actor)?.to`. Com
+  movimento no rascunho, a seta, a distância ao alvo, a aproximação e o `isPathClear` partem dali
+  (`ReachContext.actorSlot`). **Sem** movimento a ação não se empilha e pode abrir antes da cadeia:
+  a seta, a distância ("ataque à distância") e o alcance da parede saem da peça (`standingSlot`),
+  que é de onde o servidor checa. O "ligue Mover" de um verbo de parede só aparece com
+  `resolved.outOfReach`.
 - **Fantasma:** `ghostOrigin` — o destino do anterior enquanto ele está pendente, senão a peça (onde
   ela está agora), senão o `from` registrado. Mesmo desenho de sempre.
 - **"Chegou":** só a cabeça da cadeia é dispensada quando a peça está no destino (`arrivedMoves`).

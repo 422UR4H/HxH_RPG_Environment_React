@@ -263,14 +263,18 @@ export function resolveDraft(
   const category = draft.category ?? defaultCategory;
   const act = draft.act ? resolveAct(draft.act, ctx, defaultWeapon) : undefined;
   const primary = act?.targets[0] ? ctx.targetOf(act.targets[0]) : undefined;
-  const targetSteps = !ctx.actorSlot || !primary
+  const stepsFrom = (from: SlotCoord | undefined) => !from || !primary
     ? undefined
     : primary.kind === "character"
-      ? slotDistance(ctx.actorSlot, primary.slot)
-      : stepsToReach(ctx.actorSlot, primary.reach);
+      ? slotDistance(from, primary.slot)
+      : stepsToReach(from, primary.reach);
 
-  const base: ResolvedDraft = { act, targetSteps, approachBlocked: false };
-  const resolved = resolveMove(draft, ctx, base, category, primary);
+  const base: ResolvedDraft = { act, approachBlocked: false };
+  const moved = resolveMove(draft, ctx, base, category, primary);
+  // A distância ao alvo é medida de onde a ação parte: com movimento, do fim da cadeia
+  // (`actorSlot`); sem movimento a ação não se empilha e pode abrir antes da cadeia — da peça.
+  const targetSteps = stepsFrom(moved.move ? ctx.actorSlot : (ctx.standingSlot ?? ctx.actorSlot));
+  const resolved: ResolvedDraft = { ...moved, targetSteps };
   return act && act.kind !== "attack" && primary?.kind === "wall"
     ? { ...resolved, outOfReach: !touches(resolved, ctx, primary.reach) }
     : resolved;

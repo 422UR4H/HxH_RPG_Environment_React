@@ -1215,7 +1215,7 @@ describe("CancelDeclaredDialog", () => {
         ]}
       />,
     );
-    expect(screen.getByText("Os movimentos empilhados nele também serão cancelados:")).toBeInTheDocument();
+    expect(screen.getByText("Os movimentos empilhados nela também serão cancelados:")).toBeInTheDocument();
     expect(screen.getByText("Mover para coluna 3, linha 1 (Dash)")).toBeInTheDocument();
     expect(screen.getByText(/\(Shift\) e atacar Hisoka/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Cancelar os 3 movimentos" }));

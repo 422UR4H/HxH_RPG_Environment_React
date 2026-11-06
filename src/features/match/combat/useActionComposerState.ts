@@ -109,7 +109,8 @@ export function useActionComposerState({
   }, [boardPieces]);
 
   const actorPiece = actorId ? pieceByCharacter.get(actorId) : undefined;
-  // De onde a seta, a aproximação e a checagem de parede partem: o fim da cadeia, senão a peça.
+  // De onde um movimento parte (seta, aproximação, checagem de parede): o fim da cadeia, senão a
+  // peça. Uma ação sem movimento sai da peça (`standingSlot`).
   const gridKind = grid?.kind ?? "square";
   const originSlot = useMemo(
     () => (moveOrigin ? tripleToSlot(moveOrigin, gridKind) : actorPiece?.coord.slot),
@@ -166,8 +167,10 @@ export function useActionComposerState({
       .filter((w): w is WallSegment => !!w)
       .map((w) => ({ p1: w.p1, p2: w.p2 }));
     if (!to && targets.length === 0 && targetWalls.length === 0) return undefined;
-    return { from: originSlot, to, auto: resolved.move?.auto ?? false, targets, targetWalls };
-  }, [actorId, grid, resolved, pieceByCharacter, wallById, originSlot]);
+    // Sem movimento a ação não se empilha (pode abrir antes da cadeia): sai da peça.
+    const from = resolved.move ? originSlot : actorPiece?.coord.slot;
+    return { from, to, auto: resolved.move?.auto ?? false, targets, targetWalls };
+  }, [actorId, grid, resolved, pieceByCharacter, wallById, originSlot, actorPiece]);
 
   const onSlotTap = useCallback(
     (slot: SlotCoord) => updateDraft(chooseDestination(draft, slotToTriple(slot, originZ))),
