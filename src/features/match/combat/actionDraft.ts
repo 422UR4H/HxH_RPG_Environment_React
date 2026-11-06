@@ -172,9 +172,18 @@ export type DraftTarget =
 
 export type ReachContext = {
   grid: GridShape;
-  /** Slot da peça do ator; ausente quando ele não tem peça no tabuleiro. */
+  /**
+   * De onde parte um movimento declarado agora: o destino do fim da cadeia de movimentos
+   * empilhados do ator (o último ainda pendente), senão a casa da peça; ausente sem nenhum dos
+   * dois. É daqui que saem a distância ao alvo, a aproximação e a checagem de parede.
+   */
   actorSlot?: SlotCoord;
   actorZ: number;
+  /**
+   * Onde a peça está agora, quando difere de `actorSlot` (há movimento empilhado). Uma ação SEM
+   * movimento acontece daqui — o servidor checa o alcance da parede pela peça. Ausente = `actorSlot`.
+   */
+  standingSlot?: SlotCoord;
   /** Ausente: personagem sem peça, ou id que o tabuleiro não conhece. */
   targetOf: (id: string) => DraftTarget | undefined;
   isFree: (slot: SlotCoord) => boolean;
@@ -294,12 +303,12 @@ function resolveMove(
 }
 
 /**
- * A casa onde a ação deixa o ator encosta na parede? O destino do movimento, ou onde ele está.
+ * A casa onde a ação deixa o ator encosta na parede? O destino do movimento, ou onde a peça está.
  * Um destino ainda não escolhido não reprova aqui — o "escolha o destino" vem antes.
  */
 function touches(resolved: ResolvedDraft, ctx: ReachContext, reach: SlotCoord[]): boolean {
   if (resolved.move && !resolved.move.to) return true;
-  const end = resolved.move?.to ? tripleToSlot(resolved.move.to, ctx.grid.kind) : ctx.actorSlot;
+  const end = resolved.move?.to ? tripleToSlot(resolved.move.to, ctx.grid.kind) : (ctx.standingSlot ?? ctx.actorSlot);
   return !!end && reach.some((s) => isSameSlot(s, end));
 }
 

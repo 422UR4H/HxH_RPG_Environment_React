@@ -37,6 +37,7 @@ const bySentType: Record<string, string> = {
 const byGameMessage: Record<string, string> = {
   "action queue is empty": "A fila de ações está vazia.",
   "action not found in queue": "A ação já não está na fila.",
+  "action is stacked on a pending move": "Este movimento está empilhado em outro que ainda não abriu — abra aquele primeiro.",
   "action actor does not match player": "Essa ação não é sua.",
   "validation error: no turn opened in this round yet": "Nenhum turno aconteceu nesta rodada ainda — não há o que encerrar.",
 };

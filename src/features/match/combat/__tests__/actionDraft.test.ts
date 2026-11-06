@@ -501,3 +501,54 @@ describe("arma padrão", () => {
     expect(resolveDraft(d, ctx, "Dash").act).toEqual({ targets: ["hisoka"], kind: "attack" });
   });
 });
+
+describe("stacked move origin", () => {
+  // Porta na aresta vertical entre (7,4) e (8,4).
+  const door: WallSegment = {
+    id: "door", p1: [512, 256], p2: [512, 320], wallType: "door", material: "wood", move: true,
+    sense: "full", direction: "both", open: false, locked: false, hp: 10, maxHp: 10, resistance: 0,
+    destroyed: false,
+  } as WallSegment;
+  const doorCtx = (over: Partial<ReachContext>): ReachContext => ({
+    ...ctx,
+    targetOf: (id) => (id === "door" ? { kind: "wall", wall: door, reach: wallContactSlots(door, grid) } : undefined),
+    ...over,
+  });
+
+  it("a wall interaction without a move is judged from where the piece stands, not from the chain tail", () => {
+    // O fim da cadeia (7,4) encosta na porta; a peça (2,4) não: o servidor checa a peça.
+    const r = resolveDraft(
+      { ...chooseWallTarget(emptyDraft(), door), moveMode: "stay" },
+      doorCtx({ actorSlot: sq(7, 4), standingSlot: sq(2, 4) }),
+      "Dash",
+    );
+    expect(r.move).toBeUndefined();
+    expect(r.outOfReach).toBe(true);
+  });
+
+  it("the approach departs from the chain tail", () => {
+    const r = resolveDraft(chooseTarget(emptyDraft(), "hisoka"), { ...ctx, actorSlot: sq(6, 4), standingSlot: positions.gon }, "Dash");
+    expect(r.targetSteps).toBe(2);
+  });
+
+  it("the composer arrow, reach and payload origin start at the chain tail when given", () => {
+    const pieces = [{ id: "p1", characterId: "gon", coord: { slot: sq(2, 4), z: 0 }, visible: true }];
+    const { result } = renderHook(() =>
+      useActionComposerState({
+        matchId: "m1", actorId: "gon", boardPieces: pieces, grid, defaultCategory: "Dash", moveOrigin: [6, 4, 0],
+      }),
+    );
+    act(() => result.current.onSlotTap(sq(9, 4)));
+    expect(result.current.preview?.from).toEqual(sq(6, 4));
+    expect(result.current.payload?.move).toEqual({ category: "Dash", from: [6, 4, 0], position: [9, 4, 0] });
+  });
+
+  it("without a chain the composer starts at the piece", () => {
+    const pieces = [{ id: "p1", characterId: "gon", coord: { slot: sq(2, 4), z: 0 }, visible: true }];
+    const { result } = renderHook(() =>
+      useActionComposerState({ matchId: "m1", actorId: "gon", boardPieces: pieces, grid, defaultCategory: "Dash" }),
+    );
+    act(() => result.current.onSlotTap(sq(9, 4)));
+    expect(result.current.preview?.from).toEqual(sq(2, 4));
+  });
+});

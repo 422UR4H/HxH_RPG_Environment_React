@@ -132,3 +132,20 @@ describe("ReactionConfigDialog", () => {
     expect(onSend).not.toHaveBeenCalled();
   });
 });
+
+describe("ReactionConfigDialog — stacked moves", () => {
+  const warning = /Seus movimentos empilhados serão cancelados/;
+  it("warns on an escape when the character has stacked moves, not on a dodge", () => {
+    render(
+      <ReactionConfigDialog name="Gon" initial="escape" weapons={["Fist"]} losesStacked onSend={vi.fn()} onCancel={vi.fn()} />,
+    );
+    expect(screen.getByText(warning)).toBeInTheDocument();
+    fireEvent.click(radio("Esquivar"));
+    expect(screen.queryByText(warning)).not.toBeInTheDocument();
+  });
+
+  it("no stacked moves, no warning", () => {
+    setup("escape");
+    expect(screen.queryByText(warning)).not.toBeInTheDocument();
+  });
+});

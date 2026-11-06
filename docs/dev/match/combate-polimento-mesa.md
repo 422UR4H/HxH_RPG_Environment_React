@@ -244,6 +244,12 @@ preenchimentos não levam contorno.
   meio-tempo) chega como `game_error` e o banner fala.
 - `action_cancelled` só chega ao mestre e a quem pediu — a fila é secreta. A autorização é por
   ação (cada um cancela o que declarou).
+- **Movimentos empilhados vão junto** (2026-11-06, D5): cancelar um movimento cancela os
+  empilhados nele. As páginas passam `stacked` = `stackedAfter(id, game.chainMoves)` ao
+  `CancelDeclaredDialog`, que lista cada um (`describeAction`) sob "Os movimentos empilhados nele
+  também serão cancelados:" e troca o botão para "Cancelar os N movimentos" (N conta o pedido).
+  O servidor manda um `action_cancelled` por ação, então cada linha some pelo caminho de sempre.
+  Ver [Movimentos empilhados](#movimentos-empilhados) abaixo.
 
 - **Custo (§16):** o texto de custo é "Custo:" (antes "Cobra:"), montado por `costLabel(bars)` em
   `combatText.ts` e usado por `QueuePanel` e `ReactionConfigDialog`. O diálogo de cancelar só
@@ -256,6 +262,46 @@ preenchimentos não levam contorno.
 - **Cancelada não é perdida:** `resolveLostCandidates` trata o `uuid` de cada `actionCancelled` como
   achado no histórico (mesmo conjunto de "rodou"): saída calada, sem rascunho restaurado e sem
   `LostDeclaredNotice`.
+
+## Movimentos empilhados
+
+> Spec: `System_X_System/docs/superpowers/specs/2026-11-06-stacked-moves-design.md` (D3–D6).
+> Contrato: `match-combat-ws.md` § *Movimentos empilhados*, `pull_action`, `cancel_action`,
+> `attach_reaction`.
+
+Os movimentos de um personagem formam uma **cadeia na ordem de declaração**: cada um se empilha no
+último movimento ainda pendente dele (puro ou combinado) e parte do destino desse. Ação sem
+movimento não entra na cadeia nem a quebra. O servidor não abre um empilhado antes do anterior.
+
+- **De onde a cadeia sai:** `moveChain.ts`, puro (o mapa é Pixi e não tem teste). O
+  `action_enqueued` só traz o id, então `pendingChainMoves(declared, queue)` monta a lista dos
+  movimentos pendentes em ordem de chegada — a fila do mestre primeiro (ordem de inserção), depois
+  o que só existe em `declared` (o jogador; o envio ainda sem `action_queued`). Um NPC que o mestre
+  declarou entra uma vez só. `predecessorOf` usa o `move.stackedOn` da fila do mestre quando ele
+  aponta para um pendente; senão (ausente, ou velho — o anterior abriu, foi consumido, ou a reação
+  o re-apontou) a regra do servidor: o último pendente do mesmo personagem antes dele. Assim um
+  `stackedOn` velho vale "não empilhado" quando não há outro antes, como o contrato pede.
+  `useGameTable` expõe a lista como `chainMoves`.
+- **Composição:** `useActionComposerState({ moveOrigin })` recebe `chainTailOf(actor)?.to`. A seta,
+  a distância ao alvo, a aproximação e o `isPathClear` partem dali (`ReachContext.actorSlot`). Uma
+  interação com parede **sem** movimento continua julgada pela peça (`standingSlot`), porque é de
+  lá que o servidor checa o alcance.
+- **Fantasma:** `ghostOrigin` — o destino do anterior enquanto ele está pendente, senão a peça (onde
+  ela está agora), senão o `from` registrado. Mesmo desenho de sempre.
+- **"Chegou":** só a cabeça da cadeia é dispensada quando a peça está no destino (`arrivedMoves`).
+  Um empilhado com a peça no destino dele é um vai-e-volta, não um pedido cumprido.
+- **Antecipar:** o `pull_action` de um empilhado é recusado (`action is stacked on a pending
+  move`); o banner diz "Este movimento está empilhado em outro que ainda não abriu — abra aquele
+  primeiro." (`combatErrorMessages.byGameMessage`).
+- **Reação (D6):** a fuga gasta a cabeça da cadeia; para outra casa, os empilhados nela caem.
+  `useReactionControls` marca `dialog.losesStacked`/`pick.losesStacked` (`stackedLostByEscape`), e
+  a configuração da fuga (`ReactionConfigDialog`) e a instrução da fuga armada (`ReactionButtons`
+  `armedNote`, no painel e ao lado da peça) mostram `STACKED_ESCAPE_WARNING`. A casa só é escolhida
+  no toque, que já envia — por isso o aviso é condicional ("…se esta fuga não for para onde o
+  primeiro movimento ia").
+- **Ajustar na fila:** `queuedRolls` só oferece "Velocidade de ação" para a ação que cobra a barra de
+  ação (`bars` com `"action"`); o movimento puro não rola velocidade de ação (D1) e o servidor
+  recusa a edição.
 
 ## Outros ajustes da rodada
 

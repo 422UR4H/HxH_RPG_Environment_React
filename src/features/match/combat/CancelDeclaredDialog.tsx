@@ -1,6 +1,8 @@
+import styled from "styled-components";
 import type { GridKind } from "../../../types/tacticalMap";
 import type { DeclaredAction } from "./combatReducer";
-import { describeDeclared } from "./combatText";
+import { describeAction, describeDeclared } from "./combatText";
+import type { ActionSummary } from "./combatText";
 import { PanelHint } from "./panelStyles";
 import {
   Buttons, CancelButton, ConfirmButton, Dialog, DialogHint, DialogTitle, Overlay,
@@ -10,6 +12,9 @@ import {
  * A confirmação de cancelar uma ação declarada. Nada muda aqui: a linha só some quando o
  * `action_cancelled` volta; se o servidor recusar (a ação abriu no meio-tempo), o banner de
  * erro fala e a linha segue o fluxo normal.
+ *
+ * Cancelar um movimento cancela os movimentos empilhados nele (D5): o diálogo os lista antes
+ * de confirmar, e o botão diz quantos movimentos saem.
  */
 export default function CancelDeclaredDialog({
   pending,
@@ -17,6 +22,7 @@ export default function CancelDeclaredDialog({
   gridKind,
   showActor,
   showSwapCost,
+  stacked = [],
   canConfirm,
   onConfirm,
   onKeep,
@@ -31,6 +37,8 @@ export default function CancelDeclaredDialog({
    * velocidade com Desvantagem. Em Livre não há velocidade a rolar, então o aviso some.
    */
   showSwapCost?: boolean;
+  /** Os movimentos empilhados nela, em ordem de cadeia (`stackedAfter`) — saem junto. */
+  stacked?: ActionSummary[];
   /** Sem conexão o envio não sai: o diálogo fica aberto em vez de perder o pedido. */
   canConfirm: boolean;
   onConfirm: () => void;
@@ -44,15 +52,32 @@ export default function CancelDeclaredDialog({
         <DialogTitle>Cancelar esta ação?</DialogTitle>
         <DialogHint>{what}</DialogHint>
         <DialogHint>Ela sai da fila e não acontece.</DialogHint>
+        {stacked.length > 0 && (
+          <>
+            <DialogHint>Os movimentos empilhados nele também serão cancelados:</DialogHint>
+            <StackedList>
+              {stacked.map((m, i) => <li key={i}>{describeAction(m, nameOf, gridKind)}</li>)}
+            </StackedList>
+          </>
+        )}
         {showSwapCost && (
           <DialogHint>Até o fim da rodada, o que este personagem fizer de novo rola a velocidade com Desvantagem.</DialogHint>
         )}
         {!canConfirm && <PanelHint>Sem conexão com a mesa — confirme quando ela voltar.</PanelHint>}
         <Buttons>
           <CancelButton type="button" onClick={onKeep}>Manter</CancelButton>
-          <ConfirmButton type="button" onClick={onConfirm} disabled={!canConfirm}>Cancelar ação</ConfirmButton>
+          <ConfirmButton type="button" onClick={onConfirm} disabled={!canConfirm}>
+            {stacked.length > 0 ? `Cancelar os ${stacked.length + 1} movimentos` : "Cancelar ação"}
+          </ConfirmButton>
         </Buttons>
       </Dialog>
     </Overlay>
   );
 }
+
+const StackedList = styled.ul`
+  margin: 0;
+  padding-left: 20px;
+  font-size: 15px;
+  line-height: 1.5;
+`;

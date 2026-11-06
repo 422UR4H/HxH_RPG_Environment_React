@@ -64,7 +64,7 @@ describe("useReactionControls", () => {
     const { result, attachReaction } = mount();
     act(() => result.current.quick("c2", "escape"));
     expect(attachReaction).not.toHaveBeenCalled();
-    expect(result.current.pick).toEqual({ actorId: "c2", kind: "escape" });
+    expect(result.current.pick).toEqual({ actorId: "c2", kind: "escape", losesStacked: false });
   });
 
   it("o toque na casa envia a fuga com a casa e o z da peça, e limpa a escolha", () => {
@@ -132,13 +132,13 @@ describe("useReactionControls", () => {
     const { result, attachReaction } = mount();
     act(() => result.current.quick("c2", "repel"));
     expect(attachReaction).not.toHaveBeenCalled();
-    expect(result.current.dialog).toEqual({ actorId: "c2", initial: "repel" });
+    expect(result.current.dialog).toEqual({ actorId: "c2", initial: "repel", losesStacked: false });
   });
 
   it("configure abre o diálogo; o diálogo envia o tipo e a arma escolhidos", () => {
     const { result, attachReaction } = mount();
     act(() => result.current.configure("c3", "repel"));
-    expect(result.current.dialog).toEqual({ actorId: "c3", initial: "repel" });
+    expect(result.current.dialog).toEqual({ actorId: "c3", initial: "repel", losesStacked: false });
     act(() => result.current.sendFromDialog({ kind: "repel", weapon: "Spear" }));
     expect(attachReaction).toHaveBeenCalledWith(
       { actorId: "c3", reactToId: "a1", reactionKind: "repel", repel: { weapon: "Spear" } },
@@ -153,7 +153,7 @@ describe("useReactionControls", () => {
     act(() => result.current.sendFromDialog({ kind: "closedEscape" }));
     expect(attachReaction).not.toHaveBeenCalled();
     expect(result.current.dialog).toBeNull();
-    expect(result.current.pick).toEqual({ actorId: "c2", kind: "closedEscape" });
+    expect(result.current.pick).toEqual({ actorId: "c2", kind: "closedEscape", losesStacked: false });
     act(() => { result.current.onSlotForPick({ kind: "square", col: 0, row: 3 }); });
     expect(attachReaction.mock.calls[0][0].move).toEqual({ category: "Shift", position: [0, 3, 0] });
   });
@@ -173,5 +173,27 @@ describe("useReactionControls", () => {
     const { result, attachReaction } = mount({ state: { ...initialCombatState, openTurn: openTurn(), ownReactions: own } });
     act(() => result.current.quick("c2", "dodge"));
     expect(attachReaction).not.toHaveBeenCalled();
+  });
+});
+
+describe("useReactionControls — stacked moves (D6)", () => {
+  const declared = (id: string, to: [number, number, number]) =>
+    ({ id, actorId: "c2", status: "queued" as const, fromComposer: true, at: 0, move: { category: "Dash" as const, to } });
+  const withChain = (): Partial<Props> => ({
+    state: { ...initialCombatState, openTurn: openTurn(), declared: [declared("m1", [5, 5, 0]), declared("m2", [6, 6, 0])] },
+  });
+
+  it("an escape by a character with stacked moves warns, in the dialog and while picking the square", () => {
+    const { result } = mount(withChain());
+    act(() => result.current.configure("c2", "escape"));
+    expect(result.current.dialog).toMatchObject({ actorId: "c2", losesStacked: true });
+    act(() => result.current.quick("c2", "escape"));
+    expect(result.current.pick).toMatchObject({ actorId: "c2", losesStacked: true });
+  });
+
+  it("a character without stacked moves gets no warning", () => {
+    const { result } = mount(withChain());
+    act(() => result.current.quick("c3", "escape"));
+    expect(result.current.pick).toMatchObject({ actorId: "c3", losesStacked: false });
   });
 });

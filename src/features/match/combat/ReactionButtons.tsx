@@ -26,6 +26,7 @@ export default function ReactionButtons({
   onQuick,
   onConfigure,
   armed,
+  armedNote,
   onCancelArmed,
 }: {
   status: ReactionStatus;
@@ -38,6 +39,8 @@ export default function ReactionButtons({
   onConfigure: (b: ReactionButton) => void;
   /** A fuga escolhida, esperando a casa no mapa: o botão fica aceso e a instrução aparece. */
   armed?: ReactionButton;
+  /** Um aviso a mais sob a instrução da fuga armada (os movimentos empilhados que ela pode cancelar). */
+  armedNote?: string;
   onCancelArmed?: () => void;
 }) {
   // O timer do tracker dispara fora do render: lê sempre o callback mais novo.
@@ -132,7 +135,10 @@ export default function ReactionButtons({
       </Row>
       {armed && (
         <Armed role="status">
-          <span>{REACTION_BUTTON_LABELS[armed]}: {verb} no mapa a casa para onde fugir.</span>
+          <span>
+            {REACTION_BUTTON_LABELS[armed]}: {verb} no mapa a casa para onde fugir.
+            {armedNote && <> {armedNote}</>}
+          </span>
           {onCancelArmed && (
             <CancelArmed type="button" onClick={onCancelArmed}>
               Cancelar

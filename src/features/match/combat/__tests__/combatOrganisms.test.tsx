@@ -283,8 +283,10 @@ describe("QueuePanel", () => {
   });
 
   describe("ajustes do mestre na fila", () => {
+    // Fixture corrigida (2026-11-06): `fullAction` é movimento + ataque, que cobra as duas barras —
+    // com só `["move"]` ela seria um movimento puro, sem velocidade de ação para ajustar.
     const queued = {
-      actionId: "a2", actorId: "n1", bars: ["move" as const], action: fullAction, damageSkill: "Push",
+      actionId: "a2", actorId: "n1", bars: ["action" as const, "move" as const], action: fullAction, damageSkill: "Push",
       conditions: [{ actionId: "a2", field: "speed" as const, bias: 0, modifier: 3 }],
     };
 
@@ -1197,6 +1199,33 @@ describe("CancelDeclaredDialog", () => {
     expect(screen.getByText(aviso)).toBeInTheDocument();
     rerender(<CancelDeclaredDialog {...base} pending={pending} />);
     expect(screen.queryByText(aviso)).not.toBeInTheDocument();
+  });
+
+  it("lists the stacked moves that go with it and confirms how many moves are cancelled", () => {
+    const move: DeclaredAction = { id: "a1", actorId: "c1", status: "queued", fromComposer: true, at: 0, move: { category: "Dash", to: [1, 0, 0] } };
+    const onConfirm = vi.fn();
+    render(
+      <CancelDeclaredDialog
+        {...base}
+        pending={move}
+        onConfirm={onConfirm}
+        stacked={[
+          { move: { category: "Dash", to: [2, 0, 0] } },
+          { move: { category: "Shift", to: [3, 0, 0] }, attack: { targets: ["n1"] } },
+        ]}
+      />,
+    );
+    expect(screen.getByText("Os movimentos empilhados nele também serão cancelados:")).toBeInTheDocument();
+    expect(screen.getByText("Mover para coluna 3, linha 1 (Dash)")).toBeInTheDocument();
+    expect(screen.getByText(/\(Shift\) e atacar Hisoka/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar os 3 movimentos" }));
+    expect(onConfirm).toHaveBeenCalled();
+  });
+
+  it("without stacked moves keeps the single-action wording", () => {
+    render(<CancelDeclaredDialog {...base} pending={pending} stacked={[]} />);
+    expect(screen.queryByText(/empilhados/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cancelar ação" })).toBeInTheDocument();
   });
 
   it("sem pedido não renderiza", () => {

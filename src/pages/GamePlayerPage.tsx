@@ -24,6 +24,7 @@ import { composerUnavailableReason } from "../features/match/combat/composerAvai
 import ActionComposer from "../features/match/combat/ActionComposer";
 import type { DeclaredAction } from "../features/match/combat/combatReducer";
 import CancelDeclaredDialog from "../features/match/combat/CancelDeclaredDialog";
+import { stackedAfter } from "../features/match/combat/moveChain";
 import DeclaredActions from "../features/match/combat/DeclaredActions";
 import MatchErrorBanner from "../features/match/combat/MatchErrorBanner";
 import LostDeclaredNotice from "../features/match/combat/LostDeclaredNotice";
@@ -446,6 +447,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
         nameOf={nameOf}
         gridKind={map?.grid.kind ?? "square"}
         showSwapCost={state.roundMode === "Race"}
+        stacked={cancelPending ? stackedAfter(cancelPending.id, game.chainMoves).map((m) => m.summary) : []}
         canConfirm={combat.status === "connected"}
         onConfirm={() => {
           if (cancelPending) combat.send.cancelAction(cancelPending.id);

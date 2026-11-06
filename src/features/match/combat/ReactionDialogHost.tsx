@@ -29,6 +29,7 @@ export default function ReactionDialogHost({
       initial={dialog.initial}
       weapons={catalogue?.weapons.map((w) => w.name) ?? []}
       defaultWeapon={matchId ? loadDraft(matchId, dialog.actorId).act?.weapon : undefined}
+      losesStacked={dialog.losesStacked}
       onSend={controls.sendFromDialog}
       onCancel={controls.closeDialog}
     />

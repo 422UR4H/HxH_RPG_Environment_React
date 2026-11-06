@@ -6,6 +6,7 @@ import type { Piece, SlotCoord } from "../../../types/tacticalMap";
 import { slotToTriple } from "../../tactical-map/utils/coords";
 import type { AttachReactionPayload, ReactionKind } from "./combatMessages";
 import type { CombatState } from "./combatReducer";
+import { pendingChainMoves, stackedLostByEscape } from "./moveChain";
 import {
   buildReactionPayload, needsDestination, reactableTargets, reactionKindOf, reactionStatusOf,
 } from "./reactionModel";
@@ -37,6 +38,13 @@ export function useReactionControls({
   const turnId = openTurn?.turnId;
   const reactToId = openTurn?.actionId;
   const { attachReaction } = send;
+
+  // Quem tem movimentos empilhados perde-os numa fuga para outra casa (D6): o aviso da fuga.
+  const chainMoves = useMemo(() => pendingChainMoves(state.declared, state.queue), [state.declared, state.queue]);
+  const losesStacked = useCallback(
+    (actorId: string) => stackedLostByEscape(actorId, chainMoves).length > 0,
+    [chainMoves],
+  );
 
   const targets = useMemo<Array<{ actorId: string; status: ReactionStatus }>>(
     () =>
@@ -142,10 +150,14 @@ export function useReactionControls({
     targets,
     quick,
     configure,
-    dialog: dialogArmed ? { actorId: dialogArmed.actorId, initial: dialogArmed.initial } : null,
+    dialog: dialogArmed
+      ? { actorId: dialogArmed.actorId, initial: dialogArmed.initial, losesStacked: losesStacked(dialogArmed.actorId) }
+      : null,
     closeDialog,
     sendFromDialog,
-    pick: pickArmed ? { actorId: pickArmed.actorId, kind: pickArmed.kind } : null,
+    pick: pickArmed
+      ? { actorId: pickArmed.actorId, kind: pickArmed.kind, losesStacked: losesStacked(pickArmed.actorId) }
+      : null,
     cancelPick,
     onSlotForPick,
   };
