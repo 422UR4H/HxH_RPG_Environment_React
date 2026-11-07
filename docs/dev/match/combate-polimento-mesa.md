@@ -153,12 +153,13 @@ O saldo que chega (`actionBalance`/`moveBalance`) já pagou a próxima ação no
   pelo nome exibido** (localeCompare pt-BR), estáveis entre atualizações.
 - A linha existe quando o personagem tem alguma velocidade (aberta, pendente ou adiada) ou alguma
   barra tem preço (congelado, ou provisório para o mestre).
-- **Uma grade só** (`display: grid`; a linha é `display: contents`). Cada linha desenha **todas** as
-  células — nome e, por barra, caixa / agiram / pendentes / adiadas —, vazias quando não há o que
-  mostrar: a barra de movimento nunca anda porque a de ação ganhou uma velocidade. Um valor mais
-  largo alarga a coluna em todas as linhas (a grade faz isso). Sem `column-gap`: a célula não vazia
-  leva 8 px à esquerda, e uma coluna vazia em todas as linhas fica com largura zero.
-- Números em `tabular-nums`; cada velocidade com `min-width: 3ch`, o total com `5ch` (cabe uma casa).
+- **Uma grade só** (`display: grid`; a linha é `display: contents`), com as colunas: nome · caixa ⚔
+  · caixa ➜ · lista ⚔ · lista ➜. As duas **caixas** vêm antes de qualquer lista e existem sempre
+  (ícone e trilho vazio mesmo sem preço e sem velocidade): uma lista que cresce (segunda velocidade,
+  a primeira adiada) nunca empurra barra nenhuma. A coluna do número reserva sempre o saldo mais
+  largo de 3 dígitos (`NUM_RESERVE`, "saldo −999" em negrito, invisível); um 4º dígito alarga a coluna
+  em todas as linhas de uma vez (a grade faz isso). A célula não vazia leva 8 px à esquerda.
+- Números em `tabular-nums`; cada velocidade com `min-width: 3ch`.
 - Por barra (⚔ ação, ➜ movimento), a caixa tem ícone, trilho e número. O trilho enche até o
   **total** (`barTotal`) contra a escala comum (`barScale`), na cor da barra (`vitalActionBar` = o
   vermelho do ataque, `vitalMoveBar` = o azul do movimento) sobre o mesmo matiz a 18 %
@@ -169,10 +170,11 @@ O saldo que chega (`actionBalance`/`moveBalance`) já pagou a próxima ação no
   (`visibility: hidden`), para a troca não mudar a largura da coluna.
 - O `Tooltip` do projeto diz `"Ação: saldo 6 de 9"` (preço congelado ou provisório); não há mais
   `title` nativo.
-- Sem preço: a célula fica, trilho vazio, sem traços, o número é o total (se há velocidade), sem
-  troca no hover e sem foco. Sem preço **e** sem velocidade: célula vazia, nem o ícone.
-- Velocidades que agiram no tom mais forte, **pendentes** mais fracas, e as **adiadas** depois de
-  `Próximo round` (não entram no total). O `x̄` saiu: o total ao lado da barra o substitui.
+- Sem preço: a caixa fica, trilho vazio, sem traços, o número é o total (se há velocidade), sem
+  troca no hover e sem foco.
+- Cada lista começa com o ícone da barra: velocidades que agiram no tom mais forte, **pendentes**
+  mais fracas, e as **adiadas** depois de `Próximo round` (não entram no total). O `x̄` saiu: o total
+  ao lado da barra o substitui.
 
 **`OwnBars`** mostra `actionBalance`/`moveBalance`, agora o saldo ao vivo.
 
