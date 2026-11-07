@@ -30,6 +30,8 @@ pontos: as esquemáticas da ficha) · `map` (mapa tático, inclusive as cores do
 
 Prefixo novo não entra sem decisão do usuário: um grupo aberto vira a bagunça de antes.
 
+As cores de intenção do combate (`mapAttackIntent` = ataque/ação, `mapMoveIntent` = movimento) valem para a mesa toda, não só para o mapa: a faixa de barras usa as mesmas. Variação (fundo, escurecido) é `alpha`/overlay, nunca token novo.
+
 ### Nunca
 
 - Token com **nome de componente** (`campaignCardBorder`): quando o componente muda, o nome mente e o

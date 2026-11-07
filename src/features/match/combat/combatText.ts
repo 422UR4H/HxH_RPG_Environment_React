@@ -26,7 +26,7 @@ export const RUNG_LABELS: Record<string, string> = {
 
 export const REACTION_KIND_LABELS: Record<string, string> = {
   nothing: "nada",
-  default: "reação padrão",
+  default: "esquiva padrão",
   dodge: "esquiva",
   closedDodge: "esquiva fechada",
   escape: "fuga",

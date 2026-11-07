@@ -155,13 +155,6 @@ export const colors = {
   vitalExp: palette.gold400, // barra de EXP do personagem
   vitalSkillExp: palette.red600, // barra de EXP de habilidade e atributo
   vitalPoints: palette.green500, // pontos a distribuir
-  // Barras de ação e movimento da mesa (faixa de barras): o mesmo matiz do ataque (mapAttackIntent) e
-  // do movimento (mapMoveIntent) da tela, para a barra dizer de quem é sem legenda. O trilho é o mesmo
-  // matiz quase transparente: vazia, a barra mantém a identidade e fica quieta sobre o painel escuro.
-  vitalActionBar: palette.red500,
-  vitalActionBarTrack: alpha(palette.red500, 0.18),
-  vitalMoveBar: palette.blue500,
-  vitalMoveBarTrack: alpha(palette.blue500, 0.18),
 
   // map — mapa tático (as cores do Pixi entram por aqui; converta com parseInt(hex.slice(1), 16))
   mapSelectionRing: palette.gold400, // anel da peça selecionada

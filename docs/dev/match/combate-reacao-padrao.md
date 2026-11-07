@@ -12,7 +12,7 @@ discordam, vale este.
 
 | Servidor | Front |
 |---|---|
-| Todo alvo de um ataque ganha uma reação `default` (esquiva por reflexo + defesa padrão, passivas) quando o turno abre. O que o alvo mandar a substitui. | `ReactionKind` ganhou `"default"`; rótulo "reação padrão" (`REACTION_KIND_LABELS`), verbo "esquivou" (`avoidedVerb`, ramo padrão), sem barra (`REACTION_BARS`). |
+| Todo alvo de um ataque ganha uma reação `default` (esquiva por reflexo + defesa padrão, passivas) quando o turno abre. O que o alvo mandar a substitui. | `ReactionKind` ganhou `"default"`; rótulo "esquiva padrão" (`REACTION_KIND_LABELS`), verbo "esquivou" (`avoidedVerb`, ramo padrão), sem barra (`REACTION_BARS`). |
 | A reação **não aberta entra no cálculo**, depois das abertas. `targets[].reaction` vem para toda reação, com `opened`. | `ResolutionDetails` numera "aberta em Nº" só entre as abertas e escreve "não aberta" nas outras. `opened` ausente (servidor antigo) lê como aberta — lá só as abertas vinham. |
 | `pendingReactions` lista toda reação não aberta (a padrão sentada e o `nothing` inclusive), com `seated` na padrão de quem ainda não respondeu. | A lista "Reações esperando" mostra a padrão como qualquer outra ("Dar a palavra" fica: narrar a esquiva padrão é decisão do mestre) e marca "ainda não respondeu". |
 | `nothing` nunca precisa ser aberto e não segura o fechamento; a padrão sentada também não segura. Os dois continuam abríveis: abrir também posiciona na cadeia, e é assim que o mestre controla o tempo de resolução dessa escolha. | "Dar a palavra" aparece para os dois. O `close_turn_refused` já vem filtrado. |
@@ -90,7 +90,7 @@ Mesmo setup de `combate-fase-8.md` (três contas, `test@`/`test2@`/`test3@mail.c
 `12345678`), contra o back da branch `claude/jolly-sagan-gvfth9`:
 
 1. Um jogador ataca o outro e o alvo **não** reage: o card do turno mostra o alvo com "reação:
-   reação padrão · não aberta", as linhas Esquiva e Defesa padrão, e a padrão em "Reações
+   esquiva padrão · não aberta", as linhas Esquiva e Defesa padrão, e a padrão em "Reações
    esperando" com "ainda não respondeu".
 2. Editar a Esquiva: o botão **Viés** abre o cartão com o aviso; Vantagem → Aplicar; o total muda
    para o melhor entre o dado e 11. Tirar e repor a vantagem dá o mesmo número (o dado não rola de
@@ -104,7 +104,7 @@ Mesmo setup de `combate-fase-8.md` (três contas, `test@`/`test2@`/`test3@mail.c
 ## O que não tem teste / limitações conhecidas
 
 - A apresentação da reação padrão (ícone, texto próprio no card do alvo, no balão e no histórico)
-  é outra tarefa; hoje ela usa o rótulo "reação padrão".
+  é outra tarefa; hoje ela usa o rótulo "esquiva padrão".
 - Só o browser prova a integração com o back real; os testes cobrem o modelo (`rollEdits`), o
   editor (cartão de Viés), o reducer (`action_queued` como atualização) e os painéis com payloads
   montados à mão.

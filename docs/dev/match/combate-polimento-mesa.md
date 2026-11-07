@@ -161,9 +161,9 @@ O saldo que chega (`actionBalance`/`moveBalance`) já pagou a próxima ação no
   em todas as linhas de uma vez (a grade faz isso). A célula não vazia leva 8 px à esquerda.
 - Números em `tabular-nums`; cada velocidade com `min-width: 3ch`.
 - Por barra (⚔ ação, ➜ movimento), a caixa tem ícone, trilho e número. O trilho enche até o
-  **total** (`barTotal`) contra a escala comum (`barScale`), na cor da barra (`vitalActionBar` = o
-  vermelho do ataque, `vitalMoveBar` = o azul do movimento) sobre o mesmo matiz a 18 %
-  (`vital*BarTrack`); um traço de 1 px (`overlayDark`) em cada múltiplo do preço. Nenhum verde.
+  **total** (`barTotal`) contra a escala comum (`barScale`), na cor da barra (`mapAttackIntent` = o
+  vermelho do ataque, `mapMoveIntent` = o azul do movimento) sobre o mesmo matiz a 18 %
+  (`alpha(cor, 0.18)`, sem token novo); um traço de 1 px (`overlayDark`) em cada múltiplo do preço. Nenhum verde.
 - **Hover e foco** (a caixa é focável, `tabIndex=0`) escurecem `[0, gasto]` com `overlayMedium` e
   trocam o número por **"saldo X"** em negrito, texto primário. Saldo negativo escurece o
   preenchimento inteiro ("saldo −3"). O texto fora de vista fica no mesmo lugar, invisível
