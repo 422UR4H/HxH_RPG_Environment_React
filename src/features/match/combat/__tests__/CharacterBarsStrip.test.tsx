@@ -189,13 +189,28 @@ describe("CharacterBarsStrip — bars without price", () => {
     const moveColumn = (b: BarsPayload) => {
       const { unmount } = render(<Strip bars={b} />);
       const rows = screen.getAllByTestId("bars-row");
-      rows.forEach((r) => expect(within(r).getByRole("img", { name: "ação" })).toBeInTheDocument());
+      rows.forEach((r) =>
+        expect(within(within(r).getByRole("group", { name: "Barra de ação" })).getByRole("img", { name: "ação" })).toBeInTheDocument());
       const cols = rows.map((r) =>
         Array.from(r.children).findIndex((cell) => within(cell as HTMLElement).queryByRole("group", { name: "Barra de movimento" })));
       unmount();
       return cols;
     };
     expect(moveColumn(moveOnly)).toEqual(moveColumn(withAction));
+  });
+
+  it("puts both bars before any speed list, so a growing list never moves a bar", () => {
+    // Duas velocidades de ação e uma adiada: as listas crescem, mas vêm depois das duas caixas.
+    const busy = row("c1", { actionSpeeds: [10, 12], actionBalance: 1, deferredActionSpeeds: [9], moveSpeeds: [16], moveBalance: 2 });
+    render(<Strip bars={payload([busy], { action: 8, move: 14 })} />);
+    const cells = Array.from(screen.getByTestId("bars-row").children) as HTMLElement[];
+    const indexOf = (pred: (c: HTMLElement) => boolean) => cells.findIndex(pred);
+    const actionBox = indexOf((c) => !!within(c).queryByRole("group", { name: "Barra de ação" }));
+    const moveBox = indexOf((c) => !!within(c).queryByRole("group", { name: "Barra de movimento" }));
+    const firstList = indexOf((c) => !!within(c).queryByTestId("action-acted"));
+    expect([actionBox, moveBox]).toEqual([1, 2]);
+    expect(firstList).toBeGreaterThan(moveBox);
+    expect(within(cells[firstList]).getByTestId("action-deferred")).toHaveTextContent("Próximo round");
   });
 });
 

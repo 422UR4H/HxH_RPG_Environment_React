@@ -7,8 +7,10 @@ import { BAR_ICONS, BAR_LABELS } from "./combatText";
 import { barFields, barScale, barTicks, barTotal, fmt, priceOf } from "./barsMath";
 
 const BARS: Bar[] = ["action", "move"];
-/** Por barra: a caixa (ícone, trilho, número), as que agiram, as pendentes e as adiadas. */
-const CELLS_PER_BAR = 4;
+/** Por linha: o nome, as duas caixas (ícone, trilho, número) e, depois delas, as duas listas. */
+const COLUMNS = 1 + BARS.length * 2;
+/** O saldo mais largo de 3 dígitos: a coluna do número o reserva sempre (ver `Num`). */
+const NUM_RESERVE = "saldo −999";
 
 /**
  * Uma linha por personagem, só com o que `bars_updated` traz (I8): o jogador não vê a
@@ -16,8 +18,9 @@ const CELLS_PER_BAR = 4;
  * Só existe em Disputado (D5): no regime Livre `barsRows` devolve vazio.
  *
  * D7: a faixa é UMA grade e cada linha desenha todas as células (vazias quando não há o que
- * mostrar), para a barra de movimento nunca andar porque a de ação ganhou uma velocidade. A barra
- * mostra o total da próxima ação contra uma escala comum a todas as linhas.
+ * mostrar). As duas barras vêm logo depois do nome e as listas de velocidades só depois delas:
+ * uma lista que cresce (segunda velocidade, a primeira adiada) nunca empurra barra nenhuma. A
+ * barra mostra o total da próxima ação contra uma escala comum a todas as linhas.
  */
 export default function CharacterBarsStrip({
   rows,
@@ -42,8 +45,18 @@ export default function CharacterBarsStrip({
       {sorted.map(({ c, name }) => (
         <Row key={c.characterId} data-testid="bars-row">
           <Name>{name}</Name>
+          {BARS.map((b) => {
+            const { balance } = barFields(c, b);
+            return (
+              <Cell key={b}>
+                <BarBox bar={b} total={barTotal(c, b)} balance={balance} price={priceOf(bars, b)?.price} scale={scale[b]} />
+              </Cell>
+            );
+          })}
           {BARS.map((b) => (
-            <BarCells key={b} bar={b} c={c} price={priceOf(bars, b)?.price} scale={scale[b]} />
+            <Cell key={`${b}-speeds`}>
+              <SpeedCells bar={b} c={c} />
+            </Cell>
           ))}
         </Row>
       ))}
@@ -51,38 +64,26 @@ export default function CharacterBarsStrip({
   );
 }
 
-function BarCells({
-  bar,
-  c,
-  price,
-  scale,
-}: {
-  bar: Bar;
-  c: BarsPayload["characters"][number];
-  price: number | undefined;
-  scale: number;
-}) {
-  const { balance, acted, pending, deferred } = barFields(c, bar);
-  // As células existem sempre (alinhamento): o ícone e o trilho ficam mesmo sem preço e sem
-  // velocidade, para a coluna não colapsar e as barras de movimento não pularem quando chegar o primeiro dado.
+/**
+ * As velocidades de uma barra, depois das duas caixas: o ícone diz de qual barra é a lista. As que
+ * agiram, as pendentes (mais fracas) e, por último, "Próximo round" + adiadas — elas não entram no total.
+ */
+function SpeedCells({ bar, c }: { bar: Bar; c: BarsPayload["characters"][number] }) {
+  const { acted, pending, deferred } = barFields(c, bar);
+  if (acted.length + pending.length + deferred.length === 0) return null;
   return (
-    <>
-      <Cell>
-        <BarBox bar={bar} total={barTotal(c, bar)} balance={balance} price={price} scale={scale} />
-      </Cell>
-      <Cell $reserve data-testid={`${bar}-acted`}>{acted.length > 0 && <Speeds><SpeedList speeds={acted} /></Speeds>}</Cell>
-      <Cell $reserve data-testid={`${bar}-pending`}>
-        {pending.length > 0 && <PendingSpeeds><SpeedList speeds={pending} /></PendingSpeeds>}
-      </Cell>
-      {/* As adiadas vêm por último, depois de "Próximo round": não entram no total. */}
-      <Cell>
-        {deferred.length > 0 && (
-          <>
-            <PendingSpeeds>Próximo round</PendingSpeeds> <Speeds><SpeedList speeds={deferred} /></Speeds>
-          </>
-        )}
-      </Cell>
-    </>
+    <SpeedsLine>
+      <ListIcon aria-label={BAR_LABELS[bar]} role="img">{BAR_ICONS[bar]}</ListIcon>
+      {acted.length > 0 && <Speeds data-testid={`${bar}-acted`}><SpeedList speeds={acted} /></Speeds>}
+      {pending.length > 0 && (
+        <PendingSpeeds data-testid={`${bar}-pending`}><SpeedList speeds={pending} /></PendingSpeeds>
+      )}
+      {deferred.length > 0 && (
+        <span data-testid={`${bar}-deferred`}>
+          <PendingSpeeds>Próximo round</PendingSpeeds> <Speeds><SpeedList speeds={deferred} /></Speeds>
+        </span>
+      )}
+    </SpeedsLine>
   );
 }
 
@@ -159,10 +160,13 @@ function BarBox({
           ))}
         </Track>
         {/* O texto que não está à vista ocupa o mesmo lugar, invisível: trocar total ↔ saldo não
-            mexe na largura da coluna (senão a faixa inteira pularia a cada hover). */}
+            mexe na largura da coluna (senão a faixa inteira pularia a cada hover). E a coluna
+            sempre reserva o saldo mais largo de 3 dígitos (`NUM_RESERVE`, em negrito): a barra
+            ganhar preço ou o primeiro número não empurra a de movimento. */}
         <Num>
           <NumText data-testid="bar-number" $strong={showBalance}>{showBalance ? balanceText : totalText}</NumText>
           {priced && <NumGhost aria-hidden $strong={!showBalance}>{showBalance ? totalText : balanceText}</NumGhost>}
+          <NumGhost aria-hidden $strong>{NUM_RESERVE}</NumGhost>
         </Num>
       </Box>
     </Tooltip>
@@ -171,7 +175,7 @@ function BarBox({
 
 const Strip = styled.div`
   display: grid;
-  grid-template-columns: repeat(${1 + BARS.length * CELLS_PER_BAR}, auto);
+  grid-template-columns: repeat(${COLUMNS}, auto);
   justify-content: start;
   align-items: center;
   row-gap: 4px;
@@ -196,16 +200,21 @@ const Name = styled.span`
   overflow: hidden;
   text-overflow: ellipsis;
 `;
-/** Sem espaçamento fixo entre colunas: uma coluna vazia em todas as linhas fica com largura zero. */
-const Cell = styled.span<{ $reserve?: boolean }>`
+/** Afastamento à esquerda de toda célula com conteúdo. */
+const Cell = styled.span`
   display: flex;
   align-items: center;
   &:not(:empty) {
     padding-left: 8px;
   }
-  /* Colunas de velocidade reservam espaço para uma velocidade (3ch + afastamento) mesmo vazias:
-     a primeira velocidade a chegar não empurra a barra de movimento. */
-  ${({ $reserve }) => ($reserve ? "min-width: calc(3ch + 8px); padding-left: 8px;" : "")}
+`;
+const SpeedsLine = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+`;
+const ListIcon = styled.span`
+  color: ${colors.textPlaceholder};
 `;
 const Box = styled.span`
   display: flex;
