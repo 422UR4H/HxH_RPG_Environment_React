@@ -102,6 +102,16 @@ describe("orderQueue", () => {
     expect(orderQueue([A], [], "Race")[0].key).toBeUndefined();
   });
 
+  it("a move with an empty action speed (result 0) is ordered by its move speed only", () => {
+    const pure = (id: string, mov: number) =>
+      ({ ...q(id, "A", ["move"]), action: { uuid: id, actorId: "A", reactionKind: "", speed: { bar: 0, rollCheck: { skillName: "", result: 0 } }, move: { category: "Dash", finalSpeed: mov } } }) as QueuedAction;
+    const order = [
+      { actorId: "A", bars: ["move" as const], key: 9 },
+      { actorId: "A", bars: ["move" as const], key: 3 },
+    ];
+    expect(ids(orderQueue([pure("slow", 3), pure("fast", 9)], order))).toEqual(["fast", "slow"]);
+  });
+
   it("ação nas duas barras desempata pela menor das duas velocidades", () => {
     const both = (id: string, act: number, mov: number) =>
       ({ ...q(id, "A", ["action", "move"]), action: { uuid: id, actorId: "A", reactionKind: "", speed: { bar: 0, rollCheck: { result: act } }, move: { category: "Dash", finalSpeed: mov } } }) as QueuedAction;
@@ -122,5 +132,32 @@ describe("orderQueue", () => {
     ]);
     expect(ids(out)).toEqual(["a"]);
     expect(out[0].inOrder).toBe(true);
+  });
+
+  describe("movimentos empilhados (D4)", () => {
+    const mv = (actionId: string, speed: number, stackedOn?: string): QueuedAction =>
+      ({
+        actionId, actorId: "A", bars: ["move"],
+        action: { uuid: actionId, actorId: "A", reactionKind: "", move: { finalSpeed: speed, ...(stackedOn && { stackedOn }) } },
+      }) as unknown as QueuedAction;
+    const order = [{ actorId: "A", bars: ["move" as const], key: 18 }];
+
+    it("a entrada da ordem é da de baixo da pilha, não da mais veloz empilhada", () => {
+      const a = mv("a", 18);
+      const b = mv("b", 23, "a");
+      const out = orderQueue([a, b], order);
+      expect(out.map((i) => [i.action.actionId, i.inOrder, i.key])).toEqual([["a", true, 18], ["b", false, undefined]]);
+    });
+
+    it("sem a de baixo na fila, a empilhada casa normalmente", () => {
+      const b = mv("b", 23, "a");
+      const out = orderQueue([b], [{ actorId: "A", bars: ["move"], key: 23 }]);
+      expect(out.map((i) => [i.action.actionId, i.inOrder])).toEqual([["b", true]]);
+    });
+
+    it("cadeia de três: só a base está na ordem", () => {
+      const out = orderQueue([mv("c", 30, "b"), mv("b", 23, "a"), mv("a", 18)], order);
+      expect(out.map((i) => [i.action.actionId, i.inOrder])).toEqual([["a", true], ["c", false], ["b", false]]);
+    });
   });
 });

@@ -183,11 +183,25 @@ describe("queuedRolls", () => {
     ]);
   });
 
+  // Fixture corrigida (2026-11-06, D1): antes um movimento puro com `bars: ["action"]`, que não
+  // existe — aqui o movimento combinado com uma interação, que cobra as duas barras.
   it("fora do Race a velocidade é passiva; o Shift também, o Dash rola", () => {
-    const shift = queuedRolls(queued({ action: { uuid: "q1", actorId: "a", reactionKind: "", move: { category: "Shift" } }, damageSkill: undefined }), "Free");
+    const combined = (category: string) => queued({
+      bars: ["action", "move"], damageSkill: undefined,
+      action: { uuid: "q1", actorId: "a", reactionKind: "", move: { category }, interact: { kind: "open" } },
+    });
+    const shift = queuedRolls(combined("Shift"), "Free");
     expect(shift.map((r) => [r.field, r.bias])).toEqual([["speed", "passive"], ["moveSpeed", "passive"]]);
-    const dash = queuedRolls(queued({ action: { uuid: "q1", actorId: "a", reactionKind: "", move: { category: "Dash" } }, damageSkill: undefined }), "Race");
+    const dash = queuedRolls(combined("Dash"), "Race");
     expect(dash.map((r) => [r.field, r.bias])).toEqual([["speed", "rolled"], ["moveSpeed", "rolled"]]);
+  });
+
+  it("a pure move does not offer the action speed: it does not charge the action bar", () => {
+    const pure = queuedRolls(queued({
+      bars: ["move"], damageSkill: undefined,
+      action: { uuid: "q1", actorId: "a", reactionKind: "", move: { category: "Dash" } },
+    }), "Race");
+    expect(pure.map((r) => r.field)).toEqual(["moveSpeed"]);
   });
 
   it("casa a condição em vigor pelo id da ação e pelo campo", () => {

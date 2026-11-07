@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { GridShape, Piece, SlotCoord, WallSegment } from "../../../types/tacticalMap";
 import { isSameSlot, slotToTriple, tripleToSlot } from "../../tactical-map/utils/coords";
+import type { SlotTriple } from "../../tactical-map/utils/coords";
 import { isPathClear, wallContactSlots } from "../../tactical-map/utils/wallReach";
 import type { IntentPreview } from "../../tactical-map/IntentLayer";
 import {
@@ -28,6 +29,7 @@ export function useActionComposerState({
   grid,
   defaultCategory,
   defaultWeapon,
+  moveOrigin,
 }: {
   matchId: string | undefined;
   actorId: string | undefined;
@@ -38,6 +40,11 @@ export function useActionComposerState({
   defaultCategory: MoveCategory;
   /** A arma com que o ataque abre quando o rascunho não escolheu uma. */
   defaultWeapon?: string;
+  /**
+   * O destino do fim da cadeia do ator (o último movimento dele ainda pendente — `chainTailOf`):
+   * o próximo movimento se empilha nele e parte dali (D3). Ausente = parte da peça.
+   */
+  moveOrigin?: SlotTriple;
 }) {
   useEffect(() => { purgeLegacyMatchStorage(); }, []);
 
@@ -102,6 +109,14 @@ export function useActionComposerState({
   }, [boardPieces]);
 
   const actorPiece = actorId ? pieceByCharacter.get(actorId) : undefined;
+  // De onde um movimento parte (seta, aproximação, checagem de parede): o fim da cadeia, senão a
+  // peça. Uma ação sem movimento sai da peça (`standingSlot`).
+  const gridKind = grid?.kind ?? "square";
+  const originSlot = useMemo(
+    () => (moveOrigin ? tripleToSlot(moveOrigin, gridKind) : actorPiece?.coord.slot),
+    [moveOrigin, gridKind, actorPiece],
+  );
+  const originZ = moveOrigin ? moveOrigin[2] : (actorPiece?.coord.z ?? 0);
 
   const wallById = useMemo(() => new Map(walls.map((w) => [w.id, w])), [walls]);
 
@@ -109,8 +124,9 @@ export function useActionComposerState({
     const g = grid ?? FALLBACK_GRID;
     return {
       grid: g,
-      actorSlot: actorPiece?.coord.slot,
-      actorZ: actorPiece?.coord.z ?? 0,
+      actorSlot: originSlot,
+      actorZ: originZ,
+      standingSlot: actorPiece?.coord.slot,
       targetOf: (id): DraftTarget | undefined => {
         const slot = pieceByCharacter.get(id)?.coord.slot;
         if (slot) return { kind: "character", slot };
@@ -120,14 +136,14 @@ export function useActionComposerState({
       isFree: (slot) => !boardPieces.some((p) => p.characterId !== actorId && isSameSlot(p.coord.slot, slot)),
       isPathClear: (from, to) => isPathClear(from, to, walls, g),
     };
-  }, [grid, actorPiece, pieceByCharacter, wallById, walls, boardPieces, actorId]);
+  }, [grid, originSlot, originZ, actorPiece, pieceByCharacter, wallById, walls, boardPieces, actorId]);
 
   const resolved = useMemo(
     () => resolveDraft(draft, ctx, defaultCategory, defaultWeapon),
     [draft, ctx, defaultCategory, defaultWeapon],
   );
   const verdict = draftVerdict(resolved);
-  const from = actorPiece ? slotToTriple(actorPiece.coord.slot, actorPiece.coord.z) : undefined;
+  const from = originSlot ? slotToTriple(originSlot, originZ) : undefined;
   const payload = actorId ? buildEnqueuePayload(resolved, actorId, from) : null;
 
   const targetPieceIds = useMemo(() => {
@@ -151,12 +167,14 @@ export function useActionComposerState({
       .filter((w): w is WallSegment => !!w)
       .map((w) => ({ p1: w.p1, p2: w.p2 }));
     if (!to && targets.length === 0 && targetWalls.length === 0) return undefined;
-    return { from: actorPiece?.coord.slot, to, auto: resolved.move?.auto ?? false, targets, targetWalls };
-  }, [actorId, grid, resolved, pieceByCharacter, wallById, actorPiece]);
+    // Sem movimento a ação não se empilha (pode abrir antes da cadeia): sai da peça.
+    const from = resolved.move ? originSlot : actorPiece?.coord.slot;
+    return { from, to, auto: resolved.move?.auto ?? false, targets, targetWalls };
+  }, [actorId, grid, resolved, pieceByCharacter, wallById, originSlot, actorPiece]);
 
   const onSlotTap = useCallback(
-    (slot: SlotCoord) => updateDraft(chooseDestination(draft, slotToTriple(slot, actorPiece?.coord.z ?? 0))),
-    [draft, actorPiece, updateDraft],
+    (slot: SlotCoord) => updateDraft(chooseDestination(draft, slotToTriple(slot, originZ))),
+    [draft, originZ, updateDraft],
   );
   const onCharacterTap = useCallback(
     (characterId: string) => updateDraft(chooseTarget(draft, characterId)),

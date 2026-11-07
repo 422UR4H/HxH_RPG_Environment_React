@@ -4,7 +4,7 @@ import useMediaQuery from "../../../hooks/useMediaQuery";
 import { breakpoints } from "../../../styles/breakpoints";
 import type { PieceAnchoredItem } from "./PieceAnchoredLayer";
 import ReactionButtons from "./ReactionButtons";
-import { buttonOfKind } from "./reactionModel";
+import { STACKED_ESCAPE_WARNING, buttonOfKind } from "./reactionModel";
 import ActionBalloon from "./ActionBalloon";
 import type { BalloonLine } from "./ActionBalloon";
 import type { TableBalloon } from "./useGameTable";
@@ -33,6 +33,7 @@ export function reactionAnchoredItems(controls: Controls, nameOf: (id: string) =
         onQuick={(b) => controls.quick(t.actorId, b)}
         onConfigure={(b) => controls.configure(t.actorId, b)}
         armed={controls.pick?.actorId === t.actorId ? buttonOfKind(controls.pick.kind) : undefined}
+        armedNote={controls.pick?.actorId === t.actorId && controls.pick.losesStacked ? STACKED_ESCAPE_WARNING : undefined}
         onCancelArmed={controls.cancelPick}
       />
     ),

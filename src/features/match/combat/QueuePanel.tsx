@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import styled from "styled-components";
 import { colors } from "../../../styles/tokens";
 import type { GridKind } from "../../../types/tacticalMap";
 import type { Bar, BarsPayload, EditActionPayload, QueuedAction, QueuedActionDetail, ResolutionPayload, RoundMode } from "./combatMessages";
 import { BAR_ICONS, BAR_LABELS, costLabel, formatSlot, weaponLabel } from "./combatText";
+import { fmt } from "./barsMath";
 import { orderQueue } from "./queueOrder";
 import ResolutionDetails from "./ResolutionDetails";
 import { DamageSkillPicker, RollEditLine } from "./RollEditLine";
@@ -55,6 +56,16 @@ function QueuedActionEdits({
 }
 
 /**
+ * Só a ação que cobra a barra de ação tem velocidade de ação (D1): um movimento puro chega com
+ * `speed.rollCheck` vazio (sem perícia, resultado 0). Sem `bars` (card em andamento após
+ * reconexão), o `skillName` vazio é o que diz que a velocidade não existe.
+ */
+function chargesActionBar(bars: Bar[] | undefined, detail: QueuedActionDetail): boolean {
+  if (bars?.length) return bars.includes("action");
+  return !!detail.speed?.rollCheck?.skillName;
+}
+
+/**
  * O detalhe de uma ação (T13/F1) — tudo que a declaração carrega, no nível Full que só o
  * mestre recebe. Sem declaração (servidor antigo), quem chama nem monta este componente.
  * `orderKey` é a chave da entrada da ordem que `orderQueue` casou com ESTA ação (a em
@@ -85,7 +96,7 @@ function QueueRowDetails({
         </DetailLine>
       )}
       {!!detail.skills?.length && <DetailLine>Perícias: {detail.skills.map((s) => s.skillName).join(", ")}</DetailLine>}
-      {detail.speed?.rollCheck && (
+      {chargesActionBar(bars, detail) && detail.speed?.rollCheck && (
         <DetailLine>
           Velocidade de ação: {detail.speed.rollCheck.skillName}
           {detail.speed.rollCheck.attempts?.primary && ` ${detail.speed.rollCheck.attempts.primary.join(" + ")}`}
@@ -99,7 +110,7 @@ function QueueRowDetails({
           {detail.move.speed.result !== undefined && ` = ${detail.move.speed.result}`}
         </DetailLine>
       )}
-      {orderKey !== undefined && <DetailLine>Ordem geral: chave {orderKey}</DetailLine>}
+      {orderKey !== undefined && <DetailLine>Ordem geral: chave {fmt(orderKey)}</DetailLine>}
       {!!bars?.length && <DetailLine>Custo: {costLabel(bars)}</DetailLine>}
     </Details>
   );
@@ -188,10 +199,17 @@ export default function QueuePanel({
               )}
             </OpenRow>
           )}
-          {orderQueue(queue, order, mode).map(({ action, inOrder, key }) => {
+          {orderQueue(queue, order, mode).map(({ action, inOrder, key }, i, all) => {
             const detail = action.action;
+            const firstDeferred = !inOrder && (i === 0 || all[i - 1].inOrder);
             return (
-              <Row key={action.actionId} data-testid="queue-row">
+              <Fragment key={action.actionId}>
+                {firstDeferred && (
+                  <NextRoundSeparator data-testid="next-round-separator" title="Não cabem mais nesta rodada; abrem na próxima">
+                    Próximo round
+                  </NextRoundSeparator>
+                )}
+              <Row data-testid="queue-row">
                 <RowHeader>
                   <Info>
                     <Name>
@@ -199,7 +217,6 @@ export default function QueuePanel({
                       <Bars title={action.bars.map((b) => BAR_LABELS[b]).join(" + ")}>
                         {action.bars.map((b) => BAR_ICONS[b]).join("")}
                       </Bars>
-                      {!inOrder && <NextRoundBadge title="Não cabe mais nesta rodada; abre na próxima">próxima rodada</NextRoundBadge>}
                     </Name>
                   </Info>
                   {onEditAction && (
@@ -237,6 +254,7 @@ export default function QueuePanel({
                   <QueuedActionEdits queued={action} mode={mode} passiveValue={passiveValue} onEditAction={onEditAction} />
                 )}
               </Row>
+              </Fragment>
             );
           })}
         </List>
@@ -336,7 +354,12 @@ const OpenBadge = styled.span`
   color: ${colors.mapActiveTurn};
 `;
 
-const NextRoundBadge = styled(OpenBadge)`
+const NextRoundSeparator = styled.div`
+  padding: 2px 0;
+  border-bottom: 1px solid ${colors.textPlaceholderStrong};
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
   color: ${colors.textPlaceholderStrong};
 `;
 

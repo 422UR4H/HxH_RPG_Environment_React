@@ -1,6 +1,6 @@
 import styled from "styled-components";
 import ReactionButtons from "./ReactionButtons";
-import { buttonOfKind } from "./reactionModel";
+import { STACKED_ESCAPE_WARNING, buttonOfKind } from "./reactionModel";
 import type { ReactionButton, ReactionStatus } from "./reactionModel";
 import type { ReactionKind } from "./combatMessages";
 import { PanelTitle } from "./panelStyles";
@@ -26,7 +26,7 @@ export default function ReactionPanel({
   onConfigure: (actorId: string, b: ReactionButton) => void;
   title?: string;
   /** A fuga armada (escolhendo a casa no mapa). */
-  pick?: { actorId: string; kind: ReactionKind } | null;
+  pick?: { actorId: string; kind: ReactionKind; losesStacked?: boolean } | null;
   onCancelPick?: () => void;
 }) {
   if (targets.length === 0) return null;
@@ -42,6 +42,7 @@ export default function ReactionPanel({
           onQuick={(b) => onQuick(t.actorId, b)}
           onConfigure={(b) => onConfigure(t.actorId, b)}
           armed={pick?.actorId === t.actorId ? buttonOfKind(pick.kind) : undefined}
+          armedNote={pick?.actorId === t.actorId && pick.losesStacked ? STACKED_ESCAPE_WARNING : undefined}
           onCancelArmed={onCancelPick}
         />
       ))}

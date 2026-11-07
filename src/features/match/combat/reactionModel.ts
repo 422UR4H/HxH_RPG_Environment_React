@@ -41,6 +41,13 @@ export function buttonOfKind(kind: ReactionKind): ReactionButton | undefined {
   return undefined;
 }
 
+/**
+ * A fuga gasta a cabeça da cadeia de movimentos empilhados (D6): fora do destino dela, os
+ * empilhados caem. A casa só é escolhida no toque, que já envia — por isso o aviso é condicional.
+ */
+export const STACKED_ESCAPE_WARNING =
+  "Seus movimentos empilhados serão cancelados se esta fuga não for para onde o primeiro movimento ia.";
+
 /** Fugas exigem a casa de destino; o resto reage no lugar. */
 export function needsDestination(kind: ReactionKind): boolean {
   return kind === "escape" || kind === "escapeGuard" || kind === "closedEscape";

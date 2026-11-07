@@ -134,3 +134,12 @@ describe("ReactionButtons", () => {
     expect(screen.queryAllByRole("button")).toHaveLength(0);
   });
 });
+
+describe("ReactionButtons — armed note", () => {
+  it("shows the note under the armed instruction", () => {
+    render(
+      <ReactionButtons status="available" name="Gon" onQuick={vi.fn()} onConfigure={vi.fn()} armed="escape" armedNote="Aviso X" />,
+    );
+    expect(screen.getByRole("status")).toHaveTextContent("Aviso X");
+  });
+});

@@ -71,10 +71,10 @@ mais abaixo.
 | `src/features/match/combat/MatchTopBar.tsx` | barra superior burra (cena, regime, status, slot `actions?` opcional) |
 | `src/features/match/combat/RailNav.tsx` | rail/rodapé — um componente só, CSS decide a forma |
 | `src/features/match/combat/AsideTabs.tsx` | as abas Histórico/Personagens da gaveta |
-| `src/features/match/combat/GeneralBar.tsx` | a barra geral, flutuando sobre o mapa |
-| `src/features/match/combat/OwnBars.tsx` | as duas barras do próprio personagem/ator |
+| `src/features/match/combat/GeneralBar.tsx` | a barra geral, flutuando sobre o mapa (a fila de ordem só com `showOrder`, mestre) + a faixa `CharacterBarsStrip` |
+| `src/features/match/combat/OwnBars.tsx` | as duas barras do próprio personagem/ator (saldo ao vivo) |
 | `src/features/match/combat/EventStream.tsx` | a aba Histórico |
-| `src/features/match/combat/QueuePanel.tsx` | a fila do mestre |
+| `src/features/match/combat/QueuePanel.tsx` | a fila do mestre (um separador `Próximo round` para as adiadas) |
 | `src/features/match/combat/CloseTurnRefusedDialog.tsx` | o diálogo de `close_turn_refused` |
 | `src/features/match/combat/MatchErrorBanner.tsx` | a superfície de `error` (toast, some em 6s) |
 | `src/features/match/WallActionSheet.tsx` | o menu de parede, extraído do `GamePage` antigo |
@@ -95,6 +95,12 @@ Todo o estado que importa mora em `CombatState` (`combatReducer.ts`): `scene`, `
 `bars`, `openTurn`, `queue`, `hp`, `ghosts`, `events`, `pendingCloseTurn`, `lastError`. Uma
 ação de reducer por mensagem do wire, mais três locais: `ACTION_SENT`, `WS_ERROR`,
 `ERROR_DISMISSED`.
+
+**`bars_updated` é por destinatário** (contrato:
+[`bars_updated`](../../../../System_X_System/docs/dev/api/match-combat-ws.md#bars_updated)): o
+mestre recebe pendentes, adiadas, preço provisório e a ordem; o jogador só o que foi aberto, com
+`order: []`. `actionBalance`/`moveBalance` são o saldo ao vivo e o carry é `actionCarry`/`moveCarry`.
+Detalhe em `combate-polimento-mesa.md`, "Barras ao vivo, por destinatário".
 
 **Guarda de `seq`.** `bars` só é substituído quando `state.bars === null || payload.seq >
 state.bars.seq` (`acceptBars`) — vale tanto para `bars_updated` quanto para
@@ -359,6 +365,8 @@ tipo array/objeto sempre presente; sem isto um round vazio (`bars_updated` com
 | `bars_updated` / `match_full_state.bars` | `prices` (`map[string]int`) | sem `omitempty` | sim |
 | ” | `characters` (`[]CharacterBarsPayload`) | sem `omitempty` | sim |
 | ” | `characters[].actionSpeeds`/`moveSpeeds` (`[]int`) | sem `omitempty` | sim — `append([]int(nil), …)` num round vazio devolve nil de verdade |
+| ” | `characters[].pendingActionSpeeds`/`pendingMoveSpeeds`/`deferredActionSpeeds`/`deferredMoveSpeeds` (`[]int`) | `omitempty` (só do mestre) | sim — ausentes para o jogador; viram `[]` |
+| ” | `provisionalPrices` (`map[string]int`) | `omitempty` (só do mestre) | sim — ausente para o jogador; vira `{}` |
 | ” | `order` (`[]BarSlotPayload`) | sem `omitempty` | sim |
 | ” | `order[].bars` (`[]string`) | sem `omitempty` | defensivo — os dois construtores atuais sempre `make` não-nil |
 | `resolution_updated` / `match_full_state.resolution` | `targets` (`[]CharacterResultPayload`) | sem `omitempty` | defensivo — `newResolutionUpdatedPayload` sempre semeia `[]CharacterResultPayload{}` hoje, mas a tag não promete isso pra sempre |

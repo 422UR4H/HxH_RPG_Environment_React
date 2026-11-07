@@ -231,3 +231,26 @@ describe("ActionComposer", () => {
     expect(screen.queryByRole("radiogroup", { name: "O que fazer" })).toBeNull();
   });
 });
+
+describe("ActionComposer — wall distance hint", () => {
+  const renderWith = (outOfReach: boolean) => {
+    const draft: ActionDraft = { ...chooseWallTarget(emptyDraft(), door), moveMode: "stay" };
+    const resolved = { act: { targets: ["door"], kind: "open" as const, verbs: ["open" as const, "attack" as const] }, targetSteps: 6, approachBlocked: false, outOfReach };
+    render(
+      <ActionComposer
+        actorName="Gon" draft={draft} resolved={resolved} verdict={draftVerdict(resolved)} catalogue={catalogue}
+        gridKind="square" defaultCategory="Dash" nameOf={nameOf} onDraftChange={() => {}} onDeclare={() => {}} canDeclare
+      />,
+    );
+  };
+
+  it("asks to turn Move on only when the wall is actually out of reach", () => {
+    renderWith(true);
+    expect(screen.getByText("Porta está a 6 espaços — ligue Mover para chegar até lá.")).toBeInTheDocument();
+  });
+
+  it("a wall in reach from the piece shows no distance hint", () => {
+    renderWith(false);
+    expect(screen.queryByText(/Porta está a/)).not.toBeInTheDocument();
+  });
+});
