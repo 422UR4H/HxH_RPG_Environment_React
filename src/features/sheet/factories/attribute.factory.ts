@@ -26,7 +26,7 @@ export function createEmptyMentalAttributes(): Record<string, Attribute> {
     adaptability: createEmptyAttribute(),
     creativity: createEmptyAttribute(),
     resilience: createEmptyAttribute(),
-    weighting: createEmptyAttribute(),
+    judgment: createEmptyAttribute(),
   };
 }
 

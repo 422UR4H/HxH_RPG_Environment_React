@@ -18,7 +18,7 @@ import type { StatusBar } from "./status";
 import type { ClassDefinition, SheetInput } from "./types";
 
 export const PHYSICAL_PRIMARIES = ["Resistance", "Agility", "Flexibility", "Sense"] as const;
-export const MENTAL_PRIMARIES = ["Resilience", "Adaptability", "Weighting", "Creativity"] as const;
+export const MENTAL_PRIMARIES = ["Resilience", "Adaptability", "Judgment", "Creativity"] as const;
 
 export interface SheetModel {
   characterClass: string;
