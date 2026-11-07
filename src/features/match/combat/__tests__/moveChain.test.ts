@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   arrivedMoves, chainHeadOf, chainTailOf, ghostOrigin, pendingChainMoves, predecessorOf, stackedAfter,
-  stackedLostByEscape,
+  stackedLostByEscape, stackedLostByRepel, pendingActionBarIds,
 } from "../moveChain";
 import type { ChainMove } from "../moveChain";
 import type { DeclaredAction } from "../combatReducer";
@@ -138,5 +138,107 @@ describe("stackedLostByEscape", () => {
     const single = pendingChainMoves([declared("a1", [1, 0, 0])], []);
     expect(stackedLostByEscape("c1", single, [7, 7, 0])).toEqual([]);
     expect(stackedLostByEscape("c2", moves)).toEqual([]);
+  });
+});
+
+describe("pendingActionBarIds", () => {
+  it("collects the actor's pending action-bar actions from both sources, deduped", () => {
+    const own = [
+      declared("a1", undefined),
+      declared("a2", undefined, { status: "open" }),
+      declared("a3", [1, 0, 0]),
+      declared("a4", [2, 0, 0], { attack: { targets: ["n1"] } }),
+      declared("a5", undefined, { actorId: "c2" }),
+      declared("w1", undefined, { attack: undefined, interact: { kind: "open", targets: ["w"] } }),
+    ];
+    const queue = [queued("a1", "c1"), queued("q7", "c1"), queued("q8", "c1", [3, 0, 0])];
+    expect(pendingActionBarIds("c1", own, queue).sort()).toEqual(["a1", "a4", "q7", "w1"]);
+  });
+});
+
+describe("pendingActionBarIds — any non-move action", () => {
+  it("counts a declared action without move, attack or interact; a pure move stays out", () => {
+    const bare = declared("b", undefined, { attack: undefined });
+    expect(pendingActionBarIds("c1", [bare, declared("m", [1, 0, 0])], [])).toEqual(["b"]);
+  });
+});
+
+describe("stackedLostByRepel — master queue", () => {
+  const combinedQ = (id: string, to: SlotTriple, stackedOn?: string): QueuedAction => ({
+    actionId: id, actorId: "n1", bars: ["action", "move"],
+    action: {
+      uuid: id, actorId: "n1", reactionKind: "", targetId: ["c9"], attack: {},
+      move: { category: "Dash", position: to, ...(stackedOn ? { stackedOn } : {}) },
+    },
+  });
+
+  it("a queue-only combined head with a move stacked on it is certain", () => {
+    const queue = [combinedQ("h", [1, 0, 0]), queued("m", "n1", [2, 0, 0], "h")];
+    const moves = pendingChainMoves([], queue);
+    const r = stackedLostByRepel("n1", moves, pendingActionBarIds("n1", [], queue));
+    expect(ids(r.lost)).toEqual(["m"]);
+    expect(r.certain).toBe(true);
+  });
+
+  it("a stale stackedOn makes the move the chain head", () => {
+    const queue = [combinedQ("h", [1, 0, 0], "gone"), queued("m", "n1", [2, 0, 0], "h")];
+    const moves = pendingChainMoves([], queue);
+    expect(predecessorOf(moves[0], moves)).toBeUndefined();
+    const r = stackedLostByRepel("n1", moves, pendingActionBarIds("n1", [], queue));
+    expect(ids(r.lost)).toEqual(["m"]);
+    expect(r.certain).toBe(true);
+  });
+});
+
+describe("stackedLostByRepel", () => {
+  const combined = (id: string, to: SlotTriple): DeclaredAction =>
+    declared(id, to, { attack: { targets: ["n1"] } });
+  const lost = (ds: DeclaredAction[], actionBar: string[]) =>
+    stackedLostByRepel("c1", pendingChainMoves(ds, []), actionBar);
+
+  it("a combined head with a stacked move is certain and loses that move", () => {
+    const r = lost([combined("h", [1, 0, 0]), declared("m", [2, 0, 0])], ["h"]);
+    expect(ids(r.lost)).toEqual(["m"]);
+    expect(r.certain).toBe(true);
+  });
+
+  it("a pure attack pending next to the stacked head makes it uncertain", () => {
+    const r = lost([combined("h", [1, 0, 0]), declared("m", [2, 0, 0]), declared("p", undefined)], ["h", "p"]);
+    expect(ids(r.lost)).toEqual(["m"]);
+    expect(r.certain).toBe(false);
+  });
+
+  it("only a pure attack, no warning", () => {
+    expect(lost([declared("p", undefined)], ["p"])).toEqual({ lost: [], certain: false });
+  });
+
+  it("no action-bar action at all, no warning", () => {
+    expect(lost([declared("a", [1, 0, 0]), declared("b", [2, 0, 0])], [])).toEqual({ lost: [], certain: false });
+  });
+
+  it("chain move, combined (stacked), move: the fallback takes the combined; the head stays", () => {
+    const r = lost([declared("a", [1, 0, 0]), combined("c", [2, 0, 0]), declared("d", [3, 0, 0])], ["c"]);
+    expect(ids(r.lost)).toEqual(["d"]);
+    expect(r.certain).toBe(true);
+  });
+
+  it("a blocked combined is not a candidate while an unblocked one exists", () => {
+    const r = lost(
+      [combined("h", [1, 0, 0]), combined("c", [2, 0, 0]), declared("d", [3, 0, 0])],
+      ["h", "c"],
+    );
+    expect(ids(r.lost)).toEqual(["c", "d"]);
+    expect(r.certain).toBe(true);
+  });
+
+  it("three-deep chain loses the transitive moves", () => {
+    const r = lost([combined("h", [1, 0, 0]), declared("m1", [2, 0, 0]), declared("m2", [3, 0, 0])], ["h"]);
+    expect(ids(r.lost)).toEqual(["m1", "m2"]);
+    expect(r.certain).toBe(true);
+  });
+
+  it("another actor's chain is ignored", () => {
+    const moves = pendingChainMoves([combined("h", [1, 0, 0]), declared("m", [2, 0, 0])], []);
+    expect(stackedLostByRepel("c2", moves, ["h"])).toEqual({ lost: [], certain: false });
   });
 });

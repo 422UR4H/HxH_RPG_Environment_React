@@ -1,7 +1,7 @@
 import { useState } from "react";
 import styled from "styled-components";
 import Tooltip from "../../../components/ions/Tooltip";
-import { colors } from "../../../styles/tokens";
+import { alpha, colors } from "../../../styles/tokens";
 import type { Bar, BarsPayload, RoundMode } from "./combatMessages";
 import { BAR_ICONS, BAR_LABELS } from "./combatText";
 import { barFields, barScale, barTicks, barTotal, fmt, priceOf } from "./barsMath";
@@ -228,8 +228,8 @@ const Box = styled.span`
     outline-offset: 2px;
   }
 `;
-const barColor = (bar: Bar) => (bar === "action" ? colors.vitalActionBar : colors.vitalMoveBar);
-const trackColor = (bar: Bar) => (bar === "action" ? colors.vitalActionBarTrack : colors.vitalMoveBarTrack);
+const barColor = (bar: Bar) => (bar === "action" ? colors.mapAttackIntent : colors.mapMoveIntent);
+const trackColor = (bar: Bar) => alpha(barColor(bar), 0.18);
 const Track = styled.span<{ $bar: Bar }>`
   position: relative;
   flex-shrink: 0;

@@ -672,7 +672,7 @@ describe("ResolutionDetails", () => {
         pendingReactions: [{ reactionId: "r-s", actorId: "c1", kind: "default", seated: true }],
       };
       render(<ResolutionDetails resolution={seated} nameOf={resolutionNameOf} onOpenReaction={() => {}} />);
-      expect(screen.getByText(/reação padrão/)).toBeInTheDocument();
+      expect(screen.getByText(/esquiva padrão/)).toBeInTheDocument();
       expect(screen.getByText("ainda não respondeu")).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Dar a palavra" })).toBeInTheDocument();
     });

@@ -197,3 +197,33 @@ describe("useReactionControls — stacked moves (D6)", () => {
     expect(result.current.pick).toMatchObject({ actorId: "c3", losesStacked: false });
   });
 });
+
+describe("useReactionControls — repel warning", () => {
+  const attack = (id: string) =>
+    ({ id, actorId: "c2", status: "queued" as const, fromComposer: true, at: 0, move: { category: "Dash" as const, to: [5, 5, 0] as [number, number, number] }, attack: { targets: ["n1"] } });
+  const stacked = (id: string) =>
+    ({ id, actorId: "c2", status: "queued" as const, fromComposer: true, at: 0, move: { category: "Dash" as const, to: [6, 6, 0] as [number, number, number] } });
+
+  it("a combined head with a stacked move gets the certain warning in the dialog", () => {
+    const { result } = mount({
+      state: { ...initialCombatState, openTurn: openTurn(), declared: [attack("h"), stacked("m")] },
+    });
+    act(() => result.current.quick("c2", "repel"));
+    expect(result.current.dialog?.repelWarning).toMatch(/gasta a sua ação com movimento e cancela/);
+  });
+
+  it("a pure attack next to it makes the warning conditional", () => {
+    const pure = { id: "p", actorId: "c2", status: "queued" as const, fromComposer: true, at: 0, attack: { targets: ["n1"] } };
+    const { result } = mount({
+      state: { ...initialCombatState, openTurn: openTurn(), declared: [attack("h"), stacked("m"), pure] },
+    });
+    act(() => result.current.quick("c2", "repel"));
+    expect(result.current.dialog?.repelWarning).toMatch(/^Se este repelir/);
+  });
+
+  it("no stacked moves, no repel warning", () => {
+    const { result } = mount();
+    act(() => result.current.quick("c2", "repel"));
+    expect(result.current.dialog?.repelWarning).toBeUndefined();
+  });
+});

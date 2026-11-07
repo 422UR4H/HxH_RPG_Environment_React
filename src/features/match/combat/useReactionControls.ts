@@ -6,9 +6,9 @@ import type { Piece, SlotCoord } from "../../../types/tacticalMap";
 import { slotToTriple } from "../../tactical-map/utils/coords";
 import type { AttachReactionPayload, ReactionKind } from "./combatMessages";
 import type { CombatState } from "./combatReducer";
-import { pendingChainMoves, stackedLostByEscape } from "./moveChain";
+import { pendingActionBarIds, pendingChainMoves, stackedLostByEscape, stackedLostByRepel } from "./moveChain";
 import {
-  buildReactionPayload, needsDestination, reactableTargets, reactionKindOf, reactionStatusOf,
+  STACKED_REPEL_MAYBE_WARNING, STACKED_REPEL_WARNING, buildReactionPayload, needsDestination, reactableTargets, reactionKindOf, reactionStatusOf,
 } from "./reactionModel";
 import type { ReactionButton, ReactionStatus } from "./reactionModel";
 
@@ -44,6 +44,18 @@ export function useReactionControls({
   const losesStacked = useCallback(
     (actorId: string) => stackedLostByEscape(actorId, chainMoves).length > 0,
     [chainMoves],
+  );
+
+  // O repelir gasta a ação: se há empilhados nela, o diálogo avisa (certo ou "se").
+  const repelWarningOf = useCallback(
+    (actorId: string): string | undefined => {
+      const { lost, certain } = stackedLostByRepel(
+        actorId, chainMoves, pendingActionBarIds(actorId, state.declared, state.queue),
+      );
+      if (lost.length === 0) return undefined;
+      return certain ? STACKED_REPEL_WARNING : STACKED_REPEL_MAYBE_WARNING;
+    },
+    [chainMoves, state.declared, state.queue],
   );
 
   const targets = useMemo<Array<{ actorId: string; status: ReactionStatus }>>(
@@ -151,7 +163,12 @@ export function useReactionControls({
     quick,
     configure,
     dialog: dialogArmed
-      ? { actorId: dialogArmed.actorId, initial: dialogArmed.initial, losesStacked: losesStacked(dialogArmed.actorId) }
+      ? {
+        actorId: dialogArmed.actorId,
+        initial: dialogArmed.initial,
+        losesStacked: losesStacked(dialogArmed.actorId),
+        repelWarning: repelWarningOf(dialogArmed.actorId),
+      }
       : null,
     closeDialog,
     sendFromDialog,

@@ -48,6 +48,16 @@ export function buttonOfKind(kind: ReactionKind): ReactionButton | undefined {
 export const STACKED_ESCAPE_WARNING =
   "Seus movimentos empilhados serão cancelados se esta fuga não for para onde o primeiro movimento ia.";
 
+/**
+ * O repelir gasta a ação do personagem; se ela é uma combinada com movimento, os empilhados nela
+ * caem. Certo quando toda ação candidata derrubaria algo; "se" quando o servidor pode escolher
+ * outra (as chaves dos dados são secretas, o cliente não sabe qual).
+ */
+export const STACKED_REPEL_WARNING =
+  "Este repelir gasta a sua ação com movimento e cancela os movimentos empilhados nela.";
+export const STACKED_REPEL_MAYBE_WARNING =
+  "Se este repelir gastar a sua ação com movimento, os movimentos empilhados nela serão cancelados.";
+
 /** Fugas exigem a casa de destino; o resto reage no lugar. */
 export function needsDestination(kind: ReactionKind): boolean {
   return kind === "escape" || kind === "escapeGuard" || kind === "closedEscape";

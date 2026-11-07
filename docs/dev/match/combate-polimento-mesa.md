@@ -161,9 +161,9 @@ O saldo que chega (`actionBalance`/`moveBalance`) já pagou a próxima ação no
   em todas as linhas de uma vez (a grade faz isso). A célula não vazia leva 8 px à esquerda.
 - Números em `tabular-nums`; cada velocidade com `min-width: 3ch`.
 - Por barra (⚔ ação, ➜ movimento), a caixa tem ícone, trilho e número. O trilho enche até o
-  **total** (`barTotal`) contra a escala comum (`barScale`), na cor da barra (`vitalActionBar` = o
-  vermelho do ataque, `vitalMoveBar` = o azul do movimento) sobre o mesmo matiz a 18 %
-  (`vital*BarTrack`); um traço de 1 px (`overlayDark`) em cada múltiplo do preço. Nenhum verde.
+  **total** (`barTotal`) contra a escala comum (`barScale`), na cor da barra (`mapAttackIntent` = o
+  vermelho do ataque, `mapMoveIntent` = o azul do movimento) sobre o mesmo matiz a 18 %
+  (`alpha(cor, 0.18)`, sem token novo); um traço de 1 px (`overlayDark`) em cada múltiplo do preço. Nenhum verde.
 - **Hover e foco** (a caixa é focável, `tabIndex=0`) escurecem `[0, gasto]` com `overlayMedium` e
   trocam o número por **"saldo X"** em negrito, texto primário. Saldo negativo escurece o
   preenchimento inteiro ("saldo −3"). O texto fora de vista fica no mesmo lugar, invisível
@@ -303,6 +303,14 @@ movimento não entra na cadeia nem a quebra. O servidor não abre um empilhado a
   `armedNote`, no painel e ao lado da peça) mostram `STACKED_ESCAPE_WARNING`. A casa só é escolhida
   no toque, que já envia — por isso o aviso é condicional ("…se esta fuga não for para onde o
   primeiro movimento ia").
+- **Reação (repelir):** o repelir cobra só a barra de ação e gasta uma ação com movimento
+  (combinada) se for a candidata; os empilhados nela caem. `stackedLostByRepel` (puro, em
+  `moveChain.ts`) recebe os ids de `pendingActionBarIds` e devolve `{ lost, certain }`: candidatas =
+  as não bloqueadas (ataque/interação puros; combinada sem anterior), ou todas se não há nenhuma. O
+  cliente não conhece as chaves (dados secretos), então `certain` só vale quando toda candidata
+  derrubaria algo. `dialog.repelWarning` carrega `STACKED_REPEL_WARNING` (certo) ou
+  `STACKED_REPEL_MAYBE_WARNING` ("Se este repelir gastar…"); só o `ReactionConfigDialog` mostra,
+  porque o repelir sempre abre a caixa.
 - **Ajustar na fila:** `queuedRolls` só oferece "Velocidade de ação" para a ação que cobra a barra de
   ação (`bars` com `"action"`); o movimento puro não rola velocidade de ação (D1) e o servidor
   recusa a edição.
