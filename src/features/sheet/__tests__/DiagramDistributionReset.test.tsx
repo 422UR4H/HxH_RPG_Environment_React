@@ -14,7 +14,7 @@ function makeAttrs(names: string[]): Record<string, Attribute> {
 }
 
 const PHYSICAL = ["resistance", "constitution", "strength", "agility", "dexterity", "sense", "flexibility", "celerity"];
-const MENTAL = ["resilience", "adaptability", "weighting", "creativity"];
+const MENTAL = ["resilience", "adaptability", "judgment", "creativity"];
 
 /**
  * Faz o papel do template: guarda os atributos, aplica o delta pedido pelo

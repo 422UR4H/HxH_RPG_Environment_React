@@ -138,7 +138,7 @@ function getBaseAttributesForType(type: "physical" | "mental" | "spiritual") {
         "celerity",
       ];
     case "mental":
-      return ["resilience", "adaptability", "weighting", "creativity"];
+      return ["resilience", "adaptability", "judgment", "creativity"];
     case "spiritual":
       return ["flame", "conscience"];
     default:

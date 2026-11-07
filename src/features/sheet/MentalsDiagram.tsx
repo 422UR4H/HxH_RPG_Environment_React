@@ -42,7 +42,7 @@ const MentalsDiagram = ({
     // { name: "emotion", key: "EMO", x: "50%", y: "8%" },
     { name: "adaptability", key: "ADP", x: "93%", y: "53%" },
     // { name: "charism", key: "CAR", x: "92%", y: "53%" },
-    { name: "weighting", key: "WEG", x: "50.2%", y: "92%" },
+    { name: "judgment", key: "JUD", x: "50.2%", y: "92%" },
     // { name: "reasoning", key: "REA", x: "50%", y: "92%" },
     { name: "creativity", key: "CRE", x: "7%", y: "53%" },
   ];
