@@ -155,14 +155,14 @@ export function stackedLostByEscape(
 
 /**
  * Os ids das ações pendentes do personagem que cobram a barra de ação (ataque, interação ou
- * combinada): `declared` (jogador; `open` já saiu da fila) e `queue` (mestre, `bars`). Uma ação
+ * combinada; igual a `Action.Bars()`: só o movimento puro fica de fora): `declared` (jogador; `open` já saiu da fila) e `queue` (mestre, `bars`). Uma ação
  * nas duas listas entra uma vez.
  */
 export function pendingActionBarIds(actorId: string, declared: DeclaredAction[], queue: QueuedAction[]): string[] {
   const out = new Set<string>();
   for (const q of queue) if (q.actorId === actorId && q.bars.includes("action")) out.add(q.actionId);
   for (const d of declared) {
-    if (d.actorId === actorId && d.status !== "open" && (d.attack || d.interact)) out.add(d.id);
+    if (d.actorId === actorId && d.status !== "open" && (!d.move || d.attack || d.interact)) out.add(d.id);
   }
   return [...out];
 }

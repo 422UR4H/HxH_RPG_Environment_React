@@ -156,6 +156,40 @@ describe("pendingActionBarIds", () => {
   });
 });
 
+describe("pendingActionBarIds — any non-move action", () => {
+  it("counts a declared action without move, attack or interact; a pure move stays out", () => {
+    const bare = declared("b", undefined, { attack: undefined });
+    expect(pendingActionBarIds("c1", [bare, declared("m", [1, 0, 0])], [])).toEqual(["b"]);
+  });
+});
+
+describe("stackedLostByRepel — master queue", () => {
+  const combinedQ = (id: string, to: SlotTriple, stackedOn?: string): QueuedAction => ({
+    actionId: id, actorId: "n1", bars: ["action", "move"],
+    action: {
+      uuid: id, actorId: "n1", reactionKind: "", targetId: ["c9"], attack: {},
+      move: { category: "Dash", position: to, ...(stackedOn ? { stackedOn } : {}) },
+    },
+  });
+
+  it("a queue-only combined head with a move stacked on it is certain", () => {
+    const queue = [combinedQ("h", [1, 0, 0]), queued("m", "n1", [2, 0, 0], "h")];
+    const moves = pendingChainMoves([], queue);
+    const r = stackedLostByRepel("n1", moves, pendingActionBarIds("n1", [], queue));
+    expect(ids(r.lost)).toEqual(["m"]);
+    expect(r.certain).toBe(true);
+  });
+
+  it("a stale stackedOn makes the move the chain head", () => {
+    const queue = [combinedQ("h", [1, 0, 0], "gone"), queued("m", "n1", [2, 0, 0], "h")];
+    const moves = pendingChainMoves([], queue);
+    expect(predecessorOf(moves[0], moves)).toBeUndefined();
+    const r = stackedLostByRepel("n1", moves, pendingActionBarIds("n1", [], queue));
+    expect(ids(r.lost)).toEqual(["m"]);
+    expect(r.certain).toBe(true);
+  });
+});
+
 describe("stackedLostByRepel", () => {
   const combined = (id: string, to: SlotTriple): DeclaredAction =>
     declared(id, to, { attack: { targets: ["n1"] } });
