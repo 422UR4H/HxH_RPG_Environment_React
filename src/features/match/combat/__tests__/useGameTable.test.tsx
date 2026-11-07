@@ -71,3 +71,41 @@ describe("useGameTable — mapa da mesa", () => {
     await vi.waitFor(() => expect(screen.getByTestId("probe")).toHaveAttribute("data-pending", "false"));
   });
 });
+
+describe("useGameTable — stacked moves", () => {
+  const grid = { kind: "square", cols: 8, rows: 8, cellSize: 40, skewRatio: 1, rotation: 0, color: "#000", opacity: 0.5, lineStyle: "solid" };
+  let game: ReturnType<typeof useGameTable> | undefined;
+  function GameProbe() {
+    game = useGameTable({ token: "fake-jwt-token", matchId: "match-1", declaredSource: "ownQueue", actorId: "c1" });
+    return null;
+  }
+  const move = (col: number) => ({
+    actorId: "c1", move: { category: "Dash" as const, position: [col, 0, 0] as [number, number, number] },
+  });
+
+  it("a stacked ghost starts at its predecessor's destination, and a move back to the piece is not dismissed as arrived", async () => {
+    renderWithProviders(<GameProbe />);
+    const ws = await waitForSocket();
+    act(() => ws.onopen?.());
+    act(() =>
+      ws.emit("map_full_state", {
+        pieces: [{ pieceId: "p1", characterId: "c1", slot: { kind: "square", col: 0, row: 0 } }],
+        walls: [], visiblePolygons: [], fogMode: "live", grid, bg: null,
+      }),
+    );
+    act(() => { game!.combat.send.enqueueAction(move(3)); });
+    act(() => ws.emit("action_enqueued", { actionId: "a1" }));
+    // A próxima composição parte do fim da cadeia.
+    expect(game!.composer.preview).toBeUndefined();
+    act(() => game!.composer.onSlotTap({ kind: "square", col: 5, row: 0 }));
+    expect(game!.composer.preview?.from).toEqual({ kind: "square", col: 3, row: 0 });
+
+    act(() => { game!.combat.send.enqueueAction(move(0)); }); // volta para onde a peça está
+    act(() => ws.emit("action_enqueued", { actionId: "a2" }));
+    expect(game!.combat.state.declared.map((d) => d.id)).toEqual(["a1", "a2"]);
+    expect(game!.ghosts).toEqual([
+      { from: [0, 0, 0], to: [3, 0, 0] },
+      { from: [3, 0, 0], to: [0, 0, 0] },
+    ]);
+  });
+});

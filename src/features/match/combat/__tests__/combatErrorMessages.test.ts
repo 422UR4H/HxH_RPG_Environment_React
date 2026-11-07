@@ -25,6 +25,12 @@ describe("combatErrorText", () => {
     expect(combatErrorText("game_error", "action actor does not match player", "cancel_action")).toBe("Essa ação não é sua.");
   });
 
+  it("translates the stacked pull refusal", () => {
+    expect(combatErrorText("game_error", "action is stacked on a pending move", "pull_action")).toBe(
+      "Este movimento está empilhado em outro que ainda não abriu — abra aquele primeiro.",
+    );
+  });
+
   it("mensagem de domínio desconhecida mantém o prefixo", () => {
     expect(combatErrorText("game_error", "algo novo", "cancel_action")).toBe("Não foi possível cancelar a ação: algo novo");
   });

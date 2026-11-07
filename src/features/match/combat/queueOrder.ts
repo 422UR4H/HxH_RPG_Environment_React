@@ -22,8 +22,11 @@ function speedOf(a: QueuedAction): number {
 
 /**
  * A fila na ordem em que o mestre vai abrir (spec §11). `order` (`bars_updated.order`, maior
- * chave primeiro) é público e não carrega id de ação, então casa por ator + barras: cada
- * entrada consome UMA ação da fila. Entre ações do mesmo ator e das mesmas barras, o servidor
+ * chave primeiro) é só do mestre e não carrega id de ação, então casa por ator + barras: cada
+ * entrada consome UMA ação da fila. Ação BLOQUEADA não é candidata (D4): se o `stackedOn` do
+ * movimento dela nomeia uma ação ainda não casada, ela está empilhada e o servidor a bloqueia até a de baixo abrir —
+ * a entrada da ordem é da de baixo da pilha. `stackedOn` cujo alvo não está mais na fila vale
+ * como "não empilhada". Entre ações do mesmo ator e das mesmas barras, o servidor
  * pega a de maior chave, que cresce com a velocidade — então maior velocidade primeiro, depois
  * chegada. Ação sem entrada na ordem não cabe nesta rodada: vai ao fim, `inOrder: false`.
  * "Sem informação" (chegada, tudo `inOrder`) é: nenhum `bars_updated` ainda (`order`
@@ -47,6 +50,8 @@ export function orderQueue(
     let best = -1;
     remaining.forEach((a, i) => {
       if (a.actorId !== entry.actorId || !sameBars(a.bars, entry.bars)) return;
+      const under = a.action?.move?.stackedOn;
+      if (under && remaining.some((r) => r.actionId === under)) return;
       // `>` estrito: empate de velocidade fica com a que chegou primeiro.
       if (best === -1 || speedOf(a) > speedOf(remaining[best])) best = i;
     });

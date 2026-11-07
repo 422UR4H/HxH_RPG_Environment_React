@@ -5,7 +5,8 @@ import type { ReactionKind } from "./combatMessages";
 import { costLabel, weaponLabel } from "./combatText";
 import { defaultWeaponOf } from "./actionDraft";
 import {
-  REACTION_BARS, REACTION_BUTTONS, REACTION_BUTTON_LABELS, needsDestination, reactionKindOf, supportsEvasion,
+  REACTION_BARS, REACTION_BUTTONS, REACTION_BUTTON_LABELS, STACKED_ESCAPE_WARNING, needsDestination, reactionKindOf,
+  supportsEvasion,
 } from "./reactionModel";
 import type { ReactionButton } from "./reactionModel";
 import {
@@ -37,6 +38,7 @@ export default function ReactionConfigDialog({
   initial,
   weapons,
   defaultWeapon,
+  losesStacked,
   onSend,
   onCancel,
 }: {
@@ -47,6 +49,8 @@ export default function ReactionConfigDialog({
   weapons: string[];
   /** A arma do rascunho da ação, se houver. */
   defaultWeapon?: string;
+  /** O personagem tem movimentos empilhados que uma fuga para outra casa cancela (D6). */
+  losesStacked?: boolean;
   onSend: (r: { kind: ReactionKind; weapon?: string }) => void;
   onCancel: () => void;
 }) {
@@ -111,6 +115,7 @@ export default function ReactionConfigDialog({
           </Field>
         )}
         <Cost>{costText(kind)}</Cost>
+        {losesStacked && needsDestination(kind) && <Cost>{STACKED_ESCAPE_WARNING}</Cost>}
         <Buttons>
           <CancelButton type="button" onClick={onCancel}>Cancelar</CancelButton>
           <AccentConfirmButton type="button" onClick={send}>

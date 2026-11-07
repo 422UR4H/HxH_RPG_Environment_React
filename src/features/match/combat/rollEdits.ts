@@ -123,7 +123,7 @@ export function editableRolls(res: ResolutionPayload): EditableRoll[] {
 
 /**
  * O que o mestre pode editar numa ação ainda na fila. Acerto e dano (com ataque), a velocidade
- * de ação e a de movimento (com movimento): na fila as duas velocidades mudam o lugar da ação —
+ * de ação (se ela cobra a barra de ação) e a de movimento (com movimento): na fila as duas velocidades mudam o lugar da ação —
  * o servidor a reordena. Fora do Race a velocidade de ação é passiva; o Shift também. Alvos e
  * perícias não se editam na fila (o servidor recusa: chegariam ao dono antes do fechamento).
  */
@@ -138,7 +138,11 @@ export function queuedRolls(q: QueuedAction, mode: RoundMode | ""): EditableRoll
   });
   const out: EditableRoll[] = [];
   if (q.damageSkill !== undefined || q.action?.attack) out.push(...ACTION_ROLLS.map(roll));
-  out.push(roll({ field: "speed", label: "Velocidade de ação", bias: mode === "Race" ? "rolled" : "passive" }));
+  // Só a ação que cobra a barra de ação tem velocidade de ação: o movimento puro não rola uma
+  // (D1), e o servidor recusa a edição dela (`ErrConditionTargetMissing`).
+  if (q.bars.includes("action")) {
+    out.push(roll({ field: "speed", label: "Velocidade de ação", bias: mode === "Race" ? "rolled" : "passive" }));
+  }
   if (q.action?.move) {
     out.push(roll({
       field: "moveSpeed", label: "Velocidade de movimento", bias: q.action.move.category === "Shift" ? "passive" : "rolled",

@@ -8,8 +8,9 @@ import type { ResolutionPayload } from "../combatMessages";
 const bars = (seq: number): BarsPayload => ({
   seq,
   prices: { action: 14 },
+  provisionalPrices: {},
   characters: [
-    { characterId: "c1", actionBalance: -2, moveBalance: 0, actionSpeeds: [], moveSpeeds: [] },
+    { characterId: "c1", actionCarry: -2, moveCarry: 0, actionBalance: -2, moveBalance: 0, actionSpeeds: [], moveSpeeds: [], pendingActionSpeeds: [], pendingMoveSpeeds: [], deferredActionSpeeds: [], deferredMoveSpeeds: [] },
   ],
   order: [],
 });

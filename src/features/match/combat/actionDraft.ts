@@ -172,9 +172,18 @@ export type DraftTarget =
 
 export type ReachContext = {
   grid: GridShape;
-  /** Slot da peça do ator; ausente quando ele não tem peça no tabuleiro. */
+  /**
+   * De onde parte um movimento declarado agora: o destino do fim da cadeia de movimentos
+   * empilhados do ator (o último ainda pendente), senão a casa da peça; ausente sem nenhum dos
+   * dois. É daqui que saem a distância ao alvo, a aproximação e a checagem de parede.
+   */
   actorSlot?: SlotCoord;
   actorZ: number;
+  /**
+   * Onde a peça está agora, quando difere de `actorSlot` (há movimento empilhado). Uma ação SEM
+   * movimento acontece daqui — o servidor checa o alcance da parede pela peça. Ausente = `actorSlot`.
+   */
+  standingSlot?: SlotCoord;
   /** Ausente: personagem sem peça, ou id que o tabuleiro não conhece. */
   targetOf: (id: string) => DraftTarget | undefined;
   isFree: (slot: SlotCoord) => boolean;
@@ -254,14 +263,18 @@ export function resolveDraft(
   const category = draft.category ?? defaultCategory;
   const act = draft.act ? resolveAct(draft.act, ctx, defaultWeapon) : undefined;
   const primary = act?.targets[0] ? ctx.targetOf(act.targets[0]) : undefined;
-  const targetSteps = !ctx.actorSlot || !primary
+  const stepsFrom = (from: SlotCoord | undefined) => !from || !primary
     ? undefined
     : primary.kind === "character"
-      ? slotDistance(ctx.actorSlot, primary.slot)
-      : stepsToReach(ctx.actorSlot, primary.reach);
+      ? slotDistance(from, primary.slot)
+      : stepsToReach(from, primary.reach);
 
-  const base: ResolvedDraft = { act, targetSteps, approachBlocked: false };
-  const resolved = resolveMove(draft, ctx, base, category, primary);
+  const base: ResolvedDraft = { act, approachBlocked: false };
+  const moved = resolveMove(draft, ctx, base, category, primary);
+  // A distância ao alvo é medida de onde a ação parte: com movimento, do fim da cadeia
+  // (`actorSlot`); sem movimento a ação não se empilha e pode abrir antes da cadeia — da peça.
+  const targetSteps = stepsFrom(moved.move ? ctx.actorSlot : (ctx.standingSlot ?? ctx.actorSlot));
+  const resolved: ResolvedDraft = { ...moved, targetSteps };
   return act && act.kind !== "attack" && primary?.kind === "wall"
     ? { ...resolved, outOfReach: !touches(resolved, ctx, primary.reach) }
     : resolved;
@@ -294,12 +307,12 @@ function resolveMove(
 }
 
 /**
- * A casa onde a ação deixa o ator encosta na parede? O destino do movimento, ou onde ele está.
+ * A casa onde a ação deixa o ator encosta na parede? O destino do movimento, ou onde a peça está.
  * Um destino ainda não escolhido não reprova aqui — o "escolha o destino" vem antes.
  */
 function touches(resolved: ResolvedDraft, ctx: ReachContext, reach: SlotCoord[]): boolean {
   if (resolved.move && !resolved.move.to) return true;
-  const end = resolved.move?.to ? tripleToSlot(resolved.move.to, ctx.grid.kind) : ctx.actorSlot;
+  const end = resolved.move?.to ? tripleToSlot(resolved.move.to, ctx.grid.kind) : (ctx.standingSlot ?? ctx.actorSlot);
   return !!end && reach.some((s) => isSameSlot(s, end));
 }
 

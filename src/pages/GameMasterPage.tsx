@@ -30,6 +30,7 @@ import { historyRows } from "../features/match/combat/historyRows";
 import ActionComposer from "../features/match/combat/ActionComposer";
 import type { DeclaredAction } from "../features/match/combat/combatReducer";
 import CancelDeclaredDialog from "../features/match/combat/CancelDeclaredDialog";
+import { stackedAfter } from "../features/match/combat/moveChain";
 import DeclaredActions from "../features/match/combat/DeclaredActions";
 import QueuePanel from "../features/match/combat/QueuePanel";
 import CloseTurnRefusedDialog from "../features/match/combat/CloseTurnRefusedDialog";
@@ -797,6 +798,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
               height={height}
             />
             <GeneralBar
+              showOrder
               bars={state.bars}
               roundMode={state.roundMode}
               openTurnActorId={state.openTurn?.actorId}
@@ -913,6 +915,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
         gridKind={gridKind}
         showActor
         showSwapCost={state.roundMode === "Race"}
+        stacked={cancelPending ? stackedAfter(cancelPending.id, game.chainMoves).map((m) => m.summary) : []}
         canConfirm={combat.status === "connected"}
         onConfirm={() => {
           if (cancelPending) combat.send.cancelAction(cancelPending.id);

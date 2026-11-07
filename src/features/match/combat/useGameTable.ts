@@ -11,7 +11,6 @@ import { useCampaignDetails } from "../../../hooks/useCampaignDetails";
 import { isSameSlot, slotToTriple, tripleToSlot } from "../../tactical-map/utils/coords";
 import type { SlotTriple } from "../../tactical-map/utils/coords";
 import type { PieceView } from "../../../types/tacticalMap";
-import type { QueuedAction } from "./combatMessages";
 import { tableMap } from "./tableMap";
 import { useLiveMapSync } from "./useLiveMapSync";
 import { useMatchCombat } from "./useMatchCombat";
@@ -20,19 +19,15 @@ import { useCombatCatalogue } from "../../../hooks/useCombatCatalogue";
 import { defaultWeaponOf, draftFromDeclared } from "./actionDraft";
 import { useActionComposerState } from "./useActionComposerState";
 import { defaultMoveCategory } from "./defaultMoveCategory";
-import { pendingMoves, resolveLostCandidates } from "./combatReducer";
+import { resolveLostCandidates } from "./combatReducer";
 import type { DeclaredAction, DeclaredSource } from "./combatReducer";
+import { arrivedMoves, chainTailOf, ghostOrigin, pendingChainMoves } from "./moveChain";
 import { createViewportStore } from "./viewportStore";
 import { wallName } from "./wallVerbs";
 import { actionMechanicsText, actorResultText, reactionMechanicsText, targetResultText } from "./balloonText";
 import type { BalloonTone } from "./balloonText";
 
 export type TableBalloon = { characterId: string; text: string; tone: BalloonTone };
-
-/** O destino do `move` de uma ação da fila, quando há um — `undefined` se a ação não move. */
-function queuedMoveTo(q: QueuedAction): SlotTriple | undefined {
-  return q.action?.move?.position;
-}
 
 export function useGameTable({
   token,
@@ -131,6 +126,9 @@ export function useGameTable({
     },
   });
   const { state } = combat;
+  // Os movimentos ainda pendentes, em ordem de chegada — a cadeia dos empilhados (D3) sai daqui:
+  // as declaradas deste navegador e, para o mestre, a fila inteira.
+  const chainMoves = useMemo(() => pendingChainMoves(state.declared, state.queue), [state.declared, state.queue]);
 
   // A mesma query das páginas (React Query reaproveita): daqui sai a arma padrão do ataque.
   const { data: catalogue } = useCombatCatalogue(token, actorId);
@@ -142,6 +140,8 @@ export function useGameTable({
     grid: map?.grid,
     defaultCategory: defaultMoveCategory(state),
     defaultWeapon: defaultWeaponOf(catalogue?.weapons.map((w) => w.name) ?? []),
+    // O próximo movimento do ator se empilha no último pendente dele e parte do destino dele.
+    moveOrigin: actorId ? chainTailOf(actorId, chainMoves)?.to : undefined,
   });
   clearDraftForRef.current = composer.clearDraftFor;
   const { pieceByCharacter } = composer;
@@ -176,65 +176,42 @@ export function useGameTable({
   }, [state.lostCandidates, historyData, restoreDraftFor, resolveLost]);
 
   // ─── Movimentos declarados ainda por acontecer (o fantasma) ───────────────
-  // A seta sai de onde a peça ESTÁ, não de onde estava ao declarar: se outra ação do mesmo
-  // ator a moveu antes, o pedido continua valendo e o servidor aplica o destino pedido.
-  // A peça que já chegou ao destino cumpriu o pedido — inclusive quando o `turn_opened`
-  // daquela ação se perdeu numa queda de conexão.
-  const moves = pendingMoves(state.declared);
-  const arrivedIds = moves
-    .filter((d) => d.status === "queued")
-    .filter((d) => {
-      const piece = pieceByCharacter.get(d.actorId);
-      return !!piece && !!map && isSameSlot(piece.coord.slot, tripleToSlot(d.move.to, map.grid.kind));
-    })
-    .map((d) => d.id);
+  // A cabeça da cadeia sai de onde a peça ESTÁ, não de onde estava ao declarar: se outra ação do
+  // mesmo ator a moveu antes, o pedido continua valendo e o servidor aplica o destino pedido. Um
+  // movimento empilhado sai do destino do anterior enquanto ele está pendente (D3).
+  // A cabeça cuja peça já chegou ao destino cumpriu o pedido — inclusive quando o `turn_opened`
+  // daquela ação se perdeu numa queda de conexão. Um empilhado nunca "chega" assim: a peça no
+  // destino dele, com o anterior pendente, é só onde ela está agora (`arrivedMoves`).
+  const arrivedIds = arrivedMoves(chainMoves, (actor, to) => {
+    const piece = pieceByCharacter.get(actor);
+    return !!piece && !!map && isSameSlot(piece.coord.slot, tripleToSlot(to, map.grid.kind));
+  }).map((m) => m.id);
   const arrivedKey = arrivedIds.join(",");
   const { dismissDeclared } = combat;
   useEffect(() => {
     if (arrivedKey) dismissDeclared(arrivedKey.split(","));
   }, [arrivedKey, dismissDeclared]);
 
-  // T13/F1: o fantasma do MESTRE — toda ação na fila com `move` vira um fantasma extra,
-  // excluindo o que o próprio navegador já declarou (já coberto por `moves`/`ownGhosts`
-  // acima: um NPC que o mestre declara chega a `state.queue` E a `state.declared` com o
-  // MESMO actionId, e contá-lo duas vezes desenharia dois fantasmas sobre a mesma peça).
-  // Some no `turn_opened` porque a fila já tira a ação de `state.queue` ali.
+  // T13/F1: o fantasma do MESTRE — toda ação na fila com `move` vira um fantasma, contada uma vez
+  // só mesmo quando o NPC que o mestre declara está em `state.queue` E em `state.declared` com o
+  // MESMO actionId (`pendingChainMoves`). Some no `turn_opened`, que tira a ação das duas listas.
   const ghosts = useMemo<Array<{ from?: SlotTriple; to: SlotTriple }>>(() => {
-    const ownGhosts = moves
-      .filter((d) => !arrivedIds.includes(d.id))
-      .map((d) => {
-        const piece = pieceByCharacter.get(d.actorId);
-        return {
-          from: piece ? slotToTriple(piece.coord.slot, piece.coord.z) : d.move.from,
-          to: d.move.to,
-        };
-      });
-    const declaredIds = new Set(state.declared.map((d) => d.id));
-    const queueGhosts = state.queue
-      .filter((q) => queuedMoveTo(q) !== undefined && !declaredIds.has(q.actionId))
-      .map((q) => {
-        const piece = pieceByCharacter.get(q.actorId);
-        return {
-          from: piece ? slotToTriple(piece.coord.slot, piece.coord.z) : q.action?.move?.from,
-          to: queuedMoveTo(q)!,
-        };
-      });
+    const arrived = new Set(arrivedKey ? arrivedKey.split(",") : []);
+    const pieceAt = (actor: string) => {
+      const piece = pieceByCharacter.get(actor);
+      return piece ? slotToTriple(piece.coord.slot, piece.coord.z) : undefined;
+    };
+    const intentGhosts = chainMoves
+      .filter((m) => !arrived.has(m.id))
+      .map((m) => ({ from: ghostOrigin(m, chainMoves, pieceAt(m.actorId)), to: m.to }));
     // §10.2: a fuga aberta tem o mesmo desenho do fantasma de intenção, só a vida é outra —
     // vive entre a abertura da reação e o fechamento do turno (o reducer zera `openReactions`).
     // Sem `position` (fog) não há para onde apontar.
     const reactionGhosts = state.openReactions
       .filter((r) => r.move?.position)
-      .map((r) => {
-        const piece = pieceByCharacter.get(r.actorId);
-        return {
-          from: piece ? slotToTriple(piece.coord.slot, piece.coord.z) : r.move?.from,
-          to: r.move!.position!,
-        };
-      });
-    return [...ownGhosts, ...queueGhosts, ...reactionGhosts];
-    // `moves`/`arrivedIds` are rebuilt every render; their content is what matters.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.declared, state.queue, state.openReactions, pieceByCharacter, arrivedKey]);
+      .map((r) => ({ from: pieceAt(r.actorId) ?? r.move?.from, to: r.move!.position! }));
+    return [...intentGhosts, ...reactionGhosts];
+  }, [chainMoves, state.openReactions, pieceByCharacter, arrivedKey]);
 
   // Personagens e paredes: uma parede é alvo como uma peça, e a fila, o histórico, as
   // declaradas e os balões a nomeiam pelo tipo e material ("Porta de madeira").
@@ -319,6 +296,7 @@ export function useGameTable({
     combat,
     composer,
     ghosts,
+    chainMoves,
     balloons,
     nameOf,
     canDeclare,

@@ -1,8 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, within } from "@testing-library/react";
 import GeneralBar from "../GeneralBar";
-import CharacterBarsStrip from "../CharacterBarsStrip";
-import { barsRows, fmt } from "../barsMath";
 import OwnBars from "../OwnBars";
 import QueuePanel from "../QueuePanel";
 import CloseTurnRefusedDialog from "../CloseTurnRefusedDialog";
@@ -42,7 +40,7 @@ const resolutionNameOf = (id: string) => ({ c2: "Hisoka", c3: "Killua", c9: "Fan
 const MINUS = "−";
 
 const bars = (over: Partial<BarsPayload> = {}): BarsPayload => ({
-  seq: 1, prices: {}, characters: [], order: [], ...over,
+  seq: 1, prices: {}, provisionalPrices: {}, characters: [], order: [], ...over,
 });
 
 // Fixture do brief (T12): um personagem em Disputado, com as duas velocidades que agiram e
@@ -50,7 +48,8 @@ const bars = (over: Partial<BarsPayload> = {}): BarsPayload => ({
 const raceBars: BarsPayload = {
   seq: 1,
   prices: { action: 14, move: 12 },
-  characters: [{ characterId: "c1", actionBalance: -2.5, moveBalance: 3, actionSpeeds: [16, 14], moveSpeeds: [] }],
+  provisionalPrices: {},
+  characters: [{ characterId: "c1", actionCarry: -2.5, moveCarry: 3, actionBalance: -2.5, moveBalance: 3, actionSpeeds: [16, 14], moveSpeeds: [], pendingActionSpeeds: [], pendingMoveSpeeds: [], deferredActionSpeeds: [], deferredMoveSpeeds: [] }],
   order: [{ actorId: "c1", bars: ["action"], key: 18 }],
 };
 
@@ -59,6 +58,7 @@ describe("GeneralBar", () => {
     render(
       <GeneralBar
         nameOf={nameOf}
+        showOrder
         roundMode=""
         openTurnActorId="n1"
         highlightActorIds={new Set(["c1"])}
@@ -89,103 +89,52 @@ describe("GeneralBar", () => {
   });
 
   it("shows Fila vazia when nobody is queued", () => {
-    render(<GeneralBar nameOf={nameOf} roundMode="" bars={null} />);
+    render(<GeneralBar showOrder nameOf={nameOf} roundMode="" bars={null} />);
     expect(screen.getByText("Fila vazia")).toBeInTheDocument();
     expect(screen.queryByText("ordem vazia")).toBeNull();
   });
 
   it("prefixes the names with Fila:", () => {
-    render(<GeneralBar bars={raceBars} roundMode="Race" nameOf={nameOf} />);
+    render(<GeneralBar showOrder bars={raceBars} roundMode="Race" nameOf={nameOf} />);
     expect(screen.getByLabelText("Ordem")).toHaveTextContent(/^Fila:\s*Gon/);
   });
 
   it("hides the Barras button when nobody has data", () => {
     const empty: BarsPayload = {
       ...raceBars, prices: {},
-      characters: [{ characterId: "c1", actionBalance: 0, moveBalance: 0, actionSpeeds: [], moveSpeeds: [] }],
+      characters: [{ characterId: "c1", actionCarry: 0, moveCarry: 0, actionBalance: 0, moveBalance: 0, actionSpeeds: [], moveSpeeds: [], pendingActionSpeeds: [], pendingMoveSpeeds: [], deferredActionSpeeds: [], deferredMoveSpeeds: [] }],
     };
     render(<GeneralBar bars={empty} roundMode="Race" nameOf={nameOf} />);
     expect(screen.queryByRole("button", { name: /Barras/ })).toBeNull();
   });
 
   it("mostra a key de cada slot", () => {
-    render(<GeneralBar bars={raceBars} roundMode="Race" nameOf={() => "Gon"} />);
+    render(<GeneralBar showOrder bars={raceBars} roundMode="Race" nameOf={() => "Gon"} />);
     expect(screen.getByTestId("order-row")).toHaveTextContent("18");
   });
-});
 
-function Strip({ bars, mode }: { bars: BarsPayload; mode: "Race" | "Free" }) {
-  return <CharacterBarsStrip rows={barsRows(bars, mode)} prices={bars.prices} roundMode={mode} nameOf={nameOf} />;
-}
-
-describe("CharacterBarsStrip", () => {
-  it("Disputado: saldo com uma casa, velocidades e média", () => {
-    render(<Strip bars={raceBars} mode="Race" />);
-    expect(screen.getByText("Gon")).toBeInTheDocument();
-    expect(screen.getByText(`${MINUS}2.5`)).toBeInTheDocument();
-    expect(screen.getByText("16 · 14")).toBeInTheDocument();
-    expect(screen.getByText("x̄ 15")).toBeInTheDocument();
-    expect(screen.getAllByRole("meter")).toHaveLength(2);
+  it("prints the order key with one decimal", () => {
+    const b = bars({ order: [{ actorId: "c1", bars: ["action"], key: -5.333333333333332 }] });
+    render(<GeneralBar showOrder bars={b} roundMode="Race" nameOf={nameOf} />);
+    expect(screen.getByTestId("order-row")).toHaveTextContent(`${MINUS}5.3`);
+    expect(screen.getByTestId("order-row")).not.toHaveTextContent("5.33");
   });
 
-  it("Livre: sem barras nem média, só as velocidades", () => {
-    render(<Strip bars={{ ...raceBars, prices: {} }} mode="Free" />);
-    expect(screen.queryAllByRole("meter")).toHaveLength(0);
-    expect(screen.queryByText(/x̄/)).not.toBeInTheDocument();
-    expect(screen.getByText("16 · 14")).toBeInTheDocument();
+  it("hides the queue from players", () => {
+    render(<GeneralBar bars={raceBars} roundMode="Race" nameOf={nameOf} />);
+    expect(screen.queryByText(/Fila/)).toBeNull();
+    expect(screen.queryByTestId("order-row")).toBeNull();
   });
 
-  it("barra sem preço não é desenhada", () => {
-    render(<Strip bars={{ ...raceBars, prices: { action: 14 } }} mode="Race" />);
-    expect(screen.getAllByRole("meter")).toHaveLength(1);
+  it("marks a provisional price", () => {
+    render(<GeneralBar nameOf={nameOf} roundMode="Race" bars={bars({ prices: { action: 11 }, provisionalPrices: { move: 9 } })} />);
+    expect(screen.getByTestId("prices")).toHaveTextContent("⚔ 11");
+    expect(screen.getByTestId("prices")).not.toHaveTextContent("⚔ 11 (provisório)");
+    expect(screen.getByTestId("prices")).toHaveTextContent("9 (provisório)");
   });
 });
 
-describe("CharacterBarsStrip — linhas sem dado", () => {
-  it("lists only characters with speed or balance", () => {
-    const mixed: BarsPayload = {
-      ...raceBars, prices: {},
-      characters: [
-        { characterId: "c1", actionBalance: 0, moveBalance: 0, actionSpeeds: [16], moveSpeeds: [] },
-        { characterId: "c2", actionBalance: 0, moveBalance: 0, actionSpeeds: [], moveSpeeds: [] },
-      ],
-    };
-    render(<Strip bars={mixed} mode="Free" />);
-    expect(screen.getByText("Gon")).toBeInTheDocument();
-    expect(screen.queryByText("Killua")).toBeNull();
-  });
-});
-
-describe("barsRows", () => {
-  it("keeps a Race row that has a price but no speed", () => {
-    const priced: BarsPayload = {
-      ...raceBars, prices: { action: 14 },
-      characters: [{ characterId: "c1", actionBalance: 0, moveBalance: 0, actionSpeeds: [], moveSpeeds: [] }],
-    };
-    expect(barsRows(priced, "Race")).toHaveLength(1);
-    expect(barsRows(priced, "Free")).toHaveLength(0);
-    expect(barsRows(null, "Race")).toEqual([]);
-  });
-});
-
-describe("fmt (barsMath)", () => {
-  it("negativo que arredonda para zero perde o sinal — não existe \"−0\"", () => {
-    expect(fmt(-0.04)).toBe("0");
-    expect(fmt(-0.049)).toBe("0");
-  });
-
-  it("zero é \"0\", sem sinal", () => {
-    expect(fmt(0)).toBe("0");
-  });
-
-  it("inteiro não ganha \".0\"", () => {
-    expect(fmt(3)).toBe("3");
-  });
-
-  it("negativo de verdade mantém o sinal e a casa decimal", () => {
-    expect(fmt(-2.5)).toBe(`${MINUS}2.5`);
-  });
-});
+// Faixa de barras (CharacterBarsStrip) e barsMath: em CharacterBarsStrip.test.tsx e barsMath.test.ts (D7).
 
 describe("OwnBars", () => {
   it("mostra os saldos fracionários com sinal e uma casa decimal", () => {
@@ -194,7 +143,7 @@ describe("OwnBars", () => {
         characterId="c1"
         bars={bars({
           characters: [
-            { characterId: "c1", actionBalance: -2.5, moveBalance: 3, actionSpeeds: [], moveSpeeds: [] },
+            { characterId: "c1", actionCarry: -2.5, moveCarry: 3, actionBalance: -2.5, moveBalance: 3, actionSpeeds: [], moveSpeeds: [], pendingActionSpeeds: [], pendingMoveSpeeds: [], deferredActionSpeeds: [], deferredMoveSpeeds: [] },
           ],
         })}
       />,
@@ -253,6 +202,29 @@ describe("QueuePanel", () => {
     expect(onPull).toHaveBeenCalledWith("a2");
   });
 
+  describe("action speed line", () => {
+    const emptySpeed = { bar: 0, rollCheck: { skillName: "", skillValue: 0, attempts: { primary: [] }, result: 0 } };
+    const renderOne = (queued: React.ComponentProps<typeof QueuePanel>["queue"][number]) =>
+      render(<QueuePanel nameOf={nameOf} order={[]} gridKind="square" queue={[queued]} onPull={() => {}} />);
+
+    it("a pure move shows only the move speed", () => {
+      renderOne({ actionId: "m1", actorId: "n1", bars: ["move"], action: { ...fullAction, speed: emptySpeed, attack: undefined } });
+      expect(screen.getByText(/Velocidade de movimento/)).toBeInTheDocument();
+      expect(screen.queryByText(/Velocidade de ação/)).not.toBeInTheDocument();
+    });
+
+    it("a combined move + attack shows both speeds", () => {
+      renderOne({ actionId: "c1", actorId: "n1", bars: ["action", "move"], action: fullAction });
+      expect(screen.getByText(/Velocidade de movimento/)).toBeInTheDocument();
+      expect(screen.getByText(/Velocidade de ação/)).toBeInTheDocument();
+    });
+
+    it("without bars (open card after reconnect) an empty skillName hides the action speed", () => {
+      renderOne({ actionId: "m2", actorId: "n1", bars: [], action: { ...fullAction, speed: emptySpeed } });
+      expect(screen.queryByText(/Velocidade de ação/)).not.toBeInTheDocument();
+    });
+  });
+
   it("mostra as linhas na ordem do servidor, não da chegada; fora da ordem leva a etiqueta", () => {
     render(
       <QueuePanel
@@ -274,13 +246,47 @@ describe("QueuePanel", () => {
     expect(rows[0]).toHaveTextContent("Hisoka");
     expect(rows[1]).toHaveTextContent("Gon");
     expect(rows[2]).toHaveTextContent("Killua");
-    expect(within(rows[0]).queryByText("próxima rodada")).not.toBeInTheDocument();
-    expect(within(rows[2]).getByText("próxima rodada")).toBeInTheDocument();
+    expect(screen.queryByText("próxima rodada")).not.toBeInTheDocument();
+  });
+
+  it("groups deferred actions under one \"Próximo round\" separator", () => {
+    render(
+      <QueuePanel
+        nameOf={nameOf}
+        gridKind="square"
+        order={[{ actorId: "c1", bars: ["action"], key: 5 }]}
+        queue={[
+          { actionId: "a1", actorId: "c1", bars: ["action"] },
+          { actionId: "a2", actorId: "n1", bars: ["move"] },
+          { actionId: "a3", actorId: "c2", bars: ["action"] },
+        ]}
+        onPull={() => {}}
+      />,
+    );
+    expect(screen.getAllByText("Próximo round")).toHaveLength(1);
+    const items = screen.getAllByTestId(/queue-row|next-round-separator/).map((e) => e.dataset.testid);
+    expect(items).toEqual(["queue-row", "next-round-separator", "queue-row", "queue-row"]);
+    expect(screen.queryByText("próxima rodada")).not.toBeInTheDocument();
+  });
+
+  it("prints the order key with one decimal", () => {
+    render(
+      <QueuePanel
+        nameOf={nameOf}
+        gridKind="square"
+        order={[{ actorId: "n1", bars: ["move"], key: -5.333333333333332 }]}
+        queue={[{ actionId: "a2", actorId: "n1", bars: ["move"], action: fullAction }]}
+        onPull={() => {}}
+      />,
+    );
+    expect(within(screen.getByTestId("queue-row")).getByText(`Ordem geral: chave ${MINUS}5.3`)).toBeInTheDocument();
   });
 
   describe("ajustes do mestre na fila", () => {
+    // Fixture corrigida (2026-11-06): `fullAction` é movimento + ataque, que cobra as duas barras —
+    // com só `["move"]` ela seria um movimento puro, sem velocidade de ação para ajustar.
     const queued = {
-      actionId: "a2", actorId: "n1", bars: ["move" as const], action: fullAction, damageSkill: "Push",
+      actionId: "a2", actorId: "n1", bars: ["action" as const, "move" as const], action: fullAction, damageSkill: "Push",
       conditions: [{ actionId: "a2", field: "speed" as const, bias: 0, modifier: 3 }],
     };
 
@@ -322,8 +328,8 @@ describe("QueuePanel", () => {
       <QueuePanel
         nameOf={nameOf}
         gridKind="square"
-        order={[{ actorId: "n1", bars: ["move"], key: 9 }]}
-        queue={[{ actionId: "a2", actorId: "n1", bars: ["move"], action: fullAction }]}
+        order={[{ actorId: "n1", bars: ["action", "move"], key: 9 }]}
+        queue={[{ actionId: "a2", actorId: "n1", bars: ["action", "move"], action: fullAction }]}
         onPull={() => {}}
       />,
     );
@@ -1193,6 +1199,33 @@ describe("CancelDeclaredDialog", () => {
     expect(screen.getByText(aviso)).toBeInTheDocument();
     rerender(<CancelDeclaredDialog {...base} pending={pending} />);
     expect(screen.queryByText(aviso)).not.toBeInTheDocument();
+  });
+
+  it("lists the stacked moves that go with it and confirms how many moves are cancelled", () => {
+    const move: DeclaredAction = { id: "a1", actorId: "c1", status: "queued", fromComposer: true, at: 0, move: { category: "Dash", to: [1, 0, 0] } };
+    const onConfirm = vi.fn();
+    render(
+      <CancelDeclaredDialog
+        {...base}
+        pending={move}
+        onConfirm={onConfirm}
+        stacked={[
+          { move: { category: "Dash", to: [2, 0, 0] } },
+          { move: { category: "Shift", to: [3, 0, 0] }, attack: { targets: ["n1"] } },
+        ]}
+      />,
+    );
+    expect(screen.getByText("Os movimentos empilhados nela também serão cancelados:")).toBeInTheDocument();
+    expect(screen.getByText("Mover para coluna 3, linha 1 (Dash)")).toBeInTheDocument();
+    expect(screen.getByText(/\(Shift\) e atacar Hisoka/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar os 3 movimentos" }));
+    expect(onConfirm).toHaveBeenCalled();
+  });
+
+  it("without stacked moves keeps the single-action wording", () => {
+    render(<CancelDeclaredDialog {...base} pending={pending} stacked={[]} />);
+    expect(screen.queryByText(/empilhados/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cancelar ação" })).toBeInTheDocument();
   });
 
   it("sem pedido não renderiza", () => {

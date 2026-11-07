@@ -77,8 +77,8 @@ duplo) — antes a pinça sobre o véu ampliava a página. O canvas do Pixi mant
 `combat/queueOrder.ts` — `orderQueue(queue, order, mode)` devolve `{ action, inOrder, key? }[]`; o `QueuePanel`
 só renderiza. A fila do mestre aparece **na ordem em que as ações vão abrir**.
 
-- **De onde vem:** `bars_updated.order` (maior chave primeiro). Ele é público e **não carrega id de
-  ação**, então casa por **ator + conjunto de barras** (`sameBars`, ignora ordem): cada entrada
+- **De onde vem:** `bars_updated.order` (maior chave primeiro). Só o mestre o recebe (ver "Barras
+  ao vivo, por destinatário"); ele **não carrega id de ação**, então casa por **ator + conjunto de barras** (`sameBars`, ignora ordem): cada entrada
   consome uma ação da fila.
 - **Desempate** entre ações do mesmo ator e das mesmas barras: o servidor pega a de maior chave,
   que cresce com a velocidade, então **maior velocidade primeiro, depois chegada** (`>` estrito).
@@ -94,9 +94,89 @@ só renderiza. A fila do mestre aparece **na ordem em que as ações vão abrir*
   **ou** fora do Race com ordem vazia (no Free não há portão: a ordem só vem vazia com a fila
   vazia). No **Race, ordem vazia com fila cheia** quer dizer que nenhuma ação consegue pagar:
   todas ficam `inOrder: false` ("próxima rodada") — o mesmo estado em que o botão do mestre vira
-  "Encerrar rodada". O `QueuePanel` recebe `order` (opcional) e `mode`.
+  "Encerrar rodada". O `QueuePanel` recebe `order` (opcional) e `mode`. As ações `!inOrder` ficam
+  juntas no fim, sob **um** separador `Próximo round` (`data-testid="next-round-separator"`), não
+  mais uma etiqueta por linha; a "Ordem geral: chave N" do card sai por `fmt`.
 - Entrada da ordem sem ação correspondente é pulada (só acontece de passagem, quando
   `bars_updated` chega antes de `action_queued`).
+
+## Barras ao vivo, por destinatário
+
+> Spec: `System_X_System/docs/superpowers/specs/2026-11-04-live-bars-design.pt-br.md`. Contrato:
+> [`bars_updated`](../../../../System_X_System/docs/dev/api/match-combat-ws.md#bars_updated).
+> Código: `combat/GeneralBar.tsx`, `CharacterBarsStrip.tsx`, `barsMath.ts`, `OwnBars.tsx`,
+> `normalizeWire.ts`. Isto corrige o que as fases 6 e o fechamento diziam da barra geral e da faixa
+> ("igual para mestre e jogador", saldo congelado no round).
+
+**O que chega.** `bars_updated` (e `match_full_state.bars`) é **por destinatário**:
+
+- O **mestre** recebe tudo: velocidades abertas, **pendentes** (na fila, abrem neste round) e
+  **adiadas** (não cabem; abrem no próximo), `provisionalPrices` (preço das barras ainda não
+  congeladas, só Disputado) e `order` (já pontuada contra o preço provisório). Ele vê cada envio na
+  hora, dele e dos jogadores.
+- O **jogador** recebe só o que o mestre já abriu: `order: []`, sem pendentes, sem adiadas, sem
+  preço provisório. A ação que ele mesmo enviou não aparece nas barras até ser aberta. E ele só
+  recebe `bars_updated` quando **a visão dele mudou** (um envio de outro jogador não gera nada).
+- `actionBalance`/`moveBalance` são o **saldo ao vivo** (carry + média das velocidades − n × preço),
+  não mais o carry congelado do round. Para o mestre as velocidades são as que agiram **mais a
+  próxima pendente** (D7): o saldo é o que sobra depois que a próxima ação pagar. O que atravessou do round anterior é
+  `actionCarry`/`moveCarry`. Para o jogador o saldo só conta as velocidades já públicas e pode
+  pular quando uma abre: é esperado.
+- Os campos só do mestre chegam ausentes ao jogador; `normalizeBars` os transforma em `{}`/`[]`
+  (ver a tabela em `combate-fase-6.md`). `carry` ausente (servidor antigo) cai para o saldo.
+
+**`barsMath.ts`** (fora do componente, por Fast Refresh): `fmt` (uma casa; o sinal vem do valor já
+arredondado, `−` U+2212, nunca "−0"), `mean`, `priceOf(bars, bar)` (o congelado vence o provisório;
+devolve `{ price, provisional }`), `barsRows(bars, roundMode)` — as linhas da faixa, vazias fora do
+Disputado — e, para a faixa (D7 de `2026-11-06-stacked-moves-design.md`):
+
+- `barFields(c, bar)` — os campos de uma barra sem o prefixo `action`/`move`.
+- `barTotal(c, bar)` — o total da **próxima** ação: `carry + mean(agiram ++ pendentes[:1])`. A
+  primeira pendente é a próxima (o mestre recebe as pendentes já na ordem projetada); as demais não
+  contam. O jogador não recebe pendentes: para ele é `carry + mean(agiram)`. Sem velocidade o total
+  é o carry (média vazia = 0, como no servidor); sem velocidade e sem carry, `undefined`.
+- `barScale(rows, bars, bar)` — a largura cheia, comum à faixa toda: o maior `max(total, preço)`.
+- `barTicks(price, scale)` — os múltiplos do preço estritamente dentro da escala.
+
+O saldo que chega (`actionBalance`/`moveBalance`) já pagou a próxima ação no servidor (D7
+"Servidor"), então o que ela gasta é `total − saldo`.
+
+**`GeneralBar`.**
+- "Fila" (os chips da ordem) só com `showOrder`, ligado só pela `GameMasterPage`; o jogador nunca vê
+  "Fila" nem "Fila vazia". A chave de cada chip sai por `fmt` (antes era o número cru, ex.
+  `-5.333333333333332`).
+- O preço mostrado vem de `priceOf`; o provisório leva a marca `(provisório)`.
+- O botão "Barras" e a faixa **somem no Livre** (lá não há preço nem média).
+
+**`CharacterBarsStrip`.**
+- Escondida no Livre (`barsRows` vazio; o componente também devolve `null`). Linhas **ordenadas
+  pelo nome exibido** (localeCompare pt-BR), estáveis entre atualizações.
+- A linha existe quando o personagem tem alguma velocidade (aberta, pendente ou adiada) ou alguma
+  barra tem preço (congelado, ou provisório para o mestre).
+- **Uma grade só** (`display: grid`; a linha é `display: contents`), com as colunas: nome · caixa ⚔
+  · caixa ➜ · lista ⚔ · lista ➜. As duas **caixas** vêm antes de qualquer lista e existem sempre
+  (ícone e trilho vazio mesmo sem preço e sem velocidade): uma lista que cresce (segunda velocidade,
+  a primeira adiada) nunca empurra barra nenhuma. A coluna do número reserva sempre o saldo mais
+  largo de 3 dígitos (`NUM_RESERVE`, "saldo −999" em negrito, invisível); um 4º dígito alarga a coluna
+  em todas as linhas de uma vez (a grade faz isso). A célula não vazia leva 8 px à esquerda.
+- Números em `tabular-nums`; cada velocidade com `min-width: 3ch`.
+- Por barra (⚔ ação, ➜ movimento), a caixa tem ícone, trilho e número. O trilho enche até o
+  **total** (`barTotal`) contra a escala comum (`barScale`), na cor da barra (`vitalActionBar` = o
+  vermelho do ataque, `vitalMoveBar` = o azul do movimento) sobre o mesmo matiz a 18 %
+  (`vital*BarTrack`); um traço de 1 px (`overlayDark`) em cada múltiplo do preço. Nenhum verde.
+- **Hover e foco** (a caixa é focável, `tabIndex=0`) escurecem `[0, gasto]` com `overlayMedium` e
+  trocam o número por **"saldo X"** em negrito, texto primário. Saldo negativo escurece o
+  preenchimento inteiro ("saldo −3"). O texto fora de vista fica no mesmo lugar, invisível
+  (`visibility: hidden`), para a troca não mudar a largura da coluna.
+- O `Tooltip` do projeto diz `"Ação: saldo 6 de 9"` (preço congelado ou provisório); não há mais
+  `title` nativo.
+- Sem preço: a caixa fica, trilho vazio, sem traços, o número é o total (se há velocidade), sem
+  troca no hover e sem foco.
+- Cada lista começa com o ícone da barra: velocidades que agiram no tom mais forte, **pendentes**
+  mais fracas, e as **adiadas** depois de `Próximo round` (não entram no total). O `x̄` saiu: o total
+  ao lado da barra o substitui.
+
+**`OwnBars`** mostra `actionBalance`/`moveBalance`, agora o saldo ao vivo.
 
 ## "Abrir próxima" / "Encerrar rodada" e o `Tooltip`
 
@@ -166,6 +246,12 @@ preenchimentos não levam contorno.
   meio-tempo) chega como `game_error` e o banner fala.
 - `action_cancelled` só chega ao mestre e a quem pediu — a fila é secreta. A autorização é por
   ação (cada um cancela o que declarou).
+- **Movimentos empilhados vão junto** (2026-11-06, D5): cancelar um movimento cancela os
+  empilhados nele. As páginas passam `stacked` = `stackedAfter(id, game.chainMoves)` ao
+  `CancelDeclaredDialog`, que lista cada um (`describeAction`) sob "Os movimentos empilhados nela
+  também serão cancelados:" e troca o botão para "Cancelar os N movimentos" (N conta o pedido).
+  O servidor manda um `action_cancelled` por ação, então cada linha some pelo caminho de sempre.
+  Ver [Movimentos empilhados](#movimentos-empilhados) abaixo.
 
 - **Custo (§16):** o texto de custo é "Custo:" (antes "Cobra:"), montado por `costLabel(bars)` em
   `combatText.ts` e usado por `QueuePanel` e `ReactionConfigDialog`. O diálogo de cancelar só
@@ -178,6 +264,48 @@ preenchimentos não levam contorno.
 - **Cancelada não é perdida:** `resolveLostCandidates` trata o `uuid` de cada `actionCancelled` como
   achado no histórico (mesmo conjunto de "rodou"): saída calada, sem rascunho restaurado e sem
   `LostDeclaredNotice`.
+
+## Movimentos empilhados
+
+> Spec: `System_X_System/docs/superpowers/specs/2026-11-06-stacked-moves-design.md` (D3–D6).
+> Contrato: `match-combat-ws.md` § *Movimentos empilhados*, `pull_action`, `cancel_action`,
+> `attach_reaction`.
+
+Os movimentos de um personagem formam uma **cadeia na ordem de declaração**: cada um se empilha no
+último movimento ainda pendente dele (puro ou combinado) e parte do destino desse. Ação sem
+movimento não entra na cadeia nem a quebra. O servidor não abre um empilhado antes do anterior.
+
+- **De onde a cadeia sai:** `moveChain.ts`, puro (o mapa é Pixi e não tem teste). O
+  `action_enqueued` só traz o id, então `pendingChainMoves(declared, queue)` monta a lista dos
+  movimentos pendentes em ordem de chegada — a fila do mestre primeiro (ordem de inserção), depois
+  o que só existe em `declared` (o jogador; o envio ainda sem `action_queued`). Um NPC que o mestre
+  declarou entra uma vez só. `predecessorOf` usa o `move.stackedOn` da fila do mestre quando ele
+  aponta para um pendente; senão (ausente, ou velho — o anterior abriu, foi consumido, ou a reação
+  o re-apontou) a regra do servidor: o último pendente do mesmo personagem antes dele. Assim um
+  `stackedOn` velho vale "não empilhado" quando não há outro antes, como o contrato pede.
+  `useGameTable` expõe a lista como `chainMoves`.
+- **Composição:** `useActionComposerState({ moveOrigin })` recebe `chainTailOf(actor)?.to`. Com
+  movimento no rascunho, a seta, a distância ao alvo, a aproximação e o `isPathClear` partem dali
+  (`ReachContext.actorSlot`). **Sem** movimento a ação não se empilha e pode abrir antes da cadeia:
+  a seta, a distância ("ataque à distância") e o alcance da parede saem da peça (`standingSlot`),
+  que é de onde o servidor checa. O "ligue Mover" de um verbo de parede só aparece com
+  `resolved.outOfReach`.
+- **Fantasma:** `ghostOrigin` — o destino do anterior enquanto ele está pendente, senão a peça (onde
+  ela está agora), senão o `from` registrado. Mesmo desenho de sempre.
+- **"Chegou":** só a cabeça da cadeia é dispensada quando a peça está no destino (`arrivedMoves`).
+  Um empilhado com a peça no destino dele é um vai-e-volta, não um pedido cumprido.
+- **Antecipar:** o `pull_action` de um empilhado é recusado (`action is stacked on a pending
+  move`); o banner diz "Este movimento está empilhado em outro que ainda não abriu — abra aquele
+  primeiro." (`combatErrorMessages.byGameMessage`).
+- **Reação (D6):** a fuga gasta a cabeça da cadeia; para outra casa, os empilhados nela caem.
+  `useReactionControls` marca `dialog.losesStacked`/`pick.losesStacked` (`stackedLostByEscape`), e
+  a configuração da fuga (`ReactionConfigDialog`) e a instrução da fuga armada (`ReactionButtons`
+  `armedNote`, no painel e ao lado da peça) mostram `STACKED_ESCAPE_WARNING`. A casa só é escolhida
+  no toque, que já envia — por isso o aviso é condicional ("…se esta fuga não for para onde o
+  primeiro movimento ia").
+- **Ajustar na fila:** `queuedRolls` só oferece "Velocidade de ação" para a ação que cobra a barra de
+  ação (`bars` com `"action"`); o movimento puro não rola velocidade de ação (D1) e o servidor
+  recusa a edição.
 
 ## Outros ajustes da rodada
 

@@ -11,7 +11,7 @@ import {
 describe("normalizeWire — R33", () => {
   it("normaliza order/characters/prices null (bars_updated cru do Go)", () => {
     const out = normalizeBars({ seq: 1, prices: null, characters: null, order: null });
-    expect(out).toEqual({ seq: 1, prices: {}, characters: [], order: [] });
+    expect(out).toEqual({ seq: 1, prices: {}, provisionalPrices: {}, characters: [], order: [] });
   });
 
   it("normaliza actionSpeeds/moveSpeeds null de um personagem", () => {
@@ -24,7 +24,7 @@ describe("normalizeWire — R33", () => {
       order: null,
     });
     expect(out.characters).toEqual([
-      { characterId: "c1", actionBalance: 1, moveBalance: 0, actionSpeeds: [], moveSpeeds: [] },
+      { characterId: "c1", actionCarry: 1, moveCarry: 0, actionBalance: 1, moveBalance: 0, actionSpeeds: [], moveSpeeds: [], pendingActionSpeeds: [], pendingMoveSpeeds: [], deferredActionSpeeds: [], deferredMoveSpeeds: [] },
     ]);
   });
 
@@ -50,10 +50,75 @@ describe("normalizeWire — R33", () => {
     expect(out).toEqual({
       seq: 9,
       prices: { action: 14 },
+      provisionalPrices: {},
       characters: [
-        { characterId: "c1", actionBalance: 1, moveBalance: 0, actionSpeeds: [1, 2], moveSpeeds: [3] },
+        { characterId: "c1", actionCarry: 1, moveCarry: 0, actionBalance: 1, moveBalance: 0, actionSpeeds: [1, 2], moveSpeeds: [3], pendingActionSpeeds: [], pendingMoveSpeeds: [], deferredActionSpeeds: [], deferredMoveSpeeds: [] },
       ],
       order: [{ actorId: "c1", key: 5, bars: ["action"] }],
+    });
+  });
+
+  it("normalizeBars fills master-only fields absent from a player payload", () => {
+    const out = normalizeBars({
+      seq: 4,
+      prices: {},
+      characters: [
+        { characterId: "c1", actionCarry: -1.5, moveCarry: 0, actionBalance: -1.5, moveBalance: 0, actionSpeeds: [], moveSpeeds: [] },
+      ],
+      order: [],
+    });
+    expect(out.provisionalPrices).toEqual({});
+    expect(out.characters[0]).toEqual({
+      characterId: "c1",
+      actionCarry: -1.5,
+      moveCarry: 0,
+      actionBalance: -1.5,
+      moveBalance: 0,
+      actionSpeeds: [],
+      moveSpeeds: [],
+      pendingActionSpeeds: [],
+      pendingMoveSpeeds: [],
+      deferredActionSpeeds: [],
+      deferredMoveSpeeds: [],
+    });
+  });
+
+  it("normalizeBars defaults carries to the balance when absent (old server)", () => {
+    const out = normalizeBars({
+      seq: 5,
+      prices: {},
+      characters: [{ characterId: "c1", actionBalance: 3, moveBalance: 2, actionSpeeds: [], moveSpeeds: [] }],
+      order: [],
+    });
+    expect(out.characters[0]).toMatchObject({ actionCarry: 3, moveCarry: 2 });
+  });
+
+  it("normalizeBars passes master values through", () => {
+    const out = normalizeBars({
+      seq: 7,
+      prices: {},
+      provisionalPrices: { action: 11 },
+      characters: [
+        {
+          characterId: "c2",
+          actionCarry: 0,
+          moveCarry: 0,
+          actionBalance: 12,
+          moveBalance: 0,
+          actionSpeeds: [],
+          moveSpeeds: [],
+          pendingActionSpeeds: [23],
+          deferredActionSpeeds: [9],
+        },
+      ],
+      order: [],
+    });
+    expect(out.provisionalPrices).toEqual({ action: 11 });
+    expect(out.characters[0]).toMatchObject({
+      pendingActionSpeeds: [23],
+      pendingMoveSpeeds: [],
+      deferredActionSpeeds: [9],
+      deferredMoveSpeeds: [],
     });
   });
 
@@ -92,6 +157,15 @@ describe("normalizeWire — R33", () => {
 
   // T13/B1: `action` (actionwire.Full) não tem lista nil-ável nenhuma (toda `omitempty`) —
   // passa intacto, byte a byte, enquanto `bars` continua normalizado como sempre.
+  it("action_queued keeps move.stackedOn", () => {
+    const action = {
+      uuid: "a2", actorId: "c1", reactionKind: "",
+      move: { category: "Dash", position: [6, 4, 0] as [number, number, number], stackedOn: "a1", finalSpeed: 12 },
+    };
+    const out = normalizeQueuedAction({ actionId: "a2", actorId: "c1", bars: ["move"], action });
+    expect(out.action?.move?.stackedOn).toBe("a1");
+  });
+
   it("action_queued com a action completa e bars null: action intacta, bars vira []", () => {
     const action = {
       uuid: "a1",
@@ -125,7 +199,7 @@ describe("normalizeWire — R33", () => {
       resolution: { turnId: "t1", isSettled: true, targets: null },
       queue: [{ actionId: "a1", actorId: "c1", bars: null }],
     });
-    expect(out.bars).toEqual({ seq: 1, prices: {}, characters: [], order: [] });
+    expect(out.bars).toEqual({ seq: 1, prices: {}, provisionalPrices: {}, characters: [], order: [] });
     expect(out.resolution?.targets).toEqual([]);
     expect(out.queue).toEqual([{ actionId: "a1", actorId: "c1", bars: [] }]);
   });
@@ -155,7 +229,7 @@ describe("normalizeWire — R33", () => {
     });
     expect(out).toEqual({
       type: "bars_updated",
-      payload: { seq: 1, prices: {}, characters: [], order: [] },
+      payload: { seq: 1, prices: {}, provisionalPrices: {}, characters: [], order: [] },
     });
   });
 

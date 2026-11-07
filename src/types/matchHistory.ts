@@ -22,6 +22,8 @@ export type HistoryMove = {
   speed?: RollCheck;
   charge?: RollCheck;
   finalSpeed?: number;
+  /** Movimento empilhado (2026-11-06 D3): `actionId` do movimento anterior da cadeia; ausente se não empilhado. */
+  stackedOn?: string;
 };
 
 export type HistoryAction = {
