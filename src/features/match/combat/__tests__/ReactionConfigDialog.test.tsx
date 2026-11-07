@@ -149,3 +149,28 @@ describe("ReactionConfigDialog — stacked moves", () => {
     expect(screen.queryByText(warning)).not.toBeInTheDocument();
   });
 });
+
+describe("ReactionConfigDialog — repel warning", () => {
+  const text = "Este repelir gasta a sua ação com movimento e cancela os movimentos empilhados nela.";
+  it("shows the repel warning on Repelir and hides it after switching to Esquivar", () => {
+    render(
+      <ReactionConfigDialog name="Gon" initial="repel" weapons={["Fist"]} repelWarning={text} onSend={vi.fn()} onCancel={vi.fn()} />,
+    );
+    expect(screen.getByText(text)).toBeInTheDocument();
+    fireEvent.click(radio("Esquivar"));
+    expect(screen.queryByText(text)).not.toBeInTheDocument();
+  });
+
+  it("without a repel warning nothing is shown on Repelir", () => {
+    setup("repel");
+    expect(screen.queryByText(/cancela os movimentos empilhados|serão cancelados/)).not.toBeInTheDocument();
+  });
+
+  it("the escape warning is unchanged and does not show the repel one", () => {
+    render(
+      <ReactionConfigDialog name="Gon" initial="escape" weapons={["Fist"]} losesStacked repelWarning={text} onSend={vi.fn()} onCancel={vi.fn()} />,
+    );
+    expect(screen.getByText(/Seus movimentos empilhados serão cancelados/)).toBeInTheDocument();
+    expect(screen.queryByText(text)).not.toBeInTheDocument();
+  });
+});

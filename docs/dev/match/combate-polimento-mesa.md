@@ -303,6 +303,14 @@ movimento não entra na cadeia nem a quebra. O servidor não abre um empilhado a
   `armedNote`, no painel e ao lado da peça) mostram `STACKED_ESCAPE_WARNING`. A casa só é escolhida
   no toque, que já envia — por isso o aviso é condicional ("…se esta fuga não for para onde o
   primeiro movimento ia").
+- **Reação (repelir):** o repelir cobra só a barra de ação e gasta uma ação com movimento
+  (combinada) se for a candidata; os empilhados nela caem. `stackedLostByRepel` (puro, em
+  `moveChain.ts`) recebe os ids de `pendingActionBarIds` e devolve `{ lost, certain }`: candidatas =
+  as não bloqueadas (ataque/interação puros; combinada sem anterior), ou todas se não há nenhuma. O
+  cliente não conhece as chaves (dados secretos), então `certain` só vale quando toda candidata
+  derrubaria algo. `dialog.repelWarning` carrega `STACKED_REPEL_WARNING` (certo) ou
+  `STACKED_REPEL_MAYBE_WARNING` ("Se este repelir gastar…"); só o `ReactionConfigDialog` mostra,
+  porque o repelir sempre abre a caixa.
 - **Ajustar na fila:** `queuedRolls` só oferece "Velocidade de ação" para a ação que cobra a barra de
   ação (`bars` com `"action"`); o movimento puro não rola velocidade de ação (D1) e o servidor
   recusa a edição.

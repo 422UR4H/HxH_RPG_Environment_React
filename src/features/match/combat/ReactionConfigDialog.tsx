@@ -39,6 +39,7 @@ export default function ReactionConfigDialog({
   weapons,
   defaultWeapon,
   losesStacked,
+  repelWarning,
   onSend,
   onCancel,
 }: {
@@ -51,6 +52,8 @@ export default function ReactionConfigDialog({
   defaultWeapon?: string;
   /** O personagem tem movimentos empilhados que uma fuga para outra casa cancela (D6). */
   losesStacked?: boolean;
+  /** O aviso do repelir (gasta a ação com movimento e derruba os empilhados), se houver. */
+  repelWarning?: string;
   onSend: (r: { kind: ReactionKind; weapon?: string }) => void;
   onCancel: () => void;
 }) {
@@ -116,6 +119,7 @@ export default function ReactionConfigDialog({
         )}
         <Cost>{costText(kind)}</Cost>
         {losesStacked && needsDestination(kind) && <Cost>{STACKED_ESCAPE_WARNING}</Cost>}
+        {repelWarning && kind === "repel" && <Cost>{repelWarning}</Cost>}
         <Buttons>
           <CancelButton type="button" onClick={onCancel}>Cancelar</CancelButton>
           <AccentConfirmButton type="button" onClick={send}>

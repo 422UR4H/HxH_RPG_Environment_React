@@ -152,3 +152,44 @@ export function stackedLostByEscape(
   if (!head || (destination && sameColRow(destination, head.to))) return [];
   return stackedAfter(head.id, moves);
 }
+
+/**
+ * Os ids das ações pendentes do personagem que cobram a barra de ação (ataque, interação ou
+ * combinada): `declared` (jogador; `open` já saiu da fila) e `queue` (mestre, `bars`). Uma ação
+ * nas duas listas entra uma vez.
+ */
+export function pendingActionBarIds(actorId: string, declared: DeclaredAction[], queue: QueuedAction[]): string[] {
+  const out = new Set<string>();
+  for (const q of queue) if (q.actorId === actorId && q.bars.includes("action")) out.add(q.actionId);
+  for (const d of declared) {
+    if (d.actorId === actorId && d.status !== "open" && (d.attack || d.interact)) out.add(d.id);
+  }
+  return [...out];
+}
+
+/**
+ * O repelir cobra só a barra de ação e não tem destino: o servidor gasta a melhor ação de ação
+ * NÃO bloqueada (ataque/interação puros ou combinada na cabeça da cadeia) e, só sem nenhuma, uma
+ * combinada empilhada. Os movimentos empilhados na ação gasta caem (cascata). O cliente não sabe
+ * as chaves (os dados são secretos), então só afirma (`certain`) quando TODO candidato perderia
+ * algo; `lost` é a união do que cada candidato derrubaria. Sem candidato com empilhados, nada.
+ */
+export function stackedLostByRepel(
+  actorId: string,
+  moves: ChainMove[],
+  actionBarPending: string[],
+): { lost: ChainMove[]; certain: boolean } {
+  const byId = new Map(moves.filter((m) => m.actorId === actorId).map((m) => [m.id, m]));
+  const unblocked = actionBarPending.filter((id) => {
+    const m = byId.get(id);
+    return !m || !predecessorOf(m, moves);
+  });
+  const candidates = unblocked.length > 0 ? unblocked : actionBarPending;
+  const perCandidate = candidates.map((id) => (byId.has(id) ? stackedAfter(id, moves) : []));
+  const lostIds = new Set(perCandidate.flat().map((m) => m.id));
+  if (lostIds.size === 0) return { lost: [], certain: false };
+  return {
+    lost: moves.filter((m) => lostIds.has(m.id)),
+    certain: perCandidate.every((l) => l.length > 0),
+  };
+}
