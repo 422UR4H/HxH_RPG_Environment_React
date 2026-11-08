@@ -244,17 +244,22 @@ describe("useMatchCombat: story clock sends", () => {
     expect(ok).toBe(false);
   });
 
-  it("routes clock_changed to the reducer and asks the page to refetch history", () => {
+  it("routes clock_changed to the reducer; refetches history only for start/adjust/set/pause", () => {
     const onHistoryChanged = vi.fn();
     const { result, ws } = mount({ onHistoryChanged });
-    act(() => {
-      ws.emit("clock_changed", {
-        clock: { storyAt: "2000-01-01T08:00:00", running: true, limitAt: null, limitReason: "", seq: 1 },
-        change: { kind: "play" },
+    const emit = (seq: number, kind: string) =>
+      act(() => {
+        ws.emit("clock_changed", {
+          clock: { storyAt: "2000-01-01T08:00:00", running: true, limitAt: null, limitReason: "", seq },
+          change: { kind },
+        });
       });
-    });
+    emit(1, "play");
     expect(result.current.state.clock.value?.running).toBe(true);
-    expect(onHistoryChanged).toHaveBeenCalled();
+    ["round", "limit", "scene", "end"].forEach((k, i) => emit(i + 2, k));
+    expect(onHistoryChanged).not.toHaveBeenCalled();
+    ["start", "adjust", "set", "pause"].forEach((k, i) => emit(i + 10, k));
+    expect(onHistoryChanged).toHaveBeenCalledTimes(4);
   });
 
   it("routes combat_summary and match_ended", () => {

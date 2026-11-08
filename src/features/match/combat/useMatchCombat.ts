@@ -40,7 +40,9 @@ type SendOptions = {
 let localSeq = 0;
 
 /** As mensagens que o servidor só emite depois de gravar o que o histórico mostra. */
-const HISTORY_TYPES = new Set(["turn_closed", "scene_changed", "round_mode_changed", "round_closed", "clock_changed"]);
+const HISTORY_TYPES = new Set(["turn_closed", "scene_changed", "round_mode_changed", "round_closed"]);
+// Só estas mudanças do relógio viram linha no histórico; play/round/limit/scene/end não.
+const HISTORY_CLOCK_KINDS = new Set(["start", "adjust", "set", "pause"]);
 
 /**
  * Liga o socket ao reducer. Todo o estado de combate sai daqui; nenhuma página guarda
@@ -84,7 +86,10 @@ export function useMatchCombat({
         ...(msg.type === "match_full_state" ? { declaredSource } : {}),
       } as CombatAction);
       if (acked?.fromComposer) onAcceptedRef.current?.(acked.actorId);
-      if (HISTORY_TYPES.has(msg.type)) onHistoryChangedRef.current?.();
+      const historyChanged =
+        HISTORY_TYPES.has(msg.type) ||
+        (msg.type === "clock_changed" && HISTORY_CLOCK_KINDS.has(msg.payload.change.kind));
+      if (historyChanged) onHistoryChangedRef.current?.();
       if (msg.type === "match_full_state") onFullStateRef.current?.();
     },
     onNpcAdded: (id) => onNpcAddedRef.current?.(id),
