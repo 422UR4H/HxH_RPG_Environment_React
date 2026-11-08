@@ -19,7 +19,9 @@ export function noticeText(change: ClockChange): string | null {
       if (!change.to) return null;
       const delta = change.deltaSeconds ?? (change.from ? diffSeconds(change.to, change.from) : 0);
       if (delta === 0) return null; // ajustes que se anularam: nada a avisar
-      const verb = delta < 0 ? `voltou o tempo ${formatDelta(delta).replace("−", "")}` : `avançou o tempo ${formatDelta(delta)}`;
+      // O verbo já diz a direção: sem sinal no tamanho do salto (copy do spec).
+      const size = formatDelta(Math.abs(delta)).slice(1);
+      const verb = delta < 0 ? `voltou o tempo ${size}` : `avançou o tempo ${size}`;
       return `O mestre ${verb} — ${nowAt(change.to)}`;
     }
     case "play":
@@ -37,7 +39,8 @@ export function noticeText(change: ClockChange): string | null {
       return change.to ? `A partida começa às ${formatTime(change.to)} de ${formatDateBR(change.to)}` : null;
     case "scene": {
       if (!change.to || !change.from || change.from === change.to) return null;
-      return `O combate terminou — ${nowAt(change.to)}`;
+      // Neutro: também acontece quando uma cena de roleplay fecha um round de corrida contado.
+      return `Nova cena — ${nowAt(change.to)}`;
     }
     default:
       // round, limit e end: silenciosos aqui (o fim da partida é da tela de encerramento).

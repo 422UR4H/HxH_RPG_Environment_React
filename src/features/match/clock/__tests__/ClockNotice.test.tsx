@@ -13,10 +13,10 @@ describe("ClockNotice", () => {
     const { rerender } = render(<ClockNotice change={null} changeSeq={0} />);
     expect(screen.queryByRole("status")).toBeNull();
     rerender(<ClockNotice change={adj("2000-01-01T08:01:00")} changeSeq={1} />);
-    expect(screen.getByRole("status").textContent).toContain("+1 min");
+    expect(screen.getByRole("status").textContent).toContain("avançou o tempo 1 min");
     act(() => { vi.advanceTimersByTime(4000); });
     rerender(<ClockNotice change={adj("2000-01-01T08:02:00")} changeSeq={2} />);
-    expect(screen.getByRole("status").textContent).toContain("+2 min");
+    expect(screen.getByRole("status").textContent).toContain("avançou o tempo 2 min");
     act(() => { vi.advanceTimersByTime(4000); });
     expect(screen.getByRole("status")).toBeTruthy();
     act(() => { vi.advanceTimersByTime(2100); });

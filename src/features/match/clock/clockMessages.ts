@@ -41,7 +41,8 @@ export type CombatSummary = {
 
 export type MatchEnded = {
   matchId: string;
-  storyAt: string;
+  /** `null` se a partida acabou sem hora definida. */
+  storyAt: string | null;
   /** RFC 3339. */
   gameEndAt: string;
 };

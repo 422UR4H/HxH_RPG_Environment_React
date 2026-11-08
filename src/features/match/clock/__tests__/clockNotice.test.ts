@@ -5,9 +5,9 @@ const A = "2000-01-01T08:00:00";
 const B = "2000-01-01T09:00:00";
 
 describe("noticeText", () => {
-  it("forward adjust", () => {
+  it("forward adjust has no sign", () => {
     expect(noticeText({ kind: "adjust", from: A, to: B, deltaSeconds: 3600 })).toBe(
-      "O mestre avançou o tempo +1 h — agora 01/01/2000 09:00:00",
+      "O mestre avançou o tempo 1 h — agora 01/01/2000 09:00:00",
     );
   });
   it("backward set drops the sign", () => {
@@ -31,11 +31,16 @@ describe("noticeText", () => {
     expect(noticeText({ kind: "pause", reason: "end" })).toBe("O tempo real pausou (fim da partida)");
     expect(noticeText({ kind: "pause", reason: "restart" })).toBe("O tempo real pausou (reinício do servidor)");
   });
+  it("multi-part forward delta has no sign", () => {
+    expect(noticeText({ kind: "adjust", from: A, to: "2000-01-01T10:10:00", deltaSeconds: 7800 })).toBe(
+      "O mestre avançou o tempo 2 h 10 min — agora 01/01/2000 10:10:00",
+    );
+  });
   it("start", () => {
     expect(noticeText({ kind: "start", to: A })).toBe("A partida começa às 08:00:00 de 01/01/2000");
   });
-  it("scene with a move", () => {
-    expect(noticeText({ kind: "scene", from: A, to: B })).toBe("O combate terminou — agora 01/01/2000 09:00:00");
+  it("scene with a move is neutral", () => {
+    expect(noticeText({ kind: "scene", from: A, to: B })).toBe("Nova cena — agora 01/01/2000 09:00:00");
     expect(noticeText({ kind: "scene" })).toBeNull();
   });
   it("round, limit and end are silent", () => {
@@ -50,7 +55,7 @@ describe("coalesce", () => {
       { kind: "adjust", from: "2000-01-01T08:01:00", to: "2000-01-01T08:02:00", deltaSeconds: 60 },
     );
     expect(m).toMatchObject({ from: "2000-01-01T08:00:00", to: "2000-01-01T08:02:00", deltaSeconds: 120 });
-    expect(noticeText(m)).toContain("+2 min");
+    expect(noticeText(m)).toContain("avançou o tempo 2 min —");
   });
   it("anything else replaces", () => {
     const next = { kind: "play" as const };
