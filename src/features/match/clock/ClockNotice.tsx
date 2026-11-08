@@ -38,7 +38,8 @@ export default function ClockNotice(props: Props) {
       if (!t) return;
       setShownText(t);
     } else {
-      if (!c) return;
+      // Mudança silenciosa (limite, round…): não troca o aviso visível nem reinicia o relógio.
+      if (!c || noticeText(c) === null) return;
       setShown((prev) => (prev ? coalesce(prev, c) : c));
     }
     if (timer.current) clearTimeout(timer.current);

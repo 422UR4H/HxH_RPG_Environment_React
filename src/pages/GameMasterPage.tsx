@@ -893,7 +893,8 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                 onDismiss={combat.dismissError}
               />
               <ClockNotice
-                text={`Tempo real ligado há ${Math.floor(clock.realElapsedSeconds / 60)} min`}
+                // Ao pausar a chave volta a 0: isso não é um aviso novo ("ligado há 0 min").
+                text={clock.alertKey > 0 ? `Tempo real ligado há ${clock.alertKey * 5} min` : null}
                 noticeKey={clock.alertKey}
               />
               <LostDeclaredNotice

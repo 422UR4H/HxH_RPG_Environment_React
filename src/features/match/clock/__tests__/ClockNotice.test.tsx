@@ -22,6 +22,18 @@ describe("ClockNotice", () => {
     act(() => { vi.advanceTimersByTime(2100); });
     expect(screen.queryByRole("status")).toBeNull();
   });
+  it("a silent change (limit) keeps the visible adjust notice and its timer", () => {
+    vi.useFakeTimers();
+    const { rerender } = render(<ClockNotice change={null} changeSeq={0} />);
+    rerender(<ClockNotice change={adj("2000-01-01T08:01:00")} changeSeq={1} />);
+    const text = screen.getByRole("status").textContent;
+    act(() => { vi.advanceTimersByTime(4000); });
+    rerender(<ClockNotice change={{ kind: "limit", to: "2000-01-01T08:01:00" }} changeSeq={2} />);
+    expect(screen.getByRole("status").textContent).toBe(text);
+    // O relógio não foi reiniciado pela mudança silenciosa.
+    act(() => { vi.advanceTimersByTime(2100); });
+    expect(screen.queryByRole("status")).toBeNull();
+  });
   it("ignores a change already present at mount", () => {
     render(<ClockNotice change={adj("2000-01-01T08:01:00")} changeSeq={3} />);
     expect(screen.queryByRole("status")).toBeNull();

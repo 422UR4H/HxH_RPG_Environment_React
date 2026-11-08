@@ -1879,6 +1879,23 @@ describe("GameMasterPage", () => {
         vi.useRealTimers();
       }
     });
+
+    it("does not announce 'ligado há 0 min' when the master pauses after 5 min", async () => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date("2026-01-01T10:00:00Z"));
+      try {
+        renderMasterPage();
+        const ws = await waitForSocket();
+        act(() => ws.onopen?.());
+        fullState(ws, clockState({ seq: 1, storyAt: "2000-01-01T09:00:00", running: true }));
+        vi.setSystemTime(new Date("2026-01-01T10:05:01Z"));
+        await screen.findByText("Tempo real ligado há 5 min", {}, { timeout: 3000 });
+        fullState(ws, clockState({ seq: 2, storyAt: "2000-01-01T09:05:01", running: false }));
+        expect(screen.queryByText("Tempo real ligado há 0 min")).toBeNull();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
   });
   // Encerrar partida (spec 2026-11-08 §5, Review Focus 3 e 4).
   describe("end match", () => {
