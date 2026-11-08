@@ -17,7 +17,12 @@ describe("noticeText", () => {
   });
   it("play", () => expect(noticeText({ kind: "play" })).toBe("O mestre ligou o tempo real"));
   it("manual pause shows elapsed", () => {
-    expect(noticeText({ kind: "pause", reason: "manual", from: A, to: B })).toBe("O mestre pausou o tempo real (+1 h)");
+    expect(noticeText({ kind: "pause", reason: "manual", from: A, to: "2000-01-01T11:00:00", elapsedSeconds: 192 })).toBe(
+      "O mestre pausou o tempo real (+3 min 12 s)",
+    );
+  });
+  it("manual pause without elapsedSeconds omits the parenthesis", () => {
+    expect(noticeText({ kind: "pause", reason: "manual", from: A, to: B })).toBe("O mestre pausou o tempo real");
   });
   it("other pause reasons", () => {
     expect(noticeText({ kind: "pause", reason: "roundMode" })).toBe("O tempo real pausou (troca de regime)");

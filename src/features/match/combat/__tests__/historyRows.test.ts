@@ -147,9 +147,11 @@ describe("historyRows", () => {
     h.scenes[0].rounds[0].events = [
       { uuid: "e1", kind: "clockStarted", createdAt: "2026-01-01T00:00:01Z", payload: { at: "2000-01-01T08:00:00" } },
       { uuid: "e2", kind: "clockAdjusted", createdAt: "2026-01-01T00:00:02Z", payload: { from: "2000-01-01T08:00:00", to: "2000-01-01T08:01:00", deltaSeconds: 60 } },
-      { uuid: "e3", kind: "clockRealTime", createdAt: "2026-01-01T00:00:03Z", payload: { from: "2000-01-01T08:01:00", to: "2000-01-01T08:03:00", elapsedSeconds: 120, reason: "manual" } },
+      { uuid: "e3", kind: "clockRealTime", createdAt: "2026-01-01T00:00:03Z", payload: { from: "2000-01-01T08:01:00", to: "2000-01-01T11:00:00", elapsedSeconds: 192, reason: "manual" } },
     ];
     const rows = historyRows(h, [], 0, undefined).filter((r) => r.source === "rest" && r.kind === "clock");
     expect(rows.map((r) => r.source === "rest" && r.kind === "clock" && r.change.kind)).toEqual(["start", "adjust", "pause"]);
+    const pause = rows[2];
+    expect(pause.source === "rest" && pause.kind === "clock" && pause.change.elapsedSeconds).toBe(192);
   });
 });

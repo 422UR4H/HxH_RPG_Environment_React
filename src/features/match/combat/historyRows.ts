@@ -44,8 +44,8 @@ export function historyRows(
         else if (ev.kind === "clockStarted") rest.push({ source: "rest", kind: "clock", key, at, change: { kind: "start", to: ev.payload.at } });
         else if (ev.kind === "clockAdjusted") rest.push({ source: "rest", kind: "clock", key, at, change: { kind: "adjust", ...ev.payload } });
         else if (ev.kind === "clockRealTime") {
-          const { from, to, reason } = ev.payload;
-          rest.push({ source: "rest", kind: "clock", key, at, change: { kind: "pause", from, to, reason } });
+          const { from, to, reason, elapsedSeconds } = ev.payload;
+          rest.push({ source: "rest", kind: "clock", key, at, change: { kind: "pause", from, to, reason, elapsedSeconds } });
         } else if (ev.kind === "masterAction") rest.push({ source: "rest", kind: "master_action", key, at, masterAction: ev.masterAction });
         else if (ev.kind === "actionCancelled") rest.push({ source: "rest", kind: "action_cancelled", key, at, actorId: ev.actorId, action: ev.action });
         // Um `kind` que o servidor venha a acrescentar não tem linha aqui: some, sem quebrar a aba.

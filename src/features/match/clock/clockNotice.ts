@@ -25,7 +25,8 @@ export function noticeText(change: ClockChange): string | null {
       return "O mestre ligou o tempo real";
     case "pause": {
       if (change.reason === "manual" || !change.reason) {
-        const elapsed = change.from && change.to ? ` (${formatDelta(diffSeconds(change.to, change.from))})` : "";
+        // O tempo decorrido vem do servidor; `to − from` não serve (ajustes durante o play).
+        const elapsed = change.elapsedSeconds !== undefined ? ` (${formatDelta(change.elapsedSeconds)})` : "";
         return `O mestre pausou o tempo real${elapsed}`;
       }
       return `O tempo real pausou (${PAUSE_REASONS[change.reason]})`;

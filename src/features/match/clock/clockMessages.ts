@@ -22,6 +22,8 @@ export type ClockChange = {
   to?: string;
   deltaSeconds?: number;
   reason?: PauseReason;
+  /** Tempo real que durou o play, vindo do servidor (só no `pause`). */
+  elapsedSeconds?: number;
 };
 
 export type ClockChangedPayload = { clock: ClockState; change: ClockChange };

@@ -26,4 +26,16 @@ describe("ClockNotice", () => {
     render(<ClockNotice change={adj("2000-01-01T08:01:00")} changeSeq={3} />);
     expect(screen.queryByRole("status")).toBeNull();
   });
+  it("text mode shows on a new noticeKey and restarts the timer", () => {
+    vi.useFakeTimers();
+    const { rerender } = render(<ClockNotice text={null} noticeKey={0} />);
+    rerender(<ClockNotice text="Tempo real ligado há 5 min" noticeKey={1} />);
+    expect(screen.getByRole("status").textContent).toBe("Tempo real ligado há 5 min");
+    act(() => { vi.advanceTimersByTime(4000); });
+    rerender(<ClockNotice text="Tempo real ligado há 10 min" noticeKey={2} />);
+    act(() => { vi.advanceTimersByTime(4000); });
+    expect(screen.getByRole("status").textContent).toBe("Tempo real ligado há 10 min");
+    act(() => { vi.advanceTimersByTime(2100); });
+    expect(screen.queryByRole("status")).toBeNull();
+  });
 });

@@ -6,26 +6,43 @@ import { coalesce, noticeText } from "./clockNotice";
 
 const SHOW_MS = 6000;
 
+type Props =
+  | { change: ClockChange | null; changeSeq: number; text?: never; noticeKey?: never }
+  /** Modo texto livre (ex.: alerta de tempo real do mestre): reaparece a cada `noticeKey` novo. */
+  | { text: string | null; noticeKey: number; change?: never; changeSeq?: never };
+
 /**
  * Aviso de palco para toda mudança de tempo feita pelo mestre — nada passa em silêncio.
  * Mudanças em sequência dentro da janela se fundem; cada uma reinicia os 6 s.
  */
-export default function ClockNotice({ change, changeSeq }: { change: ClockChange | null; changeSeq: number }) {
+export default function ClockNotice(props: Props) {
+  const { change = null, changeSeq, text = null, noticeKey } = props;
+  const key = changeSeq ?? noticeKey ?? 0;
   const [shown, setShown] = useState<ClockChange | null>(null);
-  // A mudança que já estava no estado ao montar é velha: só avisa o que chega depois.
-  const seen = useRef(changeSeq);
+  const [shownText, setShownText] = useState<string | null>(null);
+  // O que já estava no estado ao montar é velho: só avisa o que chega depois.
+  const seen = useRef(key);
 
   useEffect(() => {
-    if (changeSeq === seen.current || !change) return;
-    seen.current = changeSeq;
-    setShown((prev) => (prev ? coalesce(prev, change) : change));
-    const t = setTimeout(() => setShown(null), SHOW_MS);
+    if (key === seen.current) return;
+    seen.current = key;
+    if (noticeKey !== undefined) {
+      if (!text) return;
+      setShownText(text);
+    } else {
+      if (!change) return;
+      setShown((prev) => (prev ? coalesce(prev, change) : change));
+    }
+    const t = setTimeout(() => {
+      setShown(null);
+      setShownText(null);
+    }, SHOW_MS);
     return () => clearTimeout(t);
-  }, [change, changeSeq]);
+  }, [change, key, noticeKey, text]);
 
-  const text = shown ? noticeText(shown) : null;
-  if (!text) return null;
-  return <Notice role="status" aria-live="polite">{text}</Notice>;
+  const out = noticeKey !== undefined ? shownText : shown ? noticeText(shown) : null;
+  if (!out) return null;
+  return <Notice role="status" aria-live="polite">{out}</Notice>;
 }
 
 const Notice = styled.div`
