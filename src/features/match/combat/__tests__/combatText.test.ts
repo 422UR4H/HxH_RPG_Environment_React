@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { costLabel, describeDeclared, weaponLabel } from "../combatText";
+import { actionKindLabel, costLabel, describeDeclared, weaponLabel } from "../combatText";
 
 describe("costLabel", () => {
   it("uma barra no singular, as duas no plural", () => {
@@ -23,5 +23,23 @@ describe("describeDeclared e a arma", () => {
   it("Fist vira 'desarmado' no texto corrido", () => {
     expect(atk("Fist")).toBe("Atacar Hisoka desarmado");
     expect(atk("Sword")).toBe("Atacar Hisoka com Sword");
+  });
+});
+
+describe("actionKindLabel", () => {
+  it("labels every backend action type in Portuguese", () => {
+    expect(actionKindLabel("attack")).toBe("ataque");
+    expect(actionKindLabel("move")).toBe("movimento");
+    expect(actionKindLabel("defense")).toBe("defesa");
+    expect(actionKindLabel("dodge")).toBe("esquiva");
+    expect(actionKindLabel("feint")).toBe("finta");
+    expect(actionKindLabel("interact")).toBe("interação");
+    expect(actionKindLabel("skill")).toBe("perícia");
+    expect(actionKindLabel("reaction")).toBe("reação");
+    expect(actionKindLabel("unspecified")).toBe("ação");
+  });
+
+  it("falls back to the raw kind", () => {
+    expect(actionKindLabel("brandNew")).toBe("brandNew");
   });
 });

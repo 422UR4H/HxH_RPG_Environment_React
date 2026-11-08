@@ -41,6 +41,7 @@ import DeclaredActions from "../features/match/combat/DeclaredActions";
 import QueuePanel from "../features/match/combat/QueuePanel";
 import CloseTurnRefusedDialog from "../features/match/combat/CloseTurnRefusedDialog";
 import SceneChangeDialog from "../features/match/combat/SceneChangeDialog";
+import { useSceneChangeFlow } from "../features/match/combat/useSceneChangeFlow";
 import ArrangeConfirmDialog from "../features/match/combat/ArrangeConfirmDialog";
 import type { ArrangePending } from "../features/match/combat/ArrangeConfirmDialog";
 import MapPickConfirm from "../features/match/combat/MapPickConfirm";
@@ -161,7 +162,15 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   // As paredes que o mestre tocou SEM NPC escolhido: o card "Ação do Mestre" no Agir. Tocar
   // troca a seleção; segurar junta (o terremoto). Guarda ids — o card lê as paredes ao vivo.
   const [masterWallIds, setMasterWallIds] = useState<string[]>([]);
-  const [sceneDialog, setSceneDialog] = useState(false);
+  // Nova cena: em combate pede o resumo ao abrir; fecha quando a cena troca (a recusa fica nele).
+  const sceneFlow = useSceneChangeFlow({
+    scene: state.scene,
+    combatSummary: state.combatSummary,
+    lastError: state.lastError,
+    requestCombatSummary: combat.send.requestCombatSummary,
+    changeScene: combat.send.changeScene,
+  });
+  const sceneDialog = sceneFlow.open;
 
   // ─── Arrumar (F12) ─────────────────────────────────────────────────────────
   const [boardMode, setBoardMode] = useState<BoardMode>("play");
@@ -631,7 +640,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                 onOpenNext={combat.send.openNextAction}
                 onCloseTurn={() => combat.send.closeTurn()}
                 canCloseTurn={canCloseTurn}
-                onNewScene={() => setSceneDialog(true)}
+                onNewScene={sceneFlow.openDialog}
                 canChangeScene={state.openTurn == null}
                 queueLength={state.queue.length}
                 orderLength={state.bars?.order.length ?? 0}
@@ -688,7 +697,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                 <RoundModeSwitch mode={state.roundMode} onChange={combat.send.changeRoundMode} placement="panel" />
                 <SmallButton
                   type="button"
-                  onClick={() => setSceneDialog(true)}
+                  onClick={sceneFlow.openDialog}
                   disabled={state.openTurn != null}
                   title={state.openTurn == null ? undefined : "Feche o turno antes de trocar de cena"}
                 >
@@ -843,7 +852,13 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
             <StageNotices>
               <MatchErrorBanner
                 error={
-                  state.lastError?.code === "npc_already_in_match" || startTimeError || staleClockStartError ? null : state.lastError
+                  state.lastError?.code === "npc_already_in_match" ||
+                  startTimeError ||
+                  staleClockStartError ||
+                  // O resumo do combate só é pedido pelo diálogo, que cai no layout de roleplay.
+                  state.lastError?.sentType === "get_combat_summary"
+                    ? null
+                    : state.lastError
                 }
                 onDismiss={combat.dismissError}
               />
@@ -981,8 +996,13 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
       />
       <SceneChangeDialog
         open={sceneDialog}
-        onCancel={() => setSceneDialog(false)}
-        onConfirm={(p) => { combat.send.changeScene(p); setSceneDialog(false); }}
+        currentCategory={sceneFlow.currentCategory}
+        summary={sceneFlow.summary}
+        summaryFailed={sceneFlow.summaryFailed}
+        nameOf={nameOf}
+        error={sceneFlow.error}
+        onCancel={sceneFlow.closeDialog}
+        onConfirm={sceneFlow.confirm}
       />
     </>
   );

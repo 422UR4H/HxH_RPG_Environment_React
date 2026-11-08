@@ -116,6 +116,13 @@ describe("ClockEditor", () => {
     expect(submit()).not.toHaveAttribute("aria-disabled");
   });
 
+  it("allowUnchanged submits the base as is", async () => {
+    const { user, onSubmit } = setup({ allowUnchanged: true, minimum: BASE });
+    expect(submit()).not.toHaveAttribute("aria-disabled");
+    await user.click(submit());
+    expect(onSubmit).toHaveBeenCalledWith(BASE, false);
+  });
+
   it("below the minimum disables submit and shows the reason", async () => {
     const { user, onSubmit } = setup({ minimum: "2000-01-31T08:12:40", minimumReason: "último turno" });
     await user.click(hours());

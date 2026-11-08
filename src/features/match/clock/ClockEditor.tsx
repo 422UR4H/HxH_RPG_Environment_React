@@ -168,6 +168,7 @@ export default function ClockEditor({
   minimumReason,
   initial,
   showSeconds = true,
+  allowUnchanged = false,
   submitLabel,
   cancelLabel,
   onSubmit,
@@ -180,6 +181,8 @@ export default function ClockEditor({
   minimumReason?: string;
   initial?: string;
   showSeconds?: boolean;
+  /** Enviar sem mexer vale (o fim do combate pode ser exatamente o mínimo). */
+  allowUnchanged?: boolean;
   submitLabel: string;
   cancelLabel?: string;
   onSubmit: (storyAt: string, confirmLongSkip: boolean) => void;
@@ -206,7 +209,7 @@ export default function ClockEditor({
   const delta = diffSeconds(value, base);
   const belowMinimum = minimum !== null && compareStory(value, minimum) < 0;
   const unchanged = delta === 0;
-  const blocked = belowMinimum || unchanged;
+  const blocked = belowMinimum || (unchanged && !allowUnchanged);
 
   const onTime = (t: TimeValue, carryDays = 0) => {
     setValue(addSeconds(formatStory({ ...parts, ...t }), carryDays * DAY));
