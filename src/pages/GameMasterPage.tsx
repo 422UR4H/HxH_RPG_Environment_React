@@ -24,6 +24,7 @@ import { PanelTitle } from "../features/match/combat/panelStyles";
 import RailNav from "../features/match/combat/RailNav";
 import AsideTabs from "../features/match/combat/AsideTabs";
 import GeneralBar from "../features/match/combat/GeneralBar";
+import ClockPanel from "../features/match/clock/ClockPanel";
 import ClockPill from "../features/match/clock/ClockPill";
 import { useStoryClock } from "../features/match/clock/useStoryClock";
 import OwnBars from "../features/match/combat/OwnBars";
@@ -105,6 +106,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   // Relógio da história: só o mestre escala a atenção. O painel chega na Task 5; por ora o flag local.
   const clock = useStoryClock(state.clock, { escalate: true });
   const [clockOpen, setClockOpen] = useState(false);
+  const clockAnchorRef = useRef<HTMLDivElement | null>(null);
   const gridKind = map?.grid.kind ?? "square";
 
   const { data: catalogue } = useCombatCatalogue(token, actorId);
@@ -802,7 +804,22 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
               width={width}
               height={height}
             />
-            <ClockPill clock={clock} interactive open={clockOpen} onToggle={() => setClockOpen((o) => !o)} />
+            {/* display: contents — o invólucro só marca a pílula para o painel (clique fora e foco). */}
+            <div ref={clockAnchorRef} style={{ display: "contents" }}>
+              <ClockPill clock={clock} interactive open={clockOpen} onToggle={() => setClockOpen((o) => !o)} />
+            </div>
+            {clockOpen && (
+              <ClockPanel
+                clock={clock}
+                roundMode={state.roundMode}
+                anchorRef={clockAnchorRef}
+                onAdjust={(delta) => combat.send.adjustClock(delta)}
+                onSet={(storyAt, confirm) => combat.send.setClock(storyAt, confirm)}
+                onPlay={() => combat.send.playClock()}
+                onPause={() => combat.send.pauseClock()}
+                onClose={() => setClockOpen(false)}
+              />
+            )}
             <GeneralBar
               showOrder
               bars={state.bars}
