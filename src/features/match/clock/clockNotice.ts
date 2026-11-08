@@ -1,7 +1,7 @@
 import type { ClockChange, PauseReason } from "./clockMessages";
 import { diffSeconds, formatDateBR, formatDelta, formatTime } from "./storyTime";
 
-const PAUSE_REASONS: Record<Exclude<PauseReason, "manual">, string> = {
+const PAUSE_REASONS: Partial<Record<PauseReason, string>> = {
   roundMode: "troca de regime",
   scene: "troca de cena",
   masterLeft: "o mestre saiu",
@@ -18,6 +18,7 @@ export function noticeText(change: ClockChange): string | null {
     case "set": {
       if (!change.to) return null;
       const delta = change.deltaSeconds ?? (change.from ? diffSeconds(change.to, change.from) : 0);
+      if (delta === 0) return null; // ajustes que se anularam: nada a avisar
       const verb = delta < 0 ? `voltou o tempo ${formatDelta(delta).replace("−", "")}` : `avançou o tempo ${formatDelta(delta)}`;
       return `O mestre ${verb} — ${nowAt(change.to)}`;
     }
@@ -29,7 +30,8 @@ export function noticeText(change: ClockChange): string | null {
         const elapsed = change.elapsedSeconds !== undefined ? ` (${formatDelta(change.elapsedSeconds)})` : "";
         return `O mestre pausou o tempo real${elapsed}`;
       }
-      return `O tempo real pausou (${PAUSE_REASONS[change.reason]})`;
+      const motive = PAUSE_REASONS[change.reason];
+      return motive ? `O tempo real pausou (${motive})` : "O tempo real pausou";
     }
     case "start":
       return change.to ? `A partida começa às ${formatTime(change.to)} de ${formatDateBR(change.to)}` : null;
@@ -47,10 +49,12 @@ export function noticeText(change: ClockChange): string | null {
 export function coalesce(prev: ClockChange, next: ClockChange): ClockChange {
   const mergeable = (k: ClockChange["kind"]) => k === "adjust" || k === "set";
   if (!mergeable(prev.kind) || !mergeable(next.kind)) return next;
-  return {
-    kind: "adjust",
-    from: prev.from,
-    to: next.to,
-    deltaSeconds: (prev.deltaSeconds ?? 0) + (next.deltaSeconds ?? 0),
-  };
+  // `set` pode vir sem `deltaSeconds`: aí o total sai da distância entre as horas.
+  const deltaSeconds =
+    prev.deltaSeconds !== undefined && next.deltaSeconds !== undefined
+      ? prev.deltaSeconds + next.deltaSeconds
+      : prev.from && next.to
+        ? diffSeconds(next.to, prev.from)
+        : (prev.deltaSeconds ?? 0) + (next.deltaSeconds ?? 0);
+  return { kind: "adjust", from: prev.from, to: next.to, deltaSeconds };
 }

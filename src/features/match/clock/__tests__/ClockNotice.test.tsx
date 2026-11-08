@@ -38,4 +38,13 @@ describe("ClockNotice", () => {
     act(() => { vi.advanceTimersByTime(2100); });
     expect(screen.queryByRole("status")).toBeNull();
   });
+  it("text mode: new text with the same key still hides after 6 s", () => {
+    vi.useFakeTimers();
+    const { rerender } = render(<ClockNotice text={null} noticeKey={0} />);
+    rerender(<ClockNotice text="A" noticeKey={1} />);
+    rerender(<ClockNotice text="B" noticeKey={1} />);
+    expect(screen.getByRole("status").textContent).toBe("A");
+    act(() => { vi.advanceTimersByTime(6100); });
+    expect(screen.queryByRole("status")).toBeNull();
+  });
 });

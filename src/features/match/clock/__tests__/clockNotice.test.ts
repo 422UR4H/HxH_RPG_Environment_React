@@ -56,4 +56,21 @@ describe("coalesce", () => {
     const next = { kind: "play" as const };
     expect(coalesce({ kind: "adjust", deltaSeconds: 60, to: A }, next)).toBe(next);
   });
+  it("set without deltaSeconds merges by the distance between times", () => {
+    const m = coalesce(
+      { kind: "adjust", from: "2000-01-01T08:00:00", to: "2000-01-01T08:01:00", deltaSeconds: 60 },
+      { kind: "set", from: "2000-01-01T08:01:00", to: "2000-01-01T08:05:00" },
+    );
+    expect(m.deltaSeconds).toBe(300);
+  });
+  it("a merge that nets to zero is silent", () => {
+    const m = coalesce(
+      { kind: "adjust", from: A, to: B, deltaSeconds: 3600 },
+      { kind: "adjust", from: B, to: A, deltaSeconds: -3600 },
+    );
+    expect(noticeText(m)).toBeNull();
+  });
+  it("unknown pause reason falls back without parenthesis", () => {
+    expect(noticeText({ kind: "pause", reason: "xyz" as never })).toBe("O tempo real pausou");
+  });
 });

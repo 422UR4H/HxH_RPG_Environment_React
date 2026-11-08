@@ -22,23 +22,39 @@ export default function ClockNotice(props: Props) {
   const [shownText, setShownText] = useState<string | null>(null);
   // O que já estava no estado ao montar é velho: só avisa o que chega depois.
   const seen = useRef(key);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Texto/mudança lidos por ref: só uma chave NOVA aceita um aviso e (re)inicia o relógio;
+  // uma troca de identidade com a mesma chave não pode cancelar o timer em curso.
+  const latest = useRef({ change, text });
+  useEffect(() => {
+    latest.current = { change, text };
+  });
 
   useEffect(() => {
     if (key === seen.current) return;
     seen.current = key;
+    const { change: c, text: t } = latest.current;
     if (noticeKey !== undefined) {
-      if (!text) return;
-      setShownText(text);
+      if (!t) return;
+      setShownText(t);
     } else {
-      if (!change) return;
-      setShown((prev) => (prev ? coalesce(prev, change) : change));
+      if (!c) return;
+      setShown((prev) => (prev ? coalesce(prev, c) : c));
     }
-    const t = setTimeout(() => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      timer.current = null;
       setShown(null);
       setShownText(null);
     }, SHOW_MS);
-    return () => clearTimeout(t);
-  }, [change, key, noticeKey, text]);
+  }, [key, noticeKey]);
+
+  useEffect(
+    () => () => {
+      if (timer.current) clearTimeout(timer.current);
+    },
+    [],
+  );
 
   const out = noticeKey !== undefined ? shownText : shown ? noticeText(shown) : null;
   if (!out) return null;
