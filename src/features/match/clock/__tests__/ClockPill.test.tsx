@@ -14,6 +14,7 @@ function view(over: Partial<StoryClockView> = {}): StoryClockView {
     phase: "idle",
     pulseKey: 0,
     alertKey: 0,
+    roundFlashKey: 0,
     ...over,
   };
 }
@@ -43,6 +44,7 @@ describe("ClockPill", () => {
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
     const pill = screen.getByRole("status");
     expect(pill).toHaveAttribute("aria-live", "off");
+    expect(pill).toHaveAccessibleName("Relógio da história: 08:30:00, 01/01/2000");
     expect(pill).toHaveAttribute("title", expect.stringContaining("01/01/2000"));
     expect(pill).not.toHaveAttribute("tabindex");
     await userEvent.tab();
@@ -93,5 +95,23 @@ describe("ClockPill", () => {
     const blocks = css.split("@media (prefers-reduced-motion: reduce)").slice(1);
     expect(blocks.length).toBeGreaterThan(0);
     expect(blocks.some((b) => /animation: ?none/.test(b))).toBe(true);
+  });
+
+  it("player pill names the unset time", () => {
+    render(<ClockPill clock={view({ now: null })} interactive={false} />);
+    expect(screen.getByRole("status")).toHaveAccessibleName("Relógio da história: hora a definir");
+  });
+
+  it.each([true, false])("flashes once per new round change (interactive: %s), not for one present at mount", (interactive) => {
+    const { rerender } = render(<ClockPill clock={view({ roundFlashKey: 3 })} interactive={interactive} />);
+    expect(screen.queryByTestId("clock-round-flash")).not.toBeInTheDocument();
+    rerender(<ClockPill clock={view({ roundFlashKey: 4 })} interactive={interactive} />);
+    const first = screen.getByTestId("clock-round-flash");
+    expect(first).toHaveAttribute("data-round-flash", "4");
+    rerender(<ClockPill clock={view({ roundFlashKey: 6 })} interactive={interactive} />);
+    expect(screen.getByTestId("clock-round-flash")).not.toBe(first);
+    expect(screen.getByTestId("clock-round-flash")).toHaveAttribute("data-round-flash", "6");
+    rerender(<ClockPill clock={view({ roundFlashKey: 0 })} interactive={interactive} />);
+    expect(screen.queryByTestId("clock-round-flash")).not.toBeInTheDocument();
   });
 });

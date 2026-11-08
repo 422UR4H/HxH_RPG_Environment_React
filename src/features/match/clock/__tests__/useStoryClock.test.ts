@@ -37,6 +37,13 @@ describe("useStoryClock", () => {
   });
   afterEach(() => vi.useRealTimers());
 
+  it("roundFlashKey is the changeSeq of a round change, 0 otherwise (all roles)", () => {
+    const { result, rerender } = setup(clock({ lastChange: { kind: "round" }, changeSeq: 4 }), false);
+    expect(result.current.roundFlashKey).toBe(4);
+    rerender({ c: clock({ lastChange: { kind: "adjust" }, changeSeq: 5 }), e: false });
+    expect(result.current.roundFlashKey).toBe(0);
+  });
+
   it("ticks story time each second while running", () => {
     const { result } = setup(clock({ lastChange: playChange, changeSeq: 1 }));
     expect(result.current.now).toBe("2000-01-01T08:30:00");

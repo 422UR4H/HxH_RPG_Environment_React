@@ -1,12 +1,13 @@
+import { useRef } from "react";
 import styled, { css, keyframes } from "styled-components";
 import StopwatchIcon from "../../../components/ions/StopwatchIcon";
 import { media } from "../../../styles/breakpoints";
 import { alpha, colors } from "../../../styles/tokens";
 import { CLOCK_PILL_HEIGHT, CLOCK_PILL_TOP, CLOCK_PILL_Z_INDEX } from "./clockLayout";
 import { formatDateBR, formatTime } from "./storyTime";
+import { ALERT_AT } from "./useStoryClock";
 import type { StoryClockView } from "./useStoryClock";
 
-const ALERT_AT = 300;
 const STRONG_EVERY_PULSES = 6;
 
 /**
@@ -14,6 +15,7 @@ const STRONG_EVERY_PULSES = 6;
  * tempo real ligado, um ponto "ao vivo" respira para todos. Para o mestre (`interactive`) a
  * pílula é o botão do painel e a atenção escala (`data-phase`): pulso leve a cada 10 s, mais
  * forte a cada minuto, e de 5 min em diante um tom de alerta fixo com os pulsos por cima.
+ * Um round que passa não avisa: a pílula só pisca de leve, para todos (spec §8.1).
  */
 export default function ClockPill({
   clock,
@@ -26,10 +28,12 @@ export default function ClockPill({
   open?: boolean;
   onToggle?: () => void;
 }) {
-  const { now, running, phase, pulseKey, realElapsedSeconds } = clock;
+  const { now, running, phase, pulseKey, realElapsedSeconds, roundFlashKey } = clock;
+  // O round que já estava no estado ao montar é velho: só pisca o que chega depois.
+  const mountRoundKey = useRef(roundFlashKey);
+  const roundFlash = roundFlashKey > 0 && roundFlashKey !== mountRoundKey.current;
   const time = now ? formatTime(now) : null;
   const date = now ? formatDateBR(now) : null;
-  const escalating = interactive && running && phase !== "idle" && phase !== "running";
   // O alerta não pisca nos segundos de pulso: depende do tempo decorrido, não só da fase.
   const alert = interactive && running && realElapsedSeconds >= ALERT_AT;
   const elapsedMin = interactive && running ? Math.floor(realElapsedSeconds / 60) : 0;
@@ -45,6 +49,7 @@ export default function ClockPill({
           $alert={alert}
         />
       )}
+      {roundFlash && <RoundFlash key={roundFlashKey} data-testid="clock-round-flash" data-round-flash={roundFlashKey} aria-hidden />}
       <Icon size={18} />
       {running && <LiveDot data-testid="clock-live-dot" aria-hidden />}
       {time ? <Time>{time}</Time> : <Unset>Hora a definir</Unset>}
@@ -61,7 +66,6 @@ export default function ClockPill({
         aria-expanded={open}
         data-phase={phase}
         data-alert={alert || undefined}
-        data-escalating={escalating || undefined}
         onClick={onToggle}
       >
         {content}
@@ -72,7 +76,7 @@ export default function ClockPill({
     <PillStatus
       role="status"
       aria-live="off"
-      aria-label="Relógio da história"
+      aria-label={`Relógio da história: ${date && time ? `${time}, ${date}` : "hora a definir"}`}
       title={date && time ? `${date} ${time}` : "Hora a definir"}
       data-phase={phase}
     >
@@ -187,6 +191,33 @@ const PulseRing = styled.span<{ $strong: boolean; $alert: boolean }>`
     [data-phase="strongPulse"] > & {
       opacity: 1;
     }
+  }
+`;
+
+const roundGlow = keyframes`
+  0% { opacity: 0; }
+  30% { opacity: 1; }
+  100% { opacity: 0; }
+`;
+
+const roundStep = keyframes`
+  from { opacity: 1; }
+  to { opacity: 0; }
+`;
+
+/** O piscar do round: um clarão sutil, remontado a cada `roundFlashKey` (sem movimento). */
+const RoundFlash = styled.span`
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: ${alpha(colors.textPrimary, 0.14)};
+  pointer-events: none;
+  opacity: 0;
+  animation: ${roundGlow} 700ms ease-out forwards;
+
+  /* Sem movimento: só um degrau de cor, que apaga de uma vez. */
+  @media (prefers-reduced-motion: reduce) {
+    animation: ${roundStep} 500ms steps(1, end) forwards;
   }
 `;
 

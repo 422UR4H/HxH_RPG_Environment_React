@@ -17,6 +17,7 @@ function view(over: Partial<StoryClockView> = {}): StoryClockView {
     phase: "idle",
     pulseKey: 0,
     alertKey: 0,
+    roundFlashKey: 0,
     ...over,
   };
 }

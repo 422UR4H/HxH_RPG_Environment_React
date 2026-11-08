@@ -16,11 +16,14 @@ export type StoryClockView = {
   pulseKey: number;
   /** Sobe a cada múltiplo de 5 min; o aviso de 5 min se prende nele. */
   alertKey: number;
+  /** O `changeSeq` do último `clock_changed` de round (0 se o último não foi round): a pílula pisca de leve. */
+  roundFlashKey: number;
 };
 
 const PULSE_EVERY = 10;
 const STRONG_EVERY = 60;
-const ALERT_AT = 300;
+/** Tempo real ligado a partir do qual o mestre é alertado (5 min). */
+export const ALERT_AT = 300;
 
 type Baseline = { startedAt: number | null; receivedAt: number; changeSeq: number };
 
@@ -104,5 +107,6 @@ export function useStoryClock(
     phase,
     pulseKey,
     alertKey,
+    roundFlashKey: lastChange?.kind === "round" ? changeSeq : 0,
   };
 }
