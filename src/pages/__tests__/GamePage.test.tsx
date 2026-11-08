@@ -109,7 +109,11 @@ describe("GamePage (rota)", () => {
   describe("finished match", () => {
     function MatchProbe() {
       const location = useLocation();
-      return <div data-testid="match-page" data-nav={useNavigationType()}>{location.pathname}</div>;
+      return (
+        <div data-testid="match-page" data-nav={useNavigationType()} data-state={JSON.stringify(location.state)}>
+          {location.pathname}
+        </div>
+      );
     }
 
     function renderRoutes() {
@@ -131,6 +135,8 @@ describe("GamePage (rota)", () => {
       const page = await screen.findByTestId("match-page");
       expect(page).toHaveTextContent("/campaigns/campaign-1/matches/match-1");
       expect(page).toHaveAttribute("data-nav", "REPLACE");
+      // Mesmo se a mesa rebuscar a partida antes de sair, o aviso de encerramento vai junto.
+      expect(page).toHaveAttribute("data-state", JSON.stringify({ endedByMaster: true }));
       expect(screen.queryByRole("button", { name: /^fila/i })).not.toBeInTheDocument();
       expect(screen.queryByRole("button", { name: /^ação$/i })).not.toBeInTheDocument();
     });

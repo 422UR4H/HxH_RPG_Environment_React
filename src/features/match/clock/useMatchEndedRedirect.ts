@@ -22,8 +22,10 @@ export function useMatchEndedRedirect({
   useEffect(() => {
     if (!ended) return;
     // A partida em cache ainda não tem `gameEndAt`: sem rebuscar, a página mostraria
-    // "EM ANDAMENTO" e o botão de voltar para a mesa.
-    void queryClient.invalidateQueries({ queryKey: ["matchDetails", token, matchId] });
+    // "EM ANDAMENTO" e o botão de voltar para a mesa. Só marca como velha (`refetchType:
+    // "none"`): rebuscar já, com a /game montada, faria a mesa ver `gameEndAt` e trocar a
+    // navegação por um <Navigate> sem o aviso. A página da partida rebusca ao montar.
+    void queryClient.invalidateQueries({ queryKey: ["matchDetails", token, matchId], refetchType: "none" });
     navigate(matchPagePath(campaignId, matchId), { replace: true, state: { endedByMaster: true } });
   }, [ended, token, campaignId, matchId, navigate, queryClient]);
 }

@@ -191,7 +191,8 @@ export default function LobbyPage() {
   if (isPending || enrollmentsPending) return <PageLoading label="Carregando lobby…" />;
   if (!match) return <PageNotFound title="Partida não encontrada" back={matchBack} />;
   // Encerrada: o lobby não existe mais (spec 2026-11-08 §5); `replace` o tira do histórico.
-  if (match.gameEndAt) return <Navigate to={matchPagePath(campaignId, matchId)} replace />;
+  if (match.gameEndAt)
+    return <Navigate to={matchPagePath(campaignId, matchId)} replace state={{ endedByMaster: true }} />;
   if (!hasAccess) {
     return (
       <Navigate to={`/campaigns/${campaignId}/matches/${matchId}`} replace />

@@ -62,7 +62,8 @@ function GameRoute({
   if (!match) return <PageNotFound title="Partida não encontrada" back={matchBack} />;
   // Partida encerrada não volta para a mesa (spec 2026-11-08 §5): cobre quem estava offline e
   // quem digita a URL; `replace` tira a /game do histórico.
-  if (match.gameEndAt) return <Navigate to={matchPagePath(campaignId, matchId)} replace />;
+  if (match.gameEndAt)
+    return <Navigate to={matchPagePath(campaignId, matchId)} replace state={{ endedByMaster: true }} />;
 
   const isMaster = match.masterUuid === user.uuid;
   return isMaster

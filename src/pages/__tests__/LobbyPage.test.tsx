@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { server } from "../../test/server";
 import { renderWithProviders } from "../../test/render";
 import { matchApiFixture, matchAsMasterApi, matchEndedApi } from "../../test/fixtures/match";
-import { Route, Routes, useNavigationType } from "react-router-dom";
+import { Route, Routes, useLocation, useNavigationType } from "react-router-dom";
 import { masterUserFixture, userFixture } from "../../test/fixtures/user";
 import { mapApiFixture, mapWithPiecesApi, pieceFixture } from "../../test/fixtures/map";
 import LobbyPage from "../LobbyPage";
@@ -647,7 +647,7 @@ describe("LobbyPage", () => {
       http.get(`${baseUrl}/matches/:id/enrollments`, () => HttpResponse.json({ enrollments: [] })),
     );
     function MatchProbe() {
-      return <div data-testid="match-page" data-nav={useNavigationType()} />;
+      return <div data-testid="match-page" data-nav={useNavigationType()} data-state={JSON.stringify(useLocation().state)} />;
     }
     renderWithProviders(
       <Routes>
@@ -656,7 +656,9 @@ describe("LobbyPage", () => {
       </Routes>,
       { route: "/campaigns/campaign-1/matches/match-1/lobby", user: masterUserFixture },
     );
-    expect(await screen.findByTestId("match-page")).toHaveAttribute("data-nav", "REPLACE");
+    const page = await screen.findByTestId("match-page");
+    expect(page).toHaveAttribute("data-nav", "REPLACE");
+    expect(page).toHaveAttribute("data-state", JSON.stringify({ endedByMaster: true }));
     expect(MockWebSocket).not.toHaveBeenCalled();
   });
 });
