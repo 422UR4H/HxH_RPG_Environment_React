@@ -29,6 +29,7 @@ import CancelDeclaredDialog from "../features/match/combat/CancelDeclaredDialog"
 import { stackedAfter } from "../features/match/combat/moveChain";
 import DeclaredActions from "../features/match/combat/DeclaredActions";
 import MatchErrorBanner from "../features/match/combat/MatchErrorBanner";
+import ClockNotice from "../features/match/clock/ClockNotice";
 import LostDeclaredNotice from "../features/match/combat/LostDeclaredNotice";
 import MatchSheetPanel from "../features/match/combat/MatchSheetPanel";
 import ReactionPanel from "../features/match/combat/ReactionPanel";
@@ -377,6 +378,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
             />
             <StageNotices>
               <MatchErrorBanner error={state.lastError} onDismiss={combat.dismissError} />
+              <ClockNotice change={state.clock.lastChange} changeSeq={state.clock.changeSeq} />
               <LostDeclaredNotice
                 count={state.lostDeclared.length}
                 restoredCount={state.lostDeclared.filter((d) => d.draftRestored).length}

@@ -5,6 +5,7 @@ import type { GridKind } from "../../../types/tacticalMap";
 import type { TableEvent } from "./combatReducer";
 import type { ResolutionTarget, SceneCategory, WallTurnResult } from "./combatMessages";
 import type { HistoryMasterAction, HistoryMove, HistoryTurn } from "../../../types/matchHistory";
+import { noticeText } from "../clock/clockNotice";
 import type { HistoryRow } from "./historyRows";
 import { SCENE_LABEL } from "./sceneLabels";
 import { avoidedVerb, describeDeclared, describeHistoryAction, formatSlot, interactLabel, withWeapon, ROUND_MODE_LABELS } from "./combatText";
@@ -147,6 +148,9 @@ function rowLine(row: HistoryRow, nameOf: (id: string) => string, gridKind: Grid
       return { icon: "↻", tone: "muted", text: "Fim da rodada" };
     case "round_mode_changed":
       return { icon: "⇄", tone: "muted", text: `Regime: ${ROUND_MODE_LABELS[row.mode]}` };
+    case "clock":
+      // Mudança silenciosa (null) não vira linha com texto vazio.
+      return { icon: "◷", tone: "muted", text: noticeText(row.change) ?? "Relógio da história alterado" };
     case "master_action":
       return { icon: "⚑", text: masterActionText(row.masterAction, nameOf, gridKind) };
     case "action_cancelled": {

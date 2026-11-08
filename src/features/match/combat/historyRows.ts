@@ -1,4 +1,5 @@
 import type { TableEvent } from "./combatReducer";
+import type { ClockChange } from "../clock/clockMessages";
 import type { RoundMode } from "./combatMessages";
 import type { HistoryAction, HistoryMasterAction, HistoryScene, HistoryTurn, MatchHistory } from "../../../types/matchHistory";
 
@@ -9,6 +10,7 @@ export type HistoryRow =
   | (RestBase & { kind: "scene"; scene: HistoryScene })
   | (RestBase & { kind: "round_closed" })
   | (RestBase & { kind: "round_mode_changed"; mode: RoundMode })
+  | (RestBase & { kind: "clock"; change: ClockChange })
   | (RestBase & { kind: "master_action"; masterAction: HistoryMasterAction })
   | (RestBase & { kind: "action_cancelled"; actorId: string; action?: HistoryAction })
   | { source: "live"; key: string; at: number; event: TableEvent };
@@ -39,7 +41,12 @@ export function historyRows(
         const at = Date.parse(ev.createdAt);
         const key = `rest:event:${ev.uuid}`;
         if (ev.kind === "roundModeChanged") rest.push({ source: "rest", kind: "round_mode_changed", key, at, mode: ev.payload.to });
-        else if (ev.kind === "masterAction") rest.push({ source: "rest", kind: "master_action", key, at, masterAction: ev.masterAction });
+        else if (ev.kind === "clockStarted") rest.push({ source: "rest", kind: "clock", key, at, change: { kind: "start", to: ev.payload.at } });
+        else if (ev.kind === "clockAdjusted") rest.push({ source: "rest", kind: "clock", key, at, change: { kind: "adjust", ...ev.payload } });
+        else if (ev.kind === "clockRealTime") {
+          const { from, to, reason } = ev.payload;
+          rest.push({ source: "rest", kind: "clock", key, at, change: { kind: "pause", from, to, reason } });
+        } else if (ev.kind === "masterAction") rest.push({ source: "rest", kind: "master_action", key, at, masterAction: ev.masterAction });
         else if (ev.kind === "actionCancelled") rest.push({ source: "rest", kind: "action_cancelled", key, at, actorId: ev.actorId, action: ev.action });
         // Um `kind` que o servidor venha a acrescentar não tem linha aqui: some, sem quebrar a aba.
       }

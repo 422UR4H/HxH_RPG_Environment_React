@@ -1,5 +1,6 @@
 // 1:1 com `System_X_System/docs/dev/api/match-history.md`. A resposta já vem
 // projetada por leitor — não filtre no cliente.
+import type { PauseReason } from "../features/match/clock/clockMessages";
 import type { ResolutionPayload, RoundMode, SceneCategory } from "../features/match/combat/combatMessages";
 
 export type RollCheck = {
@@ -79,6 +80,9 @@ export type HistoryMasterAction = MasterActionBase & (
 
 /** `rounds[].events[]`: o que aconteceu no round sem ser turno, em ordem de tempo. */
 export type HistoryRoundEvent =
+  | { uuid: string; kind: "clockStarted"; createdAt: string; payload: { at: string } }
+  | { uuid: string; kind: "clockAdjusted"; createdAt: string; payload: { from: string; to: string; deltaSeconds: number } }
+  | { uuid: string; kind: "clockRealTime"; createdAt: string; payload: { from: string; to: string; elapsedSeconds: number; reason: PauseReason } }
   | { uuid: string; kind: "roundModeChanged"; createdAt: string; payload: { from: RoundMode; to: RoundMode } }
   | { uuid: string; kind: "masterAction"; createdAt: string; masterAction: HistoryMasterAction }
   /** `action` só vem para o mestre e o dono do personagem; para os outros a chave não existe. */
@@ -88,6 +92,8 @@ export type HistoryTurn = {
   uuid: string;
   createdAt: string;
   finishedAt?: string;
+  /** Hora da história em que o turno ocorreu. */
+  storyAt?: string;
   action: HistoryAction;
   reactions?: HistoryAction[];
   resolution?: HistoryResolution;
@@ -102,6 +108,9 @@ export type HistoryRound = {
   createdAt: string;
   finishedAt?: string;
   turns: HistoryTurn[];
+  /** Rodada contada / drenada pelo relógio da história. */
+  counted?: boolean;
+  drained?: boolean;
   /** Sempre lista. */
   events: HistoryRoundEvent[];
 };
@@ -110,6 +119,9 @@ export type HistoryScene = {
   uuid: string;
   category: SceneCategory;
   briefDesc: string;
+  briefFinalDescription?: string;
+  storyStartedAt?: string;
+  storyFinishedAt?: string;
   createdAt: string;
   finishedAt?: string;
   rounds: HistoryRound[];
