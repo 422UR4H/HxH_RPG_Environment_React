@@ -72,8 +72,10 @@ export default function ClockPanel({
   const panelRef = useRef<HTMLDivElement>(null);
   const moreId = useId();
   const [moreOpen, setMoreOpen] = useState(false);
-  // Edição direta aberta: com o valor inicial (a hora atual ou +1 dia).
-  const [editing, setEditing] = useState<string | null>(null);
+  // Edição direta aberta. A base é congelada ao abrir (R10): com o tempo real correndo, a
+  // prévia, o "sem mudança" e o aviso de salto longo não andam enquanto o mestre digita.
+  const [editing, setEditing] = useState<{ base: string; initial: string } | null>(null);
+  const openEditor = (base: string, initial: string) => setEditing({ base, initial });
 
   const closeRef = useRef(onClose);
   useEffect(() => { closeRef.current = onClose; });
@@ -81,7 +83,10 @@ export default function ClockPanel({
   // Esc e toque fora fecham; a pílula fica de fora (ela mesma fecha ao alternar).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closeRef.current();
+      if (e.key !== "Escape") return;
+      // Com a confirmação de salto longo aberta, Esc fecha só ela (o editor cuida disso).
+      if (panelRef.current?.querySelector("[data-clock-confirm]")) return;
+      closeRef.current();
     };
     const onDown = (e: PointerEvent) => {
       const t = e.target;
@@ -142,10 +147,10 @@ export default function ClockPanel({
         <>
           <EditTitle>Editar hora</EditTitle>
           <ClockEditor
-            base={now}
+            base={editing.base}
             minimum={limitAt}
             minimumReason={limitReason ? LIMIT_REASON_COPY[limitReason] : undefined}
-            initial={editing}
+            initial={editing.initial}
             submitLabel="Aplicar"
             onSubmit={(storyAt, confirm) => {
               onSet(storyAt, confirm);
@@ -153,11 +158,12 @@ export default function ClockPanel({
             }}
             onCancel={() => setEditing(null)}
           />
+          {running && <EditHint>O tempo real continua correndo; Aplicar fixa a hora digitada.</EditHint>}
         </>
       ) : (
         <>
           <Head>
-            <BigTime type="button" aria-label={`Editar hora (${formatTime(now)})`} onClick={() => setEditing(now)}>
+            <BigTime type="button" aria-label={`Editar hora (${formatTime(now)})`} onClick={() => openEditor(now, now)}>
               {formatTime(now)}
             </BigTime>
             <DateText>{formatDateBR(now)}</DateText>
@@ -186,7 +192,7 @@ export default function ClockPanel({
           <ChipRow>{QUICK.map(deltaButton)}</ChipRow>
 
           <SecondaryRow>
-            <TextButton type="button" onClick={() => setEditing(addSeconds(now, DAY))}>
+            <TextButton type="button" onClick={() => openEditor(now, addSeconds(now, DAY))}>
               Passar dias
             </TextButton>
             <TextButton
@@ -374,6 +380,13 @@ const TextButton = styled.button`
 
 const EditTitle = styled(PanelTitle)`
   text-align: center;
+`;
+
+const EditHint = styled.p`
+  margin: 0;
+  text-align: center;
+  font-size: 12px;
+  color: ${colors.textPlaceholderStrong};
 `;
 
 const Unset = styled.p`

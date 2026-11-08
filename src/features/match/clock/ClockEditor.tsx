@@ -192,6 +192,16 @@ export default function ClockEditor({
   const prevDay = useHoldRepeat(() => setValue((v) => addSeconds(v, -DAY)));
   const nextDay = useHoldRepeat(() => setValue((v) => addSeconds(v, DAY)));
 
+  // Esc fecha a confirmação de salto longo (o ConfirmDialog não trata teclado).
+  useEffect(() => {
+    if (!confirming) return;
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key === "Escape") setConfirming(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [confirming]);
+
   const parts = parseStory(value);
   const delta = diffSeconds(value, base);
   const belowMinimum = minimum !== null && compareStory(value, minimum) < 0;
@@ -263,15 +273,18 @@ export default function ClockEditor({
         </SubmitButton>
       </Buttons>
 
+      {/* Marcada para o painel do relógio: com ela aberta, Esc fecha só a confirmação. */}
       {confirming && (
-        <LongSkipConfirm
-          deltaSeconds={delta}
-          onConfirm={() => {
-            setConfirming(false);
-            onSubmit(value, true);
-          }}
-          onCancel={() => setConfirming(false)}
-        />
+        <span data-clock-confirm="" style={{ display: "contents" }}>
+          <LongSkipConfirm
+            deltaSeconds={delta}
+            onConfirm={() => {
+              setConfirming(false);
+              onSubmit(value, true);
+            }}
+            onCancel={() => setConfirming(false)}
+          />
+        </span>
       )}
     </Editor>
   );

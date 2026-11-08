@@ -1,8 +1,9 @@
-import { createRef } from "react";
-import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { createRef, useRef, useState } from "react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import ClockPanel from "../ClockPanel";
+import { useStoryClock } from "../useStoryClock";
 import type { StoryClockView } from "../useStoryClock";
 import type { RoundMode } from "../../combat/combatMessages";
 
@@ -177,11 +178,120 @@ describe("ClockPanel", () => {
   });
 
   it("moves focus into the panel on open and back to the pill on close", () => {
-    const { unmount } = setup();
+    const { rerender } = render(<Harness open />);
     const panel = screen.getByRole("dialog", { name: "Controles do relógio" });
     expect(panel.contains(document.activeElement)).toBe(true);
-    const pill = screen.getByRole("button", { name: "pill" });
-    unmount();
-    expect(document.activeElement === pill || !document.body.contains(pill)).toBe(true);
+    rerender(<Harness open={false} />);
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "pill" }));
+  });
+
+  it("does not steal focus that already moved outside before closing", () => {
+    const { rerender } = render(<Harness open />);
+    const outside = screen.getByRole("textbox", { name: "elsewhere" });
+    outside.focus();
+    rerender(<Harness open={false} />);
+    expect(document.activeElement).toBe(outside);
+  });
+
+  it("closes only the long-skip confirmation on Esc", async () => {
+    const { onClose, onSet } = setup();
+    await userEvent.click(screen.getByRole("button", { name: "Passar dias" }));
+    await userEvent.click(screen.getByRole("button", { name: "Próximo dia" }));
+    await userEvent.click(screen.getByRole("button", { name: "Próximo dia" }));
+    await userEvent.click(screen.getByRole("button", { name: "Aplicar" }));
+    expect(screen.getByRole("button", { name: "Avançar" })).toBeInTheDocument();
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("button", { name: "Avançar" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Aplicar" })).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(onSet).not.toHaveBeenCalled();
+    await userEvent.keyboard("{Escape}");
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  describe("with real time running", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date(2026, 0, 1, 12, 0, 0));
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    // fireEvent (e não userEvent): com relógio falso, os atrasos do userEvent travariam.
+    it("measures the direct edit against the time it was opened at", () => {
+      const { onSet } = renderRunning();
+      fireEvent.click(screen.getByRole("button", { name: /Editar hora/ }));
+      expect(
+        screen.getByText("O tempo real continua correndo; Aplicar fixa a hora digitada."),
+      ).toBeInTheDocument();
+
+      act(() => vi.advanceTimersByTime(5000));
+      expect(screen.getByText("sem mudança")).toBeInTheDocument();
+      const apply = screen.getByRole("button", { name: "Aplicar" });
+      expect(apply).toHaveAttribute("aria-disabled", "true");
+
+      fireEvent.keyDown(screen.getByRole("textbox", { name: "Horas" }), { key: "ArrowUp" });
+      expect(screen.getByText("+1 h")).toBeInTheDocument();
+      act(() => vi.advanceTimersByTime(5000));
+      expect(screen.getByText("+1 h")).toBeInTheDocument();
+
+      fireEvent.click(apply);
+      expect(onSet).toHaveBeenCalledWith("2000-01-01T09:30:00", false);
+    });
   });
 });
+
+function Harness({ open }: { open: boolean }) {
+  const anchorRef = useRef<HTMLDivElement>(null);
+  return (
+    <div>
+      <div ref={anchorRef}>
+        <button type="button">pill</button>
+      </div>
+      <input aria-label="elsewhere" />
+      {open && (
+        <ClockPanel
+          clock={view()}
+          roundMode="Free"
+          anchorRef={anchorRef}
+          onAdjust={() => {}}
+          onSet={() => {}}
+          onPlay={() => {}}
+          onPause={() => {}}
+          onClose={() => {}}
+        />
+      )}
+    </div>
+  );
+}
+
+function RunningPanel({ onSet }: { onSet: (storyAt: string, confirm: boolean) => void }) {
+  const [receivedAt] = useState(() => Date.now());
+  const clock = useStoryClock(
+    {
+      value: { storyAt: "2000-01-01T08:30:00", running: true, limitAt: null, limitReason: "", seq: 1 },
+      receivedAt,
+      lastChange: null,
+      changeSeq: 0,
+    },
+    { escalate: true },
+  );
+  return (
+    <ClockPanel
+      clock={clock}
+      roundMode="Free"
+      onAdjust={() => {}}
+      onSet={onSet}
+      onPlay={() => {}}
+      onPause={() => {}}
+      onClose={() => {}}
+    />
+  );
+}
+
+function renderRunning() {
+  const onSet = vi.fn();
+  render(<RunningPanel onSet={onSet} />);
+  return { onSet };
+}

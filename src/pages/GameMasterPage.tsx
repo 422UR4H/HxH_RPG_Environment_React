@@ -103,7 +103,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   const game = useGameTable({ token, campaignId, matchId, declaredSource: "queue", actorId });
   const { combat, composer, live, map, nameOf, participants } = game;
   const { state } = combat;
-  // Relógio da história: só o mestre escala a atenção. O painel chega na Task 5; por ora o flag local.
+  // Relógio da história: só o mestre escala a atenção; a pílula abre e fecha o painel.
   const clock = useStoryClock(state.clock, { escalate: true });
   const [clockOpen, setClockOpen] = useState(false);
   const clockAnchorRef = useRef<HTMLDivElement | null>(null);
