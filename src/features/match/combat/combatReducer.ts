@@ -470,6 +470,8 @@ export function combatReducer(state: CombatState, action: CombatAction): CombatS
       return {
         ...state,
         scene: action.payload,
+        // A cena nova abre um round novo, sempre no regime livre (o servidor faz o mesmo).
+        roundMode: "Free",
         openReactions: [],
         ownReactions: [],
         lastSettled: null,

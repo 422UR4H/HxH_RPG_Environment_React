@@ -185,6 +185,14 @@ describe("combatReducer — turno aberto e fila", () => {
     expect(s.queue).toHaveLength(1);
     expect(s.openTurn?.turnId).toBe("t1");
   });
+
+  it("scene_changed resets a Race round to Free", () => {
+    const s = run([
+      { type: "round_mode_changed", payload: { mode: "Race" } },
+      { type: "scene_changed", payload: { sceneId: "s2", category: "roleplay", briefInitialDescription: "" } },
+    ]);
+    expect(s.roundMode).toBe("Free");
+  });
 });
 
 describe("combatReducer — histórico", () => {
