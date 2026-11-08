@@ -15,6 +15,8 @@ export function parseStory(s: string): StoryParts {
 }
 
 const pad = (n: number, w = 2) => String(n).padStart(w, "0");
+/** Dois dígitos com zero à esquerda (horas, minutos, segundos). */
+export const pad2 = (n: number) => pad(n);
 
 export function formatStory(p: StoryParts): string {
   return `${pad(p.y, 4)}-${pad(p.mo)}-${pad(p.d)}T${pad(p.h)}:${pad(p.mi)}:${pad(p.s)}`;

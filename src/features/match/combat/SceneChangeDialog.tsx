@@ -2,7 +2,7 @@ import { useState } from "react";
 import styled from "styled-components";
 import { colors } from "../../../styles/tokens";
 import {
-  Buttons, CancelButton, ConfirmButton, Dialog, DialogHint, DialogTitle, Overlay,
+  Buttons, CancelButton, ConfirmButton, DialogHint, DialogTitle, ErrorText, Overlay, ScrollDialog,
 } from "./dialogStyles";
 import { ChoiceLabel, Toggle, Toggles } from "./choiceStyles";
 import type { ChangeScenePayload, SceneCategory } from "./combatMessages";
@@ -25,6 +25,7 @@ export default function SceneChangeDialog({
   currentCategory,
   summary,
   summaryFailed,
+  summaryError = null,
   nameOf,
   error,
   onConfirm,
@@ -37,6 +38,8 @@ export default function SceneChangeDialog({
   summary: CombatSummary | null;
   /** O resumo foi recusado: cai no layout de roleplay. */
   summaryFailed: boolean;
+  /** Por que o resumo não veio (ex.: sem conexão). */
+  summaryError?: string | null;
   nameOf: (characterId: string) => string;
   /** A recusa do `change_scene` desta abertura. */
   error: WsError | null;
@@ -44,7 +47,9 @@ export default function SceneChangeDialog({
   onConfirm: (p: ChangeScenePayload) => boolean | void;
   onCancel: () => void;
 }) {
-  const [category, setCategory] = useState<SceneCategory>("battle");
+  // Saindo de um combate, o normal é a cena seguinte não ser outra batalha (dono).
+  const defaultCategory: SceneCategory = currentCategory === "battle" ? "roleplay" : "battle";
+  const [category, setCategory] = useState<SceneCategory>(defaultCategory);
   const [description, setDescription] = useState("");
   const [finalDescription, setFinalDescription] = useState("");
   // Enviado, esperando o servidor: o diálogo fica aberto até a cena trocar ou chegar a recusa.
@@ -62,7 +67,7 @@ export default function SceneChangeDialog({
   if (open !== wasOpen) {
     setWasOpen(open);
     if (open) {
-      setCategory("battle");
+      setCategory(defaultCategory);
       setDescription("");
       setFinalDescription("");
       setPending(false);
@@ -101,6 +106,7 @@ export default function SceneChangeDialog({
 
         <Section aria-labelledby="scene-current">
           <SectionTitle id="scene-current">Cena atual</SectionTitle>
+          {summaryError && <ErrorText role="alert">{summaryError}</ErrorText>}
           {battle && (loading
             ? <Loading role="status">Calculando o combate…</Loading>
             : summary && <CombatSummaryBlock summary={summary} nameOf={nameOf} />)}
@@ -173,17 +179,6 @@ export default function SceneChangeDialog({
   );
 }
 
-// Em celular o combate com hiatos e o editor não cabem: rola por dentro, sem sair da tela.
-const ScrollDialog = styled(Dialog)`
-  max-height: calc(100dvh - 32px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-
-  @media (max-width: 400px) {
-    padding: 20px 16px;
-    width: calc(100% - 24px);
-  }
-`;
 
 const Section = styled.section`
   display: flex;
@@ -222,10 +217,4 @@ const DescInput = styled.input`
   font-size: 14px;
   min-height: 40px;
   padding: 0 10px;
-`;
-
-const ErrorText = styled.p`
-  margin: 0;
-  font-size: 13px;
-  color: ${colors.feedbackDanger};
 `;

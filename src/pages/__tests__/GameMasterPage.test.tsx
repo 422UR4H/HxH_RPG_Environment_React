@@ -1017,6 +1017,18 @@ describe("GameMasterPage", () => {
     expect(ws.sent("change_scene")).toEqual([{ category: "roleplay", briefInitialDescription: "Taverna" }]);
   });
 
+  it("shows a change_scene refusal only inside the open scene dialog, not in the stage banner", async () => {
+    renderMasterPage();
+    const ws = await waitForSocket();
+    openWithServerBoard(ws);
+
+    await user.click(screen.getAllByRole("button", { name: "Nova cena" })[0]);
+    await user.click(screen.getByRole("button", { name: "Trocar de cena" }));
+    act(() => ws.emit("error", { code: "invalid_payload", message: "bad", sentType: "change_scene" }));
+    expect(screen.getAllByText(/Não foi possível trocar de cena/)).toHaveLength(1);
+    expect(within(screen.getByRole("dialog")).getByRole("alert")).toBeInTheDocument();
+  });
+
   // D1 (deferred do Task 7): o diálogo fica sempre montado, então category/description
   // sobreviviam ao Cancelar — reabrir mostrava o que foi digitado da vez anterior.
   it("D1: cancelar e reabrir reseta a categoria e a descrição para os padrões", async () => {

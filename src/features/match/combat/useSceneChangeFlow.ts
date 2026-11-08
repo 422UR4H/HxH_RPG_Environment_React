@@ -21,7 +21,11 @@ type Snapshot = {
   sceneId: string | undefined;
   /** O resumo foi recusado (not_battle_scene): fica no layout de roleplay até fechar. */
   summaryFailed: boolean;
+  /** O pedido do resumo nem saiu (socket fechado). */
+  summaryOffline: boolean;
 };
+
+const SUMMARY_OFFLINE = "Sem conexão — não foi possível calcular o combate.";
 
 export function useSceneChangeFlow({
   scene,
@@ -49,11 +53,20 @@ export function useSceneChangeFlow({
     currentCategory,
     summary,
     summaryFailed,
+    /** Por que o resumo não veio, quando há o que dizer (sem isso o diálogo cai no roleplay calado). */
+    summaryError: opened?.summaryOffline ? SUMMARY_OFFLINE : null,
     /** Só a recusa do `change_scene` desta abertura. */
     error: freshError?.sentType === "change_scene" ? freshError : null,
     openDialog: () => {
-      setOpened({ summary: combatSummary, error: lastError, sceneId: scene?.sceneId, summaryFailed: false });
-      if (currentCategory === "battle") requestCombatSummary();
+      // Pedido que não saiu nunca terá resposta: sem isso o diálogo ficaria em "Calculando…".
+      const offline = currentCategory === "battle" && !requestCombatSummary();
+      setOpened({
+        summary: combatSummary,
+        error: lastError,
+        sceneId: scene?.sceneId,
+        summaryFailed: offline,
+        summaryOffline: offline,
+      });
     },
     closeDialog: () => setOpened(null),
     confirm: (p: ChangeScenePayload) => changeScene(p),

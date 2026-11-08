@@ -112,7 +112,10 @@ describe("EndMatchDialog", () => {
 
     const error: WsError = { code: "clock_below_limit", message: "below", sentType: "end_match", at: 1 };
     rerender(<EndMatchDialog {...props} error={error} />);
-    expect(screen.getByRole("alert")).toHaveTextContent("Não dá para voltar antes do limite do relógio.");
+    // O mínimo do front não sabe do +1 s do round em andamento: a recusa explica isso.
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "A hora do fim não pode ficar antes do mínimo (o round em andamento soma 1 s).",
+    );
     await userEvent.click(screen.getByRole("button", { name: "Encerrar partida" }));
     expect(onConfirm).toHaveBeenCalledTimes(2);
   });

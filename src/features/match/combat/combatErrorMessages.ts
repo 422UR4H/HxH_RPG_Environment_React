@@ -27,6 +27,8 @@ const byCode: Record<string, string> = {
   match_already_ended: "A partida já foi encerrada.",
 };
 
+const END_BELOW_LIMIT = "A hora do fim não pode ficar antes do mínimo (o round em andamento soma 1 s).";
+
 const bySentType: Record<string, string> = {
   enqueue_action: "Não foi possível declarar a ação",
   open_next_action: "Não foi possível abrir o próximo turno",
@@ -58,7 +60,16 @@ const byGameMessage: Record<string, string> = {
   "validation error: no turn opened in this round yet": "Nenhum turno aconteceu nesta rodada ainda — não há o que encerrar.",
 };
 
+// Recusas cujo sentido muda com o envio: o mesmo código, frase própria (sem prefixo — o diálogo
+// já diz o que se tentou).
+const byCodeAndSentType: Record<string, string> = {
+  "clock_below_limit:end_match": END_BELOW_LIMIT,
+  "clock_below_limit:change_scene": END_BELOW_LIMIT,
+};
+
 export function combatErrorText(code: string, message: string, sentType?: string): string {
+  const specific = sentType ? byCodeAndSentType[`${code}:${sentType}`] : undefined;
+  if (specific) return specific;
   if (code === "game_error" && byGameMessage[message]) return byGameMessage[message];
   const base = code === "game_error" ? message : (byCode[code] ?? message ?? "Erro do servidor.");
   const prefix = sentType ? bySentType[sentType] : undefined;

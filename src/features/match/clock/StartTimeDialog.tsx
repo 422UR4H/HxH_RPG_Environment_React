@@ -7,17 +7,16 @@ import styled from "styled-components";
 import { colors } from "../../../styles/tokens";
 import { combatErrorText } from "../combat/combatErrorMessages";
 import type { WsError } from "../combat/combatErrorMessages";
-import { AccentConfirmButton, Buttons, Dialog, DialogHint, DialogTitle, Overlay } from "../combat/dialogStyles";
+import { AccentConfirmButton, Buttons, Dialog, DialogHint, DialogTitle, ErrorText, Overlay } from "../combat/dialogStyles";
 import { TimeFields } from "./ClockEditor";
 import type { TimeValue } from "./ClockEditor";
-import { formatDateBR } from "./storyTime";
-
-const pad2 = (n: number) => String(n).padStart(2, "0");
+import { formatDateBR, pad2 } from "./storyTime";
 
 type Props = {
   /** Data fixa da história (a do início da partida); só o dia importa. */
   storyStartAt?: string;
-  onStart: (time: string) => void;
+  /** `false`: o envio nem saiu (socket fechado) — o botão não fica em "Começando…". */
+  onStart: (time: string) => boolean | void;
   error: WsError | null;
 };
 
@@ -37,12 +36,16 @@ export default function StartTimeDialog({ storyStartAt, onStart, error }: Props)
   useEffect(() => {
     ref.current?.querySelector<HTMLInputElement>('input[aria-label="Horas"]')?.focus();
   }, []);
+  // O botão "+ segundos" some ao ser usado: o foco vai para o campo que ele abriu, não para o body.
+  useEffect(() => {
+    if (showSeconds) ref.current?.querySelector<HTMLInputElement>('input[aria-label="Segundos"]')?.focus();
+  }, [showSeconds]);
 
   const date = storyStartAt ? formatDateBR(`${storyStartAt.slice(0, 10)}T00:00:00`) : null;
   const submit = () => {
     if (pending) return;
-    setPending(true);
-    onStart(`${pad2(time.h)}:${pad2(time.mi)}:${showSeconds ? pad2(time.s) : "00"}`);
+    const sent = onStart(`${pad2(time.h)}:${pad2(time.mi)}:${showSeconds ? pad2(time.s) : "00"}`);
+    setPending(sent !== false);
   };
 
   // aria-modal sem saída: Tab/Shift+Tab giram dentro do diálogo.
@@ -92,10 +95,4 @@ const SecondsToggle = styled.button`
   font-size: 13px;
   text-decoration: underline;
   cursor: pointer;
-`;
-
-const ErrorText = styled.p`
-  margin: 0;
-  font-size: 13px;
-  color: ${colors.feedbackDanger};
 `;

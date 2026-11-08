@@ -9,7 +9,6 @@ interface TimeOfDayFieldProps {
   /** `"HH:MM"` ou `""`; preenchido pela metade fica `"08:"` / `":30"`. */
   value: string;
   onChange: (value: string) => void;
-  disabled?: boolean;
   "aria-describedby"?: string;
 }
 
@@ -20,7 +19,6 @@ export default function TimeOfDayField({
   id,
   value,
   onChange,
-  disabled,
   "aria-describedby": describedBy,
 }: TimeOfDayFieldProps) {
   const { hour, minute } = splitTimeOfDay(value);
@@ -36,7 +34,6 @@ export default function TimeOfDayField({
         placeholder="HH"
         maxLength={2}
         value={hour}
-        disabled={disabled}
         aria-describedby={describedBy}
         onChange={(e) => onChange(joinTimeOfDay(onlyDigits(e.target.value), minute))}
         onBlur={() => onChange(joinTimeOfDay(pad(hour), minute))}
@@ -49,7 +46,6 @@ export default function TimeOfDayField({
         placeholder="MM"
         maxLength={2}
         value={minute}
-        disabled={disabled}
         aria-describedby={describedBy}
         onChange={(e) => onChange(joinTimeOfDay(hour, onlyDigits(e.target.value)))}
         onBlur={() => onChange(joinTimeOfDay(hour, pad(minute)))}

@@ -9,7 +9,7 @@ import { colors } from "../../../styles/tokens";
 import { AccentConfirmButton, Buttons, CancelButton } from "../combat/dialogStyles";
 import LongSkipConfirm from "./LongSkipConfirm";
 import {
-  addSeconds, compareStory, diffSeconds, formatDateBR, formatDelta, formatStory, formatTime, parseStory,
+  addSeconds, compareStory, diffSeconds, formatDateBR, formatDelta, formatStory, formatTime, pad2, parseStory,
 } from "./storyTime";
 
 /** Acima disto (2 dias) para frente, o mestre confirma antes: custa dias de treino. */
@@ -28,7 +28,6 @@ const FIELDS: { key: Field; label: string; max: number; unit: number }[] = [
   { key: "s", label: "Segundos", max: 59, unit: 1 },
 ];
 
-const pad2 = (n: number) => String(n).padStart(2, "0");
 const clamp = (n: number, max: number) => Math.min(max, Math.max(0, n));
 
 /**

@@ -71,12 +71,36 @@ describe("StartTimeDialog", () => {
     expect(onStart).toHaveBeenCalledTimes(2);
   });
 
-  it("traps Tab inside the dialog", async () => {
-    const { user } = setup();
+  it("traps Tab inside the dialog (an element outside is never reached)", async () => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <button type="button">fora antes</button>
+        <StartTimeDialog storyStartAt="2000-01-01" onStart={vi.fn()} error={null} />
+        <button type="button">fora depois</button>
+      </>,
+    );
     screen.getByRole("button", { name: "Começar" }).focus();
     await user.tab();
     expect(screen.getByLabelText("Horas")).toHaveFocus();
     await user.tab({ shift: true });
     expect(screen.getByRole("button", { name: "Começar" })).toHaveFocus();
+    for (let i = 0; i < 6; i++) {
+      await user.tab();
+      expect(screen.getByRole("button", { name: "fora depois" })).not.toHaveFocus();
+      expect(screen.getByRole("button", { name: "fora antes" })).not.toHaveFocus();
+    }
+  });
+
+  it("moves focus to the seconds field when seconds are shown", async () => {
+    const { user } = setup();
+    await user.click(screen.getByRole("button", { name: "+ segundos" }));
+    expect(screen.getByLabelText("Segundos")).toHaveFocus();
+  });
+
+  it("does not stick on 'Começando…' when the socket is closed (onStart returns false)", async () => {
+    const { user } = setup({ onStart: vi.fn(() => false) });
+    await user.click(screen.getByRole("button", { name: "Começar" }));
+    expect(screen.getByRole("button", { name: "Começar" })).not.toHaveAttribute("aria-disabled", "true");
   });
 });

@@ -65,6 +65,14 @@ describe("useSceneChangeFlow", () => {
     expect(result.current.summaryFailed).toBe(true);
   });
 
+  it("falls back with a no-connection message when the summary request does not leave the socket", () => {
+    const { result, requestCombatSummary } = setup();
+    requestCombatSummary.mockReturnValue(false);
+    act(() => result.current.openDialog());
+    expect(result.current.summaryFailed).toBe(true);
+    expect(result.current.summaryError).toBe("Sem conexão — não foi possível calcular o combate.");
+  });
+
   it("passes only change_scene errors raised after opening", () => {
     const old = err("change_scene");
     const { result, rerender, base } = setup({ lastError: old });

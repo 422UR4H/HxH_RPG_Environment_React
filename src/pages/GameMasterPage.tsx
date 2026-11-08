@@ -886,7 +886,9 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                   // O resumo do combate só é pedido pelo diálogo, que cai no layout de roleplay.
                   state.lastError?.sentType === "get_combat_summary" ||
                   // A recusa do encerrar aparece no próprio diálogo.
-                  state.lastError?.sentType === "end_match"
+                  state.lastError?.sentType === "end_match" ||
+                  // A recusa do trocar de cena também, enquanto o diálogo está aberto.
+                  (sceneFlow.error !== null && state.lastError === sceneFlow.error)
                     ? null
                     : state.lastError
                 }
@@ -1030,6 +1032,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
         currentCategory={sceneFlow.currentCategory}
         summary={sceneFlow.summary}
         summaryFailed={sceneFlow.summaryFailed}
+        summaryError={sceneFlow.summaryError}
         nameOf={nameOf}
         error={sceneFlow.error}
         onCancel={sceneFlow.closeDialog}

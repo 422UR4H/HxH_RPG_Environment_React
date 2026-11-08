@@ -163,10 +163,25 @@ describe("SceneChangeDialog", () => {
     const { user, rerender, onConfirm } = setup();
     await user.click(screen.getByRole("button", { name: "Trocar de cena" }));
     rerender({ error });
-    expect(screen.getByRole("alert")).toHaveTextContent("Não dá para voltar antes do limite do relógio.");
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "A hora do fim não pode ficar antes do mínimo (o round em andamento soma 1 s).",
+    );
     await user.click(screen.getByRole("button", { name: "Trocar de cena" }));
     expect(onConfirm).toHaveBeenCalledTimes(2);
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("defaults the new scene to Roleplay when a battle closes, Batalha otherwise", () => {
+    const { rerender } = setup({ currentCategory: "battle", summary: SUMMARY });
+    expect(screen.getByRole("radio", { name: "Roleplay" })).toHaveAttribute("aria-checked", "true");
+    rerender({ open: false });
+    rerender({ open: true, currentCategory: "roleplay", summary: null });
+    expect(screen.getByRole("radio", { name: "Batalha" })).toHaveAttribute("aria-checked", "true");
+  });
+
+  it("shows why the summary is missing", () => {
+    setup({ currentCategory: "battle", summaryFailed: true, summaryError: "Sem conexão — não foi possível calcular o combate." });
+    expect(screen.getByRole("alert")).toHaveTextContent("Sem conexão — não foi possível calcular o combate.");
   });
 
   it("allows a retry when the send did not leave the socket", async () => {

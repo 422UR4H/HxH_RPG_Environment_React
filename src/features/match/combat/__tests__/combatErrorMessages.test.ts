@@ -51,3 +51,16 @@ describe("combatErrorText: story clock", () => {
     expect(combatErrorText(code, "")).toBe(text);
   });
 });
+
+describe("combatErrorText: clock_below_limit when ending", () => {
+  it.each(["end_match", "change_scene"])("%s explains the running round's extra second", (sentType) => {
+    expect(combatErrorText("clock_below_limit", "below", sentType)).toBe(
+      "A hora do fim não pode ficar antes do mínimo (o round em andamento soma 1 s).",
+    );
+  });
+  it("other sends keep the generic copy", () => {
+    expect(combatErrorText("clock_below_limit", "", "set_clock")).toBe(
+      "Não foi possível mudar o relógio: Não dá para voltar antes do limite do relógio.",
+    );
+  });
+});

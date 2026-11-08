@@ -4,12 +4,11 @@
 // para a página da partida; uma recusa aparece aqui dentro.
 import { useState } from "react";
 import styled from "styled-components";
-import { colors } from "../../../styles/tokens";
 import ConfirmDialog from "../../../components/molecules/ConfirmDialog";
 import { ChoiceLabel } from "../combat/choiceStyles";
 import { combatErrorText } from "../combat/combatErrorMessages";
 import type { WsError } from "../combat/combatErrorMessages";
-import { Dialog, DialogHint, DialogTitle, Overlay } from "../combat/dialogStyles";
+import { DialogHint, DialogTitle, ErrorText, Overlay, ScrollDialog } from "../combat/dialogStyles";
 import ClockEditor from "./ClockEditor";
 import FinalDescriptionField from "./FinalDescriptionField";
 import type { EndMatchPayload, LimitReason } from "./clockMessages";
@@ -110,7 +109,7 @@ export default function EndMatchDialog({
         <Field>
           <ChoiceLabel>Hora exata do fim na história</ChoiceLabel>
           {/* O mínimo é o limite do relógio; o +1 s de um round que conta o front não sabe —
-              a recusa clock_below_limit do servidor aparece acima. */}
+              a recusa clock_below_limit do servidor aparece acima, com frase própria. */}
           <ClockEditor
             base={editing.base}
             minimum={editing.minimum}
@@ -126,26 +125,8 @@ export default function EndMatchDialog({
   );
 }
 
-// Em celular o editor e o resumo não cabem: rola por dentro, sem sair da tela.
-const ScrollDialog = styled(Dialog)`
-  max-height: calc(100dvh - 32px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-
-  @media (max-width: 400px) {
-    padding: 20px 16px;
-    width: calc(100% - 24px);
-  }
-`;
-
 const Field = styled.div`
   display: flex;
   flex-direction: column;
   gap: 6px;
-`;
-
-const ErrorText = styled.p`
-  margin: 0;
-  font-size: 13px;
-  color: ${colors.feedbackDanger};
 `;
