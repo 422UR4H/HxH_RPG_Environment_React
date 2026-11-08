@@ -12,12 +12,14 @@ import FormRow from "../components/molecules/FormRow";
 import FormCheckbox from "../components/molecules/FormCheckbox";
 import FormInput from "../components/ions/FormInput";
 import DateField from "../components/molecules/DateField";
+import TimeOfDayField from "../components/molecules/TimeOfDayField";
 import FormTextArea from "../components/ions/FormTextArea";
 import UpcomingRulesSidebar from "../components/organisms/UpcomingRulesSidebar";
 import { PageLoading, PageError, PageNotFound } from "../components/templates/PageState";
 import { isApiError } from "../services/httpClient";
 import { getApiErrorDetail } from "../utils/apiError";
 import { todayLocalISODate, toLocalDateTimeInputValue } from "../utils/date";
+import { normalizeTimeOfDay, timeOfDayMessage } from "../utils/timeOfDay";
 import { incompleteInputMessage, missingRequiredMessage } from "../utils/requiredFields";
 
 type MatchFormData = {
@@ -27,6 +29,7 @@ type MatchFormData = {
   isPublic: boolean;
   gameScheduledAt: string;
   storyStartAt: string;
+  storyStartTime: string;
 };
 
 export default function CreateMatchPage() {
@@ -44,6 +47,7 @@ export default function CreateMatchPage() {
       new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000),
     ),
     storyStartAt: todayLocalISODate(),
+    storyStartTime: "",
   });
 
   const {
@@ -89,9 +93,16 @@ export default function CreateMatchPage() {
       setError(getMatchValidationMessage(outsideCampaign) ?? null);
       return;
     }
+    const timeError = timeOfDayMessage(form.storyStartTime);
+    if (timeError) {
+      setError(timeError);
+      return;
+    }
     setError(null);
+    const { storyStartTime, ...rest } = form;
     const matchData = {
-      ...form,
+      ...rest,
+      ...(storyStartTime ? { storyStartTime: normalizeTimeOfDay(storyStartTime) } : {}),
       gameScheduledAt: formatDateToISOString(form.gameScheduledAt),
       campaignUuid: campaignId,
     };
@@ -205,6 +216,19 @@ export default function CreateMatchPage() {
             min={campaign?.storyStartAt}
             max={campaign?.storyEndAt ?? undefined}
             required
+          />
+        </FormField>
+
+        <FormField
+          label="Hora na história"
+          htmlFor="storyStartTime"
+          helpText="Se ficar vazio, você informa a hora quando a partida começar."
+          optional
+        >
+          <TimeOfDayField
+            id="storyStartTime"
+            value={form.storyStartTime}
+            onChange={(value) => setForm((prev) => ({ ...prev, storyStartTime: value }))}
           />
         </FormField>
       </FormRow>

@@ -175,4 +175,63 @@ describe("CreateMatchPage", () => {
     await u.click(await screen.findByText(/Cancelar/i));
     expect(mockNavigate).toHaveBeenCalledWith(-1);
   });
+
+  describe("story start time", () => {
+    function capturePost() {
+      const captured: { body?: Record<string, unknown> } = {};
+      server.use(
+        http.post(`${baseUrl}/matches`, async ({ request }) => {
+          captured.body = (await request.json()) as Record<string, unknown>;
+          return HttpResponse.json({ match: { uuid: "m" } }, { status: 201 });
+        }),
+      );
+      return captured;
+    }
+
+    async function fillBase(u: ReturnType<typeof userEvent.setup>) {
+      await u.type(await screen.findByLabelText(/Título da Partida/i), "Nova Partida");
+      await u.type(screen.getByLabelText(/Descrição Breve/i), "Brief partida");
+    }
+
+    it("renders the optional field with its help text", async () => {
+      renderPage();
+      expect(await screen.findByLabelText("Hora na história (opcional)")).toBeInTheDocument();
+      expect(
+        screen.getByText("Se ficar vazio, você informa a hora quando a partida começar."),
+      ).toBeInTheDocument();
+    });
+
+    it("omits storyStartTime when left empty", async () => {
+      const captured = capturePost();
+      renderPage();
+      const u = userEvent.setup();
+      await fillBase(u);
+      await u.click(screen.getByRole("button", { name: /Criar Partida/i }));
+      await waitFor(() => expect(captured.body).toBeDefined());
+      expect(captured.body).not.toHaveProperty("storyStartTime");
+    });
+
+    it("sends storyStartTime when filled", async () => {
+      const captured = capturePost();
+      renderPage();
+      const u = userEvent.setup();
+      await fillBase(u);
+      await u.type(screen.getByLabelText("Hora"), "21");
+      await u.type(screen.getByLabelText("Minuto"), "30");
+      await u.click(screen.getByRole("button", { name: /Criar Partida/i }));
+      await waitFor(() => expect(captured.body).toBeDefined());
+      expect(captured.body).toMatchObject({ storyStartTime: "21:30" });
+    });
+
+    it("blocks submit when only the hour is filled", async () => {
+      const captured = capturePost();
+      renderPage();
+      const u = userEvent.setup();
+      await fillBase(u);
+      await u.type(screen.getByLabelText("Hora"), "21");
+      await u.click(screen.getByRole("button", { name: /Criar Partida/i }));
+      expect(await screen.findByText("Preencha hora e minuto.")).toBeInTheDocument();
+      expect(captured.body).toBeUndefined();
+    });
+  });
 });
