@@ -3,7 +3,8 @@
 // seu mínimo e seu valor inicial. Nada de calendário (dono): a data anda de dia em dia e a
 // hora é digitada ou empurrada pelas setas. Toda conta passa por storyTime (tempo ingênuo).
 import { useEffect, useId, useRef, useState } from "react";
-import type { ChangeEvent, KeyboardEvent, PointerEvent } from "react";
+import type { ChangeEvent, KeyboardEvent, MouseEvent, PointerEvent } from "react";
+import { createPortal } from "react-dom";
 import styled from "styled-components";
 import { colors } from "../../../styles/tokens";
 import { AccentConfirmButton, Buttons, CancelButton } from "../combat/dialogStyles";
@@ -125,8 +126,6 @@ function useHoldRepeat(action: () => void) {
   const actionRef = useRef(action);
   useEffect(() => { actionRef.current = action; });
   const timers = useRef<{ delay?: ReturnType<typeof setTimeout>; repeat?: ReturnType<typeof setInterval> }>({});
-  // O clique que vem depois do ponteiro já foi contado no pointerdown.
-  const fromPointer = useRef(false);
 
   const stop = () => {
     clearTimeout(timers.current.delay);
@@ -138,7 +137,6 @@ function useHoldRepeat(action: () => void) {
   return {
     onPointerDown: (e: PointerEvent<HTMLButtonElement>) => {
       if (e.button !== 0) return;
-      fromPointer.current = true;
       stop();
       actionRef.current();
       timers.current.delay = setTimeout(() => {
@@ -151,12 +149,10 @@ function useHoldRepeat(action: () => void) {
     onPointerCancel: stop,
     // Segurar o dedo no Android abriria o menu de contexto.
     onContextMenu: (e: { preventDefault: () => void }) => e.preventDefault(),
-    onClick: () => {
-      if (fromPointer.current) {
-        fromPointer.current = false;
-        return;
-      }
-      actionRef.current();
+    // O clique do ponteiro já foi contado no pointerdown; o do teclado (Enter/Espaço) chega com
+    // `detail === 0` e conta aqui — mesmo depois de um pointerdown que saiu sem clicar.
+    onClick: (e: MouseEvent<HTMLButtonElement>) => {
+      if (e.detail === 0) actionRef.current();
     },
   };
 }
@@ -275,8 +271,10 @@ export default function ClockEditor({
         </SubmitButton>
       </Buttons>
 
-      {/* Marcada para o painel do relógio: com ela aberta, Esc fecha só a confirmação. */}
-      {confirming && (
+      {/* No body (portal): dentro do painel ela ficaria presa no empilhamento dele, embaixo dos
+          véus e da gaveta. Marcada para o painel do relógio: com ela aberta, Esc fecha só a
+          confirmação e um toque nela não conta como "fora". */}
+      {confirming && createPortal(
         <span data-clock-confirm="" style={{ display: "contents" }}>
           <LongSkipConfirm
             deltaSeconds={delta}
@@ -286,7 +284,8 @@ export default function ClockEditor({
             }}
             onCancel={() => setConfirming(false)}
           />
-        </span>
+        </span>,
+        document.body,
       )}
     </Editor>
   );

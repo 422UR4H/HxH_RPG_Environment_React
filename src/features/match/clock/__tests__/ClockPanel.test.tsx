@@ -153,14 +153,26 @@ describe("ClockPanel", () => {
   });
 
   it("sends the long-skip confirmation after the master confirms", async () => {
-    const { onSet } = setup();
+    const { onSet, onClose } = setup();
     await userEvent.click(screen.getByRole("button", { name: "Passar dias" }));
     await userEvent.click(screen.getByRole("button", { name: "Próximo dia" }));
     await userEvent.click(screen.getByRole("button", { name: "Próximo dia" }));
     await userEvent.click(screen.getByRole("button", { name: "Aplicar" }));
     expect(onSet).not.toHaveBeenCalled();
+    // A confirmação mora no body (fora do empilhamento do painel)…
+    const confirm = document.querySelector("[data-clock-confirm]");
+    expect(confirm?.parentElement).toBe(document.body);
+    // …e tocar nela não conta como "fora": o painel não fecha antes do Avançar.
     await userEvent.click(screen.getByRole("button", { name: "Avançar" }));
+    expect(onClose).not.toHaveBeenCalled();
     expect(onSet).toHaveBeenCalledWith("2000-01-04T08:30:00", true);
+  });
+
+  it("sits above the stage notices (50) and below the scrims (55)", () => {
+    setup();
+    const css = Array.from(document.querySelectorAll("style")).map((s) => s.textContent ?? "").join("\n");
+    const cls = screen.getByRole("dialog", { name: "Controles do relógio" }).className.split(" ").pop();
+    expect(new RegExp(`\\.${cls}\\{[^}]*z-index:52;`).test(css.replace(/\s+/g, ""))).toBe(true);
   });
 
   it("closes on Esc", async () => {

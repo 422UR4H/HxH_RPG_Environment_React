@@ -62,9 +62,23 @@ describe("ClockEditor", () => {
     act(() => vi.advanceTimersByTime(240));
     expect(screen.getByText("04/02/2000")).toBeInTheDocument();
     fireEvent.pointerUp(next);
-    fireEvent.click(next);
+    // O clique do ponteiro (detail ≥ 1) já foi contado no pointerdown.
+    fireEvent.click(next, { detail: 1 });
     act(() => vi.advanceTimersByTime(1000));
     expect(screen.getByText("04/02/2000")).toBeInTheDocument();
+  });
+
+  it("a keyboard click steps once even after a pointerdown that left without clicking", async () => {
+    const { user } = setup();
+    const next = screen.getByRole("button", { name: "Próximo dia" });
+    fireEvent.pointerDown(next);
+    fireEvent.pointerLeave(next);
+    expect(screen.getByText("01/02/2000")).toBeInTheDocument();
+    next.focus();
+    await user.keyboard("{Enter}");
+    expect(screen.getByText("02/02/2000")).toBeInTheDocument();
+    await user.keyboard(" ");
+    expect(screen.getByText("03/02/2000")).toBeInTheDocument();
   });
 
   it("typing 25 in hours clamps to 23 and moves to minutes", async () => {

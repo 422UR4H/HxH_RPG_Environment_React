@@ -31,6 +31,8 @@ export const RAIL_BAR_HEIGHT = 56;
 // Personagens quando ela está aberta em telas estreitas.
 // Os véus (painel e gaveta, `SCRIM_Z_INDEX`) ficam entre os dois: acima dos avisos do palco
 // (50) — o toque fora de uma folha aberta não pode cair num aviso — e abaixo da gaveta (60).
+// O painel do relógio do mestre (`CLOCK_PANEL_Z_INDEX`, 52, em clockLayout.ts) fica entre os
+// avisos (50) e os véus (55): aberto, nenhum aviso o cobre; a pílula fica em 40.
 const ASIDE_DRAWER_Z_INDEX = 60;
 const SCRIM_Z_INDEX = 55;
 

@@ -18,3 +18,9 @@ export const CLOCK_PILL_OFFSET = CLOCK_PILL_TOP + CLOCK_PILL_HEIGHT;
  * dos avisos do palco (50) e dos véus/gaveta (55/60, ver MatchStageTemplate).
  */
 export const CLOCK_PILL_Z_INDEX = 40;
+
+/**
+ * O painel do relógio do mestre: acima dos avisos do palco (50) — aberto, ele não pode ficar
+ * embaixo de um aviso —, abaixo dos véus (55) e da gaveta (60). Ver MatchStageTemplate.
+ */
+export const CLOCK_PANEL_Z_INDEX = 52;

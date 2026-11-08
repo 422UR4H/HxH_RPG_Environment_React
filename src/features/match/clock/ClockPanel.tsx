@@ -13,7 +13,7 @@ import { PanelTitle } from "../combat/panelStyles";
 import ClockEditor from "./ClockEditor";
 import type { LimitReason } from "./clockMessages";
 import { LIMIT_REASON_COPY } from "./limitReasons";
-import { CLOCK_PILL_OFFSET, CLOCK_PILL_Z_INDEX } from "./clockLayout";
+import { CLOCK_PANEL_Z_INDEX, CLOCK_PILL_OFFSET } from "./clockLayout";
 import { addSeconds, compareStory, formatDateBR, formatDelta, formatTime } from "./storyTime";
 import type { StoryClockView } from "./useStoryClock";
 
@@ -76,14 +76,17 @@ export default function ClockPanel({
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
-      // Com a confirmação de salto longo aberta, Esc fecha só ela (o editor cuida disso).
-      if (panelRef.current?.querySelector("[data-clock-confirm]")) return;
+      // Com a confirmação de salto longo aberta, Esc fecha só ela (o editor cuida disso). Ela
+      // mora no body (portal), não dentro do painel.
+      if (document.querySelector("[data-clock-confirm]")) return;
       closeRef.current();
     };
     const onDown = (e: PointerEvent) => {
       const t = e.target;
       if (!(t instanceof Node)) return;
       if (panelRef.current?.contains(t) || anchorRef?.current?.contains(t)) return;
+      // A confirmação de salto longo é do painel, mesmo fora dele no DOM.
+      if (t instanceof Element && t.closest("[data-clock-confirm]")) return;
       closeRef.current();
     };
     document.addEventListener("keydown", onKey);
@@ -214,7 +217,7 @@ const Panel = styled.div`
   left: 0;
   right: 0;
   margin: 0 auto;
-  z-index: ${CLOCK_PILL_Z_INDEX};
+  z-index: ${CLOCK_PANEL_Z_INDEX};
   box-sizing: border-box;
   width: min(340px, calc(100% - 32px));
   max-height: calc(100% - ${CLOCK_PILL_OFFSET + 16}px);
