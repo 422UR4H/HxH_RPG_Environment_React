@@ -17,6 +17,8 @@ import MatchTopBar from "../features/match/combat/MatchTopBar";
 import RailNav from "../features/match/combat/RailNav";
 import AsideTabs from "../features/match/combat/AsideTabs";
 import GeneralBar from "../features/match/combat/GeneralBar";
+import ClockPill from "../features/match/clock/ClockPill";
+import { useStoryClock } from "../features/match/clock/useStoryClock";
 import OwnBars from "../features/match/combat/OwnBars";
 import EventStream from "../features/match/combat/EventStream";
 import { historyRows } from "../features/match/combat/historyRows";
@@ -83,6 +85,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
   const game = useGameTable({ token, campaignId, matchId, declaredSource: "ownQueue", actorId });
   const { combat, composer, live, map, nameOf } = game;
   const { state } = combat;
+  const clock = useStoryClock(state.clock, { escalate: false });
 
   const { data: catalogue } = useCombatCatalogue(token, actorId);
   const { data: ownSheet } = useCharacterSheet(token, actorId);
@@ -364,6 +367,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
               width={width}
               height={height}
             />
+            <ClockPill clock={clock} interactive={false} />
             <GeneralBar
               bars={state.bars}
               roundMode={state.roundMode}

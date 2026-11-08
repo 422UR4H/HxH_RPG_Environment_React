@@ -1,5 +1,6 @@
 import styled, { css } from "styled-components";
 import { colors } from "../../../styles/tokens";
+import { CLOCK_PILL_OFFSET } from "../clock/clockLayout";
 
 /** O canvas preenche o palco inteiro; barras e avisos flutuam por cima dele. */
 export const CanvasWrapper = styled.div`
@@ -32,11 +33,12 @@ export const NoMapMessage = styled(MapLoadingMessage)`
 /**
  * A pilha de avisos sobre o mapa (erro do WS, declaradas perdidas): uma coluna abaixo da
  * barra geral, para um aviso que quebra em duas linhas empurrar o outro em vez de cobri-lo.
- * Não captura toque no vazio — o mapa embaixo continua tocável.
+ * Não captura toque no vazio — o mapa embaixo continua tocável. Desce junto com a barra geral
+ * para baixo da pílula do relógio (os mesmos 52 px de antes, contados a partir dela).
  */
 export const StageNotices = styled.div`
   position: absolute;
-  top: 52px;
+  top: ${CLOCK_PILL_OFFSET + 52}px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 50;

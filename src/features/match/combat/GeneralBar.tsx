@@ -6,6 +6,7 @@ import type { Bar, BarsPayload, RoundMode } from "./combatMessages";
 import { BAR_ICONS, BAR_LABELS } from "./combatText";
 import CharacterBarsStrip from "./CharacterBarsStrip";
 import { barsRows, fmt, priceOf } from "./barsMath";
+import { CLOCK_PILL_OFFSET } from "../clock/clockLayout";
 
 /**
  * A barra geral, flutuando sobre o mapa: de quem é a vez, quem age em seguida (maior `key`
@@ -94,9 +95,10 @@ export default function GeneralBar({
   );
 }
 
+/** Logo abaixo da pílula do relógio, com o mesmo respiro de 8 px que ela tem do topo. */
 const Wrapper = styled.div`
   position: absolute;
-  top: 8px;
+  top: ${CLOCK_PILL_OFFSET + 8}px;
   left: 8px;
   right: 8px;
   z-index: 30;

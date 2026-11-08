@@ -24,6 +24,8 @@ import { PanelTitle } from "../features/match/combat/panelStyles";
 import RailNav from "../features/match/combat/RailNav";
 import AsideTabs from "../features/match/combat/AsideTabs";
 import GeneralBar from "../features/match/combat/GeneralBar";
+import ClockPill from "../features/match/clock/ClockPill";
+import { useStoryClock } from "../features/match/clock/useStoryClock";
 import OwnBars from "../features/match/combat/OwnBars";
 import EventStream from "../features/match/combat/EventStream";
 import { historyRows } from "../features/match/combat/historyRows";
@@ -100,6 +102,9 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   const game = useGameTable({ token, campaignId, matchId, declaredSource: "queue", actorId });
   const { combat, composer, live, map, nameOf, participants } = game;
   const { state } = combat;
+  // Relógio da história: só o mestre escala a atenção. O painel chega na Task 5; por ora o flag local.
+  const clock = useStoryClock(state.clock, { escalate: true });
+  const [clockOpen, setClockOpen] = useState(false);
   const gridKind = map?.grid.kind ?? "square";
 
   const { data: catalogue } = useCombatCatalogue(token, actorId);
@@ -797,6 +802,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
               width={width}
               height={height}
             />
+            <ClockPill clock={clock} interactive open={clockOpen} onToggle={() => setClockOpen((o) => !o)} />
             <GeneralBar
               showOrder
               bars={state.bars}
