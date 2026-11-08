@@ -8,12 +8,14 @@ import { useMatchEndedRedirect } from "../useMatchEndedRedirect";
 
 const MATCH = "/campaigns/c1/matches/m1";
 
+const PAYLOAD = { matchId: "m1", storyAt: "2000-05-10T14:30:45", gameEndAt: "2026-11-08T10:00:00Z" };
+
 function Table({ endedRef, queryFn }: { endedRef: { set?: (v: boolean) => void }; queryFn?: () => Promise<unknown> }) {
   const [ended, setEnded] = useState(false);
   // A mesa observa a mesma partida que a página da partida (como a GamePage).
   useQuery({ queryKey: ["matchDetails", "tok", "m1"], queryFn: queryFn ?? (async () => ({})), staleTime: Infinity });
   endedRef.set = setEnded;
-  useMatchEndedRedirect({ token: "tok", campaignId: "c1", matchId: "m1", ended });
+  useMatchEndedRedirect({ token: "tok", campaignId: "c1", matchId: "m1", ended, matchEnded: ended ? PAYLOAD : null });
   return <div>mesa</div>;
 }
 
@@ -44,7 +46,7 @@ function setup(queryFn?: () => Promise<unknown>) {
       </MemoryRouter>
     </QueryClientProvider>,
   );
-  return { invalidate, endedRef };
+  return { invalidate, endedRef, queryClient };
 }
 
 describe("useMatchEndedRedirect", () => {
@@ -80,5 +82,21 @@ describe("useMatchEndedRedirect", () => {
     await new Promise((r) => setTimeout(r, 0));
     expect(queryFn).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId("state")).toHaveTextContent(JSON.stringify({ endedByMaster: true }));
+  });
+
+  it("on end: writes the end into the cached match at once, without any refetch", async () => {
+    const queryFn = vi.fn(async () => ({ id: "m1" }));
+    const { endedRef, queryClient } = setup(queryFn);
+    await waitFor(() => expect(queryFn).toHaveBeenCalledTimes(1));
+
+    act(() => endedRef.set?.(true));
+
+    expect(queryClient.getQueryData(["matchDetails", "tok", "m1"])).toEqual({
+      id: "m1",
+      gameEndAt: "2026-11-08T10:00:00Z",
+      storyEndAt: "2000-05-10",
+      storyEndTime: "14:30:45",
+    });
+    expect(queryFn).toHaveBeenCalledTimes(1);
   });
 });

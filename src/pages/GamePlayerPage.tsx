@@ -94,6 +94,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
     token,
     campaignId,
     matchId,
+    matchEnded: state.matchEnded,
     ended: isMatchOver({ matchEnded: state.matchEnded, status: combat.status, lastError: state.lastError }),
   });
 
