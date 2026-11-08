@@ -29,6 +29,8 @@ export const matchEnded = (): Match => ({
   ...matchFixture,
   gameStartAt: "2025-12-01T19:05:00Z",
   storyEndAt: "2025-12-15",
+  storyEndTime: "18:00:00",
+  gameEndAt: "2025-12-01T23:40:00Z",
   briefFinalDescription: "Partida encerrada",
 });
 
@@ -66,5 +68,7 @@ export const matchEndedApi = (): Record<string, unknown> => ({
   ...matchApiFixture,
   gameStartAt: "2025-12-01T19:05:00Z",
   storyEndAt: "2025-12-15",
+  storyEndTime: "18:00:00",
+  gameEndAt: "2025-12-01T23:40:00Z",
   briefFinalDescription: "Partida encerrada",
 });

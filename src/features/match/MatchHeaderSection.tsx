@@ -35,6 +35,8 @@ interface MatchHeaderSectionProps {
   match: Match;
   status: MatchStatus;
   lobbyNotOpen: boolean;
+  /** Chegou aqui tirado da mesa porque o mestre encerrou a partida. */
+  endedByMaster?: boolean;
   onDescriptionToggle: () => void;
 }
 
@@ -42,6 +44,7 @@ export default function MatchHeaderSection({
   match,
   status,
   lobbyNotOpen,
+  endedByMaster = false,
   onDescriptionToggle,
 }: MatchHeaderSectionProps) {
   return (
@@ -91,8 +94,12 @@ export default function MatchHeaderSection({
       )}
 
       {match.storyEndAt && (
-        <StoryDate>Fim na história: {formatDateBR(match.storyEndAt)}</StoryDate>
+        <StoryDate>
+          {`Fim na história: ${formatDateBR(match.storyEndAt)}${match.storyEndTime ? ` ${match.storyEndTime}` : ""}`}
+        </StoryDate>
       )}
+
+      {endedByMaster && <SignNotice tone="dark" message="A partida foi encerrada pelo mestre." />}
 
       {lobbyNotOpen && (
         <SignNotice

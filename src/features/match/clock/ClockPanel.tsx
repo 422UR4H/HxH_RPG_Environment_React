@@ -12,20 +12,12 @@ import type { RoundMode } from "../combat/combatMessages";
 import { PanelTitle } from "../combat/panelStyles";
 import ClockEditor from "./ClockEditor";
 import type { LimitReason } from "./clockMessages";
+import { LIMIT_REASON_COPY } from "./limitReasons";
 import { CLOCK_PILL_OFFSET, CLOCK_PILL_Z_INDEX } from "./clockLayout";
 import { addSeconds, compareStory, formatDateBR, formatDelta, formatTime } from "./storyTime";
 import type { StoryClockView } from "./useStoryClock";
 
 const DAY = 86_400;
-
-/** Por que o relógio não volta antes do limite, como o mestre lê. */
-const LIMIT_REASON_COPY: Record<LimitReason, string> = {
-  start: "início da partida",
-  turn: "último turno",
-  scene: "troca de cena",
-  roundMode: "troca de regime",
-  round: "último round",
-};
 
 const RACE_PLAY_REASON = "No turno disputado, cada round vale 1 segundo.";
 

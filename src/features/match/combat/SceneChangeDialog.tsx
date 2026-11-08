@@ -10,11 +10,9 @@ import { combatErrorText } from "./combatErrorMessages";
 import type { WsError } from "./combatErrorMessages";
 import { SCENE_LABEL } from "./sceneLabels";
 import ClockEditor from "../clock/ClockEditor";
+import FinalDescriptionField from "../clock/FinalDescriptionField";
 import CombatSummaryBlock from "../clock/CombatSummaryBlock";
 import type { CombatSummary } from "../clock/clockMessages";
-
-/** `scenes.brief_final_description` no banco. */
-const FINAL_MAX = 255;
 
 /**
  * `change_scene`: fecha cena e rodada correntes e abre a nova. A categoria vai minúscula (contrato).
@@ -106,21 +104,12 @@ export default function SceneChangeDialog({
           {battle && (loading
             ? <Loading role="status">Calculando o combate…</Loading>
             : summary && <CombatSummaryBlock summary={summary} nameOf={nameOf} />)}
-          <Field>
-            <LabelRow>
-              <ChoiceLabel as="label" htmlFor="scene-final-desc">
-                Descrição final <Optional>(opcional)</Optional>
-              </ChoiceLabel>
-              <Counter aria-hidden="true">{`${finalDescription.length}/${FINAL_MAX}`}</Counter>
-            </LabelRow>
-            <FinalInput
-              id="scene-final-desc"
-              rows={3}
-              maxLength={FINAL_MAX}
-              value={finalDescription}
-              onChange={(e) => setFinalDescription(e.target.value)}
-            />
-          </Field>
+          <FinalDescriptionField
+            id="scene-final-desc"
+            label="Descrição final"
+            value={finalDescription}
+            onChange={setFinalDescription}
+          />
         </Section>
 
         <Section aria-labelledby="scene-next">
@@ -219,24 +208,6 @@ const Field = styled.div`
   gap: 6px;
 `;
 
-const LabelRow = styled.div`
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-`;
-
-const Optional = styled.span`
-  font-weight: 400;
-  color: ${colors.textPlaceholderStrong};
-`;
-
-const Counter = styled.span`
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-  color: ${colors.textPlaceholderStrong};
-`;
-
 const Loading = styled.p`
   margin: 0;
   font-size: 14px;
@@ -251,17 +222,6 @@ const DescInput = styled.input`
   font-size: 14px;
   min-height: 40px;
   padding: 0 10px;
-`;
-
-const FinalInput = styled.textarea`
-  background: ${colors.surfaceInput};
-  color: ${colors.textPrimary};
-  border: 1px solid ${colors.surfaceInputHover};
-  border-radius: 8px;
-  font: inherit;
-  font-size: 14px;
-  padding: 8px 10px;
-  resize: vertical;
 `;
 
 const ErrorText = styled.p`

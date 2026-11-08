@@ -17,8 +17,9 @@ import { masterPanelDismissible, useStageOverlays } from "../features/match/comb
 import MatchStageTemplate from "../components/templates/MatchStageTemplate";
 import MatchTopBar from "../features/match/combat/MatchTopBar";
 import {
-  AddNpcPicker, ArrangePanel, NpcPicker, PanelSection, RegencyControls, RoundModeSwitch, WallMasterPanel,
+  AddNpcPicker, ArrangePanel, EndMatchButton, NpcPicker, PanelSection, RegencyControls, RoundModeSwitch, WallMasterPanel,
 } from "../features/match/combat/MasterControls";
+import type { WsError } from "../features/match/combat/combatErrorMessages";
 import { actorWallVerbs } from "../features/match/combat/wallVerbs";
 import { PanelTitle } from "../features/match/combat/panelStyles";
 import RailNav from "../features/match/combat/RailNav";
@@ -28,6 +29,9 @@ import ClockPanel from "../features/match/clock/ClockPanel";
 import ClockPill from "../features/match/clock/ClockPill";
 import ClockNotice from "../features/match/clock/ClockNotice";
 import StartTimeDialog from "../features/match/clock/StartTimeDialog";
+import EndMatchDialog from "../features/match/clock/EndMatchDialog";
+import { endMatchBlockReason, isMatchOver } from "../features/match/clock/endMatch";
+import { useMatchEndedRedirect } from "../features/match/clock/useMatchEndedRedirect";
 import { useMatchDetails } from "../hooks/useMatchDetails";
 import { useStoryClock } from "../features/match/clock/useStoryClock";
 import OwnBars from "../features/match/combat/OwnBars";
@@ -171,6 +175,27 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     changeScene: combat.send.changeScene,
   });
   const sceneDialog = sceneFlow.open;
+
+  // ─── Encerrar partida (spec 2026-11-08 §5) ─────────────────────────────────
+  // Guarda o erro que já estava no estado ao abrir: só a recusa do `end_match` desta abertura
+  // aparece no diálogo. O diálogo não fecha sozinho: o fim tira o mestre da mesa.
+  const [endMatchOpened, setEndMatchOpened] = useState<{ error: WsError | null } | null>(null);
+  const endMatchError =
+    endMatchOpened && state.lastError !== endMatchOpened.error && state.lastError?.sentType === "end_match"
+      ? state.lastError
+      : null;
+  const endMatchBlocked = endMatchBlockReason({
+    sceneCategory: state.scene?.category,
+    openTurn: state.openTurn != null,
+    storyAt: state.clock.value?.storyAt,
+  });
+  const openEndMatch = () => setEndMatchOpened({ error: state.lastError });
+  useMatchEndedRedirect({
+    token,
+    campaignId,
+    matchId,
+    ended: isMatchOver({ matchEnded: state.matchEnded, status: combat.status, lastError: state.lastError }),
+  });
 
   // ─── Arrumar (F12) ─────────────────────────────────────────────────────────
   const [boardMode, setBoardMode] = useState<BoardMode>("play");
@@ -642,6 +667,8 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                 canCloseTurn={canCloseTurn}
                 onNewScene={sceneFlow.openDialog}
                 canChangeScene={state.openTurn == null}
+                onEndMatch={openEndMatch}
+                endMatchBlockedReason={endMatchBlocked}
                 queueLength={state.queue.length}
                 orderLength={state.bars?.order.length ?? 0}
                 roundTurns={state.bars?.roundTurns}
@@ -703,6 +730,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                 >
                   Nova cena
                 </SmallButton>
+                <EndMatchButton blockedReason={endMatchBlocked} onClick={openEndMatch} />
               </PanelSection>
               <QueuePanel
                 queue={state.queue}
@@ -856,7 +884,9 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                   startTimeError ||
                   staleClockStartError ||
                   // O resumo do combate só é pedido pelo diálogo, que cai no layout de roleplay.
-                  state.lastError?.sentType === "get_combat_summary"
+                  state.lastError?.sentType === "get_combat_summary" ||
+                  // A recusa do encerrar aparece no próprio diálogo.
+                  state.lastError?.sentType === "end_match"
                     ? null
                     : state.lastError
                 }
@@ -1003,6 +1033,15 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
         error={sceneFlow.error}
         onCancel={sceneFlow.closeDialog}
         onConfirm={sceneFlow.confirm}
+      />
+      <EndMatchDialog
+        open={endMatchOpened != null}
+        now={clock.now}
+        limitAt={clock.limitAt}
+        limitReason={clock.limitReason}
+        error={endMatchError}
+        onCancel={() => setEndMatchOpened(null)}
+        onConfirm={(p) => combat.send.endMatch(p)}
       />
     </>
   );

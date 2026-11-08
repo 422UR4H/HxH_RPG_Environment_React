@@ -19,6 +19,8 @@ import AsideTabs from "../features/match/combat/AsideTabs";
 import GeneralBar from "../features/match/combat/GeneralBar";
 import ClockPill from "../features/match/clock/ClockPill";
 import { useStoryClock } from "../features/match/clock/useStoryClock";
+import { isMatchOver } from "../features/match/clock/endMatch";
+import { useMatchEndedRedirect } from "../features/match/clock/useMatchEndedRedirect";
 import OwnBars from "../features/match/combat/OwnBars";
 import EventStream from "../features/match/combat/EventStream";
 import { historyRows } from "../features/match/combat/historyRows";
@@ -87,6 +89,13 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
   const { combat, composer, live, map, nameOf } = game;
   const { state } = combat;
   const clock = useStoryClock(state.clock, { escalate: false });
+  // O mestre encerrou a partida: a mesa sai do histórico e o jogador vai para a página dela.
+  useMatchEndedRedirect({
+    token,
+    campaignId,
+    matchId,
+    ended: isMatchOver({ matchEnded: state.matchEnded, status: combat.status, lastError: state.lastError }),
+  });
 
   const { data: catalogue } = useCombatCatalogue(token, actorId);
   const { data: ownSheet } = useCharacterSheet(token, actorId);

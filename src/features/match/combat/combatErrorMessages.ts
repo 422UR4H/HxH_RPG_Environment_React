@@ -24,6 +24,7 @@ const byCode: Record<string, string> = {
   clock_already_running: "O tempo real já está ligado.",
   match_in_battle: "Encerre o combate antes de encerrar a partida.",
   not_battle_scene: "A cena atual não é de combate.",
+  match_already_ended: "A partida já foi encerrada.",
 };
 
 const bySentType: Record<string, string> = {

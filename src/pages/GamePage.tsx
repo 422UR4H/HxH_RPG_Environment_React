@@ -7,6 +7,7 @@ import { PageLoading, PageError, PageNotFound } from "../components/templates/Pa
 import { isApiError } from "../services/httpClient";
 import GamePlayerPage from "./GamePlayerPage";
 import GameMasterPage from "./GameMasterPage";
+import { matchPagePath } from "../features/match/clock/endMatch";
 
 /**
  * A rota (Tarefas 12/13, spec §3.4): lê o papel uma vez e monta a página certa. Daí para
@@ -59,6 +60,9 @@ function GameRoute({
   // Sem match/user não há como decidir o papel.
   if (isPending || !user) return <PageLoading label="Carregando partida…" />;
   if (!match) return <PageNotFound title="Partida não encontrada" back={matchBack} />;
+  // Partida encerrada não volta para a mesa (spec 2026-11-08 §5): cobre quem estava offline e
+  // quem digita a URL; `replace` tira a /game do histórico.
+  if (match.gameEndAt) return <Navigate to={matchPagePath(campaignId, matchId)} replace />;
 
   const isMaster = match.masterUuid === user.uuid;
   return isMaster

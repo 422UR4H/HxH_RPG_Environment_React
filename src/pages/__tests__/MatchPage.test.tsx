@@ -770,4 +770,63 @@ describe("MatchPage", () => {
       });
     });
   });
+  // Encerrar partida (spec 2026-11-08 §5): o selo vem de gameEndAt, não de storyEndAt.
+  describe("ended by the master", () => {
+    const finishedNoStoryEnd = () => {
+      const m = { ...matchOngoingApi(), gameEndAt: "2025-12-01T23:40:00Z" };
+      return m;
+    };
+
+    it("gameEndAt alone marks the match as ended and hides 'Entrar na partida'", async () => {
+      server.use(
+        http.get(`${baseUrl}/matches/:id`, () =>
+          HttpResponse.json({ match: { ...finishedNoStoryEnd(), masterUuid: masterUserFixture.user.uuid } }),
+        ),
+      );
+      renderPage({ user: masterUserFixture });
+      expect(await screen.findByText("ENCERRADA")).toBeInTheDocument();
+      expect(screen.queryByText("Entrar na partida")).not.toBeInTheDocument();
+      expect(screen.queryByText(/Abrir Lobby/i)).not.toBeInTheDocument();
+    });
+
+    it("storyEndAt without gameEndAt is still ongoing", async () => {
+      server.use(
+        http.get(`${baseUrl}/matches/:id`, () =>
+          HttpResponse.json({ match: { ...matchOngoingApi(), storyEndAt: "2025-12-15" } }),
+        ),
+      );
+      renderPage();
+      expect(await screen.findByText("EM ANDAMENTO")).toBeInTheDocument();
+    });
+
+    it("shows the story end date with the exact end time", async () => {
+      server.use(http.get(`${baseUrl}/matches/:id`, () => HttpResponse.json({ match: matchEndedApi() })));
+      renderPage();
+      expect(await screen.findByText("Fim na história: 15/12/2025 18:00:00")).toBeInTheDocument();
+    });
+
+    it("tells the player the master ended it when arriving from the table", async () => {
+      server.use(http.get(`${baseUrl}/matches/:id`, () => HttpResponse.json({ match: matchEndedApi() })));
+      renderPage({ user: userFixture, state: { endedByMaster: true } });
+      expect(await screen.findByText("A partida foi encerrada pelo mestre.")).toBeInTheDocument();
+    });
+
+    it("no notice without the router state", async () => {
+      server.use(http.get(`${baseUrl}/matches/:id`, () => HttpResponse.json({ match: matchEndedApi() })));
+      renderPage({ user: userFixture });
+      await screen.findByText("ENCERRADA");
+      expect(screen.queryByText("A partida foi encerrada pelo mestre.")).not.toBeInTheDocument();
+    });
+
+    it("the master, who ended it himself, gets no notice", async () => {
+      server.use(
+        http.get(`${baseUrl}/matches/:id`, () =>
+          HttpResponse.json({ match: { ...matchEndedApi(), masterUuid: masterUserFixture.user.uuid } }),
+        ),
+      );
+      renderPage({ user: masterUserFixture, state: { endedByMaster: true } });
+      await screen.findByText("ENCERRADA");
+      expect(screen.queryByText("A partida foi encerrada pelo mestre.")).not.toBeInTheDocument();
+    });
+  });
 });

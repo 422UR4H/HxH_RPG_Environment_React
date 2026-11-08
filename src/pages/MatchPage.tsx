@@ -67,9 +67,10 @@ function mapChangeRefusal(err: unknown, inheriting: boolean): { text: string; lo
   return { text: "Não foi possível trocar o mapa. Tente novamente.", locked: false };
 }
 
-function getMatchStatus(match: { gameStartAt?: string; storyEndAt?: string }): MatchStatus {
+// Encerrada = `gameEndAt` preenchido (contrato match.md); `storyEndAt` é só a data da história.
+function getMatchStatus(match: { gameStartAt?: string; gameEndAt?: string }): MatchStatus {
   if (!match.gameStartAt) return "scheduled";
-  if (!match.storyEndAt) return "ongoing";
+  if (!match.gameEndAt) return "ongoing";
   return "ended";
 }
 
@@ -82,7 +83,9 @@ export default function MatchPage() {
   const { user } = useUser();
   const navigate = useNavigate();
   const location = useLocation();
-  const locationState = location.state as { sheetId?: string; lobbyNotOpen?: boolean } | null;
+  const locationState = location.state as
+    | { sheetId?: string; lobbyNotOpen?: boolean; endedByMaster?: boolean }
+    | null;
   const lobbyNotOpen = locationState?.lobbyNotOpen === true;
 
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
@@ -310,6 +313,8 @@ export default function MatchPage() {
           match={match}
           status={status}
           lobbyNotOpen={lobbyNotOpen}
+          // Quem chega da mesa encerrada; o mestre, que encerrou, não precisa do aviso.
+          endedByMaster={locationState?.endedByMaster === true && !isMaster && status === "ended"}
           onDescriptionToggle={() => setDescriptionSignal((s) => !s)}
         />
 
