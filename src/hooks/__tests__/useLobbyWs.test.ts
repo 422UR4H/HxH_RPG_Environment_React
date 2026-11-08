@@ -222,6 +222,15 @@ describe("useLobbyWs", () => {
   });
 
 
+  it("treats close 4002 (match ended) as terminal: no reconnect", () => {
+    const { result } = renderHook(() => useLobbyWs(defaultParams));
+    simulateOpen();
+    simulateClose(4002);
+    act(() => { vi.advanceTimersByTime(5000); });
+    expect(result.current.status).toBe("ended");
+    expect(MockWebSocket).toHaveBeenCalledTimes(1);
+  });
+
   it("does not reconnect on lobby_closed (terminal state)", () => {
     renderHook(() => useLobbyWs(defaultParams));
     simulateOpen();

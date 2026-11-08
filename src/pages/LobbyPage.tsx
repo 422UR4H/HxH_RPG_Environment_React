@@ -33,6 +33,7 @@ const ERROR_STATUSES: WsStatus[] = [
   "kicked",
   "lobby_closed",
   "replaced",
+  "ended",
 ];
 
 export default function LobbyPage() {
@@ -234,6 +235,8 @@ export default function LobbyPage() {
         return "Você foi removido do lobby pelo mestre.";
       case "lobby_closed":
         return "O lobby foi encerrado pelo mestre.";
+      case "ended":
+        return "A partida já foi encerrada.";
       case "replaced":
         return "Este lobby foi aberto em outra aba ou dispositivo com a sua conta. Recarregue a página para usá-lo aqui.";
       default:
