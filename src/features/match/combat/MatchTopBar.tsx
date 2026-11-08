@@ -15,6 +15,7 @@ const STATUS_LABELS: Record<MatchWsStatus, string> = {
   waiting: "Aguardando o mestre abrir a sala…",
   disconnected: "Desconectado",
   replaced: "Aberta em outra aba",
+  ended: "Partida encerrada",
 };
 
 const STATUS_COLORS: Record<MatchWsStatus, string> = {
@@ -24,6 +25,7 @@ const STATUS_COLORS: Record<MatchWsStatus, string> = {
   waiting: colors.feedbackWarning,
   disconnected: colors.feedbackDanger,
   replaced: colors.feedbackWarning,
+  ended: colors.feedbackDanger,
 };
 
 /**

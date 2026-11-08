@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { BgImage, GridShape, Piece, PieceView, SlotCoord, WallSegment } from "../types/tacticalMap";
+import type { EndMatchPayload } from "../features/match/clock/clockMessages";
 import type {
   AttachReactionPayload, ChangeScenePayload, CombatServerMessage, EditActionPayload, EnqueueActionPayload, MasterActionPayload, RoundMode,
 } from "../features/match/combat/combatMessages";
@@ -11,8 +12,9 @@ import { createReconnectPolicy } from "./reconnectPolicy";
  * creates it, so a player who arrives first waits for them instead of giving up.
  */
 /** `replaced`: a mesma conta abriu outra conexão e o servidor ficou com ela (B4). */
+/** `ended`: a partida acabou (close 4002); não há o que reconectar. */
 /** `waking`: o servidor da mesa não respondeu; seguimos tentando (ele pode estar acordando). */
-export type MatchWsStatus = "connecting" | "connected" | "waking" | "waiting" | "disconnected" | "replaced";
+export type MatchWsStatus = "connecting" | "connected" | "waking" | "waiting" | "disconnected" | "replaced" | "ended";
 
 /**
  * A piece exactly as the game server serializes it: flat (`pieceId`/`slot` as
@@ -82,12 +84,14 @@ const SILENT_SOCKET_MS = 5000;
 const SILENT_CLOSE_CODE = 4000;
 /** Close code the server sends right after `lobby_not_open`. */
 const LOBBY_NOT_OPEN_CODE = 4001;
+/** Close code do servidor quando a partida foi encerrada. */
+const MATCH_ENDED_CODE = 4002;
 
 const COMBAT_TYPES = new Set([
   "match_full_state", "bars_updated", "action_enqueued", "action_queued", "action_cancelled",
   "turn_opened", "turn_closed", "resolution_updated", "character_hp_changed",
   "round_closed", "round_mode_changed", "scene_changed", "close_turn_refused",
-  "reaction_attached", "reaction_opened",
+  "reaction_attached", "reaction_opened", "clock_changed", "combat_summary", "match_ended",
 ]);
 
 // F5: the match socket is the same `room.go` connection the lobby uses, so these
@@ -437,6 +441,10 @@ export function useMatchWs({
           setStatus("replaced");
           return;
         }
+        if (ev.code === MATCH_ENDED_CODE) {
+          setStatus("ended");
+          return;
+        }
         // The master has not opened the room yet: keep knocking, without spending the
         // reconnect budget — the player is waiting for someone, not fighting a failure.
         if (roomNotOpen || ev.code === LOBBY_NOT_OPEN_CODE) {
@@ -541,6 +549,22 @@ export function useMatchWs({
     [sendRaw],
   );
 
+  const sendSetClockStart = useCallback((time: string) => sendRaw("set_clock_start", { time }), [sendRaw]);
+  const sendAdjustClock = useCallback(
+    (deltaSeconds: number, confirmLongSkip?: boolean) =>
+      sendRaw("adjust_clock", confirmLongSkip ? { deltaSeconds, confirmLongSkip: true } : { deltaSeconds }),
+    [sendRaw],
+  );
+  const sendSetClock = useCallback(
+    (storyAt: string, confirmLongSkip?: boolean) =>
+      sendRaw("set_clock", confirmLongSkip ? { storyAt, confirmLongSkip: true } : { storyAt }),
+    [sendRaw],
+  );
+  const sendPlayClock = useCallback(() => sendRaw("play_clock", {}), [sendRaw]);
+  const sendPauseClock = useCallback(() => sendRaw("pause_clock", {}), [sendRaw]);
+  const sendGetCombatSummary = useCallback(() => sendRaw("get_combat_summary", {}), [sendRaw]);
+  const sendEndMatch = useCallback((payload: EndMatchPayload) => sendRaw("end_match", payload), [sendRaw]);
+
   // Mestre: `null` para de observar (vai como "" no fio). Não é comando do usuário — sai a
   // cada seleção e a cada match_full_state —, então não entra na atribuição de erro: um
   // `error` que chegue depois continua sendo do último comando de verdade.
@@ -566,5 +590,12 @@ export function useMatchWs({
     sendEditAction,
     sendAttachReaction,
     sendOpenReaction,
+    sendSetClockStart,
+    sendAdjustClock,
+    sendSetClock,
+    sendPlayClock,
+    sendPauseClock,
+    sendGetCombatSummary,
+    sendEndMatch,
   };
 }

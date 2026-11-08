@@ -851,3 +851,28 @@ describe("useMatchWs connection lifecycle", () => {
     expect(result.current.status).toBe("waking");
   });
 });
+
+describe("useMatchWs: story clock", () => {
+  it("close code 4002 ends the session without reconnecting", () => {
+    const { result } = renderHook(() => useMatchWs({ matchUuid: "m1", token: "t" }));
+    const ws = flushConnect();
+    act(() => { ws.onopen?.(); });
+    act(() => { ws.onclose?.({ code: 4002, reason: "match ended" } as CloseEvent); });
+    expect(result.current.status).toBe("ended");
+    act(() => { vi.advanceTimersByTime(60_000); });
+    expect(FakeWS.instances).toHaveLength(1);
+  });
+
+  it("forwards clock_changed, combat_summary and match_ended as combat messages", () => {
+    const onCombatMessage = vi.fn();
+    renderHook(() => useMatchWs({ matchUuid: "m1", token: "t", onCombatMessage }));
+    const ws = flushConnect();
+    act(() => { ws.onopen?.(); });
+    act(() => {
+      ws.emit("clock_changed", { clock: { storyAt: null, running: false, limitAt: null, limitReason: "", seq: 1 }, change: { kind: "start" } });
+      ws.emit("combat_summary", { sceneId: "s" });
+      ws.emit("match_ended", { matchId: "m" });
+    });
+    expect(onCombatMessage.mock.calls.map(([m]) => m.type)).toEqual(["clock_changed", "combat_summary", "match_ended"]);
+  });
+});

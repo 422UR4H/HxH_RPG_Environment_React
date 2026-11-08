@@ -640,3 +640,71 @@ describe("combatReducer — action_cancelled", () => {
     expect(run([cancelled("zzz")], before)).toBe(before);
   });
 });
+
+describe("combatReducer: story clock", () => {
+  const clockState = (seq: number, storyAt = "2000-01-01T08:00:00", running = false) =>
+    ({ storyAt, running, limitAt: null, limitReason: "" as const, seq });
+  const changed = (seq: number, storyAt?: string): CombatAction => ({
+    type: "clock_changed",
+    payload: { clock: clockState(seq, storyAt), change: { kind: "adjust", deltaSeconds: 60 } },
+    receivedAt: 1000,
+  });
+  const full = (seq: number): CombatAction => ({
+    type: "match_full_state",
+    payload: { roundMode: "", clock: clockState(seq) },
+    receivedAt: 2000,
+  });
+
+  it("starts empty", () => {
+    expect(initialCombatState.clock).toEqual({ value: null, receivedAt: 0, lastChange: null, changeSeq: 0 });
+    expect(initialCombatState.combatSummary).toBeNull();
+    expect(initialCombatState.matchEnded).toBeNull();
+  });
+
+  it("clock_changed stores the value, the change and bumps changeSeq", () => {
+    const s = run([changed(1, "2000-01-01T08:01:00")]);
+    expect(s.clock.value?.storyAt).toBe("2000-01-01T08:01:00");
+    expect(s.clock.receivedAt).toBe(1000);
+    expect(s.clock.lastChange).toEqual({ kind: "adjust", deltaSeconds: 60 });
+    expect(s.clock.changeSeq).toBe(1);
+  });
+
+  it("match_full_state.clock sets the value without a change", () => {
+    const s = run([full(4)]);
+    expect(s.clock.value?.seq).toBe(4);
+    expect(s.clock.receivedAt).toBe(2000);
+    expect(s.clock.lastChange).toBeNull();
+    expect(s.clock.changeSeq).toBe(0);
+  });
+
+  it("ignores a clock_changed with a lower seq", () => {
+    const s = run([changed(5, "2000-01-01T09:00:00"), changed(3, "2000-01-01T07:00:00")]);
+    expect(s.clock.value?.storyAt).toBe("2000-01-01T09:00:00");
+    expect(s.clock.changeSeq).toBe(1);
+  });
+
+  it("ignores a full state with a lower seq and accepts an equal one", () => {
+    const base = run([changed(5, "2000-01-01T09:00:00")]);
+    expect(run([full(4)], base).clock.value?.storyAt).toBe("2000-01-01T09:00:00");
+    const eq = run([full(5)], base);
+    expect(eq.clock.value?.storyAt).toBe("2000-01-01T08:00:00");
+    expect(eq.clock.receivedAt).toBe(2000);
+  });
+
+  it("a full state without clock keeps the stored one", () => {
+    const base = run([changed(2)]);
+    const s = run([{ type: "match_full_state", payload: { roundMode: "" } }], base);
+    expect(s.clock.value?.seq).toBe(2);
+  });
+
+  it("stores combat_summary and match_ended", () => {
+    const summary = { sceneId: "s1", countedRounds: 2, countedSeconds: 2, activeRoundCounts: true, minimumStoryAt: "2000-01-01T08:00:02", hiatuses: [] };
+    const ended = { matchId: "m1", storyAt: "2000-01-02T00:00:00", gameEndAt: "2026-11-08T10:00:00Z" };
+    const s = run([
+      { type: "combat_summary", payload: summary },
+      { type: "match_ended", payload: ended },
+    ]);
+    expect(s.combatSummary).toEqual(summary);
+    expect(s.matchEnded).toEqual(ended);
+  });
+});

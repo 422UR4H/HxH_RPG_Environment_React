@@ -15,6 +15,12 @@ export interface Match {
   gameStartAt?: string;
   storyStartAt: string;
   storyEndAt?: string;
+  /** Hora inicial da história ("HH:MM:SS"); ausente até o mestre defini-la. */
+  storyStartTime?: string;
+  /** Fim real da partida (RFC 3339). */
+  gameEndAt?: string;
+  /** Hora em que a história terminou ("HH:MM:SS"); só em partida encerrada. */
+  storyEndTime?: string;
   createdAt: string;
   updatedAt: string;
 }

@@ -40,7 +40,7 @@ type SendOptions = {
 let localSeq = 0;
 
 /** As mensagens que o servidor só emite depois de gravar o que o histórico mostra. */
-const HISTORY_TYPES = new Set(["turn_closed", "scene_changed", "round_mode_changed", "round_closed"]);
+const HISTORY_TYPES = new Set(["turn_closed", "scene_changed", "round_mode_changed", "round_closed", "clock_changed"]);
 
 /**
  * Liga o socket ao reducer. Todo o estado de combate sai daqui; nenhuma página guarda
@@ -160,6 +160,13 @@ export function useMatchCombat({
       attachReaction,
       openReaction: ws.sendOpenReaction,
       watchPieceView: ws.sendWatchPieceView,
+      setClockStart: ws.sendSetClockStart,
+      adjustClock: ws.sendAdjustClock,
+      setClock: ws.sendSetClock,
+      playClock: ws.sendPlayClock,
+      pauseClock: ws.sendPauseClock,
+      requestCombatSummary: ws.sendGetCombatSummary,
+      endMatch: ws.sendEndMatch,
     },
     dismissError: useCallback(() => dispatch({ type: "ERROR_DISMISSED" }), []),
     dismissCloseTurnDialog: useCallback(() => dispatch({ type: "CLOSE_TURN_DIALOG_DISMISSED" }), []),

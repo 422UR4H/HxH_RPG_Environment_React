@@ -4,6 +4,7 @@ import type {
   ReactionOpenedPayload, ResolutionPayload, RoundClosedPayload,
   RoundModeChangedPayload, RoundMode, ScenePayload, TurnClosedPayload, TurnOpenedPayload,
 } from "./combatMessages";
+import type { ClockChangedPayload, ClockChange, ClockState, CombatSummary, MatchEnded } from "../clock/clockMessages";
 import type { WsError } from "./combatErrorMessages";
 import type { HistoryAction, MatchHistory } from "../../../types/matchHistory";
 import type { SlotTriple } from "../../tactical-map/utils/coords";
@@ -97,6 +98,12 @@ export type CombatState = {
   ownReactions: OwnReaction[];
   /** O turno que acabou de fechar: o `turn_closed` zera `openTurn` antes de o liquidado chegar. */
   closedTurn: { turnId: string; actorId: string; action?: HistoryAction } | null;
+  /** O relógio da história: `value` é o último retrato do servidor, `receivedAt` quando chegou (hora local). */
+  clock: { value: ClockState | null; receivedAt: number; lastChange: ClockChange | null; changeSeq: number };
+  /** Resposta de `get_combat_summary`. */
+  combatSummary: CombatSummary | null;
+  /** A partida acabou (`match_ended`). */
+  matchEnded: MatchEnded | null;
   /** O último turno liquidado — para os balões de resultado. Some no próximo turn_opened. */
   lastSettled: { turnId: string; actorId?: string; action?: HistoryAction; resolution: ResolutionPayload } | null;
 };
@@ -119,6 +126,9 @@ export const initialCombatState: CombatState = {
   ownReactions: [],
   closedTurn: null,
   lastSettled: null,
+  clock: { value: null, receivedAt: 0, lastChange: null, changeSeq: 0 },
+  combatSummary: null,
+  matchEnded: null,
 };
 
 /** Carimbo de chegada: `at` é a hora do SERVIDOR (envelope), `receivedAt` a local. */
@@ -137,6 +147,9 @@ export type CombatAction =
   | ({ type: "round_closed"; payload: RoundClosedPayload } & Stamp)
   | ({ type: "round_mode_changed"; payload: RoundModeChangedPayload } & Stamp)
   | ({ type: "scene_changed"; payload: ScenePayload } & Stamp)
+  | ({ type: "clock_changed"; payload: ClockChangedPayload } & Stamp)
+  | ({ type: "combat_summary"; payload: CombatSummary } & Stamp)
+  | ({ type: "match_ended"; payload: MatchEnded } & Stamp)
   | ({ type: "close_turn_refused"; payload: CloseTurnRefusedPayload } & Stamp)
   | ({ type: "reaction_attached"; payload: ReactionAttachedPayload } & Stamp)
   | ({ type: "reaction_opened"; payload: ReactionOpenedPayload } & Stamp)
@@ -248,8 +261,32 @@ export function combatReducer(state: CombatState, action: CombatAction): CombatS
         closedTurn: null,
         // Um character_hp_changed perdido na queda não volta: o REST rebuscado é a base.
         hp: {},
+        clock: p.clock && !isStaleClock(state, p.clock)
+          ? { ...state.clock, value: p.clock, receivedAt: stampOf(action).receivedAt }
+          : state.clock,
       };
     }
+
+    case "clock_changed": {
+      const { clock, change } = action.payload;
+      // O servidor manda o relógio por duas vias sem garantia de ordem: seq menor é velho.
+      if (isStaleClock(state, clock)) return state;
+      return {
+        ...state,
+        clock: {
+          value: clock,
+          receivedAt: stampOf(action).receivedAt,
+          lastChange: change,
+          changeSeq: state.clock.changeSeq + 1,
+        },
+      };
+    }
+
+    case "combat_summary":
+      return { ...state, combatSummary: { ...action.payload, hiatuses: action.payload.hiatuses ?? [] } };
+
+    case "match_ended":
+      return { ...state, matchEnded: action.payload };
 
     case "bars_updated":
       return { ...state, bars: acceptBars(state, action.payload) };
@@ -559,4 +596,9 @@ export function pendingMoves(declared: DeclaredAction[]): Array<DeclaredAction &
     (d): d is DeclaredAction & { move: NonNullable<DeclaredAction["move"]> } =>
       !!d.move && d.status !== "open",
   );
+}
+
+function isStaleClock(state: CombatState, incoming: ClockState): boolean {
+  const current = state.clock.value;
+  return current !== null && incoming.seq < current.seq;
 }

@@ -35,3 +35,18 @@ describe("combatErrorText", () => {
     expect(combatErrorText("game_error", "algo novo", "cancel_action")).toBe("Não foi possível cancelar a ação: algo novo");
   });
 });
+
+describe("combatErrorText: story clock", () => {
+  it.each([
+    ["clock_not_set", "Defina a hora da partida antes."],
+    ["clock_already_set", "A hora inicial já foi definida."],
+    ["clock_below_limit", "Não dá para voltar antes do limite do relógio."],
+    ["clock_long_skip_unconfirmed", "Confirme o avanço de mais de 2 dias."],
+    ["clock_play_in_race", "No turno disputado, cada round vale 1 segundo: o tempo real fica desligado."],
+    ["clock_already_running", "O tempo real já está ligado."],
+    ["match_in_battle", "Encerre o combate antes de encerrar a partida."],
+    ["not_battle_scene", "A cena atual não é de combate."],
+  ])("%s has Portuguese copy", (code, text) => {
+    expect(combatErrorText(code, "")).toBe(text);
+  });
+});
