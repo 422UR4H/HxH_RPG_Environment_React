@@ -1823,4 +1823,47 @@ describe("GameMasterPage", () => {
       await vi.waitFor(() => expect(ws2.sent("watch_piece_view")).toContainEqual({ pieceId: "piece-npc1" }));
     });
   });
+  describe("hora inicial e aviso de tempo real", () => {
+    const clockState = (over: Record<string, unknown>) => ({
+      storyAt: null, running: false, limitAt: null, limitReason: "", seq: 1, ...over,
+    });
+    const fullState = (ws: FakeWS, clock: unknown) =>
+      act(() => ws.emit("match_full_state", { roundMode: "", clock, bars: { seq: 0, prices: null, characters: null, order: null } }));
+
+    it("o diálogo da hora inicial reaparece num novo estado completo ainda sem hora e some com a hora", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      act(() => ws.onopen?.());
+      fullState(ws, clockState({ seq: 1 }));
+      const dialog = await screen.findByRole("dialog", { name: "Que horas são no início da partida?" });
+      await user.keyboard("{Escape}");
+      expect(dialog).toBeInTheDocument();
+      // Reconexão/recarga: o servidor ainda não tem hora, o diálogo continua.
+      fullState(ws, clockState({ seq: 2 }));
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+      await user.keyboard("0930");
+      await user.click(screen.getByRole("button", { name: "Começar" }));
+      expect(ws.sent("set_clock_start")).toContainEqual({ time: "09:30:00" });
+      // Enviou, mas só o servidor tira o diálogo.
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+      fullState(ws, clockState({ seq: 3, storyAt: "2000-01-01T09:30:00" }));
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
+
+    it("avisa o tempo real ligado a cada 5 min", async () => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date("2026-01-01T10:00:00Z"));
+      try {
+        renderMasterPage();
+        const ws = await waitForSocket();
+        act(() => ws.onopen?.());
+        fullState(ws, clockState({ seq: 1, storyAt: "2000-01-01T09:00:00", running: true }));
+        expect(screen.queryByText(/Tempo real ligado/)).toBeNull();
+        vi.setSystemTime(new Date("2026-01-01T10:05:01Z"));
+        expect(await screen.findByText("Tempo real ligado há 5 min", {}, { timeout: 3000 })).toBeInTheDocument();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  });
 });

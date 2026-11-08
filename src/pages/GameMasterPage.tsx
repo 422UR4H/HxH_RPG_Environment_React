@@ -26,6 +26,9 @@ import AsideTabs from "../features/match/combat/AsideTabs";
 import GeneralBar from "../features/match/combat/GeneralBar";
 import ClockPanel from "../features/match/clock/ClockPanel";
 import ClockPill from "../features/match/clock/ClockPill";
+import ClockNotice from "../features/match/clock/ClockNotice";
+import StartTimeDialog from "../features/match/clock/StartTimeDialog";
+import { useMatchDetails } from "../hooks/useMatchDetails";
 import { useStoryClock } from "../features/match/clock/useStoryClock";
 import OwnBars from "../features/match/combat/OwnBars";
 import EventStream from "../features/match/combat/EventStream";
@@ -107,6 +110,11 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   const clock = useStoryClock(state.clock, { escalate: true });
   const [clockOpen, setClockOpen] = useState(false);
   const clockAnchorRef = useRef<HTMLDivElement | null>(null);
+  // Sem hora inicial a partida não anda: o diálogo é obrigatório e só some quando o servidor
+  // manda um `storyAt` (estado completo ou clock_changed) — por isso não há flag local.
+  const { data: matchDetails } = useMatchDetails(token, matchId);
+  const startTimePending = state.clock.value?.storyAt === null;
+  const startTimeError = startTimePending && state.lastError?.sentType === "set_clock_start" ? state.lastError : null;
   const gridKind = map?.grid.kind ?? "square";
 
   const { data: catalogue } = useCombatCatalogue(token, actorId);
@@ -830,8 +838,14 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
             />
             <StageNotices>
               <MatchErrorBanner
-                error={state.lastError?.code === "npc_already_in_match" ? null : state.lastError}
+                error={
+                  state.lastError?.code === "npc_already_in_match" || startTimeError ? null : state.lastError
+                }
                 onDismiss={combat.dismissError}
+              />
+              <ClockNotice
+                text={`Tempo real ligado há ${Math.floor(clock.realElapsedSeconds / 60)} min`}
+                noticeKey={clock.alertKey}
               />
               <LostDeclaredNotice
                 count={state.lostDeclared.length}
@@ -839,6 +853,13 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                 onDismiss={combat.dismissLostDeclared}
               />
             </StageNotices>
+            {startTimePending && (
+              <StartTimeDialog
+                storyStartAt={matchDetails?.storyStartAt}
+                error={startTimeError}
+                onStart={(time) => combat.send.setClockStart(time)}
+              />
+            )}
             {map && fallPicking && choosingFall && (
               <MapPickConfirm
                 prompt={`${verb} na casa onde ${nameOf(choosingFall)} cai.`}
