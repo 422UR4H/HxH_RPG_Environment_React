@@ -115,6 +115,10 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   const { data: matchDetails } = useMatchDetails(token, matchId);
   const startTimePending = state.clock.value?.storyAt === null;
   const startTimeError = startTimePending && state.lastError?.sentType === "set_clock_start" ? state.lastError : null;
+  // Duplo clique em "Começar": o 2º envio recusa com clock_already_set depois de o 1º ter dado
+  // certo — não é erro para o mestre.
+  const staleClockStartError =
+    !startTimePending && state.lastError?.sentType === "set_clock_start" && state.lastError.code === "clock_already_set";
   const gridKind = map?.grid.kind ?? "square";
 
   const { data: catalogue } = useCombatCatalogue(token, actorId);
@@ -839,7 +843,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
             <StageNotices>
               <MatchErrorBanner
                 error={
-                  state.lastError?.code === "npc_already_in_match" || startTimeError ? null : state.lastError
+                  state.lastError?.code === "npc_already_in_match" || startTimeError || staleClockStartError ? null : state.lastError
                 }
                 onDismiss={combat.dismissError}
               />

@@ -57,4 +57,26 @@ describe("StartTimeDialog", () => {
     rerender(<StartTimeDialog storyStartAt="2000-01-01" onStart={onStart} error={null} />);
     expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
+
+  it("ignores a double click until the server answers with an error", async () => {
+    const { user, onStart, rerender } = setup();
+    const btn = screen.getByRole("button", { name: "Começar" });
+    await user.dblClick(btn);
+    expect(onStart).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("button", { name: "Começando…" })).toHaveAttribute("aria-disabled", "true");
+    rerender(
+      <StartTimeDialog storyStartAt="2000-01-01" onStart={onStart} error={{ code: "invalid_payload", message: "", sentType: "set_clock_start", at: 2 }} />,
+    );
+    await user.click(screen.getByRole("button", { name: "Começar" }));
+    expect(onStart).toHaveBeenCalledTimes(2);
+  });
+
+  it("traps Tab inside the dialog", async () => {
+    const { user } = setup();
+    screen.getByRole("button", { name: "Começar" }).focus();
+    await user.tab();
+    expect(screen.getByLabelText("Horas")).toHaveFocus();
+    await user.tab({ shift: true });
+    expect(screen.getByRole("button", { name: "Começar" })).toHaveFocus();
+  });
 });

@@ -1850,6 +1850,19 @@ describe("GameMasterPage", () => {
       expect(screen.queryByRole("dialog")).toBeNull();
     });
 
+    it("duplo clique em Começar: o clock_already_set do 2º envio não aparece no banner", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      act(() => ws.onopen?.());
+      fullState(ws, clockState({ seq: 1 }));
+      await screen.findByRole("dialog");
+      await user.dblClick(screen.getByRole("button", { name: "Começar" }));
+      expect(ws.sent("set_clock_start")).toHaveLength(1);
+      fullState(ws, clockState({ seq: 2, storyAt: "2000-01-01T00:00:00" }));
+      act(() => ws.emit("error", { code: "clock_already_set", message: "", sentType: "set_clock_start" }));
+      expect(screen.queryByText("A hora inicial já foi definida.", { exact: false })).toBeNull();
+    });
+
     it("avisa o tempo real ligado a cada 5 min", async () => {
       vi.useFakeTimers({ toFake: ["Date"] });
       vi.setSystemTime(new Date("2026-01-01T10:00:00Z"));
