@@ -70,11 +70,30 @@ describe("useStoryClock", () => {
     expect(result.current.phase).toBe("idle");
   });
 
-  it("cleans the interval on unmount", () => {
+  it("cleans the timer on unmount after ticking", () => {
     const { unmount } = setup(clock());
+    advance(1500);
     expect(vi.getTimerCount()).toBeGreaterThan(0);
     unmount();
     expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("cleans the timer when it pauses after ticking", () => {
+    const { rerender } = setup(clock());
+    advance(1500);
+    expect(vi.getTimerCount()).toBeGreaterThan(0);
+    rerender({
+      c: clock({ value: value({ running: false, seq: 2 }), receivedAt: T0 + 1500, lastChange: { kind: "pause" }, changeSeq: 1 }),
+      e: true,
+    });
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("does not drift over a long run", () => {
+    vi.setSystemTime(T0 + 300);
+    const { result } = setup(clock());
+    advance(3600 * 1000 - 300);
+    expect(result.current.now).toBe("2000-01-01T09:30:00");
   });
 
   it("resumes from the server value on a reconnect and keeps the phase", () => {
@@ -148,13 +167,16 @@ describe("useStoryClock", () => {
       const { result } = setup(clock({ lastChange: playChange, changeSeq: 1 }));
       advance(5000);
       expect(result.current.phase).toBe("running");
+      expect(result.current.pulseKey).toBe(0);
       advance(5000); // 10 s
       expect(result.current.phase).toBe("pulse");
+      expect(result.current.pulseKey).toBe(1);
       const key10 = result.current.pulseKey;
       advance(1000);
       expect(result.current.phase).toBe("running");
       advance(9000); // 20 s
       expect(result.current.phase).toBe("pulse");
+      expect(result.current.pulseKey).toBe(2);
       expect(result.current.pulseKey).toBeGreaterThan(key10);
       advance(40000); // 60 s
       expect(result.current.phase).toBe("strongPulse");
@@ -163,10 +185,13 @@ describe("useStoryClock", () => {
       advance(239000); // 300 s
       expect(result.current.phase).toBe("strongPulse");
       expect(result.current.alertKey).toBe(1);
+      expect(result.current.pulseKey).toBe(30);
       advance(1000); // 301 s
       expect(result.current.phase).toBe("alert");
+      expect(result.current.pulseKey).toBe(30);
       advance(9000); // 310 s
       expect(result.current.phase).toBe("pulse");
+      expect(result.current.pulseKey).toBe(31);
       advance(1000);
       expect(result.current.phase).toBe("alert");
       advance(289000); // 600 s

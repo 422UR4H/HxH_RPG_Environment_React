@@ -55,18 +55,19 @@ export function useStoryClock(
 
   useEffect(() => {
     if (!running) return;
-    // Alinha os ticks aos segundos inteiros de `receivedAt`.
-    const offset = (Date.now() - receivedAt) % 1000;
-    const first = offset <= 0 ? 1000 + offset : 1000 - offset;
-    let interval: ReturnType<typeof setInterval> | undefined;
-    const timeout = setTimeout(() => {
-      setTick(Date.now());
-      interval = setInterval(() => setTick(Date.now()), 1000);
-    }, first);
-    return () => {
-      clearTimeout(timeout);
-      if (interval !== undefined) clearInterval(interval);
+    // Cada tick reagenda o próximo para o segundo inteiro seguinte de `receivedAt`
+    // (sem deriva em partidas longas).
+    let timeout: ReturnType<typeof setTimeout>;
+    const schedule = () => {
+      const offset = (Date.now() - receivedAt) % 1000;
+      const delay = offset <= 0 ? 1000 + offset : 1000 - offset;
+      timeout = setTimeout(() => {
+        setTick(Date.now());
+        schedule();
+      }, delay);
     };
+    schedule();
+    return () => clearTimeout(timeout);
   }, [running, receivedAt]);
 
   const clockNow = Math.max(tick, receivedAt);
