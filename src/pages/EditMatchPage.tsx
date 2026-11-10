@@ -8,6 +8,13 @@ import { useMatchDetails } from "../hooks/useMatchDetails";
 import { useUpdateMatch } from "../hooks/useUpdateMatch";
 import { isApiError } from "../services/httpClient";
 import { getMatchValidationMessage } from "../features/match/matchErrorMessages";
+import {
+  MATCH_TITLE_TOO_SHORT,
+  sessionDayBounds,
+  sessionTimeError,
+} from "../features/match/matchFieldRules";
+import { MATCH_LIMITS } from "../constants/fieldLimits";
+import useFieldValidation, { focusField } from "../hooks/useFieldValidation";
 import CreateFormTemplate from "../components/templates/CreateFormTemplate";
 import FormField from "../components/molecules/FormField";
 import FormRow from "../components/molecules/FormRow";
@@ -19,7 +26,6 @@ import UpcomingRulesSidebar from "../components/organisms/UpcomingRulesSidebar";
 import { PageLoading, PageError, PageNotFound } from "../components/templates/PageState";
 import { getApiErrorDetail } from "../utils/apiError";
 import { instantToLocalInput, localInputToInstant } from "../utils/date";
-import { incompleteInputMessage, missingRequiredMessage } from "../utils/requiredFields";
 
 type MatchFormData = {
   title: string;
@@ -91,6 +97,25 @@ export default function EditMatchPage() {
 
   const { mutate: updateMatch, isPending: isSubmitting } = useUpdateMatch(token, matchId);
 
+  const sessionBounds = sessionDayBounds();
+  // A data da história não é conferida contra a campanha aqui (a página não a carrega): o back responde.
+  const { errorFor, noticeFor, touch, validateAll } = useFieldValidation({
+    title: {
+      value: form.title,
+      required: true,
+      min: MATCH_LIMITS.title.min,
+      minMessage: MATCH_TITLE_TOO_SHORT,
+      max: MATCH_LIMITS.title.max,
+    },
+    briefInitialDescription: {
+      value: form.briefInitialDescription,
+      required: true,
+      max: MATCH_LIMITS.briefInitialDescription.max,
+    },
+    gameScheduledAt: { value: form.gameScheduledAt, required: true, validate: sessionTimeError },
+    storyStartAt: { value: form.storyStartAt, required: true },
+  });
+
   useDocumentTitle("Editar", match?.title);
 
   if (!token) return <Navigate to="/" replace />;
@@ -123,16 +148,9 @@ export default function EditMatchPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const missing =
-      incompleteInputMessage(e.currentTarget as HTMLFormElement) ??
-      missingRequiredMessage([
-        { label: "Título da Partida", value: form.title },
-        { label: "Descrição Breve", value: form.briefInitialDescription },
-        { label: "Data e Hora da Sessão", value: form.gameScheduledAt },
-        { label: "Data de Início na História", value: form.storyStartAt },
-      ]);
-    if (missing) {
-      setError(missing);
+    const firstInvalid = validateAll();
+    if (firstInvalid) {
+      focusField(firstInvalid);
       return;
     }
     setError(null);
@@ -163,24 +181,38 @@ export default function EditMatchPage() {
         <UpcomingRulesSidebar scope="match" />
       }
     >
-      <FormField label="Título da Partida" htmlFor="title">
+      <FormField
+        label="Título da Partida"
+        htmlFor="title"
+        error={errorFor("title")}
+        notice={noticeFor("title")}
+      >
         <FormInput
           id="title"
           name="title"
           value={form.title}
           onChange={handleForm}
+          onBlur={() => touch("title")}
+          maxLength={MATCH_LIMITS.title.max}
           placeholder="Título da partida"
           autoComplete="off"
           required
         />
       </FormField>
 
-      <FormField label="Descrição Breve" htmlFor="briefInitialDescription">
+      <FormField
+        label="Descrição Breve"
+        htmlFor="briefInitialDescription"
+        error={errorFor("briefInitialDescription")}
+        notice={noticeFor("briefInitialDescription")}
+      >
         <FormTextArea
           id="briefInitialDescription"
           name="briefInitialDescription"
           value={form.briefInitialDescription}
           onChange={handleForm}
+          onBlur={() => touch("briefInitialDescription")}
+          maxLength={MATCH_LIMITS.briefInitialDescription.max}
           placeholder="Uma breve descrição inicial da partida"
           $resize="none"
           rows={2}
@@ -203,13 +235,19 @@ export default function EditMatchPage() {
         <FormField
           label="Data e Hora da Sessão"
           htmlFor="gameScheduledAt"
+          error={errorFor("gameScheduledAt")}
           helpText="Esta é a data e hora real em que a sessão de jogo acontecerá"
         >
           <DateField
             id="gameScheduledAt"
             withTime
             value={form.gameScheduledAt}
-            onChange={(value) => setForm((prev) => ({ ...prev, gameScheduledAt: value }))}
+            onChange={(value) => {
+              setForm((prev) => ({ ...prev, gameScheduledAt: value }));
+              touch("gameScheduledAt");
+            }}
+            min={sessionBounds.min}
+            max={sessionBounds.max}
             required
           />
         </FormField>
@@ -217,12 +255,16 @@ export default function EditMatchPage() {
         <FormField
           label="Data de Início na História"
           htmlFor="storyStartAt"
+          error={errorFor("storyStartAt")}
           helpText="Esta é a data dentro do universo da história"
         >
           <DateField
             id="storyStartAt"
             value={form.storyStartAt}
-            onChange={(value) => setForm((prev) => ({ ...prev, storyStartAt: value }))}
+            onChange={(value) => {
+              setForm((prev) => ({ ...prev, storyStartAt: value }));
+              touch("storyStartAt");
+            }}
             required
           />
         </FormField>

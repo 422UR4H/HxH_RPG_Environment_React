@@ -80,18 +80,52 @@ describe("CreateCampaignPage", () => {
     expect(screen.getByRole("heading", { name: /Nen & Habilidades/i })).toBeInTheDocument();
   });
 
-  it("mostra erro de validação se Nome e Descrição Breve estão vazios", async () => {
+  it("shows required errors under the empty fields, focuses the first and skips the API", async () => {
+    let called = false;
+    server.use(
+      http.post(`${baseUrl}/campaigns`, () => {
+        called = true;
+        return HttpResponse.json({ campaign: { uuid: "x" } }, { status: 201 });
+      }),
+    );
     renderPage();
-    // The submit button wraps a <label> with text "Criar Campanha".
-    // Dispatch submit on the form itself to bypass native HTML5 required validation.
-    const submitButton = screen.getByRole("button", { name: /Criar Campanha/i });
-    const form = submitButton.closest("form")!;
-    form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
-    await waitFor(() => {
-      expect(
-        screen.getByText("Preencha os campos obrigatórios: Nome da Campanha e Descrição Breve."),
-      ).toBeInTheDocument();
-    });
+    const u = userEvent.setup();
+    const name = screen.getByLabelText("Nome da Campanha");
+    await u.click(screen.getByRole("button", { name: /Criar Campanha/i }));
+    expect(await screen.findAllByText("Campo obrigatório.")).toHaveLength(2);
+    expect(name).toHaveFocus();
+    expect(name).toHaveAttribute("aria-invalid", "true");
+    expect(called).toBe(false);
+  });
+
+  it("shows the minimum error for the name on blur and clears it when valid", async () => {
+    renderPage();
+    const u = userEvent.setup();
+    const name = screen.getByLabelText("Nome da Campanha");
+    await u.type(name, "abc");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    await u.tab();
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "O nome deve ter pelo menos 5 caracteres.",
+    );
+    await u.type(name, "de");
+    expect(screen.queryByText("O nome deve ter pelo menos 5 caracteres.")).not.toBeInTheDocument();
+  });
+
+  it("shows the limit note at 32 characters for the name and at 255 for the call link", async () => {
+    renderPage();
+    const u = userEvent.setup();
+    await u.type(screen.getByLabelText("Nome da Campanha"), "a".repeat(40));
+    expect(screen.getByLabelText("Nome da Campanha")).toHaveValue("a".repeat(32));
+    expect(screen.getByRole("status")).toHaveTextContent("Limite de 32 caracteres atingido.");
+    const link = screen.getByLabelText(/Link da Chamada/i);
+    expect(link).toHaveAttribute("maxLength", "255");
+    await u.click(link);
+    await u.paste("b".repeat(300));
+    expect(link).toHaveValue("b".repeat(255));
+    expect(screen.getAllByRole("status").map((n) => n.textContent)).toContain(
+      "Limite de 255 caracteres atingido.",
+    );
   });
 
   describe("required and optional fields (FOR-06)", () => {
@@ -110,9 +144,8 @@ describe("CreateCampaignPage", () => {
       expect(submit.closest("form")).toHaveAttribute("novalidate");
       await u.type(screen.getByLabelText("Nome da Campanha"), "Yorknew");
       await u.click(submit);
-      expect(
-        await screen.findByText("Preencha o campo obrigatório: Descrição Breve."),
-      ).toBeInTheDocument();
+      expect(await screen.findByRole("alert")).toHaveTextContent("Campo obrigatório.");
+      expect(screen.getByLabelText("Descrição Breve")).toHaveFocus();
     });
   });
 
@@ -140,13 +173,18 @@ describe("CreateCampaignPage", () => {
     );
     renderPage();
     const u = userEvent.setup();
-    await u.type(screen.getByLabelText(/Nome da Campanha/i), "Nova");
+    await u.type(screen.getByLabelText(/Nome da Campanha/i), "Nova Campanha");
     await u.type(screen.getByLabelText(/Descrição Breve/i), "Brief");
     await u.click(screen.getByRole("button", { name: /Criar Campanha/i }));
     expect(
       await screen.findByText("Erro ao criar campanha. Tente novamente.", {}, { timeout: 5000 }),
     ).toBeInTheDocument();
     expect(screen.queryByText(/Server explodiu/i)).not.toBeInTheDocument();
+    const banner = screen.getByText("Erro ao criar campanha. Tente novamente.");
+    expect(
+      banner.compareDocumentPosition(screen.getByRole("button", { name: "Cancelar" })) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it("traduz o 403 do limite de campanhas", async () => {
@@ -160,7 +198,7 @@ describe("CreateCampaignPage", () => {
     );
     renderPage();
     const u = userEvent.setup();
-    await u.type(screen.getByLabelText(/Nome da Campanha/i), "Nova");
+    await u.type(screen.getByLabelText(/Nome da Campanha/i), "Nova Campanha");
     await u.type(screen.getByLabelText(/Descrição Breve/i), "Brief");
     await u.click(screen.getByRole("button", { name: /Criar Campanha/i }));
     expect(await screen.findByText("Você atingiu o limite de 10 campanhas.")).toBeInTheDocument();

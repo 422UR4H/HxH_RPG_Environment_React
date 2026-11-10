@@ -25,6 +25,7 @@ interface DateFieldProps {
   min?: string;
   max?: string;
   "aria-describedby"?: string;
+  "aria-invalid"?: boolean;
 }
 
 const DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})/;
@@ -63,6 +64,7 @@ export default function DateField({
   min,
   max,
   "aria-describedby": describedBy,
+  "aria-invalid": invalid,
 }: DateFieldProps) {
   const [open, setOpen] = useState(false);
   const [draftTime, setDraftTime] = useState({ hour: "00", minute: "00" });
@@ -166,6 +168,7 @@ export default function DateField({
         aria-controls={open ? dialogId : undefined}
         aria-required={required || undefined}
         aria-describedby={describedBy}
+        aria-invalid={invalid}
         onClick={() => setOpen((o) => !o)}
       >
         {label ? <span>{label}</span> : <Placeholder>dd/mm/aaaa</Placeholder>}

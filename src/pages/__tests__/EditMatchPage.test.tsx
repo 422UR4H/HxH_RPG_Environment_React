@@ -24,6 +24,7 @@ function setup() {
           ...matchApiFixture,
           masterUuid: masterUserFixture.user.uuid,
           description: "Descrição atual",
+          gameScheduledAt: new Date(Date.now() + 3 * 24 * 3600 * 1000).toISOString(),
         },
       }),
     ),

@@ -35,18 +35,21 @@ describe("validateRegister", () => {
     );
   });
 
-  it("register: nick counts UTF-8 bytes like the server", () => {
-    const ok = "Joãozinho Silva Jr.";
-    expect(ok).toHaveLength(19);
-    expect(byteLength(ok)).toBe(20);
+  it("register: nick counts characters, not bytes", () => {
+    const ok = "ãããããããããããããããããããã"; // 20 caracteres, 40 bytes
+    expect(byteLength(ok)).toBe(40);
     expect(validateRegister({ ...validRegister, nick: ok }).nick).toBeUndefined();
 
-    const over = `${ok}ã`;
-    expect(over).toHaveLength(20);
-    expect(byteLength(over)).toBe(22);
-    expect(validateRegister({ ...validRegister, nick: over }).nick).toBe(
+    expect(validateRegister({ ...validRegister, nick: `${ok}ã` }).nick).toBe(
       "O nick deve ter entre 3 e 20 caracteres.",
     );
+    expect(validateRegister({ ...validRegister, nick: "ab" }).nick).toBe(
+      "O nick deve ter entre 3 e 20 caracteres.",
+    );
+  });
+
+  it("register: an emoji counts as one character in the nick", () => {
+    expect(validateRegister({ ...validRegister, nick: "a😀b" }).nick).toBeUndefined();
   });
 
   it("register: password under 8 and over 64 are rejected", () => {

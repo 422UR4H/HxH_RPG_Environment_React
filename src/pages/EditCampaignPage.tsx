@@ -19,7 +19,8 @@ import UpcomingRulesSidebar from "../components/organisms/UpcomingRulesSidebar";
 import { PageLoading, PageError, PageNotFound } from "../components/templates/PageState";
 import { getApiErrorDetail } from "../utils/apiError";
 import { toDateTimeLocalValue } from "../utils/date";
-import { incompleteInputMessage, missingRequiredMessage } from "../utils/requiredFields";
+import { CAMPAIGN_LIMITS } from "../constants/fieldLimits";
+import useFieldValidation, { focusField } from "../hooks/useFieldValidation";
 
 type CampaignEditFormData = {
   name: string;
@@ -89,6 +90,43 @@ export default function EditCampaignPage() {
 
   const { mutate: updateCampaign, isPending: isSubmitting } = useUpdateCampaign(token, id);
 
+  // Com partida iniciada, nome e início da história ficam travados (não vão no envio nem são conferidos).
+  const hasStartedMatch = campaign?.matches?.some((m) => !!m.gameStartAt) ?? false;
+
+  // História corrente (mesmas regras do back): não antes do início da história (o do formulário,
+  // se ainda editável) e não antes do valor já gravado.
+  const storyCurrentError = (value: string): string | null => {
+    if (!campaign) return null;
+    const newDate = new Date(`${value}:00Z`);
+    const start = hasStartedMatch ? campaign.storyStartAt : form.storyStartAt || campaign.storyStartAt;
+    if (newDate < new Date(start)) {
+      return "A data corrente da história não pode ser anterior à data de início da história.";
+    }
+    if (campaign.storyCurrentAt && newDate < new Date(campaign.storyCurrentAt)) {
+      return "A data corrente da história não pode ser anterior ao valor atual.";
+    }
+    return null;
+  };
+
+  const { errorFor, noticeFor, touch, validateAll } = useFieldValidation({
+    name: {
+      value: form.name,
+      required: true,
+      min: CAMPAIGN_LIMITS.name.min,
+      minMessage: `O nome deve ter pelo menos ${CAMPAIGN_LIMITS.name.min} caracteres.`,
+      max: CAMPAIGN_LIMITS.name.max,
+      disabled: hasStartedMatch,
+    },
+    briefInitialDescription: {
+      value: form.briefInitialDescription,
+      required: true,
+      max: CAMPAIGN_LIMITS.briefInitialDescription.max,
+    },
+    callLink: { value: form.callLink, max: CAMPAIGN_LIMITS.callLink.max },
+    storyStartAt: { value: form.storyStartAt, required: true, disabled: hasStartedMatch },
+    storyCurrentAt: { value: form.storyCurrentAt, validate: storyCurrentError },
+  });
+
   useDocumentTitle("Editar", campaign?.name);
 
   if (!token) return <Navigate to="/" replace />;
@@ -111,32 +149,12 @@ export default function EditCampaignPage() {
   const isMaster = campaign.masterUuid === user?.uuid;
   if (!isMaster) return <Navigate to={`/campaigns/${id}`} replace />;
 
-  const hasStartedMatch = campaign.matches?.some((m) => !!m.gameStartAt) ?? false;
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Com partida iniciada, nome e início da história ficam travados (não vão no envio).
-    const missing =
-      incompleteInputMessage(e.currentTarget as HTMLFormElement) ??
-      missingRequiredMessage([
-        ...(hasStartedMatch ? [] : [{ label: "Nome da Campanha", value: form.name }]),
-        { label: "Descrição Breve", value: form.briefInitialDescription },
-        ...(hasStartedMatch ? [] : [{ label: "Data de Início da História", value: form.storyStartAt }]),
-      ]);
-    if (missing) {
-      setError(missing);
+    const firstInvalid = validateAll();
+    if (firstInvalid) {
+      focusField(firstInvalid);
       return;
-    }
-    if (form.storyCurrentAt) {
-      const newDate = new Date(`${form.storyCurrentAt}:00Z`);
-      if (newDate < new Date(campaign.storyStartAt)) {
-        setError("A data corrente da história não pode ser anterior à data de início da história.");
-        return;
-      }
-      if (campaign.storyCurrentAt && newDate < new Date(campaign.storyCurrentAt)) {
-        setError("A data corrente da história não pode ser anterior ao valor atual.");
-        return;
-      }
     }
     setError(null);
     const campaignData: Record<string, unknown> = {
@@ -171,12 +189,19 @@ export default function EditCampaignPage() {
         <UpcomingRulesSidebar scope="campaign" />
       }
     >
-      <FormField label="Nome da Campanha" htmlFor="name">
+      <FormField
+        label="Nome da Campanha"
+        htmlFor="name"
+        error={errorFor("name")}
+        notice={noticeFor("name")}
+      >
         <FormInput
           id="name"
           name="name"
           value={form.name}
           onChange={handleForm}
+          onBlur={() => touch("name")}
+          maxLength={CAMPAIGN_LIMITS.name.max}
           placeholder="Nome da campanha"
           autoComplete="off"
           disabled={hasStartedMatch}
@@ -184,12 +209,19 @@ export default function EditCampaignPage() {
         />
       </FormField>
 
-      <FormField label="Descrição Breve" htmlFor="briefInitialDescription">
+      <FormField
+        label="Descrição Breve"
+        htmlFor="briefInitialDescription"
+        error={errorFor("briefInitialDescription")}
+        notice={noticeFor("briefInitialDescription")}
+      >
         <FormTextArea
           id="briefInitialDescription"
           name="briefInitialDescription"
           value={form.briefInitialDescription}
           onChange={handleForm}
+          onBlur={() => touch("briefInitialDescription")}
+          maxLength={CAMPAIGN_LIMITS.briefInitialDescription.max}
           $resize="none"
           rows={2}
           required
@@ -206,22 +238,33 @@ export default function EditCampaignPage() {
         />
       </FormField>
 
-      <FormField label="Link da Chamada" htmlFor="callLink" optional>
+      <FormField
+        label="Link da Chamada"
+        htmlFor="callLink"
+        optional
+        error={errorFor("callLink")}
+        notice={noticeFor("callLink")}
+      >
         <FormInput
           id="callLink"
           name="callLink"
           value={form.callLink}
           onChange={handleForm}
+          onBlur={() => touch("callLink")}
+          maxLength={CAMPAIGN_LIMITS.callLink.max}
           autoComplete="off"
         />
       </FormField>
 
       <FormRow>
-        <FormField label="Início da História" htmlFor="storyStartAt">
+        <FormField label="Início da História" htmlFor="storyStartAt" error={errorFor("storyStartAt")}>
           <DateField
             id="storyStartAt"
             value={form.storyStartAt}
-            onChange={(value) => setForm((prev) => ({ ...prev, storyStartAt: value }))}
+            onChange={(value) => {
+              setForm((prev) => ({ ...prev, storyStartAt: value }));
+              touch("storyStartAt");
+            }}
             disabled={hasStartedMatch}
             required={!hasStartedMatch}
           />
@@ -232,12 +275,16 @@ export default function EditCampaignPage() {
           htmlFor="storyCurrentAt"
           helpText="Data atual dentro do universo da campanha"
           optional
+          error={errorFor("storyCurrentAt")}
         >
           <DateField
             id="storyCurrentAt"
             withTime
             value={form.storyCurrentAt}
-            onChange={(value) => setForm((prev) => ({ ...prev, storyCurrentAt: value }))}
+            onChange={(value) => {
+              setForm((prev) => ({ ...prev, storyCurrentAt: value }));
+              touch("storyCurrentAt");
+            }}
             min={
               campaign.storyCurrentAt
                 ? toDateTimeLocalValue(campaign.storyCurrentAt)

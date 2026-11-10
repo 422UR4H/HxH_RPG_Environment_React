@@ -15,6 +15,10 @@ const FormTextArea = styled.textarea<{ $resize?: string }>`
     outline: none;
     border-color: ${colors.brandAccent};
   }
+
+  &[aria-invalid="true"] {
+    border-color: ${colors.feedbackDangerText};
+  }
 `;
 
 export default FormTextArea;
