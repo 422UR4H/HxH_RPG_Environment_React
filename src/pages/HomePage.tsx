@@ -29,13 +29,23 @@ function HomePage() {
         <NavigationCard
           to="/charactersheets"
           title="Personagens"
-          description="Crie e gerencie suas fichas de personagem de jogador."
+          description={
+            <>
+              <strong>Jogador</strong>, entre aqui para criar e gerenciar suas fichas de
+              personagem!
+            </>
+          }
           bgImage={space}
         />
         <NavigationCard
           to="/campaigns"
           title="Campanhas"
-          description="Crie e gerencie campanhas e partidas como mestre."
+          description={
+            <>
+              <strong>Mestre</strong>, entre aqui para criar e gerenciar suas campanhas e
+              partidas!
+            </>
+          }
           bgImage={worldMap}
         />
       </Cards>

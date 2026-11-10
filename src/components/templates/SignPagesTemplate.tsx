@@ -14,13 +14,21 @@ export default function SignPagesTemplate({
   return (
     <StyledSignTemplates>
       <RisingClouds />
-      <div className="form-div">
-        <Logo />
-        {children}
+      <div className="sign-column">
+        <SignLogo />
+        <div className="form-div">{children}</div>
       </div>
     </StyledSignTemplates>
   );
 }
+
+// Mesma largura do cartão (a coluna a define): a logo fica sobre o fundo azul, acima dele.
+const SignLogo = styled(Logo)`
+  && {
+    width: 100%;
+    flex-shrink: 0;
+  }
+`;
 
 export const StyledSignTemplates = styled.div`
   background: ${gradients.signBg};
@@ -33,11 +41,20 @@ export const StyledSignTemplates = styled.div`
   min-height: 100dvh;
   padding: 30px;
 
+  .sign-column {
+    width: 100%;
+    max-width: 535px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+  }
+
   .form-div {
     /* O dourado do anel global some no branco do cartão. */
     --focus-ring: ${colors.actionHighlightOnLight};
     background-color: ${colors.textPrimary};
-    width: min(535px, 100vw);
+    width: 100%;
     border-radius: 24px;
     padding: 30px;
 
@@ -67,8 +84,11 @@ export const StyledSignTemplates = styled.div`
   @media (max-width: 480px) {
     padding: 16px;
 
+    .sign-column {
+      gap: 20px;
+    }
+
     .form-div {
-      width: 100%;
       padding: 24px 20px;
       border-radius: 16px;
     }

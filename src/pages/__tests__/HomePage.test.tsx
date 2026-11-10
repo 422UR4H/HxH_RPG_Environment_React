@@ -29,6 +29,20 @@ describe("HomePage", () => {
     );
   });
 
+  it("destaca o papel (Jogador/Mestre) em negrito dentro da descrição de cada card", () => {
+    renderHome();
+    const player = screen.getByText("Jogador");
+    const master = screen.getByText("Mestre");
+    expect(player.tagName).toBe("STRONG");
+    expect(master.tagName).toBe("STRONG");
+    expect(player.parentElement).toHaveTextContent(
+      "Jogador, entre aqui para criar e gerenciar suas fichas de personagem!",
+    );
+    expect(master.parentElement).toHaveTextContent(
+      "Mestre, entre aqui para criar e gerenciar suas campanhas e partidas!",
+    );
+  });
+
   it("sair limpa a sessão e volta para o login", async () => {
     renderHome();
     await userEvent.click(screen.getByRole("button", { name: /sair/i }));
