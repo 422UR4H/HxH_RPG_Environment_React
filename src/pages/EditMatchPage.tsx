@@ -14,13 +14,11 @@ import FormRow from "../components/molecules/FormRow";
 import FormCheckbox from "../components/molecules/FormCheckbox";
 import FormInput from "../components/ions/FormInput";
 import DateField from "../components/molecules/DateField";
-import TimeOfDayField from "../components/molecules/TimeOfDayField";
 import FormTextArea from "../components/ions/FormTextArea";
 import UpcomingRulesSidebar from "../components/organisms/UpcomingRulesSidebar";
 import { PageLoading, PageError, PageNotFound } from "../components/templates/PageState";
 import { getApiErrorDetail } from "../utils/apiError";
 import { toDateTimeLocalValue } from "../utils/date";
-import { normalizeTimeOfDay, timeOfDayMessage, toTimeOfDayValue } from "../utils/timeOfDay";
 import { incompleteInputMessage, missingRequiredMessage } from "../utils/requiredFields";
 
 type MatchFormData = {
@@ -30,7 +28,6 @@ type MatchFormData = {
   isPublic: boolean;
   gameScheduledAt: string;
   storyStartAt: string;
-  storyStartTime: string;
 };
 
 function getErrorMessage(err: unknown): string {
@@ -48,12 +45,6 @@ function getErrorMessage(err: unknown): string {
     );
   }
   return "Erro ao salvar partida. Tente novamente.";
-}
-
-/** Hora inicial a enviar: omitida se intacta, "" se o mestre apagou uma hora já definida. */
-function storyStartTimeToSend(formValue: string, saved: string | undefined): string | undefined {
-  if (formValue === toTimeOfDayValue(saved)) return undefined; // intacta (segundos salvos ficam como estão)
-  return formValue ? normalizeTimeOfDay(formValue) : "";
 }
 
 export default function EditMatchPage() {
@@ -82,7 +73,6 @@ export default function EditMatchPage() {
     isPublic: true,
     gameScheduledAt: "",
     storyStartAt: "",
-    storyStartTime: "",
   });
 
   useEffect(() => {
@@ -94,7 +84,6 @@ export default function EditMatchPage() {
         isPublic: match.isPublic,
         gameScheduledAt: toDateTimeLocalValue(match.gameScheduledAt),
         storyStartAt: match.storyStartAt,
-        storyStartTime: toTimeOfDayValue(match.storyStartTime),
       });
       setInitialized(true);
     }
@@ -146,13 +135,7 @@ export default function EditMatchPage() {
       setError(missing);
       return;
     }
-    const timeError = timeOfDayMessage(form.storyStartTime);
-    if (timeError) {
-      setError(timeError);
-      return;
-    }
     setError(null);
-    const storyStartTime = storyStartTimeToSend(form.storyStartTime, match.storyStartTime);
     const matchData = {
       title: form.title,
       briefInitialDescription: form.briefInitialDescription,
@@ -160,7 +143,6 @@ export default function EditMatchPage() {
       isPublic: form.isPublic,
       gameScheduledAt: `${form.gameScheduledAt}:00Z`,
       storyStartAt: form.storyStartAt,
-      ...(storyStartTime !== undefined ? { storyStartTime } : {}),
     };
     updateMatch(matchData, {
       onSuccess: () => navigate(-1),
@@ -244,19 +226,9 @@ export default function EditMatchPage() {
             required
           />
         </FormField>
-
-        <FormField
-          label="Hora na história"
-          htmlFor="storyStartTime"
-          helpText="Se ficar vazio, você informa a hora quando a partida começar."
-          optional
-        >
-          <TimeOfDayField
-            id="storyStartTime"
-            value={form.storyStartTime}
-            onChange={(value) => setForm((prev) => ({ ...prev, storyStartTime: value }))}
-          />
-        </FormField>
+        {/* TODO: hora de início na história (opcional) — o back já aceita `storyStartTime` e o
+            campo existe em components/molecules/TimeOfDayField.tsx, mas o visual será revisto com
+            o designer. Até lá o mestre informa a hora ao iniciar a partida, na mesa (/game). */}
       </FormRow>
 
       <FormCheckbox

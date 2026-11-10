@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { colors } from "../../../styles/tokens";
 import { breakpoints } from "../../../styles/breakpoints";
@@ -6,7 +6,7 @@ import type { Bar, BarsPayload, RoundMode } from "./combatMessages";
 import { BAR_ICONS, BAR_LABELS } from "./combatText";
 import CharacterBarsStrip from "./CharacterBarsStrip";
 import { barsRows, fmt, priceOf } from "./barsMath";
-import { CLOCK_PILL_OFFSET } from "../clock/clockLayout";
+import { GENERAL_BAR_HEIGHT_VAR } from "../clock/clockLayout";
 
 /**
  * A barra geral, flutuando sobre o mapa: de quem é a vez, quem age em seguida (maior `key`
@@ -48,8 +48,24 @@ export default function GeneralBar({
   const rows = barsRows(bars, roundMode);
   const hasCharacters = rows.length > 0;
 
+  // Publica a altura no palco: a pílula do relógio fica logo abaixo da barra, que muda de altura.
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  useLayoutEffect(() => {
+    const el = wrapperRef.current;
+    const stage = el?.parentElement;
+    if (!el || !stage) return;
+    const publish = () => stage.style.setProperty(GENERAL_BAR_HEIGHT_VAR, `${el.offsetHeight}px`);
+    publish();
+    const ro = new ResizeObserver(publish);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      stage.style.removeProperty(GENERAL_BAR_HEIGHT_VAR);
+    };
+  }, []);
+
   return (
-    <Wrapper aria-label="Barra geral">
+    <Wrapper ref={wrapperRef} aria-label="Barra geral">
       <TopRow>
         <Scroll>
           {openTurnActorId ? (
@@ -95,10 +111,10 @@ export default function GeneralBar({
   );
 }
 
-/** Logo abaixo da pílula do relógio, com o mesmo respiro de 8 px que ela tem do topo. */
+/** A primeira linha do palco; a pílula do relógio fica logo abaixo. */
 const Wrapper = styled.div`
   position: absolute;
-  top: ${CLOCK_PILL_OFFSET + 8}px;
+  top: 8px;
   left: 8px;
   right: 8px;
   z-index: 30;

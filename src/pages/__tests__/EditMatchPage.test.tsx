@@ -16,7 +16,7 @@ vi.mock("react-router-dom", async () => {
 
 const baseUrl = "http://localhost:5000";
 
-function setup(storyStartTime?: string) {
+function setup() {
   server.use(
     http.get(`${baseUrl}/matches/:id`, () =>
       HttpResponse.json({
@@ -24,7 +24,6 @@ function setup(storyStartTime?: string) {
           ...matchApiFixture,
           masterUuid: masterUserFixture.user.uuid,
           description: "Descrição atual",
-          storyStartTime,
         },
       }),
     ),
@@ -63,55 +62,5 @@ describe("EditMatchPage — empty description", () => {
     await u.click(screen.getByRole("button", { name: /Salvar/i }));
     await waitFor(() => expect(captured.body).toBeDefined());
     expect(captured.body).toMatchObject({ description: "Descrição atual" });
-  });
-});
-
-describe("EditMatchPage — story start time", () => {
-  beforeEach(() => mockNavigate.mockReset());
-
-  it("prefills hour and minute dropping the seconds", async () => {
-    setup("21:30:00");
-    expect(await screen.findByDisplayValue("21")).toBeInTheDocument();
-    expect(screen.getByLabelText("Minuto")).toHaveValue("30");
-  });
-
-  it("omits storyStartTime when untouched", async () => {
-    const captured = setup("21:30:00");
-    await screen.findByDisplayValue("21");
-    await userEvent.setup().click(screen.getByRole("button", { name: /Salvar/i }));
-    await waitFor(() => expect(captured.body).toBeDefined());
-    expect(captured.body).not.toHaveProperty("storyStartTime");
-  });
-
-  it("sends an empty string when a saved time is cleared", async () => {
-    const captured = setup("21:30:00");
-    const u = userEvent.setup();
-    await screen.findByDisplayValue("21");
-    await u.clear(screen.getByLabelText("Hora"));
-    await u.clear(screen.getByLabelText("Minuto"));
-    await u.click(screen.getByRole("button", { name: /Salvar/i }));
-    await waitFor(() => expect(captured.body).toBeDefined());
-    expect(captured.body).toMatchObject({ storyStartTime: "" });
-  });
-
-  it("sends the new time when changed", async () => {
-    const captured = setup();
-    const u = userEvent.setup();
-    await screen.findByDisplayValue("Descrição atual");
-    await u.type(screen.getByLabelText("Hora"), "07");
-    await u.type(screen.getByLabelText("Minuto"), "05");
-    await u.click(screen.getByRole("button", { name: /Salvar/i }));
-    await waitFor(() => expect(captured.body).toBeDefined());
-    expect(captured.body).toMatchObject({ storyStartTime: "07:05" });
-  });
-
-  it("blocks submit when only the minute is filled", async () => {
-    const captured = setup();
-    const u = userEvent.setup();
-    await screen.findByDisplayValue("Descrição atual");
-    await u.type(screen.getByLabelText("Minuto"), "30");
-    await u.click(screen.getByRole("button", { name: /Salvar/i }));
-    expect(await screen.findByText("Preencha hora e minuto.")).toBeInTheDocument();
-    expect(captured.body).toBeUndefined();
   });
 });

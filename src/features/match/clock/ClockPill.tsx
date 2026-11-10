@@ -3,7 +3,7 @@ import styled, { css, keyframes } from "styled-components";
 import StopwatchIcon from "../../../components/ions/StopwatchIcon";
 import { media } from "../../../styles/breakpoints";
 import { alpha, colors } from "../../../styles/tokens";
-import { CLOCK_PILL_HEIGHT, CLOCK_PILL_TOP, CLOCK_PILL_Z_INDEX } from "./clockLayout";
+import { CLOCK_PILL_HEIGHT, CLOCK_PILL_TOP_CSS, CLOCK_PILL_Z_INDEX } from "./clockLayout";
 import { formatDateBR, formatTime } from "./storyTime";
 import { ALERT_AT } from "./useStoryClock";
 import type { StoryClockView } from "./useStoryClock";
@@ -114,7 +114,7 @@ const ringStrongAlert = keyframes`
 
 const pill = css`
   position: absolute;
-  top: ${CLOCK_PILL_TOP}px;
+  top: ${CLOCK_PILL_TOP_CSS};
   left: 50%;
   transform: translateX(-50%);
   z-index: ${CLOCK_PILL_Z_INDEX};

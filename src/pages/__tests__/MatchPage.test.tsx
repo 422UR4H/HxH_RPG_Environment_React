@@ -1,7 +1,7 @@
 // src/pages/__tests__/MatchPage.test.tsx
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { http, HttpResponse } from "msw";
-import { screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Route, Routes } from "react-router-dom";
 import { server } from "../../test/server";
@@ -809,6 +809,23 @@ describe("MatchPage", () => {
       server.use(http.get(`${baseUrl}/matches/:id`, () => HttpResponse.json({ match: matchEndedApi() })));
       renderPage({ user: userFixture, state: { endedByMaster: true } });
       expect(await screen.findByText("A partida foi encerrada pelo mestre.")).toBeInTheDocument();
+    });
+
+    it("back goes to the campaign when arriving from the ended table (the /game entry was replaced)", async () => {
+      server.use(http.get(`${baseUrl}/matches/:id`, () => HttpResponse.json({ match: matchEndedApi() })));
+      renderPage({ user: userFixture, state: { endedByMaster: true } });
+      await screen.findByText("ENCERRADA");
+      fireEvent.click(screen.getByRole("button", { name: "Voltar" }));
+      await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/campaigns/campaign-1"));
+      expect(mockNavigate).not.toHaveBeenCalledWith(-1);
+    });
+
+    it("back keeps going one step back in history otherwise", async () => {
+      server.use(http.get(`${baseUrl}/matches/:id`, () => HttpResponse.json({ match: matchEndedApi() })));
+      renderPage({ user: userFixture });
+      await screen.findByText("ENCERRADA");
+      fireEvent.click(screen.getByRole("button", { name: "Voltar" }));
+      await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith(-1));
     });
 
     it("no notice without the router state", async () => {

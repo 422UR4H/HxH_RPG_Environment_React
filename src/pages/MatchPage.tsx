@@ -291,6 +291,9 @@ export default function MatchPage() {
     <>
       <DetailPageTemplate
         mainRef={mainContentRef}
+        // Quem chega aqui pelo fim da partida veio da /game, que foi substituída por esta página:
+        // a entrada anterior do histórico é esta mesma página, então o "Voltar" vai à campanha.
+        backTo={locationState?.endedByMaster ? campaignBack.to : undefined}
         leftSidebar={
           <MatchCharactersSidebar
             gameStarted={!!match.gameStartAt}

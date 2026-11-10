@@ -20,6 +20,8 @@ interface DetailPageTemplateProps {
   rightSidebarLabel?: string;
   children: ReactNode;
   hideBack?: boolean;
+  /** Destino fixo do "Voltar" no lugar do histórico (ver BackButton). */
+  backTo?: string;
 }
 
 export default function DetailPageTemplate({
@@ -32,6 +34,7 @@ export default function DetailPageTemplate({
   rightSidebarLabel = "REGRAS",
   children,
   hideBack = false,
+  backTo,
 }: DetailPageTemplateProps) {
   const isRightCollapsed = useMediaQuery("(max-width: 1149px)");
   const isLeftCollapsed = useMediaQuery("(max-width: 749px)");
@@ -51,7 +54,7 @@ export default function DetailPageTemplate({
 
   return (
     <PageContainer>
-      <PageHeader backgroundColor={headerColor} showBack={!hideBack} />
+      <PageHeader backgroundColor={headerColor} showBack={!hideBack} backTo={backTo} />
       <PageBody>
         {!isLeftCollapsed && leftSidebar}
         <MainContentContainer

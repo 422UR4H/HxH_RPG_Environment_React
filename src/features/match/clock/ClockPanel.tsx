@@ -13,7 +13,7 @@ import { PanelTitle } from "../combat/panelStyles";
 import ClockEditor from "./ClockEditor";
 import type { LimitReason } from "./clockMessages";
 import { LIMIT_REASON_COPY } from "./limitReasons";
-import { CLOCK_PANEL_Z_INDEX, CLOCK_PILL_OFFSET } from "./clockLayout";
+import { CLOCK_PANEL_Z_INDEX, CLOCK_PILL_BOTTOM_CSS } from "./clockLayout";
 import { addSeconds, compareStory, formatDateBR, formatDelta, formatTime } from "./storyTime";
 import type { StoryClockView } from "./useStoryClock";
 
@@ -213,14 +213,14 @@ export default function ClockPanel({
 // um ancestral com transform o prenderia no painel. Centraliza com margem automática.
 const Panel = styled.div`
   position: absolute;
-  top: ${CLOCK_PILL_OFFSET + 8}px;
+  top: calc(${CLOCK_PILL_BOTTOM_CSS} + 8px);
   left: 0;
   right: 0;
   margin: 0 auto;
   z-index: ${CLOCK_PANEL_Z_INDEX};
   box-sizing: border-box;
   width: min(340px, calc(100% - 32px));
-  max-height: calc(100% - ${CLOCK_PILL_OFFSET + 16}px);
+  max-height: calc(100% - ${CLOCK_PILL_BOTTOM_CSS} - 16px);
   overflow-y: auto;
   display: flex;
   flex-direction: column;

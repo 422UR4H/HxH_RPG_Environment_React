@@ -1,6 +1,6 @@
 import styled, { css } from "styled-components";
 import { colors } from "../../../styles/tokens";
-import { CLOCK_PILL_OFFSET } from "../clock/clockLayout";
+import { CLOCK_PILL_BOTTOM_CSS } from "../clock/clockLayout";
 
 /** O canvas preenche o palco inteiro; barras e avisos flutuam por cima dele. */
 export const CanvasWrapper = styled.div`
@@ -38,7 +38,7 @@ export const NoMapMessage = styled(MapLoadingMessage)`
  */
 export const StageNotices = styled.div`
   position: absolute;
-  top: ${CLOCK_PILL_OFFSET + 52}px;
+  top: calc(${CLOCK_PILL_BOTTOM_CSS} + 12px);
   left: 50%;
   transform: translateX(-50%);
   z-index: 50;

@@ -3,15 +3,20 @@
  * para a barra geral e a pilha de avisos descerem para baixo dela sem importar a pílula.
  */
 
-/** Distância da pílula ao topo do palco (px). */
-export const CLOCK_PILL_TOP = 8;
+/**
+ * A barra geral fica na primeira linha do palco e a pílula logo abaixo dela. A altura da barra
+ * muda (a faixa de barras abre e fecha), então a barra publica a própria altura nesta variável
+ * CSS do palco e a pílula, o painel e os avisos descem a partir dela.
+ */
+export const GENERAL_BAR_HEIGHT_VAR = "--general-bar-h";
+/** Altura da barra geral fechada, usada até a primeira medição. */
+const GENERAL_BAR_FALLBACK = 36;
 /** Altura da pílula (px): também o alvo mínimo de toque do botão do mestre. */
 export const CLOCK_PILL_HEIGHT = 40;
-/**
- * Quanto o que flutuava no topo do palco desce para deixar a pílula à vista: o topo dela + a
- * altura. Quem fica embaixo soma o próprio respiro.
- */
-export const CLOCK_PILL_OFFSET = CLOCK_PILL_TOP + CLOCK_PILL_HEIGHT;
+/** Topo da pílula: 8 px da barra geral, que fica a 8 px do topo do palco. */
+export const CLOCK_PILL_TOP_CSS = `calc(16px + var(${GENERAL_BAR_HEIGHT_VAR}, ${GENERAL_BAR_FALLBACK}px))`;
+/** Base da pílula: quem fica embaixo dela soma o próprio respiro. */
+export const CLOCK_PILL_BOTTOM_CSS = `calc(16px + var(${GENERAL_BAR_HEIGHT_VAR}, ${GENERAL_BAR_FALLBACK}px) + ${CLOCK_PILL_HEIGHT}px)`;
 
 /**
  * Acima do mapa e da barra geral (30) — o painel do mestre ancora embaixo da pílula —, abaixo
