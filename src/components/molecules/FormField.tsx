@@ -26,16 +26,20 @@ export default function FormField({
   notice,
   children,
 }: FormFieldProps) {
-  const describedBy =
-    [error && `${htmlFor}-error`, notice && `${htmlFor}-notice`].filter(Boolean).join(" ") || undefined;
-  // O campo (um único elemento) ganha aria-invalid/aria-describedby sem a página repassá-los.
-  const field =
-    isValidElement(children) && (error || notice)
-      ? cloneElement(children as ReactElement<Record<string, unknown>>, {
-          "aria-invalid": error ? true : undefined,
-          "aria-describedby": describedBy,
-        })
-      : children;
+  // O campo (um único elemento) ganha aria-invalid/aria-describedby sem a página repassá-los;
+  // os ids que ele já tinha em aria-describedby são mantidos.
+  let field = children;
+  if (isValidElement(children) && (error || notice)) {
+    const child = children as ReactElement<{ "aria-describedby"?: string }>;
+    const describedBy =
+      [child.props["aria-describedby"], error && `${htmlFor}-error`, notice && `${htmlFor}-notice`]
+        .filter(Boolean)
+        .join(" ") || undefined;
+    field = cloneElement(child as ReactElement<Record<string, unknown>>, {
+      "aria-invalid": error ? true : undefined,
+      "aria-describedby": describedBy,
+    });
+  }
 
   return (
     <Group>

@@ -1,0 +1,27 @@
+import { describe, it, expect } from "vitest";
+import { render, screen } from "@testing-library/react";
+import FormField from "../FormField";
+
+describe("FormField", () => {
+  it("keeps the child's own aria-describedby and appends the error and notice ids", () => {
+    render(
+      <FormField label="Nome" htmlFor="name" error="Erro aqui" notice="Nota aqui">
+        <input id="name" aria-describedby="own-hint" />
+      </FormField>,
+    );
+    const input = screen.getByLabelText("Nome");
+    expect(input).toHaveAttribute("aria-describedby", "own-hint name-error name-notice");
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByRole("alert")).toHaveTextContent("Erro aqui");
+    expect(screen.getByRole("status")).toHaveTextContent("Nota aqui");
+  });
+
+  it("leaves the child untouched without error or notice", () => {
+    render(
+      <FormField label="Nome" htmlFor="name">
+        <input id="name" />
+      </FormField>,
+    );
+    expect(screen.getByLabelText("Nome")).not.toHaveAttribute("aria-invalid");
+  });
+});

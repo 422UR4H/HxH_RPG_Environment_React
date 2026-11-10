@@ -123,22 +123,22 @@ describe("CreateMatchPage", () => {
   });
 
   it("flags a session in the past as soon as it is picked", async () => {
-    renderPage();
-    const u = userEvent.setup();
-    await u.click(await screen.findByLabelText("Data e Hora da Sessão"));
-    const dialog = screen.getByRole("dialog", { name: "Escolher data" });
-    await u.selectOptions(within(dialog).getByLabelText("Hora"), "00");
-    // Hoje 00:00 já passou (os dias anteriores ficam desabilitados pelo min do calendário).
-    const today = new Date();
-    const weekAhead = new Date(today.getTime() + 7 * 24 * 3600 * 1000);
-    if (weekAhead.getMonth() !== today.getMonth()) {
-      await u.click(within(dialog).getByRole("button", { name: "Mês anterior" }));
+    // Relógio fixo: o padrão da sessão é hoje + 7 dias; escolher o dia 15 de hoje + 1h cai no passado.
+    vi.useFakeTimers({ toFake: ["Date"], now: new Date(2026, 5, 15, 12, 0) });
+    try {
+      renderPage();
+      const u = userEvent.setup();
+      await u.click(await screen.findByLabelText("Data e Hora da Sessão"));
+      const dialog = screen.getByRole("dialog", { name: "Escolher data" });
+      // Padrão: 22/06/2026 12:00. Voltando a hora para 11:00 no dia de hoje (15/06) fica no passado.
+      await u.click(within(dialog).getByRole("button", { name: /\b15 de junho/i }));
+      await u.selectOptions(within(dialog).getByLabelText("Hora"), "11");
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        "Escolha um horário a partir de agora.",
+      );
+    } finally {
+      vi.useRealTimers();
     }
-    const dayName = new RegExp(`\\b${today.getDate()} de`, "i");
-    await u.click(within(dialog).getByRole("button", { name: dayName }));
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Escolha um horário a partir de agora.",
-    );
   });
 
   it("answers an emptied session date with 'Campo obrigatório.' right away", async () => {

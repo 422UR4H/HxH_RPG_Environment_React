@@ -4,6 +4,7 @@ import useDocumentTitle from "../hooks/useDocumentTitle";
 import useToken from "../hooks/useToken";
 import useUser from "../hooks/useUser";
 import useForm from "../hooks/useForm";
+import { useCampaignDetails } from "../hooks/useCampaignDetails";
 import { useMatchDetails } from "../hooks/useMatchDetails";
 import { useUpdateMatch } from "../hooks/useUpdateMatch";
 import { isApiError } from "../services/httpClient";
@@ -12,6 +13,7 @@ import {
   MATCH_TITLE_TOO_SHORT,
   sessionDayBounds,
   sessionTimeError,
+  storyStartError,
 } from "../features/match/matchFieldRules";
 import { MATCH_LIMITS } from "../constants/fieldLimits";
 import useFieldValidation, { focusField } from "../hooks/useFieldValidation";
@@ -96,9 +98,14 @@ export default function EditMatchPage() {
   }, [match, initialized, setForm]);
 
   const { mutate: updateMatch, isPending: isSubmitting } = useUpdateMatch(token, matchId);
+  // A campanha só serve para conferir a data da história; sem ela (carregando ou com falha) o back responde.
+  const { data: campaign } = useCampaignDetails(token, campaignId);
+
+  // Sessão: só vale (e só vai no envio) se o mestre mudou o valor carregado; uma sessão já passada
+  // não pode impedir de corrigir só o título.
+  const sessionChanged = form.gameScheduledAt !== instantToLocalInput(match?.gameScheduledAt);
 
   const sessionBounds = sessionDayBounds();
-  // A data da história não é conferida contra a campanha aqui (a página não a carrega): o back responde.
   const { errorFor, noticeFor, touch, validateAll } = useFieldValidation({
     title: {
       value: form.title,
@@ -112,8 +119,17 @@ export default function EditMatchPage() {
       required: true,
       max: MATCH_LIMITS.briefInitialDescription.max,
     },
-    gameScheduledAt: { value: form.gameScheduledAt, required: true, validate: sessionTimeError },
-    storyStartAt: { value: form.storyStartAt, required: true },
+    gameScheduledAt: {
+      value: form.gameScheduledAt,
+      required: true,
+      validate: sessionTimeError,
+      disabled: !sessionChanged,
+    },
+    storyStartAt: {
+      value: form.storyStartAt,
+      required: true,
+      validate: (v) => (campaign ? storyStartError(v, campaign) : null),
+    },
   });
 
   useDocumentTitle("Editar", match?.title);
@@ -159,7 +175,7 @@ export default function EditMatchPage() {
       briefInitialDescription: form.briefInitialDescription,
       description: form.description,
       isPublic: form.isPublic,
-      gameScheduledAt: localInputToInstant(form.gameScheduledAt),
+      ...(sessionChanged && { gameScheduledAt: localInputToInstant(form.gameScheduledAt) }),
       storyStartAt: form.storyStartAt,
     };
     updateMatch(matchData, {
@@ -265,6 +281,8 @@ export default function EditMatchPage() {
               setForm((prev) => ({ ...prev, storyStartAt: value }));
               touch("storyStartAt");
             }}
+            min={campaign?.storyStartAt}
+            max={campaign?.storyEndAt ?? undefined}
             required
           />
         </FormField>

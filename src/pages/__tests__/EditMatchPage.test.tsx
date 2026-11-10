@@ -5,6 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { server } from "../../test/server";
 import { renderWithProviders } from "../../test/render";
 import { matchApiFixture } from "../../test/fixtures/match";
+import { campaignApiFixture } from "../../test/fixtures/campaign";
 import { masterUserFixture } from "../../test/fixtures/user";
 import EditMatchPage from "../EditMatchPage";
 
@@ -16,7 +17,10 @@ vi.mock("react-router-dom", async () => {
 
 const baseUrl = "http://localhost:5000";
 
-function setup() {
+function setup(campaign?: Record<string, unknown>) {
+  if (campaign) {
+    server.use(http.get(`${baseUrl}/campaigns/:id`, () => HttpResponse.json({ campaign })));
+  }
   server.use(
     http.get(`${baseUrl}/matches/:id`, () =>
       HttpResponse.json({
@@ -24,7 +28,6 @@ function setup() {
           ...matchApiFixture,
           masterUuid: masterUserFixture.user.uuid,
           description: "Descrição atual",
-          gameScheduledAt: new Date(Date.now() + 3 * 24 * 3600 * 1000).toISOString(),
         },
       }),
     ),
@@ -63,5 +66,40 @@ describe("EditMatchPage — empty description", () => {
     await u.click(screen.getByRole("button", { name: /Salvar/i }));
     await waitFor(() => expect(captured.body).toBeDefined());
     expect(captured.body).toMatchObject({ description: "Descrição atual" });
+  });
+});
+
+describe("EditMatchPage — session in the past", () => {
+  beforeEach(() => mockNavigate.mockReset());
+
+  it("lets the master fix only the title: no session error and no gameScheduledAt in the PATCH", async () => {
+    // O fixture tem a sessão em 2025 (já passou, partida ainda não iniciada).
+    const captured = setup();
+    const u = userEvent.setup();
+    const title = await screen.findByLabelText(/Título da Partida/i);
+    await screen.findByDisplayValue("Descrição atual");
+    await u.clear(title);
+    await u.type(title, "Título corrigido");
+    await u.click(screen.getByRole("button", { name: /Salvar/i }));
+    await waitFor(() => expect(captured.body).toBeDefined());
+    expect(captured.body).toMatchObject({ title: "Título corrigido" });
+    expect(captured.body).not.toHaveProperty("gameScheduledAt");
+    expect(screen.queryByText("Escolha um horário a partir de agora.")).not.toBeInTheDocument();
+  });
+
+  it("flags a story start outside the campaign inline and skips the API", async () => {
+    const captured = setup({ ...campaignApiFixture, storyStartAt: "2026-01-01" });
+    const u = userEvent.setup();
+    await screen.findByDisplayValue("Descrição atual");
+    await waitFor(() =>
+      expect(screen.getByLabelText("Data de Início na História")).toBeInTheDocument(),
+    );
+    // Dá tempo da campanha chegar antes de enviar.
+    await new Promise((r) => setTimeout(r, 100));
+    await u.click(screen.getByRole("button", { name: /Salvar/i }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "A data de início na história deve ser igual ou posterior ao início da campanha.",
+    );
+    expect(captured.body).toBeUndefined();
   });
 });
