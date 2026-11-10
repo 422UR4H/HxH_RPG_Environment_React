@@ -31,6 +31,7 @@ import type { MatchStatus } from "../types/match";
 import { ActionsList } from "../components/atoms/ActionsList";
 import { useQueryClient } from "@tanstack/react-query";
 import { getApiErrorDetail } from "../utils/apiError";
+import { consumeEndedNotice, rememberMatchPageEntry } from "../features/match/clock/matchHistoryEntry";
 
 const MAP_LOCKED_TEXT = "O mapa não pode ser trocado depois que a partida começou.";
 const MAP_LOCKED_DETAIL = "cannot change map after match has started";
@@ -87,6 +88,15 @@ export default function MatchPage() {
     | { sheetId?: string; lobbyNotOpen?: boolean; endedByMaster?: boolean }
     | null;
   const lobbyNotOpen = locationState?.lobbyNotOpen === true;
+  // Quem volta da mesa encerrada pelo histórico chega sem estado de rota: o aviso vem do flag,
+  // lido uma vez só no primeiro render.
+  const [endedNoticeFlagged] = useState(() => (matchId ? consumeEndedNotice(matchId) : false));
+  const endedByMasterArrival = locationState?.endedByMaster === true || endedNoticeFlagged;
+
+  // Guarda esta entrada do histórico: ao encerrar a partida, a mesa volta até ela.
+  useEffect(() => {
+    if (matchId) rememberMatchPageEntry(matchId);
+  }, [matchId]);
 
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
   const [showLobbyConfirm, setShowLobbyConfirm] = useState(false);
@@ -317,7 +327,7 @@ export default function MatchPage() {
           status={status}
           lobbyNotOpen={lobbyNotOpen}
           // Quem chega da mesa encerrada; o mestre, que encerrou, não precisa do aviso.
-          endedByMaster={locationState?.endedByMaster === true && !isMaster && status === "ended"}
+          endedByMaster={endedByMasterArrival && !isMaster && status === "ended"}
           onDescriptionToggle={() => setDescriptionSignal((s) => !s)}
         />
 

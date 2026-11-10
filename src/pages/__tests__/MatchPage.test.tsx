@@ -11,6 +11,7 @@ import { masterUserFixture, userFixture } from "../../test/fixtures/user";
 import { mapApiFixture } from "../../test/fixtures/map";
 import { campaignAsMasterApi } from "../../test/fixtures/campaign";
 import MatchPage from "../MatchPage";
+import { backStepsToMatchPage, flagEndedNotice } from "../../features/match/clock/matchHistoryEntry";
 
 const mockNavigate = vi.fn();
 vi.mock("react-router-dom", async () => {
@@ -833,6 +834,31 @@ describe("MatchPage", () => {
       renderPage({ user: userFixture });
       await screen.findByText("ENCERRADA");
       expect(screen.queryByText("A partida foi encerrada pelo mestre.")).not.toBeInTheDocument();
+    });
+
+    it("tells the player the master ended it from the session flag, without router state, only once", async () => {
+      // Voltar no histórico até a entrada original não leva estado de rota: o aviso vem do flag.
+      sessionStorage.clear();
+      flagEndedNotice("match-1");
+      server.use(http.get(`${baseUrl}/matches/:id`, () => HttpResponse.json({ match: matchEndedApi() })));
+      const { unmount } = renderPage({ user: userFixture });
+      expect(await screen.findByText("A partida foi encerrada pelo mestre.")).toBeInTheDocument();
+      unmount();
+
+      renderPage({ user: userFixture });
+      await screen.findByText("ENCERRADA");
+      expect(screen.queryByText("A partida foi encerrada pelo mestre.")).not.toBeInTheDocument();
+    });
+
+    it("remembers its history entry so ending the match can return to it", async () => {
+      sessionStorage.clear();
+      window.history.replaceState({ idx: 1 }, "");
+      server.use(http.get(`${baseUrl}/matches/:id`, () => HttpResponse.json({ match: matchOngoingApi() })));
+      renderPage({ user: userFixture });
+      await screen.findByText("EM ANDAMENTO");
+      window.history.replaceState({ idx: 3 }, "");
+      expect(backStepsToMatchPage("match-1")).toBe(-2);
+      window.history.replaceState(null, "");
     });
 
     it("the master, who ended it himself, gets no notice", async () => {

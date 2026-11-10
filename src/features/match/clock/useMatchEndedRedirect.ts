@@ -1,9 +1,12 @@
-// Fim da partida na mesa (mestre e jogador): todos vão para a página da partida com `replace`,
-// então a /game sai do histórico e "Voltar" nunca volta para a mesa (dono, spec §5).
+// Fim da partida na mesa (mestre e jogador): todos voltam no histórico até a entrada original da
+// página da partida (lobby e /game ficam "à frente"), e o "Voltar" de lá segue para a campanha
+// sem alternar campanha/partida. Sem entrada guardada (a /game aberta direto), substitui a /game
+// pela página da partida com `replace`; em ambos, "Voltar" nunca volta para a mesa (spec §5).
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { matchPagePath } from "./endMatch";
+import { backStepsToMatchPage, flagEndedNotice } from "./matchHistoryEntry";
 import type { MatchEnded } from "./clockMessages";
 import type { Match } from "../../../types/match";
 
@@ -43,6 +46,13 @@ export function useMatchEndedRedirect({
     // "none"`): rebuscar já, com a /game montada, faria a mesa ver `gameEndAt` e trocar a
     // navegação por um <Navigate> sem o aviso. A página da partida rebusca ao montar.
     void queryClient.invalidateQueries({ queryKey: ["matchDetails", token, matchId], refetchType: "none" });
-    navigate(matchPagePath(campaignId, matchId), { replace: true, state: { endedByMaster: true } });
+    // Voltar no histórico não leva estado de rota: o aviso ao jogador vai pelo sessionStorage.
+    if (matchId) flagEndedNotice(matchId);
+    const steps = matchId ? backStepsToMatchPage(matchId) : null;
+    if (steps !== null) {
+      navigate(steps);
+    } else {
+      navigate(matchPagePath(campaignId, matchId), { replace: true, state: { endedByMaster: true } });
+    }
   }, [ended, matchEnded, token, campaignId, matchId, navigate, queryClient]);
 }

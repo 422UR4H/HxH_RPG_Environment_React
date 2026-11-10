@@ -1,10 +1,34 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useMatchEndedRedirect } from "../useMatchEndedRedirect";
+import { consumeEndedNotice, rememberMatchPageEntry } from "../matchHistoryEntry";
+
+// Espia as chamadas de navegação sem trocar o roteador de memória de verdade.
+const navigateSpy = vi.fn();
+vi.mock("react-router-dom", async () => {
+  const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
+  return {
+    ...actual,
+    useNavigate: () => {
+      const navigate = actual.useNavigate();
+      return useCallback(
+        (...args: Parameters<typeof navigate>) => {
+          navigateSpy(...args);
+          return navigate(...(args as [never]));
+        },
+        [navigate],
+      );
+    },
+  };
+});
+
+function setIdx(idx?: number) {
+  window.history.replaceState(idx === undefined ? null : { idx }, "");
+}
 
 const MATCH = "/campaigns/c1/matches/m1";
 
@@ -31,14 +55,18 @@ function MatchProbe() {
   );
 }
 
-function setup(queryFn?: () => Promise<unknown>) {
+function setup(queryFn?: () => Promise<unknown>, withLobby = false) {
   const queryClient = new QueryClient();
   const invalidate = vi.spyOn(queryClient, "invalidateQueries");
   const endedRef: { set?: (v: boolean) => void } = {};
   render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={["/campaigns/c1", MATCH, `${MATCH}/game`]} initialIndex={2}>
+      <MemoryRouter
+        initialEntries={withLobby ? ["/campaigns/c1", MATCH, `${MATCH}/lobby`, `${MATCH}/game`] : ["/campaigns/c1", MATCH, `${MATCH}/game`]}
+        initialIndex={withLobby ? 3 : 2}
+      >
         <Routes>
+          <Route path="/campaigns/:campaignId/matches/:matchId/lobby" element={<div>lobby</div>} />
           <Route path="/campaigns/:campaignId" element={<div>campanha</div>} />
           <Route path="/campaigns/:campaignId/matches/:matchId" element={<MatchProbe />} />
           <Route path="/campaigns/:campaignId/matches/:matchId/game" element={<Table endedRef={endedRef} queryFn={queryFn} />} />
@@ -50,17 +78,42 @@ function setup(queryFn?: () => Promise<unknown>) {
 }
 
 describe("useMatchEndedRedirect", () => {
+  beforeEach(() => {
+    navigateSpy.mockReset();
+    sessionStorage.clear();
+    setIdx(undefined);
+  });
+
+  it("on end: goes back to the original match page entry when it is remembered", () => {
+    // Campanha(0) → partida(1) → lobby(2) → mesa(3): a página da partida guardou o índice 1.
+    setIdx(1);
+    rememberMatchPageEntry("m1");
+    setIdx(3);
+    const { invalidate, endedRef } = setup(undefined, true);
+    act(() => endedRef.set?.(true));
+
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ["matchDetails", "tok", "m1"], refetchType: "none" });
+    expect(navigateSpy).toHaveBeenCalledTimes(1);
+    expect(navigateSpy).toHaveBeenCalledWith(-2);
+    expect(screen.getByText("página da partida")).toBeInTheDocument();
+    // O aviso vai pelo sessionStorage: voltar no histórico não leva estado de rota.
+    expect(screen.getByTestId("state")).toHaveTextContent("null");
+    expect(consumeEndedNotice("m1")).toBe(true);
+  });
+
   it("stays on the table while the match is live", () => {
     const { invalidate } = setup();
     expect(screen.getByText("mesa")).toBeInTheDocument();
     expect(invalidate).not.toHaveBeenCalled();
   });
 
-  it("on end: refreshes the match and replaces /game with the match page; Back never returns to the table", () => {
+  it("on end without a remembered entry: refreshes the match and replaces /game with the match page; Back never returns to the table", () => {
     const { invalidate, endedRef } = setup();
     act(() => endedRef.set?.(true));
 
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ["matchDetails", "tok", "m1"], refetchType: "none" });
+    expect(navigateSpy).toHaveBeenCalledTimes(1);
+    expect(navigateSpy).toHaveBeenCalledWith(MATCH, { replace: true, state: { endedByMaster: true } });
     expect(screen.getByText("página da partida")).toBeInTheDocument();
     expect(screen.getByTestId("state")).toHaveTextContent(JSON.stringify({ endedByMaster: true }));
 
