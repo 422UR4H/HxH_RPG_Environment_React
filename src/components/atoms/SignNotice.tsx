@@ -7,7 +7,7 @@ interface SignNoticeProps {
   tone?: "light" | "dark";
 }
 
-// Aviso neutro (conta criada, sessão expirada, lobby fechado): borda à esquerda na cor de destaque
+// Aviso neutro (conta criada, sessão expirada): borda à esquerda na cor de destaque
 // da superfície, sem cara de erro. No cartão claro tem a mesma coluna e o mesmo recuo do SignFormError.
 export default function SignNotice({ message, tone = "light" }: SignNoticeProps) {
   return (
@@ -32,11 +32,12 @@ const lightTone = css`
 const darkTone = css`
   width: 100%;
   margin-bottom: 20px;
-  border-left: 4px solid ${colors.actionHighlight};
+  border: 2px solid ${colors.actionHighlight};
+  border-radius: 6px;
   /* O fundo do app é a textura clara do mapa: sem a base escura o branco ficava em 3,8:1. */
   background-color: ${colors.overlayDark};
-  background-image: linear-gradient(${alpha(colors.actionHighlight, 0.16)}, ${alpha(colors.actionHighlight, 0.16)});
-  font-size: 16px;
+  background-image: linear-gradient(${alpha(colors.actionHighlight, 0.35)}, ${alpha(colors.actionHighlight, 0.35)});
+  font-size: 18px;
   color: ${colors.textPrimary};
 `;
 
