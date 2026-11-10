@@ -17,6 +17,13 @@ export const scrollbarPalettes = {
     thumbHover: colors.surfaceScrollThumbAccentHover,
     thumbBorder: colors.surfaceDeep,
   },
+  /** Roláveis internos (textarea, listas, modais) no tema escuro: neutro; o vermelho fica só na página. */
+  darkInner: {
+    track: colors.surfaceDeep,
+    thumb: colors.surfaceNeutral,
+    thumbHover: colors.surfaceNeutralHover,
+    thumbBorder: colors.surfaceDeep,
+  },
   /** Telas de campanha/partida: os marrons dos painéis sobre o mapa-múndi. */
   earth: {
     track: colors.surfaceScrollTrack,
@@ -61,12 +68,22 @@ function webkitRules(scopes: string[], p: ScrollbarPalette) {
 // Chromium ≥121 ele, quando presente, desliga o `::-webkit-scrollbar` do elemento — e com
 // ele o polegar arredondado com anel.
 
-/** Para o `ResetStyle`: vale para todo elemento rolável da aplicação. */
-export const globalScrollbar = (p: ScrollbarPalette) => css`
-  ${webkitRules(["*"], p)}
+/**
+ * Para o `ResetStyle`: `inner` vale para todo elemento rolável da aplicação (textarea, listas,
+ * modais); `page` só para a rolagem da página (janela/`html`), que fica com o destaque.
+ * `html::-webkit-scrollbar` (tipo + pseudo) vence o `*::-webkit-scrollbar`. No fallback do
+ * Firefox, `scrollbar-color` é herdado: o `*` neutro corta a herança e o `:root` (mais
+ * específico que o `*`) mantém a página com o destaque.
+ */
+export const globalScrollbar = (page: ScrollbarPalette, inner: ScrollbarPalette) => css`
+  ${webkitRules(["*"], inner)}
+  ${webkitRules(["html"], page)}
   @supports not selector(::-webkit-scrollbar) {
+    * {
+      scrollbar-color: ${inner.thumb} ${inner.track};
+    }
     :root {
-      scrollbar-color: ${p.thumb} ${p.track};
+      scrollbar-color: ${page.thumb} ${page.track};
     }
   }
 `;
@@ -82,7 +99,7 @@ export const scopedScrollbar = (p: ScrollbarPalette) => css`
 /**
  * Para páginas cuja rolagem é a da janela: a barra do viewport pertence ao `html`, que um
  * container não alcança. Use dentro de `createGlobalStyle`, montado só enquanto a página existe;
- * o seletor `html` vence o `*` do `globalScrollbar`; no fallback do Firefox, `html:root` empata
+ * o seletor `html` vence o `*` do `globalScrollbar` (e `html *` o `*` interno dele); no fallback do Firefox, `html:root` empata
  * em especificidade com o `:root` do `globalScrollbar` e, vindo depois, vence.
  */
 export const viewportScrollbar = (p: ScrollbarPalette) => css`

@@ -38,7 +38,7 @@ const ResetStyle = createGlobalStyle`
     position: relative;
 	}
 
-	${globalScrollbar(scrollbarPalettes.dark)}
+	${globalScrollbar(scrollbarPalettes.dark, scrollbarPalettes.darkInner)}
 
 	#root{
 		height: 100%;
