@@ -392,5 +392,5 @@ const FieldFeedback = styled.p<{ $error: boolean }>`
   margin: 4px 0 0;
   font-size: max(2.4cqi, 12px);
   line-height: 1.2;
-  color: ${({ $error }) => ($error ? colors.feedbackDanger : colors.textHint)};
+  color: ${({ $error }) => ($error ? colors.feedbackDangerText : colors.textMuted)};
 `;

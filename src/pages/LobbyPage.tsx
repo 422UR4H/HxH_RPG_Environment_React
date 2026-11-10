@@ -215,7 +215,12 @@ export default function LobbyPage() {
   }
 
   if (!isMaster && !hasConnectedRef.current && (status === "connecting" || status === "waking")) {
-    return <PageLoading label={status === "waking" ? GAME_SERVER_WAKING : "Conectando ao lobby…"} />;
+    return (
+      <PageLoading
+        label={status === "waking" ? GAME_SERVER_WAKING : "Conectando ao lobby…"}
+        back={matchBack}
+      />
+    );
   }
 
   const acceptedEnrollments = enrollments.filter(

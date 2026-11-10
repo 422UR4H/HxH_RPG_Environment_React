@@ -13,15 +13,18 @@ interface InfoDialogProps {
 // Esc e clique fora fecham; o foco começa no botão.
 export default function InfoDialog({ title, message, closeLabel = "Entendi", onClose }: InfoDialogProps) {
   const buttonRef = useRef<HTMLButtonElement>(null);
+  // onClose costuma chegar como função inline; a ref evita refocar e reinstalar o listener a cada render do pai.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     buttonRef.current?.focus();
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") onCloseRef.current();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
+  }, []);
 
   return (
     <Overlay onClick={onClose}>

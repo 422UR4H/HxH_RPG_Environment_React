@@ -216,7 +216,7 @@ describe("LobbyPage", () => {
     });
   });
 
-  it("jogador vê o loading, não o lobby, enquanto o socket não conectou", async () => {
+  it("player sees the loading state, not the lobby, until the socket connects", async () => {
     setupHandlers();
     renderPage({ user: userFixture });
     await waitForWsConnect();
@@ -225,7 +225,7 @@ describe("LobbyPage", () => {
     expect(screen.queryByText(/LOBBY ABERTO/i)).not.toBeInTheDocument();
   });
 
-  it("mestre vê o lobby mesmo antes do socket conectar", async () => {
+  it("master sees the lobby even before the socket connects", async () => {
     setupHandlers("master-1");
     renderPage({ user: masterUserFixture });
 
@@ -377,6 +377,14 @@ describe("LobbyPage", () => {
       expect(
         await screen.findByText("Acordando o servidor da mesa… pode levar até um minuto."),
       ).toBeInTheDocument();
+    });
+
+    it("player waiting on the waking server can go back to the match page", async () => {
+      setupHandlers();
+      forceStatus("waking");
+      renderPage({ user: userFixture });
+      const link = await screen.findByRole("link", { name: "Voltar para a partida" });
+      expect(link).toHaveAttribute("href", expect.stringMatching(/\/campaigns\/[^/]+\/matches\/[^/]+$/));
     });
 
     it("unreachable shows the message and 'Tentar de novo', which calls reconnect", async () => {
