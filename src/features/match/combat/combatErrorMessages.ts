@@ -16,7 +16,18 @@ const byCode: Record<string, string> = {
   not_found: "Não encontrado.",
   invalid_npc: "Esse personagem não pode entrar como NPC desta partida.",
   not_participant: "Esse personagem não está na partida.",
+  clock_not_set: "Defina a hora da partida antes.",
+  clock_already_set: "A hora inicial já foi definida.",
+  clock_below_limit: "Não dá para voltar antes do limite do relógio.",
+  clock_long_skip_unconfirmed: "Confirme o avanço de mais de 2 dias.",
+  clock_play_in_race: "No turno disputado, cada round vale 1 segundo: o tempo real fica desligado.",
+  clock_already_running: "O tempo real já está ligado.",
+  match_in_battle: "Encerre o combate antes de encerrar a partida.",
+  not_battle_scene: "A cena atual não é de combate.",
+  match_already_ended: "A partida já foi encerrada.",
 };
+
+const END_BELOW_LIMIT = "A hora do fim não pode ficar antes do mínimo (o round em andamento soma 1 s).";
 
 const bySentType: Record<string, string> = {
   enqueue_action: "Não foi possível declarar a ação",
@@ -31,6 +42,13 @@ const bySentType: Record<string, string> = {
   attach_reaction: "Não foi possível reagir",
   open_reaction: "Não foi possível dar a palavra",
   cancel_action: "Não foi possível cancelar a ação",
+  set_clock_start: "Não foi possível definir a hora da partida",
+  adjust_clock: "Não foi possível ajustar o relógio",
+  set_clock: "Não foi possível mudar o relógio",
+  play_clock: "Não foi possível ligar o tempo real",
+  pause_clock: "Não foi possível pausar o relógio",
+  get_combat_summary: "Não foi possível ler o resumo do combate",
+  end_match: "Não foi possível encerrar a partida",
 };
 
 // Mensagens de domínio documentadas no contrato; a tradução vai sozinha, sem o prefixo do envio.
@@ -42,7 +60,16 @@ const byGameMessage: Record<string, string> = {
   "validation error: no turn opened in this round yet": "Nenhum turno aconteceu nesta rodada ainda — não há o que encerrar.",
 };
 
+// Recusas cujo sentido muda com o envio: o mesmo código, frase própria (sem prefixo — o diálogo
+// já diz o que se tentou).
+const byCodeAndSentType: Record<string, string> = {
+  "clock_below_limit:end_match": END_BELOW_LIMIT,
+  "clock_below_limit:change_scene": END_BELOW_LIMIT,
+};
+
 export function combatErrorText(code: string, message: string, sentType?: string): string {
+  const specific = sentType ? byCodeAndSentType[`${code}:${sentType}`] : undefined;
+  if (specific) return specific;
   if (code === "game_error" && byGameMessage[message]) return byGameMessage[message];
   const base = code === "game_error" ? message : (byCode[code] ?? message ?? "Erro do servidor.");
   const prefix = sentType ? bySentType[sentType] : undefined;

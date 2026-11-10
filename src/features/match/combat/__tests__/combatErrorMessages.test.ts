@@ -35,3 +35,32 @@ describe("combatErrorText", () => {
     expect(combatErrorText("game_error", "algo novo", "cancel_action")).toBe("Não foi possível cancelar a ação: algo novo");
   });
 });
+
+describe("combatErrorText: story clock", () => {
+  it.each([
+    ["clock_not_set", "Defina a hora da partida antes."],
+    ["clock_already_set", "A hora inicial já foi definida."],
+    ["clock_below_limit", "Não dá para voltar antes do limite do relógio."],
+    ["clock_long_skip_unconfirmed", "Confirme o avanço de mais de 2 dias."],
+    ["clock_play_in_race", "No turno disputado, cada round vale 1 segundo: o tempo real fica desligado."],
+    ["clock_already_running", "O tempo real já está ligado."],
+    ["match_in_battle", "Encerre o combate antes de encerrar a partida."],
+    ["not_battle_scene", "A cena atual não é de combate."],
+    ["match_already_ended", "A partida já foi encerrada."],
+  ])("%s has Portuguese copy", (code, text) => {
+    expect(combatErrorText(code, "")).toBe(text);
+  });
+});
+
+describe("combatErrorText: clock_below_limit when ending", () => {
+  it.each(["end_match", "change_scene"])("%s explains the running round's extra second", (sentType) => {
+    expect(combatErrorText("clock_below_limit", "below", sentType)).toBe(
+      "A hora do fim não pode ficar antes do mínimo (o round em andamento soma 1 s).",
+    );
+  });
+  it("other sends keep the generic copy", () => {
+    expect(combatErrorText("clock_below_limit", "", "set_clock")).toBe(
+      "Não foi possível mudar o relógio: Não dá para voltar antes do limite do relógio.",
+    );
+  });
+});

@@ -207,6 +207,9 @@ export default function CreateMatchPage() {
             required
           />
         </FormField>
+        {/* TODO: hora de início na história (opcional) — o back já aceita `storyStartTime` e o
+            campo existe em components/molecules/TimeOfDayField.tsx, mas o visual será revisto com
+            o designer. Até lá o mestre informa a hora ao iniciar a partida, na mesa (/game). */}
       </FormRow>
 
       <FormCheckbox

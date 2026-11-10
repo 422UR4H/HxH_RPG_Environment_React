@@ -17,6 +17,10 @@ import MatchTopBar from "../features/match/combat/MatchTopBar";
 import RailNav from "../features/match/combat/RailNav";
 import AsideTabs from "../features/match/combat/AsideTabs";
 import GeneralBar from "../features/match/combat/GeneralBar";
+import ClockPill from "../features/match/clock/ClockPill";
+import { useStoryClock } from "../features/match/clock/useStoryClock";
+import { isMatchOver } from "../features/match/clock/endMatch";
+import { useMatchEndedRedirect } from "../features/match/clock/useMatchEndedRedirect";
 import OwnBars from "../features/match/combat/OwnBars";
 import EventStream from "../features/match/combat/EventStream";
 import { historyRows } from "../features/match/combat/historyRows";
@@ -27,6 +31,7 @@ import CancelDeclaredDialog from "../features/match/combat/CancelDeclaredDialog"
 import { stackedAfter } from "../features/match/combat/moveChain";
 import DeclaredActions from "../features/match/combat/DeclaredActions";
 import MatchErrorBanner from "../features/match/combat/MatchErrorBanner";
+import ClockNotice from "../features/match/clock/ClockNotice";
 import LostDeclaredNotice from "../features/match/combat/LostDeclaredNotice";
 import MatchSheetPanel from "../features/match/combat/MatchSheetPanel";
 import ReactionPanel from "../features/match/combat/ReactionPanel";
@@ -83,6 +88,15 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
   const game = useGameTable({ token, campaignId, matchId, declaredSource: "ownQueue", actorId });
   const { combat, composer, live, map, nameOf } = game;
   const { state } = combat;
+  const clock = useStoryClock(state.clock, { escalate: false });
+  // O mestre encerrou a partida: a mesa sai do histórico e o jogador vai para a página dela.
+  useMatchEndedRedirect({
+    token,
+    campaignId,
+    matchId,
+    matchEnded: state.matchEnded,
+    ended: isMatchOver({ matchEnded: state.matchEnded, status: combat.status, lastError: state.lastError }),
+  });
 
   const { data: catalogue } = useCombatCatalogue(token, actorId);
   const { data: ownSheet } = useCharacterSheet(token, actorId);
@@ -364,6 +378,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
               width={width}
               height={height}
             />
+            <ClockPill clock={clock} interactive={false} />
             <GeneralBar
               bars={state.bars}
               roundMode={state.roundMode}
@@ -373,6 +388,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
             />
             <StageNotices>
               <MatchErrorBanner error={state.lastError} onDismiss={combat.dismissError} />
+              <ClockNotice change={state.clock.lastChange} changeSeq={state.clock.changeSeq} />
               <LostDeclaredNotice
                 count={state.lostDeclared.length}
                 restoredCount={state.lostDeclared.filter((d) => d.draftRestored).length}

@@ -8,6 +8,7 @@ import useUser from "../hooks/useUser";
 import { useMatchDetails } from "../hooks/useMatchDetails";
 import { useMatchEnrollments } from "../hooks/useMatchEnrollments";
 import { useLobbyWs } from "../hooks/useLobbyWs";
+import { matchPagePath } from "../features/match/clock/endMatch";
 import { useMatchMap } from "../hooks/useMatchMap";
 import { useMap } from "../hooks/useMap";
 import TacticalMapPlacer from "../features/tactical-map/TacticalMapPlacer";
@@ -32,6 +33,7 @@ const ERROR_STATUSES: WsStatus[] = [
   "kicked",
   "lobby_closed",
   "replaced",
+  "ended",
 ];
 
 export default function LobbyPage() {
@@ -67,8 +69,9 @@ export default function LobbyPage() {
     enrollments.some(
       (e) => e.player?.uuid === user?.uuid && e.status === "accepted",
     );
+  // Partida encerrada nem abre o socket: a página redireciona logo abaixo.
   const lobbyEnabled =
-    !!token && !!matchId && !isPending && !enrollmentsPending && hasAccess;
+    !!token && !!matchId && !isPending && !enrollmentsPending && hasAccess && !match?.gameEndAt;
 
   const { data: matchMap } = useMatchMap(token, matchId);
   const { data: fullMap } = useMap(token, matchMap?.mapUuid);
@@ -188,6 +191,9 @@ export default function LobbyPage() {
     );
   if (isPending || enrollmentsPending) return <PageLoading label="Carregando lobby…" />;
   if (!match) return <PageNotFound title="Partida não encontrada" back={matchBack} />;
+  // Encerrada: o lobby não existe mais (spec 2026-11-08 §5); `replace` o tira do histórico.
+  if (match.gameEndAt)
+    return <Navigate to={matchPagePath(campaignId, matchId)} replace state={{ endedByMaster: true }} />;
   if (!hasAccess) {
     return (
       <Navigate to={`/campaigns/${campaignId}/matches/${matchId}`} replace />
@@ -229,6 +235,8 @@ export default function LobbyPage() {
         return "Você foi removido do lobby pelo mestre.";
       case "lobby_closed":
         return "O lobby foi encerrado pelo mestre.";
+      case "ended":
+        return "A partida já foi encerrada.";
       case "replaced":
         return "Este lobby foi aberto em outra aba ou dispositivo com a sua conta. Recarregue a página para usá-lo aqui.";
       default:

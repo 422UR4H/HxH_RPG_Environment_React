@@ -13,7 +13,9 @@ export type WsStatus =
   | "kicked"
   | "lobby_closed"
   /** A mesma conta abriu o lobby em outra conexão, e o servidor ficou com ela (B4). */
-  | "replaced";
+  | "replaced"
+  /** A partida acabou (close 4002, contrato): não há lobby para reconectar. */
+  | "ended";
 
 export type LobbyParticipant = {
   uuid: string;
@@ -75,6 +77,7 @@ const TERMINAL_STATUSES: WsStatus[] = [
   "unreachable",
   // Reconectar tomaria o lugar da outra conexão, que retomaria o desta — para sempre.
   "replaced",
+  "ended",
 ];
 
 export function useLobbyWs({
@@ -275,6 +278,10 @@ export function useLobbyWs({
 
         if (event.code === 4001) {
           updateStatus("lobby_not_open");
+          return;
+        }
+        if (event.code === 4002) {
+          updateStatus("ended");
           return;
         }
         if (TERMINAL_STATUSES.includes(statusRef.current)) return;

@@ -207,3 +207,68 @@ describe("useMatchCombat — avisos para o REST", () => {
     expect(result.current.state.ownReactions).toEqual([]);
   });
 });
+
+describe("useMatchCombat: story clock sends", () => {
+  it("sends each clock verb with the contract payload and returns true", () => {
+    const { result, ws } = mount();
+    const sentOf = () => ws.send.mock.calls.map(([m]) => JSON.parse(m as string));
+    act(() => {
+      expect(result.current.send.setClockStart("08:30")).toBe(true);
+      expect(result.current.send.adjustClock(600)).toBe(true);
+      expect(result.current.send.adjustClock(300000, true)).toBe(true);
+      expect(result.current.send.setClock("2000-01-02T08:00:00")).toBe(true);
+      expect(result.current.send.setClock("2000-01-05T08:00:00", true)).toBe(true);
+      expect(result.current.send.playClock()).toBe(true);
+      expect(result.current.send.pauseClock()).toBe(true);
+      expect(result.current.send.requestCombatSummary()).toBe(true);
+      expect(result.current.send.endMatch({ storyAt: "2000-01-02T08:00:00", briefFinalDescription: "fim" })).toBe(true);
+    });
+    expect(sentOf()).toEqual([
+      { type: "set_clock_start", payload: { time: "08:30" } },
+      { type: "adjust_clock", payload: { deltaSeconds: 600 } },
+      { type: "adjust_clock", payload: { deltaSeconds: 300000, confirmLongSkip: true } },
+      { type: "set_clock", payload: { storyAt: "2000-01-02T08:00:00" } },
+      { type: "set_clock", payload: { storyAt: "2000-01-05T08:00:00", confirmLongSkip: true } },
+      { type: "play_clock", payload: {} },
+      { type: "pause_clock", payload: {} },
+      { type: "get_combat_summary", payload: {} },
+      { type: "end_match", payload: { storyAt: "2000-01-02T08:00:00", briefFinalDescription: "fim" } },
+    ]);
+  });
+
+  it("returns false with the socket closed", () => {
+    const { result, ws } = mount();
+    ws.readyState = 3;
+    let ok = true;
+    act(() => { ok = result.current.send.playClock(); });
+    expect(ok).toBe(false);
+  });
+
+  it("routes clock_changed to the reducer; refetches history only for start/adjust/set/pause", () => {
+    const onHistoryChanged = vi.fn();
+    const { result, ws } = mount({ onHistoryChanged });
+    const emit = (seq: number, kind: string) =>
+      act(() => {
+        ws.emit("clock_changed", {
+          clock: { storyAt: "2000-01-01T08:00:00", running: true, limitAt: null, limitReason: "", seq },
+          change: { kind },
+        });
+      });
+    emit(1, "play");
+    expect(result.current.state.clock.value?.running).toBe(true);
+    ["round", "limit", "scene", "end"].forEach((k, i) => emit(i + 2, k));
+    expect(onHistoryChanged).not.toHaveBeenCalled();
+    ["start", "adjust", "set", "pause"].forEach((k, i) => emit(i + 10, k));
+    expect(onHistoryChanged).toHaveBeenCalledTimes(4);
+  });
+
+  it("routes combat_summary and match_ended", () => {
+    const { result, ws } = mount();
+    act(() => {
+      ws.emit("combat_summary", { sceneId: "s", countedRounds: 1, countedSeconds: 1, activeRoundCounts: true, minimumStoryAt: "2000-01-01T08:00:01", hiatuses: [] });
+      ws.emit("match_ended", { matchId: "m1", storyAt: "2000-01-01T09:00:00", gameEndAt: "2026-11-08T10:00:00Z" });
+    });
+    expect(result.current.state.combatSummary?.sceneId).toBe("s");
+    expect(result.current.state.matchEnded?.matchId).toBe("m1");
+  });
+});

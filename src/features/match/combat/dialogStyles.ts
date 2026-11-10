@@ -76,3 +76,22 @@ export const AccentConfirmButton = styled(ButtonBase)`
   background: ${colors.brandAccent};
   color: ${colors.textPrimary};
 `;
+
+/** Diálogo com conteúdo longo (resumo do combate, editor do relógio): rola por dentro no celular. */
+export const ScrollDialog = styled(Dialog)`
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+
+  @media (max-width: 400px) {
+    padding: 20px 16px;
+    width: calc(100% - 24px);
+  }
+`;
+
+/** A recusa do servidor dentro do diálogo. */
+export const ErrorText = styled.p`
+  margin: 0;
+  font-size: 13px;
+  color: ${colors.feedbackDanger};
+`;

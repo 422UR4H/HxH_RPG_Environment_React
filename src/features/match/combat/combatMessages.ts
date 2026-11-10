@@ -1,4 +1,5 @@
 import type { HistoryAction } from "../../../types/matchHistory";
+import type { ClockChangedPayload, ClockState, CombatSummary, MatchEnded } from "../clock/clockMessages";
 
 export type Bar = "action" | "move";
 export type RoundMode = "Free" | "Race";
@@ -12,7 +13,15 @@ export type ScenePayload = {
 };
 
 /** `change_scene` (c→s). `category` minúscula, validada no servidor (contrato). */
-export type ChangeScenePayload = { category: SceneCategory; briefInitialDescription: string };
+export type ChangeScenePayload = {
+  category: SceneCategory;
+  briefInitialDescription: string;
+  /** Ao sair de combate: descrição final da cena que termina. */
+  briefFinalDescription?: string;
+  /** Hora da história para a nova cena. */
+  storyAt?: string;
+  confirmLongSkip?: boolean;
+};
 
 export type BarsPayload = {
   seq: number;
@@ -294,6 +303,8 @@ export type MatchFullStatePayload = {
    * nada seu está pendente. Ver "regra de reconciliação (B12)" no contrato.
    */
   ownQueue?: OwnQueuedAction[];
+  /** O relógio da história; ausente só antes de a partida ter sessão. */
+  clock?: ClockState;
 };
 
 export type WsErrorPayload = { code: string; message: string };
@@ -313,7 +324,10 @@ export type CombatServerMessage =
   | { type: "scene_changed"; payload: ScenePayload }
   | { type: "close_turn_refused"; payload: CloseTurnRefusedPayload }
   | { type: "reaction_attached"; payload: ReactionAttachedPayload }
-  | { type: "reaction_opened"; payload: ReactionOpenedPayload };
+  | { type: "reaction_opened"; payload: ReactionOpenedPayload }
+  | { type: "clock_changed"; payload: ClockChangedPayload }
+  | { type: "combat_summary"; payload: CombatSummary }
+  | { type: "match_ended"; payload: MatchEnded };
 
 /** O que o cliente monta para `enqueue_action`. Sem perícia: o hit é derivado pelo servidor. */
 export type EnqueueActionPayload = {

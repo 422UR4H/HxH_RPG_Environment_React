@@ -31,6 +31,7 @@ import type { MatchStatus } from "../types/match";
 import { ActionsList } from "../components/atoms/ActionsList";
 import { useQueryClient } from "@tanstack/react-query";
 import { getApiErrorDetail } from "../utils/apiError";
+import { consumeEndedNotice, rememberMatchPageEntry } from "../features/match/clock/matchHistoryEntry";
 
 const MAP_LOCKED_TEXT = "O mapa não pode ser trocado depois que a partida começou.";
 const MAP_LOCKED_DETAIL = "cannot change map after match has started";
@@ -67,9 +68,10 @@ function mapChangeRefusal(err: unknown, inheriting: boolean): { text: string; lo
   return { text: "Não foi possível trocar o mapa. Tente novamente.", locked: false };
 }
 
-function getMatchStatus(match: { gameStartAt?: string; storyEndAt?: string }): MatchStatus {
+// Encerrada = `gameEndAt` preenchido (contrato match.md); `storyEndAt` é só a data da história.
+function getMatchStatus(match: { gameStartAt?: string; gameEndAt?: string }): MatchStatus {
   if (!match.gameStartAt) return "scheduled";
-  if (!match.storyEndAt) return "ongoing";
+  if (!match.gameEndAt) return "ongoing";
   return "ended";
 }
 
@@ -82,8 +84,19 @@ export default function MatchPage() {
   const { user } = useUser();
   const navigate = useNavigate();
   const location = useLocation();
-  const locationState = location.state as { sheetId?: string; lobbyNotOpen?: boolean } | null;
+  const locationState = location.state as
+    | { sheetId?: string; lobbyNotOpen?: boolean; endedByMaster?: boolean }
+    | null;
   const lobbyNotOpen = locationState?.lobbyNotOpen === true;
+  // Quem volta da mesa encerrada pelo histórico chega sem estado de rota: o aviso vem do flag,
+  // lido uma vez só no primeiro render.
+  const [endedNoticeFlagged] = useState(() => (matchId ? consumeEndedNotice(matchId) : false));
+  const endedByMasterArrival = locationState?.endedByMaster === true || endedNoticeFlagged;
+
+  // Guarda esta entrada do histórico: ao encerrar a partida, a mesa volta até ela.
+  useEffect(() => {
+    if (matchId) rememberMatchPageEntry(matchId);
+  }, [matchId]);
 
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
   const [showLobbyConfirm, setShowLobbyConfirm] = useState(false);
@@ -288,6 +301,9 @@ export default function MatchPage() {
     <>
       <DetailPageTemplate
         mainRef={mainContentRef}
+        // Quem chega aqui pelo fim da partida veio da /game, que foi substituída por esta página:
+        // a entrada anterior do histórico é esta mesma página, então o "Voltar" vai à campanha.
+        backTo={locationState?.endedByMaster ? campaignBack.to : undefined}
         leftSidebar={
           <MatchCharactersSidebar
             gameStarted={!!match.gameStartAt}
@@ -310,6 +326,8 @@ export default function MatchPage() {
           match={match}
           status={status}
           lobbyNotOpen={lobbyNotOpen}
+          // Quem chega da mesa encerrada; o mestre, que encerrou, não precisa do aviso.
+          endedByMaster={endedByMasterArrival && !isMaster && status === "ended"}
           onDescriptionToggle={() => setDescriptionSignal((s) => !s)}
         />
 

@@ -55,6 +55,8 @@ export function RegencyControls({
   canCloseTurn,
   onNewScene,
   canChangeScene,
+  onEndMatch,
+  endMatchBlockedReason,
   queueLength,
   orderLength,
   roundTurns,
@@ -66,6 +68,9 @@ export function RegencyControls({
   canCloseTurn: boolean;
   onNewScene: () => void;
   canChangeScene: boolean;
+  onEndMatch: () => void;
+  /** Por que não dá para encerrar agora (`endMatchBlockReason`); `null` = pode. */
+  endMatchBlockedReason: string | null;
   queueLength: number;
   /** Tamanho da ordem da Corrida (`bars.order`). */
   orderLength: number;
@@ -93,6 +98,9 @@ export function RegencyControls({
       >
         Nova cena
       </NewSceneButton>
+      <TopbarOnly>
+        <EndMatchButton blockedReason={endMatchBlockedReason} onClick={onEndMatch} />
+      </TopbarOnly>
       {/* aria-disabled (e não disabled): o botão segue focável e o hover/foco mostram o porquê. */}
       <Tooltip
         label={idleRound ? "Nenhum turno aconteceu nesta rodada ainda" : "A fila de ações está vazia"}
@@ -106,6 +114,27 @@ export function RegencyControls({
         Fechar turno
       </SmallButton>
     </Regency>
+  );
+}
+
+/**
+ * "Encerrar partida" (spec 2026-11-08 §5): destrutivo, abre a confirmação. Travado, segue
+ * focável com `aria-disabled` e o Tooltip diz o porquê — no toque também (Review Focus 4).
+ */
+export function EndMatchButton({
+  blockedReason,
+  onClick,
+}: {
+  blockedReason: string | null;
+  onClick: () => void;
+}) {
+  const blocked = blockedReason !== null;
+  return (
+    <Tooltip label={blockedReason ?? ""} enabled={blocked}>
+      <DestructiveButton type="button" aria-disabled={blocked || undefined} onClick={blocked ? undefined : onClick}>
+        Encerrar partida
+      </DestructiveButton>
+    </Tooltip>
   );
 }
 
@@ -479,6 +508,29 @@ const PrimaryButton = styled(SmallButton)`
     color: ${colors.textDisabledOnDark};
     filter: none;
     cursor: not-allowed;
+  }
+`;
+
+const DestructiveButton = styled(SmallButton)`
+  border-color: ${colors.actionDestructive};
+  background: transparent;
+  color: ${colors.actionDestructiveText};
+
+  &[aria-disabled="true"] {
+    background: ${colors.surfaceDisabled};
+    border-color: ${colors.surfaceDisabled};
+    color: ${colors.textDisabledOnDark};
+    filter: none;
+    cursor: not-allowed;
+  }
+`;
+
+/* Como o Nova cena (BF5): na topbar só a partir do tablet; no celular ele vive no painel da Fila. */
+const TopbarOnly = styled.span`
+  display: contents;
+
+  ${media.phone} {
+    display: none;
   }
 `;
 

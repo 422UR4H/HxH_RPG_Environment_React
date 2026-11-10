@@ -8,6 +8,7 @@ import { renderWithProviders } from "../../test/render";
 import { matchApiFixture } from "../../test/fixtures/match";
 import { mapApiFixture } from "../../test/fixtures/map";
 import GamePlayerPage from "../GamePlayerPage";
+import { useLocation } from "react-router-dom";
 import { installFakeWebSocket, waitForSocket } from "../../test/fakeWebSocket";
 import type { FakeWS } from "../../test/fakeWebSocket";
 
@@ -1265,5 +1266,26 @@ describe("GamePlayerPage", () => {
       expect(mapStub()).toHaveAttribute("data-target-piece-ids", JSON.stringify(["piece-c2"]));
       expect(mapStub()).toHaveAttribute("data-has-piece-select", "true");
     });
+  });
+  // Spec 2026-11-08 §5: o mestre encerrou — o jogador também sai da mesa, com replace.
+  it("match_ended sends the player to the match page with the ended notice state", async () => {
+    function LocationProbe() {
+      const location = useLocation();
+      return <div data-testid="location" data-state={JSON.stringify(location.state)}>{location.pathname}</div>;
+    }
+    renderWithProviders(
+      <>
+        <GamePlayerPage token="fake-jwt-token" campaignId="campaign-1" matchId="match-1" />
+        <LocationProbe />
+      </>,
+      { route: "/campaigns/campaign-1/matches/match-1/game" },
+    );
+    const ws = await waitForSocket();
+    act(() => {
+      ws.onopen?.();
+      ws.emit("match_ended", { matchId: "match-1", storyAt: "2000-01-01T09:00:00", gameEndAt: "2026-11-08T22:14:05Z" });
+    });
+    const probe = await screen.findByText("/campaigns/campaign-1/matches/match-1");
+    expect(probe).toHaveAttribute("data-state", JSON.stringify({ endedByMaster: true }));
   });
 });

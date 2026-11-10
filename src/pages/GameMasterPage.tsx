@@ -17,13 +17,23 @@ import { masterPanelDismissible, useStageOverlays } from "../features/match/comb
 import MatchStageTemplate from "../components/templates/MatchStageTemplate";
 import MatchTopBar from "../features/match/combat/MatchTopBar";
 import {
-  AddNpcPicker, ArrangePanel, NpcPicker, PanelSection, RegencyControls, RoundModeSwitch, WallMasterPanel,
+  AddNpcPicker, ArrangePanel, EndMatchButton, NpcPicker, PanelSection, RegencyControls, RoundModeSwitch, WallMasterPanel,
 } from "../features/match/combat/MasterControls";
+import type { WsError } from "../features/match/combat/combatErrorMessages";
 import { actorWallVerbs } from "../features/match/combat/wallVerbs";
 import { PanelTitle } from "../features/match/combat/panelStyles";
 import RailNav from "../features/match/combat/RailNav";
 import AsideTabs from "../features/match/combat/AsideTabs";
 import GeneralBar from "../features/match/combat/GeneralBar";
+import ClockPanel from "../features/match/clock/ClockPanel";
+import ClockPill from "../features/match/clock/ClockPill";
+import ClockNotice from "../features/match/clock/ClockNotice";
+import StartTimeDialog from "../features/match/clock/StartTimeDialog";
+import EndMatchDialog from "../features/match/clock/EndMatchDialog";
+import { endMatchBlockReason, isMatchOver } from "../features/match/clock/endMatch";
+import { useMatchEndedRedirect } from "../features/match/clock/useMatchEndedRedirect";
+import { useMatchDetails } from "../hooks/useMatchDetails";
+import { useStoryClock } from "../features/match/clock/useStoryClock";
 import OwnBars from "../features/match/combat/OwnBars";
 import EventStream from "../features/match/combat/EventStream";
 import { historyRows } from "../features/match/combat/historyRows";
@@ -35,6 +45,7 @@ import DeclaredActions from "../features/match/combat/DeclaredActions";
 import QueuePanel from "../features/match/combat/QueuePanel";
 import CloseTurnRefusedDialog from "../features/match/combat/CloseTurnRefusedDialog";
 import SceneChangeDialog from "../features/match/combat/SceneChangeDialog";
+import { useSceneChangeFlow } from "../features/match/combat/useSceneChangeFlow";
 import ArrangeConfirmDialog from "../features/match/combat/ArrangeConfirmDialog";
 import type { ArrangePending } from "../features/match/combat/ArrangeConfirmDialog";
 import MapPickConfirm from "../features/match/combat/MapPickConfirm";
@@ -100,6 +111,19 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   const game = useGameTable({ token, campaignId, matchId, declaredSource: "queue", actorId });
   const { combat, composer, live, map, nameOf, participants } = game;
   const { state } = combat;
+  // Relógio da história: só o mestre escala a atenção; a pílula abre e fecha o painel.
+  const clock = useStoryClock(state.clock, { escalate: true });
+  const [clockOpen, setClockOpen] = useState(false);
+  const clockAnchorRef = useRef<HTMLDivElement | null>(null);
+  // Sem hora inicial a partida não anda: o diálogo é obrigatório e só some quando o servidor
+  // manda um `storyAt` (estado completo ou clock_changed) — por isso não há flag local.
+  const { data: matchDetails } = useMatchDetails(token, matchId);
+  const startTimePending = state.clock.value?.storyAt === null;
+  const startTimeError = startTimePending && state.lastError?.sentType === "set_clock_start" ? state.lastError : null;
+  // Duplo clique em "Começar": o 2º envio recusa com clock_already_set depois de o 1º ter dado
+  // certo — não é erro para o mestre.
+  const staleClockStartError =
+    !startTimePending && state.lastError?.sentType === "set_clock_start" && state.lastError.code === "clock_already_set";
   const gridKind = map?.grid.kind ?? "square";
 
   const { data: catalogue } = useCombatCatalogue(token, actorId);
@@ -142,7 +166,37 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   // As paredes que o mestre tocou SEM NPC escolhido: o card "Ação do Mestre" no Agir. Tocar
   // troca a seleção; segurar junta (o terremoto). Guarda ids — o card lê as paredes ao vivo.
   const [masterWallIds, setMasterWallIds] = useState<string[]>([]);
-  const [sceneDialog, setSceneDialog] = useState(false);
+  // Nova cena: em combate pede o resumo ao abrir; fecha quando a cena troca (a recusa fica nele).
+  const sceneFlow = useSceneChangeFlow({
+    scene: state.scene,
+    combatSummary: state.combatSummary,
+    lastError: state.lastError,
+    requestCombatSummary: combat.send.requestCombatSummary,
+    changeScene: combat.send.changeScene,
+  });
+  const sceneDialog = sceneFlow.open;
+
+  // ─── Encerrar partida (spec 2026-11-08 §5) ─────────────────────────────────
+  // Guarda o erro que já estava no estado ao abrir: só a recusa do `end_match` desta abertura
+  // aparece no diálogo. O diálogo não fecha sozinho: o fim tira o mestre da mesa.
+  const [endMatchOpened, setEndMatchOpened] = useState<{ error: WsError | null } | null>(null);
+  const endMatchError =
+    endMatchOpened && state.lastError !== endMatchOpened.error && state.lastError?.sentType === "end_match"
+      ? state.lastError
+      : null;
+  const endMatchBlocked = endMatchBlockReason({
+    sceneCategory: state.scene?.category,
+    openTurn: state.openTurn != null,
+    storyAt: state.clock.value?.storyAt,
+  });
+  const openEndMatch = () => setEndMatchOpened({ error: state.lastError });
+  useMatchEndedRedirect({
+    token,
+    campaignId,
+    matchId,
+    matchEnded: state.matchEnded,
+    ended: isMatchOver({ matchEnded: state.matchEnded, status: combat.status, lastError: state.lastError }),
+  });
 
   // ─── Arrumar (F12) ─────────────────────────────────────────────────────────
   const [boardMode, setBoardMode] = useState<BoardMode>("play");
@@ -612,8 +666,10 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                 onOpenNext={combat.send.openNextAction}
                 onCloseTurn={() => combat.send.closeTurn()}
                 canCloseTurn={canCloseTurn}
-                onNewScene={() => setSceneDialog(true)}
+                onNewScene={sceneFlow.openDialog}
                 canChangeScene={state.openTurn == null}
+                onEndMatch={openEndMatch}
+                endMatchBlockedReason={endMatchBlocked}
                 queueLength={state.queue.length}
                 orderLength={state.bars?.order.length ?? 0}
                 roundTurns={state.bars?.roundTurns}
@@ -669,12 +725,13 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                 <RoundModeSwitch mode={state.roundMode} onChange={combat.send.changeRoundMode} placement="panel" />
                 <SmallButton
                   type="button"
-                  onClick={() => setSceneDialog(true)}
+                  onClick={sceneFlow.openDialog}
                   disabled={state.openTurn != null}
                   title={state.openTurn == null ? undefined : "Feche o turno antes de trocar de cena"}
                 >
                   Nova cena
                 </SmallButton>
+                <EndMatchButton blockedReason={endMatchBlocked} onClick={openEndMatch} />
               </PanelSection>
               <QueuePanel
                 queue={state.queue}
@@ -797,6 +854,22 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
               width={width}
               height={height}
             />
+            {/* display: contents — o invólucro só marca a pílula para o painel (clique fora e foco). */}
+            <div ref={clockAnchorRef} style={{ display: "contents" }}>
+              <ClockPill clock={clock} interactive open={clockOpen} onToggle={() => setClockOpen((o) => !o)} />
+            </div>
+            {clockOpen && (
+              <ClockPanel
+                clock={clock}
+                roundMode={state.roundMode}
+                anchorRef={clockAnchorRef}
+                onAdjust={(delta) => combat.send.adjustClock(delta)}
+                onSet={(storyAt, confirm) => combat.send.setClock(storyAt, confirm)}
+                onPlay={() => combat.send.playClock()}
+                onPause={() => combat.send.pauseClock()}
+                onClose={() => setClockOpen(false)}
+              />
+            )}
             <GeneralBar
               showOrder
               bars={state.bars}
@@ -807,8 +880,25 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
             />
             <StageNotices>
               <MatchErrorBanner
-                error={state.lastError?.code === "npc_already_in_match" ? null : state.lastError}
+                error={
+                  state.lastError?.code === "npc_already_in_match" ||
+                  startTimeError ||
+                  staleClockStartError ||
+                  // O resumo do combate só é pedido pelo diálogo, que cai no layout de roleplay.
+                  state.lastError?.sentType === "get_combat_summary" ||
+                  // A recusa do encerrar aparece no próprio diálogo.
+                  state.lastError?.sentType === "end_match" ||
+                  // A recusa do trocar de cena também, enquanto o diálogo está aberto.
+                  (sceneFlow.error !== null && state.lastError === sceneFlow.error)
+                    ? null
+                    : state.lastError
+                }
                 onDismiss={combat.dismissError}
+              />
+              <ClockNotice
+                // Ao pausar a chave volta a 0: isso não é um aviso novo ("ligado há 0 min").
+                text={clock.alertKey > 0 ? `Tempo real ligado há ${clock.alertKey * 5} min` : null}
+                noticeKey={clock.alertKey}
               />
               <LostDeclaredNotice
                 count={state.lostDeclared.length}
@@ -816,6 +906,13 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                 onDismiss={combat.dismissLostDeclared}
               />
             </StageNotices>
+            {startTimePending && (
+              <StartTimeDialog
+                storyStartAt={matchDetails?.storyStartAt}
+                error={startTimeError}
+                onStart={(time) => combat.send.setClockStart(time)}
+              />
+            )}
             {map && fallPicking && choosingFall && (
               <MapPickConfirm
                 prompt={`${verb} na casa onde ${nameOf(choosingFall)} cai.`}
@@ -933,8 +1030,23 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
       />
       <SceneChangeDialog
         open={sceneDialog}
-        onCancel={() => setSceneDialog(false)}
-        onConfirm={(p) => { combat.send.changeScene(p); setSceneDialog(false); }}
+        currentCategory={sceneFlow.currentCategory}
+        summary={sceneFlow.summary}
+        summaryFailed={sceneFlow.summaryFailed}
+        summaryError={sceneFlow.summaryError}
+        nameOf={nameOf}
+        error={sceneFlow.error}
+        onCancel={sceneFlow.closeDialog}
+        onConfirm={sceneFlow.confirm}
+      />
+      <EndMatchDialog
+        open={endMatchOpened != null}
+        now={clock.now}
+        limitAt={clock.limitAt}
+        limitReason={clock.limitReason}
+        error={endMatchError}
+        onCancel={() => setEndMatchOpened(null)}
+        onConfirm={(p) => combat.send.endMatch(p)}
       />
     </>
   );

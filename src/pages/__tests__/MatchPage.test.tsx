@@ -1,7 +1,7 @@
 // src/pages/__tests__/MatchPage.test.tsx
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { http, HttpResponse } from "msw";
-import { screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Route, Routes } from "react-router-dom";
 import { server } from "../../test/server";
@@ -11,6 +11,7 @@ import { masterUserFixture, userFixture } from "../../test/fixtures/user";
 import { mapApiFixture } from "../../test/fixtures/map";
 import { campaignAsMasterApi } from "../../test/fixtures/campaign";
 import MatchPage from "../MatchPage";
+import { backStepsToMatchPage, flagEndedNotice } from "../../features/match/clock/matchHistoryEntry";
 
 const mockNavigate = vi.fn();
 vi.mock("react-router-dom", async () => {
@@ -768,6 +769,107 @@ describe("MatchPage", () => {
           await screen.findByText("O tabuleiro dessa partida está em outro mapa."),
         ).toBeInTheDocument();
       });
+    });
+  });
+  // Encerrar partida (spec 2026-11-08 §5): o selo vem de gameEndAt, não de storyEndAt.
+  describe("ended by the master", () => {
+    const finishedNoStoryEnd = () => {
+      const m = { ...matchOngoingApi(), gameEndAt: "2025-12-01T23:40:00Z" };
+      return m;
+    };
+
+    it("gameEndAt alone marks the match as ended and hides 'Entrar na partida'", async () => {
+      server.use(
+        http.get(`${baseUrl}/matches/:id`, () =>
+          HttpResponse.json({ match: { ...finishedNoStoryEnd(), masterUuid: masterUserFixture.user.uuid } }),
+        ),
+      );
+      renderPage({ user: masterUserFixture });
+      expect(await screen.findByText("ENCERRADA")).toBeInTheDocument();
+      expect(screen.queryByText("Entrar na partida")).not.toBeInTheDocument();
+      expect(screen.queryByText(/Abrir Lobby/i)).not.toBeInTheDocument();
+    });
+
+    it("storyEndAt without gameEndAt is still ongoing", async () => {
+      server.use(
+        http.get(`${baseUrl}/matches/:id`, () =>
+          HttpResponse.json({ match: { ...matchOngoingApi(), storyEndAt: "2025-12-15" } }),
+        ),
+      );
+      renderPage();
+      expect(await screen.findByText("EM ANDAMENTO")).toBeInTheDocument();
+    });
+
+    it("shows the story end date with the exact end time", async () => {
+      server.use(http.get(`${baseUrl}/matches/:id`, () => HttpResponse.json({ match: matchEndedApi() })));
+      renderPage();
+      expect(await screen.findByText("Fim na história: 15/12/2025 18:00:00")).toBeInTheDocument();
+    });
+
+    it("tells the player the master ended it when arriving from the table", async () => {
+      server.use(http.get(`${baseUrl}/matches/:id`, () => HttpResponse.json({ match: matchEndedApi() })));
+      renderPage({ user: userFixture, state: { endedByMaster: true } });
+      expect(await screen.findByText("A partida foi encerrada pelo mestre.")).toBeInTheDocument();
+    });
+
+    it("back goes to the campaign when arriving from the ended table (the /game entry was replaced)", async () => {
+      server.use(http.get(`${baseUrl}/matches/:id`, () => HttpResponse.json({ match: matchEndedApi() })));
+      renderPage({ user: userFixture, state: { endedByMaster: true } });
+      await screen.findByText("ENCERRADA");
+      fireEvent.click(screen.getByRole("button", { name: "Voltar" }));
+      await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/campaigns/campaign-1", { replace: true }));
+      expect(mockNavigate).not.toHaveBeenCalledWith(-1);
+    });
+
+    it("back keeps going one step back in history otherwise", async () => {
+      server.use(http.get(`${baseUrl}/matches/:id`, () => HttpResponse.json({ match: matchEndedApi() })));
+      renderPage({ user: userFixture });
+      await screen.findByText("ENCERRADA");
+      fireEvent.click(screen.getByRole("button", { name: "Voltar" }));
+      await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith(-1));
+    });
+
+    it("no notice without the router state", async () => {
+      server.use(http.get(`${baseUrl}/matches/:id`, () => HttpResponse.json({ match: matchEndedApi() })));
+      renderPage({ user: userFixture });
+      await screen.findByText("ENCERRADA");
+      expect(screen.queryByText("A partida foi encerrada pelo mestre.")).not.toBeInTheDocument();
+    });
+
+    it("tells the player the master ended it from the session flag, without router state, only once", async () => {
+      // Voltar no histórico até a entrada original não leva estado de rota: o aviso vem do flag.
+      sessionStorage.clear();
+      flagEndedNotice("match-1");
+      server.use(http.get(`${baseUrl}/matches/:id`, () => HttpResponse.json({ match: matchEndedApi() })));
+      const { unmount } = renderPage({ user: userFixture });
+      expect(await screen.findByText("A partida foi encerrada pelo mestre.")).toBeInTheDocument();
+      unmount();
+
+      renderPage({ user: userFixture });
+      await screen.findByText("ENCERRADA");
+      expect(screen.queryByText("A partida foi encerrada pelo mestre.")).not.toBeInTheDocument();
+    });
+
+    it("remembers its history entry so ending the match can return to it", async () => {
+      sessionStorage.clear();
+      window.history.replaceState({ idx: 1 }, "");
+      server.use(http.get(`${baseUrl}/matches/:id`, () => HttpResponse.json({ match: matchOngoingApi() })));
+      renderPage({ user: userFixture });
+      await screen.findByText("EM ANDAMENTO");
+      window.history.replaceState({ idx: 3 }, "");
+      expect(backStepsToMatchPage("match-1")).toBe(-2);
+      window.history.replaceState(null, "");
+    });
+
+    it("the master, who ended it himself, gets no notice", async () => {
+      server.use(
+        http.get(`${baseUrl}/matches/:id`, () =>
+          HttpResponse.json({ match: { ...matchEndedApi(), masterUuid: masterUserFixture.user.uuid } }),
+        ),
+      );
+      renderPage({ user: masterUserFixture, state: { endedByMaster: true } });
+      await screen.findByText("ENCERRADA");
+      expect(screen.queryByText("A partida foi encerrada pelo mestre.")).not.toBeInTheDocument();
     });
   });
 });

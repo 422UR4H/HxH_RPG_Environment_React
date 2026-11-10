@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { AddNpcPicker, RegencyControls } from "../MasterControls";
+import { AddNpcPicker, EndMatchButton, RegencyControls } from "../MasterControls";
 import type { RoundMode } from "../combatMessages";
 
 function setup(mode: RoundMode, queueLength: number, orderLength: number, roundTurns?: number) {
@@ -15,6 +15,8 @@ function setup(mode: RoundMode, queueLength: number, orderLength: number, roundT
       canCloseTurn
       onNewScene={vi.fn()}
       canChangeScene
+      onEndMatch={vi.fn()}
+      endMatchBlockedReason={null}
       queueLength={queueLength}
       orderLength={orderLength}
       roundTurns={roundTurns}
@@ -93,5 +95,53 @@ describe("AddNpcPicker", () => {
       "Escolha um NPC da campanha",
     );
     expect(screen.getByRole("button", { name: "Adicionar" })).toBeDisabled();
+  });
+});
+
+// Review Focus 4: travado, o botão segue focável e explica o porquê (também no toque).
+describe("EndMatchButton", () => {
+  it("enabled: opens the end flow", () => {
+    const onClick = vi.fn();
+    render(<EndMatchButton blockedReason={null} onClick={onClick} />);
+    const btn = screen.getByRole("button", { name: "Encerrar partida" });
+    expect(btn).not.toHaveAttribute("aria-disabled");
+    fireEvent.click(btn);
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    "Encerre o combate antes (troque de cena).",
+    "Feche o turno aberto antes.",
+    "Defina a hora da partida antes.",
+  ])("blocked (%s): aria-disabled, no click, and the tooltip explains", (reason) => {
+    const onClick = vi.fn();
+    render(<EndMatchButton blockedReason={reason} onClick={onClick} />);
+    const btn = screen.getByRole("button", { name: "Encerrar partida" });
+    expect(btn).toHaveAttribute("aria-disabled", "true");
+    expect(btn).not.toBeDisabled();
+    fireEvent.click(btn);
+    expect(onClick).not.toHaveBeenCalled();
+    fireEvent.pointerDown(btn, { pointerType: "touch" });
+    fireEvent.click(btn);
+    expect(screen.getByRole("tooltip", { hidden: true })).toHaveTextContent(reason);
+  });
+
+  it("sits in the regency controls next to Nova cena", () => {
+    render(
+      <RegencyControls
+        mode="Free"
+        onModeChange={vi.fn()}
+        onOpenNext={vi.fn()}
+        onCloseTurn={vi.fn()}
+        canCloseTurn
+        onNewScene={vi.fn()}
+        canChangeScene
+        onEndMatch={vi.fn()}
+        endMatchBlockedReason="Feche o turno aberto antes."
+        queueLength={1}
+        orderLength={0}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Encerrar partida" })).toHaveAttribute("aria-disabled", "true");
   });
 });

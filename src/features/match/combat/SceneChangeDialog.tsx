@@ -2,81 +2,211 @@ import { useState } from "react";
 import styled from "styled-components";
 import { colors } from "../../../styles/tokens";
 import {
-  Buttons, CancelButton, ConfirmButton, Dialog, DialogHint, DialogTitle, Overlay,
+  Buttons, CancelButton, ConfirmButton, DialogHint, DialogTitle, ErrorText, Overlay, ScrollDialog,
 } from "./dialogStyles";
 import { ChoiceLabel, Toggle, Toggles } from "./choiceStyles";
 import type { ChangeScenePayload, SceneCategory } from "./combatMessages";
+import { combatErrorText } from "./combatErrorMessages";
+import type { WsError } from "./combatErrorMessages";
 import { SCENE_LABEL } from "./sceneLabels";
+import ClockEditor from "../clock/ClockEditor";
+import FinalDescriptionField from "../clock/FinalDescriptionField";
+import CombatSummaryBlock from "../clock/CombatSummaryBlock";
+import type { CombatSummary } from "../clock/clockMessages";
 
-/** `change_scene`: fecha cena e rodada correntes e abre a nova. A categoria vai minúscula (contrato). */
+/**
+ * `change_scene`: fecha cena e rodada correntes e abre a nova. A categoria vai minúscula (contrato).
+ * Se a cena que fecha é de combate, o diálogo vira "Encerrar combate" (spec 2026-11-08 §4): o
+ * resumo do combate, a hora exata do fim (o editor do relógio, sem descer do mínimo) e a
+ * descrição final; em roleplay entra só a descrição final opcional.
+ */
 export default function SceneChangeDialog({
   open,
+  currentCategory,
+  summary,
+  summaryFailed,
+  summaryError = null,
+  nameOf,
+  error,
   onConfirm,
   onCancel,
 }: {
   open: boolean;
-  onConfirm: (p: ChangeScenePayload) => void;
+  /** A categoria da cena que fecha. */
+  currentCategory: SceneCategory;
+  /** A resposta do `get_combat_summary` desta abertura (null enquanto não chega). */
+  summary: CombatSummary | null;
+  /** O resumo foi recusado: cai no layout de roleplay. */
+  summaryFailed: boolean;
+  /** Por que o resumo não veio (ex.: sem conexão). */
+  summaryError?: string | null;
+  nameOf: (characterId: string) => string;
+  /** A recusa do `change_scene` desta abertura. */
+  error: WsError | null;
+  /** `false`: o envio nem saiu (socket fechado) — o diálogo não fica esperando. */
+  onConfirm: (p: ChangeScenePayload) => boolean | void;
   onCancel: () => void;
 }) {
-  const [category, setCategory] = useState<SceneCategory>("battle");
+  // Saindo de um combate, o normal é a cena seguinte não ser outra batalha (dono).
+  const defaultCategory: SceneCategory = currentCategory === "battle" ? "roleplay" : "battle";
+  const [category, setCategory] = useState<SceneCategory>(defaultCategory);
   const [description, setDescription] = useState("");
-  // D1: o diálogo fica sempre montado (`!open` só esconde) — sem isso, category/description
-  // sobrevivem a Cancelar/confirmar e o próximo open reabre com o que foi digitado antes.
+  const [finalDescription, setFinalDescription] = useState("");
+  // Enviado, esperando o servidor: o diálogo fica aberto até a cena trocar ou chegar a recusa.
+  const [pending, setPending] = useState(false);
+  const [seenError, setSeenError] = useState<WsError | null>(error);
+  if (error !== seenError) {
+    setSeenError(error);
+    if (error) setPending(false);
+  }
+  // D1: o diálogo fica sempre montado (`!open` só esconde) — sem isso, os campos sobrevivem a
+  // Cancelar/confirmar e o próximo open reabre com o que foi digitado antes.
   // Ajuste de estado durante a renderização (padrão do React para resetar ao mudar uma prop,
   // sem o flash de um useEffect): só dispara na transição PARA aberto.
   const [wasOpen, setWasOpen] = useState(open);
   if (open !== wasOpen) {
     setWasOpen(open);
     if (open) {
-      setCategory("battle");
+      setCategory(defaultCategory);
       setDescription("");
+      setFinalDescription("");
+      setPending(false);
     }
   }
   if (!open) return null;
+
+  const battle = currentCategory === "battle" && !summaryFailed;
+  const loading = battle && summary === null;
+  const title = battle ? "Encerrar combate e trocar de cena" : "Nova cena";
+
+  const send = (clock?: { storyAt: string; confirmLongSkip: boolean }) => {
+    if (pending) return;
+    const final = finalDescription.trim();
+    const sent = onConfirm({
+      category,
+      briefInitialDescription: description.trim(),
+      ...(final ? { briefFinalDescription: final } : {}),
+      ...(clock ?? {}),
+    });
+    setPending(sent !== false);
+  };
+
+  const shownError = error && !pending ? error : null;
+
   return (
     <Overlay onClick={onCancel}>
-      <Dialog role="dialog" aria-modal aria-label="Nova cena" onClick={(e) => e.stopPropagation()}>
-        <DialogTitle>Nova cena</DialogTitle>
-        <DialogHint>Fecha a cena e a rodada atuais e abre uma cena nova.</DialogHint>
-        <Field>
-          <ChoiceLabel id="scene-category">Categoria</ChoiceLabel>
-          <Toggles role="radiogroup" aria-labelledby="scene-category">
-            {(Object.keys(SCENE_LABEL) as SceneCategory[]).map((c) => (
-              <Toggle
-                key={c}
-                type="button"
-                role="radio"
-                $tone="move"
-                aria-checked={category === c}
-                onClick={() => setCategory(c)}
-              >
-                {SCENE_LABEL[c]}
-              </Toggle>
-            ))}
-          </Toggles>
-        </Field>
-        <Field>
-          <ChoiceLabel as="label" htmlFor="scene-desc">Descrição inicial</ChoiceLabel>
-          <DescInput id="scene-desc" value={description} onChange={(e) => setDescription(e.target.value)} />
-        </Field>
-        <Buttons>
-          <CancelButton type="button" onClick={onCancel}>Cancelar</CancelButton>
-          <ConfirmButton
-            type="button"
-            onClick={() => onConfirm({ category, briefInitialDescription: description.trim() })}
-          >
-            Trocar de cena
-          </ConfirmButton>
-        </Buttons>
-      </Dialog>
+      <ScrollDialog
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="scene-change-title"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <DialogTitle id="scene-change-title">{title}</DialogTitle>
+        {!battle && <DialogHint>Fecha a cena e a rodada atuais e abre uma cena nova.</DialogHint>}
+
+        <Section aria-labelledby="scene-current">
+          <SectionTitle id="scene-current">Cena atual</SectionTitle>
+          {summaryError && <ErrorText role="alert">{summaryError}</ErrorText>}
+          {battle && (loading
+            ? <Loading role="status">Calculando o combate…</Loading>
+            : summary && <CombatSummaryBlock summary={summary} nameOf={nameOf} />)}
+          <FinalDescriptionField
+            id="scene-final-desc"
+            label="Descrição final"
+            value={finalDescription}
+            onChange={setFinalDescription}
+          />
+        </Section>
+
+        <Section aria-labelledby="scene-next">
+          <SectionTitle id="scene-next">Nova cena</SectionTitle>
+          <Field>
+            <ChoiceLabel id="scene-category">Categoria</ChoiceLabel>
+            <Toggles role="radiogroup" aria-labelledby="scene-category">
+              {(Object.keys(SCENE_LABEL) as SceneCategory[]).map((c) => (
+                <Toggle
+                  key={c}
+                  type="button"
+                  role="radio"
+                  $tone="move"
+                  aria-checked={category === c}
+                  onClick={() => setCategory(c)}
+                >
+                  {SCENE_LABEL[c]}
+                </Toggle>
+              ))}
+            </Toggles>
+          </Field>
+          <Field>
+            <ChoiceLabel as="label" htmlFor="scene-desc">Descrição inicial</ChoiceLabel>
+            <DescInput id="scene-desc" value={description} onChange={(e) => setDescription(e.target.value)} />
+          </Field>
+        </Section>
+
+        {shownError && (
+          <ErrorText role="alert">{combatErrorText(shownError.code, shownError.message, shownError.sentType)}</ErrorText>
+        )}
+
+        {battle && summary ? (
+          // O botão principal é o do editor: ele é quem conhece o mínimo e a confirmação do salto longo.
+          <Field>
+            <ChoiceLabel>Hora exata do fim do combate</ChoiceLabel>
+            <ClockEditor
+              base={summary.minimumStoryAt}
+              minimum={summary.minimumStoryAt}
+              minimumReason="os rounds do combate já estão no relógio"
+              allowUnchanged
+              submitLabel="Encerrar combate e trocar de cena"
+              onSubmit={(storyAt, confirmLongSkip) => send({ storyAt, confirmLongSkip })}
+              onCancel={onCancel}
+            />
+          </Field>
+        ) : (
+          <Buttons>
+            <CancelButton type="button" onClick={onCancel}>Cancelar</CancelButton>
+            <ConfirmButton
+              type="button"
+              disabled={loading}
+              aria-disabled={pending || undefined}
+              onClick={() => send()}
+            >
+              Trocar de cena
+            </ConfirmButton>
+          </Buttons>
+        )}
+      </ScrollDialog>
     </Overlay>
   );
 }
+
+
+const Section = styled.section`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid ${colors.borderInput};
+`;
+
+const SectionTitle = styled.h3`
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: ${colors.textMuted};
+`;
 
 const Field = styled.div`
   display: flex;
   flex-direction: column;
   gap: 6px;
+`;
+
+const Loading = styled.p`
+  margin: 0;
+  font-size: 14px;
+  color: ${colors.textMuted};
 `;
 
 const DescInput = styled.input`

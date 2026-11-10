@@ -9,6 +9,7 @@ import { matchApiFixture } from "../../test/fixtures/match";
 import { mapApiFixture, mapWithPiecesApi } from "../../test/fixtures/map";
 import { campaignWithNpcsApi, npcFixture } from "../../test/fixtures/campaign";
 import GameMasterPage from "../GameMasterPage";
+import { useLocation } from "react-router-dom";
 import { installFakeWebSocket, waitForSocket } from "../../test/fakeWebSocket";
 import type { FakeWS } from "../../test/fakeWebSocket";
 
@@ -1016,6 +1017,18 @@ describe("GameMasterPage", () => {
     expect(ws.sent("change_scene")).toEqual([{ category: "roleplay", briefInitialDescription: "Taverna" }]);
   });
 
+  it("shows a change_scene refusal only inside the open scene dialog, not in the stage banner", async () => {
+    renderMasterPage();
+    const ws = await waitForSocket();
+    openWithServerBoard(ws);
+
+    await user.click(screen.getAllByRole("button", { name: "Nova cena" })[0]);
+    await user.click(screen.getByRole("button", { name: "Trocar de cena" }));
+    act(() => ws.emit("error", { code: "invalid_payload", message: "bad", sentType: "change_scene" }));
+    expect(screen.getAllByText(/Não foi possível trocar de cena/)).toHaveLength(1);
+    expect(within(screen.getByRole("dialog")).getByRole("alert")).toBeInTheDocument();
+  });
+
   // D1 (deferred do Task 7): o diálogo fica sempre montado, então category/description
   // sobreviviam ao Cancelar — reabrir mostrava o que foi digitado da vez anterior.
   it("D1: cancelar e reabrir reseta a categoria e a descrição para os padrões", async () => {
@@ -1821,6 +1834,152 @@ describe("GameMasterPage", () => {
       const ws2 = await waitForSocket(1);
       openWithServerBoard(ws2);
       await vi.waitFor(() => expect(ws2.sent("watch_piece_view")).toContainEqual({ pieceId: "piece-npc1" }));
+    });
+  });
+  describe("hora inicial e aviso de tempo real", () => {
+    const clockState = (over: Record<string, unknown>) => ({
+      storyAt: null, running: false, limitAt: null, limitReason: "", seq: 1, ...over,
+    });
+    const fullState = (ws: FakeWS, clock: unknown) =>
+      act(() => ws.emit("match_full_state", { roundMode: "", clock, bars: { seq: 0, prices: null, characters: null, order: null } }));
+
+    it("o diálogo da hora inicial reaparece num novo estado completo ainda sem hora e some com a hora", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      act(() => ws.onopen?.());
+      fullState(ws, clockState({ seq: 1 }));
+      const dialog = await screen.findByRole("dialog", { name: "Que horas são no início da partida?" });
+      await user.keyboard("{Escape}");
+      expect(dialog).toBeInTheDocument();
+      // Reconexão/recarga: o servidor ainda não tem hora, o diálogo continua.
+      fullState(ws, clockState({ seq: 2 }));
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+      await user.keyboard("0930");
+      await user.click(screen.getByRole("button", { name: "Começar" }));
+      expect(ws.sent("set_clock_start")).toContainEqual({ time: "09:30:00" });
+      // Enviou, mas só o servidor tira o diálogo.
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+      fullState(ws, clockState({ seq: 3, storyAt: "2000-01-01T09:30:00" }));
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
+
+    it("duplo clique em Começar: o clock_already_set do 2º envio não aparece no banner", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      act(() => ws.onopen?.());
+      fullState(ws, clockState({ seq: 1 }));
+      await screen.findByRole("dialog");
+      await user.dblClick(screen.getByRole("button", { name: "Começar" }));
+      expect(ws.sent("set_clock_start")).toHaveLength(1);
+      fullState(ws, clockState({ seq: 2, storyAt: "2000-01-01T00:00:00" }));
+      act(() => ws.emit("error", { code: "clock_already_set", message: "", sentType: "set_clock_start" }));
+      expect(screen.queryByText("A hora inicial já foi definida.", { exact: false })).toBeNull();
+    });
+
+    it("avisa o tempo real ligado a cada 5 min", async () => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date("2026-01-01T10:00:00Z"));
+      try {
+        renderMasterPage();
+        const ws = await waitForSocket();
+        act(() => ws.onopen?.());
+        fullState(ws, clockState({ seq: 1, storyAt: "2000-01-01T09:00:00", running: true }));
+        expect(screen.queryByText(/Tempo real ligado/)).toBeNull();
+        vi.setSystemTime(new Date("2026-01-01T10:05:01Z"));
+        expect(await screen.findByText("Tempo real ligado há 5 min", {}, { timeout: 3000 })).toBeInTheDocument();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("does not announce 'ligado há 0 min' when the master pauses after 5 min", async () => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date("2026-01-01T10:00:00Z"));
+      try {
+        renderMasterPage();
+        const ws = await waitForSocket();
+        act(() => ws.onopen?.());
+        fullState(ws, clockState({ seq: 1, storyAt: "2000-01-01T09:00:00", running: true }));
+        vi.setSystemTime(new Date("2026-01-01T10:05:01Z"));
+        await screen.findByText("Tempo real ligado há 5 min", {}, { timeout: 3000 });
+        fullState(ws, clockState({ seq: 2, storyAt: "2000-01-01T09:05:01", running: false }));
+        expect(screen.queryByText("Tempo real ligado há 0 min")).toBeNull();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  });
+  // Encerrar partida (spec 2026-11-08 §5, Review Focus 3 e 4).
+  describe("end match", () => {
+    const fullState = (ws: FakeWS, over: Record<string, unknown> = {}) =>
+      act(() =>
+        ws.emit("match_full_state", {
+          roundMode: "",
+          scene: { sceneId: "s1", category: "roleplay", briefInitialDescription: "" },
+          clock: { seq: 1, storyAt: "2000-01-01T08:30:00", running: false, limitAt: "2000-01-01T08:00:00", limitReason: "turn" },
+          bars: { seq: 0, prices: null, characters: null, order: null },
+          ...over,
+        }),
+      );
+
+    function LocationProbe() {
+      const location = useLocation();
+      return <div data-testid="location" data-state={JSON.stringify(location.state)}>{location.pathname}</div>;
+    }
+
+    function renderWithProbe() {
+      return renderWithProviders(
+        <>
+          <GameMasterPage token="fake-jwt-token" campaignId="campaign-1" matchId="match-1" />
+          <LocationProbe />
+        </>,
+        { route: "/campaigns/campaign-1/matches/match-1/game" },
+      );
+    }
+
+    it("blocked in a battle scene, with the reason", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      fullState(ws, { scene: { sceneId: "s1", category: "battle", briefInitialDescription: "" } });
+      for (const b of screen.getAllByRole("button", { name: "Encerrar partida" })) {
+        expect(b).toHaveAttribute("aria-disabled", "true");
+        expect(b).toHaveAccessibleDescription("Encerre o combate antes (troque de cena).");
+      }
+    });
+
+    it("confirm → end time → end_match with the exact time and the summary", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      fullState(ws);
+      await user.click(screen.getAllByRole("button", { name: "Encerrar partida" })[0]);
+      await user.click(screen.getByRole("button", { name: "Continuar" }));
+      await user.type(screen.getByLabelText(/Resumo final/), "Fim");
+      await user.click(within(screen.getByRole("dialog", { name: "Encerrar partida" })).getByRole("button", { name: "Encerrar partida" }));
+      expect(ws.sent("end_match")).toEqual([
+        { storyAt: "2000-01-01T08:30:00", briefFinalDescription: "Fim", confirmLongSkip: false },
+      ]);
+
+      // A recusa aparece dentro do diálogo, não no banner da mesa.
+      act(() => { ws.emit("error", { code: "match_in_battle", message: "match in battle" }); });
+      expect(within(screen.getByRole("dialog", { name: "Encerrar partida" })).getByRole("alert")).toHaveTextContent(
+        "Encerre o combate antes de encerrar a partida.",
+      );
+    });
+
+    it.each([
+      ["match_ended", (ws: FakeWS) => ws.emit("match_ended", { matchId: "match-1", storyAt: "2000-01-01T09:00:00", gameEndAt: "2026-11-08T22:14:05Z" })],
+      ["close 4002", (ws: FakeWS) => ws.onclose?.({ code: 4002 } as CloseEvent)],
+      ["match_already_ended", (ws: FakeWS) => ws.emit("error", { code: "match_already_ended", message: "match already ended" })],
+    ])("%s sends the master to the match page", async (_what, end) => {
+      renderWithProbe();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      fullState(ws);
+      act(() => end(ws));
+      const probe = await screen.findByText("/campaigns/campaign-1/matches/match-1");
+      expect(probe).toHaveAttribute("data-state", JSON.stringify({ endedByMaster: true }));
     });
   });
 });

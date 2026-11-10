@@ -131,3 +131,21 @@ export function describeHistoryAction(a: HistoryAction, nameOf: (id: string) => 
     gridKind,
   );
 }
+
+/**
+ * O tipo da ação como o banco guarda (`actions.type`, `TypeName()` no backend): o resumo do
+ * combate o manda como `actionKind` nas pontas de cada hiato.
+ */
+const ACTION_KIND_LABELS: Record<string, string> = {
+  attack: "ataque",
+  move: "movimento",
+  defense: "defesa",
+  dodge: "esquiva",
+  feint: "finta",
+  interact: "interação",
+  skill: "perícia",
+  reaction: "reação",
+  unspecified: "ação",
+};
+
+export const actionKindLabel = (kind: string) => ACTION_KIND_LABELS[kind] ?? kind;

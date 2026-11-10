@@ -7,6 +7,8 @@ import { colors } from "../../styles/tokens";
 interface PageHeaderProps {
   backgroundColor?: string;
   showBack?: boolean;
+  /** Destino fixo do "Voltar" no lugar do histórico (ver BackButton). */
+  backTo?: string;
   /** Slot à direita do logo (ações da página, ex.: sair). */
   trailing?: ReactNode;
 }
@@ -14,11 +16,12 @@ interface PageHeaderProps {
 export default function PageHeader({
   backgroundColor,
   showBack = true,
+  backTo,
   trailing,
 }: PageHeaderProps) {
   return (
     <StyledPageHeader $backgroundColor={backgroundColor}>
-      {showBack && <BackButton />}
+      {showBack && <BackButton to={backTo} />}
       <LogoSlot>
         <LogoButton />
       </LogoSlot>

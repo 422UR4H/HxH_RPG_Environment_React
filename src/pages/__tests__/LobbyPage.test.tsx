@@ -4,7 +4,8 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { server } from "../../test/server";
 import { renderWithProviders } from "../../test/render";
-import { matchApiFixture, matchAsMasterApi } from "../../test/fixtures/match";
+import { matchApiFixture, matchAsMasterApi, matchEndedApi } from "../../test/fixtures/match";
+import { Route, Routes, useLocation, useNavigationType } from "react-router-dom";
 import { masterUserFixture, userFixture } from "../../test/fixtures/user";
 import { mapApiFixture, mapWithPiecesApi, pieceFixture } from "../../test/fixtures/map";
 import LobbyPage from "../LobbyPage";
@@ -637,5 +638,27 @@ describe("LobbyPage", () => {
       });
       expect(mapWrites).toBe(0);
     });
+  });
+  it("redirects a finished match to the match page with replace, without opening the lobby socket", async () => {
+    server.use(
+      http.get(`${baseUrl}/matches/:id`, () =>
+        HttpResponse.json({ match: { ...matchEndedApi(), masterUuid: masterUserFixture.user.uuid } }),
+      ),
+      http.get(`${baseUrl}/matches/:id/enrollments`, () => HttpResponse.json({ enrollments: [] })),
+    );
+    function MatchProbe() {
+      return <div data-testid="match-page" data-nav={useNavigationType()} data-state={JSON.stringify(useLocation().state)} />;
+    }
+    renderWithProviders(
+      <Routes>
+        <Route path="/campaigns/:campaignId/matches/:matchId/lobby" element={<LobbyPage />} />
+        <Route path="/campaigns/:campaignId/matches/:matchId" element={<MatchProbe />} />
+      </Routes>,
+      { route: "/campaigns/campaign-1/matches/match-1/lobby", user: masterUserFixture },
+    );
+    const page = await screen.findByTestId("match-page");
+    expect(page).toHaveAttribute("data-nav", "REPLACE");
+    expect(page).toHaveAttribute("data-state", JSON.stringify({ endedByMaster: true }));
+    expect(MockWebSocket).not.toHaveBeenCalled();
   });
 });

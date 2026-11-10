@@ -5,12 +5,20 @@ import backArrow from "../../assets/icons/setavoltarcomponta.svg";
 import { useNavGuard } from "../../contexts/NavGuardContext";
 import { iconButtonFx, iconFxTransition } from "../../styles/iconButtonFx";
 
-export default function BackButton() {
+/**
+ * Volta uma entrada do histórico. `to` troca isso por um destino fixo: a página da partida
+ * encerrada substituiu a /game no histórico, e a entrada anterior é a própria página da partida.
+ */
+export default function BackButton({ to }: { to?: string } = {}) {
   const navigate = useNavigate();
   const { confirmNavigation } = useNavGuard();
 
   const handleClick = async () => {
-    if (await confirmNavigation()) navigate(-1);
+    if (!(await confirmNavigation())) return;
+    // `replace`: a página atual sai do histórico. Empilhar o destino faria o Voltar dele cair de
+    // novo aqui, que mandaria de novo para ele — um vai e volta sem fim.
+    if (to) navigate(to, { replace: true });
+    else navigate(-1);
   };
 
   return (
