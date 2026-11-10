@@ -88,9 +88,10 @@ export function daysFromToday(isoDate: string, now: Date = new Date()): number {
  *   fuso de quem está olhando, e é enviado ao backend como ISO UTC.
  */
 
-/** `"2026-11-10T15:00"` (input local) → instante UTC, ex. `"2026-11-10T18:00:00.000Z"` no Brasil. */
+/** `"2026-11-10T15:00"` (input local) → instante UTC (`""` se vazio/inválido), ex. `"2026-11-10T18:00:00.000Z"` no Brasil. */
 export function localInputToInstant(localValue: string): string {
-  return new Date(localValue).toISOString();
+  const date = new Date(localValue);
+  return Number.isNaN(date.getTime()) ? "" : date.toISOString();
 }
 
 /** Instante ISO → `AAAA-MM-DDTHH:mm` no fuso local, para `<input type="datetime-local">`. */

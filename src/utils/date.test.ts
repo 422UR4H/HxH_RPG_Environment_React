@@ -62,6 +62,11 @@ describe("real-instant helpers (TZ America/Sao_Paulo)", () => {
     expect(localInputToInstant("2026-11-10T15:00")).toBe("2026-11-10T18:00:00.000Z");
   });
 
+  it("returns empty for empty or invalid local input", () => {
+    expect(localInputToInstant("")).toBe("");
+    expect(localInputToInstant("lixo")).toBe("");
+  });
+
   it("round-trips instant and local input", () => {
     expect(instantToLocalInput("2026-11-10T18:00:00Z")).toBe("2026-11-10T15:00");
     expect(localInputToInstant(instantToLocalInput("2026-11-10T18:00:00Z"))).toBe(
