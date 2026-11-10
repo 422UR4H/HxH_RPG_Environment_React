@@ -74,7 +74,7 @@ O teste `src/styles/__tests__/noRawColors.test.ts` aplica isso: falha com cor cr
 ## Scrollbars — `scrollbar.ts`
 
 Paleta `dark` (trilho quase preto, polegar `surfaceScrollThumbAccent`) é a global, mas só da rolagem da
-página (`html`); os roláveis internos (textarea, listas, modais) usam `darkInner` (polegar neutro). Ambas
+página (`html` e `#root`, que é quem realmente rola); os roláveis internos (textarea, listas, modais) usam `darkInner` (polegar neutro). Ambas
 são aplicadas no `ResetStyle`. Telas de campanha/partida trocam para `earth` (marrons dos painéis) no container da página
 com `${scopedScrollbar(scrollbarPalettes.earth)}` — hoje `CreateFormTemplate`, `DetailPageTemplate`,
 `MapEditorTemplate`. Não escreva `::-webkit-scrollbar` à mão num componente; esconder a barra
