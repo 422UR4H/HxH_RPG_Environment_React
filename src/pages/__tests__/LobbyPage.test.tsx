@@ -216,6 +216,22 @@ describe("LobbyPage", () => {
     });
   });
 
+  it("jogador vê o loading, não o lobby, enquanto o socket não conectou", async () => {
+    setupHandlers();
+    renderPage({ user: userFixture });
+    await waitForWsConnect();
+
+    expect(await screen.findByText("Conectando ao lobby…")).toBeInTheDocument();
+    expect(screen.queryByText(/LOBBY ABERTO/i)).not.toBeInTheDocument();
+  });
+
+  it("mestre vê o lobby mesmo antes do socket conectar", async () => {
+    setupHandlers("master-1");
+    renderPage({ user: masterUserFixture });
+
+    expect(await screen.findByRole("button", { name: /Iniciar Partida/i })).toBeInTheDocument();
+  });
+
   it("exibe mensagem kicked", async () => {
     setupHandlers();
     renderPage({ user: userFixture });

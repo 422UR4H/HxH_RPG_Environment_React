@@ -25,6 +25,7 @@ import BottomActions from "../components/molecules/BottomActions";
 import { PageLoading, PageError, PageNotFound } from "../components/templates/PageState";
 import { isApiError } from "../services/httpClient";
 import ConfirmDialog from "../components/molecules/ConfirmDialog";
+import InfoDialog from "../components/molecules/InfoDialog";
 import DetailPageTemplate from "../components/templates/DetailPageTemplate";
 import UpcomingRulesSidebar from "../components/organisms/UpcomingRulesSidebar";
 import type { MatchStatus } from "../types/match";
@@ -97,6 +98,12 @@ export default function MatchPage() {
   useEffect(() => {
     if (matchId) rememberMatchPageEntry(matchId);
   }, [matchId]);
+  const closeLobbyNotOpen = () => {
+    // Limpa só a flag (preserva sheetId e demais chaves) para o diálogo não voltar ao recarregar.
+    const { lobbyNotOpen: _flag, ...rest } = (location.state ?? {}) as Record<string, unknown>;
+    void _flag;
+    navigate(".", { replace: true, state: rest });
+  };
 
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
   const [showLobbyConfirm, setShowLobbyConfirm] = useState(false);
@@ -325,7 +332,6 @@ export default function MatchPage() {
         <MatchHeaderSection
           match={match}
           status={status}
-          lobbyNotOpen={lobbyNotOpen}
           // Quem chega da mesa encerrada; o mestre, que encerrou, não precisa do aviso.
           endedByMaster={endedByMasterArrival && !isMaster && status === "ended"}
           onDescriptionToggle={() => setDescriptionSignal((s) => !s)}
@@ -413,6 +419,14 @@ export default function MatchPage() {
         <LobbyConfirmDialog
           onCancel={() => setShowLobbyConfirm(false)}
           onConfirm={handleLobbyConfirm}
+        />
+      )}
+
+      {lobbyNotOpen && (
+        <InfoDialog
+          title="O lobby ainda não foi aberto"
+          message="O mestre precisa abrir o lobby antes que os jogadores possam entrar. Aguarde o aviso do mestre e tente de novo."
+          onClose={closeLobbyNotOpen}
         />
       )}
 

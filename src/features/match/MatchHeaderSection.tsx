@@ -34,7 +34,6 @@ const statusTones: Record<MatchStatus, BadgeTone> = {
 interface MatchHeaderSectionProps {
   match: Match;
   status: MatchStatus;
-  lobbyNotOpen: boolean;
   /** Chegou aqui tirado da mesa porque o mestre encerrou a partida. */
   endedByMaster?: boolean;
   onDescriptionToggle: () => void;
@@ -43,7 +42,6 @@ interface MatchHeaderSectionProps {
 export default function MatchHeaderSection({
   match,
   status,
-  lobbyNotOpen,
   endedByMaster = false,
   onDescriptionToggle,
 }: MatchHeaderSectionProps) {
@@ -100,13 +98,6 @@ export default function MatchHeaderSection({
       )}
 
       {endedByMaster && <SignNotice tone="dark" message="A partida foi encerrada pelo mestre." />}
-
-      {lobbyNotOpen && (
-        <SignNotice
-          tone="dark"
-          message="O mestre ainda não abriu o lobby. Tente de novo daqui a pouco."
-        />
-      )}
     </>
   );
 }
