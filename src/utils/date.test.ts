@@ -1,6 +1,11 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import {
   daysFromToday,
+  daysFromTodayInstant,
+  formatInstantDateBR,
+  formatInstantDateTimeBR,
+  instantToLocalInput,
+  localInputToInstant,
   formatDateBR,
   todayLocalISODate,
   toLocalDateTimeInputValue,
@@ -49,5 +54,35 @@ describe("date utils", () => {
   it("formats a local datetime for datetime-local inputs", () => {
     const lateNight = new Date("2026-10-27T23:30:00-03:00");
     expect(toLocalDateTimeInputValue(lateNight)).toBe("2026-10-27T23:30");
+  });
+});
+
+describe("real-instant helpers (TZ America/Sao_Paulo)", () => {
+  it("converts a local input to a UTC instant", () => {
+    expect(localInputToInstant("2026-11-10T15:00")).toBe("2026-11-10T18:00:00.000Z");
+  });
+
+  it("round-trips instant and local input", () => {
+    expect(instantToLocalInput("2026-11-10T18:00:00Z")).toBe("2026-11-10T15:00");
+    expect(localInputToInstant(instantToLocalInput("2026-11-10T18:00:00Z"))).toBe(
+      "2026-11-10T18:00:00.000Z",
+    );
+  });
+
+  it("formats an instant in the local timezone", () => {
+    expect(formatInstantDateTimeBR("2026-11-10T18:00:00Z")).toBe("10/11/2026 às 15:00");
+    expect(formatInstantDateBR("2026-11-10T01:00:00Z")).toBe("09/11/2026");
+  });
+
+  it("returns empty for missing or invalid instants", () => {
+    expect(formatInstantDateTimeBR(null)).toBe("");
+    expect(formatInstantDateTimeBR("lixo")).toBe("");
+    expect(Number.isNaN(daysFromTodayInstant("lixo"))).toBe(true);
+  });
+
+  it("counts days using the local day of the instant", () => {
+    const now = new Date("2026-11-10T12:00:00-03:00");
+    expect(daysFromTodayInstant("2026-11-11T01:00:00Z", now)).toBe(0);
+    expect(daysFromTodayInstant("2026-11-12T12:00:00Z", now)).toBe(2);
   });
 });

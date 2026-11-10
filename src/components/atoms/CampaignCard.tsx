@@ -3,12 +3,12 @@ import { Link } from "react-router-dom";
 import type { CampaignSummary } from "../../types/campaigns";
 import { colors } from "../../styles/tokens";
 import { cardSurface } from "../../styles/card";
-import { daysFromToday, formatDateBR } from "../../utils/date";
+import { daysFromTodayInstant, formatDateBR, formatInstantDateBR } from "../../utils/date";
 
 function formatNextGame(dateStr: string): string {
-  const diffDays = daysFromToday(dateStr);
+  const diffDays = daysFromTodayInstant(dateStr);
   if (Number.isNaN(diffDays)) return "Partida agendada";
-  const formatted = formatDateBR(dateStr);
+  const formatted = formatInstantDateBR(dateStr);
   if (diffDays < 0) return `Partida agendada para: ${formatted} (passada)`;
   if (diffDays === 0) return `Partida agendada para: ${formatted} (hoje)`;
   if (diffDays === 1) return `Partida agendada para: ${formatted} (amanhã)`;

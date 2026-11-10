@@ -18,7 +18,7 @@ import FormTextArea from "../components/ions/FormTextArea";
 import UpcomingRulesSidebar from "../components/organisms/UpcomingRulesSidebar";
 import { PageLoading, PageError, PageNotFound } from "../components/templates/PageState";
 import { getApiErrorDetail } from "../utils/apiError";
-import { toDateTimeLocalValue } from "../utils/date";
+import { instantToLocalInput, localInputToInstant } from "../utils/date";
 import { incompleteInputMessage, missingRequiredMessage } from "../utils/requiredFields";
 
 type MatchFormData = {
@@ -82,7 +82,7 @@ export default function EditMatchPage() {
         briefInitialDescription: match.briefInitialDescription,
         description: match.description,
         isPublic: match.isPublic,
-        gameScheduledAt: toDateTimeLocalValue(match.gameScheduledAt),
+        gameScheduledAt: instantToLocalInput(match.gameScheduledAt),
         storyStartAt: match.storyStartAt,
       });
       setInitialized(true);
@@ -141,7 +141,7 @@ export default function EditMatchPage() {
       briefInitialDescription: form.briefInitialDescription,
       description: form.description,
       isPublic: form.isPublic,
-      gameScheduledAt: `${form.gameScheduledAt}:00Z`,
+      gameScheduledAt: localInputToInstant(form.gameScheduledAt),
       storyStartAt: form.storyStartAt,
     };
     updateMatch(matchData, {

@@ -1,5 +1,5 @@
 // src/pages/__tests__/MatchPage.test.tsx
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, onTestFinished } from "vitest";
 import { http, HttpResponse } from "msw";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -539,7 +539,14 @@ describe("MatchPage", () => {
   });
 
   describe("datas exibidas", () => {
-    it("formata gameScheduledAt com hora e storyStartAt sem hora, sem shift de fuso", async () => {
+    it("shows gameScheduledAt as a local instant and storyStartAt by its digits", async () => {
+      // gameScheduledAt é instante real (convertido ao fuso local); storyStartAt é data da história.
+      const originalTZ = process.env.TZ;
+      process.env.TZ = "America/Sao_Paulo";
+      onTestFinished(() => {
+        if (originalTZ === undefined) delete process.env.TZ;
+        else process.env.TZ = originalTZ;
+      });
       server.use(
         http.get(`${baseUrl}/matches/:id`, () =>
           HttpResponse.json({
@@ -553,7 +560,7 @@ describe("MatchPage", () => {
       );
       renderPage();
       expect(
-        await screen.findByText("09/08/2026 às 23:00"),
+        await screen.findByText("09/08/2026 às 20:00"),
       ).toBeInTheDocument();
       expect(
         await screen.findByText(/^Início na história: 09\/08\/2026$/),

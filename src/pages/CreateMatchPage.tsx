@@ -17,7 +17,7 @@ import UpcomingRulesSidebar from "../components/organisms/UpcomingRulesSidebar";
 import { PageLoading, PageError, PageNotFound } from "../components/templates/PageState";
 import { isApiError } from "../services/httpClient";
 import { getApiErrorDetail } from "../utils/apiError";
-import { todayLocalISODate, toLocalDateTimeInputValue } from "../utils/date";
+import { localInputToInstant, todayLocalISODate, toLocalDateTimeInputValue } from "../utils/date";
 import { incompleteInputMessage, missingRequiredMessage } from "../utils/requiredFields";
 
 type MatchFormData = {
@@ -61,9 +61,6 @@ export default function CreateMatchPage() {
     }
   }, [campaign?.storyStartAt, setForm]);
 
-  const formatDateToISOString = (dateTimeString: string): string =>
-    `${dateTimeString}:00Z`;
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const missing =
@@ -92,7 +89,7 @@ export default function CreateMatchPage() {
     setError(null);
     const matchData = {
       ...form,
-      gameScheduledAt: formatDateToISOString(form.gameScheduledAt),
+      gameScheduledAt: localInputToInstant(form.gameScheduledAt),
       campaignUuid: campaignId,
     };
     createMatch(matchData, {

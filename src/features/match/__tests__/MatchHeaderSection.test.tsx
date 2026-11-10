@@ -3,7 +3,7 @@ import { screen, fireEvent } from "@testing-library/react";
 import { renderWithProviders } from "../../../test/render";
 import MatchHeaderSection from "../MatchHeaderSection";
 import type { Match } from "../../../types/match";
-import { formatDateTimeBR } from "../../../utils/date";
+import { formatInstantDateTimeBR } from "../../../utils/date";
 
 const match: Match = {
   uuid: "m1",
@@ -30,12 +30,12 @@ describe("MatchHeaderSection", () => {
         onDescriptionToggle={() => {}}
       />,
     );
-    const value = screen.getByText(formatDateTimeBR(match.gameStartAt!));
+    const value = screen.getByText(formatInstantDateTimeBR(match.gameStartAt!));
     expect(value).not.toHaveAttribute("title");
     expect(value).toHaveAttribute("tabindex", "0");
     fireEvent.pointerEnter(value, { pointerType: "mouse" });
     expect(screen.getByRole("tooltip", { hidden: true })).toHaveTextContent(
-      `Agendada para: ${formatDateTimeBR(match.gameScheduledAt)}`,
+      `Agendada para: ${formatInstantDateTimeBR(match.gameScheduledAt)}`,
     );
   });
 

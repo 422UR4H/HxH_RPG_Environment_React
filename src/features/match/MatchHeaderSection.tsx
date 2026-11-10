@@ -17,7 +17,7 @@ import {
   headerSubtitle,
   headerTitle,
 } from "../../styles/pageHeader";
-import { formatDateBR, formatDateTimeBR } from "../../utils/date";
+import { formatDateBR, formatInstantDateTimeBR } from "../../utils/date";
 
 const statusLabels: Record<MatchStatus, string> = {
   scheduled: "AGENDADA",
@@ -58,16 +58,16 @@ export default function MatchHeaderSection({
           {status === "scheduled" ? (
             <DateLabel>
               Agendada para:{" "}
-              <DateValue>{formatDateTimeBR(match.gameScheduledAt)}</DateValue>
+              <DateValue>{formatInstantDateTimeBR(match.gameScheduledAt)}</DateValue>
             </DateLabel>
           ) : (
             <DateLabel>
               Iniciada em:{" "}
               <Tooltip
-                label={`Agendada para: ${formatDateTimeBR(match.gameScheduledAt)}`}
+                label={`Agendada para: ${formatInstantDateTimeBR(match.gameScheduledAt)}`}
               >
                 <StartedAtValue tabIndex={0}>
-                  {formatDateTimeBR(match.gameStartAt!)}
+                  {formatInstantDateTimeBR(match.gameStartAt!)}
                 </StartedAtValue>
               </Tooltip>
             </DateLabel>
