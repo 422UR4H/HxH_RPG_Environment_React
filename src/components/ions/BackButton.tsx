@@ -15,7 +15,9 @@ export default function BackButton({ to }: { to?: string } = {}) {
 
   const handleClick = async () => {
     if (!(await confirmNavigation())) return;
-    if (to) navigate(to);
+    // `replace`: a página atual sai do histórico. Empilhar o destino faria o Voltar dele cair de
+    // novo aqui, que mandaria de novo para ele — um vai e volta sem fim.
+    if (to) navigate(to, { replace: true });
     else navigate(-1);
   };
 

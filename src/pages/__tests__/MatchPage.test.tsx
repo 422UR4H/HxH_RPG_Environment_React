@@ -816,7 +816,7 @@ describe("MatchPage", () => {
       renderPage({ user: userFixture, state: { endedByMaster: true } });
       await screen.findByText("ENCERRADA");
       fireEvent.click(screen.getByRole("button", { name: "Voltar" }));
-      await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/campaigns/campaign-1"));
+      await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/campaigns/campaign-1", { replace: true }));
       expect(mockNavigate).not.toHaveBeenCalledWith(-1);
     });
 
