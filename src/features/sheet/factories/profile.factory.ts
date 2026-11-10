@@ -11,7 +11,7 @@ export function createEmptyProfile(): Profile {
     description: "",
     briefDescription: "",
     birthday: `0000-${mm}-${dd}T00:00:00.000Z`,
-    age: 0,
+    age: 20,
     coverUrl: undefined,
     avatarUrl: undefined,
   };

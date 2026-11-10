@@ -29,7 +29,7 @@ export function validateCharacterSheet(
   if ((profile.briefDescription ?? "").length > 255)
     errors.push("Descrição breve deve ter no máximo 255 caracteres.");
 
-  if (profile.age < 0) errors.push("Idade não pode ser negativa.");
+  if (profile.age < 1) errors.push("A idade deve ser maior que zero.");
 
   // Como o back (ApplyInitialAttributePoints): a soma dos primários tem que
   // fechar exatamente no nível. Os intermediários (força etc.) são derivados e

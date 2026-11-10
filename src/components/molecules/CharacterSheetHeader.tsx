@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import styled from "styled-components";
 import { colors } from "../../styles/tokens";
+import { SHEET_LIMITS } from "../../constants/fieldLimits";
 import type { CharacterSheet } from "../../types/characterSheet";
 import HpBar from "../atoms/HpBar";
 import SpBar from "../atoms/SpBar";
@@ -110,7 +111,8 @@ export default function CharacterSheetHeader({
               type="text"
               autoComplete="off"
               placeholder="Nickname"
-              maxLength={10}
+              maxLength={SHEET_LIMITS.nickname.max}
+              title={`Nickname de ${SHEET_LIMITS.nickname.min} a ${SHEET_LIMITS.nickname.max} caracteres`}
               value={profile?.nickname ?? ""}
               onChange={(e) => {
                 if (!charSheet || !setCharSheet) return;
