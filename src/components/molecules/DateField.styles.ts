@@ -31,7 +31,7 @@ export const Trigger = styled.button`
     border-color: ${colors.brandAccent};
   }
   &[aria-invalid="true"] {
-    border-color: ${colors.feedbackDangerText};
+    border-color: ${colors.feedbackDanger};
   }
   &:disabled {
     cursor: not-allowed;

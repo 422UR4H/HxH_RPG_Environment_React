@@ -16,7 +16,7 @@ const FormInput = styled.input`
   }
 
   &[aria-invalid="true"] {
-    border-color: ${colors.feedbackDangerText};
+    border-color: ${colors.feedbackDanger};
   }
 `;
 

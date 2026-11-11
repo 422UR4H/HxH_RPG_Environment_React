@@ -1,8 +1,9 @@
 import { useMemo } from "react";
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 import BackgroundButton from "../../components/atoms/BackgroundButton";
 import type { Profile, CharacterSheet } from "../../types/characterSheet";
 import { colors } from "../../styles/tokens";
+import { errorBox } from "../../styles/errorBox";
 import { DetailItem, DetailLabel, ProfilePillSelect } from "./ProfileFieldStyles";
 import { toDateInputValue } from "../../utils/date";
 import { SHEET_LIMITS } from "../../constants/fieldLimits";
@@ -392,5 +393,11 @@ const FieldFeedback = styled.p<{ $error: boolean }>`
   margin: 4px 0 0;
   font-size: max(2.4cqi, 12px);
   line-height: 1.2;
-  color: ${({ $error }) => ($error ? colors.feedbackDangerText : colors.textMuted)};
+  color: ${colors.textMuted};
+  ${({ $error }) =>
+    $error &&
+    css`
+      ${errorBox}
+      line-height: 1.2;
+    `}
 `;

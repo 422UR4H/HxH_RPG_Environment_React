@@ -17,7 +17,7 @@ const FormTextArea = styled.textarea<{ $resize?: string }>`
   }
 
   &[aria-invalid="true"] {
-    border-color: ${colors.feedbackDangerText};
+    border-color: ${colors.feedbackDanger};
   }
 `;
 

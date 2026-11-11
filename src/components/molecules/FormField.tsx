@@ -2,6 +2,7 @@ import { cloneElement, isValidElement, type ReactElement, type ReactNode } from 
 import styled from "styled-components";
 import FieldHelpText from "../atoms/FieldHelpText";
 import { colors } from "../../styles/tokens";
+import { errorBox } from "../../styles/errorBox";
 import { narrowForm, NARROW_LABEL_SIZE } from "../../styles/formScale";
 
 interface FormFieldProps {
@@ -86,10 +87,8 @@ const Optional = styled.span`
 `;
 
 const ErrorText = styled.p`
-  font-weight: 600;
+  ${errorBox}
   font-size: 18px;
-  line-height: 1.35;
-  color: ${colors.feedbackDangerText};
 `;
 
 const NoticeText = styled.p`
