@@ -498,6 +498,9 @@ const CharacterClassSelect = styled(PillSelect)`
   position: relative;
   z-index: 1;
   font-family: "Roboto", sans-serif;
+  /* 3.6cqi (o tamanho do rótulo "Classe:"): com a opção mais longa, deixa espaço até o
+     "Lv 123" no canto da barra de EXP desde 320 px. Opção nova mais longa que "WeaponsMaster"
+     ou placeholder maior que "Selecione" alargam o select e podem cobrir o Lv. */
   font-size: min(3.6cqi, 28px);
   font-weight: 600;
   color: white;

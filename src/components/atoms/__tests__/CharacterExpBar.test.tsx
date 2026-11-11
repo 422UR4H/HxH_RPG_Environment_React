@@ -25,6 +25,11 @@ describe("CharacterExpBar", () => {
     expect(screen.getByText("Lv 5")).toBeInTheDocument();
   });
 
+  it("shows Lv 0 with labelsInTooltip (level 0 still counts as a level)", () => {
+    render(<CharacterExpBar currExp={0} maxExp={0} level={0} labelsInTooltip />);
+    expect(screen.getByText("Lv 0")).toBeInTheDocument();
+  });
+
   it("omits the level from the bubble label when there is none", () => {
     render(<CharacterExpBar currExp={10} maxExp={30} labelsInTooltip />);
     fireEvent.mouseEnter(screen.getByRole("progressbar").parentElement as HTMLElement);
