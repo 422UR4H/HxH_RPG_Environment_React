@@ -40,7 +40,7 @@ export const Trigger = styled.button`
 `;
 
 export const Placeholder = styled.span`
-  color: ${colors.textMuted};
+  color: ${colors.textInputPlaceholder};
 `;
 
 export const CalendarIcon = styled.svg`

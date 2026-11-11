@@ -16,6 +16,11 @@ const FormTextArea = styled.textarea<{ $resize?: string }>`
     border-color: ${colors.brandAccent};
   }
 
+  &::placeholder {
+    color: ${colors.textInputPlaceholder};
+    opacity: 1; /* o Firefox aplica 0,54 por padrão */
+  }
+
   &[aria-invalid="true"] {
     border-color: ${colors.feedbackDanger};
   }
