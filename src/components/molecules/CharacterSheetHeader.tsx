@@ -469,6 +469,10 @@ const NicknameInput = styled.input`
   &:focus-visible {
     border-bottom-color: ${colors.actionHighlight};
   }
+  /* Declarado depois do foco: o vermelho vence com o campo focado. Só a cor da linha. */
+  &[aria-invalid="true"] {
+    border-bottom-color: ${colors.feedbackDanger};
+  }
 `;
 
 const CharacterClass = styled.h2`

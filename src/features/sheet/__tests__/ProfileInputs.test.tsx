@@ -23,8 +23,10 @@ describe("ProfileInputs", () => {
     const age = screen.getByLabelText("Idade:");
     fireEvent.change(age, { target: { value: "" } });
     expect(age).toHaveValue(null);
+    expect(age).not.toHaveAttribute("aria-invalid");
     fireEvent.blur(age);
     expect(screen.getByText("A idade deve ser maior que zero.")).toBeInTheDocument();
+    expect(age).toHaveAttribute("aria-invalid", "true");
   });
 
   it("limits the full name and shows the minimum error on blur", () => {
@@ -36,6 +38,7 @@ describe("ProfileInputs", () => {
     expect(
       screen.getByText("O nome completo deve ter pelo menos 6 caracteres."),
     ).toBeInTheDocument();
+    expect(name).toHaveAttribute("aria-invalid", "true");
   });
 
   it("shows the limit notice at the maximum", () => {

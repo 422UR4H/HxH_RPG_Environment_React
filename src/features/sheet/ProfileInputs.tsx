@@ -254,6 +254,11 @@ const ProfileNameInput = styled.input`
     border-color: ${colors.brandAccent};
   }
 
+  /* Depois do :focus: o vermelho vence também com o campo focado. */
+  &[aria-invalid="true"] {
+    border-color: ${colors.feedbackDanger};
+  }
+
   @media (max-width: 609px) {
     font-size: 5cqi;
   }
@@ -326,6 +331,11 @@ const DetailInput = styled.input`
   &:focus {
     outline: none;
     border-color: ${colors.brandAccent};
+  }
+
+  /* Depois do :focus: o vermelho vence também com o campo focado. */
+  &[aria-invalid="true"] {
+    border-color: ${colors.feedbackDanger};
   }
 
   /* Remove increment/decrement from input type number */
