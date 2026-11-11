@@ -37,4 +37,13 @@ describe("FormField", () => {
     expect(error.compareDocumentPosition(notice) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(notice.compareDocumentPosition(help) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
+
+  it("keeps at most 3 direct children (label, control, feedback) so FormRow's 3-row subgrid holds", () => {
+    const { container } = render(
+      <FormField label="Nome" htmlFor="name" error="Erro aqui" notice="Nota aqui" helpText="Ajuda aqui">
+        <input id="name" />
+      </FormField>,
+    );
+    expect(container.firstElementChild?.children.length).toBeLessThanOrEqual(3);
+  });
 });

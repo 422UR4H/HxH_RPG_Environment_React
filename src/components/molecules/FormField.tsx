@@ -49,22 +49,33 @@ export default function FormField({
         {optional && <Optional> (opcional)</Optional>}
       </Label>
       {field}
-      {error && (
-        <ErrorText id={`${htmlFor}-error`} role="alert">
-          {error}
-        </ErrorText>
+      {(error || notice || helpText) && (
+        <Feedback>
+          {error && (
+            <ErrorText id={`${htmlFor}-error`} role="alert">
+              {error}
+            </ErrorText>
+          )}
+          {notice && (
+            <NoticeText id={`${htmlFor}-notice`} role="status">
+              {notice}
+            </NoticeText>
+          )}
+          {helpText && <FieldHelpText>{helpText}</FieldHelpText>}
+        </Feedback>
       )}
-      {notice && (
-        <NoticeText id={`${htmlFor}-notice`} role="status">
-          {notice}
-        </NoticeText>
-      )}
-      {helpText && <FieldHelpText>{helpText}</FieldHelpText>}
     </Group>
   );
 }
 
 const Group = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+`;
+
+/* Erro, nota e ajuda num só filho: o FormRow reserva três faixas por campo (rótulo, controle, ajuda). */
+const Feedback = styled.div`
   display: flex;
   flex-direction: column;
   gap: 6px;
