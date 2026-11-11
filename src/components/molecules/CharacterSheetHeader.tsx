@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 import { colors } from "../../styles/tokens";
+import { errorBox } from "../../styles/errorBox";
+import useFieldValidation from "../../hooks/useFieldValidation";
 import { SHEET_LIMITS } from "../../constants/fieldLimits";
 import type { CharacterSheet } from "../../types/characterSheet";
 import HpBar from "../atoms/HpBar";
@@ -47,6 +49,17 @@ export default function CharacterSheetHeader({
   const { buildFromClass } = useCharSheetBuilder();
   const [avatarModalOpen, setAvatarModalOpen] = useState(false);
   const [coverModalOpen, setCoverModalOpen] = useState(false);
+  const { errorFor, noticeFor, touch } = useFieldValidation({
+    nickname: {
+      value: charSheet?.profile?.nickname ?? "",
+      required: true,
+      min: SHEET_LIMITS.nickname.min,
+      minMessage: `O nickname deve ter pelo menos ${SHEET_LIMITS.nickname.min} caracteres.`,
+      max: SHEET_LIMITS.nickname.max,
+    },
+  });
+  const nicknameError = errorFor("nickname");
+  const nicknameNotice = noticeFor("nickname");
   const classOptions = useMemo(
     () => [
       { value: "", label: "Selecione uma classe" },
@@ -114,6 +127,11 @@ export default function CharacterSheetHeader({
               maxLength={SHEET_LIMITS.nickname.max}
               title={`Nickname de ${SHEET_LIMITS.nickname.min} a ${SHEET_LIMITS.nickname.max} caracteres`}
               value={profile?.nickname ?? ""}
+              aria-invalid={nicknameError ? true : undefined}
+              aria-describedby={
+                nicknameError ? "nickname-error" : nicknameNotice ? "nickname-notice" : undefined
+              }
+              onBlur={() => touch("nickname")}
               onChange={(e) => {
                 if (!charSheet || !setCharSheet) return;
                 setCharSheet({
@@ -122,6 +140,16 @@ export default function CharacterSheetHeader({
                 });
               }}
             />
+            {nicknameError && (
+              <NicknameFeedback id="nickname-error" role="alert" $error>
+                {nicknameError}
+              </NicknameFeedback>
+            )}
+            {!nicknameError && nicknameNotice && (
+              <NicknameFeedback id="nickname-notice" role="status" $error={false}>
+                {nicknameNotice}
+              </NicknameFeedback>
+            )}
           </NicknameInputContainer>
 
           <CharacterClass>Classe: </CharacterClass>
@@ -380,6 +408,25 @@ const NicknameInputContainer = styled.div`
   display: flex;
   align-items: flex-end;
   margin-bottom: min(1.4cqi, 8px);
+`;
+
+/* Absoluta logo abaixo do campo: não empurra o layout calibrado; o z-index a põe acima do select. */
+const NicknameFeedback = styled.p<{ $error: boolean }>`
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 6;
+  width: max-content;
+  max-width: 50cqi;
+  margin: 2px 0 0;
+  font-size: min(3.2cqi, 16px);
+  ${({ $error }) =>
+    $error
+      ? errorBox
+      : css`
+          color: ${colors.textPrimary};
+          text-shadow: 1px 1px 6px ${colors.shadowStrong};
+        `}
 `;
 
 const PenIcon = styled.img`
