@@ -3,7 +3,7 @@ import styled, { css } from "styled-components";
 import { colors } from "../../styles/tokens";
 import { errorBox } from "../../styles/errorBox";
 import useFieldValidation from "../../hooks/useFieldValidation";
-import { SHEET_LIMITS } from "../../constants/fieldLimits";
+import { NO_EMOJI_MESSAGE, SHEET_LIMITS, clampChars, containsEmoji } from "../../constants/fieldLimits";
 import type { CharacterSheet } from "../../types/characterSheet";
 import HpBar from "../atoms/HpBar";
 import SpBar from "../atoms/SpBar";
@@ -56,6 +56,7 @@ export default function CharacterSheetHeader({
       min: SHEET_LIMITS.nickname.min,
       minMessage: `O nickname deve ter pelo menos ${SHEET_LIMITS.nickname.min} caracteres.`,
       max: SHEET_LIMITS.nickname.max,
+      validate: (v) => (containsEmoji(v) ? NO_EMOJI_MESSAGE : null),
     },
   });
   const nicknameError = errorFor("nickname");
@@ -124,7 +125,6 @@ export default function CharacterSheetHeader({
               type="text"
               autoComplete="off"
               placeholder="Nickname"
-              maxLength={SHEET_LIMITS.nickname.max}
               title={`Nickname de ${SHEET_LIMITS.nickname.min} a ${SHEET_LIMITS.nickname.max} caracteres`}
               value={profile?.nickname ?? ""}
               aria-invalid={nicknameError ? true : undefined}
@@ -134,10 +134,13 @@ export default function CharacterSheetHeader({
               onBlur={() => touch("nickname")}
               onChange={(e) => {
                 if (!charSheet || !setCharSheet) return;
+                const nickname = clampChars(e.target.value, SHEET_LIMITS.nickname.max);
                 setCharSheet({
                   ...charSheet,
-                  profile: { ...charSheet.profile, nickname: e.target.value },
+                  profile: { ...charSheet.profile, nickname },
                 });
+                // O erro de emoji aparece já na digitação, sem esperar o blur.
+                if (containsEmoji(nickname)) touch("nickname");
               }}
             />
             {nicknameError && (

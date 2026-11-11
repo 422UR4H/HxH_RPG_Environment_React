@@ -55,6 +55,28 @@ describe("CreateMapPage", () => {
     ).toBeInTheDocument();
   });
 
+  it("emoji no nome mostra o erro ao digitar e bloqueia o envio", async () => {
+    let calls = 0;
+    server.use(
+      http.post(`${baseUrl}/campaigns/:campaignId/maps`, () => {
+        calls++;
+        return HttpResponse.json({ map: mapApiFixture }, { status: 201 });
+      }),
+    );
+    renderPage();
+    const u = userEvent.setup();
+    const name = screen.getByLabelText("Nome do mapa");
+    await u.type(name, "Floresta😀");
+    expect(screen.getByText("Emojis não são permitidos neste campo.")).toBeInTheDocument();
+    expect(name).toHaveAttribute("aria-invalid", "true");
+    await u.click(screen.getByRole("button", { name: /criar mapa/i }));
+    expect(calls).toBe(0);
+    expect(mockNavigate).not.toHaveBeenCalled();
+    await u.type(name, "{backspace}");
+    expect(screen.queryByText("Emojis não são permitidos neste campo.")).not.toBeInTheDocument();
+    expect(name).not.toHaveAttribute("aria-invalid");
+  });
+
   it("salvar com nome chama POST e navega para /campaigns/:id", async () => {
     server.use(
       http.post(`${baseUrl}/campaigns/:campaignId/maps`, () =>

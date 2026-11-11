@@ -48,8 +48,26 @@ describe("validateRegister", () => {
     );
   });
 
-  it("register: an emoji counts as one character in the nick", () => {
-    expect(validateRegister({ ...validRegister, nick: "a😀b" }).nick).toBeUndefined();
+  it.each([["start", "😀Tester"], ["middle", "Tes😀ter"], ["end", "Tester😀"]])(
+    "register: an emoji at the %s of the nick is rejected",
+    (_pos, nick) => {
+      expect(validateRegister({ ...validRegister, nick }).nick).toBe("Emojis não são permitidos neste campo.");
+    },
+  );
+
+  it.each([["start", "😀teste@mail.com"], ["middle", "tes😀te@mail.com"], ["end", "teste@mail.com😀"]])(
+    "register: an emoji at the %s of the e-mail is rejected",
+    (_pos, email) => {
+      expect(validateRegister({ ...validRegister, email }).email).toBe("Emojis não são permitidos neste campo.");
+    },
+  );
+
+  it("register: accented text in the nick passes", () => {
+    expect(validateRegister({ ...validRegister, nick: "José Ção" }).nick).toBeUndefined();
+  });
+
+  it("login does not reject an emoji in the e-mail locally", () => {
+    expect(validateLogin({ email: "te😀ste@mail.com", password: "12345678" })).toEqual({});
   });
 
   it("register: password under 8 and over 64 are rejected", () => {

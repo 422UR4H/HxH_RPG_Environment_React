@@ -109,4 +109,43 @@ describe("RegisterPage", () => {
     await u.type(screen.getByLabelText("Senha"), "9");
     expect(screen.queryByText("As senhas não coincidem.")).not.toBeInTheDocument();
   });
+
+  it.each([["E-mail", "teste😀@mail.com"], ["Nick", "Te😀ster"]])(
+    "shows the emoji error while typing in %s, blocks submit and clears when removed",
+    async (label, text) => {
+      let calls = 0;
+      server.use(
+        http.post(`${baseUrl}/auth/register`, () => {
+          calls++;
+          return HttpResponse.json({}, { status: 201 });
+        }),
+      );
+      renderPage();
+      const u = userEvent.setup();
+      const field = screen.getByLabelText(label);
+      await u.type(field, text);
+      expect(screen.getByText("Emojis não são permitidos neste campo.")).toBeInTheDocument();
+      expect(field).toHaveAttribute("aria-invalid", "true");
+      await u.type(screen.getByLabelText("Senha"), "12345678");
+      await u.type(screen.getByLabelText("Confirme a senha"), "12345678");
+      if (label === "E-mail") await u.type(screen.getByLabelText("Nick"), "Tester");
+      else await u.type(screen.getByLabelText("E-mail"), "teste@mail.com");
+      await u.click(screen.getByRole("button", { name: /Criar conta/i }));
+      expect(calls).toBe(0);
+      expect(field).toHaveAttribute("aria-invalid", "true");
+      await u.clear(field);
+      await u.type(field, label === "E-mail" ? "teste@mail.com" : "José Ção");
+      expect(screen.queryByText("Emojis não são permitidos neste campo.")).not.toBeInTheDocument();
+      expect(field).not.toHaveAttribute("aria-invalid");
+    },
+  );
+
+  it("cuts a pasted nick at 20 code points without splitting an emoji", async () => {
+    renderPage();
+    const u = userEvent.setup();
+    const nick = screen.getByLabelText("Nick");
+    await u.click(nick);
+    await u.paste("a".repeat(21));
+    expect(nick).toHaveValue("a".repeat(20));
+  });
 });

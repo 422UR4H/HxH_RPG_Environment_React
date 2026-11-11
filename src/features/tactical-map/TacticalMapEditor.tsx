@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { NO_EMOJI_MESSAGE, containsEmoji } from "../../constants/fieldLimits";
 import { useNavGuard } from "../../contexts/NavGuardContext";
 import { PieceDragGhostPortal } from "./PieceDragGhost";
 import MapEditorTemplate from "../../components/templates/MapEditorTemplate";
@@ -276,7 +277,11 @@ export default function TacticalMapEditor({
     [],
   );
 
+  // Emoji no nome aparece já na digitação (sem esperar o envio) e bloqueia o salvamento.
+  const emojiNameError = containsEmoji(map.name) ? NO_EMOJI_MESSAGE : null;
+
   const handleSave = useCallback(async () => {
+    if (emojiNameError) return;
     if (!map.name.trim()) {
       setNameError("O nome do mapa é obrigatório.");
       return;
@@ -346,7 +351,7 @@ export default function TacticalMapEditor({
     } finally {
       setIsSaving(false);
     }
-  }, [map, onSave, onSaveSuccess, askTruncConfirm, markClean]);
+  }, [map, emojiNameError, onSave, onSaveSuccess, askTruncConfirm, markClean]);
 
   // On-screen token diameter = world token size (slotScreenInradius × 0.9 × 2, as drawn on screen) × current zoom.
   // Clamped so the ghost stays grabbable when zoomed far out. Same formula as
@@ -362,12 +367,12 @@ export default function TacticalMapEditor({
       onSave: handleSave,
       isSaving,
       label: saveLabel,
-      nameError,
+      nameError: emojiNameError ?? nameError,
       error: saveError,
       successMsg: saveSuccess,
       onSuccessDismiss: handleSaveSuccessDismiss,
     }),
-    [handleSave, isSaving, saveLabel, nameError, saveError, saveSuccess, handleSaveSuccessDismiss],
+    [handleSave, isSaving, saveLabel, emojiNameError, nameError, saveError, saveSuccess, handleSaveSuccessDismiss],
   );
 
   const rosterProps = useMemo(
