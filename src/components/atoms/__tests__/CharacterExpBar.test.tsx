@@ -15,14 +15,19 @@ describe("CharacterExpBar", () => {
     expect(screen.queryByText("10 / 30")).not.toBeInTheDocument();
     const wrapper = screen.getByRole("progressbar").parentElement as HTMLElement;
     fireEvent.mouseEnter(wrapper);
-    expect(screen.getByText("Lv 2 · 10 / 30")).toBeInTheDocument();
+    expect(screen.getByText("10 / 30")).toBeInTheDocument();
+    // O balão não repete o Lv que já está visível.
+    expect(screen.getAllByText(/Lv/)).toHaveLength(1);
     fireEvent.mouseLeave(wrapper);
-    expect(screen.queryByText("Lv 2 · 10 / 30")).not.toBeInTheDocument();
+    expect(screen.queryByText("10 / 30")).not.toBeInTheDocument();
   });
 
-  it("shows Lv visible with labelsInTooltip even when max exp is 0", () => {
+  it("shows Lv but no bubble with labelsInTooltip when max exp is 0", () => {
     render(<CharacterExpBar currExp={0} maxExp={0} level={5} labelsInTooltip />);
     expect(screen.getByText("Lv 5")).toBeInTheDocument();
+    fireEvent.mouseEnter(screen.getByRole("progressbar").parentElement as HTMLElement);
+    expect(screen.queryByText("0 / 0")).toBeNull();
+    expect(screen.getAllByText(/Lv/)).toHaveLength(1);
   });
 
   it("shows Lv 0 with labelsInTooltip (level 0 still counts as a level)", () => {
@@ -30,7 +35,7 @@ describe("CharacterExpBar", () => {
     expect(screen.getByText("Lv 0")).toBeInTheDocument();
   });
 
-  it("omits the level from the bubble label when there is none", () => {
+  it("shows the exp numbers in the bubble when there is no level", () => {
     render(<CharacterExpBar currExp={10} maxExp={30} labelsInTooltip />);
     fireEvent.mouseEnter(screen.getByRole("progressbar").parentElement as HTMLElement);
     expect(screen.getByText("10 / 30")).toBeInTheDocument();

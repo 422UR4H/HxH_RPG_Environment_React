@@ -14,9 +14,7 @@ export default function CharacterExpBar({ currExp, maxExp, level, labelsInToolti
   const percentage = maxExp > 0 ? Math.min((currExp / maxExp) * 100, 100) : 0;
   const hasLevel = level !== undefined;
   const hasExp = maxExp > 0;
-  const label = [hasLevel ? `Lv ${level}` : null, hasExp ? `${currExp} / ${maxExp}` : null]
-    .filter(Boolean)
-    .join(" · ");
+  const expLabel = `${currExp} / ${maxExp}`;
 
   const bar = (
     <BarBorder
@@ -33,18 +31,23 @@ export default function CharacterExpBar({ currExp, maxExp, level, labelsInToolti
   );
 
   if (labelsInTooltip) {
-    if (!label) return <Container>{bar}</Container>;
     return (
       <Container>
-        {/* Só o Lv fica visível, sozinho no canto (sem a margem que o separa do número da EXP). */}
+        {/* O Lv fica sozinho no canto (sem a margem que o separa do número da EXP); o balão leva
+            só os números, sem repetir o Lv que já está na tela. Sem EXP (antes de escolher a
+            classe) não há balão. */}
         {hasLevel && (
           <RightLabels>
             <LvLabel $alone>Lv {level}</LvLabel>
           </RightLabels>
         )}
-        <BarBubble label={label} align="right">
-          {bar}
-        </BarBubble>
+        {hasExp ? (
+          <BarBubble label={expLabel} align="right">
+            {bar}
+          </BarBubble>
+        ) : (
+          bar
+        )}
       </Container>
     );
   }
