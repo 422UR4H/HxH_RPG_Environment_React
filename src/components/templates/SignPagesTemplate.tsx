@@ -26,16 +26,18 @@ export default function SignPagesTemplate({
 // interna do cartão, 100% menos o padding lateral de cada breakpoint).
 const SignLogo = styled(Logo)`
   && {
-    width: 429px;
+    /* width: 429px; */
+    width: 535px;
     flex-shrink: 0;
     /* Primeira linha do grid, colada embaixo: a logo fica fora do cálculo que centraliza o cartão. */
     align-self: end;
+    margin-top: 14%;
     margin-bottom: 30px;
   }
 
   @media (max-width: 580px) {
     && {
-      width: calc(100% - 60px);
+      width: 100%;
     }
   }
 
@@ -55,6 +57,8 @@ export const StyledSignTemplates = styled.div`
   justify-content: center;
   min-height: 100vh;
   min-height: 100dvh;
+  max-height: 100vh;
+  max-height: 100dvh;
   padding: 30px;
 
   /* Três linhas: logo (1ª, alinhada embaixo), cartão (2ª), vazia (3ª). As duas 1fr centralizam o
