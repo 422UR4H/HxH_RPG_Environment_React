@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { http, HttpResponse } from "msw";
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { server } from "../../test/server";
 import { renderWithProviders } from "../../test/render";
@@ -49,9 +49,8 @@ describe("EditCampaignPage — required fields (FOR-06)", () => {
     const u = userEvent.setup();
     await u.clear(await screen.findByLabelText("Nome da Campanha"));
     await u.click(screen.getByRole("button", { name: /Salvar/i }));
-    expect(
-      await screen.findByText("Preencha o campo obrigatório: Nome da Campanha."),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("alert")).toHaveTextContent("Campo obrigatório.");
+    expect(screen.getByLabelText("Nome da Campanha")).toHaveFocus();
   });
 
   it("leaves the locked name out of the check once a match has started", async () => {
@@ -61,9 +60,41 @@ describe("EditCampaignPage — required fields (FOR-06)", () => {
     expect(await screen.findByLabelText("Nome da Campanha")).toBeDisabled();
     await u.clear(screen.getByLabelText("Descrição Breve"));
     await u.click(screen.getByRole("button", { name: /Salvar/i }));
-    expect(
-      await screen.findByText("Preencha o campo obrigatório: Descrição Breve."),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("alert")).toHaveTextContent("Campo obrigatório.");
+    expect(screen.getByLabelText("Descrição Breve")).toHaveFocus();
+  });
+
+  it("flags a current story date before the stored one as soon as it is picked", async () => {
+    serveCampaign(false);
+    renderPage();
+    const u = userEvent.setup();
+    await u.click(await screen.findByLabelText(/História Corrente/));
+    const dialog = screen.getByRole("dialog", { name: "Escolher data" });
+    await u.selectOptions(within(dialog).getByLabelText("Hora"), "11");
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "A data corrente da história não pode ser anterior ao valor atual.",
+    );
+  });
+
+  it("does not call the API while a field is invalid", async () => {
+    serveCampaign(false);
+    let called = false;
+    server.use(
+      http.patch(`${baseUrl}/campaigns/:id`, () => {
+        called = true;
+        return HttpResponse.json({ campaign: {} });
+      }),
+    );
+    renderPage();
+    const u = userEvent.setup();
+    const name = await screen.findByLabelText("Nome da Campanha");
+    await u.clear(name);
+    await u.type(name, "abc");
+    await u.click(screen.getByRole("button", { name: /Salvar/i }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "O nome deve ter pelo menos 5 caracteres.",
+    );
+    expect(called).toBe(false);
   });
 });
 

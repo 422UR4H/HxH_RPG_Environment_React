@@ -25,6 +25,7 @@ import BottomActions from "../components/molecules/BottomActions";
 import { PageLoading, PageError, PageNotFound } from "../components/templates/PageState";
 import { isApiError } from "../services/httpClient";
 import ConfirmDialog from "../components/molecules/ConfirmDialog";
+import InfoDialog from "../components/molecules/InfoDialog";
 import DetailPageTemplate from "../components/templates/DetailPageTemplate";
 import UpcomingRulesSidebar from "../components/organisms/UpcomingRulesSidebar";
 import type { MatchStatus } from "../types/match";
@@ -97,6 +98,9 @@ export default function MatchPage() {
   useEffect(() => {
     if (matchId) rememberMatchPageEntry(matchId);
   }, [matchId]);
+  // Fechar é só estado local: o state da rota continua com a flag, então recarregar a página
+  // faz o diálogo voltar para quem fechou sem ler.
+  const [lobbyNoticeClosed, setLobbyNoticeClosed] = useState(false);
 
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
   const [showLobbyConfirm, setShowLobbyConfirm] = useState(false);
@@ -325,7 +329,6 @@ export default function MatchPage() {
         <MatchHeaderSection
           match={match}
           status={status}
-          lobbyNotOpen={lobbyNotOpen}
           // Quem chega da mesa encerrada; o mestre, que encerrou, não precisa do aviso.
           endedByMaster={endedByMasterArrival && !isMaster && status === "ended"}
           onDescriptionToggle={() => setDescriptionSignal((s) => !s)}
@@ -413,6 +416,14 @@ export default function MatchPage() {
         <LobbyConfirmDialog
           onCancel={() => setShowLobbyConfirm(false)}
           onConfirm={handleLobbyConfirm}
+        />
+      )}
+
+      {lobbyNotOpen && !lobbyNoticeClosed && (
+        <InfoDialog
+          title="O lobby ainda não foi aberto"
+          message="O mestre precisa abrir o lobby antes que os jogadores possam entrar. Aguarde o aviso do mestre e tente de novo."
+          onClose={() => setLobbyNoticeClosed(true)}
         />
       )}
 

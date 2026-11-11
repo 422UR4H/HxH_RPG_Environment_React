@@ -17,7 +17,7 @@ import {
   headerSubtitle,
   headerTitle,
 } from "../../styles/pageHeader";
-import { formatDateBR, formatDateTimeBR } from "../../utils/date";
+import { formatDateBR, formatInstantDateTimeBR } from "../../utils/date";
 
 const statusLabels: Record<MatchStatus, string> = {
   scheduled: "AGENDADA",
@@ -34,7 +34,6 @@ const statusTones: Record<MatchStatus, BadgeTone> = {
 interface MatchHeaderSectionProps {
   match: Match;
   status: MatchStatus;
-  lobbyNotOpen: boolean;
   /** Chegou aqui tirado da mesa porque o mestre encerrou a partida. */
   endedByMaster?: boolean;
   onDescriptionToggle: () => void;
@@ -43,7 +42,6 @@ interface MatchHeaderSectionProps {
 export default function MatchHeaderSection({
   match,
   status,
-  lobbyNotOpen,
   endedByMaster = false,
   onDescriptionToggle,
 }: MatchHeaderSectionProps) {
@@ -58,16 +56,16 @@ export default function MatchHeaderSection({
           {status === "scheduled" ? (
             <DateLabel>
               Agendada para:{" "}
-              <DateValue>{formatDateTimeBR(match.gameScheduledAt)}</DateValue>
+              <DateValue>{formatInstantDateTimeBR(match.gameScheduledAt)}</DateValue>
             </DateLabel>
           ) : (
             <DateLabel>
               Iniciada em:{" "}
               <Tooltip
-                label={`Agendada para: ${formatDateTimeBR(match.gameScheduledAt)}`}
+                label={`Agendada para: ${formatInstantDateTimeBR(match.gameScheduledAt)}`}
               >
                 <StartedAtValue tabIndex={0}>
-                  {formatDateTimeBR(match.gameStartAt!)}
+                  {formatInstantDateTimeBR(match.gameStartAt!)}
                 </StartedAtValue>
               </Tooltip>
             </DateLabel>
@@ -100,13 +98,6 @@ export default function MatchHeaderSection({
       )}
 
       {endedByMaster && <SignNotice tone="dark" message="A partida foi encerrada pelo mestre." />}
-
-      {lobbyNotOpen && (
-        <SignNotice
-          tone="dark"
-          message="O mestre ainda não abriu o lobby. Tente de novo daqui a pouco."
-        />
-      )}
     </>
   );
 }

@@ -116,4 +116,28 @@ describe("DateField", () => {
       expect(dialog.style.top).toBe("312px");
     });
   });
+
+  describe("initial month", () => {
+    afterEach(() => vi.useRealTimers());
+
+    async function openCalendar(initial: string, min: string) {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date(2026, 5, 15, 12));
+      const u = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      render(<DateField id="d" value={initial} onChange={() => {}} min={min} />);
+      await u.click(screen.getByRole("button"));
+      return screen.getByRole("dialog");
+    }
+
+    it("opens on the min month when the selected day is before min", async () => {
+      const dialog = await openCalendar("2026-03-09", "2026-06-15");
+      expect(within(dialog).getByRole("combobox", { name: /mês/i })).toHaveDisplayValue("junho");
+      expect(within(dialog).getByRole("combobox", { name: /ano/i })).toHaveDisplayValue("2026");
+    });
+
+    it("keeps opening on the selected month when it is not before min", async () => {
+      const dialog = await openCalendar("2026-08-09", "2026-06-15");
+      expect(within(dialog).getByRole("combobox", { name: /mês/i })).toHaveDisplayValue("agosto");
+    });
+  });
 });

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import styled from "styled-components";
 import { colors, fonts, gradients } from "../../styles/tokens";
@@ -5,7 +6,7 @@ import { colors, fonts, gradients } from "../../styles/tokens";
 interface NavigationCardProps {
   to: string;
   title: string;
-  description: string;
+  description: ReactNode;
   bgImage: string;
 }
 
@@ -72,6 +73,12 @@ const Description = styled.span`
   font-size: clamp(13px, 4.4cqi, 20px);
   line-height: 1.35;
   color: ${colors.textMuted};
+
+  /* O papel ("Jogador"/"Mestre") se destaca do resto da frase. */
+  strong {
+    font-weight: 700;
+    color: ${colors.textPrimary};
+  }
 `;
 
 const Card = styled(Link)`

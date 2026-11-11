@@ -60,13 +60,25 @@ function Frame({
   );
 }
 
-export function PageLoading({ label, ...frame }: { label: string } & FrameProps) {
+export function PageLoading({
+  label,
+  back,
+  ...frame
+}: {
+  label: string;
+  back?: PageStateLink;
+} & FrameProps) {
   const waking = useDelayedFlag(WAKING_HINT_DELAY_MS);
   return (
     <Frame {...frame} role="status">
       <Spinner aria-hidden="true" />
       <Label>{label}</Label>
       {waking && <Hint>{SERVER_WAKING_HINT}</Hint>}
+      {back && (
+        <Actions>
+          <SecondaryLink to={back.to}>{back.label}</SecondaryLink>
+        </Actions>
+      )}
     </Frame>
   );
 }

@@ -1,5 +1,5 @@
 // src/pages/__tests__/MatchPage.test.tsx
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, onTestFinished } from "vitest";
 import { http, HttpResponse } from "msw";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -32,6 +32,36 @@ function renderPage(opts: Parameters<typeof renderWithProviders>[1] = {}) {
 describe("MatchPage", () => {
   beforeEach(() => {
     mockNavigate.mockReset();
+  });
+
+  describe("lobby not open dialog", () => {
+    const title = "O lobby ainda não foi aberto";
+
+    it("opens the dialog when returning with lobbyNotOpen and closes it without touching the route state", async () => {
+      server.use(http.get(`${baseUrl}/matches/:id`, () => HttpResponse.json({ match: matchApiFixture })));
+      renderPage({ state: { lobbyNotOpen: true, sheetId: "sheet-1", endedByMaster: true } });
+      expect(await screen.findByText(title, {}, { timeout: 5000 })).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole("button", { name: "Entendi" }));
+      expect(screen.queryByText(title)).not.toBeInTheDocument();
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
+    it("closes with Esc", async () => {
+      server.use(http.get(`${baseUrl}/matches/:id`, () => HttpResponse.json({ match: matchApiFixture })));
+      renderPage({ state: { lobbyNotOpen: true } });
+      await screen.findByText(title, {}, { timeout: 5000 });
+      fireEvent.keyDown(window, { key: "Escape" });
+      expect(screen.queryByText(title)).not.toBeInTheDocument();
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
+    it("does not show the dialog without the flag", async () => {
+      server.use(http.get(`${baseUrl}/matches/:id`, () => HttpResponse.json({ match: matchApiFixture })));
+      renderPage();
+      await screen.findByRole("heading", { level: 1 }, { timeout: 5000 });
+      expect(screen.queryByText(title)).not.toBeInTheDocument();
+    });
   });
 
   describe("loading & error", () => {
@@ -539,7 +569,14 @@ describe("MatchPage", () => {
   });
 
   describe("datas exibidas", () => {
-    it("formata gameScheduledAt com hora e storyStartAt sem hora, sem shift de fuso", async () => {
+    it("shows gameScheduledAt as a local instant and storyStartAt by its digits", async () => {
+      // gameScheduledAt é instante real (convertido ao fuso local); storyStartAt é data da história.
+      const originalTZ = process.env.TZ;
+      process.env.TZ = "America/Sao_Paulo";
+      onTestFinished(() => {
+        if (originalTZ === undefined) delete process.env.TZ;
+        else process.env.TZ = originalTZ;
+      });
       server.use(
         http.get(`${baseUrl}/matches/:id`, () =>
           HttpResponse.json({
@@ -553,7 +590,7 @@ describe("MatchPage", () => {
       );
       renderPage();
       expect(
-        await screen.findByText("09/08/2026 às 23:00"),
+        await screen.findByText("09/08/2026 às 20:00"),
       ).toBeInTheDocument();
       expect(
         await screen.findByText(/^Início na história: 09\/08\/2026$/),

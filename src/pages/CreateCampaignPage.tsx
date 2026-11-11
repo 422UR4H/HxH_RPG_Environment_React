@@ -15,7 +15,8 @@ import UpcomingRulesSidebar from "../components/organisms/UpcomingRulesSidebar";
 import { CONNECTION_ERROR_MESSAGE, getApiErrorDetail, isConnectionError } from "../utils/apiError";
 import { getCampaignValidationMessage } from "../features/campaign/campaignErrorMessages";
 import { todayLocalISODate } from "../utils/date";
-import { incompleteInputMessage, missingRequiredMessage } from "../utils/requiredFields";
+import { CAMPAIGN_LIMITS } from "../constants/fieldLimits";
+import useFieldValidation, { focusField } from "../hooks/useFieldValidation";
 
 type CampaignFormData = {
   name: string;
@@ -42,17 +43,28 @@ export default function CreateCampaignPage() {
 
   const { mutate: createCampaign, isPending } = useCreateCampaign(token);
 
+  const { errorFor, noticeFor, touch, validateAll } = useFieldValidation({
+    name: {
+      value: form.name,
+      required: true,
+      min: CAMPAIGN_LIMITS.name.min,
+      minMessage: `O nome deve ter pelo menos ${CAMPAIGN_LIMITS.name.min} caracteres.`,
+      max: CAMPAIGN_LIMITS.name.max,
+    },
+    briefInitialDescription: {
+      value: form.briefInitialDescription,
+      required: true,
+      max: CAMPAIGN_LIMITS.briefInitialDescription.max,
+    },
+    callLink: { value: form.callLink, max: CAMPAIGN_LIMITS.callLink.max },
+    storyStartAt: { value: form.storyStartAt, required: true },
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const missing =
-      incompleteInputMessage(e.currentTarget as HTMLFormElement) ??
-      missingRequiredMessage([
-        { label: "Nome da Campanha", value: form.name },
-        { label: "Descrição Breve", value: form.briefInitialDescription },
-        { label: "Data de Início da História", value: form.storyStartAt },
-      ]);
-    if (missing) {
-      setError(missing);
+    const firstInvalid = validateAll();
+    if (firstInvalid) {
+      focusField(firstInvalid);
       return;
     }
     setError(null);
@@ -91,24 +103,38 @@ export default function CreateCampaignPage() {
         <UpcomingRulesSidebar scope="campaign" />
       }
     >
-      <FormField label="Nome da Campanha" htmlFor="name">
+      <FormField
+        label="Nome da Campanha"
+        htmlFor="name"
+        error={errorFor("name")}
+        notice={noticeFor("name")}
+      >
         <FormInput
           id="name"
           name="name"
           value={form.name}
           onChange={handleForm}
+          onBlur={() => touch("name")}
+          maxLength={CAMPAIGN_LIMITS.name.max}
           placeholder="Nome da campanha"
           autoComplete="off"
           required
         />
       </FormField>
 
-      <FormField label="Descrição Breve" htmlFor="briefInitialDescription">
+      <FormField
+        label="Descrição Breve"
+        htmlFor="briefInitialDescription"
+        error={errorFor("briefInitialDescription")}
+        notice={noticeFor("briefInitialDescription")}
+      >
         <FormTextArea
           id="briefInitialDescription"
           name="briefInitialDescription"
           value={form.briefInitialDescription}
           onChange={handleForm}
+          onBlur={() => touch("briefInitialDescription")}
+          maxLength={CAMPAIGN_LIMITS.briefInitialDescription.max}
           placeholder="Uma breve descrição inicial da campanha"
           $resize="none"
           rows={2}
@@ -127,23 +153,38 @@ export default function CreateCampaignPage() {
         />
       </FormField>
 
-      <FormField label="Link da Chamada" htmlFor="callLink" optional>
+      <FormField
+        label="Link da Chamada"
+        htmlFor="callLink"
+        optional
+        error={errorFor("callLink")}
+        notice={noticeFor("callLink")}
+      >
         <FormInput
           id="callLink"
           name="callLink"
           value={form.callLink}
           onChange={handleForm}
+          onBlur={() => touch("callLink")}
+          maxLength={CAMPAIGN_LIMITS.callLink.max}
           placeholder="Discord, Meet, etc."
           autoComplete="off"
         />
       </FormField>
 
       <FormRow>
-        <FormField label="Data de Início da História" htmlFor="storyStartAt">
+        <FormField
+          label="Data de Início da História"
+          htmlFor="storyStartAt"
+          error={errorFor("storyStartAt")}
+        >
           <DateField
             id="storyStartAt"
             value={form.storyStartAt}
-            onChange={(value) => setForm((prev) => ({ ...prev, storyStartAt: value }))}
+            onChange={(value) => {
+              setForm((prev) => ({ ...prev, storyStartAt: value }));
+              touch("storyStartAt");
+            }}
             required
           />
         </FormField>

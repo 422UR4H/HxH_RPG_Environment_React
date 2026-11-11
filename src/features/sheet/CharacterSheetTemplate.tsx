@@ -2,6 +2,7 @@ import type { CharacterClass } from "../../types/characterClass";
 import type { CharacterSheet } from "../../types/characterSheet";
 import type { SheetMode } from "./types/sheetMode";
 import type { ManageActions } from "../../components/molecules/ManageButton";
+import { useEffect, useRef } from "react";
 import styled from "styled-components";
 import space from "../../assets/images/space.png";
 import BackButton from "../../components/ions/BackButton";
@@ -75,6 +76,10 @@ function CharacterSheetTemplate({
 }: CharacterSheetTemplateProps) {
   // Embutida na partida (F3): o estado fica compacto dentro do painel.
   const embedded = !!sheetMode.embedded;
+  const submitErrorRef = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (submitError) submitErrorRef.current?.scrollIntoView?.({ block: "center", behavior: "smooth" });
+  }, [submitError]);
   const notFoundBack = { label: "Voltar para personagens", to: "/charactersheets" };
 
   if (isLoading) {
@@ -319,7 +324,7 @@ function CharacterSheetTemplate({
           (sheetMode.headerMode === "create" ||
             sheetMode.headerMode === "edit-profile") && (
           <CreateSheetArea>
-            {submitError && <SubmitErrorText>{submitError}</SubmitErrorText>}
+            {submitError && <SubmitErrorText ref={submitErrorRef} role="alert">{submitError}</SubmitErrorText>}
             <SheetButtonsRow>
               {onCancel && (
                 <CancelButton onClick={onCancel}>Cancelar</CancelButton>

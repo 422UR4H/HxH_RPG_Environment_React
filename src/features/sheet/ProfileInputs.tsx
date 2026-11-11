@@ -1,10 +1,13 @@
 import { useMemo } from "react";
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 import BackgroundButton from "../../components/atoms/BackgroundButton";
 import type { Profile, CharacterSheet } from "../../types/characterSheet";
 import { colors } from "../../styles/tokens";
+import { errorBox } from "../../styles/errorBox";
 import { DetailItem, DetailLabel, ProfilePillSelect } from "./ProfileFieldStyles";
 import { toDateInputValue } from "../../utils/date";
+import { SHEET_LIMITS } from "../../constants/fieldLimits";
+import useFieldValidation from "../../hooks/useFieldValidation";
 
 interface ProfileInputsProps {
   charSheet?: CharacterSheet;
@@ -33,6 +36,8 @@ const ALIGNMENT_OPTIONS = [
   { value: "Chaotic-Evil", label: "Chaotic Evil" },
 ];
 
+const AGE_MESSAGE = "A idade deve ser maior que zero.";
+
 function maxDaysForMonth(month: number): number {
   if (month === 2) return 29;
   if (month === 4 || month === 6 || month === 9 || month === 11) return 30;
@@ -55,7 +60,28 @@ export default function ProfileInputs({
     });
   };
   const profile = charSheet?.profile;
-  const defaultAge = 20;
+  const age = profile?.age ?? 0;
+  const { errorFor, noticeFor, touch } = useFieldValidation({
+    fullname: {
+      value: profile?.fullname ?? "",
+      required: true,
+      min: SHEET_LIMITS.fullname.min,
+      minMessage: `O nome completo deve ter pelo menos ${SHEET_LIMITS.fullname.min} caracteres.`,
+      max: SHEET_LIMITS.fullname.max,
+    },
+    briefDescription: {
+      value: profile?.briefDescription ?? "",
+      max: SHEET_LIMITS.briefDescription.max,
+    },
+    // O estado guarda 0 para "vazio"; "0" faz a regra rodar e acusar a idade.
+    age: {
+      value: String(age),
+      validate: (v) => (Number(v) < 1 ? AGE_MESSAGE : null),
+    },
+  });
+  const fullnameFeedback = errorFor("fullname") ?? noticeFor("fullname");
+  const descriptionNotice = noticeFor("briefDescription");
+  const ageError = errorFor("age");
 
   const birthdayParts = toDateInputValue(
     profile?.birthday ?? "0000-01-01T00:00:00.000Z"
@@ -84,9 +110,18 @@ export default function ProfileInputs({
           type="text"
           autoComplete="off"
           placeholder="Nome completo do personagem"
+          maxLength={SHEET_LIMITS.fullname.max}
+          aria-invalid={errorFor("fullname") ? true : undefined}
+          aria-describedby={fullnameFeedback ? "profile-fullname-feedback" : undefined}
           value={profile?.fullname || ""}
           onChange={(e) => handleInputChange("fullname", e.target.value)}
+          onBlur={() => touch("fullname")}
         />
+        {fullnameFeedback && (
+          <FieldFeedback id="profile-fullname-feedback" $error={!!errorFor("fullname")}>
+            {fullnameFeedback}
+          </FieldFeedback>
+        )}
       </SpacedField>
 
       <SpacedField>
@@ -98,9 +133,16 @@ export default function ProfileInputs({
           autoComplete="off"
           placeholder="Breve descrição do personagem"
           rows={2}
+          maxLength={SHEET_LIMITS.briefDescription.max}
+          aria-describedby={descriptionNotice ? "profile-brief-description-feedback" : undefined}
           value={profile?.briefDescription || ""}
           onChange={(e) => handleInputChange("briefDescription", e.target.value)}
         />
+        {descriptionNotice && (
+          <FieldFeedback id="profile-brief-description-feedback" $error={false}>
+            {descriptionNotice}
+          </FieldFeedback>
+        )}
       </SpacedField>
 
       <ProfileContent>
@@ -141,9 +183,20 @@ export default function ProfileInputs({
               <AgeInput
                 id="profile-age"
                 type="number"
-                value={profile?.age || defaultAge}
-                onChange={(e) => handleInputChange("age", parseInt(e.target.value, 10) || 0)}
+                min={1}
+                aria-invalid={ageError ? true : undefined}
+                aria-describedby={ageError ? "profile-age-feedback" : undefined}
+                value={age > 0 ? age : ""}
+                onChange={(e) =>
+                  handleInputChange("age", Math.max(0, parseInt(e.target.value, 10) || 0))
+                }
+                onBlur={() => touch("age")}
               />
+              {ageError && (
+                <FieldFeedback id="profile-age-feedback" $error>
+                  {ageError}
+                </FieldFeedback>
+              )}
             </DetailItem>
           </BirthdayAgeRow>
 
@@ -334,4 +387,17 @@ const AlignmentContainer = styled.div`
 
 const SpacedField = styled(DetailItem)`
   margin-bottom: 2cqi;
+`;
+
+const FieldFeedback = styled.p<{ $error: boolean }>`
+  margin: 4px 0 0;
+  font-size: max(2.4cqi, 12px);
+  line-height: 1.2;
+  color: ${colors.textMuted};
+  ${({ $error }) =>
+    $error &&
+    css`
+      ${errorBox}
+      line-height: 1.2;
+    `}
 `;

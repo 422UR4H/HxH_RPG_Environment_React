@@ -3,6 +3,7 @@ import {
   type ReactNode,
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import styled from "styled-components";
@@ -45,6 +46,12 @@ export default function CreateFormTemplate({
   const openRules = useCallback(() => setIsRulesOpen(true), []);
   const closeRules = useCallback(() => setIsRulesOpen(false), []);
 
+  // Erro do servidor: fica logo acima dos botões e rola para a vista quando aparece.
+  const serverErrorRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (error) serverErrorRef.current?.scrollIntoView?.({ block: "center" });
+  }, [error]);
+
   useEffect(() => {
     if (!isRulesCollapsed) setIsRulesOpen(false);
   }, [isRulesCollapsed]);
@@ -57,11 +64,15 @@ export default function CreateFormTemplate({
           <FormColumn $reserveEdges={isRulesCollapsed && !!rulesContent}>
             <PageTitle>{title}</PageTitle>
 
-            {error && <SignFormError message={error} tone="dark" />}
-
-            {/* noValidate: sem balão do navegador; a página checa os obrigatórios e mostra o erro acima (FOR-06). */}
+            {/* noValidate: sem balão do navegador; a página valida e mostra o erro em cada campo (FOR-06). */}
             <Form onSubmit={onSubmit} noValidate>
               {children}
+
+              {error && (
+                <div ref={serverErrorRef}>
+                  <SignFormError message={error} tone="dark" />
+                </div>
+              )}
 
               <ButtonsContainer>
                 <ButtonsRow>

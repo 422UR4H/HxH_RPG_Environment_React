@@ -1,5 +1,6 @@
 import styled, { css } from "styled-components";
 import { colors, alpha } from "../../styles/tokens";
+import { errorBox } from "../../styles/errorBox";
 
 interface SignFormErrorProps {
   message: string;
@@ -10,7 +11,7 @@ interface SignFormErrorProps {
 // Erro das telas de entrada. Ocupa a coluna dos campos e do botão (429 px; 100% abaixo de 580 px,
 // como SignField/BaseButton) e começa o texto no recuo do texto digitado: faixa de 4 px + 16 px de
 // padding = borda de 4 px + 16 px de padding do campo (20 px). Faixa, não borda inteira: senão parece
-// um campo. O tom escuro (formulários sobre o mapa) mantém 4 px + 14 px.
+// um campo. O tom escuro (formulários sobre o mapa) usa a caixa de erro padrão (`errorBox`): precisa saltar da página.
 export default function SignFormError({ message, tone = "light" }: SignFormErrorProps) {
   return (
     <StyledSignFormError role="alert" $tone={tone}>
@@ -35,12 +36,8 @@ const lightTone = css`
 const darkTone = css`
   width: 100%;
   margin-bottom: 20px;
-  border-left: 4px solid ${colors.feedbackDangerText};
-  /* A textura clara do mapa deixava o vermelho em 1,2:1: base escura + tinta de perigo, como no SignNotice. */
-  background-color: ${colors.overlayDark};
-  background-image: linear-gradient(${alpha(colors.feedbackDanger, 0.16)}, ${alpha(colors.feedbackDanger, 0.16)});
-  font-size: 16px;
-  color: ${colors.textPrimary};
+  ${errorBox}
+  font-size: 18px;
 `;
 
 const StyledSignFormError = styled.div<{ $tone: "light" | "dark" }>`

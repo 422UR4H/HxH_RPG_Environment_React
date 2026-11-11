@@ -10,14 +10,16 @@ import {
   PASSWORD_TOO_LONG,
   PASSWORD_TOO_SHORT,
 } from "./authErrorMessages";
+import { USER_LIMITS, charLength } from "../../constants/fieldLimits";
 
 export type FieldErrors<K extends string> = Partial<Record<K, string>>;
 
 // Mesmo nível de exigência do type="email" que saiu; o back tem a palavra final.
 const EMAIL_FORMAT = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// O back mede tamanho com len() do Go, isto é, em bytes UTF-8 (um "ã" conta 2).
-// O front mede igual para não aprovar aqui o que o servidor recusa.
+// E-mail e senha: o back mede com len() do Go, isto é, em bytes UTF-8 (um "ã" conta 2).
+// O front mede igual para não aprovar aqui o que o servidor recusa. O nick é medido em
+// caracteres (code points), como o back passou a fazer.
 export function byteLength(s: string): number {
   return new TextEncoder().encode(s).length;
 }
@@ -52,7 +54,8 @@ export function validateRegister(form: {
   else if (!inRange(form.email, 12, 64)) errors.email = EMAIL_LENGTH;
 
   if (form.nick === "") errors.nick = NICK_REQUIRED;
-  else if (!inRange(form.nick, 3, 20)) errors.nick = NICK_LENGTH;
+  else if (charLength(form.nick) < USER_LIMITS.nick.min || charLength(form.nick) > USER_LIMITS.nick.max)
+    errors.nick = NICK_LENGTH;
 
   if (form.password === "") errors.password = PASSWORD_REQUIRED;
   else if (byteLength(form.password) < 8) errors.password = PASSWORD_TOO_SHORT;

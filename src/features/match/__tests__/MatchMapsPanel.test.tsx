@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, onTestFinished } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ComponentProps } from "react";
@@ -45,6 +45,22 @@ describe("MatchMapsPanel — continuar o tabuleiro de outra partida (F15)", () =
     expect(screen.getAllByText(/Continuar o tabuleiro de/i)).toHaveLength(1);
     expect(screen.getByRole("button", { name: "Partida D · 10/12/2025" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Partida A · 01/12/2025" })).toBeInTheDocument();
+  });
+
+  it("shows the start day in the local timezone, not the UTC day", () => {
+    const originalTZ = process.env.TZ;
+    process.env.TZ = "America/Sao_Paulo";
+    onTestFinished(() => {
+      if (originalTZ === undefined) delete process.env.TZ;
+      else process.env.TZ = originalTZ;
+    });
+    // 01:00Z do dia 10 ainda é dia 09 no Brasil.
+    renderPanel({
+      boardSources: {
+        "map-1": [{ matchUuid: "x", title: "Partida X", startedAt: "2025-12-10T01:00:00Z" }],
+      },
+    });
+    expect(screen.getByRole("button", { name: "Partida X · 09/12/2025" })).toBeInTheDocument();
   });
 
   it("avisa que a herança deve ser feita com o lobby fechado", () => {

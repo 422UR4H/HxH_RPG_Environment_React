@@ -18,4 +18,18 @@ describe("Logo", () => {
     expect(logos).toHaveLength(2);
     for (const logo of logos) expect(logo.getAttribute("src")).toMatch(/sxs-logo\.svg/);
   });
+
+  it("nas telas de entrada, a logo fica fora do cartão branco", () => {
+    const { container } = renderWithProviders(
+      <SignPagesTemplate>
+        <div>conteúdo</div>
+      </SignPagesTemplate>,
+    );
+    const logo = screen.getByAltText("System X System");
+    const card = container.querySelector(".form-div");
+    expect(card).not.toBeNull();
+    expect(card).not.toContainElement(logo);
+    expect(card).toHaveTextContent("conteúdo");
+    expect(logo.parentElement).toBe(card?.parentElement);
+  });
 });

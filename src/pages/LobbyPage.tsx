@@ -169,6 +169,11 @@ export default function LobbyPage() {
     );
   }, [isMaster, lobbyPieces, playerCharacterIds]);
 
+  // Jogador que nunca conectou vê o loading, não o lobby inteiro que piscaria antes do
+  // `lobby_not_open`. Quem já conectou segue no lobby numa reconexão.
+  const hasConnectedRef = useRef(false);
+  if (status === "connected") hasConnectedRef.current = true;
+
   useDocumentTitle("Lobby", match?.title);
 
   if (!token) return <Navigate to="/" replace />;
@@ -205,6 +210,15 @@ export default function LobbyPage() {
         to={`/campaigns/${campaignId}/matches/${matchId}`}
         replace
         state={{ lobbyNotOpen: true }}
+      />
+    );
+  }
+
+  if (!isMaster && !hasConnectedRef.current && (status === "connecting" || status === "waking")) {
+    return (
+      <PageLoading
+        label={status === "waking" ? GAME_SERVER_WAKING : "Conectando ao lobby…"}
+        back={matchBack}
       />
     );
   }

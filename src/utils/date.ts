@@ -79,3 +79,46 @@ export function daysFromToday(isoDate: string, now: Date = new Date()): number {
   const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
   return Math.round((target - today) / 86_400_000);
 }
+
+/*
+ * Dois tipos de data convivem neste arquivo:
+ * - Data da história (no universo do jogo, só o dia): lida pelos dígitos, acima. Não tem fuso.
+ * - Instante real (gameScheduledAt, gameStartAt, gameEndAt, nextGameScheduledAt): um momento
+ *   no tempo, guardado em UTC pelo backend. Passa por `Date` para ser mostrado/editado no
+ *   fuso de quem está olhando, e é enviado ao backend como ISO UTC.
+ */
+
+/** `"2026-11-10T15:00"` (input local) → instante UTC (`""` se vazio/inválido), ex. `"2026-11-10T18:00:00.000Z"` no Brasil. */
+export function localInputToInstant(localValue: string): string {
+  const date = new Date(localValue);
+  return Number.isNaN(date.getTime()) ? "" : date.toISOString();
+}
+
+/** Instante ISO → `AAAA-MM-DDTHH:mm` no fuso local, para `<input type="datetime-local">`. */
+export function instantToLocalInput(iso: string | undefined | null): string {
+  if (!iso) return "";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  return toLocalDateTimeInputValue(date);
+}
+
+/** Instante ISO → `"10/11/2026 às 15:00"` no fuso local. */
+export function formatInstantDateTimeBR(iso: string | undefined | null): string {
+  const local = instantToLocalInput(iso);
+  if (!local) return "";
+  const [date, time] = local.split("T");
+  const [year, month, day] = date.split("-");
+  return `${day}/${month}/${year} às ${time}`;
+}
+
+/** Instante ISO → `"10/11/2026"`, o dia no fuso local. */
+export function formatInstantDateBR(iso: string | undefined | null): string {
+  return formatInstantDateTimeBR(iso).split(" ")[0];
+}
+
+/** Dias de hoje até o dia local do instante (negativo = passado). */
+export function daysFromTodayInstant(iso: string, now: Date = new Date()): number {
+  const local = instantToLocalInput(iso);
+  if (!local) return NaN;
+  return daysFromToday(local.split("T")[0], now);
+}

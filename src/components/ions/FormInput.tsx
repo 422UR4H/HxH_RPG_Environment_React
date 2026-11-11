@@ -14,6 +14,10 @@ const FormInput = styled.input`
     outline: none;
     border-color: ${colors.brandAccent};
   }
+
+  &[aria-invalid="true"] {
+    border-color: ${colors.feedbackDanger};
+  }
 `;
 
 export default FormInput;

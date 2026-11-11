@@ -30,6 +30,9 @@ export const Trigger = styled.button`
     outline: none;
     border-color: ${colors.brandAccent};
   }
+  &[aria-invalid="true"] {
+    border-color: ${colors.feedbackDanger};
+  }
   &:disabled {
     cursor: not-allowed;
     opacity: 0.6;

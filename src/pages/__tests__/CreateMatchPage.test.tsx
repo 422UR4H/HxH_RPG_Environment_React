@@ -77,15 +77,76 @@ describe("CreateMatchPage", () => {
     expect(within(rules).getByRole("heading", { name: "Nen & Habilidades" })).toBeInTheDocument();
   });
 
-  it("mostra erro de validação se Título e Descrição Breve estão vazios", async () => {
+  it("shows required errors under the empty fields, focuses the first and skips the API", async () => {
+    let called = false;
+    server.use(
+      http.post(`${baseUrl}/matches`, () => {
+        called = true;
+        return HttpResponse.json({ match: { uuid: "x" } }, { status: 201 });
+      }),
+    );
     renderPage();
-    const form = (await screen.findByRole("button", { name: /Criar Partida/i })).closest("form")!;
-    form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
-    await waitFor(() => {
-      expect(
-        screen.getByText("Preencha os campos obrigatórios: Título da Partida e Descrição Breve."),
-      ).toBeInTheDocument();
-    });
+    const u = userEvent.setup();
+    const title = await screen.findByLabelText(/Título da Partida/i);
+    expect(screen.queryByText("Campo obrigatório.")).not.toBeInTheDocument();
+    await u.click(screen.getByRole("button", { name: /Criar Partida/i }));
+    expect(await screen.findAllByText("Campo obrigatório.")).toHaveLength(2);
+    expect(title).toHaveFocus();
+    expect(title).toHaveAttribute("aria-invalid", "true");
+    expect(title).toHaveAccessibleDescription("Campo obrigatório.");
+    expect(called).toBe(false);
+  });
+
+  it("shows the minimum error on blur and clears it once the title is valid", async () => {
+    renderPage();
+    const u = userEvent.setup();
+    const title = await screen.findByLabelText(/Título da Partida/i);
+    await u.type(title, "abc");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    await u.tab();
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "O título deve ter pelo menos 5 caracteres.",
+    );
+    await u.type(title, "de");
+    expect(screen.queryByText("O título deve ter pelo menos 5 caracteres.")).not.toBeInTheDocument();
+  });
+
+  it("caps the title at 32 characters and shows the limit note, which goes away below it", async () => {
+    renderPage();
+    const u = userEvent.setup();
+    const title = await screen.findByLabelText(/Título da Partida/i);
+    expect(title).toHaveAttribute("maxLength", "32");
+    await u.type(title, "a".repeat(32));
+    expect(screen.getByRole("status")).toHaveTextContent("Limite de 32 caracteres atingido.");
+    await u.type(title, "{backspace}");
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("flags a session in the past as soon as it is picked", async () => {
+    // Relógio fixo: o padrão da sessão é hoje + 7 dias; escolher o dia 15 de hoje + 1h cai no passado.
+    vi.useFakeTimers({ toFake: ["Date"], now: new Date(2026, 5, 15, 12, 0) });
+    try {
+      renderPage();
+      const u = userEvent.setup();
+      await u.click(await screen.findByLabelText("Data e Hora da Sessão"));
+      const dialog = screen.getByRole("dialog", { name: "Escolher data" });
+      // Padrão: 22/06/2026 12:00. Voltando a hora para 11:00 no dia de hoje (15/06) fica no passado.
+      await u.click(within(dialog).getByRole("button", { name: /\b15 de junho/i }));
+      await u.selectOptions(within(dialog).getByLabelText("Hora"), "11");
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        "Escolha um horário a partir de agora.",
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("answers an emptied session date with 'Campo obrigatório.' right away", async () => {
+    renderPage();
+    const u = userEvent.setup();
+    await u.click(await screen.findByLabelText("Data e Hora da Sessão"));
+    await u.click(screen.getByRole("button", { name: "Limpar" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Campo obrigatório.");
   });
 
   it("marks only the full description as optional (FOR-06)", async () => {
@@ -93,19 +154,6 @@ describe("CreateMatchPage", () => {
     expect(await screen.findByLabelText("Descrição Completa (opcional)")).toBeInTheDocument();
     expect(screen.getByLabelText("Título da Partida")).toBeInTheDocument();
     expect(screen.getByLabelText("Data e Hora da Sessão")).toBeInTheDocument();
-  });
-
-  it("answers an emptied session date with its own message (FOR-06)", async () => {
-    renderPage();
-    const u = userEvent.setup();
-    await u.type(await screen.findByLabelText(/Título da Partida/i), "Nova Partida");
-    await u.type(screen.getByLabelText(/Descrição Breve/i), "Brief partida");
-    await u.click(screen.getByLabelText("Data e Hora da Sessão"));
-    await u.click(screen.getByRole("button", { name: "Limpar" }));
-    await u.click(screen.getByRole("button", { name: /Criar Partida/i }));
-    expect(
-      await screen.findByText("Preencha o campo obrigatório: Data e Hora da Sessão."),
-    ).toBeInTheDocument();
   });
 
   it("keeps the story start inside the campaign: days before it cannot be picked", async () => {
@@ -139,23 +187,29 @@ describe("CreateMatchPage", () => {
     });
   });
 
-  it("mostra erro quando API falha no submit", async () => {
+  it("shows the server error just above the buttons, not at the top of the page", async () => {
     server.use(
       http.post(`${baseUrl}/matches`, () =>
         HttpResponse.json(
-          { detail: "validation error: title must be at least 5 characters" },
-          { status: 500 },
+          { detail: "validation error: game scheduled at cannot be in the past" },
+          { status: 422 },
         ),
       ),
     );
     renderPage();
     const u = userEvent.setup();
-    await u.type(await screen.findByLabelText(/Título da Partida/i), "X");
-    await u.type(screen.getByLabelText(/Descrição Breve/i), "Y");
+    await u.type(await screen.findByLabelText(/Título da Partida/i), "Nova Partida");
+    await u.type(screen.getByLabelText(/Descrição Breve/i), "Brief partida");
     await u.click(screen.getByRole("button", { name: /Criar Partida/i }));
-    expect(
-      await screen.findByText(/O título deve ter pelo menos 5 caracteres\./i, {}, { timeout: 5000 }),
-    ).toBeInTheDocument();
+    const banner = await screen.findByText(
+      "A data e hora da sessão não pode estar no passado.",
+      {},
+      { timeout: 5000 },
+    );
+    const cancel = screen.getByRole("button", { name: "Cancelar" });
+    expect(banner.compareDocumentPosition(cancel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const description = screen.getByLabelText(/Descrição Completa/i);
+    expect(description.compareDocumentPosition(banner) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   // Conditional test 1: visibility checkbox exists (id="isPublic", label "Partida Pública", starts checked=true)
