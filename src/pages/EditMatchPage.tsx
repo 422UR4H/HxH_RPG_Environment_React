@@ -11,6 +11,8 @@ import { isApiError } from "../services/httpClient";
 import { getMatchValidationMessage } from "../features/match/matchErrorMessages";
 import {
   MATCH_TITLE_TOO_SHORT,
+  SESSION_PASSED_NOTICE,
+  sessionHasPassed,
   sessionDayBounds,
   sessionTimeError,
   storyStartError,
@@ -252,6 +254,7 @@ export default function EditMatchPage() {
           label="Data e Hora da Sessão"
           htmlFor="gameScheduledAt"
           error={errorFor("gameScheduledAt")}
+          notice={!sessionChanged && sessionHasPassed(form.gameScheduledAt) ? SESSION_PASSED_NOTICE : null}
           helpText="Esta é a data e hora real em que a sessão de jogo acontecerá"
         >
           <DateField

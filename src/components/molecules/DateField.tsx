@@ -200,7 +200,7 @@ export default function DateField({
               captionLayout="dropdown"
               startMonth={START_MONTH}
               endMonth={END_MONTH}
-              defaultMonth={selected ?? minDate ?? undefined}
+              defaultMonth={selected && minDate && selected < minDate ? minDate : (selected ?? minDate)}
               selected={selected}
               onSelect={handleSelectDay}
               disabled={[
