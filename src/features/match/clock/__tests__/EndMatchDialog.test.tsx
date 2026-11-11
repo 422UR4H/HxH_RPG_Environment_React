@@ -70,7 +70,9 @@ describe("EndMatchDialog", () => {
   it("caps the summary at 255 characters", async () => {
     setup();
     await userEvent.click(screen.getByRole("button", { name: "Continuar" }));
-    expect(screen.getByLabelText(/Resumo final/)).toHaveAttribute("maxLength", "255");
+    const field = screen.getByLabelText(/Resumo final/);
+    fireEvent.change(field, { target: { value: "😀".repeat(300) } });
+    expect(field).toHaveValue("😀".repeat(255));
   });
 
   it("freezes the edit base when the dialog opens (real time keeps ticking outside)", async () => {

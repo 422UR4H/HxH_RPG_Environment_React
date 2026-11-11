@@ -60,7 +60,9 @@ describe("SceneChangeDialog", () => {
     setup();
     fireEvent.change(finalDesc(), { target: { value: "a".repeat(120) } });
     expect(screen.getByText("120/255")).toBeInTheDocument();
-    expect(finalDesc().maxLength).toBe(255);
+    fireEvent.change(finalDesc(), { target: { value: "😀".repeat(300) } });
+    expect(finalDesc()).toHaveValue("😀".repeat(255));
+    expect(screen.getByText("255/255")).toBeInTheDocument();
   });
 
   it("roleplay submit sends the trimmed final description and no storyAt", async () => {

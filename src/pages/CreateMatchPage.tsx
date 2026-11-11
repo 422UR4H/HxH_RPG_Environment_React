@@ -51,6 +51,9 @@ export default function CreateMatchPage() {
       new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000),
     ),
     storyStartAt: todayLocalISODate(),
+  }, {
+    title: MATCH_LIMITS.title.max,
+    briefInitialDescription: MATCH_LIMITS.briefInitialDescription.max,
   });
 
   const {
@@ -162,7 +165,6 @@ export default function CreateMatchPage() {
           value={form.title}
           onChange={handleForm}
           onBlur={() => touch("title")}
-          maxLength={MATCH_LIMITS.title.max}
           placeholder="Título da partida"
           autoComplete="off"
           required
@@ -181,7 +183,6 @@ export default function CreateMatchPage() {
           value={form.briefInitialDescription}
           onChange={handleForm}
           onBlur={() => touch("briefInitialDescription")}
-          maxLength={MATCH_LIMITS.briefInitialDescription.max}
           placeholder="Uma breve descrição inicial da partida"
           $resize="none"
           rows={2}

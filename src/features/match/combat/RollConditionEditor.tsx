@@ -1,4 +1,5 @@
 import { useId, useState } from "react";
+import { clampChars } from "../../../constants/fieldLimits";
 import styled from "styled-components";
 import { colors } from "../../../styles/tokens";
 import type { EditActionPayload } from "./combatMessages";
@@ -89,9 +90,8 @@ export default function RollConditionEditor({
         <span>Motivo</span>
         <Input
           type="text"
-          maxLength={80}
           value={description}
-          onChange={(e) => setDescription(e.target.value)}
+          onChange={(e) => setDescription(clampChars(e.target.value, 80))}
         />
       </Field>
       <Buttons>

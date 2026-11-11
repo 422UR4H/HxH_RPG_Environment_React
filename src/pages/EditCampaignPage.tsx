@@ -69,6 +69,10 @@ export default function EditCampaignPage() {
     callLink: "",
     storyStartAt: "",
     storyCurrentAt: "",
+  }, {
+    name: CAMPAIGN_LIMITS.name.max,
+    briefInitialDescription: CAMPAIGN_LIMITS.briefInitialDescription.max,
+    callLink: CAMPAIGN_LIMITS.callLink.max,
   });
 
   useEffect(() => {
@@ -201,7 +205,6 @@ export default function EditCampaignPage() {
           value={form.name}
           onChange={handleForm}
           onBlur={() => touch("name")}
-          maxLength={CAMPAIGN_LIMITS.name.max}
           placeholder="Nome da campanha"
           autoComplete="off"
           disabled={hasStartedMatch}
@@ -221,7 +224,6 @@ export default function EditCampaignPage() {
           value={form.briefInitialDescription}
           onChange={handleForm}
           onBlur={() => touch("briefInitialDescription")}
-          maxLength={CAMPAIGN_LIMITS.briefInitialDescription.max}
           $resize="none"
           rows={2}
           required
@@ -251,7 +253,6 @@ export default function EditCampaignPage() {
           value={form.callLink}
           onChange={handleForm}
           onBlur={() => touch("callLink")}
-          maxLength={CAMPAIGN_LIMITS.callLink.max}
           autoComplete="off"
         />
       </FormField>

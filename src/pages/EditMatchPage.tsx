@@ -83,6 +83,9 @@ export default function EditMatchPage() {
     isPublic: true,
     gameScheduledAt: "",
     storyStartAt: "",
+  }, {
+    title: MATCH_LIMITS.title.max,
+    briefInitialDescription: MATCH_LIMITS.briefInitialDescription.max,
   });
 
   useEffect(() => {
@@ -211,7 +214,6 @@ export default function EditMatchPage() {
           value={form.title}
           onChange={handleForm}
           onBlur={() => touch("title")}
-          maxLength={MATCH_LIMITS.title.max}
           placeholder="Título da partida"
           autoComplete="off"
           required
@@ -230,7 +232,6 @@ export default function EditMatchPage() {
           value={form.briefInitialDescription}
           onChange={handleForm}
           onBlur={() => touch("briefInitialDescription")}
-          maxLength={MATCH_LIMITS.briefInitialDescription.max}
           placeholder="Uma breve descrição inicial da partida"
           $resize="none"
           rows={2}

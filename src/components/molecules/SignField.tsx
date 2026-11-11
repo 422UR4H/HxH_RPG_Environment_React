@@ -1,6 +1,7 @@
 import ErrorIcon from "../ions/ErrorIcon";
 import styled from "styled-components";
 import { colors } from "../../styles/tokens";
+import { clampChars } from "../../constants/fieldLimits";
 
 interface SignFieldProps {
   name: string;
@@ -9,7 +10,10 @@ interface SignFieldProps {
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   autoComplete: string;
+  /** Limite em bytes UTF-16 do HTML (e-mail e senha, que o back mede em bytes). */
   maxLength?: number;
+  /** Limite em caracteres (code points): corta no onChange, então emoji conta 1. */
+  maxChars?: number;
   error?: string | null;
 }
 
@@ -22,6 +26,7 @@ export default function SignField({
   onChange,
   autoComplete,
   maxLength,
+  maxChars,
   error,
 }: SignFieldProps) {
   const id = `sign-${name}`;
@@ -34,7 +39,12 @@ export default function SignField({
           name={name}
           type={type}
           value={value}
-          onChange={onChange}
+          onChange={(e) => {
+            if (maxChars !== undefined && [...e.target.value].length > maxChars) {
+              e.target.value = clampChars(e.target.value, maxChars);
+            }
+            onChange(e);
+          }}
           autoComplete={autoComplete}
           maxLength={maxLength}
           aria-invalid={error ? true : undefined}

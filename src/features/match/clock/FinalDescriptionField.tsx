@@ -2,6 +2,7 @@
 // rótulo com "(opcional)", contador e a caixa de texto. Servem o Nova cena e o Encerrar partida.
 import styled from "styled-components";
 import { colors } from "../../../styles/tokens";
+import { charLength, clampChars } from "../../../constants/fieldLimits";
 import { ChoiceLabel } from "../combat/choiceStyles";
 
 export const FINAL_DESCRIPTION_MAX = 255;
@@ -23,14 +24,13 @@ export default function FinalDescriptionField({
         <ChoiceLabel as="label" htmlFor={id}>
           {label} <Optional>(opcional)</Optional>
         </ChoiceLabel>
-        <Counter aria-hidden="true">{`${value.length}/${FINAL_DESCRIPTION_MAX}`}</Counter>
+        <Counter aria-hidden="true">{`${charLength(value)}/${FINAL_DESCRIPTION_MAX}`}</Counter>
       </LabelRow>
       <FinalInput
         id={id}
         rows={3}
-        maxLength={FINAL_DESCRIPTION_MAX}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => onChange(clampChars(e.target.value, FINAL_DESCRIPTION_MAX))}
       />
     </Field>
   );

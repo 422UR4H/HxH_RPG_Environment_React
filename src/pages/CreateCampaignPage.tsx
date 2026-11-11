@@ -39,6 +39,10 @@ export default function CreateCampaignPage() {
     isPublic: true,
     callLink: "",
     storyStartAt: todayLocalISODate(),
+  }, {
+    name: CAMPAIGN_LIMITS.name.max,
+    briefInitialDescription: CAMPAIGN_LIMITS.briefInitialDescription.max,
+    callLink: CAMPAIGN_LIMITS.callLink.max,
   });
 
   const { mutate: createCampaign, isPending } = useCreateCampaign(token);
@@ -115,7 +119,6 @@ export default function CreateCampaignPage() {
           value={form.name}
           onChange={handleForm}
           onBlur={() => touch("name")}
-          maxLength={CAMPAIGN_LIMITS.name.max}
           placeholder="Nome da campanha"
           autoComplete="off"
           required
@@ -134,7 +137,6 @@ export default function CreateCampaignPage() {
           value={form.briefInitialDescription}
           onChange={handleForm}
           onBlur={() => touch("briefInitialDescription")}
-          maxLength={CAMPAIGN_LIMITS.briefInitialDescription.max}
           placeholder="Uma breve descrição inicial da campanha"
           $resize="none"
           rows={2}
@@ -166,7 +168,6 @@ export default function CreateCampaignPage() {
           value={form.callLink}
           onChange={handleForm}
           onBlur={() => touch("callLink")}
-          maxLength={CAMPAIGN_LIMITS.callLink.max}
           placeholder="Discord, Meet, etc."
           autoComplete="off"
         />
