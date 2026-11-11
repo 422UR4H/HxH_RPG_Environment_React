@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { describe, expect, it } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { limitedHandlers } from "./limitedInput";
 
 function Field({ max, initial }: { max: number; initial: string }) {
@@ -22,7 +22,11 @@ function compose(input: HTMLInputElement, caret: number, composed: string) {
   fireEvent.input(input, { target: { value: next }, isComposing: true });
   expect(input.value).toBe(next); // durante a composição nada é cortado
   fireEvent.compositionEnd(input);
+  // O Chrome move o cursor ao fim depois do compositionend: simulado aqui.
+  setTimeout(() => input.setSelectionRange(input.value.length, input.value.length), 5);
 }
+
+const settle = () => new Promise((r) => setTimeout(r, 80));
 
 describe("limitedHandlers with IME composition", () => {
   const full = "ABCDEFGHIJ😀😀MNOPQRSTUVWXYZ012345"; // 32 code points
@@ -32,7 +36,8 @@ describe("limitedHandlers with IME composition", () => {
     const input = screen.getByLabelText("campo") as HTMLInputElement;
     compose(input, 0, "ゴン");
     expect(input).toHaveValue(full);
-    await waitFor(() => expect(input.selectionStart).toBe(0));
+    await settle();
+    expect(input.selectionStart).toBe(0);
   });
 
   it("inserts only the part of the composition that fits, caret right after it", async () => {
@@ -41,6 +46,7 @@ describe("limitedHandlers with IME composition", () => {
     const input = screen.getByLabelText("campo") as HTMLInputElement;
     compose(input, 0, "ゴン");
     expect(input).toHaveValue("ゴ" + initial);
-    await waitFor(() => expect(input.selectionStart).toBe(1));
+    await settle();
+    expect(input.selectionStart).toBe(1);
   });
 });

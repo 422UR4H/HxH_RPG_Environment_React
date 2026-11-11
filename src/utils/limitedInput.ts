@@ -60,13 +60,20 @@ export function limitedValue(el: TextEl, prev: string, max: number, phase: Phase
   const r = limitInsertion(base, next, max);
   if (r.value !== next) {
     const caret = r.caret;
-    queueMicrotask(() => {
+    const apply = () => {
+      // Só mexe se o DOM já tem o valor final (senão o React ainda vai reescrevê-lo).
+      if (el.value !== r.value) return;
       try {
         el.setSelectionRange?.(caret, caret);
       } catch {
         // tipos de input sem seleção (e-mail): sem cursor a restaurar
       }
-    });
+    };
+    // O React reescreve o valor controlado (o cursor vai ao fim) e, no fim de uma composição, o
+    // Chrome ainda move o cursor depois do compositionend: reaplica em cada etapa.
+    queueMicrotask(apply);
+    setTimeout(apply, 0);
+    requestAnimationFrame(apply);
   }
   return r.value;
 }
