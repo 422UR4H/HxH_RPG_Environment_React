@@ -98,12 +98,9 @@ export default function MatchPage() {
   useEffect(() => {
     if (matchId) rememberMatchPageEntry(matchId);
   }, [matchId]);
-  const closeLobbyNotOpen = () => {
-    // Limpa só a flag (preserva sheetId e demais chaves) para o diálogo não voltar ao recarregar.
-    const { lobbyNotOpen: _flag, ...rest } = (location.state ?? {}) as Record<string, unknown>;
-    void _flag;
-    navigate(".", { replace: true, state: rest });
-  };
+  // Fechar é só estado local: o state da rota continua com a flag, então recarregar a página
+  // faz o diálogo voltar para quem fechou sem ler.
+  const [lobbyNoticeClosed, setLobbyNoticeClosed] = useState(false);
 
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
   const [showLobbyConfirm, setShowLobbyConfirm] = useState(false);
@@ -422,11 +419,11 @@ export default function MatchPage() {
         />
       )}
 
-      {lobbyNotOpen && (
+      {lobbyNotOpen && !lobbyNoticeClosed && (
         <InfoDialog
           title="O lobby ainda não foi aberto"
           message="O mestre precisa abrir o lobby antes que os jogadores possam entrar. Aguarde o aviso do mestre e tente de novo."
-          onClose={closeLobbyNotOpen}
+          onClose={() => setLobbyNoticeClosed(true)}
         />
       )}
 

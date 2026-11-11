@@ -37,16 +37,14 @@ describe("MatchPage", () => {
   describe("lobby not open dialog", () => {
     const title = "O lobby ainda não foi aberto";
 
-    it("opens the dialog when returning with lobbyNotOpen and closes it with preserved state", async () => {
+    it("opens the dialog when returning with lobbyNotOpen and closes it without touching the route state", async () => {
       server.use(http.get(`${baseUrl}/matches/:id`, () => HttpResponse.json({ match: matchApiFixture })));
       renderPage({ state: { lobbyNotOpen: true, sheetId: "sheet-1", endedByMaster: true } });
       expect(await screen.findByText(title, {}, { timeout: 5000 })).toBeInTheDocument();
 
       fireEvent.click(screen.getByRole("button", { name: "Entendi" }));
-      expect(mockNavigate).toHaveBeenCalledWith(".", {
-        replace: true,
-        state: { sheetId: "sheet-1", endedByMaster: true },
-      });
+      expect(screen.queryByText(title)).not.toBeInTheDocument();
+      expect(mockNavigate).not.toHaveBeenCalled();
     });
 
     it("closes with Esc", async () => {
@@ -54,7 +52,8 @@ describe("MatchPage", () => {
       renderPage({ state: { lobbyNotOpen: true } });
       await screen.findByText(title, {}, { timeout: 5000 });
       fireEvent.keyDown(window, { key: "Escape" });
-      expect(mockNavigate).toHaveBeenCalledWith(".", { replace: true, state: {} });
+      expect(screen.queryByText(title)).not.toBeInTheDocument();
+      expect(mockNavigate).not.toHaveBeenCalled();
     });
 
     it("does not show the dialog without the flag", async () => {
