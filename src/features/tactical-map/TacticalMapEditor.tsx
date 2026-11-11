@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { NO_EMOJI_MESSAGE, containsEmoji } from "../../constants/fieldLimits";
+import { MAP_LIMITS, NO_EMOJI_MESSAGE, charLength, containsEmoji } from "../../constants/fieldLimits";
 import { useNavGuard } from "../../contexts/NavGuardContext";
 import { PieceDragGhostPortal } from "./PieceDragGhost";
 import MapEditorTemplate from "../../components/templates/MapEditorTemplate";
@@ -284,6 +284,10 @@ export default function TacticalMapEditor({
     if (emojiNameError) return;
     if (!map.name.trim()) {
       setNameError("O nome do mapa é obrigatório.");
+      return;
+    }
+    if (charLength(map.name.trim()) < MAP_LIMITS.name.min) {
+      setNameError(`O nome do mapa deve ter pelo menos ${MAP_LIMITS.name.min} caracteres.`);
       return;
     }
     setNameError(null);
