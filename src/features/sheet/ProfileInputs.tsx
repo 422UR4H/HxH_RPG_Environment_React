@@ -6,7 +6,8 @@ import { colors } from "../../styles/tokens";
 import { errorBox } from "../../styles/errorBox";
 import { DetailItem, DetailLabel, ProfilePillSelect } from "./ProfileFieldStyles";
 import { toDateInputValue } from "../../utils/date";
-import { NO_EMOJI_MESSAGE, SHEET_LIMITS, clampChars, containsEmoji } from "../../constants/fieldLimits";
+import { NO_EMOJI_MESSAGE, SHEET_LIMITS, containsEmoji } from "../../constants/fieldLimits";
+import { limitedHandlers } from "../../utils/limitedInput";
 import useFieldValidation from "../../hooks/useFieldValidation";
 
 interface ProfileInputsProps {
@@ -114,12 +115,15 @@ export default function ProfileInputs({
           aria-invalid={errorFor("fullname") ? true : undefined}
           aria-describedby={fullnameFeedback ? "profile-fullname-feedback" : undefined}
           value={profile?.fullname || ""}
-          onChange={(e) => {
-            const value = clampChars(e.target.value, SHEET_LIMITS.fullname.max);
-            handleInputChange("fullname", value);
-            // O erro de emoji aparece já na digitação, sem esperar o blur.
-            if (containsEmoji(value)) touch("fullname");
-          }}
+          {...limitedHandlers<HTMLInputElement>(
+            SHEET_LIMITS.fullname.max,
+            profile?.fullname ?? "",
+            (value) => {
+              handleInputChange("fullname", value);
+              // O erro de emoji aparece já na digitação, sem esperar o blur.
+              if (containsEmoji(value)) touch("fullname");
+            },
+          )}
           onBlur={() => touch("fullname")}
         />
         {fullnameFeedback && (
@@ -140,10 +144,11 @@ export default function ProfileInputs({
           rows={2}
           aria-describedby={descriptionNotice ? "profile-brief-description-feedback" : undefined}
           value={profile?.briefDescription || ""}
-          onChange={(e) => handleInputChange(
-              "briefDescription",
-              clampChars(e.target.value, SHEET_LIMITS.briefDescription.max),
-            )}
+          {...limitedHandlers<HTMLTextAreaElement>(
+            SHEET_LIMITS.briefDescription.max,
+            profile?.briefDescription ?? "",
+            (value) => handleInputChange("briefDescription", value),
+          )}
         />
         {descriptionNotice && (
           <FieldFeedback id="profile-brief-description-feedback" $error={false}>

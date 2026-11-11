@@ -1,5 +1,5 @@
 import { useId, useState } from "react";
-import { clampChars } from "../../../constants/fieldLimits";
+import { limitedHandlers } from "../../../utils/limitedInput";
 import styled from "styled-components";
 import { colors } from "../../../styles/tokens";
 import type { EditActionPayload } from "./combatMessages";
@@ -91,7 +91,7 @@ export default function RollConditionEditor({
         <Input
           type="text"
           value={description}
-          onChange={(e) => setDescription(clampChars(e.target.value, 80))}
+          {...limitedHandlers<HTMLInputElement>(80, description, setDescription)}
         />
       </Field>
       <Buttons>

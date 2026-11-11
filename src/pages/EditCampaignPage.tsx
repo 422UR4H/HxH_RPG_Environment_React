@@ -204,6 +204,7 @@ export default function EditCampaignPage() {
           name="name"
           value={form.name}
           onChange={handleForm}
+          onCompositionEnd={handleForm}
           onBlur={() => touch("name")}
           placeholder="Nome da campanha"
           autoComplete="off"
@@ -223,6 +224,7 @@ export default function EditCampaignPage() {
           name="briefInitialDescription"
           value={form.briefInitialDescription}
           onChange={handleForm}
+          onCompositionEnd={handleForm}
           onBlur={() => touch("briefInitialDescription")}
           $resize="none"
           rows={2}
@@ -236,6 +238,7 @@ export default function EditCampaignPage() {
           name="description"
           value={form.description}
           onChange={handleForm}
+          onCompositionEnd={handleForm}
           rows={3}
         />
       </FormField>
@@ -252,6 +255,7 @@ export default function EditCampaignPage() {
           name="callLink"
           value={form.callLink}
           onChange={handleForm}
+          onCompositionEnd={handleForm}
           onBlur={() => touch("callLink")}
           autoComplete="off"
         />

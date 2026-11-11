@@ -1,5 +1,5 @@
-import { useState, type ChangeEvent } from "react";
-import { clampChars } from "../constants/fieldLimits";
+import { useState, type ChangeEvent, type CompositionEvent } from "react";
+import { limitedValue } from "../utils/limitedInput";
 
 export default function useForm<
   // Must be a `type`, not an `interface`: a plain interface has no index
@@ -10,13 +10,26 @@ export default function useForm<
 >(initialForm: T, maxChars?: Partial<Record<keyof T, number>>) {
   const [form, setForm] = useState<T>(initialForm);
 
+  // Serve a onChange e a onCompositionEnd (o limite não corta no meio de uma composição de IME).
   function handleForm(
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e:
+      | ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+      | CompositionEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) {
-    const { name, value } = e.target;
-    // `maxLength` do HTML conta UTF-16 (emoji = 2); o corte por code points conta como o back.
+    const { name, value } = e.target as HTMLInputElement;
+    // `maxLength` do HTML conta UTF-16 (emoji = 2); o limite por code points conta como o back.
     const max = maxChars?.[name as keyof T];
-    setForm({ ...form, [name]: max === undefined ? value : clampChars(value, max) });
+    if (max === undefined) {
+      setForm({ ...form, [name]: value });
+      return;
+    }
+    const phase =
+      e.type === "compositionend"
+        ? "end"
+        : (e.nativeEvent as InputEvent | undefined)?.isComposing
+          ? "composing"
+          : "change";
+    setForm({ ...form, [name]: limitedValue(e.target as HTMLInputElement, String(form[name] ?? ""), max, phase) });
   }
   return { form, handleForm, setForm };
 }

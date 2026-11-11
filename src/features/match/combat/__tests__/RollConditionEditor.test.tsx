@@ -112,3 +112,14 @@ describe("RollConditionEditor", () => {
     expect(onSend).toHaveBeenCalledWith({ conditions: [{ field: "hit" }] });
   });
 });
+
+describe("RollConditionEditor limit", () => {
+  it("accepts 80 emojis in the reason and cuts 81 at 80 code points", () => {
+    render(<RollConditionEditor roll={hit} onSend={() => {}} onClose={() => {}} />);
+    const reason = screen.getByLabelText("Motivo");
+    fireEvent.change(reason, { target: { value: "😀".repeat(80) } });
+    expect(reason).toHaveValue("😀".repeat(80));
+    fireEvent.change(reason, { target: { value: "😀".repeat(81) } });
+    expect(reason).toHaveValue("😀".repeat(80));
+  });
+});

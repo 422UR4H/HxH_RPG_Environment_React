@@ -213,6 +213,7 @@ export default function EditMatchPage() {
           name="title"
           value={form.title}
           onChange={handleForm}
+          onCompositionEnd={handleForm}
           onBlur={() => touch("title")}
           placeholder="Título da partida"
           autoComplete="off"
@@ -231,6 +232,7 @@ export default function EditMatchPage() {
           name="briefInitialDescription"
           value={form.briefInitialDescription}
           onChange={handleForm}
+          onCompositionEnd={handleForm}
           onBlur={() => touch("briefInitialDescription")}
           placeholder="Uma breve descrição inicial da partida"
           $resize="none"
@@ -245,6 +247,7 @@ export default function EditMatchPage() {
           name="description"
           value={form.description}
           onChange={handleForm}
+          onCompositionEnd={handleForm}
           placeholder="Detalhes adicionais da partida (apenas para o mestre)"
           rows={3}
         />

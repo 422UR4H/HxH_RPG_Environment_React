@@ -1,7 +1,7 @@
 import ErrorIcon from "../ions/ErrorIcon";
 import styled from "styled-components";
 import { colors } from "../../styles/tokens";
-import { clampChars } from "../../constants/fieldLimits";
+import { limitedValue } from "../../utils/limitedInput";
 
 interface SignFieldProps {
   name: string;
@@ -40,10 +40,18 @@ export default function SignField({
           type={type}
           value={value}
           onChange={(e) => {
-            if (maxChars !== undefined && [...e.target.value].length > maxChars) {
-              e.target.value = clampChars(e.target.value, maxChars);
+            if (maxChars !== undefined) {
+              const phase = (e.nativeEvent as InputEvent | undefined)?.isComposing
+                ? "composing"
+                : "change";
+              e.target.value = limitedValue(e.target, value, maxChars, phase);
             }
             onChange(e);
+          }}
+          onCompositionEnd={(e) => {
+            if (maxChars === undefined) return;
+            e.currentTarget.value = limitedValue(e.currentTarget, value, maxChars, "end");
+            onChange(e as unknown as React.ChangeEvent<HTMLInputElement>);
           }}
           autoComplete={autoComplete}
           maxLength={maxLength}

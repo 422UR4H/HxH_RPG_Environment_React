@@ -3,7 +3,8 @@ import styled, { css } from "styled-components";
 import { colors } from "../../styles/tokens";
 import { errorBox } from "../../styles/errorBox";
 import useFieldValidation from "../../hooks/useFieldValidation";
-import { NO_EMOJI_MESSAGE, SHEET_LIMITS, clampChars, containsEmoji } from "../../constants/fieldLimits";
+import { NO_EMOJI_MESSAGE, SHEET_LIMITS, containsEmoji } from "../../constants/fieldLimits";
+import { limitedHandlers } from "../../utils/limitedInput";
 import type { CharacterSheet } from "../../types/characterSheet";
 import HpBar from "../atoms/HpBar";
 import SpBar from "../atoms/SpBar";
@@ -132,16 +133,19 @@ export default function CharacterSheetHeader({
                 nicknameError ? "nickname-error" : nicknameNotice ? "nickname-notice" : undefined
               }
               onBlur={() => touch("nickname")}
-              onChange={(e) => {
-                if (!charSheet || !setCharSheet) return;
-                const nickname = clampChars(e.target.value, SHEET_LIMITS.nickname.max);
-                setCharSheet({
-                  ...charSheet,
-                  profile: { ...charSheet.profile, nickname },
-                });
-                // O erro de emoji aparece já na digitação, sem esperar o blur.
-                if (containsEmoji(nickname)) touch("nickname");
-              }}
+              {...limitedHandlers<HTMLInputElement>(
+                SHEET_LIMITS.nickname.max,
+                charSheet?.profile?.nickname ?? "",
+                (nickname) => {
+                  if (!charSheet || !setCharSheet) return;
+                  setCharSheet({
+                    ...charSheet,
+                    profile: { ...charSheet.profile, nickname },
+                  });
+                  // O erro de emoji aparece já na digitação, sem esperar o blur.
+                  if (containsEmoji(nickname)) touch("nickname");
+                },
+              )}
             />
             {nicknameError && (
               <NicknameFeedback id="nickname-error" role="alert" $error>

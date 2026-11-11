@@ -3,7 +3,8 @@ import BackgroundButton from "../../components/atoms/BackgroundButton";
 import type { Profile } from "../../types/characterSheet";
 import { colors } from "../../styles/tokens";
 import { toDateInputValue } from "../../utils/date";
-import { SHEET_LIMITS, clampChars } from "../../constants/fieldLimits";
+import { SHEET_LIMITS } from "../../constants/fieldLimits";
+import { limitedHandlers } from "../../utils/limitedInput";
 import { DetailItem, DetailLabel } from "./ProfileFieldStyles";
 
 interface ProfileDetailsProps {
@@ -30,7 +31,11 @@ export default function ProfileDetails({
           <BriefDescriptionTextarea
             id="profile-brief-description"
             value={briefDescription ?? ""}
-            onChange={(e) => onBriefDescriptionChange(clampChars(e.target.value, SHEET_LIMITS.briefDescription.max))}
+            {...limitedHandlers<HTMLTextAreaElement>(
+              SHEET_LIMITS.briefDescription.max,
+              briefDescription ?? "",
+              onBriefDescriptionChange,
+            )}
             placeholder="Faça uma breve descrição do seu personagem (roupas, físico e aparência - o que os outros veem ao olhar para ele)"
             rows={3}
           />
