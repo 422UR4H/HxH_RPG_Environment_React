@@ -76,13 +76,16 @@ export default function EditMatchPage() {
     refetch,
   } = useMatchDetails(token, matchId);
 
-  const { form, handleForm, setForm } = useForm<MatchFormData>({
+  const { form, fieldProps, setForm } = useForm<MatchFormData>({
     title: "",
     briefInitialDescription: "",
     description: "",
     isPublic: true,
     gameScheduledAt: "",
     storyStartAt: "",
+  }, {
+    title: MATCH_LIMITS.title.max,
+    briefInitialDescription: MATCH_LIMITS.briefInitialDescription.max,
   });
 
   useEffect(() => {
@@ -207,11 +210,8 @@ export default function EditMatchPage() {
       >
         <FormInput
           id="title"
-          name="title"
-          value={form.title}
-          onChange={handleForm}
+          {...fieldProps("title")}
           onBlur={() => touch("title")}
-          maxLength={MATCH_LIMITS.title.max}
           placeholder="Título da partida"
           autoComplete="off"
           required
@@ -226,11 +226,8 @@ export default function EditMatchPage() {
       >
         <FormTextArea
           id="briefInitialDescription"
-          name="briefInitialDescription"
-          value={form.briefInitialDescription}
-          onChange={handleForm}
+          {...fieldProps("briefInitialDescription")}
           onBlur={() => touch("briefInitialDescription")}
-          maxLength={MATCH_LIMITS.briefInitialDescription.max}
           placeholder="Uma breve descrição inicial da partida"
           $resize="none"
           rows={2}
@@ -241,9 +238,7 @@ export default function EditMatchPage() {
       <FormField label="Descrição Completa" htmlFor="description" optional>
         <FormTextArea
           id="description"
-          name="description"
-          value={form.description}
-          onChange={handleForm}
+          {...fieldProps("description")}
           placeholder="Detalhes adicionais da partida (apenas para o mestre)"
           rows={3}
         />

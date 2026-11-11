@@ -32,13 +32,17 @@ export default function CreateCampaignPage() {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
 
-  const { form, handleForm, setForm } = useForm<CampaignFormData>({
+  const { form, fieldProps, setForm } = useForm<CampaignFormData>({
     name: "",
     briefInitialDescription: "",
     description: "",
     isPublic: true,
     callLink: "",
     storyStartAt: todayLocalISODate(),
+  }, {
+    name: CAMPAIGN_LIMITS.name.max,
+    briefInitialDescription: CAMPAIGN_LIMITS.briefInitialDescription.max,
+    callLink: CAMPAIGN_LIMITS.callLink.max,
   });
 
   const { mutate: createCampaign, isPending } = useCreateCampaign(token);
@@ -111,11 +115,8 @@ export default function CreateCampaignPage() {
       >
         <FormInput
           id="name"
-          name="name"
-          value={form.name}
-          onChange={handleForm}
+          {...fieldProps("name")}
           onBlur={() => touch("name")}
-          maxLength={CAMPAIGN_LIMITS.name.max}
           placeholder="Nome da campanha"
           autoComplete="off"
           required
@@ -130,11 +131,8 @@ export default function CreateCampaignPage() {
       >
         <FormTextArea
           id="briefInitialDescription"
-          name="briefInitialDescription"
-          value={form.briefInitialDescription}
-          onChange={handleForm}
+          {...fieldProps("briefInitialDescription")}
           onBlur={() => touch("briefInitialDescription")}
-          maxLength={CAMPAIGN_LIMITS.briefInitialDescription.max}
           placeholder="Uma breve descrição inicial da campanha"
           $resize="none"
           rows={2}
@@ -145,9 +143,7 @@ export default function CreateCampaignPage() {
       <FormField label="Descrição Completa" htmlFor="description" optional>
         <FormTextArea
           id="description"
-          name="description"
-          value={form.description}
-          onChange={handleForm}
+          {...fieldProps("description")}
           placeholder="Descreva sua campanha em detalhes"
           rows={3}
         />
@@ -162,11 +158,8 @@ export default function CreateCampaignPage() {
       >
         <FormInput
           id="callLink"
-          name="callLink"
-          value={form.callLink}
-          onChange={handleForm}
+          {...fieldProps("callLink")}
           onBlur={() => touch("callLink")}
-          maxLength={CAMPAIGN_LIMITS.callLink.max}
           placeholder="Discord, Meet, etc."
           autoComplete="off"
         />

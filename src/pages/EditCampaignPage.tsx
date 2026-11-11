@@ -61,7 +61,7 @@ export default function EditCampaignPage() {
     refetch,
   } = useCampaignDetails(token, id);
 
-  const { form, handleForm, setForm } = useForm<CampaignEditFormData>({
+  const { form, fieldProps, setForm } = useForm<CampaignEditFormData>({
     name: "",
     briefInitialDescription: "",
     description: "",
@@ -69,6 +69,10 @@ export default function EditCampaignPage() {
     callLink: "",
     storyStartAt: "",
     storyCurrentAt: "",
+  }, {
+    name: CAMPAIGN_LIMITS.name.max,
+    briefInitialDescription: CAMPAIGN_LIMITS.briefInitialDescription.max,
+    callLink: CAMPAIGN_LIMITS.callLink.max,
   });
 
   useEffect(() => {
@@ -197,11 +201,8 @@ export default function EditCampaignPage() {
       >
         <FormInput
           id="name"
-          name="name"
-          value={form.name}
-          onChange={handleForm}
+          {...fieldProps("name")}
           onBlur={() => touch("name")}
-          maxLength={CAMPAIGN_LIMITS.name.max}
           placeholder="Nome da campanha"
           autoComplete="off"
           disabled={hasStartedMatch}
@@ -217,11 +218,8 @@ export default function EditCampaignPage() {
       >
         <FormTextArea
           id="briefInitialDescription"
-          name="briefInitialDescription"
-          value={form.briefInitialDescription}
-          onChange={handleForm}
+          {...fieldProps("briefInitialDescription")}
           onBlur={() => touch("briefInitialDescription")}
-          maxLength={CAMPAIGN_LIMITS.briefInitialDescription.max}
           $resize="none"
           rows={2}
           required
@@ -231,9 +229,7 @@ export default function EditCampaignPage() {
       <FormField label="Descrição Completa" htmlFor="description" optional>
         <FormTextArea
           id="description"
-          name="description"
-          value={form.description}
-          onChange={handleForm}
+          {...fieldProps("description")}
           rows={3}
         />
       </FormField>
@@ -247,11 +243,8 @@ export default function EditCampaignPage() {
       >
         <FormInput
           id="callLink"
-          name="callLink"
-          value={form.callLink}
-          onChange={handleForm}
+          {...fieldProps("callLink")}
           onBlur={() => touch("callLink")}
-          maxLength={CAMPAIGN_LIMITS.callLink.max}
           autoComplete="off"
         />
       </FormField>

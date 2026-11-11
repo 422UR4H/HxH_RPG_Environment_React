@@ -6,7 +6,8 @@ import { colors } from "../../styles/tokens";
 import { errorBox } from "../../styles/errorBox";
 import { DetailItem, DetailLabel, ProfilePillSelect } from "./ProfileFieldStyles";
 import { toDateInputValue } from "../../utils/date";
-import { SHEET_LIMITS } from "../../constants/fieldLimits";
+import { NO_EMOJI_MESSAGE, SHEET_LIMITS, containsEmoji } from "../../constants/fieldLimits";
+import { useLimitedInput } from "../../utils/limitedInput";
 import useFieldValidation from "../../hooks/useFieldValidation";
 
 interface ProfileInputsProps {
@@ -68,6 +69,7 @@ export default function ProfileInputs({
       min: SHEET_LIMITS.fullname.min,
       minMessage: `O nome completo deve ter pelo menos ${SHEET_LIMITS.fullname.min} caracteres.`,
       max: SHEET_LIMITS.fullname.max,
+      validate: (v) => (containsEmoji(v) ? NO_EMOJI_MESSAGE : null),
     },
     briefDescription: {
       value: profile?.briefDescription ?? "",
@@ -79,6 +81,20 @@ export default function ProfileInputs({
       validate: (v) => (Number(v) < 1 ? AGE_MESSAGE : null),
     },
   });
+  const fullnameLimit = useLimitedInput<HTMLInputElement>(
+    SHEET_LIMITS.fullname.max,
+    profile?.fullname ?? "",
+    (value) => {
+      handleInputChange("fullname", value);
+      // O erro de emoji aparece já na digitação, sem esperar o blur.
+      if (containsEmoji(value)) touch("fullname");
+    },
+  );
+  const descriptionLimit = useLimitedInput<HTMLTextAreaElement>(
+    SHEET_LIMITS.briefDescription.max,
+    profile?.briefDescription ?? "",
+    (value) => handleInputChange("briefDescription", value),
+  );
   const fullnameFeedback = errorFor("fullname") ?? noticeFor("fullname");
   const descriptionNotice = noticeFor("briefDescription");
   const ageError = errorFor("age");
@@ -110,11 +126,10 @@ export default function ProfileInputs({
           type="text"
           autoComplete="off"
           placeholder="Nome completo do personagem"
-          maxLength={SHEET_LIMITS.fullname.max}
           aria-invalid={errorFor("fullname") ? true : undefined}
           aria-describedby={fullnameFeedback ? "profile-fullname-feedback" : undefined}
           value={profile?.fullname || ""}
-          onChange={(e) => handleInputChange("fullname", e.target.value)}
+          {...fullnameLimit}
           onBlur={() => touch("fullname")}
         />
         {fullnameFeedback && (
@@ -133,10 +148,9 @@ export default function ProfileInputs({
           autoComplete="off"
           placeholder="Breve descrição do personagem"
           rows={2}
-          maxLength={SHEET_LIMITS.briefDescription.max}
           aria-describedby={descriptionNotice ? "profile-brief-description-feedback" : undefined}
           value={profile?.briefDescription || ""}
-          onChange={(e) => handleInputChange("briefDescription", e.target.value)}
+          {...descriptionLimit}
         />
         {descriptionNotice && (
           <FieldFeedback id="profile-brief-description-feedback" $error={false}>
@@ -254,6 +268,11 @@ const ProfileNameInput = styled.input`
     border-color: ${colors.brandAccent};
   }
 
+  /* Depois do :focus: o vermelho vence também com o campo focado. */
+  &[aria-invalid="true"] {
+    border-color: ${colors.feedbackDanger};
+  }
+
   @media (max-width: 609px) {
     font-size: 5cqi;
   }
@@ -326,6 +345,11 @@ const DetailInput = styled.input`
   &:focus {
     outline: none;
     border-color: ${colors.brandAccent};
+  }
+
+  /* Depois do :focus: o vermelho vence também com o campo focado. */
+  &[aria-invalid="true"] {
+    border-color: ${colors.feedbackDanger};
   }
 
   /* Remove increment/decrement from input type number */

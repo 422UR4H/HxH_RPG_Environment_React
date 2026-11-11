@@ -10,7 +10,7 @@ import {
   PASSWORD_TOO_LONG,
   PASSWORD_TOO_SHORT,
 } from "./authErrorMessages";
-import { USER_LIMITS, charLength } from "../../constants/fieldLimits";
+import { NO_EMOJI_MESSAGE, USER_LIMITS, charLength, containsEmoji } from "../../constants/fieldLimits";
 
 export type FieldErrors<K extends string> = Partial<Record<K, string>>;
 
@@ -50,10 +50,12 @@ export function validateRegister(form: {
 }): FieldErrors<"email" | "nick" | "password" | "confirmPass"> {
   const errors: FieldErrors<"email" | "nick" | "password" | "confirmPass"> = {};
   if (form.email === "") errors.email = EMAIL_REQUIRED;
+  else if (containsEmoji(form.email)) errors.email = NO_EMOJI_MESSAGE;
   else if (!EMAIL_FORMAT.test(form.email)) errors.email = EMAIL_INVALID;
   else if (!inRange(form.email, 12, 64)) errors.email = EMAIL_LENGTH;
 
   if (form.nick === "") errors.nick = NICK_REQUIRED;
+  else if (containsEmoji(form.nick)) errors.nick = NO_EMOJI_MESSAGE;
   else if (charLength(form.nick) < USER_LIMITS.nick.min || charLength(form.nick) > USER_LIMITS.nick.max)
     errors.nick = NICK_LENGTH;
 

@@ -1,6 +1,7 @@
 import ErrorIcon from "../ions/ErrorIcon";
 import styled from "styled-components";
 import { colors } from "../../styles/tokens";
+import { useLimitedInput } from "../../utils/limitedInput";
 
 interface SignFieldProps {
   name: string;
@@ -9,7 +10,10 @@ interface SignFieldProps {
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   autoComplete: string;
+  /** Limite em bytes UTF-16 do HTML (e-mail e senha, que o back mede em bytes). */
   maxLength?: number;
+  /** Limite em caracteres (code points): corta no onChange, então emoji conta 1. */
+  maxChars?: number;
   error?: string | null;
 }
 
@@ -22,10 +26,15 @@ export default function SignField({
   onChange,
   autoComplete,
   maxLength,
+  maxChars,
   error,
 }: SignFieldProps) {
   const id = `sign-${name}`;
   const errorId = `${id}-error`;
+  // O limite já escreveu o valor cortado no DOM: o onChange do pai lê o valor final do evento.
+  const limited = useLimitedInput<HTMLInputElement>(maxChars ?? Infinity, value, (_v, e) =>
+    onChange(e as React.ChangeEvent<HTMLInputElement>),
+  );
   return (
     <Block>
       <Frame>
@@ -34,7 +43,7 @@ export default function SignField({
           name={name}
           type={type}
           value={value}
-          onChange={onChange}
+          {...(maxChars !== undefined ? limited : { onChange })}
           autoComplete={autoComplete}
           maxLength={maxLength}
           aria-invalid={error ? true : undefined}

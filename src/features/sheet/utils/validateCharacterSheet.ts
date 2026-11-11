@@ -1,6 +1,6 @@
 import type { CharacterClass } from "../../../types/characterClass";
 import type { CharacterSheet } from "../../../types/characterSheet";
-import { charLength, SHEET_LIMITS } from "../../../constants/fieldLimits";
+import { charLength, containsEmoji, NO_EMOJI_MESSAGE, SHEET_LIMITS } from "../../../constants/fieldLimits";
 import { spentPrimaryPoints } from "./sheetInput";
 import { withLivePreview } from "./livePreview";
 
@@ -20,11 +20,13 @@ export function validateCharacterSheet(
   if (!characterClass) errors.push("Selecione uma classe para o personagem.");
 
   const nick = profile.nickname.trim();
-  if (charLength(nick) < SHEET_LIMITS.nickname.min || charLength(nick) > SHEET_LIMITS.nickname.max)
+  if (containsEmoji(nick)) errors.push(`Nickname: ${NO_EMOJI_MESSAGE}`);
+  else if (charLength(nick) < SHEET_LIMITS.nickname.min || charLength(nick) > SHEET_LIMITS.nickname.max)
     errors.push("Nickname deve ter entre 3 e 10 caracteres.");
 
   const full = profile.fullname.trim();
-  if (charLength(full) < SHEET_LIMITS.fullname.min || charLength(full) > SHEET_LIMITS.fullname.max)
+  if (containsEmoji(full)) errors.push(`Nome completo: ${NO_EMOJI_MESSAGE}`);
+  else if (charLength(full) < SHEET_LIMITS.fullname.min || charLength(full) > SHEET_LIMITS.fullname.max)
     errors.push("Nome completo deve ter entre 6 e 32 caracteres.");
 
   if (charLength(profile.briefDescription ?? "") > SHEET_LIMITS.briefDescription.max)

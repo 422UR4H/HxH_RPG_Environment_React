@@ -102,6 +102,7 @@ export const colors = {
   textOnLight: palette.neutral1000,
   textPlaceholder: palette.neutral400, // rótulos de formulário, legenda da área de soltar
   textPlaceholderStrong: palette.neutral300, // texto de ajuda e rótulo secundário
+  textInputPlaceholder: palette.neutral300, // placeholder de campo sobre surfaceInput (4,8:1)
   textInputDisabled: palette.neutral300, // campo desabilitado ou vazio
   textLabelMuted: palette.neutral300, // rótulos dos grupos de atributos
   textDisabledOnDark: palette.neutral300, // rótulo de controle desativado sobre surfaceDisabled

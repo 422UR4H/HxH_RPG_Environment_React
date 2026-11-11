@@ -3,7 +3,8 @@ import styled, { css } from "styled-components";
 import { colors } from "../../styles/tokens";
 import { errorBox } from "../../styles/errorBox";
 import useFieldValidation from "../../hooks/useFieldValidation";
-import { SHEET_LIMITS } from "../../constants/fieldLimits";
+import { NO_EMOJI_MESSAGE, SHEET_LIMITS, containsEmoji } from "../../constants/fieldLimits";
+import { useLimitedInput } from "../../utils/limitedInput";
 import type { CharacterSheet } from "../../types/characterSheet";
 import HpBar from "../atoms/HpBar";
 import SpBar from "../atoms/SpBar";
@@ -56,8 +57,22 @@ export default function CharacterSheetHeader({
       min: SHEET_LIMITS.nickname.min,
       minMessage: `O nickname deve ter pelo menos ${SHEET_LIMITS.nickname.min} caracteres.`,
       max: SHEET_LIMITS.nickname.max,
+      validate: (v) => (containsEmoji(v) ? NO_EMOJI_MESSAGE : null),
     },
   });
+  const nicknameLimit = useLimitedInput<HTMLInputElement>(
+    SHEET_LIMITS.nickname.max,
+    charSheet?.profile?.nickname ?? "",
+    (nickname) => {
+      if (!charSheet || !setCharSheet) return;
+      setCharSheet({
+        ...charSheet,
+        profile: { ...charSheet.profile, nickname },
+      });
+      // O erro de emoji aparece já na digitação, sem esperar o blur.
+      if (containsEmoji(nickname)) touch("nickname");
+    },
+  );
   const nicknameError = errorFor("nickname");
   const nicknameNotice = noticeFor("nickname");
   const classOptions = useMemo(
@@ -124,7 +139,6 @@ export default function CharacterSheetHeader({
               type="text"
               autoComplete="off"
               placeholder="Nickname"
-              maxLength={SHEET_LIMITS.nickname.max}
               title={`Nickname de ${SHEET_LIMITS.nickname.min} a ${SHEET_LIMITS.nickname.max} caracteres`}
               value={profile?.nickname ?? ""}
               aria-invalid={nicknameError ? true : undefined}
@@ -132,13 +146,7 @@ export default function CharacterSheetHeader({
                 nicknameError ? "nickname-error" : nicknameNotice ? "nickname-notice" : undefined
               }
               onBlur={() => touch("nickname")}
-              onChange={(e) => {
-                if (!charSheet || !setCharSheet) return;
-                setCharSheet({
-                  ...charSheet,
-                  profile: { ...charSheet.profile, nickname: e.target.value },
-                });
-              }}
+              {...nicknameLimit}
             />
             {nicknameError && (
               <NicknameFeedback id="nickname-error" role="alert" $error>
@@ -468,6 +476,10 @@ const NicknameInput = styled.input`
      outros campos (A11Y-01). */
   &:focus-visible {
     border-bottom-color: ${colors.actionHighlight};
+  }
+  /* Declarado depois do foco: o vermelho vence com o campo focado. Só a cor da linha. */
+  &[aria-invalid="true"] {
+    border-bottom-color: ${colors.feedbackDanger};
   }
 `;
 

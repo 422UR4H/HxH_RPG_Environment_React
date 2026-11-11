@@ -49,3 +49,37 @@ describe("CharacterSheetHeader nickname feedback", () => {
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 });
+
+describe("CharacterSheetHeader nickname emoji", () => {
+  it("shows the emoji error while typing, without blur, and clears it when removed", async () => {
+    renderWithProviders(<Harness />);
+    const u = userEvent.setup();
+    const input = screen.getByPlaceholderText("Nickname");
+    await u.type(input, "Gon😀");
+    expect(screen.getByRole("alert")).toHaveTextContent("Emojis não são permitidos neste campo.");
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    expect(input).toHaveValue("Gon😀");
+    await u.type(input, "{backspace}");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(input).not.toHaveAttribute("aria-invalid");
+  });
+
+  it("accepts accented text", async () => {
+    renderWithProviders(<Harness />);
+    const u = userEvent.setup();
+    const input = screen.getByPlaceholderText("Nickname");
+    await u.type(input, "José Ção");
+    await u.tab();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("cuts a pasted nickname at 10 code points", async () => {
+    renderWithProviders(<Harness />);
+    const u = userEvent.setup();
+    const input = screen.getByPlaceholderText("Nickname");
+    await u.click(input);
+    await u.paste("𝒜".repeat(12));
+    expect(input).toHaveValue("𝒜".repeat(10));
+    expect(screen.getByRole("status")).toHaveTextContent("Limite de 10 caracteres atingido.");
+  });
+});

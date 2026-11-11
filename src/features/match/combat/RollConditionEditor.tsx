@@ -1,4 +1,5 @@
 import { useId, useState } from "react";
+import { useLimitedInput } from "../../../utils/limitedInput";
 import styled from "styled-components";
 import { colors } from "../../../styles/tokens";
 import type { EditActionPayload } from "./combatMessages";
@@ -41,6 +42,7 @@ export default function RollConditionEditor({
   const biasCardId = useId();
   const [modifier, setModifier] = useState(String(roll.current?.modifier ?? 0));
   const [description, setDescription] = useState(roll.current?.description ?? "");
+  const reasonLimit = useLimitedInput<HTMLInputElement>(80, description, setDescription);
   const send = (payload: EditActionPayload) => {
     onSend(payload);
     onClose();
@@ -89,9 +91,8 @@ export default function RollConditionEditor({
         <span>Motivo</span>
         <Input
           type="text"
-          maxLength={80}
           value={description}
-          onChange={(e) => setDescription(e.target.value)}
+          {...reasonLimit}
         />
       </Field>
       <Buttons>

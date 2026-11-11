@@ -273,6 +273,7 @@ export default function MapEditorToolbar({
             placeholder="Ex.: Taverna do Porto"
             value={mapName}
             onChange={handleNameChange}
+            aria-invalid={nameError ? true : undefined}
           />
           {nameError && <ErrorText>{nameError}</ErrorText>}
         </FieldGroup>
@@ -421,6 +422,11 @@ const NameInput = styled.input`
 
   &:focus {
     border-color: ${colors.brandAccent};
+  }
+
+  &[aria-invalid="true"],
+  &[aria-invalid="true"]:focus {
+    border-color: ${colors.feedbackDanger};
   }
 `;
 

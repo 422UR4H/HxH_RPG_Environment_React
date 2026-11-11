@@ -1,4 +1,5 @@
 import { useState, type ChangeEvent, type FormEvent } from "react";
+import { NO_EMOJI_MESSAGE, USER_LIMITS, containsEmoji } from "../constants/fieldLimits";
 import { Link, useNavigate } from "react-router-dom";
 import useDocumentTitle from "../hooks/useDocumentTitle";
 import useForm from "../hooks/useForm";
@@ -32,9 +33,14 @@ export default function RegisterPage() {
 
   function handleChange(e: ChangeEvent<HTMLInputElement>): void {
     const name = e.target.name as (typeof FIELD_ORDER)[number];
+    // E-mail e nick: o erro de emoji aparece já na digitação, sem esperar o envio.
+    const emojiError =
+      (name === "email" || name === "nick") && containsEmoji(e.target.value)
+        ? NO_EMOJI_MESSAGE
+        : undefined;
     setFieldErrors((prev) => ({
       ...prev,
-      [name]: undefined,
+      [name]: emojiError,
       // Editar a senha invalida o aviso de "não coincidem" do campo de confirmação.
       ...(name === "password" && prev.confirmPass === PASSWORDS_MISMATCH
         ? { confirmPass: undefined }
@@ -83,7 +89,7 @@ export default function RegisterPage() {
           value={form.nick}
           onChange={handleChange}
           autoComplete="nickname"
-          maxLength={20}
+          maxChars={USER_LIMITS.nick.max}
           error={fieldErrors.nick}
         />
         <SignField

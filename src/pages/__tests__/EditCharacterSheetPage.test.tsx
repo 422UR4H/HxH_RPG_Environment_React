@@ -96,6 +96,21 @@ describe("EditCharacterSheetPage — attribute points", () => {
     expect(spent).toBe(2);
   });
 
+  it.each(["Nickname", "Nome completo do personagem"])(
+    "emoji in the %s blocks the save with no API call",
+    async (placeholder) => {
+      renderPage();
+      const u = userEvent.setup();
+      await distributeAllPhysicalPoints();
+      await u.type(await screen.findByPlaceholderText(placeholder), "😀");
+      await u.click(await screen.findByRole("button", { name: "Salvar Edição" }));
+      expect((await screen.findAllByText(/Emojis não são permitidos neste campo\./)).length).toBeGreaterThan(0);
+      // Dá tempo a um envio indevido chegar antes de afirmar que não houve chamada.
+      await new Promise((r) => setTimeout(r, 50));
+      expect(update).not.toHaveBeenCalled();
+    },
+  );
+
   it("does not mutate the sheet served by the query", async () => {
     renderPage();
     await distributeAllPhysicalPoints();
