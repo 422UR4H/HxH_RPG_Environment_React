@@ -1,7 +1,7 @@
 import ErrorIcon from "../ions/ErrorIcon";
 import styled from "styled-components";
 import { colors } from "../../styles/tokens";
-import { limitedValue } from "../../utils/limitedInput";
+import { limitedValue, markCompositionStart } from "../../utils/limitedInput";
 
 interface SignFieldProps {
   name: string;
@@ -48,6 +48,7 @@ export default function SignField({
             }
             onChange(e);
           }}
+          onCompositionStart={(e) => markCompositionStart(e.currentTarget)}
           onCompositionEnd={(e) => {
             if (maxChars === undefined) return;
             e.currentTarget.value = limitedValue(e.currentTarget, value, maxChars, "end");

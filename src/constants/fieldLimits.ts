@@ -42,11 +42,6 @@ export function charLength(s: string): number {
   return [...s].length;
 }
 
-/** Corta em `max` caracteres (code points), para emoji contar 1 como no back (`maxLength` conta UTF-16). */
-export function clampChars(s: string, max: number): string {
-  return [...s].slice(0, max).join("");
-}
-
 export const NO_EMOJI_MESSAGE = "Emojis não são permitidos neste campo.";
 
 // Faixas de code points tratadas como emoji (inclusivas). O back tem a MESMA tabela em

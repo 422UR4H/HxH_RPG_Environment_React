@@ -118,6 +118,7 @@ export default function CreateCampaignPage() {
           name="name"
           value={form.name}
           onChange={handleForm}
+          onCompositionStart={handleForm}
           onCompositionEnd={handleForm}
           onBlur={() => touch("name")}
           placeholder="Nome da campanha"
@@ -137,6 +138,7 @@ export default function CreateCampaignPage() {
           name="briefInitialDescription"
           value={form.briefInitialDescription}
           onChange={handleForm}
+          onCompositionStart={handleForm}
           onCompositionEnd={handleForm}
           onBlur={() => touch("briefInitialDescription")}
           placeholder="Uma breve descrição inicial da campanha"
@@ -152,6 +154,7 @@ export default function CreateCampaignPage() {
           name="description"
           value={form.description}
           onChange={handleForm}
+          onCompositionStart={handleForm}
           onCompositionEnd={handleForm}
           placeholder="Descreva sua campanha em detalhes"
           rows={3}
@@ -170,6 +173,7 @@ export default function CreateCampaignPage() {
           name="callLink"
           value={form.callLink}
           onChange={handleForm}
+          onCompositionStart={handleForm}
           onCompositionEnd={handleForm}
           onBlur={() => touch("callLink")}
           placeholder="Discord, Meet, etc."

@@ -36,8 +36,16 @@ export function limitInsertion(
   return { value, caret: (prefix + kept.join("")).length };
 }
 
-type Phase = "change" | "composing" | "end";
 type TextEl = HTMLInputElement | HTMLTextAreaElement;
+
+// Valor do campo no início de uma composição de IME: o corte do fim da composição compara com ele.
+const compositionStart = new WeakMap<TextEl, string>();
+
+export function markCompositionStart(el: TextEl): void {
+  compositionStart.set(el, el.value);
+}
+
+type Phase = "change" | "composing" | "end";
 
 /**
  * Valor final de um campo limitado. Durante uma composição de IME não corta (quebraria a
@@ -47,9 +55,11 @@ type TextEl = HTMLInputElement | HTMLTextAreaElement;
 export function limitedValue(el: TextEl, prev: string, max: number, phase: Phase): string {
   const next = el.value;
   if (phase === "composing") return next;
-  const r = limitInsertion(phase === "end" ? "" : prev, next, max);
+  const base = phase === "end" ? (compositionStart.get(el) ?? prev) : prev;
+  if (phase === "end") compositionStart.delete(el);
+  const r = limitInsertion(base, next, max);
   if (r.value !== next) {
-    const caret = phase === "end" ? r.value.length : r.caret;
+    const caret = r.caret;
     queueMicrotask(() => {
       try {
         el.setSelectionRange?.(caret, caret);
@@ -73,6 +83,7 @@ export function limitedHandlers<E extends TextEl>(
 ) {
   return {
     onChange: (e: ChangeEvent<E>) => commit(limitedValue(e.currentTarget, prev, max, phaseOf(e))),
+    onCompositionStart: (e: CompositionEvent<E>) => markCompositionStart(e.currentTarget),
     onCompositionEnd: (e: CompositionEvent<E>) =>
       commit(limitedValue(e.currentTarget, prev, max, "end")),
   };

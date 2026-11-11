@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { charLength, clampChars, containsEmoji } from "./fieldLimits";
+import { charLength, containsEmoji } from "./fieldLimits";
 
 describe("containsEmoji", () => {
   it.each(["Gon😀", "❤", "✅ ok", "🇧🇷", "👍🏽", "1️⃣", "Killua™", "a©b", "⭐", "👨‍👩‍👧"])(
@@ -18,15 +18,6 @@ describe("charLength", () => {
     "counts %s as %i",
     (s, n) => expect(charLength(s)).toBe(n),
   );
-});
-
-describe("clampChars", () => {
-  it("cuts by code points, not UTF-16 units", () => {
-    expect(clampChars("ab😀c", 3)).toBe("ab😀");
-  });
-  it("keeps short text", () => {
-    expect(clampChars("ab", 3)).toBe("ab");
-  });
 });
 
 describe("containsEmoji: paridade com o back", () => {

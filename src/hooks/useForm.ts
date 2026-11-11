@@ -1,5 +1,5 @@
 import { useState, type ChangeEvent, type CompositionEvent } from "react";
-import { limitedValue } from "../utils/limitedInput";
+import { limitedValue, markCompositionStart } from "../utils/limitedInput";
 
 export default function useForm<
   // Must be a `type`, not an `interface`: a plain interface has no index
@@ -16,6 +16,10 @@ export default function useForm<
       | ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
       | CompositionEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) {
+    if (e.type === "compositionstart") {
+      markCompositionStart(e.target as HTMLInputElement);
+      return;
+    }
     const { name, value } = e.target as HTMLInputElement;
     // `maxLength` do HTML conta UTF-16 (emoji = 2); o limite por code points conta como o back.
     const max = maxChars?.[name as keyof T];
