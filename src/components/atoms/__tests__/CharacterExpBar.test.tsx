@@ -9,15 +9,20 @@ describe("CharacterExpBar", () => {
     expect(screen.getByText("10 / 30")).toBeInTheDocument();
   });
 
-  it("hides the labels and shows them in the bubble on hover when labelsInTooltip is set", () => {
+  it("keeps Lv visible and moves only the exp numbers to the bubble when labelsInTooltip is set", () => {
     render(<CharacterExpBar currExp={10} maxExp={30} level={2} labelsInTooltip />);
-    expect(screen.queryByText("Lv 2")).not.toBeInTheDocument();
+    expect(screen.getByText("Lv 2")).toBeInTheDocument();
     expect(screen.queryByText("10 / 30")).not.toBeInTheDocument();
     const wrapper = screen.getByRole("progressbar").parentElement as HTMLElement;
     fireEvent.mouseEnter(wrapper);
     expect(screen.getByText("Lv 2 · 10 / 30")).toBeInTheDocument();
     fireEvent.mouseLeave(wrapper);
     expect(screen.queryByText("Lv 2 · 10 / 30")).not.toBeInTheDocument();
+  });
+
+  it("shows Lv visible with labelsInTooltip even when max exp is 0", () => {
+    render(<CharacterExpBar currExp={0} maxExp={0} level={5} labelsInTooltip />);
+    expect(screen.getByText("Lv 5")).toBeInTheDocument();
   });
 
   it("omits the level from the bubble label when there is none", () => {

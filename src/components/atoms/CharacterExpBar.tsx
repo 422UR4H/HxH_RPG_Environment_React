@@ -6,7 +6,7 @@ interface CharacterExpBarProps {
   currExp: number;
   maxExp: number;
   level?: number;
-  /** Esconde as etiquetas à direita e as mostra num tooltip (criação/edição, onde colidem com o select). */
+  /** Manda só os números da EXP para o tooltip (criação/edição, onde colidem com o select); o Lv continua visível no canto. */
   labelsInTooltip?: boolean;
 }
 
@@ -36,6 +36,12 @@ export default function CharacterExpBar({ currExp, maxExp, level, labelsInToolti
     if (!label) return <Container>{bar}</Container>;
     return (
       <Container>
+        {/* Só o Lv fica visível, sozinho no canto (sem a margem que o separa do número da EXP). */}
+        {hasLevel && (
+          <RightLabels>
+            <LvLabel $alone>Lv {level}</LvLabel>
+          </RightLabels>
+        )}
         <BarBubble label={label} align="right">
           {bar}
         </BarBubble>
@@ -99,10 +105,10 @@ const RightLabels = styled.div`
   }
 `;
 
-const LvLabel = styled.span`
+const LvLabel = styled.span<{ $alone?: boolean }>`
   ${sharedLabelStyles}
   font-size: 4cqi;
-  margin-right: 2cqi;
+  margin-right: ${({ $alone }) => ($alone ? "0" : "2cqi")};
 
   /* Mesmo piso e mesma faixa do número da EXP (ver sharedLabelStyles). */
   @container (min-width: 220px) {
