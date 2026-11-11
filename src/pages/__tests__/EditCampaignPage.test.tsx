@@ -154,3 +154,23 @@ describe("EditCampaignPage — empty optional fields", () => {
     });
   });
 });
+
+describe("emoji limits", () => {
+  it.each([["Nome da Campanha", 32], [/Descrição Breve/i, 255], [/Link da Chamada/i, 255]])("%s accepts max emojis and cuts a paste of max+1 at max code points", async (label, max) => {
+    serveCampaign(false);
+    renderPage();
+    const u = userEvent.setup();
+    const field = await screen.findByLabelText(label);
+    await u.clear(field);
+    await u.paste("😀".repeat(max));
+    expect(field).toHaveValue("😀".repeat(max));
+    expect(screen.getAllByRole("status").map((n) => n.textContent)).toContain(
+      `Limite de ${max} caracteres atingido.`,
+    );
+    await u.clear(field);
+    await u.paste("😀".repeat(max + 1));
+    const value = (field as HTMLInputElement).value;
+    expect(value).toBe("😀".repeat(max));
+    expect(value).not.toMatch(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/);
+  });
+});

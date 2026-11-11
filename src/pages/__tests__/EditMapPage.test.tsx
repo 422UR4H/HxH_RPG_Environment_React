@@ -95,6 +95,31 @@ describe("EditMapPage", () => {
     });
   });
 
+  it("emoji no nome mostra o erro ao digitar, bloqueia o PUT e limpa ao remover; José Ção passa", async () => {
+    let calls = 0;
+    server.use(
+      http.put(`${baseUrl}/maps/:mapId`, () => {
+        calls++;
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    renderPage();
+    const u = userEvent.setup();
+    const name = await screen.findByLabelText("Nome do mapa");
+    await u.clear(name);
+    await u.type(name, "Floresta😀");
+    expect(screen.getByText("Emojis não são permitidos neste campo.")).toBeInTheDocument();
+    expect(name).toHaveAttribute("aria-invalid", "true");
+    await u.click(screen.getByRole("button", { name: /salvar/i }));
+    expect(calls).toBe(0);
+    await u.clear(name);
+    await u.type(name, "José Ção");
+    expect(screen.queryByText("Emojis não são permitidos neste campo.")).not.toBeInTheDocument();
+    expect(name).not.toHaveAttribute("aria-invalid");
+    await u.click(screen.getByRole("button", { name: /salvar/i }));
+    await waitFor(() => expect(calls).toBe(1));
+  });
+
   it("shows an Enquadrar control in the editor", async () => {
     renderPage();
     expect(await screen.findByRole("button", { name: "Enquadrar" })).toBeInTheDocument();

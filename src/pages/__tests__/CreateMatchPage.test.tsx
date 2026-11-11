@@ -245,4 +245,16 @@ describe("CreateMatchPage", () => {
     expect(value).toBe("😀".repeat(max));
     expect(value).not.toMatch(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/);
   });
+
+  it("typing in the middle of a full title leaves the text intact and the caret in place", async () => {
+    renderPage();
+    const u = userEvent.setup();
+    const title = (await screen.findByLabelText(/Título da Partida/i)) as HTMLInputElement;
+    await u.click(title);
+    await u.paste("a".repeat(31) + "z");
+    title.setSelectionRange(5, 5);
+    await u.keyboard("X");
+    expect(title).toHaveValue("a".repeat(31) + "z");
+    await waitFor(() => expect(title.selectionStart).toBe(5));
+  });
 });

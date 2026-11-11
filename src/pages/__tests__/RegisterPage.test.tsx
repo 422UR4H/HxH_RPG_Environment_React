@@ -140,12 +140,12 @@ describe("RegisterPage", () => {
     },
   );
 
-  it("cuts a pasted nick at 20 code points without splitting an emoji", async () => {
+  it("cuts a pasted nick at 20 code points (astral characters count 1)", async () => {
     renderPage();
     const u = userEvent.setup();
     const nick = screen.getByLabelText("Nick");
     await u.click(nick);
-    await u.paste("a".repeat(21));
-    expect(nick).toHaveValue("a".repeat(20));
+    await u.paste("𝒜".repeat(21));
+    expect(nick).toHaveValue("𝒜".repeat(20));
   });
 });

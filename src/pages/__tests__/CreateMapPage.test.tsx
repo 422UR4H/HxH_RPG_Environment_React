@@ -77,6 +77,28 @@ describe("CreateMapPage", () => {
     expect(name).not.toHaveAttribute("aria-invalid");
   });
 
+  it("aceita nome acentuado (José Ção) e nome curto demais é recusado", async () => {
+    let calls = 0;
+    server.use(
+      http.post(`${baseUrl}/campaigns/:campaignId/maps`, () => {
+        calls++;
+        return HttpResponse.json({ map: mapApiFixture }, { status: 201 });
+      }),
+    );
+    renderPage();
+    const u = userEvent.setup();
+    const name = screen.getByLabelText("Nome do mapa");
+    await u.type(name, "ab");
+    await u.click(screen.getByRole("button", { name: /criar mapa/i }));
+    expect(await screen.findByText("O nome do mapa deve ter pelo menos 3 caracteres.")).toBeInTheDocument();
+    expect(calls).toBe(0);
+    await u.clear(name);
+    await u.type(name, "José Ção");
+    expect(screen.queryByText("Emojis não são permitidos neste campo.")).not.toBeInTheDocument();
+    await u.click(screen.getByRole("button", { name: /criar mapa/i }));
+    await waitFor(() => expect(calls).toBe(1));
+  });
+
   it("salvar com nome chama POST e navega para /campaigns/:id", async () => {
     server.use(
       http.post(`${baseUrl}/campaigns/:campaignId/maps`, () =>

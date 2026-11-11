@@ -68,7 +68,7 @@ describe("CharacterSheetHeader nickname emoji", () => {
     renderWithProviders(<Harness />);
     const u = userEvent.setup();
     const input = screen.getByPlaceholderText("Nickname");
-    await u.type(input, "José");
+    await u.type(input, "José Ção");
     await u.tab();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });

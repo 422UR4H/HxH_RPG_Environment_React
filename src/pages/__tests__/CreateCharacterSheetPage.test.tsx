@@ -186,6 +186,26 @@ describe("CreateCharacterSheetPage", () => {
     },
   );
 
+  it.each([
+    ["Nickname", "Nickname"],
+    ["Nome completo do personagem", "Nome completo"],
+  ])("emoji in the %s blocks the submit with no API call", async (placeholder) => {
+    let createCount = 0;
+    server.use(
+      http.post(`${baseUrl}/charactersheets`, () => {
+        createCount += 1;
+        return HttpResponse.json({ characterSheet: { uuid: "x" } }, { status: 201 });
+      }),
+    );
+    renderPage();
+    await fillRequiredFields();
+    await userEvent.type(screen.getByPlaceholderText(placeholder), "😀");
+    expect(screen.getAllByText(/Emojis não são permitidos neste campo\./).length).toBeGreaterThan(0);
+    await userEvent.click(screen.getByRole("button", { name: /Criar Ficha/i }));
+    expect(createCount).toBe(0);
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
   it("class loading failure shows the error with 'Tentar de novo'", async () => {
     server.use(
       http.get(`${baseUrl}/classes`, () =>
