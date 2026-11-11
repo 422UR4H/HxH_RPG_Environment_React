@@ -1,25 +1,23 @@
 import { useState } from "react";
 import { describe, expect, it } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { limitedHandlers } from "./limitedInput";
+import { useLimitedInput } from "./limitedInput";
 
 function Field({ max, initial }: { max: number; initial: string }) {
   const [value, setValue] = useState(initial);
-  return (
-    <input
-      aria-label="campo"
-      value={value}
-      {...limitedHandlers<HTMLInputElement>(max, value, setValue)}
-    />
-  );
+  const limit = useLimitedInput<HTMLInputElement>(max, value, setValue);
+  return <input aria-label="campo" value={value} {...limit} />;
 }
 
 // Simula uma composição de IME: o valor muda sem corte e o limite só vale no compositionend.
 function compose(input: HTMLInputElement, caret: number, composed: string) {
+  input.focus();
   input.setSelectionRange(caret, caret);
   fireEvent.compositionStart(input);
   const next = input.value.slice(0, caret) + composed + input.value.slice(caret);
   fireEvent.input(input, { target: { value: next }, isComposing: true });
+  // O navegador deixa o cursor no fim do texto composto.
+  input.setSelectionRange(caret + composed.length, caret + composed.length);
   expect(input.value).toBe(next); // durante a composição nada é cortado
   fireEvent.compositionEnd(input);
   // O Chrome move o cursor ao fim depois do compositionend: simulado aqui.

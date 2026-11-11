@@ -3,7 +3,7 @@
 import styled from "styled-components";
 import { colors } from "../../../styles/tokens";
 import { charLength } from "../../../constants/fieldLimits";
-import { limitedHandlers } from "../../../utils/limitedInput";
+import { useLimitedInput } from "../../../utils/limitedInput";
 import { ChoiceLabel } from "../combat/choiceStyles";
 
 export const FINAL_DESCRIPTION_MAX = 255;
@@ -19,6 +19,7 @@ export default function FinalDescriptionField({
   value: string;
   onChange: (value: string) => void;
 }) {
+  const limit = useLimitedInput<HTMLTextAreaElement>(FINAL_DESCRIPTION_MAX, value, onChange);
   return (
     <Field>
       <LabelRow>
@@ -31,7 +32,7 @@ export default function FinalDescriptionField({
         id={id}
         rows={3}
         value={value}
-        {...limitedHandlers<HTMLTextAreaElement>(FINAL_DESCRIPTION_MAX, value, onChange)}
+        {...limit}
       />
     </Field>
   );

@@ -1,7 +1,7 @@
 import ErrorIcon from "../ions/ErrorIcon";
 import styled from "styled-components";
 import { colors } from "../../styles/tokens";
-import { limitedValue, markCompositionStart } from "../../utils/limitedInput";
+import { useLimitedInput } from "../../utils/limitedInput";
 
 interface SignFieldProps {
   name: string;
@@ -31,6 +31,10 @@ export default function SignField({
 }: SignFieldProps) {
   const id = `sign-${name}`;
   const errorId = `${id}-error`;
+  // O limite já escreveu o valor cortado no DOM: o onChange do pai lê o valor final do evento.
+  const limited = useLimitedInput<HTMLInputElement>(maxChars ?? Infinity, value, (_v, e) =>
+    onChange(e as React.ChangeEvent<HTMLInputElement>),
+  );
   return (
     <Block>
       <Frame>
@@ -39,21 +43,7 @@ export default function SignField({
           name={name}
           type={type}
           value={value}
-          onChange={(e) => {
-            if (maxChars !== undefined) {
-              const phase = (e.nativeEvent as InputEvent | undefined)?.isComposing
-                ? "composing"
-                : "change";
-              e.target.value = limitedValue(e.target, value, maxChars, phase);
-            }
-            onChange(e);
-          }}
-          onCompositionStart={(e) => markCompositionStart(e.currentTarget)}
-          onCompositionEnd={(e) => {
-            if (maxChars === undefined) return;
-            e.currentTarget.value = limitedValue(e.currentTarget, value, maxChars, "end");
-            onChange(e as unknown as React.ChangeEvent<HTMLInputElement>);
-          }}
+          {...(maxChars !== undefined ? limited : { onChange })}
           autoComplete={autoComplete}
           maxLength={maxLength}
           aria-invalid={error ? true : undefined}

@@ -32,7 +32,7 @@ export default function CreateCampaignPage() {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
 
-  const { form, handleForm, setForm } = useForm<CampaignFormData>({
+  const { form, fieldProps, setForm } = useForm<CampaignFormData>({
     name: "",
     briefInitialDescription: "",
     description: "",
@@ -115,11 +115,7 @@ export default function CreateCampaignPage() {
       >
         <FormInput
           id="name"
-          name="name"
-          value={form.name}
-          onChange={handleForm}
-          onCompositionStart={handleForm}
-          onCompositionEnd={handleForm}
+          {...fieldProps("name")}
           onBlur={() => touch("name")}
           placeholder="Nome da campanha"
           autoComplete="off"
@@ -135,11 +131,7 @@ export default function CreateCampaignPage() {
       >
         <FormTextArea
           id="briefInitialDescription"
-          name="briefInitialDescription"
-          value={form.briefInitialDescription}
-          onChange={handleForm}
-          onCompositionStart={handleForm}
-          onCompositionEnd={handleForm}
+          {...fieldProps("briefInitialDescription")}
           onBlur={() => touch("briefInitialDescription")}
           placeholder="Uma breve descrição inicial da campanha"
           $resize="none"
@@ -151,11 +143,7 @@ export default function CreateCampaignPage() {
       <FormField label="Descrição Completa" htmlFor="description" optional>
         <FormTextArea
           id="description"
-          name="description"
-          value={form.description}
-          onChange={handleForm}
-          onCompositionStart={handleForm}
-          onCompositionEnd={handleForm}
+          {...fieldProps("description")}
           placeholder="Descreva sua campanha em detalhes"
           rows={3}
         />
@@ -170,11 +158,7 @@ export default function CreateCampaignPage() {
       >
         <FormInput
           id="callLink"
-          name="callLink"
-          value={form.callLink}
-          onChange={handleForm}
-          onCompositionStart={handleForm}
-          onCompositionEnd={handleForm}
+          {...fieldProps("callLink")}
           onBlur={() => touch("callLink")}
           placeholder="Discord, Meet, etc."
           autoComplete="off"

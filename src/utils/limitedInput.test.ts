@@ -38,4 +38,16 @@ describe("limitInsertion", () => {
     const r = limitInsertion("abcdef", "abWXYZef", 6);
     expect(r).toEqual({ value: "abWXef", caret: 4 });
   });
+
+  it("anchors the insertion on the selection, not on repeated letters", () => {
+    // "a|b" + cola "ba" (max 3): o nativo dá "abb"; o palpite por prefixo comum daria "aba".
+    const r = limitInsertion("ab", "abab", 3, { selStart: 1, caretEnd: 3 });
+    expect(r).toEqual({ value: "abb", caret: 2 });
+  });
+
+  it("with a selection replaced by text that starts like it, uses the room the native limit would", () => {
+    // "ab[cd]ef" (max 6), cola "cdXYZ" no lugar de "cd": cabem 2 dos 5.
+    const r = limitInsertion("abcdef", "abcdXYZef", 6, { selStart: 2, caretEnd: 7 });
+    expect(r.value).toBe("abcdef");
+  });
 });

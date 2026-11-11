@@ -7,7 +7,7 @@ import { errorBox } from "../../styles/errorBox";
 import { DetailItem, DetailLabel, ProfilePillSelect } from "./ProfileFieldStyles";
 import { toDateInputValue } from "../../utils/date";
 import { NO_EMOJI_MESSAGE, SHEET_LIMITS, containsEmoji } from "../../constants/fieldLimits";
-import { limitedHandlers } from "../../utils/limitedInput";
+import { useLimitedInput } from "../../utils/limitedInput";
 import useFieldValidation from "../../hooks/useFieldValidation";
 
 interface ProfileInputsProps {
@@ -81,6 +81,20 @@ export default function ProfileInputs({
       validate: (v) => (Number(v) < 1 ? AGE_MESSAGE : null),
     },
   });
+  const fullnameLimit = useLimitedInput<HTMLInputElement>(
+    SHEET_LIMITS.fullname.max,
+    profile?.fullname ?? "",
+    (value) => {
+      handleInputChange("fullname", value);
+      // O erro de emoji aparece já na digitação, sem esperar o blur.
+      if (containsEmoji(value)) touch("fullname");
+    },
+  );
+  const descriptionLimit = useLimitedInput<HTMLTextAreaElement>(
+    SHEET_LIMITS.briefDescription.max,
+    profile?.briefDescription ?? "",
+    (value) => handleInputChange("briefDescription", value),
+  );
   const fullnameFeedback = errorFor("fullname") ?? noticeFor("fullname");
   const descriptionNotice = noticeFor("briefDescription");
   const ageError = errorFor("age");
@@ -115,15 +129,7 @@ export default function ProfileInputs({
           aria-invalid={errorFor("fullname") ? true : undefined}
           aria-describedby={fullnameFeedback ? "profile-fullname-feedback" : undefined}
           value={profile?.fullname || ""}
-          {...limitedHandlers<HTMLInputElement>(
-            SHEET_LIMITS.fullname.max,
-            profile?.fullname ?? "",
-            (value) => {
-              handleInputChange("fullname", value);
-              // O erro de emoji aparece já na digitação, sem esperar o blur.
-              if (containsEmoji(value)) touch("fullname");
-            },
-          )}
+          {...fullnameLimit}
           onBlur={() => touch("fullname")}
         />
         {fullnameFeedback && (
@@ -144,11 +150,7 @@ export default function ProfileInputs({
           rows={2}
           aria-describedby={descriptionNotice ? "profile-brief-description-feedback" : undefined}
           value={profile?.briefDescription || ""}
-          {...limitedHandlers<HTMLTextAreaElement>(
-            SHEET_LIMITS.briefDescription.max,
-            profile?.briefDescription ?? "",
-            (value) => handleInputChange("briefDescription", value),
-          )}
+          {...descriptionLimit}
         />
         {descriptionNotice && (
           <FieldFeedback id="profile-brief-description-feedback" $error={false}>

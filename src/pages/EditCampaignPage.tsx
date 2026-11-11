@@ -61,7 +61,7 @@ export default function EditCampaignPage() {
     refetch,
   } = useCampaignDetails(token, id);
 
-  const { form, handleForm, setForm } = useForm<CampaignEditFormData>({
+  const { form, fieldProps, setForm } = useForm<CampaignEditFormData>({
     name: "",
     briefInitialDescription: "",
     description: "",
@@ -201,11 +201,7 @@ export default function EditCampaignPage() {
       >
         <FormInput
           id="name"
-          name="name"
-          value={form.name}
-          onChange={handleForm}
-          onCompositionStart={handleForm}
-          onCompositionEnd={handleForm}
+          {...fieldProps("name")}
           onBlur={() => touch("name")}
           placeholder="Nome da campanha"
           autoComplete="off"
@@ -222,11 +218,7 @@ export default function EditCampaignPage() {
       >
         <FormTextArea
           id="briefInitialDescription"
-          name="briefInitialDescription"
-          value={form.briefInitialDescription}
-          onChange={handleForm}
-          onCompositionStart={handleForm}
-          onCompositionEnd={handleForm}
+          {...fieldProps("briefInitialDescription")}
           onBlur={() => touch("briefInitialDescription")}
           $resize="none"
           rows={2}
@@ -237,11 +229,7 @@ export default function EditCampaignPage() {
       <FormField label="Descrição Completa" htmlFor="description" optional>
         <FormTextArea
           id="description"
-          name="description"
-          value={form.description}
-          onChange={handleForm}
-          onCompositionStart={handleForm}
-          onCompositionEnd={handleForm}
+          {...fieldProps("description")}
           rows={3}
         />
       </FormField>
@@ -255,11 +243,7 @@ export default function EditCampaignPage() {
       >
         <FormInput
           id="callLink"
-          name="callLink"
-          value={form.callLink}
-          onChange={handleForm}
-          onCompositionStart={handleForm}
-          onCompositionEnd={handleForm}
+          {...fieldProps("callLink")}
           onBlur={() => touch("callLink")}
           autoComplete="off"
         />

@@ -104,6 +104,9 @@ describe("EditCharacterSheetPage — attribute points", () => {
       await distributeAllPhysicalPoints();
       await u.type(await screen.findByPlaceholderText(placeholder), "😀");
       await u.click(await screen.findByRole("button", { name: "Salvar Edição" }));
+      expect((await screen.findAllByText(/Emojis não são permitidos neste campo\./)).length).toBeGreaterThan(0);
+      // Dá tempo a um envio indevido chegar antes de afirmar que não houve chamada.
+      await new Promise((r) => setTimeout(r, 50));
       expect(update).not.toHaveBeenCalled();
     },
   );

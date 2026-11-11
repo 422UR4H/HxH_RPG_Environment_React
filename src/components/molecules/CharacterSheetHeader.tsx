@@ -4,7 +4,7 @@ import { colors } from "../../styles/tokens";
 import { errorBox } from "../../styles/errorBox";
 import useFieldValidation from "../../hooks/useFieldValidation";
 import { NO_EMOJI_MESSAGE, SHEET_LIMITS, containsEmoji } from "../../constants/fieldLimits";
-import { limitedHandlers } from "../../utils/limitedInput";
+import { useLimitedInput } from "../../utils/limitedInput";
 import type { CharacterSheet } from "../../types/characterSheet";
 import HpBar from "../atoms/HpBar";
 import SpBar from "../atoms/SpBar";
@@ -60,6 +60,19 @@ export default function CharacterSheetHeader({
       validate: (v) => (containsEmoji(v) ? NO_EMOJI_MESSAGE : null),
     },
   });
+  const nicknameLimit = useLimitedInput<HTMLInputElement>(
+    SHEET_LIMITS.nickname.max,
+    charSheet?.profile?.nickname ?? "",
+    (nickname) => {
+      if (!charSheet || !setCharSheet) return;
+      setCharSheet({
+        ...charSheet,
+        profile: { ...charSheet.profile, nickname },
+      });
+      // O erro de emoji aparece já na digitação, sem esperar o blur.
+      if (containsEmoji(nickname)) touch("nickname");
+    },
+  );
   const nicknameError = errorFor("nickname");
   const nicknameNotice = noticeFor("nickname");
   const classOptions = useMemo(
@@ -133,19 +146,7 @@ export default function CharacterSheetHeader({
                 nicknameError ? "nickname-error" : nicknameNotice ? "nickname-notice" : undefined
               }
               onBlur={() => touch("nickname")}
-              {...limitedHandlers<HTMLInputElement>(
-                SHEET_LIMITS.nickname.max,
-                charSheet?.profile?.nickname ?? "",
-                (nickname) => {
-                  if (!charSheet || !setCharSheet) return;
-                  setCharSheet({
-                    ...charSheet,
-                    profile: { ...charSheet.profile, nickname },
-                  });
-                  // O erro de emoji aparece já na digitação, sem esperar o blur.
-                  if (containsEmoji(nickname)) touch("nickname");
-                },
-              )}
+              {...nicknameLimit}
             />
             {nicknameError && (
               <NicknameFeedback id="nickname-error" role="alert" $error>
