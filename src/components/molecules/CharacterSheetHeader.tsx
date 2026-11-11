@@ -410,15 +410,15 @@ const NicknameInputContainer = styled.div`
   margin-bottom: min(1.4cqi, 8px);
 `;
 
-/* Absoluta logo abaixo do campo: não empurra o layout calibrado; o z-index a põe acima do select. */
+/* Absoluta logo ACIMA do campo, sobre a capa: não empurra o layout calibrado nem cobre o select de classe. */
 const NicknameFeedback = styled.p<{ $error: boolean }>`
   position: absolute;
-  top: 100%;
+  bottom: 100%;
   left: 0;
   z-index: 6;
   width: max-content;
   max-width: 50cqi;
-  margin: 2px 0 0;
+  margin: 0 0 4px;
   font-size: min(3.2cqi, 16px);
   ${({ $error }) =>
     $error
