@@ -60,7 +60,7 @@
 </head>
 <body>
 <header>
-  <h1>Protótipo descartável: brilho v6</h1>
+  <h1>Protótipo descartável: brilho v7</h1>
   <p class="sub">A luz é uma só: linhas e bolinhas se fundem em cada camada, sem uma sobrepor a outra. Núcleo branco menor, com degradê longo até a cor. Oscilação sutil. Destaque = cor (vermelho no físico, roxo no mental, azul nos princípios Nen) onde a regra aponta; o resto fica em luz branca. Quando a cor chega numa bolinha, a luz vaza um trecho pela linha seguinte.</p>
 </header>
 <div class="controls">
@@ -106,7 +106,10 @@
     </radialGradient>
     <radialGradient id="dot-white">
       <stop offset="0" stop-color="#ffffff"/>
-      <stop offset="1" stop-color="#ffffff"/>
+      <stop offset=".3" stop-color="#ffffff"/>
+      <stop offset=".6" stop-color="#e0e0e0"/>
+      <stop offset=".8" stop-color="#cccccc" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#cccccc" stop-opacity="0"/>
     </radialGradient>
   </defs>
 </svg>
@@ -122,7 +125,7 @@ const SCHEMES = {
   red:    { color: '#db0e2f', dot: 'url(#dot-red)' },
   purple: { color: '#a855f7', dot: 'url(#dot-purple)' },
   blue:   { color: '#4da3ff', dot: 'url(#dot-blue)' },
-  white:  { color: '#ffffff', dot: 'url(#dot-white)' },
+  white:  { color: '#aaaaaa', dot: 'url(#dot-white)' },
 };
 
 // Um diagrama = nós (bolinhas) + trechos (linhas entre dois nós) + formas soltas (arcos, setas).
