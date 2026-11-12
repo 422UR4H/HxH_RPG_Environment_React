@@ -83,3 +83,17 @@ describe("CharacterSheetHeader nickname emoji", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Limite de 10 caracteres atingido.");
   });
 });
+
+describe("CharacterSheetHeader level label", () => {
+  it("shows Lv in create mode when the sheet has a level", () => {
+    const charSheet = {
+      profile: { nickname: "" },
+      characterClass: "",
+      characterExp: { level: 123, currExp: 0, nextLvlBaseExp: 10 },
+    } as unknown as CharacterSheet;
+    renderWithProviders(
+      <CharacterSheetHeader mode="create" data={{ charSheet, setCharSheet: () => {}, charClasses: [] }} />,
+    );
+    expect(screen.getByText("Lv 123")).toBeInTheDocument();
+  });
+});

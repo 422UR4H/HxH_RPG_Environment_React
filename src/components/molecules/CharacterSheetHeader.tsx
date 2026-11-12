@@ -77,7 +77,7 @@ export default function CharacterSheetHeader({
   const nicknameNotice = noticeFor("nickname");
   const classOptions = useMemo(
     () => [
-      { value: "", label: "Selecione uma classe" },
+      { value: "", label: "Selecione" },
       ...(charClasses ?? []).map((cc) => ({
         value: cc.profile.name,
         label: cc.profile.name,
@@ -181,11 +181,7 @@ export default function CharacterSheetHeader({
             <CharacterExpBar
               currExp={charExp?.currExp ?? 0}
               maxExp={charExp?.nextLvlBaseExp ?? 0}
-              level={
-                mode === "view" || mode === "edit-profile" || mode === "card"
-                  ? charExp?.level
-                  : undefined
-              }
+              level={charExp?.level}
               labelsInTooltip={mode === "create" || mode === "edit"}
             />
           </CharacterExpBarWrapper>
@@ -502,7 +498,10 @@ const CharacterClassSelect = styled(PillSelect)`
   position: relative;
   z-index: 1;
   font-family: "Roboto", sans-serif;
-  font-size: min(3.8cqi, 28px);
+  /* 3.6cqi (o tamanho do rótulo "Classe:"): com a opção mais longa, deixa espaço até o
+     "Lv 123" no canto da barra de EXP desde 320 px. Opção nova mais longa que "WeaponsMaster"
+     ou placeholder maior que "Selecione" alargam o select e podem cobrir o Lv. */
+  font-size: min(3.6cqi, 28px);
   font-weight: 600;
   color: white;
   background-color: #107135;

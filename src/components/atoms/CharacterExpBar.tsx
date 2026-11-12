@@ -1,12 +1,12 @@
 import styled from "styled-components";
 import { colors } from "../../styles/tokens";
-import BarBubble, { BAR_BUBBLE_FONT_SIZE } from "../ions/BarBubble";
+import BarBubble, { BAR_BUBBLE_FONT_SIZE, BAR_BUBBLE_RIGHT } from "../ions/BarBubble";
 
 interface CharacterExpBarProps {
   currExp: number;
   maxExp: number;
   level?: number;
-  /** Esconde as etiquetas à direita e as mostra num tooltip (criação/edição, onde colidem com o select). */
+  /** Manda só os números da EXP para o tooltip (criação/edição, onde colidem com o select); o Lv continua visível no canto. */
   labelsInTooltip?: boolean;
 }
 
@@ -14,9 +14,7 @@ export default function CharacterExpBar({ currExp, maxExp, level, labelsInToolti
   const percentage = maxExp > 0 ? Math.min((currExp / maxExp) * 100, 100) : 0;
   const hasLevel = level !== undefined;
   const hasExp = maxExp > 0;
-  const label = [hasLevel ? `Lv ${level}` : null, hasExp ? `${currExp} / ${maxExp}` : null]
-    .filter(Boolean)
-    .join(" · ");
+  const expLabel = `${currExp} / ${maxExp}`;
 
   const bar = (
     <BarBorder
@@ -33,12 +31,24 @@ export default function CharacterExpBar({ currExp, maxExp, level, labelsInToolti
   );
 
   if (labelsInTooltip) {
-    if (!label) return <Container>{bar}</Container>;
+    const lvText = `Lv ${level}`;
     return (
-      <Container>
-        <BarBubble label={label} align="right">
-          {bar}
-        </BarBubble>
+      <Container $bubbleClearsChars={hasLevel ? lvText.length : undefined}>
+        {/* O Lv fica sozinho no canto (sem a margem que o separa do número da EXP); o balão leva
+            só os números, sem repetir o Lv que já está na tela. Sem EXP (antes de escolher a
+            classe) não há balão. */}
+        {hasLevel && (
+          <RightLabels>
+            <LvLabel $alone>{lvText}</LvLabel>
+          </RightLabels>
+        )}
+        {hasExp ? (
+          <BarBubble label={expLabel} align="right">
+            {bar}
+          </BarBubble>
+        ) : (
+          bar
+        )}
       </Container>
     );
   }
@@ -70,10 +80,25 @@ const labelFontSize = (property: string) => `
   }
 `;
 
-const Container = styled.div`
+/* Afasta o balão para a esquerda do Lv sozinho: a borda do Lv (mesma de RightLabels) + a
+   largura estimada do texto (~0,5 em por caractere na fonte do LvLabel) + um respiro. Em tela
+   muito estreita o balão pode cobrir o Lv, e tudo bem. */
+const bubbleClearsLv = (chars: number) => {
+  const lvWidth = `${chars} * 0.5 * max(4cqi, 10px)`;
+  return `
+    ${BAR_BUBBLE_RIGHT}: calc(12px + ${lvWidth} + 2cqi);
+
+    @container (max-width: 609px) {
+      ${BAR_BUBBLE_RIGHT}: calc(3% + ${lvWidth} + 2cqi);
+    }
+  `;
+};
+
+const Container = styled.div<{ $bubbleClearsChars?: number }>`
   position: relative;
   width: 100%;
   ${labelFontSize(BAR_BUBBLE_FONT_SIZE)}
+  ${({ $bubbleClearsChars }) => ($bubbleClearsChars ? bubbleClearsLv($bubbleClearsChars) : "")}
 `;
 
 const sharedLabelStyles = `
@@ -99,10 +124,10 @@ const RightLabels = styled.div`
   }
 `;
 
-const LvLabel = styled.span`
+const LvLabel = styled.span<{ $alone?: boolean }>`
   ${sharedLabelStyles}
   font-size: 4cqi;
-  margin-right: 2cqi;
+  margin-right: ${({ $alone }) => ($alone ? "0" : "2cqi")};
 
   /* Mesmo piso e mesma faixa do número da EXP (ver sharedLabelStyles). */
   @container (min-width: 220px) {

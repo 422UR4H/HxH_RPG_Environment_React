@@ -5,6 +5,8 @@ import { colors } from "../../styles/tokens";
 
 /** O card que tem texto de outro tamanho define esta variável com o tamanho do próprio texto. */
 export const BAR_BUBBLE_FONT_SIZE = "--bar-bubble-font-size";
+/** Com `align="right"`, a distância do balão até a borda direita (o card que tem algo no canto a afasta). */
+export const BAR_BUBBLE_RIGHT = "--bar-bubble-right";
 
 interface BarBubbleProps {
   label: string;
@@ -75,7 +77,7 @@ const Bubble = styled.div<{ $align: "center" | "right" }>`
   bottom: calc(100% + 4px);
   ${({ $align }) =>
     $align === "right"
-      ? "right: 1cqi;"
+      ? `right: var(${BAR_BUBBLE_RIGHT}, 1cqi);`
       : "left: 50%; transform: translateX(-50%);"}
   background: ${colors.surfaceBar};
   color: ${colors.textPrimary};
