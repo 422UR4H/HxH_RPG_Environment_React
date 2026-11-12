@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spike · brilho v2</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; color: #fff;
+    font-family: Roboto, system-ui, sans-serif;
+    background: #000 url(../../../src/assets/images/space.png) center top / 100% auto;
+  }
+  header { padding: 24px 32px 8px; }
+  h1 { margin: 0 0 6px; font-size: 22px; }
+  p.sub { margin: 0; color: #b8b8b8; font-size: 14px; max-width: 75ch; line-height: 1.45; }
+  .controls { padding: 12px 32px; display: flex; gap: 12px; flex-wrap: wrap; }
+  button { min-height: 44px; padding: 0 18px; border-radius: 6px; border: 1px solid #444; background: #252525; color: #fff; font-size: 15px; cursor: pointer; }
+  button:hover { background: #303030; }
+  button[aria-pressed="true"] { border-color: #ff5257; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 24px; padding: 12px 32px 40px; }
+  figure { margin: 0; padding: 16px; background: rgba(20,20,20,.72); border: 1px solid #333; border-radius: 6px; }
+  figcaption { font-size: 14px; color: #b8b8b8; margin-top: 8px; line-height: 1.4; }
+  figcaption strong { color: #fff; }
+  svg { width: 100%; height: auto; display: block; overflow: visible; }
+  .lbl { fill: #fff; font-weight: 700; font-size: 44px; text-anchor: middle; paint-order: stroke; stroke: #000; stroke-width: 6px; }
+  line { stroke-linecap: round; fill: none; }
+
+  /* Cada camada de luz é UM grupo desfocado: linhas e bolinhas se fundem numa luz só,
+     sem sobreposição (a opacidade é do grupo, não de cada peça). */
+  .layer { animation: layer-breathe var(--dur) ease-in-out var(--delay) infinite; }
+  @keyframes layer-breathe { 0%, 100% { opacity: var(--lo); } 50% { opacity: var(--hi); } }
+
+  /* Bolinhas: respiração bem sutil, cada uma no seu ritmo */
+  .bead { transform-box: fill-box; transform-origin: center; animation: bead var(--bdur) ease-in-out var(--bdelay) infinite; }
+  @keyframes bead { 0%, 100% { transform: scale(1); } 50% { transform: scale(var(--bgrow)); } }
+  /* De vez em quando uma bolinha abre o halo um pouco mais, devagar */
+  .bead.swell { animation: swell 2.4s ease-in-out 1; }
+  @keyframes swell { 0%, 100% { transform: scale(1); } 50% { transform: scale(var(--sgrow)); } }
+
+  /* Ignição ao aparecer */
+  .ignite .core-line { stroke-dasharray: var(--len); stroke-dashoffset: var(--len); animation: draw .7s ease-out var(--d0) forwards; }
+  .ignite .core-dot { transform-box: fill-box; transform-origin: center; transform: scale(0); animation: pop .4s ease-out var(--d0) forwards; }
+  .ignite .glow { opacity: 0; animation: glow-in .8s ease-out .5s forwards; }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+  @keyframes pop { to { transform: scale(1); } }
+  @keyframes glow-in { to { opacity: 1; } }
+
+  .reduced .layer, .reduced .bead { animation: none !important; }
+  .reduced .layer { opacity: var(--hi); }
+  .reduced .ignite .glow { animation: none !important; opacity: 1; }
+  .reduced .ignite .core-line, .reduced .ignite .core-dot { animation: none !important; stroke-dashoffset: 0; transform: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .layer, .bead { animation: none !important; }
+    .layer { opacity: var(--hi); }
+    .ignite .glow { animation: none !important; opacity: 1; }
+    .ignite .core-line, .ignite .core-dot { animation: none !important; stroke-dashoffset: 0; transform: none; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Protótipo descartável: brilho v6</h1>
+  <p class="sub">A luz é uma só: linhas e bolinhas se fundem em cada camada, sem uma sobrepor a outra. Núcleo branco menor, com degradê longo até a cor. Oscilação sutil. Destaque = cor (vermelho no físico, roxo no mental, azul nos princípios Nen) onde a regra aponta; o resto fica em luz branca. Quando a cor chega numa bolinha, a luz vaza um trecho pela linha seguinte.</p>
+</header>
+<div class="controls">
+  <button type="button" id="replay">Acender de novo</button>
+  <button type="button" id="reduce" aria-pressed="false">Simular “reduzir movimento”</button>
+</div>
+<div class="grid" id="grid"></div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <filter id="blurXS" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="2.5"/></filter>
+    <filter id="blurS" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="8"/></filter>
+    <filter id="blurM" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="18"/></filter>
+    <filter id="blurL" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="30"/></filter>
+    <filter id="blurXL" x="-150%" y="-150%" width="400%" height="400%"><feGaussianBlur stdDeviation="55"/></filter>
+    <!-- núcleo da bolinha: branco pequeno no centro, degradê longo até a cor -->
+    <radialGradient id="dot-red">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset=".16" stop-color="#ffffff"/>
+      <stop offset=".34" stop-color="#ff5257"/>
+      <stop offset=".55" stop-color="#db0e2f"/>
+      <stop offset=".78" stop-color="#db0e2f" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#db0e2f" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="dot-center">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="1"/>
+      <stop offset=".45" stop-color="#ffffff" stop-opacity="1"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="dot-purple">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset=".16" stop-color="#ffffff"/>
+      <stop offset=".46" stop-color="#a855f7"/>
+      <stop offset=".75" stop-color="#a855f7" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#a855f7" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="dot-blue">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset=".16" stop-color="#ffffff"/>
+      <stop offset=".46" stop-color="#4da3ff"/>
+      <stop offset=".75" stop-color="#4da3ff" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#4da3ff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="dot-white">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#ffffff"/>
+    </radialGradient>
+  </defs>
+</svg>
+
+<script>
+const NS = 'http://www.w3.org/2000/svg';
+const el = (tag, attrs = {}) => { const n = document.createElementNS(NS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); return n; };
+const rnd = (a, b) => a + Math.random() * (b - a);
+let uid = 0;
+
+// cores: só da paleta (red600, purple500, blue400, neutral0)
+const SCHEMES = {
+  red:    { color: '#db0e2f', dot: 'url(#dot-red)' },
+  purple: { color: '#a855f7', dot: 'url(#dot-purple)' },
+  blue:   { color: '#4da3ff', dot: 'url(#dot-blue)' },
+  white:  { color: '#ffffff', dot: 'url(#dot-white)' },
+};
+
+// Um diagrama = nós (bolinhas) + trechos (linhas entre dois nós) + formas soltas (arcos, setas).
+const PHYS = {
+  viewBox: '0 0 1280 1024', paint: 'red',
+  nodes: {
+    RES: { x: 639.26, y: 107.8, r: 28.05, lx: 0, ly: -60 },
+    SEN: { x: 1046.51, y: 521.36, r: 28.05, lx: 92, ly: 14 },
+    FLX: { x: 641.45, y: 915.73, r: 28.05, lx: 0, ly: 92 },
+    AGI: { x: 234.2, y: 519.32, r: 28.05, lx: -92, ly: 14 },
+    Str: { x: 430.17, y: 319.43, r: 14.93, lx: -62, ly: -30 },
+    Con: { x: 855.94, y: 319.34, r: 14.93, lx: 62, ly: -30 },
+    Dex: { x: 856.45, y: 709.38, r: 14.93, lx: 62, ly: 62 },
+    Cel: { x: 431.36, y: 710.47, r: 14.93, lx: -62, ly: 62 },
+  },
+  segs: [['RES','Con'],['Con','SEN'],['SEN','Dex'],['Dex','FLX'],['FLX','Cel'],['Cel','AGI'],['AGI','Str'],['Str','RES']],
+  shapes: [],
+};
+const MENT = {
+  viewBox: '0 0 884.52 875.25', paint: 'purple', maxW: '72%',
+  nodes: {
+    RSL: { x: 434.97, y: 34.1, r: 34.1, lx: 0, ly: -62 },
+    ADP: { x: 850.42, y: 436.7, r: 34.1, lx: 0, ly: -62 },
+    JUD: { x: 449.45, y: 840.15, r: 34.1, lx: 0, ly: 98 },
+    CRE: { x: 34.1, y: 447.43, r: 34.1, lx: 0, ly: -62 },
+  },
+  segs: [['RSL','ADP'],['ADP','JUD'],['JUD','CRE'],['CRE','RSL']],
+  shapes: [],
+};
+// geometria de src/assets/diagrams/nen_principles.svg
+const NEN = {
+  viewBox: '0 0 1280 1024', paint: 'blue',
+  nodes: {
+    Ken: { x: 357.26, y: 93.45, r: 34.1, lx: -95, ly: 14 },
+    Ryu: { x: 898.77, y: 103.67, r: 34.1, lx: 95, ly: 14 },
+    Ren: { x: 362.37, y: 293.62, r: 34.1, lx: 95, ly: 14 },
+    Gyo: { x: 897.49, y: 295.67, r: 34.1, lx: -95, ly: 14 },
+    Ten: { x: 362.62, y: 686.05, r: 34.1, lx: 95, ly: 14 },
+    Zts: { x: 898.03, y: 686.05, r: 34.1, lx: -95, ly: 14 },
+    Shu: { x: 361.86, y: 931.16, r: 34.1, lx: -95, ly: 14 },
+    In:  { x: 897.26, y: 931.16, r: 34.1, lx: 95, ly: 14 },
+    En:  { x: 118.28, y: 507.84, r: 34.1, lx: 0, ly: -62 },
+    Kou: { x: 1115.56, y: 507.84, r: 34.1, lx: 0, ly: -62 },
+  },
+  segs: [['Ryu','Gyo'],['Kou','Gyo'],['Kou','Zts'],['Ken','Ren'],['En','Ren'],['Ten','En'],['Ten','Shu'],['Zts','In']],
+  // formas que não ligam dois nós: o círculo grande e as setas
+  shapes: [{"kind": "ellipse", "a": {"cx": 616.72, "cy": 511.87, "rx": 498.34, "ry": 493.64}}, {"kind": "fill", "d": "M348,781.23l11.89,41.33L376.56,784S364.5,810.78,348,781.23Z"}, {"kind": "fill", "d": "M883.23,783.86l15,40.31,13.71-39.68S901.92,812.08,883.23,783.86Z"}, {"kind": "fill", "d": "M901.45,294.8c-4.24-4.24-8.7-8.27-13.21-12.23s-9.13-7.79-13.81-11.53q-14.07-11.25-28.94-21.39a465.72,465.72,0,0,0-62.28-35.89A409.2,409.2,0,0,0,716,188.5a357,357,0,0,0-70.7-12A326,326,0,0,0,573.79,180l-4.43.72-2.21.35-2.2.44-8.79,1.75c-2.92.63-5.82,1.36-8.73,2-1.45.35-2.91.67-4.36,1.05l-4.32,1.18a334.64,334.64,0,0,0-34.09,11.08l-8.36,3.25c-2.77,1.12-5.49,2.36-8.25,3.53l-4.11,1.77c-1.38.59-2.71,1.27-4.07,1.9l-8.11,3.85c-2.69,1.31-5.32,2.74-8,4.1s-5.34,2.71-7.93,4.22c-5.2,3-10.47,5.81-15.55,9l-7.68,4.67-7.53,4.91c-5.07,3.2-9.9,6.75-14.84,10.16-2.48,1.67-4.87,3.48-7.28,5.27l-7.23,5.37c-4.75,3.65-9.42,7.43-14.13,11.14l-.2-.23c4.61-3.85,9.16-7.77,13.82-11.57l7.07-5.59c2.36-1.86,4.71-3.74,7.15-5.5,4.87-3.53,9.65-7.17,14.67-10.49l7.46-5.08,7.62-4.84c10.14-6.5,20.72-12.28,31.4-17.83l8.12-4c1.36-.65,2.69-1.36,4.07-2l4.13-1.84c2.76-1.21,5.5-2.48,8.28-3.64l8.38-3.38a339,339,0,0,1,34.36-11.29l4.36-1.19c1.46-.38,2.94-.7,4.4-1,2.95-.67,5.87-1.4,8.82-2l8.89-1.73,2.22-.42,2.23-.35,4.47-.7a328.52,328.52,0,0,1,72.13-2.93,358.78,358.78,0,0,1,71.06,12.49,410.88,410.88,0,0,1,67.34,25.79A465.44,465.44,0,0,1,846,248.91q14.81,10.26,28.8,21.66,7,5.69,13.74,11.67c4.48,4,8.9,8.06,13.12,12.35Z"}, {"kind": "fill", "d": "M610.18,187.49l41.48-11.33L613.36,159S640,171.39,610.18,187.49Z"}, {"kind": "fill", "d": "M361,294.8c-4.59,7.19-8.75,14.66-12.71,22.22s-7.67,15.25-11.14,23A435,435,0,0,0,319,387.88a395.59,395.59,0,0,0-12.24,49.58c-1.5,8.38-2.73,16.81-3.63,25.27s-1.47,16.95-1.75,25.45A309.36,309.36,0,0,0,315,588.66c2.41,8.14,5.32,16.12,8.48,24s6.81,15.56,10.52,23.21c3.89,7.56,7.92,15.06,12.43,22.3,2.14,3.68,4.49,7.24,6.8,10.82,1.14,1.81,2.38,3.55,3.59,5.3l3.61,5.29-.32.25c-5.33-6.69-10.47-13.55-15.22-20.68s-9.15-14.5-13.36-22a283.82,283.82,0,0,1-20.34-47.3c-1.38-4.08-2.47-8.24-3.67-12.37s-2.18-8.33-3.06-12.54-1.68-8.44-2.47-12.67c-.64-4.25-1.36-8.49-1.84-12.77s-.91-8.55-1.3-12.83-.6-8.57-.71-12.87c-.3-8.59-.31-17.18.1-25.76s1.07-17.13,2.07-25.65,2.35-17,3.95-25.42a397.56,397.56,0,0,1,12.9-49.72A435.46,435.46,0,0,1,336,339.56q5.41-11.64,11.53-22.92c4.09-7.51,8.37-14.92,13.09-22.06Z"}, {"kind": "fill", "d": "M317.38,512.63l-16.61-34L281.31,510.9S304.16,496.84,317.38,512.63Z"}],
+};
+
+// camadas da luz: largura da linha, raio extra da bolinha, faixa de opacidade e ritmo
+const LAYERS = [
+  { blur: 'blurXL', line: 60, ring: 3.4, lo: .26, hi: .34, dur: 6.0 },
+  { blur: 'blurL', line: 40, ring: 2.4, lo: .52, hi: .66, dur: 5.2 },
+  { blur: 'blurM', line: 18, ring: 1.6, lo: .72, hi: .86, dur: 4.4 },
+  { blur: 'blurS', line: 9,  ring: 1.35, lo: .8, hi: .95, dur: 3.8 },
+];
+// quanto a cor avança pela linha seguinte quando chega numa bolinha (fração do trecho)
+const BLEED = 0.32;
+
+function build(def, { painted, title, caption }) {
+  const all = painted === 'all';
+  const none = { nodes: [], segs: [] };
+  const P = all ? none : painted;
+  const isP = (k) => all || P.nodes.includes(k);
+  const isPSeg = (a, b) => all || P.segs.some(([x, y]) => (x === a && y === b) || (x === b && y === a));
+  const shapesP = all || !!P.shapes;
+  const colorOf = (p) => SCHEMES[p ? def.paint : 'white'];
+
+  const fig = document.createElement('figure');
+  const svg = el('svg', { viewBox: def.viewBox, role: 'img', 'aria-label': title });
+  if (def.maxW) svg.style.cssText = `max-width: ${def.maxW}; margin: 24px auto;`;
+  const defs = el('defs'); svg.appendChild(defs);
+  const root = el('g', { class: 'ignite' });
+  svg.appendChild(root);
+
+  // degradê da cor ao longo da linha: forte na bolinha, some no fim do vazamento
+  const bleeds = [];
+  if (!all) {
+    P.nodes.forEach((k) => {
+      def.segs.forEach(([a, b]) => {
+        if (a !== k && b !== k) return;
+        if (isPSeg(a, b)) return;
+        const other = a === k ? b : a;
+        const N = def.nodes[k], O = def.nodes[other];
+        const ex = N.x + (O.x - N.x) * BLEED, ey = N.y + (O.y - N.y) * BLEED;
+        const id = `bleed${++uid}`;
+        const lg = el('linearGradient', { id, gradientUnits: 'userSpaceOnUse', x1: N.x, y1: N.y, x2: ex, y2: ey });
+        lg.appendChild(el('stop', { offset: 0, 'stop-color': SCHEMES[def.paint].color, 'stop-opacity': 1 }));
+        lg.appendChild(el('stop', { offset: .55, 'stop-color': SCHEMES[def.paint].color, 'stop-opacity': .6 }));
+        lg.appendChild(el('stop', { offset: 1, 'stop-color': SCHEMES[def.paint].color, 'stop-opacity': 0 }));
+        defs.appendChild(lg);
+        bleeds.push({ x1: N.x, y1: N.y, x2: ex, y2: ey, stroke: `url(#${id})` });
+      });
+    });
+  }
+
+  // halos: uma camada = um grupo desfocado com TODAS as peças (a luz é uma só)
+  const glow = el('g', { class: 'glow' });
+  root.appendChild(glow);
+  LAYERS.forEach((L) => {
+    const g = el('g', { class: 'layer', filter: `url(#${L.blur})` });
+    g.style.cssText = `--lo:${L.lo};--hi:${L.hi};--dur:${L.dur}s;--delay:${-rnd(0, L.dur)}s`;
+    const pieces = [];
+    def.shapes.forEach((S) => {
+      const c = colorOf(shapesP).color;
+      if (S.kind === 'ellipse') pieces.push([shapesP, el('ellipse', { ...S.a, fill: 'none', stroke: c, 'stroke-width': L.line })]);
+      else pieces.push([shapesP, el('path', { d: S.d, fill: c, stroke: c, 'stroke-width': L.line * 0.5, 'stroke-linejoin': 'round' })]);
+    });
+    def.segs.forEach(([a, b]) => {
+      const A = def.nodes[a], B = def.nodes[b], p = isPSeg(a, b);
+      pieces.push([p, el('line', { x1: A.x, y1: A.y, x2: B.x, y2: B.y, stroke: colorOf(p).color, 'stroke-width': L.line * (p && !all ? 1.3 : 1), 'stroke-linecap': 'round' })]);
+    });
+    Object.entries(def.nodes).forEach(([k, N]) => {
+      const s = N.r / 28.05, p = isP(k);
+      const c = el('circle', { cx: N.x, cy: N.y, r: N.r * L.ring * (p && !all ? 1.2 : 1), fill: colorOf(p).color, class: 'bead', 'data-node': k });
+      c.style.cssText = `--bdur:${rnd(3.2, 5.2)}s;--bdelay:${-rnd(0, 5)}s;--bgrow:${1 + 0.05 * s};--sgrow:${1 + 0.13 * s}`;
+      pieces.push([p, c]);
+    });
+    // branco primeiro, colorido por cima, e o vazamento por último
+    pieces.filter(([p]) => !p).forEach(([, n]) => g.appendChild(n));
+    pieces.filter(([p]) => p).forEach(([, n]) => g.appendChild(n));
+    bleeds.forEach((B) => g.appendChild(el('line', { ...B, 'stroke-width': L.line * 1.3, 'stroke-linecap': 'round' })));
+    glow.appendChild(g);
+  });
+
+  // núcleo: corpo da esfera, depois o filamento branco (linhas e formas), depois o miolo branco
+  const bodies = [], centers = [];
+  Object.entries(def.nodes).forEach(([k, N], i) => {
+    const c = el('circle', { cx: N.x, cy: N.y, r: N.r, fill: colorOf(isP(k)).dot, class: 'core-dot' });
+    c.style.cssText = `--d0:${0.2 + i * 0.05}s`;
+    bodies.push(c);
+    const m = el('circle', { cx: N.x, cy: N.y, r: N.r * 0.62, fill: 'url(#dot-center)', class: 'core-dot' });
+    m.style.cssText = `--d0:${0.2 + i * 0.05}s`;
+    centers.push([m, k, N]);
+  });
+  bodies.forEach((b) => root.appendChild(b));
+  def.shapes.forEach((S) => {
+    if (S.kind === 'ellipse') {
+      const soft = el('ellipse', { ...S.a, fill: 'none', stroke: '#ffffff', 'stroke-width': 7, 'stroke-opacity': .45, filter: 'url(#blurXS)' });
+      const e = el('ellipse', { ...S.a, fill: 'none', stroke: '#ffffff', 'stroke-width': 4 });
+      root.appendChild(soft); root.appendChild(e);
+    } else {
+      root.appendChild(el('path', { d: S.d, fill: '#ffffff' }));
+    }
+  });
+  def.segs.forEach(([a, b], i) => {
+    const A = def.nodes[a], B = def.nodes[b];
+    const soft = el('line', { x1: A.x, y1: A.y, x2: B.x, y2: B.y, stroke: '#ffffff', 'stroke-width': 7, 'stroke-opacity': .45, filter: 'url(#blurXS)', class: 'core-line' });
+    const ln = el('line', { x1: A.x, y1: A.y, x2: B.x, y2: B.y, stroke: '#ffffff', 'stroke-width': 4, class: 'core-line' });
+    const len = Math.hypot(B.x - A.x, B.y - A.y);
+    soft.style.cssText = ln.style.cssText = `--len:${len};--d0:${i * 0.05}s`;
+    root.appendChild(soft); root.appendChild(ln);
+  });
+  centers.forEach(([m, k, N]) => {
+    root.appendChild(m);
+    const t = el('text', { x: N.x + N.lx, y: N.y + N.ly, class: 'lbl' }); t.textContent = k;
+    root.appendChild(t);
+  });
+
+  fig.appendChild(svg);
+  const cap = document.createElement('figcaption'); cap.innerHTML = caption; fig.appendChild(cap);
+  return fig;
+}
+
+const grid = document.getElementById('grid');
+function render() {
+  grid.innerHTML = '';
+  grid.appendChild(build(PHYS, { painted: 'all', title: 'Losango físico aceso', caption: '<strong>Físico, todo pintado.</strong> Capítulo de Atributos.' }));
+  grid.appendChild(build(PHYS, {
+    painted: { nodes: ['RES', 'AGI', 'Str'], segs: [['AGI', 'Str'], ['Str', 'RES']] },
+    title: 'Força = Resistência + Agilidade',
+    caption: '<strong>Destaque.</strong> Força com RES, AGI e o trecho entre eles; em RES e AGI a cor vaza um pouco pela linha seguinte.',
+  }));
+  grid.appendChild(build(PHYS, {
+    painted: { nodes: ['AGI', 'Str', 'Cel'], segs: [['AGI', 'Str'], ['Cel', 'AGI']] },
+    title: 'Um ponto em Agilidade sobe Força e Celeridade',
+    caption: '<strong>Destaque.</strong> “Um ponto em AGI sobe Força e Celeridade”.',
+  }));
+  grid.appendChild(build(MENT, { painted: 'all', title: 'Losango mental aceso', caption: '<strong>Mental, todo pintado.</strong> Roxo da paleta (o da parede mágica).' }));
+  grid.appendChild(build(MENT, {
+    painted: { nodes: ['JUD'], segs: [] },
+    title: 'Julgamento em destaque',
+    caption: '<strong>Mental com destaque.</strong> Só Julgamento; o roxo vaza pelas duas linhas.',
+  }));
+  grid.appendChild(build(NEN, { painted: 'all', title: 'Princípios Nen acesos', caption: '<strong>Princípios Nen, todo pintado.</strong> Azul da paleta (blue400, o da mana).' }));
+  grid.appendChild(build(NEN, {
+    painted: { nodes: ['Ken', 'Ren'], segs: [['Ken', 'Ren']] },
+    title: 'Ren leva a Ken',
+    caption: '<strong>Princípios Nen com destaque.</strong> Ren → Ken pintados; a cor vaza de Ren para a linha de En.',
+  }));
+}
+render();
+
+// a cada pouco, uma bolinha abre o halo um pouco mais, devagar
+setInterval(() => {
+  if (document.body.classList.contains('reduced') || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const figs = [...document.querySelectorAll('figure')];
+  const fig = figs[Math.floor(Math.random() * figs.length)];
+  const nodes = [...new Set([...fig.querySelectorAll('.bead')].map((b) => b.dataset.node))];
+  const pick = nodes[Math.floor(Math.random() * nodes.length)];
+  fig.querySelectorAll(`.bead[data-node="${pick}"]`).forEach((b) => {
+    b.classList.add('swell');
+    setTimeout(() => b.classList.remove('swell'), 2450);
+  });
+}, 1800);
+
+document.getElementById('replay').onclick = render;
+document.getElementById('reduce').onclick = (e) => {
+  const on = document.body.classList.toggle('reduced');
+  e.currentTarget.setAttribute('aria-pressed', on);
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Regras de criação · conteúdo renderizado do Markdown</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/systemxsystem/tokens.css">
+<link rel="stylesheet" href="shared/regras.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="sxs" style="width: 100%; box-sizing: border-box; padding: {{pad}}; background: {{fundo}}; font-family: var(--font-sans);">
+<article class="md">
+
+<sc-if value="{{verTopo}}" hint-placeholder-val="{{true}}">
+<h2 id="resumo">Criando seu personagem</h2>
+<p>Cinco passos, de cima para baixo na ficha:</p>
+<ol>
+  <li>Preencha o perfil: apelido, nome, aniversário…</li>
+  <li>Escolha a classe.</li>
+  <li>Distribua os pontos de atributos físicos e mentais até zerar <strong>Pontos para Distribuir</strong>.</li>
+  <li>Se a classe oferecer, escolha as perícias e armas que recebem experiência extra.</li>
+  <li>Toque em <strong>Criar Ficha</strong>.</li>
+</ol>
+
+<h2 id="classes">Classes</h2>
+<p>A classe é a especialização inicial do personagem. Ela dá experiência inicial em certas perícias, armas (proficiências) e atributos.</p>
+<p>Algumas classes oferecem lotes de experiência para você escolher onde aplicar: por exemplo, 80, 40 e 40 pontos em três perícias de uma lista da classe.</p>
+<blockquote class="md-alert">
+  <p class="md-alert-title">Curiosidade</p>
+  <p>Hoje são 12 classes: Espadachim, Samurai, Ninja, Ladino, Netrunner, Pirata, Mercenário, Terrorista, Monge, Militar, Hunter e Mestre de Armas.</p>
+</blockquote>
+
+<h2 id="habilidades">Habilidades</h2>
+<p>São quatro grandes áreas: Físicos, Mentais, Espirituais (Nen) e Perícias.</p>
+<p>O centro de cada losango mostra a habilidade: nível e bônus. Ex.: <code>PHYSICAL</code> 3 4.5 = nível 3, bônus 4,5.</p>
+<blockquote>
+  <p>Bônus = (pontos de personagem + nível da habilidade) ÷ 2</p>
+</blockquote>
+<p>O bônus entra no poder de todos os atributos daquela área.</p>
+</sc-if>
+
+<sc-if value="{{verAtributos}}" hint-placeholder-val="{{true}}">
+<h2 id="atributos" class="{{clsAtributos}}">Atributos</h2>
+<p>Ficam na coluna ATRIBUTOS da ficha, em dois losangos: Físicos e Mentais. Cada atributo mostra três números sob a sigla.</p>
+
+<h3 id="ler">Como ler um atributo</h3>
+<dc-import name="NoAtributo" hint-size="100%,230px"></dc-import>
+<blockquote>
+  <p>Valor = pontos + nível</p>
+  <p>Poder = valor + bônus da habilidade (+ efeitos temporários)</p>
+</blockquote>
+<p>O <strong>poder</strong> é o número que importa nos testes.</p>
+
+<h3 id="fisicos">Físicos: primários e médios</h3>
+<p>Os quatro primários, nos vértices do losango, recebem os seus pontos: Resistência · <code>RES</code>, Agilidade · <code>AGI</code>, Flexibilidade · <code>FLX</code> e Sentido · <code>SEN</code>. Os quatro médios, no meio das arestas, não recebem pontos: são calculados.</p>
+<dc-import name="LosangoFisico" hint-size="100%,560px"></dc-import>
+</sc-if>
+
+<h3 id="medios" class="{{clsMedios}}">Como os médios são calculados</h3>
+<blockquote>
+  <p>Médio = média arredondada dos dois vértices vizinhos</p>
+</blockquote>
+<div class="md-table">
+<table>
+  <thead><tr><th>Atributo médio</th><th>Média de</th></tr></thead>
+  <tbody>
+    <tr><td data-label="Atributo médio">Força · <code>Str</code></td><td data-label="Média de">Resistência · <code>RES</code> e Agilidade · <code>AGI</code></td></tr>
+    <tr><td data-label="Atributo médio">Celeridade · <code>Cel</code></td><td data-label="Média de">Agilidade · <code>AGI</code> e Flexibilidade · <code>FLX</code></td></tr>
+    <tr><td data-label="Atributo médio">Destreza · <code>Dex</code></td><td data-label="Média de">Flexibilidade · <code>FLX</code> e Sentido · <code>SEN</code></td></tr>
+    <tr><td data-label="Atributo médio">Constituição · <code>Con</code></td><td data-label="Média de">Sentido · <code>SEN</code> e Resistência · <code>RES</code></td></tr>
+  </tbody>
+</table>
+</div>
+<blockquote class="md-alert">
+  <p class="md-alert-title">Nota</p>
+  <p>Por isso, pôr um ponto em Agilidade · <code>AGI</code> também fortalece Força · <code>Str</code> e Celeridade · <code>Cel</code>.</p>
+</blockquote>
+
+<h3 id="mentais">Mentais</h3>
+<p>Quatro primários, e todos recebem pontos: Resiliência · <code>RSL</code>, Adaptabilidade · <code>ADP</code>, Julgamento · <code>JUD</code> e Criatividade · <code>CRE</code>.</p>
+
+<h3 id="distribuicao">Distribuição de pontos</h3>
+<p>Os pontos de cada losango são iguais ao nível da habilidade (Físicos ou Mentais) e precisam ser todos usados para criar a ficha. <strong>+</strong> põe um ponto, <strong>−</strong> tira.</p>
+
+<h3 id="nen">Espirituais (Nen)</h3>
+<p>Chama e Consciência. Só existem se o personagem despertou o Nen, e não recebem pontos.</p>
+
+<h2 id="pericias">Perícias</h2>
+<p>Ações concretas, cada uma ligada a um atributo: Defesa, Energia e Vitalidade, por exemplo, são de Resistência · <code>RES</code>.</p>
+<p>Cada card mostra o valor de teste e o nível (ex.: 4  Lv 0).</p>
+<blockquote>
+  <p>Valor de teste = nível da perícia + poder do atributo</p>
+</blockquote>
+
+<h2 id="proficiencias">Proficiências</h2>
+<p>O domínio de armas (ex.: Sword Master), com nível próprio.</p>
+
+<h2 id="experiencia">Experiência em cascata</h2>
+<p>Treinar uma perícia também sobe o atributo dela, a habilidade e a experiência do personagem.</p>
+<blockquote class="md-alert">
+  <p class="md-alert-title">Exemplo</p>
+  <p>Treinar Acrobacia fortalece Flexibilidade · <code>FLX</code>, os Físicos e o personagem.</p>
+</blockquote>
+
+<h2 id="vida">Vida e estamina</h2>
+<p>As barras do topo da ficha.</p>
+<blockquote>
+  <p>HP = 20 + (nível de Vitalidade + valor de Resistência) × bônus dos Físicos</p>
+  <p>SP = 10 × (nível de Energia + valor de Resistência) × bônus dos Físicos</p>
+</blockquote>
+
+<h2 id="glossario">Glossário</h2>
+<p>A ficha mostra nomes em inglês e abreviados; estas regras usam o português.</p>
+<div class="md-table is-stack">
+<table>
+  <thead><tr><th>Sigla</th><th>Na ficha</th><th>Nas regras</th><th>Tipo</th></tr></thead>
+  <tbody>
+    <tr><td data-label="Sigla"><code>RES</code></td><td data-label="Na ficha">Resistance</td><td data-label="Nas regras">Resistência</td><td data-label="Tipo">Físico primário</td></tr>
+    <tr><td data-label="Sigla"><code>AGI</code></td><td data-label="Na ficha">Agility</td><td data-label="Nas regras">Agilidade</td><td data-label="Tipo">Físico primário</td></tr>
+    <tr><td data-label="Sigla"><code>FLX</code></td><td data-label="Na ficha">Flexibility</td><td data-label="Nas regras">Flexibilidade</td><td data-label="Tipo">Físico primário</td></tr>
+    <tr><td data-label="Sigla"><code>SEN</code></td><td data-label="Na ficha">Sense</td><td data-label="Nas regras">Sentido</td><td data-label="Tipo">Físico primário</td></tr>
+    <tr><td data-label="Sigla"><code>Str</code></td><td data-label="Na ficha">Strength</td><td data-label="Nas regras">Força</td><td data-label="Tipo">Físico médio</td></tr>
+    <tr><td data-label="Sigla"><code>Cel</code></td><td data-label="Na ficha">Celerity</td><td data-label="Nas regras">Celeridade</td><td data-label="Tipo">Físico médio</td></tr>
+    <tr><td data-label="Sigla"><code>Dex</code></td><td data-label="Na ficha">Dexterity</td><td data-label="Nas regras">Destreza</td><td data-label="Tipo">Físico médio</td></tr>
+    <tr><td data-label="Sigla"><code>Con</code></td><td data-label="Na ficha">Constitution</td><td data-label="Nas regras">Constituição</td><td data-label="Tipo">Físico médio</td></tr>
+    <tr><td data-label="Sigla"><code>RSL</code></td><td data-label="Na ficha">RSL</td><td data-label="Nas regras">Resiliência</td><td data-label="Tipo">Mental</td></tr>
+    <tr><td data-label="Sigla"><code>ADP</code></td><td data-label="Na ficha">ADP</td><td data-label="Nas regras">Adaptabilidade</td><td data-label="Tipo">Mental</td></tr>
+    <tr><td data-label="Sigla"><code>JUD</code></td><td data-label="Na ficha">JUD</td><td data-label="Nas regras">Julgamento</td><td data-label="Tipo">Mental</td></tr>
+    <tr><td data-label="Sigla"><code>CRE</code></td><td data-label="Na ficha">CRE</td><td data-label="Nas regras">Criatividade</td><td data-label="Tipo">Mental</td></tr>
+    <tr><td data-label="Sigla"><code>PHYSICAL</code></td><td data-label="Na ficha">Physical</td><td data-label="Nas regras">Físicos</td><td data-label="Tipo">Habilidade</td></tr>
+    <tr><td data-label="Sigla"><code>MENTAL</code></td><td data-label="Na ficha">Mental</td><td data-label="Nas regras">Mentais</td><td data-label="Tipo">Habilidade</td></tr>
+    <tr><td data-label="Sigla"><code>Lv</code></td><td data-label="Na ficha">Level</td><td data-label="Nas regras">Nível</td><td data-label="Tipo">Perícia, habilidade</td></tr>
+  </tbody>
+</table>
+</div>
+
+</article>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"inicio":{"editor":"enum","options":["topo","atributos","medios"],"default":"topo"},"painel":{"editor":"boolean","default":true},"$preview":{"width":760,"height":6200}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const inicio = this.props.inicio ?? 'topo';
+    const painel = this.props.painel ?? true;
+    return {
+      verTopo: inicio === 'topo',
+      verAtributos: inicio === 'topo' || inicio === 'atributos',
+      clsAtributos: inicio === 'atributos' ? 'is-first' : '',
+      clsMedios: inicio === 'medios' ? 'is-first' : '',
+      pad: painel ? '40px' : '0',
+      fundo: painel ? 'var(--surfaceMuted)' : 'transparent'
+    };
+  }
+}
+</script>
+</body>
+</html>

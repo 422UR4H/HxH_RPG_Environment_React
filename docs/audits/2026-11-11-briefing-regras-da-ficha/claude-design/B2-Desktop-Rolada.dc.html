@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>B · Painel de regras encaixado à direita · desktop · rolado</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/systemxsystem/tokens.css">
+<link rel="stylesheet" href="shared/regras.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&amp;display=swap">
+<style>
+body{margin:0}
+.bg-space{background-color:#000;background-image:url(/_blob/3e95e151dfd3d42b133e5c4843a6cae5);background-size:100% auto;background-position:center top}
+.toc-chips a{min-height:34px;padding:5px 8px;font-size:14px}
+</style>
+</helmet>
+<div class="sxs" style="position: relative; width: 1440px; height: 900px; overflow: hidden; background: var(--neutral-850);">
+  <div style="position: absolute; left: 0; top: 0; width: 940px; height: 900px; overflow: hidden;">
+    <img src="/_blob/35afd2e116aa8f64d28896a800917219" alt="Ficha de criação ao lado do painel de regras, com os diagramas e o painel PERÍCIAS visíveis" style="position: absolute; left: -250px; top: 0; width: 1440px; height: 900px; display: block;">
+    <button type="button" class="help-btn" aria-label="Regras de atributos e perícias" aria-expanded="true" aria-controls="painel-regras" style="left: 369px; top: 171px;">
+      <img src="/_blob/f5d85179e63e3766967ea05417e03f9b" alt="">
+    </button>
+  </div>
+
+  <aside id="painel-regras" role="complementary" aria-labelledby="titulo-regras" class="bg-space" style="position: absolute; top: 0; left: 940px; width: 500px; height: 900px; display: flex; flex-direction: column; border-left: 1px solid var(--borderFloating); box-shadow: -12px 0 32px var(--shadowFloating);">
+    <header class="rules-header" style="flex: 0 0 auto; height: 52px; padding: 0 76px 0 20px; position: relative;">
+      <h2 id="titulo-regras" class="rules-title" style="font-size: 20px; gap: 10px;"><img src="/_blob/17cd6dd2c3668d877fc8416027f0c3ae" alt="" style="width: 28px; height: 28px;">Regras <span class="rules-sub">· criação de personagem</span></h2>
+      <button type="button" class="close-x" aria-label="Fechar regras" style="right: 12px; top: 4px;"><img src="/_blob/dc5080f491cfd671740b19ac1892f07b" alt=""></button>
+    </header>
+    <div style="flex: 1 1 auto; min-height: 0; margin: 16px 16px 0; display: flex; flex-direction: column; background: var(--surfaceMuted); border-radius: var(--radius-sm) var(--radius-sm) 0 0; box-shadow: 0 8px 24px var(--shadowStrong); overflow: hidden;">
+      <nav class="toc-chips" aria-label="Sumário das regras" style="flex: 0 0 auto; padding: 14px 16px; border-bottom: 1px solid var(--borderMuted);">
+        <ol>
+          <li><a href="#resumo">Criação</a></li>
+          <li><a href="#classes">Classes</a></li>
+          <li><a href="#habilidades">Habilidades</a></li>
+          <li><a href="#atributos" aria-current="location">Atributos</a></li>
+          <li><a href="#pericias">Perícias</a></li>
+          <li><a href="#proficiencias">Proficiências</a></li>
+          <li><a href="#experiencia">Experiência</a></li>
+          <li><a href="#vida">Vida e estamina</a></li>
+          <li><a href="#glossario">Glossário</a></li>
+        </ol>
+      </nav>
+      <div style="flex: 1 1 auto; min-height: 0; overflow: hidden; padding: 16px 28px 0;">
+        <dc-import name="ConteudoRegras" inicio="medios" painel="{{no}}" hint-size="100%,1600px"></dc-import>
+      </div>
+    </div>
+  </aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return { no: false }; }
+}
+</script>
+</body>
+</html>

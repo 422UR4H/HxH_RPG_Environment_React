@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Estilos dos elementos de Markdown nas regras</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/systemxsystem/tokens.css">
+<link rel="stylesheet" href="shared/regras.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&amp;display=swap">
+<style>
+body{margin:0}
+.bg-space{background-color:#000;background-image:url(/_blob/3e95e151dfd3d42b133e5c4843a6cae5);background-size:100% auto;background-position:center top}
+.spec-row{display:grid;grid-template-columns:280px minmax(0,1fr);gap:32px;padding:24px 0;border-top:1px solid var(--borderMuted)}
+.spec-src{margin:0 0 8px;padding:8px 10px;background:var(--surfaceDeep);border:1px solid var(--borderMuted);border-radius:4px;font:500 14px/20px var(--font-sans);color:var(--textPrimary);white-space:pre-wrap}
+.spec-note{margin:0;font-size:13px;line-height:18px;color:var(--textLabelMuted)}
+.spec-row .md{max-width:none}
+.spec-row .md > :last-child{margin-bottom:0}
+</style>
+</helmet>
+<div class="sxs bg-space" style="width: 1000px; min-height: 1980px; box-sizing: border-box; padding: 40px;">
+  <div class="sxs-panel" style="padding: 32px 40px 16px;">
+    <h1 style="margin: 0 0 6px; font-size: 26px; line-height: 32px; font-weight: 700; text-transform: uppercase; letter-spacing: .02em;">Estilos de Markdown</h1>
+    <p style="margin: 0 0 24px; font-size: 15px; line-height: 22px; color: var(--textMuted);">À esquerda, o que o documento de regras escreve; à direita, como a página desenha. Os estilos valem por elemento, então trocar o texto do documento não muda o layout. Linha de leitura limitada a 68 caracteres.</p>
+
+    <div class="spec-row">
+      <div><p class="spec-src">## Atributos</p><p class="spec-note">h2 · 26/32 · 700 · caixa alta · textPrimary · filete borderMuted · âncora do sumário. Celular: 22/28.</p></div>
+      <div class="md"><h2>Atributos</h2></div>
+    </div>
+
+    <div class="spec-row">
+      <div><p class="spec-src">### Como ler um atributo</p><p class="spec-note">h3 · 20/28 · 700 · textPrimary · também vira sub-item do sumário.</p></div>
+      <div class="md"><h3 style="margin-top: 0;">Como ler um atributo</h3></div>
+    </div>
+
+    <div class="spec-row">
+      <div><p class="spec-src">O **poder** de Agilidade · `AGI` é o número que importa nos testes.</p><p class="spec-note">Parágrafo · 17/1,6 · textMuted (9,9:1 sobre surfaceMuted). **negrito** em textPrimary. `crase` = sigla da ficha, em selo surfaceControl.</p></div>
+      <div class="md"><p>O <strong>poder</strong> de Agilidade · <code>AGI</code> é o número que importa nos testes.</p></div>
+    </div>
+
+    <div class="spec-row">
+      <div><p class="spec-src">- Resistência · `RES`
+- Agilidade · `AGI`</p><p class="spec-note">Lista · marcador em losango (o mesmo desenho dos diagramas), textMuted.</p></div>
+      <div class="md"><ul><li>Resistência · <code>RES</code></li><li>Agilidade · <code>AGI</code></li></ul></div>
+    </div>
+
+    <div class="spec-row">
+      <div><p class="spec-src">1. Preencha o perfil…
+2. Escolha a classe.</p><p class="spec-note">Lista numerada · número em círculo brandAccent, 32 px. Usada nos passos de criação.</p></div>
+      <div class="md"><ol><li>Preencha o perfil: apelido, nome, aniversário…</li><li>Escolha a classe.</li></ol></div>
+    </div>
+
+    <div class="spec-row">
+      <div><p class="spec-src">&gt; Valor de teste = nível da perícia + poder do atributo</p><p class="spec-note">Citação = caixa de fórmula · surfaceDeep, borda borderStrong, rótulo “Fórmula” · 19/28 · 500. Várias linhas = várias fórmulas.</p></div>
+      <div class="md"><blockquote><p>Valor de teste = nível da perícia + poder do atributo</p></blockquote></div>
+    </div>
+
+    <div class="spec-row">
+      <div><p class="spec-src">&gt; [!NOTE]
+&gt; Pôr um ponto em AGI também fortalece Str e Cel.</p><p class="spec-note">Nota / curiosidade · painel surfaceInput, borda 2 px borderInput, rótulo actionAccent (6,3:1). [!NOTE] = “Nota”, [!TIP] = “Curiosidade”. Sem ícone nem emoji.</p></div>
+      <div class="md">
+        <blockquote class="md-alert"><p class="md-alert-title">Nota</p><p>Pôr um ponto em Agilidade · <code>AGI</code> também fortalece Força · <code>Str</code> e Celeridade · <code>Cel</code>.</p></blockquote>
+        <blockquote class="md-alert"><p class="md-alert-title">Curiosidade</p><p>Hoje são 12 classes, de Espadachim a Mestre de Armas.</p></blockquote>
+      </div>
+    </div>
+
+    <div class="spec-row">
+      <div><p class="spec-src">| Atributo médio | Média de |
+|---|---|
+| Força · `Str` | `RES` e `AGI` |</p><p class="spec-note">Tabela · cabeçalho surfaceControl em caixa alta 13 px; linhas alternadas overlayHighlightFaint. Texto quebra dentro da célula. Nunca há rolagem horizontal.</p></div>
+      <div class="md">
+        <div class="md-table"><table><thead><tr><th>Atributo médio</th><th>Média de</th></tr></thead><tbody>
+          <tr><td>Força · <code>Str</code></td><td>Resistência · <code>RES</code> e Agilidade · <code>AGI</code></td></tr>
+          <tr><td>Celeridade · <code>Cel</code></td><td>Agilidade · <code>AGI</code> e Flexibilidade · <code>FLX</code></td></tr>
+        </tbody></table></div>
+      </div>
+    </div>
+
+    <div class="spec-row">
+      <div><p class="spec-src">| Sigla | Na ficha | Nas regras | Tipo |</p><p class="spec-note">Tabela com 3+ colunas em espaço estreito (painel ou celular, abaixo de 560 px): cada linha vira um bloco. A 1ª célula vira título; as outras, “rótulo: valor”, com o rótulo vindo do cabeçalho (o renderizador grava data-label em cada célula). Tabelas de 2 colunas continuam tabela. Nada rola na horizontal.</p></div>
+      <div class="is-mobile" style="width: 326px;"><div class="md">
+        <div class="md-table is-stack"><table><thead><tr><th>Sigla</th><th>Na ficha</th><th>Nas regras</th><th>Tipo</th></tr></thead><tbody>
+          <tr><td data-label="Sigla"><code>RES</code></td><td data-label="Na ficha">Resistance</td><td data-label="Nas regras">Resistência</td><td data-label="Tipo">Físico primário</td></tr>
+          <tr><td data-label="Sigla"><code>Str</code></td><td data-label="Na ficha">Strength</td><td data-label="Nas regras">Força</td><td data-label="Tipo">Físico médio</td></tr>
+        </tbody></table></div>
+      </div></div>
+    </div>
+
+    <div class="spec-row">
+      <div><p class="spec-src">::: ilustracao no-atributo
+::: ilustracao losango-fisico</p><p class="spec-note">Ilustrações · componentes fora do Markdown. O documento só marca onde entram; o desenho fica no código (ver as duas pranchas ao lado).</p></div>
+      <div class="md"><p style="margin: 0; padding: 16px; border: 1px dashed var(--borderLight); border-radius: var(--radius-sm); font-size: 15px; color: var(--textLabelMuted); text-align: center;">Espaço da ilustração · largura da coluna de leitura</p></div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1000,"height":1980}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

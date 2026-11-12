@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Ilustração · nó de atributo anotado</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/systemxsystem/tokens.css">
+<link rel="stylesheet" href="shared/regras.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<figure class="sxs" aria-label="Como ler um atributo: AGI com os números 3, 0 e 7" style="margin: 0; width: 100%; box-sizing: border-box; padding: 20px; background: var(--surfaceDeep); border: 1px solid var(--borderMuted); border-radius: var(--radius-sm); display: flex; flex-wrap: wrap; align-items: center; gap: 20px; font-family: var(--font-sans); color: var(--textPrimary);">
+  <div style="flex: 0 0 auto; width: 116px; display: flex; flex-direction: column; align-items: center; gap: 4px;">
+    <span style="font-size: 11px; line-height: 14px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--textLabelMuted); margin-bottom: 4px;">Na ficha</span>
+    <img src="/_blob/44b48b6327f6bdb1e5c9983efe23bed5" alt="" style="width: 26px; height: 26px; display: block;">
+    <span style="font-size: 26px; line-height: 30px; font-weight: 700;">AGI</span>
+    <span style="display: flex; gap: 8px; font-size: 22px; line-height: 26px; font-weight: 700;"><span>3</span><span style="color: var(--vitalPoints);">0</span><span>7</span></span>
+    <span aria-hidden="true" style="display: block; width: 28px; height: 6px; margin-top: 4px; background: var(--borderLight); border: 1px solid var(--neutral-1000);"></span>
+    <span style="margin-top: 6px; font-size: 13px; line-height: 18px; color: var(--textMuted); white-space: nowrap;">Agilidade · AGI</span>
+  </div>
+  <div style="flex: 1 1 300px; min-width: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px;">
+    <div style="padding: 12px; background: var(--surfaceMuted); border: 1px solid var(--borderMuted); border-radius: var(--radius-sm); display: flex; flex-direction: column; gap: 4px;">
+      <span style="font-size: 30px; line-height: 34px; font-weight: 700;">3</span>
+      <span style="font-size: 15px; line-height: 20px; font-weight: 700;">Nível</span>
+      <span style="font-size: 13px; line-height: 18px; color: var(--textMuted);">Sobe com a experiência.</span>
+    </div>
+    <div style="padding: 12px; background: var(--surfaceMuted); border: 1px solid var(--vitalPoints); border-radius: var(--radius-sm); display: flex; flex-direction: column; gap: 4px;">
+      <span style="font-size: 30px; line-height: 34px; font-weight: 700; color: var(--vitalPoints);">0</span>
+      <span style="font-size: 15px; line-height: 20px; font-weight: 700; color: var(--vitalPoints);">Pontos</span>
+      <span style="font-size: 13px; line-height: 18px; color: var(--textMuted);">Os seus: + põe, − tira.</span>
+    </div>
+    <div style="padding: 12px; background: var(--surfaceMuted); border: 1px solid var(--borderMuted); border-radius: var(--radius-sm); display: flex; flex-direction: column; gap: 4px;">
+      <span style="font-size: 30px; line-height: 34px; font-weight: 700;">7</span>
+      <span style="font-size: 15px; line-height: 20px; font-weight: 700;">Poder</span>
+      <span style="font-size: 13px; line-height: 18px; color: var(--textMuted);">O que conta nos testes.</span>
+    </div>
+  </div>
+  <figcaption style="flex: 1 1 100%; font-size: 13px; line-height: 18px; color: var(--textLabelMuted);">Os três números sob a sigla, da esquerda para a direita: nível · pontos · poder.</figcaption>
+</figure>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":720,"height":330}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
