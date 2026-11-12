@@ -2,6 +2,7 @@ import styled from "styled-components";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { colors } from "../../styles/tokens";
+import { markdownBase } from "../../styles/markdown";
 
 /**
  * Renderer canônico para Profile.description.
@@ -34,26 +35,8 @@ const MarkdownContainer = styled.div`
   tab-size: 4;
   white-space: normal;
 
-  p, ul, ol, blockquote, table { margin: 0 0 1em 0; }
-  h1, h2, h3, h4 { margin: 1em 0 0.5em; line-height: 1.25; }
-  ul, ol { padding-left: 1.5em; }
-  blockquote {
-    border-left: 3px solid ${colors.borderStrong};
-    padding-left: 12px;
-    color: ${colors.textMuted};
-  }
-  table { border-collapse: collapse; }
-  th, td {
-    border: 1px solid ${colors.borderStrong};
-    padding: 6px 10px;
-  }
-  code {
-    background: ${colors.shadowSoft};
-    padding: 1px 5px;
-    border-radius: 3px;
-    font-family: "Courier New", monospace;
-  }
-  a { color: ${colors.brandAccent}; }
+
+  ${markdownBase}
 `;
 
 const EmptyText = styled.p`
