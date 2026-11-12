@@ -1,0 +1,131 @@
+import { useMemo, type ComponentProps, type MouseEvent } from "react";
+import ReactMarkdown, { type Components, type ExtraProps } from "react-markdown";
+import remarkGfm from "remark-gfm";
+import type { Element, ElementContent } from "hast";
+import type { RuleChapter } from "../../types/rules";
+import DiagramBlock from "./DiagramBlock";
+import {
+  classifyBlockquote,
+  hastText,
+  headingId,
+  rehypeChapterHeadings,
+  rehypeTableLabels,
+  resolveDocLink,
+} from "./markdownMapping";
+import { RulesMarkdownContainer } from "./RulesMarkdown.styles";
+
+interface RulesMarkdownProps {
+  chapter: RuleChapter;
+  onNavigate(slug: string, anchor?: string): void;
+  // Slugs que viram navegação no painel; sem a prop, todo link de doc vira.
+  chapterSlugs?: readonly string[];
+}
+
+const isWhitespace = (n: ElementContent) => n.type === "text" && n.value.trim() === "";
+const meaningful = (n: Element) => n.children.filter((c) => c.type !== "comment" && !isWhitespace(c));
+const isElement = (n: ElementContent | undefined, tag: string): n is Element =>
+  n?.type === "element" && n.tagName === tag;
+
+function blockquoteKind(node: Element | undefined) {
+  if (!node) return "plain";
+  const paragraphs = meaningful(node);
+  const first = paragraphs[0];
+  const firstChildren = isElement(first, "p") ? meaningful(first) : [];
+  const firstStrong = isElement(firstChildren[0], "strong");
+  const afterStrong = firstChildren[1];
+  const equalsAfterStrong =
+    firstStrong && afterStrong?.type === "text" && afterStrong.value.trim().startsWith("=");
+  const onlyEmphasis =
+    paragraphs.length > 0 &&
+    paragraphs.every((p) => isElement(p, "p") && meaningful(p).every((c) => isElement(c, "em")));
+  return classifyBlockquote({ firstStrong, onlyEmphasis, equalsAfterStrong });
+}
+
+function codeOf(pre: Element | undefined): Element | undefined {
+  const child = pre?.children.find((c) => isElement(c, "code"));
+  return child && child.type === "element" ? child : undefined;
+}
+
+export default function RulesMarkdown({ chapter, onNavigate, chapterSlugs }: RulesMarkdownProps) {
+  const rehypePlugins = useMemo(
+    () => [rehypeChapterHeadings(chapter.slug), rehypeTableLabels],
+    [chapter.slug],
+  );
+
+  const components = useMemo<Components>(() => {
+    const isChapter = (slug: string) => !chapterSlugs || chapterSlugs.includes(slug);
+
+    return {
+      a({ node: _node, href = "", children, ...rest }: ComponentProps<"a"> & ExtraProps) {
+        const doc = resolveDocLink(href);
+        if (doc && isChapter(doc.slug)) {
+          const target = doc.anchor ? headingId(doc.slug, doc.anchor) : doc.slug;
+          const go = (e: MouseEvent<HTMLAnchorElement>) => {
+            e.preventDefault();
+            onNavigate(doc.slug, doc.anchor);
+          };
+          return (
+            <a {...rest} href={`#${target}`} onClick={go}>
+              {children}
+            </a>
+          );
+        }
+        return (
+          <a {...rest} href={href} target="_blank" rel="noopener noreferrer">
+            {children}
+          </a>
+        );
+      },
+
+      blockquote({ node, className, ...rest }: ComponentProps<"blockquote"> & ExtraProps) {
+        const kind = blockquoteKind(node);
+        const mdClass = kind === "plain" ? undefined : `md-${kind}`;
+        return <blockquote {...rest} className={[className, mdClass].filter(Boolean).join(" ") || undefined} />;
+      },
+
+      pre({ node, children, ...rest }: ComponentProps<"pre"> & ExtraProps) {
+        const code = codeOf(node);
+        const classes = code?.properties.className;
+        const isDiagram = Array.isArray(classes) && classes.includes("language-diagram");
+        if (code && isDiagram) {
+          // O mdast-util-to-hast guarda a info string depois da linguagem em data.meta.
+          const meta = code.data?.meta ?? undefined;
+          return <DiagramBlock meta={meta} fallback={hastText(code).replace(/\n$/, "")} />;
+        }
+        return <pre {...rest}>{children}</pre>;
+      },
+
+      table({ node, className, ...rest }: ComponentProps<"table"> & ExtraProps) {
+        // Com 3+ colunas a tabela empilha em largura estreita; com 2 continua tabela.
+        const columns = node ? countColumns(node) : 0;
+        return (
+          <div className={columns >= 3 ? "md-table is-stack" : "md-table"}>
+            <table {...rest} className={className} />
+          </div>
+        );
+      },
+    };
+  }, [chapterSlugs, onNavigate]);
+
+  return (
+    <RulesMarkdownContainer>
+      <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={rehypePlugins} components={components}>
+        {chapter.markdown}
+      </ReactMarkdown>
+    </RulesMarkdownContainer>
+  );
+}
+
+function countColumns(table: Element): number {
+  const find = (n: Element): Element | undefined => {
+    for (const c of n.children) {
+      if (c.type !== "element") continue;
+      if (c.tagName === "tr") return c;
+      const found = find(c);
+      if (found) return found;
+    }
+    return undefined;
+  };
+  const row = find(table);
+  return row ? row.children.filter((c) => c.type === "element").length : 0;
+}
