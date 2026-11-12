@@ -43,7 +43,12 @@ const Figure = styled.figure`
   border: 1px solid ${colors.borderMuted};
   border-radius: 6px;
   color: ${colors.textPrimary};
+  container: attribute-figure / inline-size;
 `;
+
+// Painel encaixado estreito (≈ 270px úteis no figure a 1024px) ou celular: três cartões lado a lado
+// quebravam "experiência" no meio. Abaixo disso cada cartão vira uma linha: número à esquerda.
+const NARROW = "@container attribute-figure (max-width: 340px)";
 
 const Node = styled.div`
   flex: 0 0 auto;
@@ -78,6 +83,12 @@ const Cards = styled.div`
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
+
+  ${NARROW} {
+    flex-basis: 100%;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
 `;
 
 const Card = styled.div<{ $points: boolean }>`
@@ -88,6 +99,17 @@ const Card = styled.div<{ $points: boolean }>`
   background: ${colors.surfaceMuted};
   border: 1px solid ${({ $points }) => ($points ? colors.vitalPoints : colors.borderMuted)};
   border-radius: 6px;
+  overflow-wrap: normal;
+
+  ${NARROW} {
+    padding: 8px 12px;
+    display: grid;
+    grid-template-columns: 36px 1fr;
+    grid-template-rows: auto auto;
+    column-gap: 12px;
+    row-gap: 0;
+    align-items: center;
+  }
 `;
 
 const CardValue = styled.span<{ $points: boolean }>`
@@ -95,6 +117,11 @@ const CardValue = styled.span<{ $points: boolean }>`
   line-height: 34px;
   font-weight: 700;
   color: ${({ $points }) => ($points ? colors.vitalPoints : colors.textPrimary)};
+
+  ${NARROW} {
+    grid-row: 1 / span 2;
+    text-align: center;
+  }
 `;
 
 const CardTitle = styled.span<{ $points: boolean }>`
