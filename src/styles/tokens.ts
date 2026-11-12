@@ -189,6 +189,16 @@ export const colors = {
   mapPieceFallback: palette.neutral850, // peça sem avatar
   mapPieceLabel: palette.neutral0, // texto sobre a peça (nível, altura)
 
+  // diagram — diagramas de atributos (ficha e painel de regras)
+  diagramPhysical: palette.red600, // luz pintada do losango físico
+  diagramPhysicalWarm: palette.red500, // só dentro do degradê vermelho das bolinhas
+  diagramMental: palette.purple500, // luz pintada do losango mental
+  diagramNen: palette.blue400, // luz pintada dos princípios Nen
+  diagramLight: palette.neutral0, // núcleo da luz (linhas e bolinhas acesas)
+  diagramLightHalo: palette.neutral300, // halo das peças não pintadas
+  diagramLightFadeNear: palette.neutral100, // degradê da bolinha branca, 2ª parada
+  diagramLightFadeFar: palette.neutral200, // degradê da bolinha branca, 3ª parada
+
   // overlay
   overlay: alpha(palette.neutral1000, 0.7),
   overlaySoft: alpha(palette.neutral1000, 0.44),
