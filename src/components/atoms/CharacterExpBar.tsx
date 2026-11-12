@@ -1,6 +1,6 @@
 import styled from "styled-components";
 import { colors } from "../../styles/tokens";
-import BarBubble, { BAR_BUBBLE_FONT_SIZE } from "../ions/BarBubble";
+import BarBubble, { BAR_BUBBLE_FONT_SIZE, BAR_BUBBLE_RIGHT } from "../ions/BarBubble";
 
 interface CharacterExpBarProps {
   currExp: number;
@@ -31,14 +31,15 @@ export default function CharacterExpBar({ currExp, maxExp, level, labelsInToolti
   );
 
   if (labelsInTooltip) {
+    const lvText = `Lv ${level}`;
     return (
-      <Container>
+      <Container $bubbleClearsChars={hasLevel ? lvText.length : undefined}>
         {/* O Lv fica sozinho no canto (sem a margem que o separa do número da EXP); o balão leva
             só os números, sem repetir o Lv que já está na tela. Sem EXP (antes de escolher a
             classe) não há balão. */}
         {hasLevel && (
           <RightLabels>
-            <LvLabel $alone>Lv {level}</LvLabel>
+            <LvLabel $alone>{lvText}</LvLabel>
           </RightLabels>
         )}
         {hasExp ? (
@@ -79,10 +80,25 @@ const labelFontSize = (property: string) => `
   }
 `;
 
-const Container = styled.div`
+/* Afasta o balão para a esquerda do Lv sozinho: a borda do Lv (mesma de RightLabels) + a
+   largura estimada do texto (~0,5 em por caractere na fonte do LvLabel) + um respiro. Em tela
+   muito estreita o balão pode cobrir o Lv, e tudo bem. */
+const bubbleClearsLv = (chars: number) => {
+  const lvWidth = `${chars} * 0.5 * max(4cqi, 10px)`;
+  return `
+    ${BAR_BUBBLE_RIGHT}: calc(12px + ${lvWidth} + 2cqi);
+
+    @container (max-width: 609px) {
+      ${BAR_BUBBLE_RIGHT}: calc(3% + ${lvWidth} + 2cqi);
+    }
+  `;
+};
+
+const Container = styled.div<{ $bubbleClearsChars?: number }>`
   position: relative;
   width: 100%;
   ${labelFontSize(BAR_BUBBLE_FONT_SIZE)}
+  ${({ $bubbleClearsChars }) => ($bubbleClearsChars ? bubbleClearsLv($bubbleClearsChars) : "")}
 `;
 
 const sharedLabelStyles = `
