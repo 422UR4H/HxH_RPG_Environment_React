@@ -2,6 +2,7 @@
 import { http, HttpResponse } from "msw";
 import { campaignApiFixture, campaignSummaryApiFixture } from "./fixtures/campaign";
 import { matchApiFixture } from "./fixtures/match";
+import { sheetRulesFixture } from "./fixtures/rules";
 import { sheetApiFixture, sheetSummaryApiFixture } from "./fixtures/sheet";
 
 const baseUrl = "http://localhost:5000";
@@ -17,6 +18,9 @@ const baseUrl = "http://localhost:5000";
 // overrides must follow the same convention (see src/test/fixtures/*.ts for the audit
 // notes per endpoint).
 export const defaultHandlers = [
+  http.get(`${baseUrl}/rules/character-sheet`, () =>
+    HttpResponse.json({ chapters: sheetRulesFixture }),
+  ),
   http.get(`${baseUrl}/campaigns`, () =>
     HttpResponse.json({ campaigns: [campaignSummaryApiFixture] }),
   ),
