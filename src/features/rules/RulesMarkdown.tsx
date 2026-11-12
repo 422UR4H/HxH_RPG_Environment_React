@@ -1,4 +1,4 @@
-import { useMemo, type ComponentProps, type MouseEvent } from "react";
+import { createContext, useContext, useMemo, type ComponentProps, type MouseEvent } from "react";
 import ReactMarkdown, { type Components, type ExtraProps } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Element, ElementContent } from "hast";
@@ -46,73 +46,87 @@ function codeOf(pre: Element | undefined): Element | undefined {
   return child && child.type === "element" ? child : undefined;
 }
 
+// Navegação lida por contexto: os componentes do Markdown ficam no módulo, com identidade
+// estável. Se mudassem a cada render (onNavigate inline, chapterSlugs novo), o React
+// remontaria a árvore inteira e cada diagrama repetiria a ignição da luz.
+interface NavigationValue {
+  onNavigate(slug: string, anchor?: string): void;
+  chapterSlugs?: readonly string[];
+}
+const NavigationContext = createContext<NavigationValue>({ onNavigate: () => {} });
+
+function RulesLink({ node: _node, href = "", children, ...rest }: ComponentProps<"a"> & ExtraProps) {
+  const { onNavigate, chapterSlugs } = useContext(NavigationContext);
+  const doc = resolveDocLink(href);
+  if (doc && (!chapterSlugs || chapterSlugs.includes(doc.slug))) {
+    const target = doc.anchor ? headingId(doc.slug, doc.anchor) : doc.slug;
+    const go = (e: MouseEvent<HTMLAnchorElement>) => {
+      e.preventDefault();
+      onNavigate(doc.slug, doc.anchor);
+    };
+    return (
+      <a {...rest} href={`#${target}`} onClick={go}>
+        {children}
+      </a>
+    );
+  }
+  return (
+    <a {...rest} href={href} target="_blank" rel="noopener noreferrer">
+      {children}
+    </a>
+  );
+}
+
+function RulesBlockquote({ node, className, ...rest }: ComponentProps<"blockquote"> & ExtraProps) {
+  const kind = blockquoteKind(node);
+  const mdClass = kind === "plain" ? undefined : `md-${kind}`;
+  return <blockquote {...rest} className={[className, mdClass].filter(Boolean).join(" ") || undefined} />;
+}
+
+function RulesPre({ node, children, ...rest }: ComponentProps<"pre"> & ExtraProps) {
+  const code = codeOf(node);
+  const classes = code?.properties.className;
+  const isDiagram = Array.isArray(classes) && classes.includes("language-diagram");
+  if (code && isDiagram) {
+    // O mdast-util-to-hast guarda a info string depois da linguagem em data.meta.
+    const meta = code.data?.meta ?? undefined;
+    return <DiagramBlock meta={meta} fallback={hastText(code).replace(/\n$/, "")} />;
+  }
+  return <pre {...rest}>{children}</pre>;
+}
+
+function RulesTable({ node, className, ...rest }: ComponentProps<"table"> & ExtraProps) {
+  // Com 3+ colunas a tabela empilha em largura estreita; com 2 continua tabela.
+  const columns = node ? countColumns(node) : 0;
+  return (
+    <div className={columns >= 3 ? "md-table is-stack" : "md-table"}>
+      <table {...rest} className={className} />
+    </div>
+  );
+}
+
+const COMPONENTS: Components = {
+  a: RulesLink,
+  blockquote: RulesBlockquote,
+  pre: RulesPre,
+  table: RulesTable,
+};
+
 export default function RulesMarkdown({ chapter, onNavigate, chapterSlugs }: RulesMarkdownProps) {
   const rehypePlugins = useMemo(
     () => [rehypeChapterHeadings(chapter.slug), rehypeTableLabels],
     [chapter.slug],
   );
-
-  const components = useMemo<Components>(() => {
-    const isChapter = (slug: string) => !chapterSlugs || chapterSlugs.includes(slug);
-
-    return {
-      a({ node: _node, href = "", children, ...rest }: ComponentProps<"a"> & ExtraProps) {
-        const doc = resolveDocLink(href);
-        if (doc && isChapter(doc.slug)) {
-          const target = doc.anchor ? headingId(doc.slug, doc.anchor) : doc.slug;
-          const go = (e: MouseEvent<HTMLAnchorElement>) => {
-            e.preventDefault();
-            onNavigate(doc.slug, doc.anchor);
-          };
-          return (
-            <a {...rest} href={`#${target}`} onClick={go}>
-              {children}
-            </a>
-          );
-        }
-        return (
-          <a {...rest} href={href} target="_blank" rel="noopener noreferrer">
-            {children}
-          </a>
-        );
-      },
-
-      blockquote({ node, className, ...rest }: ComponentProps<"blockquote"> & ExtraProps) {
-        const kind = blockquoteKind(node);
-        const mdClass = kind === "plain" ? undefined : `md-${kind}`;
-        return <blockquote {...rest} className={[className, mdClass].filter(Boolean).join(" ") || undefined} />;
-      },
-
-      pre({ node, children, ...rest }: ComponentProps<"pre"> & ExtraProps) {
-        const code = codeOf(node);
-        const classes = code?.properties.className;
-        const isDiagram = Array.isArray(classes) && classes.includes("language-diagram");
-        if (code && isDiagram) {
-          // O mdast-util-to-hast guarda a info string depois da linguagem em data.meta.
-          const meta = code.data?.meta ?? undefined;
-          return <DiagramBlock meta={meta} fallback={hastText(code).replace(/\n$/, "")} />;
-        }
-        return <pre {...rest}>{children}</pre>;
-      },
-
-      table({ node, className, ...rest }: ComponentProps<"table"> & ExtraProps) {
-        // Com 3+ colunas a tabela empilha em largura estreita; com 2 continua tabela.
-        const columns = node ? countColumns(node) : 0;
-        return (
-          <div className={columns >= 3 ? "md-table is-stack" : "md-table"}>
-            <table {...rest} className={className} />
-          </div>
-        );
-      },
-    };
-  }, [chapterSlugs, onNavigate]);
+  const navigation = useMemo(() => ({ onNavigate, chapterSlugs }), [onNavigate, chapterSlugs]);
 
   return (
-    <RulesMarkdownContainer>
-      <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={rehypePlugins} components={components}>
-        {chapter.markdown}
-      </ReactMarkdown>
-    </RulesMarkdownContainer>
+    <NavigationContext.Provider value={navigation}>
+      <RulesMarkdownContainer>
+        <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={rehypePlugins} components={COMPONENTS}>
+          {chapter.markdown}
+        </ReactMarkdown>
+      </RulesMarkdownContainer>
+    </NavigationContext.Provider>
   );
 }
 

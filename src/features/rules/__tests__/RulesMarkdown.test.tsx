@@ -60,6 +60,20 @@ describe("RulesMarkdown", () => {
     expect(container.querySelector("pre")).toBeNull();
   });
 
+  it("keeps the diagram mounted when onNavigate and chapterSlugs change identity", () => {
+    const first = vi.fn();
+    const { rerender } = render(
+      <RulesMarkdown chapter={atributos} chapterSlugs={[...slugs]} onNavigate={(s, a) => first(s, a)} />,
+    );
+    const diagram = screen.getByRole("img");
+    const latest = vi.fn();
+    rerender(<RulesMarkdown chapter={atributos} chapterSlugs={[...slugs]} onNavigate={(s, a) => latest(s, a)} />);
+    expect(screen.getByRole("img")).toBe(diagram);
+    fireEvent.click(screen.getByRole("link", { name: "pontos" }));
+    expect(latest).toHaveBeenCalledWith("atributos", "distribuicao-de-pontos");
+    expect(first).not.toHaveBeenCalled();
+  });
+
   it("renders the attribute-node figure", () => {
     render(<RulesMarkdown chapter={chapterWith("```diagram attribute-node\nAGI\n```")} onNavigate={() => {}} />);
     expect(screen.getByText("AGI")).toBeInTheDocument();

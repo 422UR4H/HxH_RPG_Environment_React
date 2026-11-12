@@ -17,6 +17,15 @@ export function headingId(chapterSlug: string, text: string): string {
   return `${chapterSlug}--${slugify(text)}`;
 }
 
+// Âncora malformada ("#100%") não pode derrubar o render: usa o texto cru.
+function safeDecode(text: string): string {
+  try {
+    return decodeURIComponent(text);
+  } catch {
+    return text;
+  }
+}
+
 // Link relativo para outro doc ("./x.md", "../x.md", "x.md", com "#âncora" opcional).
 // URL com esquema, caminho absoluto ou só "#âncora" não é link de doc.
 export function resolveDocLink(href: string): { slug: string; anchor?: string } | null {
@@ -24,7 +33,7 @@ export function resolveDocLink(href: string): { slug: string; anchor?: string } 
   const match = href.match(/^([^#?]*?)([^/#?]+)\.md(?:#(.*))?$/);
   if (!match) return null;
   const slug = match[2];
-  const anchor = match[3] ? slugify(decodeURIComponent(match[3])) : "";
+  const anchor = match[3] ? slugify(safeDecode(match[3])) : "";
   return anchor ? { slug, anchor } : { slug };
 }
 

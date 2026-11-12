@@ -43,6 +43,11 @@ describe("resolveDocLink", () => {
     });
   });
 
+  it("does not throw on a malformed anchor", () => {
+    expect(() => resolveDocLink("./x.md#100%")).not.toThrow();
+    expect(resolveDocLink("./x.md#100%")).toEqual({ slug: "x", anchor: "100" });
+  });
+
   it("returns null for anything that is not a relative doc link", () => {
     expect(resolveDocLink("https://x.y")).toBeNull();
     expect(resolveDocLink("https://x.y/a.md")).toBeNull();
