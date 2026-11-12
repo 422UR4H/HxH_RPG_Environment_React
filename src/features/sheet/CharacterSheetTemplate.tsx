@@ -18,6 +18,11 @@ import PhysicalSkillsGroup from "./PhysicalSkillsGroup";
 import SpiritualSkillsGroup from "./SpiritualSkillsGroup";
 import ProficienciesList from "./ProficienciesList";
 import SheetBottomActions from "./SheetBottomActions";
+import SheetRulesPanel, { RULES_PANEL_WIDTH } from "../rules/SheetRulesPanel";
+import RulesHelpButton from "../rules/RulesHelpButton";
+import { useRulesPanel } from "../rules/useRulesPanel";
+import useMediaQuery from "../../hooks/useMediaQuery";
+import { breakpoints } from "../../styles/breakpoints";
 import { colors, gradients, alpha } from "../../styles/tokens";
 
 interface Data {
@@ -44,7 +49,11 @@ interface Data {
   submitLabel?: string;
   submitError?: string | null;
   manage?: ManageActions;
+  /** Primeiro personagem: abre as regras em "Criação" sozinho, uma vez por montagem. */
+  autoOpenRules?: boolean;
 }
+
+const DOCKED_QUERY = `(min-width: ${breakpoints.railUp}px)`;
 
 interface CharacterSheetTemplateProps {
   sheetMode: SheetMode;
@@ -71,6 +80,7 @@ function CharacterSheetTemplate({
     submitLabel,
     submitError,
     manage,
+    autoOpenRules,
   },
   sheetMode,
 }: CharacterSheetTemplateProps) {
@@ -81,6 +91,31 @@ function CharacterSheetTemplate({
     if (submitError) submitErrorRef.current?.scrollIntoView?.({ block: "center", behavior: "smooth" });
   }, [submitError]);
   const notFoundBack = { label: "Voltar para personagens", to: "/charactersheets" };
+
+  // Painel de regras: a URL diz se está aberto; na partida (embutida) ele não existe.
+  const rules = useRulesPanel();
+  const rulesSlug = embedded ? null : rules.openSlug;
+  const docked = useMediaQuery(DOCKED_QUERY);
+  const helpRef = useRef<HTMLButtonElement>(null);
+
+  // Fechou (X, Esc, "?" ou voltar do navegador): o foco volta para o "?".
+  const wasOpenRef = useRef(false);
+  useEffect(() => {
+    if (wasOpenRef.current && !rulesSlug) helpRef.current?.focus();
+    wasOpenRef.current = !!rulesSlug;
+  }, [rulesSlug]);
+
+  // Uma vez por montagem, e só se a URL ainda não pede um capítulo.
+  const autoOpenedRef = useRef(false);
+  const { open: openRules, openSlug } = rules;
+  useEffect(() => {
+    if (embedded || !autoOpenRules || autoOpenedRef.current) return;
+    autoOpenedRef.current = true;
+    if (!openSlug) openRules("criacao");
+  }, [embedded, autoOpenRules, openSlug, openRules]);
+
+  const toggleRules = () =>
+    rulesSlug ? rules.close() : rules.open(rules.lastSlug ?? "atributos");
 
   if (isLoading) {
     return embedded ? (
@@ -168,180 +203,235 @@ function CharacterSheetTemplate({
   const isEdit = sheetMode.diagramsMode !== "view";
   const hasPrinciples = (spiritualAbility?.level ?? 0) > 0;
 
+  const helpButton = !embedded && (
+    <HelpAnchor $distribute={isEdit}>
+      <RulesHelpButton
+        ref={helpRef}
+        open={!!rulesSlug}
+        onToggle={toggleRules}
+        size={docked ? "desktop" : "mobile"}
+      />
+    </HelpAnchor>
+  );
+
   return (
-    <SheetContainer>
-      {!embedded && <BackButton />}
+    <SheetPage $rulesDocked={!!rulesSlug && docked}>
+      <SheetContainer>
+        {!embedded && <BackButton />}
 
-      <CharacterSheetHeader
-        mode={sheetMode.headerMode}
-        data={{
-          charSheet: shown,
-          setCharSheet,
-          charClasses,
-          onAvatarSelected,
-          onCoverSelected,
-        }}
-      />
+        <CharacterSheetHeader
+          mode={sheetMode.headerMode}
+          data={{
+            charSheet: shown,
+            setCharSheet,
+            charClasses,
+            onAvatarSelected,
+            onCoverSelected,
+          }}
+        />
 
-      <CharacterProfile
-        mode={sheetMode.profileMode}
-        charSheet={charSheet}
-        setCharSheet={setCharSheet}
-      />
+        <CharacterProfile
+          mode={sheetMode.profileMode}
+          charSheet={charSheet}
+          setCharSheet={setCharSheet}
+        />
 
-      <MainContent
-        $hasBottomActions={
-          !embedded &&
-          sheetMode.headerMode === "view" &&
-          !!(
-            onCampaignClick ||
-            manage ||
-            onAcceptSubmission ||
-            onRejectSubmission
-          )
-        }
-      >
-        <GridSection>
-          <AttributesSection>
-            <SectionTitle>ATRIBUTOS</SectionTitle>
-            <GoldenSpacer {...spacerProps("titleToPhysical", isEdit)} />
-            <PhysicalsDiagram
-              key={`physical-${charSheet?.characterClass ?? "none"}`}
-              mode={sheetMode.diagramsMode}
-              attributes={physicalAttributes}
-              physicalAbility={physicalAbility}
-              onAttributePointsChange={(name, delta) =>
-                setCharSheet?.(
-                  withAttributePointsChanged(charSheet, "physicalAttributes", name, delta),
-                )
-              }
-            />
-            <GoldenSpacer {...spacerProps("physicalToMental", isEdit)} />
-            <MentalsDiagram
-              key={`mental-${charSheet?.characterClass ?? "none"}`}
-              mode={sheetMode.diagramsMode}
-              attributes={mentalAttributes}
-              mentalAbility={mentalAbility}
-              onAttributePointsChange={(name, delta) =>
-                setCharSheet?.(
-                  withAttributePointsChanged(charSheet, "mentalAttributes", name, delta),
-                )
-              }
-            />
-
-            {hasPrinciples && (
-              <>
-                <GoldenSpacer {...spacerProps("mentalToPrinciples", isEdit)} />
-                <SectionTitle>PRINCÍPIOS</SectionTitle>
-                <GoldenSpacer {...spacerProps("titleToPrinciples", isEdit)} />
-                <NenPrinciplesDiagram
+        <MainContent
+          $hasBottomActions={
+            !embedded &&
+            sheetMode.headerMode === "view" &&
+            !!(
+              onCampaignClick ||
+              manage ||
+              onAcceptSubmission ||
+              onRejectSubmission
+            )
+          }
+        >
+          <GridSection>
+            <AttributesSection>
+              <SectionTitle>ATRIBUTOS</SectionTitle>
+              {!isEdit && helpButton}
+              <GoldenSpacer {...spacerProps("titleToPhysical", isEdit)} />
+              <PhysicalSlot>
+                {isEdit && helpButton}
+                <PhysicalsDiagram
+                  key={`physical-${charSheet?.characterClass ?? "none"}`}
                   mode={sheetMode.diagramsMode}
-                  principles={principles}
-                  spiritualAbility={spiritualAbility}
+                  attributes={physicalAttributes}
+                  physicalAbility={physicalAbility}
+                  onAttributePointsChange={(name, delta) =>
+                    setCharSheet?.(
+                      withAttributePointsChanged(charSheet, "physicalAttributes", name, delta),
+                    )
+                  }
                 />
-              </>
-            )}
-            <GoldenSpacer
-              {...spacerProps(
-                hasPrinciples ? "endAfterPrinciples" : "endAfterMental",
-                isEdit,
-              )}
-            />
-          </AttributesSection>
-
-          <SkillsSection>
-            <SectionTitle>PERÍCIAS</SectionTitle>
-
-            <SkillsGroup>
-              <GroupTitle>Physical</GroupTitle>
-              <PhysicalSkillsGroup
-                mode={sheetMode.skillsMode}
-                attributes={physicalAttributes}
-                skills={physicalSkills}
+              </PhysicalSlot>
+              <GoldenSpacer {...spacerProps("physicalToMental", isEdit)} />
+              <MentalsDiagram
+                key={`mental-${charSheet?.characterClass ?? "none"}`}
+                mode={sheetMode.diagramsMode}
+                attributes={mentalAttributes}
+                mentalAbility={mentalAbility}
+                onAttributePointsChange={(name, delta) =>
+                  setCharSheet?.(
+                    withAttributePointsChanged(charSheet, "mentalAttributes", name, delta),
+                  )
+                }
               />
-            </SkillsGroup>
 
-            {(spiritualAbility?.level ?? 0) > 0 && (
+              {hasPrinciples && (
+                <>
+                  <GoldenSpacer {...spacerProps("mentalToPrinciples", isEdit)} />
+                  <SectionTitle>PRINCÍPIOS</SectionTitle>
+                  <GoldenSpacer {...spacerProps("titleToPrinciples", isEdit)} />
+                  <NenPrinciplesDiagram
+                    mode={sheetMode.diagramsMode}
+                    principles={principles}
+                    spiritualAbility={spiritualAbility}
+                  />
+                </>
+              )}
+              <GoldenSpacer
+                {...spacerProps(
+                  hasPrinciples ? "endAfterPrinciples" : "endAfterMental",
+                  isEdit,
+                )}
+              />
+            </AttributesSection>
+
+            <SkillsSection>
+              <SectionTitle>PERÍCIAS</SectionTitle>
+
               <SkillsGroup>
-                <GroupTitle>Spiritual</GroupTitle>
-                <SpiritualSkillsGroup
+                <GroupTitle>Physical</GroupTitle>
+                <PhysicalSkillsGroup
                   mode={sheetMode.skillsMode}
-                  attributes={spiritualAttributes}
-                  skills={spiritualSkills}
+                  attributes={physicalAttributes}
+                  skills={physicalSkills}
                 />
               </SkillsGroup>
-            )}
-          </SkillsSection>
-        </GridSection>
 
-        <ProficienciesSection>
-          <SectionTitle>Proficiências</SectionTitle>
-          <ProficienciesList
-            key={charSheet?.characterClass ?? "none"}
-            mode={sheetMode.proficiencyMode}
-            commonProfs={commonProficiencies}
-            jointProfs={jointProficiencies}
-            distribution={
-              sheetMode.proficiencyMode === "create"
-                ? selectedClass?.distribution
-                : undefined
-            }
-            charSheet={
-              sheetMode.proficiencyMode === "create" ? charSheet : undefined
-            }
-            setCharSheet={
-              sheetMode.proficiencyMode === "create" ? setCharSheet : undefined
-            }
-          />
-        </ProficienciesSection>
-
-        {!embedded && sheetMode.headerMode === "view" && (onCampaignClick || manage) && (
-          <SheetBottomActions
-            onCampaignClick={onCampaignClick}
-            campaignLabel={hasCampaign ? "Ver Campanha" : "Procurar Campanhas"}
-            manage={manage}
-          />
-        )}
-
-        {!embedded &&
-          sheetMode.headerMode === "view" &&
-          (onAcceptSubmission || onRejectSubmission) && (
-            <SubmissionActionsWrapper>
-              {onRejectSubmission && (
-                <RejectButton onClick={onRejectSubmission}>
-                  Rejeitar
-                </RejectButton>
+              {(spiritualAbility?.level ?? 0) > 0 && (
+                <SkillsGroup>
+                  <GroupTitle>Spiritual</GroupTitle>
+                  <SpiritualSkillsGroup
+                    mode={sheetMode.skillsMode}
+                    attributes={spiritualAttributes}
+                    skills={spiritualSkills}
+                  />
+                </SkillsGroup>
               )}
-              {onAcceptSubmission && (
-                <AcceptButton onClick={onAcceptSubmission}>
-                  Aceitar
-                </AcceptButton>
-              )}
-            </SubmissionActionsWrapper>
+            </SkillsSection>
+          </GridSection>
+
+          <ProficienciesSection>
+            <SectionTitle>Proficiências</SectionTitle>
+            <ProficienciesList
+              key={charSheet?.characterClass ?? "none"}
+              mode={sheetMode.proficiencyMode}
+              commonProfs={commonProficiencies}
+              jointProfs={jointProficiencies}
+              distribution={
+                sheetMode.proficiencyMode === "create"
+                  ? selectedClass?.distribution
+                  : undefined
+              }
+              charSheet={
+                sheetMode.proficiencyMode === "create" ? charSheet : undefined
+              }
+              setCharSheet={
+                sheetMode.proficiencyMode === "create" ? setCharSheet : undefined
+              }
+            />
+          </ProficienciesSection>
+
+          {!embedded && sheetMode.headerMode === "view" && (onCampaignClick || manage) && (
+            <SheetBottomActions
+              onCampaignClick={onCampaignClick}
+              campaignLabel={hasCampaign ? "Ver Campanha" : "Procurar Campanhas"}
+              manage={manage}
+            />
           )}
 
-        {!embedded &&
-          (sheetMode.headerMode === "create" ||
-            sheetMode.headerMode === "edit-profile") && (
-          <CreateSheetArea>
-            {submitError && <SubmitErrorText ref={submitErrorRef} role="alert">{submitError}</SubmitErrorText>}
-            <SheetButtonsRow>
-              {onCancel && (
-                <CancelButton onClick={onCancel}>Cancelar</CancelButton>
-              )}
-              {onCreateSheet && (
-                <CreateSheetButton onClick={onCreateSheet}>
-                  {submitLabel ?? "+ Criar Ficha"}
-                </CreateSheetButton>
-              )}
-            </SheetButtonsRow>
-          </CreateSheetArea>
-        )}
-      </MainContent>
-    </SheetContainer>
+          {!embedded &&
+            sheetMode.headerMode === "view" &&
+            (onAcceptSubmission || onRejectSubmission) && (
+              <SubmissionActionsWrapper>
+                {onRejectSubmission && (
+                  <RejectButton onClick={onRejectSubmission}>
+                    Rejeitar
+                  </RejectButton>
+                )}
+                {onAcceptSubmission && (
+                  <AcceptButton onClick={onAcceptSubmission}>
+                    Aceitar
+                  </AcceptButton>
+                )}
+              </SubmissionActionsWrapper>
+            )}
+
+          {!embedded &&
+            (sheetMode.headerMode === "create" ||
+              sheetMode.headerMode === "edit-profile") && (
+            <CreateSheetArea>
+              {submitError && <SubmitErrorText ref={submitErrorRef} role="alert">{submitError}</SubmitErrorText>}
+              <SheetButtonsRow>
+                {onCancel && (
+                  <CancelButton onClick={onCancel}>Cancelar</CancelButton>
+                )}
+                {onCreateSheet && (
+                  <CreateSheetButton onClick={onCreateSheet}>
+                    {submitLabel ?? "+ Criar Ficha"}
+                  </CreateSheetButton>
+                )}
+              </SheetButtonsRow>
+            </CreateSheetArea>
+          )}
+        </MainContent>
+      </SheetContainer>
+      {rulesSlug && (
+        <SheetRulesPanel
+          startSlug={rulesSlug}
+          onClose={rules.close}
+          onChapterChange={rules.setLastSlug}
+        />
+      )}
+    </SheetPage>
   );
 }
 export default CharacterSheetTemplate;
+
+/* Com o painel encaixado (≥ railUp) a ficha encolhe ao lado dele em vez de ficar coberta. */
+const SheetPage = styled.div<{ $rulesDocked: boolean }>`
+  padding-right: ${({ $rulesDocked }) => ($rulesDocked ? RULES_PANEL_WIDTH : "0")};
+`;
+
+/* Só ancora o "?" no diagrama físico; não muda o fluxo (item flex com a mesma largura dele). */
+const PhysicalSlot = styled.div`
+  position: relative;
+  width: 100%;
+`;
+
+/* O "?" fica no canto direito da coluna ATRIBUTOS, fora do fluxo (título e diagramas não se
+   mexem), centrado na vertical de uma faixa:
+   - ver: a linha do título (8cqi de fonte, line-height 1);
+   - distribuir: o bloco "Pontos para Distribuir" do PhysicalsDiagram (duas linhas de 8cqi, com
+     top -20cqi, ou -17cqi abaixo de 590px, sob a margem de 16cqi do diagrama). Se o diagrama
+     mudar essas medidas, este bloco muda junto. */
+const HelpAnchor = styled.div<{ $distribute: boolean }>`
+  position: absolute;
+  z-index: 1;
+  right: 0;
+  display: flex;
+  align-items: center;
+  top: ${({ $distribute }) => ($distribute ? "-4cqi" : "0")};
+  height: ${({ $distribute }) => ($distribute ? "16cqi" : "8cqi")};
+
+  @media (max-width: 589px) {
+    top: ${({ $distribute }) => ($distribute ? "-1cqi" : "0")};
+  }
+`;
 
 const SheetContainer = styled.div`
   container-type: inline-size;
@@ -407,6 +497,8 @@ const GroupTitle = styled.h3`
 
 const AttributesSection = styled.section`
   container-type: inline-size;
+  /* Referência do "?" das regras (absoluto). */
+  position: relative;
   margin-top: 12px;
   /* Sem padding-bottom: o respiro do fim da coluna é o último GoldenSpacer. */
 

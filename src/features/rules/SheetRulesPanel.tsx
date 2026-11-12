@@ -29,6 +29,9 @@ import {
 /** Largura do painel encaixado (≥ railUp); a ficha encolhe por ela. */
 export const RULES_PANEL_WIDTH = "clamp(400px, 35vw, 520px)";
 
+/** Id do painel, para o "?" que o abre apontar para ele (`aria-controls`). */
+export const RULES_PANEL_ID = "sheet-rules-panel";
+
 export interface SheetRulesPanelProps {
   startSlug: string;
   onClose(): void;
@@ -136,7 +139,7 @@ export default function SheetRulesPanel({ startSlug, onClose, onChapterChange }:
     : ({ as: "div", role: "dialog", "aria-modal": true } as const);
 
   return (
-    <Panel ref={panelRef} {...a11y} $docked={docked}
+    <Panel ref={panelRef} id={RULES_PANEL_ID} {...a11y} $docked={docked}
       $width={RULES_PANEL_WIDTH}
       aria-labelledby={TITLE_ID} onKeyDown={trapFocus}>
       <Header>
