@@ -1,10 +1,13 @@
-import MentalLozengeSVG from "../../assets/diagrams/physical_lozange.svg";
 import PlusButton from "../../components/ions/PlusButton";
 import { type Ability, type Attribute } from "../../types/characterSheet.ts";
 import type { DiagramsMode } from "./types/diagramsMode.ts";
 import styled from "styled-components";
 import MinusButton from "../../components/ions/MinusButton.tsx";
 import { colors } from "../../styles/tokens";
+import GlowDiagram from "../diagrams/GlowDiagram";
+import { MENTAL_GEOMETRY } from "../diagrams/geometry";
+import type { PaintSpec } from "../diagrams/paint";
+import AttributeNode, { AttributeLabel } from "./AttributeNode";
 
 interface MentalsDiagramProps {
   mode: DiagramsMode;
@@ -14,6 +17,9 @@ interface MentalsDiagramProps {
   /** Pede ao dono da ficha que some `delta` aos pontos do atributo; o diagrama não muta `attributes`. */
   onAttributePointsChange?: (name: string, delta: 1 | -1) => void;
   mentalAbility?: Ability;
+  /** "rules": só as siglas, nas posições da visualização (painel de regras). */
+  variant?: "sheet" | "rules";
+  paint?: PaintSpec;
 }
 
 const MentalsDiagram = ({
@@ -21,7 +27,13 @@ const MentalsDiagram = ({
   attributes = {},
   onAttributePointsChange,
   mentalAbility = { level: 0, bonus: 0 },
+  variant = "sheet",
+  paint = "all",
 }: MentalsDiagramProps) => {
+  const isRules = variant === "rules";
+  // A variante de regras usa o layout da visualização mesmo num modo de distribuição.
+  const isDistributeMode =
+    !isRules && (mode === "distribute" || mode === "create" || mode === "edit");
   const spent = Object.values(attributes).reduce((sum, a) => sum + (a?.points || 0), 0);
   // Derivado a cada render (ver PhysicalsDiagram): nada de contador guardado.
   const distributionPoints = (mentalAbility?.level || 0) - spent;
@@ -48,7 +60,7 @@ const MentalsDiagram = ({
   ];
   let marginTop;
   let marginBottom;
-  if (mode === "distribute" || mode === "create" || mode === "edit") {
+  if (isDistributeMode) {
     marginTop = "16cqi";
     marginBottom = "16cqi";
 
@@ -59,24 +71,25 @@ const MentalsDiagram = ({
   return (
     <DiagramContainer $marginTop={marginTop} $marginBottom={marginBottom}>
       <DiagramWrapper>
-        {(mode === "distribute" || mode === "create" || mode === "edit") && (
+        {isDistributeMode && (
           <Distribution>
             Pontos para Distribuir: <DistributionPoints>{distributionPoints}</DistributionPoints>
           </Distribution>
         )}
 
         <SVGContainer>
-          {/* <MentalLozengeSVG /> */}
-          <img src={MentalLozengeSVG} alt="Mentals Diagram" />
+          <GlowDiagram geometry={MENTAL_GEOMETRY} color="mental" paint={paint} />
         </SVGContainer>
 
-        <MentalAbility>
-          <MentalLabel>MENTAL</MentalLabel>
-          <MentalNumbers>
-            <MentalLevel>{mentalAbility?.level}</MentalLevel>
-            <MentalBonus>{mentalAbility?.bonus}</MentalBonus>
-          </MentalNumbers>
-        </MentalAbility>
+        {!isRules && (
+          <MentalAbility>
+            <MentalLabel>MENTAL</MentalLabel>
+            <MentalNumbers>
+              <MentalLevel>{mentalAbility?.level}</MentalLevel>
+              <MentalBonus>{mentalAbility?.bonus}</MentalBonus>
+            </MentalNumbers>
+          </MentalAbility>
+        )}
 
         {attributePositions.map((pos) => {
           const attr = attributes[pos.name];
@@ -91,26 +104,25 @@ const MentalsDiagram = ({
                 top: pos.y,
               }}
             >
-              {(mode === "distribute" ||
-                mode === "create" ||
-                mode === "edit") && (
+              {isDistributeMode && (
                 <PlusButton
                   isDisabled={!canIncrement}
                   onClick={() => incAttributePoints(pos.name)}
                 />
               )}
 
-              <AttributeLabel>{pos.key}</AttributeLabel>
-              <AttributeNumbers>
-                <AttributeLevel>{attr?.level || 0}</AttributeLevel>
-                <AttributePoints>{attr?.points || 0}</AttributePoints>
-                {/* <AttributeLevel>Nv.{attr.level}</AttributeLevel> */}
-                <AttributePower>{attr?.power || 0}</AttributePower>
-              </AttributeNumbers>
+              {isRules ? (
+                <AttributeLabel>{pos.key}</AttributeLabel>
+              ) : (
+                <AttributeNode
+                  label={pos.key}
+                  level={attr?.level || 0}
+                  points={attr?.points || 0}
+                  power={attr?.power || 0}
+                />
+              )}
 
-              {(mode === "distribute" ||
-                mode === "create" ||
-                mode === "edit") && (
+              {isDistributeMode && (
                 <MinusButton
                   isDisabled={!canDecrement}
                   onClick={() => decAttributePoints(pos.name)}
@@ -156,12 +168,7 @@ const SVGContainer = styled.div`
   left: 0;
   width: 100%;
   height: 100%;
-
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain; /* Isso garante que a imagem mantenha sua proporção */
-  }
+  overflow: visible;
 
   svg {
     width: 100%;
@@ -229,37 +236,4 @@ const AttributeMarker = styled.div`
   align-items: center;
   justify-content: center;
   z-index: 2;
-`;
-
-const AttributeLabel = styled.div`
-  font-family: "Roboto", sans-serif;
-  font-weight: bold;
-  font-size: min(7.4cqi, 32px);
-  padding: 2px 0px;
-  margin-top: 0.4cqi;
-  border-radius: 4px;
-`;
-
-const AttributeNumbers = styled.div`
-  display: flex;
-  gap: 1.2cqi;
-  font-size: 5.8cqi;
-`;
-
-const AttributePoints = styled.div`
-  font-family: "Roboto", sans-serif;
-  font-weight: bold;
-  color: ${colors.vitalPoints};
-  align-items: center;
-  justify-content: center;
-`;
-
-const AttributeLevel = styled.div`
-  font-family: "Roboto", sans-serif;
-  font-weight: bold;
-`;
-
-const AttributePower = styled.div`
-  font-family: "Roboto", sans-serif;
-  font-weight: bold;
 `;

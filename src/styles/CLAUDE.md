@@ -67,7 +67,7 @@ O teste `src/styles/__tests__/noRawColors.test.ts` aplica isso: falha com cor cr
 ## Exceções (allowlist do teste)
 
 - **Zona pixel-tuned** (`src/components/CLAUDE.md`): `CharacterSheetHeader`, `MentalsDiagram`,
-  `PhysicalsDiagram`, `NenPrinciplesDiagram`. Valores ajustados à mão; não normalizar.
+  `PhysicalsDiagram`, `NenPrinciplesDiagram`, `AttributeNode`. Valores ajustados à mão; não normalizar.
 - **Cor de grade do mapa** (`defaultMap.ts`, `TacticalMapDemoPage.tsx`, `useActionComposerState.ts`):
   é **dado** persistido no backend, não tema da UI.
 

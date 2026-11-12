@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type CSSProperties, type JSX, type ReactElement } from "react";
+import { memo, useEffect, useId, useMemo, useRef, useState, type CSSProperties, type JSX, type ReactElement } from "react";
 import styled, { keyframes } from "styled-components";
 import { colors } from "../../styles/tokens";
 import { prefersReducedMotion } from "../../utils/prefersReducedMotion";
@@ -111,18 +111,13 @@ const noise = (seed: number, i: number) => {
 
 const vars = (v: Record<string, string | number>) => v as CSSProperties;
 
-export default function GlowDiagram({ geometry, color, paint = "all", label }: GlowDiagramProps): JSX.Element {
+function GlowDiagram({ geometry, color, paint = "all", label }: GlowDiagramProps): JSX.Element {
   const rawId = useId();
   const id = rawId.replace(/[^a-zA-Z0-9]/g, "");
   const seed = hashSeed(rawId);
   const svgRef = useRef<SVGSVGElement>(null);
   const [reduced] = useState(prefersReducedMotion);
   const [visible, setVisible] = useState(true);
-
-  const resolved = resolvePaint(geometry, paint);
-  const hue = HUE[color];
-  const byId = new Map(geometry.nodes.map((n) => [n.id, n]));
-  const widen = !resolved.all;
 
   // Fora da tela: pausa as animações CSS e o inchaço.
   useEffect(() => {
@@ -157,6 +152,38 @@ export default function GlowDiagram({ geometry, color, paint = "all", label }: G
       svg.querySelectorAll(".swell").forEach((b) => b.classList.remove("swell"));
     };
   }, [reduced, visible, geometry]);
+
+  // A ficha re-renderiza a cada tecla: o desenho só muda com geometria, pintura, cor ou id.
+  const content = useMemo(() => drawDiagram(geometry, color, paint, id, seed), [geometry, color, paint, id, seed]);
+
+  return (
+    <Svg
+      ref={svgRef}
+      viewBox={geometry.viewBox}
+      overflow="visible"
+      data-motion={reduced ? "off" : "on"}
+      data-paused={visible ? undefined : "true"}
+      {...(label ? { role: "img", "aria-label": label } : { "aria-hidden": true })}
+    >
+      {content}
+    </Svg>
+  );
+}
+
+export default memo(GlowDiagram);
+
+// Desenho puro do diagrama (defs, camadas de luz e núcleo); memorizado no componente.
+function drawDiagram(
+  geometry: DiagramGeometry,
+  color: DiagramColor,
+  paint: PaintSpec,
+  id: string,
+  seed: number,
+): JSX.Element {
+  const resolved = resolvePaint(geometry, paint);
+  const hue = HUE[color];
+  const byId = new Map(geometry.nodes.map((n) => [n.id, n]));
+  const widen = !resolved.all;
 
   const ref = (name: string) => `url(#${id}-${name})`;
   const beadFill = (painted: boolean) => (painted ? ref("bead") : ref("bead-light"));
@@ -262,107 +289,100 @@ export default function GlowDiagram({ geometry, color, paint = "all", label }: G
   );
 
   return (
-    <Svg
-      ref={svgRef}
-      viewBox={geometry.viewBox}
-      overflow="visible"
-      data-motion={reduced ? "off" : "on"}
-      data-paused={visible ? undefined : "true"}
-      {...(label ? { role: "img", "aria-label": label } : { "aria-hidden": true })}
-    >
-      <defs>
-        <filter id={`${id}-blur-core`} x="-100%" y="-100%" width="300%" height="300%">
-          <feGaussianBlur stdDeviation={CORE_SOFT_BLUR} />
-        </filter>
-        {GLOW_LAYERS.map((layer, li) => (
-          <filter
-            key={li}
-            id={`${id}-blur${li}`}
-            x={`${-layer.region * 100}%`}
-            y={`${-layer.region * 100}%`}
-            width={`${(1 + 2 * layer.region) * 100}%`}
-            height={`${(1 + 2 * layer.region) * 100}%`}
-          >
-            <feGaussianBlur stdDeviation={layer.blur} />
+    <>
+        <defs>
+          <filter id={`${id}-blur-core`} x="-100%" y="-100%" width="300%" height="300%">
+            <feGaussianBlur stdDeviation={CORE_SOFT_BLUR} />
           </filter>
-        ))}
-        <radialGradient id={`${id}-bead`}>{renderStops(beadStops(color))}</radialGradient>
-        <radialGradient id={`${id}-bead-light`}>{renderStops(WHITE_BEAD_STOPS)}</radialGradient>
-        <radialGradient id={`${id}-center`}>{renderStops(CENTER_STOPS)}</radialGradient>
-        {/* degradê da cor ao longo da linha: forte na bolinha, some no fim do vazamento */}
-        {resolved.bleeds.map((bl, bi) => (
-          <linearGradient
-            key={bi}
-            id={`${id}-bleed${bi}`}
-            gradientUnits="userSpaceOnUse"
-            x1={bl.from.x}
-            y1={bl.from.y}
-            x2={bl.to.x}
-            y2={bl.to.y}
-          >
-            {renderStops(BLEED_STOPS(hue))}
-          </linearGradient>
-        ))}
-      </defs>
-      <g className="glow">{layers}</g>
-      {/* núcleo: corpo da esfera, depois o filamento branco (formas e linhas), depois o miolo */}
-      {geometry.nodes.map((n, i) => coreDot(n, i, n.r, beadFill(resolved.isNodePainted(n.id)), `body${n.id}`))}
-      {geometry.shapes.map((s, si) =>
-        s.kind === "ellipse" ? (
-          <g key={`cs${si}`}>
-            <ellipse
-              cx={s.cx}
-              cy={s.cy}
-              rx={s.rx}
-              ry={s.ry}
-              fill="none"
-              stroke={LIGHT}
-              strokeWidth={CORE_SOFT_LINE_WIDTH}
-              strokeOpacity={CORE_SOFT_LINE_OPACITY}
-              filter={ref("blur-core")}
-            />
-            <ellipse cx={s.cx} cy={s.cy} rx={s.rx} ry={s.ry} fill="none" stroke={LIGHT} strokeWidth={CORE_LINE_WIDTH} />
-          </g>
-        ) : (
-          <path key={`cs${si}`} d={s.d} fill={LIGHT} />
-        ),
-      )}
-      {geometry.segments.map(([a, b], i) => {
-        const A = byId.get(a)!;
-        const B = byId.get(b)!;
-        const style = vars({
-          "--len": Math.hypot(B.x - A.x, B.y - A.y),
-          "--d0": `${i * IGNITION_STAGGER_SECONDS}s`,
-        });
-        return (
-          <g key={`cl${a}-${b}`}>
-            <line
-              className="core-line"
-              x1={A.x}
-              y1={A.y}
-              x2={B.x}
-              y2={B.y}
-              stroke={LIGHT}
-              strokeWidth={CORE_SOFT_LINE_WIDTH}
-              strokeOpacity={CORE_SOFT_LINE_OPACITY}
-              filter={ref("blur-core")}
-              style={style}
-            />
-            <line
-              className="core-line"
-              x1={A.x}
-              y1={A.y}
-              x2={B.x}
-              y2={B.y}
-              stroke={LIGHT}
-              strokeWidth={CORE_LINE_WIDTH}
-              style={style}
-            />
-          </g>
-        );
-      })}
-      {geometry.nodes.map((n, i) => coreDot(n, i, n.r * CORE_CENTER_SCALE, ref("center"), `center${n.id}`))}
-    </Svg>
+          {GLOW_LAYERS.map((layer, li) => (
+            <filter
+              key={li}
+              id={`${id}-blur${li}`}
+              x={`${-layer.region * 100}%`}
+              y={`${-layer.region * 100}%`}
+              width={`${(1 + 2 * layer.region) * 100}%`}
+              height={`${(1 + 2 * layer.region) * 100}%`}
+            >
+              <feGaussianBlur stdDeviation={layer.blur} />
+            </filter>
+          ))}
+          <radialGradient id={`${id}-bead`}>{renderStops(beadStops(color))}</radialGradient>
+          <radialGradient id={`${id}-bead-light`}>{renderStops(WHITE_BEAD_STOPS)}</radialGradient>
+          <radialGradient id={`${id}-center`}>{renderStops(CENTER_STOPS)}</radialGradient>
+          {/* degradê da cor ao longo da linha: forte na bolinha, some no fim do vazamento */}
+          {resolved.bleeds.map((bl, bi) => (
+            <linearGradient
+              key={bi}
+              id={`${id}-bleed${bi}`}
+              gradientUnits="userSpaceOnUse"
+              x1={bl.from.x}
+              y1={bl.from.y}
+              x2={bl.to.x}
+              y2={bl.to.y}
+            >
+              {renderStops(BLEED_STOPS(hue))}
+            </linearGradient>
+          ))}
+        </defs>
+        <g className="glow">{layers}</g>
+        {/* núcleo: corpo da esfera, depois o filamento branco (formas e linhas), depois o miolo */}
+        {geometry.nodes.map((n, i) => coreDot(n, i, n.r, beadFill(resolved.isNodePainted(n.id)), `body${n.id}`))}
+        {geometry.shapes.map((s, si) =>
+          s.kind === "ellipse" ? (
+            <g key={`cs${si}`}>
+              <ellipse
+                cx={s.cx}
+                cy={s.cy}
+                rx={s.rx}
+                ry={s.ry}
+                fill="none"
+                stroke={LIGHT}
+                strokeWidth={CORE_SOFT_LINE_WIDTH}
+                strokeOpacity={CORE_SOFT_LINE_OPACITY}
+                filter={ref("blur-core")}
+              />
+              <ellipse cx={s.cx} cy={s.cy} rx={s.rx} ry={s.ry} fill="none" stroke={LIGHT} strokeWidth={CORE_LINE_WIDTH} />
+            </g>
+          ) : (
+            <path key={`cs${si}`} d={s.d} fill={LIGHT} />
+          ),
+        )}
+        {geometry.segments.map(([a, b], i) => {
+          const A = byId.get(a)!;
+          const B = byId.get(b)!;
+          const style = vars({
+            "--len": Math.hypot(B.x - A.x, B.y - A.y),
+            "--d0": `${i * IGNITION_STAGGER_SECONDS}s`,
+          });
+          return (
+            <g key={`cl${a}-${b}`}>
+              <line
+                className="core-line"
+                x1={A.x}
+                y1={A.y}
+                x2={B.x}
+                y2={B.y}
+                stroke={LIGHT}
+                strokeWidth={CORE_SOFT_LINE_WIDTH}
+                strokeOpacity={CORE_SOFT_LINE_OPACITY}
+                filter={ref("blur-core")}
+                style={style}
+              />
+              <line
+                className="core-line"
+                x1={A.x}
+                y1={A.y}
+                x2={B.x}
+                y2={B.y}
+                stroke={LIGHT}
+                strokeWidth={CORE_LINE_WIDTH}
+                style={style}
+              />
+            </g>
+          );
+        })}
+        {geometry.nodes.map((n, i) => coreDot(n, i, n.r * CORE_CENTER_SCALE, ref("center"), `center${n.id}`))}
+    </>
   );
 }
 
