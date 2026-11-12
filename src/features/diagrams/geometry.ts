@@ -1,5 +1,7 @@
 // Geometria dos diagramas de atributos (viewBox 1280x1024), transcrita da referência
-// aprovada (brilho-referencia.html) e de src/assets/diagrams/nen_principles.svg.
+// aprovada (docs/audits/2026-11-11-briefing-regras-da-ficha/brilho-referencia.html) e dos
+// antigos SVGs de src/assets/diagrams/ (nen_principles.svg, physical_lozange.svg), que
+// saíram do repositório e ficam no histórico do git.
 
 export interface DiagramNode {
   id: string;
@@ -49,7 +51,7 @@ export const PHYSICAL_GEOMETRY: DiagramGeometry = {
 };
 
 // Losango mental: mesmos vértices do físico (os rótulos do MentalsDiagram
-// foram ajustados a physical_lozange.svg), sem contas nas arestas.
+// foram ajustados ao antigo physical_lozange.svg, hoje no histórico do git), sem contas nas arestas.
 export const MENTAL_GEOMETRY: DiagramGeometry = {
   viewBox: VIEW_BOX,
   nodes: [
@@ -70,7 +72,7 @@ export const MENTAL_GEOMETRY: DiagramGeometry = {
 const NEN_R = 34.1;
 
 // Princípios Nen: o círculo grande e as setas/arcos (paths copiados sem
-// alteração do svg; ele não usa transform).
+// alteração do antigo nen_principles.svg, hoje no histórico do git; ele não usa transform).
 export const NEN_PRINCIPLES_GEOMETRY: DiagramGeometry = {
   viewBox: VIEW_BOX,
   nodes: [

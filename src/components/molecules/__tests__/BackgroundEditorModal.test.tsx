@@ -290,3 +290,11 @@ describe("BackgroundEditorModal — backdrop click", () => {
     expect(screen.queryByText(/Descartar alterações/)).not.toBeInTheDocument();
   });
 });
+
+describe("BackgroundEditorModal — a11y", () => {
+  // O painel de regras encaixado cede o Esc a qualquer `aria-modal` aberto.
+  it("is a labelled modal dialog", () => {
+    render(<BackgroundEditorModal initialValue="" readOnly onClose={vi.fn()} />);
+    expect(screen.getByRole("dialog", { name: "Background do personagem" })).toHaveAttribute("aria-modal", "true");
+  });
+});

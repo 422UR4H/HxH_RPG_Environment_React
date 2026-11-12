@@ -13,7 +13,7 @@ interface AttributeNodeProps {
   power: number;
   // "sheet" escala pelo container do diagrama (cqi); "figure" fica fora de um diagrama e usa os
   // mesmos tamanhos que a ficha tem no desktop (diagrama com 425px de largura).
-  size?: "sheet" | "figure";
+  size?: NodeSize;
 }
 
 export default function AttributeNode({ label, level, points, power, size = "sheet" }: AttributeNodeProps) {

@@ -44,10 +44,17 @@ const DOCKED_QUERY = `(min-width: ${breakpoints.railUp}px)`;
 
 const byId = (root: HTMLElement | null, id: string) => root?.querySelector<HTMLElement>(`[id="${id}"]`) ?? null;
 
+/** Outro modal aberto, ou o Esc nasceu dentro de outro diálogo (que não é o painel). */
+function otherDialogHasEsc(panel: HTMLElement | null, target: EventTarget | null): boolean {
+  const isOther = (el: Element | null) => !!el && el !== panel && !panel?.contains(el);
+  if (Array.from(document.querySelectorAll('[aria-modal="true"]')).some(isOther)) return true;
+  return target instanceof Element && isOther(target.closest('[role="dialog"]'));
+}
+
 export default function SheetRulesPanel({ startSlug, onClose, onChapterChange }: SheetRulesPanelProps) {
   const docked = useMediaQuery(DOCKED_QUERY);
   const { data, isLoading, isError, refetch } = useSheetRules();
-  const panelRef = useRef<HTMLElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   // Estado, não ref: o observer do capítulo ativo precisa reagir quando a área de leitura monta.
   const [reading, setReading] = useState<HTMLDivElement | null>(null);
@@ -77,13 +84,17 @@ export default function SheetRulesPanel({ startSlug, onClose, onChapterChange }:
     if (chip) strip.scrollLeft = chip.offsetLeft - (strip.clientWidth - chip.offsetWidth) / 2;
   }, [active, docked, data]);
 
+  // Encaixado, o painel convive com os modais da ficha (imagem, background, avisos): o Esc é
+  // deles enquanto estiverem abertos. Como diálogo, o painel é o modal e o Esc é dele.
   useEffect(() => {
     const onKeyDown = (e: globalThis.KeyboardEvent) => {
-      if (e.key === "Escape") onCloseRef.current();
+      if (e.key !== "Escape") return;
+      if (docked && otherDialogHasEsc(panelRef.current, e.target)) return;
+      onCloseRef.current();
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [docked]);
 
   // Diálogo: a página por baixo não rola e o foco entra no painel.
   useEffect(() => {
@@ -134,14 +145,19 @@ export default function SheetRulesPanel({ startSlug, onClose, onChapterChange }:
     }
   };
 
-  const a11y = docked
-    ? ({ as: "aside", role: "complementary" } as const)
-    : ({ as: "div", role: "dialog", "aria-modal": true } as const);
-
+  // Mesmo elemento nos dois modos, só os atributos mudam: trocar a tag ao cruzar 1024 px (iPad
+  // girando) remontaria o painel, perdendo a posição de leitura e reacendendo os diagramas.
   return (
-    <Panel ref={panelRef} id={RULES_PANEL_ID} {...a11y} $docked={docked}
+    <Panel
+      ref={panelRef}
+      id={RULES_PANEL_ID}
+      role={docked ? "complementary" : "dialog"}
+      aria-modal={docked ? undefined : true}
+      aria-labelledby={TITLE_ID}
+      $docked={docked}
       $width={RULES_PANEL_WIDTH}
-      aria-labelledby={TITLE_ID} onKeyDown={trapFocus}>
+      onKeyDown={trapFocus}
+    >
       <Header>
         <Title id={TITLE_ID}>
           <TitleIcon />

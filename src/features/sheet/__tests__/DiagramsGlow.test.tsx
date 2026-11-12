@@ -21,9 +21,11 @@ describe("sheet diagrams with the glow", () => {
     ];
     for (const ui of cases) {
       const { container, unmount } = render(ui);
-      expect(container.querySelector("img[src*=lozange]")).toBeNull();
-      expect(container.querySelector("img[src*=nen_principles]")).toBeNull();
       expect(container.querySelectorAll("svg")).toHaveLength(1);
+      // O contêiner do diagrama (onde ficava a imagem) só tem o desenho; os "+" ficam fora dele.
+      const diagram = container.querySelector("svg")!.parentElement!;
+      expect(diagram.querySelector("img")).toBeNull();
+      expect(diagram.children).toHaveLength(1);
       expect(container.querySelectorAll("[data-glow-layer]")).toHaveLength(4);
       expect(container.querySelector("svg")!.getAttribute("aria-hidden")).toBe("true");
       unmount();

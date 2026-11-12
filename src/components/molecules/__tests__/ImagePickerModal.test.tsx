@@ -132,3 +132,11 @@ describe("ImagePickerModal — tabs", () => {
     expect(screen.getByText(/Colar link/)).toBeInTheDocument();
   });
 });
+
+describe("ImagePickerModal — a11y", () => {
+  // O painel de regras encaixado cede o Esc a qualquer `aria-modal` aberto.
+  it("is a labelled modal dialog", () => {
+    render(<ImagePickerModal type="avatar" onConfirm={vi.fn()} onClose={vi.fn()} />);
+    expect(screen.getByRole("dialog", { name: "Adicionar Avatar" })).toHaveAttribute("aria-modal", "true");
+  });
+});

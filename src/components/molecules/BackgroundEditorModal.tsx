@@ -93,8 +93,8 @@ export default function BackgroundEditorModal({
       onMouseDown={backdropDismiss.onMouseDown}
       onMouseUp={backdropDismiss.onMouseUp}
     >
-      <Modal>
-        <Title>Background do personagem</Title>
+      <Modal role="dialog" aria-modal="true" aria-labelledby="background-editor-title">
+        <Title id="background-editor-title">Background do personagem</Title>
         <Body>
           {readOnly ? (
             <ReadOnlyView>

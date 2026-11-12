@@ -59,7 +59,7 @@ function renderApp(initialEntries: string[]) {
   window.localStorage.setItem("token", JSON.stringify({ token: fakeJwt() }));
   window.localStorage.setItem("user", JSON.stringify(userFixture));
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(
+  const view = render(
     <QueryClientProvider client={queryClient}>
       <NavGuardProvider>
         <TokenProvider>
@@ -77,10 +77,21 @@ function renderApp(initialEntries: string[]) {
       </NavGuardProvider>
     </QueryClientProvider>,
   );
+  return { ...view, queryClient };
 }
 
 const panel = () => screen.queryByRole("dialog", { name: /Regras/ });
 const helpButton = () => screen.findByRole("button", { name: HELP });
+
+/**
+ * Prova que o painel não abriu sozinho. A troca de URL é uma transição (~200 ms aqui quando a
+ * guarda deixa passar), então uma pausa curta não pegaria a abertura: espera com folga.
+ */
+async function expectNoAutoOpen() {
+  await expect(waitFor(() => expect(where()).toContain("regras"), { timeout: 1500 })).rejects.toThrow();
+  expect(where()).toBe("/charactersheet/new");
+  expect(panel()).toBeNull();
+}
 
 const resPoints = () => {
   const label = screen.getByText("RES");
@@ -114,26 +125,33 @@ describe("CreateCharacterSheetPage — rules panel", { timeout: 20_000 }, () => 
     );
     const pending = renderApp(["/home", "/charactersheet/new"]);
     await helpButton();
-    await new Promise((r) => setTimeout(r, 50));
-    expect(where()).toBe("/charactersheet/new");
-    expect(panel()).toBeNull();
+    await expectNoAutoOpen();
     pending.unmount();
 
-    server.use(http.get(`${baseUrl}/charactersheets`, () => new HttpResponse(null, { status: 500 })));
-    renderApp(["/home", "/charactersheet/new"]);
+    // O hook pede `retry: 1` (vence o `retry: false` do cliente): só a 2ª falha assenta o erro.
+    let listCalls = 0;
+    server.use(
+      http.get(`${baseUrl}/charactersheets`, () => {
+        listCalls += 1;
+        return new HttpResponse(null, { status: 500 });
+      }),
+    );
+    const { queryClient } = renderApp(["/home", "/charactersheet/new"]);
     await helpButton();
-    await new Promise((r) => setTimeout(r, 50));
-    expect(where()).toBe("/charactersheet/new");
-    expect(panel()).toBeNull();
+    await waitFor(() => {
+      expect(listCalls).toBe(2);
+      const [list] = queryClient.getQueryCache().findAll({ queryKey: ["characterSheets"] });
+      expect(list?.state.status).toBe("error");
+      expect(list?.state.fetchStatus).toBe("idle");
+    });
+    await expectNoAutoOpen();
   });
 
   it("does not auto-open when the player already has sheets", async () => {
     listSheets([sheetSummaryApiFixture]);
     renderApp(["/home", "/charactersheet/new"]);
     await helpButton();
-    await new Promise((r) => setTimeout(r, 50));
-    expect(where()).toBe("/charactersheet/new");
-    expect(panel()).toBeNull();
+    await expectNoAutoOpen();
   });
 
   it("closes the auto-opened panel on browser back without leaving the page", async () => {

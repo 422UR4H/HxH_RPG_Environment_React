@@ -127,8 +127,8 @@ export default function ImagePickerModal({
       onMouseDown={backdropDismiss.onMouseDown}
       onMouseUp={backdropDismiss.onMouseUp}
     >
-      <Modal>
-        <ModalTitle>{type === "avatar" ? "Adicionar Avatar" : "Adicionar Capa"}</ModalTitle>
+      <Modal role="dialog" aria-modal="true" aria-labelledby="image-picker-title">
+        <ModalTitle id="image-picker-title">{type === "avatar" ? "Adicionar Avatar" : "Adicionar Capa"}</ModalTitle>
         <Subtitle>{IMAGE_PICKER_TIP}</Subtitle>
 
         <ModeToggle>
