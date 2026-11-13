@@ -105,6 +105,8 @@ describe("SheetRulesPanel", () => {
     const chips = within(nav).getAllByRole("link");
     expect(chips.map((c) => c.textContent)).toEqual(["Criação", "Atributos", "NenEm breve"]);
 
+    // Os capítulos montam um por tarefa (o pedido primeiro); no fim ficam na ordem do doc.
+    await waitFor(() => expect(screen.getAllByRole("heading", { level: 2 })).toHaveLength(sheetRulesFixture.length + 1));
     const titles = screen.getAllByRole("heading", { level: 2 }).slice(1);
     expect(titles.map((h) => h.closest("section")?.id)).toEqual(sheetRulesFixture.map((c) => c.slug));
     expect(within(titles[2]).getByText("Em breve")).toBeInTheDocument();
@@ -158,6 +160,7 @@ describe("SheetRulesPanel", () => {
     renderPanel();
     const dialog = screen.getByRole("dialog", { name: "Regras" });
     await screen.findByRole("navigation", { name: "Sumário das regras" });
+    await waitFor(() => expect(document.getElementById("criacao")).toBeInTheDocument());
     const reading = document.getElementById("criacao")!.parentElement!;
     expect(document.body.style.overflow).toBe("hidden");
 

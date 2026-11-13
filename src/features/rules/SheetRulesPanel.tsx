@@ -1,3 +1,4 @@
+import { flushSync } from "react-dom";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
 import { useSheetRules } from "../../hooks/useSheetRules";
 import useMediaQuery from "../../hooks/useMediaQuery";
@@ -8,6 +9,7 @@ import RulesMarkdown from "./RulesMarkdown";
 import { headingId } from "./markdownMapping";
 import { useActiveChapter } from "./useActiveChapter";
 import { chipRowBreaks } from "./chipRows";
+import { chapterMountOrder, scheduleNextChapter } from "./progressiveChapters";
 import {
   Body,
   ChapterSection,
@@ -70,7 +72,42 @@ export default function SheetRulesPanel({ startSlug, onClose, onChapterChange }:
   });
 
   const slugs = useMemo(() => data?.map((c) => c.slug) ?? [], [data]);
-  const observed = useActiveChapter(slugs, reading);
+
+  // Montagem progressiva: um capítulo por tarefa, a partir do pedido (ver progressiveChapters).
+  // O capítulo de abertura é o da montagem: se a URL mudar com o painel aberto, a ordem não muda.
+  const [openingSlug] = useState(startSlug);
+  const order = useMemo(() => chapterMountOrder(slugs.length, slugs.indexOf(openingSlug)), [slugs, openingSlug]);
+  // Começa em zero: o primeiro quadro depois do clique já mostra o painel (cabeçalho e chips),
+  // e o capítulo pedido entra na tarefa seguinte, mesmo com as regras já no cache.
+  const [mountedCount, setMountedCount] = useState(0);
+  const mountedCountRef = useRef(0);
+  const mounted = useMemo(() => new Set(order.slice(0, mountedCount)), [order, mountedCount]);
+  const mountedSlugs = useMemo(() => slugs.filter((_, i) => mounted.has(i)), [slugs, mounted]);
+  const anchorSlug = slugs[order[0]];
+
+  // Monta até `count` capítulos de uma vez, sem a leitura pular: capítulo que entra acima empurra
+  // o texto para baixo, então a rolagem anda o mesmo tanto. Medir antes e depois na mesma tarefa
+  // (flushSync) evita que uma rolagem do jogador caia no meio; se o navegador já ancorou a
+  // rolagem sozinho, a diferença medida é zero.
+  const mountUpTo = useCallback(
+    (count: number) => {
+      if (!reading || count <= mountedCountRef.current) return;
+      const anchor = anchorSlug ? byId(reading, anchorSlug) : null;
+      const before = anchor?.getBoundingClientRect().top ?? 0;
+      mountedCountRef.current = count;
+      flushSync(() => setMountedCount(count));
+      // Arredonda a soma: o navegador trunca a rolagem fracionária, e o erro somaria a cada capítulo.
+      if (anchor) reading.scrollTop = Math.round(reading.scrollTop + anchor.getBoundingClientRect().top - before);
+    },
+    [reading, anchorSlug],
+  );
+
+  useEffect(() => {
+    if (!data || !reading || mountedCount >= slugs.length) return;
+    return scheduleNextChapter(() => mountUpTo(mountedCount + 1));
+  }, [data, reading, mountedCount, slugs.length, mountUpTo]);
+
+  const observed = useActiveChapter(mountedSlugs, reading);
   const active = observed ?? startSlug;
   // Encaixado, os chips se distribuem em até 3 fileiras cheias (sem fileira solta no fim).
   const breaks = useMemo(() => (docked ? chipRowBreaks(slugs.length) : new Set<number>()), [docked, slugs.length]);
@@ -114,17 +151,19 @@ export default function SheetRulesPanel({ startSlug, onClose, onChapterChange }:
   // Abre no capítulo pedido uma vez só, quando os capítulos chegam.
   const startedRef = useRef(false);
   useEffect(() => {
-    if (startedRef.current || !data || !reading) return;
+    if (startedRef.current || !data || !reading || mountedCount === 0) return;
     startedRef.current = true;
     byId(reading, startSlug)?.scrollIntoView({ block: "start" });
-  }, [data, reading, startSlug]);
+  }, [data, reading, startSlug, mountedCount]);
 
   const onNavigate = useCallback(
     (slug: string, anchor?: string) => {
+      // Link ou chip para um capítulo que ainda não montou: monta todos antes de rolar.
+      if (!byId(reading, slug)) mountUpTo(slugs.length);
       const target = (anchor ? byId(reading, headingId(slug, anchor)) : null) ?? byId(reading, slug);
       target?.scrollIntoView({ block: "start", behavior: "smooth" });
     },
-    [reading],
+    [reading, mountUpTo, slugs.length],
   );
 
   const onChipClick = (slug: string) => (e: MouseEvent<HTMLAnchorElement>) => {
@@ -218,15 +257,18 @@ export default function SheetRulesPanel({ startSlug, onClose, onChapterChange }:
               </PrimaryButton>
             </ErrorBox>
           )}
-          {data?.map((c) => (
-            <ChapterSection key={c.slug} id={c.slug}>
-              <ChapterTitle $docked={docked}>
-                {c.title}
-                {c.comingSoon && <ComingSoonBadge />}
-              </ChapterTitle>
-              <RulesMarkdown chapter={c} onNavigate={onNavigate} chapterSlugs={slugs} />
-            </ChapterSection>
-          ))}
+          {data?.map(
+            (c, i) =>
+              mounted.has(i) && (
+                <ChapterSection key={c.slug} id={c.slug}>
+                  <ChapterTitle $docked={docked}>
+                    {c.title}
+                    {c.comingSoon && <ComingSoonBadge />}
+                  </ChapterTitle>
+                  <RulesMarkdown chapter={c} onNavigate={onNavigate} chapterSlugs={slugs} />
+                </ChapterSection>
+              ),
+          )}
         </Reading>
       </Body>
     </Panel>
