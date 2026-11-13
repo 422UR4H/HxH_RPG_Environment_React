@@ -14,7 +14,7 @@ export function validateCharacterSheet(
   const selectedClass = charClasses?.find((cc) => cc.profile.name === characterClass);
   // o nível que define os pontos é o que o back vai calcular com as escolhas
   // feitas (proficiência escolhida pode subir nível), não o da classe pura
-  const { abilities } = withLivePreview(charSheet, selectedClass);
+  const { abilities } = withLivePreview(charSheet, selectedClass, context);
   const action = context === "create" ? "criar a ficha" : "salvar a ficha";
 
   if (!characterClass) errors.push("Selecione uma classe para o personagem.");

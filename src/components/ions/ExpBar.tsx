@@ -1,3 +1,4 @@
+import { memo } from "react";
 import styled from "styled-components";
 import { colors } from "../../styles/tokens";
 import BarBubble from "./BarBubble";
@@ -9,7 +10,7 @@ interface ExpBarProps {
   tooltipAlign?: "center" | "right";
 }
 
-export default function ExpBar({ currExp, maxExp, color = colors.vitalSkillExp, tooltipAlign = "center" }: ExpBarProps) {
+function ExpBar({ currExp, maxExp, color = colors.vitalSkillExp, tooltipAlign = "center" }: ExpBarProps) {
   const percentage = maxExp > 0 ? Math.min((currExp / maxExp) * 100, 100) : 0;
 
   return (
@@ -25,6 +26,10 @@ export default function ExpBar({ currExp, maxExp, color = colors.vitalSkillExp, 
     </BarBubble>
   );
 }
+
+// Props primitivas: a ficha re-renderiza a cada clique de distribuição e as barras que não
+// mudaram (a maioria) pulam o render.
+export default memo(ExpBar);
 
 const BarTrack = styled.div`
   width: 100%;

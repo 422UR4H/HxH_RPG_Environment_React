@@ -1,7 +1,9 @@
-import NenPrinciplesSVG from "../../assets/diagrams/nen_principles.svg";
 import { type Ability, type Skill } from "../../types/characterSheet.ts";
 import type { DiagramsMode } from "./types/diagramsMode.ts";
 import styled from "styled-components";
+import GlowDiagram from "../diagrams/GlowDiagram";
+import { NEN_PRINCIPLES_GEOMETRY } from "../diagrams/geometry";
+import type { PaintSpec } from "../diagrams/paint";
 
 interface NenPrinciplesDiagramProps {
   mode: DiagramsMode;
@@ -9,12 +11,18 @@ interface NenPrinciplesDiagramProps {
     [key: string]: Skill;
   };
   spiritualAbility?: Ability;
+  /** "rules": só as siglas, sem números nem o centro (painel de regras). */
+  variant?: "sheet" | "rules";
+  paint?: PaintSpec;
 }
 
 const NenPrinciplesDiagram = ({
   principles = {},
   spiritualAbility = { level: 0, bonus: 0 },
+  variant = "sheet",
+  paint = "all",
 }: NenPrinciplesDiagramProps) => {
+  const isRules = variant === "rules";
   const principlePositions = [
     { name: "ten", key: "Ten", x: "39%", y: "69%" },
     { name: "zetsu", key: "Zts", x: "61.6%", y: "69%" },
@@ -32,17 +40,18 @@ const NenPrinciplesDiagram = ({
     <DiagramContainer>
       <DiagramWrapper>
         <SVGContainer>
-          {/* <NenPrinciplesSVG /> */}
-          <img src={NenPrinciplesSVG} alt="Spirituals Diagram" />
+          <GlowDiagram geometry={NEN_PRINCIPLES_GEOMETRY} color="nen" paint={paint} />
         </SVGContainer>
 
-        <SpiritualAbility>
-          <SpiritualLabel>SPIRITUAL</SpiritualLabel>
-          <SpiritualNumbers>
-            <SpiritualLevel>{spiritualAbility?.level}</SpiritualLevel>
-            <SpiritualBonus>{spiritualAbility?.bonus}</SpiritualBonus>
-          </SpiritualNumbers>
-        </SpiritualAbility>
+        {!isRules && (
+          <SpiritualAbility>
+            <SpiritualLabel>SPIRITUAL</SpiritualLabel>
+            <SpiritualNumbers>
+              <SpiritualLevel>{spiritualAbility?.level}</SpiritualLevel>
+              <SpiritualBonus>{spiritualAbility?.bonus}</SpiritualBonus>
+            </SpiritualNumbers>
+          </SpiritualAbility>
+        )}
 
         {principlePositions.map((pos) => {
           const principle = principles[pos.name];
@@ -56,11 +65,12 @@ const NenPrinciplesDiagram = ({
               }}
             >
               <AttributeLabel>{pos.key}</AttributeLabel>
-              <AttributeNumbers>
-                <AttributeLevel>{principle?.level || 0}</AttributeLevel>
-                {/* <AttributeLevel>Nv.{principle.level}</AttributeLevel> */}
-                <AttributePower>{principle?.value || 0}</AttributePower>
-              </AttributeNumbers>
+              {!isRules && (
+                <AttributeNumbers>
+                  <AttributeLevel>{principle?.level || 0}</AttributeLevel>
+                  <AttributePower>{principle?.value || 0}</AttributePower>
+                </AttributeNumbers>
+              )}
             </AttributeMarker>
           );
         })}
@@ -88,12 +98,7 @@ const SVGContainer = styled.div`
   left: 1%;
   width: 100%;
   height: 100%;
-
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain; /* Isso garante que a imagem mantenha sua proporção */
-  }
+  overflow: visible;
 
   svg {
     width: 100%;

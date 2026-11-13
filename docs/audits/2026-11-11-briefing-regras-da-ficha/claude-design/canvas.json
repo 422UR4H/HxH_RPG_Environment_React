@@ -1,0 +1,66 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "A1-Desktop-Atributos.dc.html": { "h": 900, "title": "A · desktop — regras abertas em Atributos", "w": 1440, "x": 0, "y": 1300 },
+    "A2-Desktop-Rolada.dc.html": { "h": 900, "title": "A · desktop — rolada: fórmula, tabela, nota", "w": 1440, "x": 1520, "y": 1300 },
+    "A3-Celular-Atributos.dc.html": { "h": 844, "title": "A · celular — Atributos", "w": 390, "x": 3040, "y": 1300 },
+    "A4-Celular-Sumario.dc.html": { "h": 844, "title": "A · celular — sumário aberto", "w": 390, "x": 3510, "y": 1300 },
+    "A5-Celular-Rolada.dc.html": { "h": 844, "title": "A · celular — rolada", "w": 390, "x": 3980, "y": 1300 },
+    "B1-Desktop-Atributos.dc.html": { "h": 900, "title": "B · desktop — painel encaixado à direita, em Atributos", "w": 1440, "x": 0, "y": 2600 },
+    "B2-Desktop-Rolada.dc.html": { "h": 900, "title": "B · desktop — painel encaixado, rolado", "w": 1440, "x": 1520, "y": 2600 },
+    "B3-Celular-Atributos.dc.html": { "h": 844, "title": "B · celular — painel em tela cheia", "w": 390, "x": 3040, "y": 2600 },
+    "B4-Celular-Rolada.dc.html": { "h": 844, "title": "B · celular — painel rolado", "w": 390, "x": 3510, "y": 2600 },
+    "BotaoAjuda.dc.html": { "h": 660, "title": "Botão “?” · estados e encaixe", "w": 760, "x": 1990, "y": 0 },
+    "ConteudoRegras.dc.html": { "h": 6200, "title": "Conteúdo renderizado (texto de exemplo)", "w": 760, "x": 1880, "y": 3900 },
+    "EstilosMarkdown.dc.html": { "h": 1980, "title": "Estilos dos elementos de Markdown", "w": 1000, "x": 0, "y": 3900 },
+    "FichaCelular.dc.html": { "h": 844, "title": "Ficha · celular 390 — “?” no lugar", "w": 390, "x": 1520, "y": 0 },
+    "LosangoFisico.dc.html": { "h": 720, "title": "Ilustração 2 · losango físico", "w": 720, "x": 1080, "y": 4310 },
+    "Main.dc.html": { "h": 900, "title": "Ficha · desktop 1440 — “?” no lugar", "w": 1440, "x": 0, "y": 0 },
+    "NoAtributo.dc.html": { "h": 330, "title": "Ilustração 1 · nó de atributo anotado", "w": 720, "x": 1080, "y": 3900 }
+  },
+  "createdOnFiles": { "at": "2026-11-11T16:50:00Z", "v": 1 },
+  "designSystems": [
+    { "artifact": "https://claude.ai/code/artifact/da428c6f-d653-4f17-8ada-986c3a849a8c", "copiedAt": "2026-11-11T16:48:12Z", "namespace": "systemxsystem", "title": "System X System", "version": "1794414730-e877" }
+  ],
+  "launch": { "view": "canvas" },
+  "noteOrder": ["t0", "t1", "t2", "t3", "s0", "s1", "s2", "s3", "s4"],
+  "notes": {
+    "s0": {
+      "fill": "green",
+      "text": "O “?” fica em position:absolute na linha de “Pontos para Distribuir”, à direita da coluna ATRIBUTOS: centro no eixo desse bloco. Não ocupa espaço no fluxo, então título e diagramas não se mexem.\n\n60 × 60 no desktop, 52 × 52 no celular (o alvo é o próprio ícone). questionmark-sm.svg, aria-label “Regras de atributos e perícias”, dica no hover: “Regras”. Abre direto em #atributos.",
+      "w": 420, "x": 2830, "y": 0
+    },
+    "s1": {
+      "text": "A — rascunho guardado para uma futura página de regras do site (a decisão para a ficha é o painel B).\n\nForte: leitura confortável em tela cheia, com sumário fixo e URL própria.\nFraco: a ficha some da vista; para conferir um número é preciso voltar.",
+      "w": 420, "x": 4450, "y": 1300
+    },
+    "s2": {
+      "fill": "green",
+      "text": "B — escolhida.\n\nA partir de 1024 px (tablet na horizontal, notebook e maiores) o painel se encaixa à direita: largura clamp(400px, 35vw, 520px), altura da tela, fixo enquanto a ficha rola. A ficha ocupa o resto e continua usável (pôr pontos com o painel aberto). Em 1440, a coluna da ficha (939 px) cabe inteira ao lado de 500 px de painel.\n\nAbaixo de 1024 px abre como aba em tela cheia, com a ficha montada por baixo.\n\nFechar: só o X vermelho, vazando do header de 52 px para dentro (padrão de partidas e campanhas). Esc e o X devolvem o foco ao “?”.",
+      "w": 420, "x": 3980, "y": 2600
+    },
+    "s3": {
+      "fill": "blue",
+      "text": "Os documentos de regras (Markdown) viram só estes elementos: h2, h3, parágrafo, listas, `sigla`, tabela, > fórmula e > [!NOTE] / > [!TIP]. Nada depende do texto exato. Tabela nunca rola na horizontal.\n\nAs duas ilustrações são componentes fora do Markdown.\n\nTokens propostos ao designer: actionCurrent (green-500, seção atual), diagramPhysical (red-600, traços do losango físico), diagramPhysicalText (red-500, rótulos — red-600 dá ~3:1 no painel) e diagramMental (purple-500, reservado).",
+      "w": 420, "x": 2720, "y": 3900
+    },
+    "s4": {
+      "fill": "orange",
+      "text": "Texto de exemplo, não é o texto final. Veio do resumo de regras do prompt, com frases de ligação minhas. O site vai renderizar os documentos .md reais do jogo com estes estilos.",
+      "w": 420, "x": 2720, "y": 4500
+    },
+    "t0": { "kind": "title1", "maxW": 2750, "text": "Ficha com o “?”", "w": 240, "x": 0, "y": -300 },
+    "t1": { "kind": "title1", "maxW": 4370, "text": "A — página própria (rascunho para uma futura página de regras)", "w": 240, "x": 0, "y": 1000 },
+    "t2": { "kind": "title1", "maxW": 3900, "text": "B — painel de regras (escolhida)", "w": 240, "x": 0, "y": 2300 },
+    "t3": { "kind": "title1", "maxW": 2640, "text": "Componentes: estilos de Markdown e ilustrações", "w": 240, "x": 0, "y": 3600 }
+  },
+  "order": [
+    "Main.dc.html", "FichaCelular.dc.html", "BotaoAjuda.dc.html",
+    "A1-Desktop-Atributos.dc.html", "A2-Desktop-Rolada.dc.html", "A3-Celular-Atributos.dc.html", "A4-Celular-Sumario.dc.html", "A5-Celular-Rolada.dc.html",
+    "B1-Desktop-Atributos.dc.html", "B2-Desktop-Rolada.dc.html", "B3-Celular-Atributos.dc.html", "B4-Celular-Rolada.dc.html",
+    "EstilosMarkdown.dc.html", "NoAtributo.dc.html", "LosangoFisico.dc.html", "ConteudoRegras.dc.html"
+  ],
+  "pages": [],
+  "title": "Ficha · Ajuda de regras (A × B)"
+}

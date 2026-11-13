@@ -6,6 +6,7 @@ import useToken from "../hooks/useToken";
 import type { SheetMode } from "../features/sheet/types/sheetMode";
 import CharacterSheetTemplate from "../features/sheet/CharacterSheetTemplate";
 import { useCharacterClasses } from "../hooks/useCharacterClasses";
+import { useCharacterSheets } from "../hooks/useCharacterSheets";
 import type { CharacterSheet } from "../types/characterSheet";
 import { createEmptyCharacterSheet } from "../features/sheet/factories/characterSheet.factory";
 import { validateCharacterSheet } from "../features/sheet/utils/validateCharacterSheet";
@@ -27,6 +28,10 @@ function CreateCharacterSheetPage() {
   // clique seguinte só reenvia upload/patch contra este mesmo uuid.
   const createdUuidRef = useRef<string | undefined>(undefined);
   const { data: charClasses, isLoading, error, refetch } = useCharacterClasses(token);
+  // Primeiro personagem: só com a lista assentada e vazia. Pendente, buscando ou com erro
+  // não conta como vazia.
+  const sheets = useCharacterSheets(token);
+  const autoOpenRules = sheets.isSuccess && !sheets.isFetching && sheets.data.length === 0;
 
   useEffect(() => {
     return () => {
@@ -147,6 +152,7 @@ function CreateCharacterSheetPage() {
         onCoverSelected: handleCoverSelected,
         onCreateSheet: handleCreateSheet,
         submitError,
+        autoOpenRules,
       }}
     />
   );

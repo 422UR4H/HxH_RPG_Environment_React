@@ -57,6 +57,7 @@ Os arquivos abaixo têm valores de CSS ajustados **na mão, pixel a pixel**, par
 - `src/features/sheet/MentalsDiagram.tsx`
 - `src/features/sheet/PhysicalsDiagram.tsx`
 - `src/features/sheet/NenPrinciplesDiagram.tsx`
+- `src/features/sheet/AttributeNode.tsx` (o marcador de atributo, extraído do `PhysicalsDiagram`)
 
 Em refactors estruturais (mover arquivo, extrair template): preservar os valores numéricos exatos. Em normalização de tokens: pular esses arquivos. Se o SVG fonte for corrigido, o ajuste no CSS pode ser removido — mas as duas coisas mudam juntas.
 

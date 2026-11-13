@@ -127,6 +127,7 @@ export const colors = {
   actionDestructive: palette.red700, // botões que removem, excluem, rejeitam ou saem: nunca o vermelho do brand (é o da peça)
   actionDestructiveText: palette.red500, // texto de ação destrutiva sobre painel escuro: o contraste manda (4,8:1 no hover #252525, 5,4:1 no painel #1c1c1c; o red600 dava 3,0 a 3,3)
   actionConfirm: palette.green500, // contorno da ação de aceitar sobre painel escuro (o verde da marca some ali)
+  actionCurrent: palette.green500, // item atual de um sumário: o capítulo em que a leitura está (painel de regras)
 
   // feedback
   feedbackDanger: palette.red600, // erro, alerta, perigo, falha em combate
@@ -188,6 +189,16 @@ export const colors = {
   mapPieceShadow: palette.neutral1000, // sombra projetada da peça e do rótulo
   mapPieceFallback: palette.neutral850, // peça sem avatar
   mapPieceLabel: palette.neutral0, // texto sobre a peça (nível, altura)
+
+  // diagram — diagramas de atributos (ficha e painel de regras)
+  diagramPhysical: palette.red600, // luz pintada do losango físico
+  diagramPhysicalWarm: palette.red500, // só dentro do degradê vermelho das bolinhas
+  diagramMental: palette.purple500, // luz pintada do losango mental
+  diagramNen: palette.blue400, // luz pintada dos princípios Nen
+  diagramLight: palette.neutral0, // núcleo da luz (linhas e bolinhas acesas)
+  diagramLightHalo: palette.neutral300, // halo das peças não pintadas
+  diagramLightFadeNear: palette.neutral100, // degradê da bolinha branca, 2ª parada
+  diagramLightFadeFar: palette.neutral200, // degradê da bolinha branca, 3ª parada
 
   // overlay
   overlay: alpha(palette.neutral1000, 0.7),

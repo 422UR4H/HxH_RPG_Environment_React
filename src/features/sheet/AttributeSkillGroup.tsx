@@ -1,3 +1,4 @@
+import { memo } from "react";
 import styled from "styled-components";
 import type { Skill } from "../../types/characterSheet.ts";
 import ExpBar from "../../components/ions/ExpBar.tsx";
@@ -11,7 +12,9 @@ interface SkillCardProps {
   nextLvlBaseExp?: number;
 }
 
-function SkillCard({ name, value, level, currExp, nextLvlBaseExp }: SkillCardProps) {
+// Memo: cada clique de distribuição recalcula a ficha inteira e manda objetos novos, mas só as
+// perícias do atributo mexido mudam de valor. Com props primitivas o card pula o resto.
+const SkillCard = memo(function SkillCard({ name, value, level, currExp, nextLvlBaseExp }: SkillCardProps) {
   return (
     <SkillItem>
       <SkillCardBody>
@@ -24,7 +27,7 @@ function SkillCard({ name, value, level, currExp, nextLvlBaseExp }: SkillCardPro
       <ExpBar currExp={currExp ?? 0} maxExp={nextLvlBaseExp ?? 1} />
     </SkillItem>
   );
-}
+});
 
 interface AttributeSkillGroupProps {
   attributeName: string;

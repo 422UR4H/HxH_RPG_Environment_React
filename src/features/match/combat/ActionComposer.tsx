@@ -1,3 +1,4 @@
+import { formatDamage } from "../../../utils/dice";
 import BlockableButton from "../../../components/molecules/BlockableButton";
 import usePointerVerb from "../../../hooks/usePointerVerb";
 import type { CombatCatalogue } from "../../../services/characterSheetsService";
@@ -246,8 +247,7 @@ export default function ActionComposer({
                 >
                   <S.WeaponName>{weaponLabel(w.name)}</S.WeaponName>
                   <S.WeaponStats>
-                    {w.dice.map((d) => `d${d}`).join("+")}
-                    {w.flatDamage ? ` +${w.flatDamage}` : ""} · prof. {w.proficiencyLevel}
+                    {formatDamage(w.dice, w.flatDamage)} · prof. {w.proficiencyLevel}
                   </S.WeaponStats>
                 </S.Weapon>
               ))}

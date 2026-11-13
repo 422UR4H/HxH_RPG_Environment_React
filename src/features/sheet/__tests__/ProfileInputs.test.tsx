@@ -3,13 +3,14 @@ import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import ProfileInputs from "../ProfileInputs";
 import { createEmptyProfile } from "../factories/profile.factory";
-import type { CharacterSheet } from "../../../types/characterSheet";
+import type { Profile } from "../../../types/characterSheet";
 
 function Harness({ age }: { age?: number }) {
-  const [sheet, setSheet] = useState({
-    profile: { ...createEmptyProfile(), ...(age !== undefined ? { age } : {}) },
-  } as unknown as CharacterSheet);
-  return <ProfileInputs charSheet={sheet} setCharSheet={setSheet} onBackgroundClick={() => {}} />;
+  const [profile, setProfile] = useState<Profile>({
+    ...createEmptyProfile(),
+    ...(age !== undefined ? { age } : {}),
+  });
+  return <ProfileInputs profile={profile} onProfileChange={setProfile} onBackgroundClick={() => {}} />;
 }
 
 describe("ProfileInputs", () => {

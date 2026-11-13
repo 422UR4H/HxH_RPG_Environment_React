@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Botão de regras · estados e encaixe</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/systemxsystem/tokens.css">
+<link rel="stylesheet" href="shared/regras.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&amp;display=swap">
+<style>
+body{margin:0}
+.bg-space{background-color:#000;background-image:url(/_blob/3e95e151dfd3d42b133e5c4843a6cae5);background-size:100% auto;background-position:center 30%}
+</style>
+</helmet>
+<div class="sxs bg-space" style="width: 760px; height: 660px; box-sizing: border-box; padding: 32px 40px; display: flex; flex-direction: column; gap: 28px;">
+  <div style="display: flex; flex-direction: column; gap: 12px;">
+    <p style="margin: 0; font-size: 13px; line-height: 16px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--textLabelMuted);">Encaixe · topo da coluna ATRIBUTOS (desktop, escala 1:1)</p>
+    <div style="display: flex; flex-direction: column; gap: 14px;">
+      <div style="position: relative; flex: 0 0 485px; height: 150px; border: 1px dashed var(--borderLight); border-radius: 4px;">
+        <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 70px; height: 0; border-top: 1px dashed var(--borderLight);"></div>
+        <p style="position: absolute; left: 32px; top: 40px; margin: 0; font-size: 20px; line-height: 30px; color: var(--textPrimary);">Pontos para<br>Distribuir: <span style="color: var(--vitalPoints);">3</span></p>
+        <div style="position: absolute; left: 242px; top: 30px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 2px;">
+          <img src="/_blob/44b48b6327f6bdb1e5c9983efe23bed5" alt="" style="width: 28px; height: 28px; display: block;">
+          <span style="font-size: 24px; line-height: 28px; font-weight: 700;">RES</span>
+          <span style="display: flex; gap: 6px; font-size: 18px; line-height: 22px; font-weight: 700;"><span>0</span><span style="color: var(--vitalPoints);">0</span><span>4</span></span>
+        </div>
+        <button type="button" class="help-btn" aria-label="Regras de atributos e perícias" style="left: 369px; top: 40px;"><img src="/_blob/f5d85179e63e3766967ea05417e03f9b" alt=""></button>
+        <div aria-hidden="true" style="position: absolute; left: 369px; top: 40px; width: 60px; height: 60px; outline: 1px dashed var(--borderLight);"></div>
+      </div>
+      <ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; font-size: 14px; line-height: 20px; color: var(--textMuted);">
+        <li><strong style="color: var(--textPrimary);">Linha:</strong> o centro do “?” fica no eixo do bloco “Pontos para Distribuir”.</li>
+        <li><strong style="color: var(--textPrimary);">Tamanho:</strong> 60 × 60 no desktop, 52 × 52 no celular; o alvo é o próprio ícone.</li>
+        <li><strong style="color: var(--textPrimary);">Fluxo:</strong> position: absolute — título e diagramas não se mexem.</li>
+      </ul>
+    </div>
+  </div>
+  <div style="display: flex; flex-direction: column; gap: 12px;">
+    <p style="margin: 0; font-size: 13px; line-height: 16px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--textLabelMuted);">Estados</p>
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px;">
+      <div style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 20px 8px; background: var(--overlaySoft); border-radius: var(--radius-sm); min-height: 210px;">
+        <div style="position: relative; width: 60px; height: 60px;"><button type="button" class="help-btn" aria-label="Regras de atributos e perícias" style="left: 0; top: 0;"><img src="/_blob/f5d85179e63e3766967ea05417e03f9b" alt=""></button></div>
+        <p style="margin: 0; font-size: 15px; line-height: 20px; font-weight: 700; color: var(--textPrimary);">Padrão</p>
+        <p style="margin: 0; font-size: 13px; line-height: 18px; color: var(--textMuted); text-align: center;">questionmark-sm.svg</p>
+      </div>
+      <div style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 20px 8px; background: var(--overlaySoft); border-radius: var(--radius-sm); min-height: 210px;">
+        <div style="position: relative; width: 60px; height: 60px;">
+          <button type="button" class="help-btn" aria-label="Regras de atributos e perícias" style="left: 0; top: 0; background: var(--overlayHighlight);"><img src="/_blob/f5d85179e63e3766967ea05417e03f9b" alt=""></button>
+          <span class="tip" role="tooltip" style="left: 50%; top: 68px; transform: translateX(-50%);">Regras</span>
+        </div>
+        <p style="margin: 32px 0 0; font-size: 15px; line-height: 20px; font-weight: 700; color: var(--textPrimary);">Hover</p>
+        <p style="margin: 0; font-size: 13px; line-height: 18px; color: var(--textMuted); text-align: center;">dica curta “Regras”</p>
+      </div>
+      <div style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 20px 8px; background: var(--overlaySoft); border-radius: var(--radius-sm); min-height: 210px;">
+        <div style="position: relative; width: 60px; height: 60px;"><button type="button" class="help-btn is-focus" aria-label="Regras de atributos e perícias" style="left: 0; top: 0;"><img src="/_blob/f5d85179e63e3766967ea05417e03f9b" alt=""></button></div>
+        <p style="margin: 0; font-size: 15px; line-height: 20px; font-weight: 700; color: var(--textPrimary);">Foco (teclado)</p>
+        <p style="margin: 0; font-size: 13px; line-height: 18px; color: var(--textMuted); text-align: center;">anel 2 px actionHighlight, afastado 3 px</p>
+      </div>
+      <div style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 20px 8px; background: var(--overlaySoft); border-radius: var(--radius-sm); min-height: 210px;">
+        <div style="position: relative; width: 60px; height: 60px;"><button type="button" class="help-btn" aria-label="Regras de atributos e perícias" aria-expanded="true" style="left: 0; top: 0;"><img src="/_blob/f5d85179e63e3766967ea05417e03f9b" alt=""></button></div>
+        <p style="margin: 0; font-size: 15px; line-height: 20px; font-weight: 700; color: var(--textPrimary);">Painel aberto</p>
+        <p style="margin: 0; font-size: 13px; line-height: 18px; color: var(--textMuted); text-align: center;">aria-expanded; clicar de novo fecha</p>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":760,"height":660}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

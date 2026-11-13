@@ -26,9 +26,15 @@ sobre painel escuro sobe ao saturado (`actionDestructiveText`), porque ali o con
 ### Grupo fechado de prefixos
 
 `brand` · `surface` · `text` · `border` · `action` · `feedback` · `status` · `vital` (HP, SP, EXP,
-pontos: as esquemáticas da ficha) · `map` (mapa tático, inclusive as cores do Pixi) · `overlay` · `shadow`.
+pontos: as esquemáticas da ficha) · `map` (mapa tático, inclusive as cores do Pixi) · `overlay` · `shadow` ·
+`diagram` (a luz dos diagramas de atributos, ficha e painel de regras; ver `src/features/diagrams/CLAUDE.md`).
 
 Prefixo novo não entra sem decisão do usuário: um grupo aberto vira a bagunça de antes.
+
+`diagram` entrou na feature das regras da ficha (2026-11), com a nomeação delegada pelo usuário: são 8
+aliases (`diagramPhysical`, `diagramPhysicalWarm`, `diagramMental`, `diagramNen`, `diagramLight`,
+`diagramLightHalo`, `diagramLightFadeNear`, `diagramLightFadeFar`), todos para cores que já estavam na
+`palette`. Na mesma feature entrou `actionCurrent` (o chip do capítulo atual no painel de regras).
 
 As cores de intenção do combate (`mapAttackIntent` = ataque/ação, `mapMoveIntent` = movimento) valem para a mesa toda, não só para o mapa: a faixa de barras usa as mesmas. Variação (fundo, escurecido) é `alpha`/overlay, nunca token novo.
 
@@ -67,7 +73,7 @@ O teste `src/styles/__tests__/noRawColors.test.ts` aplica isso: falha com cor cr
 ## Exceções (allowlist do teste)
 
 - **Zona pixel-tuned** (`src/components/CLAUDE.md`): `CharacterSheetHeader`, `MentalsDiagram`,
-  `PhysicalsDiagram`, `NenPrinciplesDiagram`. Valores ajustados à mão; não normalizar.
+  `PhysicalsDiagram`, `NenPrinciplesDiagram`, `AttributeNode`. Valores ajustados à mão; não normalizar.
 - **Cor de grade do mapa** (`defaultMap.ts`, `TacticalMapDemoPage.tsx`, `useActionComposerState.ts`):
   é **dado** persistido no backend, não tema da UI.
 

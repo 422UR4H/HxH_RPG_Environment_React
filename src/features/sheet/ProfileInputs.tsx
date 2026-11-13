@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import styled, { css } from "styled-components";
 import BackgroundButton from "../../components/atoms/BackgroundButton";
-import type { Profile, CharacterSheet } from "../../types/characterSheet";
+import type { Profile } from "../../types/characterSheet";
 import { colors } from "../../styles/tokens";
 import { errorBox } from "../../styles/errorBox";
 import { DetailItem, DetailLabel, ProfilePillSelect } from "./ProfileFieldStyles";
@@ -11,8 +11,8 @@ import { useLimitedInput } from "../../utils/limitedInput";
 import useFieldValidation from "../../hooks/useFieldValidation";
 
 interface ProfileInputsProps {
-  charSheet?: CharacterSheet;
-  setCharSheet?: (charSheet: CharacterSheet) => void;
+  profile?: Profile;
+  onProfileChange?: (profile: Profile) => void;
   onBackgroundClick: () => void;
 }
 
@@ -46,21 +46,14 @@ function maxDaysForMonth(month: number): number {
 }
 
 export default function ProfileInputs({
-  charSheet,
-  setCharSheet,
+  profile,
+  onProfileChange,
   onBackgroundClick,
 }: ProfileInputsProps) {
   const handleInputChange = (field: keyof Profile, value: string | number) => {
-    if (!charSheet || !setCharSheet) return;
-    setCharSheet({
-      ...charSheet,
-      profile: {
-        ...charSheet.profile,
-        [field]: value,
-      },
-    });
+    if (!profile || !onProfileChange) return;
+    onProfileChange({ ...profile, [field]: value });
   };
-  const profile = charSheet?.profile;
   const age = profile?.age ?? 0;
   const { errorFor, noticeFor, touch } = useFieldValidation({
     fullname: {

@@ -1,11 +1,11 @@
-import { Suspense, lazy, useState } from "react";
+import { Suspense, lazy, memo, useState } from "react";
 import styled from "styled-components";
 import Collapse from "../../components/atoms/Collapse";
 import ExpandButton from "../../components/ions/ExpandButton";
 import { iconButtonFx } from "../../styles/iconButtonFx";
 import { colors } from "../../styles/tokens";
 import type { ProfileMode } from "./types/profileMode";
-import type { CharacterSheet } from "../../types/characterSheet";
+import type { Profile } from "../../types/characterSheet";
 import ProfileDetails from "./ProfileDetails";
 import ProfileInputs from "./ProfileInputs";
 
@@ -17,16 +17,14 @@ const PROFILE_CONTENT_ID = "character-profile-content";
 
 interface CharacterProfileProps {
   mode: ProfileMode;
-  charSheet?: CharacterSheet;
-  setCharSheet?: (charSheet: CharacterSheet) => void;
+  profile?: Profile;
+  /** Recebe o perfil inteiro já alterado; sem ela o perfil é só leitura. */
+  onProfileChange?: (profile: Profile) => void;
 }
 
-export default function CharacterProfile({
-  mode,
-  charSheet,
-  setCharSheet,
-}: CharacterProfileProps) {
-  const profile = charSheet?.profile;
+// Recebe só o perfil (não a ficha): com memo, os cliques de distribuição — que mudam a ficha,
+// mas não o perfil — não re-renderizam o formulário inteiro.
+function CharacterProfile({ mode, profile, onProfileChange }: CharacterProfileProps) {
   // In "create" and "edit" modes the profile panel starts expanded so the user
   // can fill in or edit fields immediately. In "view" mode it starts collapsed,
   // keeping the focus on the sheet's attributes and skills.
@@ -38,11 +36,8 @@ export default function CharacterProfile({
   const closeBackground = () => setIsBackgroundOpen(false);
 
   const handleBackgroundSave = (value: string) => {
-    if (!charSheet || !setCharSheet) return;
-    setCharSheet({
-      ...charSheet,
-      profile: { ...charSheet.profile, description: value },
-    });
+    if (!profile || !onProfileChange) return;
+    onProfileChange({ ...profile, description: value });
     setIsBackgroundOpen(false);
   };
 
@@ -58,15 +53,15 @@ export default function CharacterProfile({
             profile={profile}
             onBackgroundClick={openBackground}
             onBriefDescriptionChange={(value) => {
-              if (!charSheet || !setCharSheet) return;
-              setCharSheet({ ...charSheet, profile: { ...charSheet.profile, briefDescription: value } });
+              if (!onProfileChange) return;
+              onProfileChange({ ...profile, briefDescription: value });
             }}
           />
         )}
         {mode === "create" && (
           <ProfileInputs
-            charSheet={charSheet}
-            setCharSheet={setCharSheet}
+            profile={profile}
+            onProfileChange={onProfileChange}
             onBackgroundClick={openBackground}
           />
         )}
@@ -87,7 +82,7 @@ export default function CharacterProfile({
       {isBackgroundOpen && (
         <Suspense fallback={null}>
           <BackgroundEditorModal
-            initialValue={charSheet?.profile?.description ?? ""}
+            initialValue={profile?.description ?? ""}
             readOnly={mode === "view"}
             onClose={closeBackground}
             onSave={handleBackgroundSave}
@@ -97,6 +92,8 @@ export default function CharacterProfile({
     </ProfileContainer>
   );
 }
+
+export default memo(CharacterProfile);
 
 const ProfileContainer = styled.div`
   container-type: inline-size;

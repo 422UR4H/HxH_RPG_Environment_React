@@ -18,6 +18,7 @@ const PIXEL_TUNED = [
   "/src/features/sheet/MentalsDiagram.tsx",
   "/src/features/sheet/PhysicalsDiagram.tsx",
   "/src/features/sheet/NenPrinciplesDiagram.tsx",
+  "/src/features/sheet/AttributeNode.tsx",
 ];
 
 const EXEMPT_EXTRA = ["/src/styles/tokens.ts"];
