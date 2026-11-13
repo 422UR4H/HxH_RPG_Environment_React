@@ -186,3 +186,26 @@ describe("RulesMarkdown math fences", () => {
     expect(container.querySelector("math")).toBeNull();
   });
 });
+
+describe("RulesMarkdown badge and math edge cases", () => {
+  const render1 = (md: string) =>
+    render(<RulesMarkdown chapter={chapterWith(md)} onNavigate={() => {}} />);
+
+  it("keeps the badge out of the heading id and renders it inside the heading", () => {
+    render1("## Categorias Nen (em breve)");
+    const heading = screen.getByRole("heading", { level: 3 });
+    expect(heading.id.endsWith("--categorias-nen")).toBe(true);
+    expect(heading.textContent).toContain("Em breve");
+  });
+
+  it("renders one badge per marker in the same text", () => {
+    const { container } = render1("A (em breve) e B (em breve)");
+    expect(container.textContent!.match(/Em breve/g)).toHaveLength(2);
+  });
+
+  it("renders math inside a note blockquote and keeps the note class", async () => {
+    const { container } = render1("> **🔍 Curiosidade — x**\n>\n> ```math\n> f(n) = \\frac{1}{n}\n> ```");
+    await waitFor(() => expect(container.querySelector("math")).not.toBeNull());
+    expect(container.querySelector("blockquote")!.className).toContain("md-note");
+  });
+});

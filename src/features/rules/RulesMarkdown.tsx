@@ -1,4 +1,4 @@
-import { createContext, lazy, Suspense, useContext, useMemo, type ComponentProps, type MouseEvent } from "react";
+import { Component, createContext, lazy, Suspense, useContext, useMemo, type ComponentProps, type MouseEvent, type ReactNode } from "react";
 import ReactMarkdown, { type Components, type ExtraProps } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Element, ElementContent } from "hast";
@@ -14,7 +14,7 @@ import {
   rehypeTableLabels,
   resolveDocLink,
 } from "./markdownMapping";
-import { RulesMarkdownContainer } from "./RulesMarkdown.styles";
+import { ComingSoonMark, RulesMarkdownContainer } from "./RulesMarkdown.styles";
 
 interface RulesMarkdownProps {
   chapter: RuleChapter;
@@ -44,6 +44,27 @@ function blockquoteKind(node: Element | undefined) {
 }
 
 const MathBlock = lazy(() => import("./MathBlock"));
+
+// Falha ao baixar o chunk da fórmula (deploy trocou os hashes, sem rede) não derruba o painel:
+// cai no LaTeX cru, como o LaTeX inválido.
+class MathBoundary extends Component<{ source: string; children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  render() {
+    if (this.state.failed) return <pre><code>{this.props.source}</code></pre>;
+    return this.props.children;
+  }
+}
+
+function RulesComingSoon() {
+  return (
+    <ComingSoonMark>
+      <ComingSoonBadge />
+    </ComingSoonMark>
+  );
+}
 
 function codeOf(pre: Element | undefined): Element | undefined {
   const child = pre?.children.find((c) => isElement(c, "code"));
@@ -99,9 +120,11 @@ function RulesPre({ node, children, ...rest }: ComponentProps<"pre"> & ExtraProp
   if (code && Array.isArray(classes) && classes.includes("language-math")) {
     const source = hastText(code).replace(/\n$/, "");
     return (
-      <Suspense fallback={<pre><code>{source}</code></pre>}>
-        <MathBlock source={source} />
-      </Suspense>
+      <MathBoundary source={source}>
+        <Suspense fallback={<pre><code>{source}</code></pre>}>
+          <MathBlock source={source} />
+        </Suspense>
+      </MathBoundary>
     );
   }
   return <pre {...rest}>{children}</pre>;
@@ -123,7 +146,7 @@ const COMPONENTS: Components = {
   pre: RulesPre,
   table: RulesTable,
   // Tag própria do remarkComingSoon; fora do mapa de tags HTML do tipo Components.
-  "coming-soon": ComingSoonBadge,
+  "coming-soon": RulesComingSoon,
 } as Components;
 
 const REMARK_PLUGINS = [remarkGfm, remarkComingSoon];

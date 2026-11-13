@@ -5,6 +5,15 @@ import { markdownBase } from "../../styles/markdown";
 // Estilos do Markdown das regras, por elemento (claude-design/EstilosMarkdown.dc.html e
 // shared/regras.css). Os títulos do corpo descem um nível no painel: o h3 aqui tem o
 // visual do "h2" do design e o h4 o do "h3".
+// Em título/cabeçalho de tabela o selo herdaria caixa alta e espaçamento; o invólucro zera.
+export const ComingSoonMark = styled.span`
+  margin-left: 0.4em;
+  vertical-align: middle;
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 400;
+`;
+
 export const RulesMarkdownContainer = styled.div`
   ${markdownBase}
 
