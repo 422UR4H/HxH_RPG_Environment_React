@@ -115,7 +115,7 @@ function CharacterSheetTemplate({
   }, [embedded, autoOpenRules, openSlug, openRules]);
 
   const toggleRules = () =>
-    rulesSlug ? rules.close() : rules.open(rules.lastSlug ?? "atributos");
+    rulesSlug ? rules.close() : rules.open(rules.getLastSlug() ?? "atributos");
 
   if (isLoading) {
     return embedded ? (

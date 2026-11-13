@@ -1,4 +1,4 @@
-import { Component, createContext, lazy, Suspense, useContext, useMemo, type ComponentProps, type MouseEvent, type ReactNode } from "react";
+import { Component, createContext, lazy, memo, Suspense, useContext, useMemo, type ComponentProps, type MouseEvent, type ReactNode } from "react";
 import ReactMarkdown, { type Components, type ExtraProps } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Element, ElementContent } from "hast";
@@ -151,7 +151,7 @@ const COMPONENTS: Components = {
 
 const REMARK_PLUGINS = [remarkGfm, remarkComingSoon];
 
-export default function RulesMarkdown({ chapter, onNavigate, chapterSlugs }: RulesMarkdownProps) {
+function RulesMarkdown({ chapter, onNavigate, chapterSlugs }: RulesMarkdownProps) {
   const rehypePlugins = useMemo(
     () => [rehypeChapterHeadings(chapter.slug), rehypeTableLabels],
     [chapter.slug],
@@ -168,6 +168,11 @@ export default function RulesMarkdown({ chapter, onNavigate, chapterSlugs }: Rul
     </NavigationContext.Provider>
   );
 }
+
+// O painel re-renderiza a cada troca de capítulo ativo (o chip aceso). Sem o memo, os dez
+// capítulos passavam de novo pelo parser do Markdown a cada troca — era o travamento ao rolar.
+// As props já chegam estáveis: capítulo da query, onNavigate em useCallback, slugs em useMemo.
+export default memo(RulesMarkdown);
 
 function countColumns(table: Element): number {
   const find = (n: Element): Element | undefined => {

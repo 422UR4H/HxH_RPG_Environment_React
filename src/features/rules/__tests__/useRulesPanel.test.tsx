@@ -18,6 +18,28 @@ function setup(initialEntries: string[]) {
 }
 
 describe("useRulesPanel", () => {
+  it("remembering the last chapter does not re-render the sheet", () => {
+    let renders = 0;
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <MemoryRouter initialEntries={["/charactersheet/new?regras=atributos"]}>{children}</MemoryRouter>
+    );
+    const { result } = renderHook(
+      () => {
+        renders++;
+        return useRulesPanel();
+      },
+      { wrapper },
+    );
+    const before = renders;
+    const { setLastSlug } = result.current;
+
+    act(() => result.current.setLastSlug("pericias"));
+    act(() => result.current.setLastSlug("classes"));
+    expect(renders).toBe(before);
+    expect(result.current.getLastSlug()).toBe("classes");
+    expect(result.current.setLastSlug).toBe(setLastSlug);
+  });
+
   it("open pushes the param and back closes it", () => {
     const { result } = setup(["/home", "/charactersheet/new"]);
     expect(result.current.panel.openSlug).toBeNull();
@@ -62,7 +84,7 @@ describe("useRulesPanel", () => {
     const before = result.current.location;
 
     act(() => result.current.panel.setLastSlug("pericias"));
-    expect(result.current.panel.lastSlug).toBe("pericias");
+    expect(result.current.panel.getLastSlug()).toBe("pericias");
     expect(result.current.location.search).toBe(before.search);
     expect(result.current.location.key).toBe(before.key);
     expect(result.current.panel.openSlug).toBe("atributos");

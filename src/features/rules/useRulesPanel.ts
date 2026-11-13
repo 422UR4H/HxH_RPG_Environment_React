@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 /** Parâmetro da URL com o capítulo em que o painel de regras abriu (`?regras=atributos`). */
@@ -13,11 +13,18 @@ const asState = (state: unknown): RulesState =>
  * Painel de regras da ficha preso à URL: abrir empilha uma entrada no histórico, e o voltar do
  * navegador fecha o painel sem sair da ficha. Só muda a query string, então a rota não remonta e
  * o formulário não perde nada. O último capítulo lido fica só na memória — nada vai pro navegador.
+ *
+ * O último capítulo é ref, não estado: muda a cada troca de capítulo ao rolar, e como estado
+ * re-renderizava a ficha inteira em cada troca. Só o "?" lê, na hora do clique.
  */
 export function useRulesPanel() {
   const location = useLocation();
   const navigate = useNavigate();
-  const [lastSlug, setLastSlug] = useState<string | null>(null);
+  const lastSlugRef = useRef<string | null>(null);
+  const setLastSlug = useCallback((slug: string) => {
+    lastSlugRef.current = slug;
+  }, []);
+  const getLastSlug = useCallback(() => lastSlugRef.current, []);
 
   const openSlug = new URLSearchParams(location.search).get(RULES_PARAM);
 
@@ -50,5 +57,5 @@ export function useRulesPanel() {
     );
   }, [location, navigate]);
 
-  return { openSlug, open, close, lastSlug, setLastSlug };
+  return { openSlug, open, close, getLastSlug, setLastSlug };
 }
