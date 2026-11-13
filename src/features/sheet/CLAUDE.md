@@ -67,3 +67,8 @@ perder o que o jogador já preencheu. Por isso o estado mora na URL e a ficha nu
   fichas **terminou de carregar com sucesso e veio vazia** (`isSuccess && !isFetching && length === 0`).
   Carregando ou com erro não conta como vazio. O NPC nunca abre sozinho.
 - A ficha embutida na partida (`sheetMode.embedded`) não tem "?".
+- Abrir não pode travar: o primeiro quadro mostra só o painel, e os capítulos montam **um por tarefa**,
+  o pedido primeiro e depois os vizinhos (`progressiveChapters.ts`). Capítulo que entra acima do
+  aberto corrige a rolagem para a leitura não pular; chip ou link para um capítulo ainda não montado
+  monta todos antes de rolar. A ficha busca as regras ao montar (`usePrefetchSheetRules`), então o "?"
+  não espera a rede. Montar os dez de uma vez custava ~0,9 s de CPU (4× mais lento) na abertura.

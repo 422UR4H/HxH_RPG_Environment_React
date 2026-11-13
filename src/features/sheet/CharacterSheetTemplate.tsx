@@ -22,6 +22,7 @@ import SheetRulesPanel, { RULES_PANEL_WIDTH } from "../rules/SheetRulesPanel";
 import RulesHelpButton from "../rules/RulesHelpButton";
 import { useRulesPanel } from "../rules/useRulesPanel";
 import useMediaQuery from "../../hooks/useMediaQuery";
+import { usePrefetchSheetRules } from "../../hooks/useSheetRules";
 import { breakpoints } from "../../styles/breakpoints";
 import { colors, gradients, alpha } from "../../styles/tokens";
 
@@ -95,6 +96,7 @@ function CharacterSheetTemplate({
   // Painel de regras: a URL diz se está aberto; na partida (embutida) ele não existe.
   const rules = useRulesPanel();
   const rulesSlug = embedded ? null : rules.openSlug;
+  usePrefetchSheetRules(!embedded);
   const docked = useMediaQuery(DOCKED_QUERY);
   const helpRef = useRef<HTMLButtonElement>(null);
 
