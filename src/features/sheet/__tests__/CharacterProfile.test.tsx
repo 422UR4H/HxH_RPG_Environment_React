@@ -8,7 +8,7 @@ import type { ProfileMode } from "../types/profileMode";
 function renderProfile(mode: ProfileMode) {
   const sheet = createEmptyCharacterSheet();
   sheet.profile = { ...sheet.profile, fullname: "Chrollo Lucilfer", briefDescription: "Líder" };
-  render(<CharacterProfile mode={mode} charSheet={sheet} setCharSheet={() => {}} />);
+  render(<CharacterProfile mode={mode} profile={sheet.profile} onProfileChange={() => {}} />);
   return screen.getByRole("button", { name: /perfil/ });
 }
 

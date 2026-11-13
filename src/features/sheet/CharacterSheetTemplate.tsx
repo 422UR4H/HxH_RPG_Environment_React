@@ -1,8 +1,8 @@
 import type { CharacterClass } from "../../types/characterClass";
-import type { CharacterSheet } from "../../types/characterSheet";
+import type { CharacterSheet, Profile } from "../../types/characterSheet";
 import type { SheetMode } from "./types/sheetMode";
 import type { ManageActions } from "../../components/molecules/ManageButton";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import styled from "styled-components";
 import space from "../../assets/images/space.png";
 import BackButton from "../../components/ions/BackButton";
@@ -116,6 +116,20 @@ function CharacterSheetTemplate({
 
   const toggleRules = () =>
     rulesSlug ? rules.close() : rules.open(rules.getLastSlug() ?? "atributos");
+
+  // Perfil com callback estável: o CharacterProfile (memo) só re-renderiza quando o perfil muda,
+  // não a cada clique de distribuição. As refs dão a ficha mais recente na hora da edição, para a
+  // troca do perfil nunca escrever por cima de pontos distribuídos depois do último render dele.
+  const latestSheetRef = useRef(charSheet);
+  const latestSetRef = useRef(setCharSheet);
+  useEffect(() => {
+    latestSheetRef.current = charSheet;
+    latestSetRef.current = setCharSheet;
+  });
+  const changeProfile = useCallback((profile: Profile) => {
+    const sheet = latestSheetRef.current;
+    if (sheet) latestSetRef.current?.({ ...sheet, profile });
+  }, []);
 
   if (isLoading) {
     return embedded ? (
@@ -232,8 +246,8 @@ function CharacterSheetTemplate({
 
         <CharacterProfile
           mode={sheetMode.profileMode}
-          charSheet={charSheet}
-          setCharSheet={setCharSheet}
+          profile={charSheet.profile}
+          onProfileChange={setCharSheet ? changeProfile : undefined}
         />
 
         <MainContent
