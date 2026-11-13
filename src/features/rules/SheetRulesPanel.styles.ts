@@ -134,7 +134,7 @@ export const Body = styled.div<Docked>`
   border-radius: ${({ $docked }) => ($docked ? "6px 6px 0 0" : "0")};
 `;
 
-export const Chips = styled.nav<Docked>`
+export const Chips = styled.nav<Docked & { $rows: boolean }>`
   flex: 0 0 auto;
   /* Referência do offsetLeft dos chips (rolagem até o ativo no celular). */
   position: relative;
@@ -146,7 +146,7 @@ export const Chips = styled.nav<Docked>`
     padding: 0;
   }
 
-  ${({ $docked }) =>
+  ${({ $docked, $rows }) =>
     $docked
       ? css`
           padding: 14px 16px;
@@ -155,6 +155,26 @@ export const Chips = styled.nav<Docked>`
             grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 8px;
           }
+          ${$rows &&
+          css`
+            /* Contagem que não é múltiplo de 3: fileiras de larguras livres, cada uma cheia. */
+            ol {
+              display: flex;
+              flex-wrap: wrap;
+              gap: 0 8px;
+              margin-bottom: -8px;
+            }
+            li {
+              flex: 1 1 auto;
+              display: flex;
+              margin-bottom: 8px;
+            }
+            a {
+              flex: 1 1 auto;
+              flex-wrap: nowrap;
+              white-space: nowrap;
+            }
+          `}
         `
       : css`
           /* Celular: uma fileira que rola sozinha; a página nunca rola na horizontal. */
@@ -171,6 +191,13 @@ export const Chips = styled.nav<Docked>`
             white-space: nowrap;
           }
         `}
+`;
+
+/** Quebra de fileira: um item vazio de 100% de largura, fora da árvore de acessibilidade. */
+export const ChipBreak = styled.li`
+  flex: 0 0 100%;
+  height: 0;
+  margin: 0 !important;
 `;
 
 export const Chip = styled.a`

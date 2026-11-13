@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
 import { useSheetRules } from "../../hooks/useSheetRules";
 import useMediaQuery from "../../hooks/useMediaQuery";
 import { breakpoints } from "../../styles/breakpoints";
@@ -7,11 +7,13 @@ import { PrimaryButton, Spinner } from "../../components/templates/PageState.sty
 import RulesMarkdown from "./RulesMarkdown";
 import { headingId } from "./markdownMapping";
 import { useActiveChapter } from "./useActiveChapter";
+import { chipRowBreaks } from "./chipRows";
 import {
   Body,
   ChapterSection,
   ChapterTitle,
   Chip,
+  ChipBreak,
   Chips,
   CloseX,
   ErrorBox,
@@ -70,6 +72,8 @@ export default function SheetRulesPanel({ startSlug, onClose, onChapterChange }:
   const slugs = useMemo(() => data?.map((c) => c.slug) ?? [], [data]);
   const observed = useActiveChapter(slugs, reading);
   const active = observed ?? startSlug;
+  // Encaixado, os chips se distribuem em até 3 fileiras cheias (sem fileira solta no fim).
+  const breaks = useMemo(() => (docked ? chipRowBreaks(slugs.length) : new Set<number>()), [docked, slugs.length]);
 
   useEffect(() => {
     if (observed) onChapterChangeRef.current(observed);
@@ -179,19 +183,22 @@ export default function SheetRulesPanel({ startSlug, onClose, onChapterChange }:
 
       <Body $docked={docked}>
         {data && (
-          <Chips ref={chipsRef} aria-label="Sumário das regras" $docked={docked}>
+          <Chips ref={chipsRef} aria-label="Sumário das regras" $docked={docked} $rows={breaks.size > 0}>
             <ol>
-              {data.map((c) => (
-                <li key={c.slug}>
-                  <Chip
-                    href={`#${c.slug}`}
-                    aria-current={c.slug === active ? "location" : undefined}
-                    onClick={onChipClick(c.slug)}
-                  >
-                    {c.label}
-                    {c.comingSoon && <ComingSoonBadge />}
-                  </Chip>
-                </li>
+              {data.map((c, i) => (
+                <Fragment key={c.slug}>
+                  {breaks.has(i) && <ChipBreak aria-hidden="true" role="presentation" />}
+                  <li>
+                    <Chip
+                      href={`#${c.slug}`}
+                      aria-current={c.slug === active ? "location" : undefined}
+                      onClick={onChipClick(c.slug)}
+                    >
+                      {c.label}
+                      {c.comingSoon && <ComingSoonBadge />}
+                    </Chip>
+                  </li>
+                </Fragment>
               ))}
             </ol>
           </Chips>
