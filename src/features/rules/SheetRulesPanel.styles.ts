@@ -164,7 +164,7 @@ export const Chips = styled.nav<Docked & { $rows: boolean }>`
               gap: 0 8px;
               margin-bottom: -8px;
             }
-            li {
+            li:not([aria-hidden]) {
               flex: 1 1 auto;
               display: flex;
               margin-bottom: 8px;
@@ -197,7 +197,8 @@ export const Chips = styled.nav<Docked & { $rows: boolean }>`
 export const ChipBreak = styled.li`
   flex: 0 0 100%;
   height: 0;
-  margin: 0 !important;
+  margin: 0;
+  padding: 0;
 `;
 
 export const Chip = styled.a`

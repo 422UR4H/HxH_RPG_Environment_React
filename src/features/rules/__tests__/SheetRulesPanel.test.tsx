@@ -70,6 +70,33 @@ function renderPanel(props: Partial<Parameters<typeof SheetRulesPanel>[0]> = {})
 }
 
 describe("SheetRulesPanel", () => {
+  it.each([
+    [10, [4, 3, 3]],
+    [7, [4, 3]],
+  ])("docked, %i chapters get forced row breaks as %j", async (n, sizes) => {
+    setWidth(1440);
+    const base = sheetRulesFixture[0];
+    const many = Array.from({ length: n }, (_, i) => ({ ...base, slug: `cap-${i}`, label: `Cap ${i}`, title: `Cap ${i}` }));
+    server.use(http.get(RULES_URL, () => HttpResponse.json({ chapters: many })));
+    renderPanel({ startSlug: "cap-0" });
+
+    const nav = await screen.findByRole("navigation", { name: "Sumário das regras" });
+    expect(within(nav).getAllByRole("link")).toHaveLength(n);
+    const rows: number[] = [0];
+    for (const li of Array.from(nav.querySelectorAll("ol > li"))) {
+      if (li.getAttribute("aria-hidden") === "true") rows.push(0);
+      else rows[rows.length - 1] += 1;
+    }
+    expect(rows).toEqual(sizes);
+  });
+
+  it("docked, a multiple of 3 keeps the plain grid with no breaks", async () => {
+    setWidth(1440);
+    renderPanel();
+    const nav = await screen.findByRole("navigation", { name: "Sumário das regras" });
+    expect(nav.querySelectorAll('[aria-hidden="true"]')).toHaveLength(0);
+  });
+
   it("renders chips and chapters in order with the coming-soon badge on Nen", async () => {
     setWidth(1440);
     renderPanel();
