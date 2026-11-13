@@ -209,3 +209,13 @@ describe("RulesMarkdown badge and math edge cases", () => {
     expect(container.querySelector("blockquote")!.className).toContain("md-note");
   });
 });
+
+describe("RulesMarkdown multi-line math", () => {
+  it("renders an aligned multi-line formula as MathML table without falling back", async () => {
+    const md = "```math\n\\begin{aligned}\nf(n) &= \\frac{1}{1 + e^{n}} \\\\\n&+ \\frac{2}{1 + e^{n}}\n\\end{aligned}\n```";
+    const { container } = render(<RulesMarkdown chapter={chapterWith(md)} onNavigate={() => {}} />);
+    await waitFor(() => expect(container.querySelector("math")).not.toBeNull());
+    expect(container.querySelector("math mtable")).not.toBeNull();
+    expect(container.querySelector("pre")).toBeNull();
+  });
+});

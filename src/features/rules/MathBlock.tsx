@@ -5,11 +5,11 @@ import { colors } from "../../styles/tokens";
 // Fórmula LaTeX → MathML nativo (sem fontes nem CSS extra). Este módulo é carregado sob
 // demanda (React.lazy em RulesPre): o temml só entra no bundle de quem abre uma fórmula.
 const Block = styled.div`
-  margin: 0;
+  margin: 14px 0;
   max-width: 100%;
   overflow-x: auto;
   text-align: center;
-  font-size: 1.15em;
+  font-size: 1.3em;
   color: ${colors.textPrimary};
 `;
 
