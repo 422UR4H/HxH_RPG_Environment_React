@@ -96,8 +96,11 @@ export default function SheetRulesPanel({ startSlug, onClose, onChapterChange }:
       const before = anchor?.getBoundingClientRect().top ?? 0;
       mountedCountRef.current = count;
       flushSync(() => setMountedCount(count));
-      // Arredonda a soma: o navegador trunca a rolagem fracionária, e o erro somaria a cada capítulo.
-      if (anchor) reading.scrollTop = Math.round(reading.scrollTop + anchor.getBoundingClientRect().top - before);
+      if (!anchor) return;
+      // Arredonda: o navegador trunca a rolagem fracionária, e o erro somaria a cada capítulo.
+      // Só escreve se mudou — escrever `scrollTop` cancela uma rolagem suave em andamento (chip).
+      const shift = Math.round(anchor.getBoundingClientRect().top - before);
+      if (shift !== 0) reading.scrollTop += shift;
     },
     [reading, anchorSlug],
   );

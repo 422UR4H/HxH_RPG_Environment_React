@@ -43,11 +43,12 @@ afterEach(() => {
 });
 
 async function renderPanel(startSlug: string) {
-  renderWithProviders(<SheetRulesPanel startSlug={startSlug} onClose={vi.fn()} onChapterChange={vi.fn()} />, {
+  const view = renderWithProviders(<SheetRulesPanel startSlug={startSlug} onClose={vi.fn()} onChapterChange={vi.fn()} />, {
     token: null,
   });
   await screen.findByRole("navigation", { name: "Sumário das regras" });
   await waitFor(() => expect(pending).toHaveLength(1));
+  return view;
 }
 
 describe("SheetRulesPanel progressive chapters", () => {
@@ -117,5 +118,26 @@ describe("SheetRulesPanel progressive chapters", () => {
 
     expect(document.getElementById("atributos")).toBeInTheDocument();
     expect((lastOf(scrollIntoView.mock.contexts) as HTMLElement).id).toBe("atributos");
+  });
+
+  it("highlights only the start chapter's chip before it mounts", async () => {
+    await renderPanel("sistema-nen");
+    const nav = screen.getByRole("navigation", { name: "Sumário das regras" });
+    const current = () => within(nav).getAllByRole("link").filter((c) => c.hasAttribute("aria-current"));
+
+    expect(sectionIds()).toEqual([]);
+    expect(current().map((c) => c.textContent)).toEqual(["NenEm breve"]);
+    mountNext();
+    expect(current().map((c) => c.textContent)).toEqual(["NenEm breve"]);
+  });
+
+  it("cancels the pending chapter mount when the panel unmounts mid-way", async () => {
+    const { unmount } = await renderPanel("atributos");
+    mountNext();
+    expect(sectionIds()).toEqual(["atributos"]);
+    expect(pending).toHaveLength(1);
+
+    unmount();
+    expect(pending).toHaveLength(0);
   });
 });
