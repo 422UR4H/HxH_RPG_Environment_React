@@ -80,7 +80,9 @@ describe("live sheet preview", () => {
     (caseName) => {
       const state = caseName === "Hunter/class-only" ? sheetForClass(hunter) : choose(sheetForClass(hunter), hunter, caseName);
       const shown = withLivePreview(state, hunter);
-      const expected = expectedFor(caseName);
+      // os lotes de arma da classe já contam como distribuídos: sem armas escolhidas
+      // a prévia é a do back com todas escolhidas
+      const expected = expectedFor(caseName === "Hunter/class-only" ? "Hunter/profs" : caseName);
 
       for (const field of [
         "characterExp", "abilities", "physicalAttributes", "mentalAttributes", "spiritualAttributes",
@@ -93,10 +95,31 @@ describe("live sheet preview", () => {
     },
   );
 
-  it("raises the character level when a proficiency is chosen", () => {
-    const before = withLivePreview(sheetForClass(hunter), hunter);
-    const after = withLivePreview(choose(sheetForClass(hunter), hunter, "Hunter/profs"), hunter);
-    expect(after.characterExp.level).toBeGreaterThan(before.characterExp.level);
+  it("counts the class weapon lots from the start, whichever weapons are chosen", () => {
+    const none = withLivePreview(sheetForClass(hunter), hunter);
+    const one = sheetForClass(hunter);
+    one.commonProficiencies.Bow = { exp: 127, level: 3 };
+    const all = choose(sheetForClass(hunter), hunter, "Hunter/profs");
+    const other = sheetForClass(hunter);
+    other.commonProficiencies.Longbow = { exp: 127, level: 3 };
+    other.commonProficiencies.Bow = { exp: 127, level: 3 };
+    const shownFields = (s: CharacterSheet) => ({
+      characterExp: s.characterExp,
+      abilities: s.abilities,
+      physicalAttributes: s.physicalAttributes,
+      physicalSkills: s.physicalSkills,
+      status: s.status,
+    });
+    const reference = shownFields(none);
+    expect(shownFields(withLivePreview(one, hunter))).toEqual(reference);
+    expect(shownFields(withLivePreview(all, hunter))).toEqual(reference);
+    expect(shownFields(withLivePreview(other, hunter))).toEqual(reference);
+    const expected = expectedFor("Hunter/profs");
+    expect(none.characterExp).toEqual(expected.characterExp);
+    expect(none.abilities).toEqual(expected.abilities);
+    // a arma de enfeite não aparece, nem vai no envio
+    expect(Object.keys(none.commonProficiencies)).toEqual(Object.keys(sheetForClass(hunter).commonProficiencies));
+    expect(buildSheetInput(sheetForClass(hunter), hunter).proficienciesExps).toEqual({});
   });
 
   it("keeps the page state untouched and skips the preview without a class definition", () => {
