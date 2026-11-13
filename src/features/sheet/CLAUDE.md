@@ -56,6 +56,11 @@ perder o que o jogador já preencheu. Por isso o estado mora na URL e a ficha nu
 - `?regras=<slug>` (`useRulesPanel`). Abrir faz **push**; o voltar do navegador **fecha** o painel e
   fica na ficha. X/Esc/"?" com a entrada nossa chamam `navigate(-1)`; num deep link (sem entrada
   nossa) fechar faz **replace** tirando o parâmetro.
+- Dois recursos do Markdown dos docs (`RulesMarkdown`): o texto literal `(em breve)` vira o
+  `ComingSoonBadge` (plugin `remarkComingSoon`; não vale em code span/fence) — marca o que o back já
+  tem mas o jogador ainda não usa, sem o doc depender de HTML. E o fence ```` ```math ```` vira MathML
+  nativo via `temml` (`MathBlock`, carregado sob demanda): fórmula legível sem fontes extras; LaTeX
+  inválido cai no texto cru em estilo de código, nunca derruba o painel.
 - Rolar entre capítulos nunca reescreve a URL. O último capítulo (`lastSlug`) fica só em memória: o
   "?" reabre nele (senão em Atributos); o deep link vence. Nada vai pro storage do navegador.
 - Abre sozinho em Criação, uma vez por montagem, só em `/charactersheet/new` e só quando a lista de

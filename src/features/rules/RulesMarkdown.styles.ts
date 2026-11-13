@@ -245,7 +245,8 @@ export const RulesMarkdownContainer = styled.div`
     border-top: 1px solid ${colors.borderMuted};
     color: ${colors.textMuted};
     vertical-align: top;
-    overflow-wrap: anywhere;
+    /* break-word não reduz a largura mínima da célula: a palavra só quebra se não couber na tabela inteira */
+    overflow-wrap: break-word;
   }
 
   tbody tr:nth-child(even) td {

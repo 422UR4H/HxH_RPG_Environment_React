@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import RulesMarkdown from "../RulesMarkdown";
 import { sheetRulesFixture } from "../../../test/fixtures/rules";
 import type { RuleChapter } from "../../../types/rules";
@@ -134,5 +134,55 @@ describe("RulesMarkdown", () => {
       "Atributo",
       "Sigla",
     ]);
+  });
+});
+
+describe("RulesMarkdown coming-soon badge", () => {
+  const render1 = (md: string) =>
+    render(<RulesMarkdown chapter={chapterWith(md)} onNavigate={() => {}} />);
+
+  it("renders the badge inside a list item", () => {
+    render1("- Mago (em breve)");
+    const li = screen.getByRole("listitem");
+    expect(li.textContent).toContain("Mago");
+    expect(li.textContent).toContain("Em breve");
+    expect(li.textContent).not.toContain("(em breve)");
+  });
+
+  it("renders the badge inside a table cell", () => {
+    const { container } = render1("| A | B |\n|---|---|\n| Mago (em breve) | x |");
+    expect(container.querySelector("td")!.textContent).toContain("Em breve");
+  });
+
+  it("leaves text without the marker untouched", () => {
+    const { container } = render1("Texto comum em breve.");
+    expect(container.textContent).toBe("Texto comum em breve.");
+  });
+
+  it("does not touch a code span", () => {
+    const { container } = render1("`(em breve)`");
+    expect(container.querySelector("code")!.textContent).toBe("(em breve)");
+  });
+});
+
+describe("RulesMarkdown math fences", () => {
+  const render1 = (md: string) =>
+    render(<RulesMarkdown chapter={chapterWith(md)} onNavigate={() => {}} />);
+
+  it("renders a math fence as a MathML element", async () => {
+    const { container } = render1("```math\nf(n) = \\frac{1}{1 + e^{n}}\n```");
+    await waitFor(() => expect(container.querySelector("math")).not.toBeNull());
+  });
+
+  it("falls back to the source when the LaTeX is invalid", async () => {
+    const { container } = render1("```math\n\\frac{1\n```");
+    await waitFor(() => expect(container.querySelector("pre code")!.textContent).toContain("\\frac{1"));
+    expect(container.querySelector("math")).toBeNull();
+  });
+
+  it("keeps a normal code fence unchanged", () => {
+    const { container } = render1("```\nabc\n```");
+    expect(container.querySelector("pre code")!.textContent).toContain("abc");
+    expect(container.querySelector("math")).toBeNull();
   });
 });

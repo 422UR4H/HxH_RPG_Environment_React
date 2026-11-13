@@ -1,9 +1,11 @@
-import { createContext, useContext, useMemo, type ComponentProps, type MouseEvent } from "react";
+import { createContext, lazy, Suspense, useContext, useMemo, type ComponentProps, type MouseEvent } from "react";
 import ReactMarkdown, { type Components, type ExtraProps } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Element, ElementContent } from "hast";
 import type { RuleChapter } from "../../types/rules";
+import ComingSoonBadge from "../../components/ions/ComingSoonBadge";
 import DiagramBlock from "./DiagramBlock";
+import { remarkComingSoon } from "./remarkComingSoon";
 import {
   classifyBlockquote,
   hastText,
@@ -40,6 +42,8 @@ function blockquoteKind(node: Element | undefined) {
     paragraphs.every((p) => isElement(p, "p") && meaningful(p).every((c) => isElement(c, "em")));
   return classifyBlockquote({ firstStrong, onlyEmphasis, equalsAfterStrong });
 }
+
+const MathBlock = lazy(() => import("./MathBlock"));
 
 function codeOf(pre: Element | undefined): Element | undefined {
   const child = pre?.children.find((c) => isElement(c, "code"));
@@ -92,6 +96,14 @@ function RulesPre({ node, children, ...rest }: ComponentProps<"pre"> & ExtraProp
     const meta = code.data?.meta ?? undefined;
     return <DiagramBlock meta={meta} fallback={hastText(code).replace(/\n$/, "")} />;
   }
+  if (code && Array.isArray(classes) && classes.includes("language-math")) {
+    const source = hastText(code).replace(/\n$/, "");
+    return (
+      <Suspense fallback={<pre><code>{source}</code></pre>}>
+        <MathBlock source={source} />
+      </Suspense>
+    );
+  }
   return <pre {...rest}>{children}</pre>;
 }
 
@@ -110,7 +122,11 @@ const COMPONENTS: Components = {
   blockquote: RulesBlockquote,
   pre: RulesPre,
   table: RulesTable,
-};
+  // Tag própria do remarkComingSoon; fora do mapa de tags HTML do tipo Components.
+  "coming-soon": ComingSoonBadge,
+} as Components;
+
+const REMARK_PLUGINS = [remarkGfm, remarkComingSoon];
 
 export default function RulesMarkdown({ chapter, onNavigate, chapterSlugs }: RulesMarkdownProps) {
   const rehypePlugins = useMemo(
@@ -122,7 +138,7 @@ export default function RulesMarkdown({ chapter, onNavigate, chapterSlugs }: Rul
   return (
     <NavigationContext.Provider value={navigation}>
       <RulesMarkdownContainer>
-        <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={rehypePlugins} components={COMPONENTS}>
+        <ReactMarkdown remarkPlugins={REMARK_PLUGINS} rehypePlugins={rehypePlugins} components={COMPONENTS}>
           {chapter.markdown}
         </ReactMarkdown>
       </RulesMarkdownContainer>
