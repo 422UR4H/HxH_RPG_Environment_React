@@ -118,6 +118,7 @@ function EditCharacterSheetPage() {
           diagramsMode: "create",
           proficiencyMode: "create",
           skillsMode: "view",
+          context: "edit",
         }
       : {
           headerMode: "edit-profile",

@@ -176,7 +176,7 @@ function CharacterSheetTemplate({
   // calculá-la a partir do que está prestes a ser enviado. `charSheet` continua
   // sendo o estado da página — as mudanças partem dele, a exibição vem de `shown`.
   const isDistributing = sheetMode.diagramsMode !== "view";
-  const shown = isDistributing ? withLivePreview(charSheet, selectedClass) : charSheet;
+  const shown = isDistributing ? withLivePreview(charSheet, selectedClass, sheetMode.context) : charSheet;
 
   const {
     // categoryName,

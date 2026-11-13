@@ -12,6 +12,12 @@ export interface SheetMode {
   skillsMode: SkillsMode;
   /** Dentro de outra tela (a partida): sem voltar e sem ações de rodapé. */
   embedded?: boolean;
+  /**
+   * Ficha nova ("create", padrão) ou ficha existente em edição completa ("edit").
+   * Só a nova conta os lotes de XP de arma da classe como já distribuídos
+   * (`withLivePreview`); a existente já traz as armas e o exp delas.
+   */
+  context?: "create" | "edit";
 }
 
 /** O quarto modo (§5.6 do documento mestre): a ficha de fora, só leitura, dentro da partida. */

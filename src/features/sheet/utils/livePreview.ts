@@ -17,13 +17,14 @@ import { buildSheetInput } from "./sheetInput";
 export function withLivePreview(
   charSheet: CharacterSheet,
   charClass: CharacterClass | undefined,
+  context: "create" | "edit" = "create",
 ): CharacterSheet {
   if (!charClass?.definition) return charSheet;
 
   let computed: CharacterSheet;
   try {
     const input = buildSheetInput(charSheet, charClass);
-    const placeholders = unchosenLots(charSheet, charClass);
+    const placeholders = context === "create" ? unchosenLots(charSheet, charClass) : {};
     // as vagas ainda sem arma entram na conta com armas de enfeite (ver unchosenLots)
     for (const [weapon, exp] of Object.entries(placeholders)) input.proficienciesExps[weapon] = exp;
     const wire = computeSheet(charClass.profile.name, charClass.definition, input);
@@ -50,6 +51,9 @@ export function withLivePreview(
  * (proficiência -> perícias físicas -> ...) seja qual for a arma, então escolher
  * ou trocar a arma só decide qual cartão mostra a proficiência — nada mais na
  * ficha pode mudar (senão os "Pontos para Distribuir" mexem sob a mão do jogador).
+ *
+ * Só na criação: numa ficha existente (edição completa) o exp da arma pode já
+ * ter passado do lote, e a vaga não se reconheceria — contaria em dobro.
  *
  * Devolve, para cada vaga ainda sem arma, uma arma de enfeite com o exp da vaga.
  * A de enfeite evita as armas já escolhidas, as fixas da classe (mesma chave
@@ -84,6 +88,7 @@ function unchosenLots(charSheet: CharacterSheet, charClass: CharacterClass): Rec
   const out: Record<string, number> = {};
   free.forEach((exp, i) => {
     if (candidates[i]) out[candidates[i]] = exp;
+    else console.warn(`Classe ${charClass.profile.name}: sem arma de enfeite para o lote de ${exp} XP; a prévia ficará abaixo do back.`);
   });
   return out;
 }
