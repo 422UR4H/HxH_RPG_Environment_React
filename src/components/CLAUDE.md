@@ -79,3 +79,23 @@ Quando o bloco de `styled-components` de um arquivo passa de ~150 linhas, extrai
 ## Testes
 
 Componentes compartilhados são cobertos pelos **integration tests das páginas** que os consomem (`src/pages/__tests__/`, via MSW — ver `src/test/`). Não escrevemos unit test por componente — replicaria o que o integration test já valida. Exceções: ions com lógica própria não-trivial (`ExpBar` tem teste de long-press) e utils puros (`src/features/sheet/__tests__/`).
+
+## Botões só de ícone vazam
+
+Os controles só de ícone do site (expandir, recolher, fechar) são desenhados **maiores** que a caixa que um
+ícone ocuparia e **transbordam** para a borda/padding vizinho. Referências: `ExpandableText` (seta de 54px
+pendurada 22px abaixo da caixa), `CharacterProfile` (seta de 6cqi sobre uma barra de 3.8cqi), X de fechar do
+`SheetRulesPanel` (50–56px, vaza do cabeçalho para o conteúdo) e do `EdgeDrawer` (36px, 10px acima da
+gaveta), `JointProficiencyCard` (seta de 1.8em, piso de 26px, ao lado do rótulo "N armas").
+
+Regras (gatilho: todo botão novo que só tem ícone):
+- Faça vazar sempre que couber. Nunca minúsculo, nunca "encaixotado" no tamanho do ícone (caixa com
+  borda/fundo justinho), nunca exagerado (a seta de 26–54px é o teto de bom senso).
+- Nunca cubra nem roube clique de outro controle: o vazamento cai em padding/borda, não em cima de botão.
+- Margem de bloco negativa para o vazamento não aumentar a altura da linha.
+- Hover/foco sempre por `iconButtonFx` (`src/styles/iconButtonFx.ts`); o ion (`ExpandButton`,
+  `CloseButton`) é decorativo e o `<button>` em volta é quem alterna.
+- Exceção: o "Voltar" (`BackButton`) não vaza, e está certo.
+
+Por quê: é a identidade visual da designer do projeto. Duas sessões do Claude Design desenharam botões
+pequenos e encaixotados e o dono do produto os recusou nas duas vezes.
