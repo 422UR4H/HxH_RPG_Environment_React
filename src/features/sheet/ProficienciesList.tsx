@@ -12,6 +12,7 @@ import JointProficiencyCard from "./JointProficiencyCard";
 import { useWeaponDamage } from "../../hooks/useWeaponDamage";
 import { colors } from "../../styles/tokens";
 import { ProfilePillSelect } from "./ProfileFieldStyles";
+import { textSize } from "./proficiencyCardParts";
 
 interface ProficienciesListProps {
   mode: ProficiencyMode;
@@ -28,22 +29,27 @@ interface WeaponSlotSelectProps {
   allowed: string[];
   /** Armas já escolhidas nos outros espaços: aparecem apagadas e não selecionáveis. */
   taken: string[];
+  /** Dano formatado da arma; `undefined` enquanto o catálogo não chegou ou se a arma não consta. */
+  damageOf: (weapon: string) => string | undefined;
   onChange: (weapon: string) => void;
 }
 
-function WeaponSlotSelect({ label, value, allowed, taken, onChange }: WeaponSlotSelectProps) {
+function WeaponSlotSelect({ label, value, allowed, taken, damageOf, onChange }: WeaponSlotSelectProps) {
   const takenKey = taken.join("|");
   // Identidade estável: a posição da lista aberta é recalculada quando o array muda.
   const options = useMemo(
     () => [
-      { value: "", label: "Escolher…" },
-      ...allowed.map((weapon) => ({
-        value: weapon,
-        label: weapon,
-        disabled: takenKey.split("|").includes(weapon),
-      })),
+      { value: "", label: "Selecione" },
+      ...allowed.map((weapon) => {
+        const disabled = takenKey.split("|").includes(weapon);
+        const damage = damageOf(weapon);
+        const description = disabled
+          ? [damage, "já escolhida"].filter(Boolean).join(" · ")
+          : damage;
+        return { value: weapon, label: weapon, disabled, description };
+      }),
     ],
-    [allowed, takenKey],
+    [allowed, takenKey, damageOf],
   );
   return <SlotSelect aria-label={label} value={value} options={options} onChange={onChange} />;
 }
@@ -126,14 +132,20 @@ export default function ProficienciesList({
           const otherSelected = slotSelections.filter((_, j) => j !== i);
           return (
             <DistributionSlot key={i} $selected={!!slotSelections[i]}>
-              <SlotLevel>
-                Lv {point.level} <SlotExp>· {point.exp} XP</SlotExp>
-              </SlotLevel>
+              <SlotHeader>
+                <SlotLevel>
+                  Lv {point.level} <SlotExp>· {point.exp} XP</SlotExp>
+                </SlotLevel>
+                {slotSelections[i] && damageOf(slotSelections[i]) && (
+                  <SlotDamage>{damageOf(slotSelections[i])}</SlotDamage>
+                )}
+              </SlotHeader>
               <WeaponSlotSelect
                 label={`Arma do nível ${point.level}, espaço ${i + 1}`}
                 value={slotSelections[i]}
                 allowed={distribution.proficienciesAllowed}
                 taken={otherSelected}
+                damageOf={damageOf}
                 onChange={(weapon) => handleSlotChange(i, weapon)}
               />
             </DistributionSlot>
@@ -179,9 +191,25 @@ const DistributionSlot = styled.div<{ $selected: boolean }>`
   gap: 10px;
 `;
 
+const SlotHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0 12px;
+`;
+
+const SlotDamage = styled.div`
+  margin-left: auto;
+  font-weight: 500;
+  font-size: max(14px, calc(${textSize} * 0.9));
+  color: ${colors.textPrimary};
+  white-space: nowrap;
+`;
+
 const SlotLevel = styled.div`
   font-weight: 700;
-  font-size: min(22px, 5cqi);
+  font-size: ${textSize};
   color: ${colors.textPrimary};
 `;
 
