@@ -90,9 +90,10 @@ gaveta), `JointProficiencyCard` (seta de 1.8em, piso de 26px, ao lado do rótulo
 
 Regras (gatilho: todo botão novo que só tem ícone):
 - Faça vazar sempre que couber. Nunca minúsculo, nunca "encaixotado" no tamanho do ícone (caixa com
-  borda/fundo justinho), nunca exagerado (a seta de 26–54px é o teto de bom senso).
+  borda/fundo justinho), nunca exagerado.
 - Nunca cubra nem roube clique de outro controle: o vazamento cai em padding/borda, não em cima de botão.
-- Margem de bloco negativa para o vazamento não aumentar a altura da linha.
+- O vazamento não pode mudar a altura da linha ou caixa que hospeda o ícone (margem de bloco negativa no
+  `JointProficiencyCard`; posicionamento absoluto nos demais).
 - Hover/foco sempre por `iconButtonFx` (`src/styles/iconButtonFx.ts`); o ion (`ExpandButton`,
   `CloseButton`) é decorativo e o `<button>` em volta é quem alterna.
 - Exceção: o "Voltar" (`BackButton`) não vaza, e está certo.
