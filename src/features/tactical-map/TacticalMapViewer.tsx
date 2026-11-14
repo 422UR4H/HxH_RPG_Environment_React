@@ -38,6 +38,12 @@ type Props = {
   onPieceMove?: (pieceId: string, slot: SlotCoord) => void;
   placingNpcId?: string | null;
   onNpcPlaced?: (slot: SlotCoord) => void;
+  // Soltou fora do canvas (ou cancelou) com `placingNpcId` armado: quem arma desarma.
+  onNpcPlacementCancel?: () => void;
+  // Peça arrastada para fora do canvas (o Arrumar do mestre a tira do mapa pela lista de Personagens).
+  onPieceDragToRoster?: (pieceId: string) => void;
+  onPieceDragStart?: (pieceId: string) => void;
+  onPieceDragEnd?: () => void;
   // See stageProps.ts — the HTML layer anchors reaction buttons and balloons on the pieces.
   onViewportTransform?: (t: ViewportTransform) => void;
 };
@@ -47,7 +53,8 @@ export default function TacticalMapViewer({
   piecesInteractive, draggablePieceIds, onPieceSelect, onPieceLongPress,
   selectedPieceId, inspectedPieceId, targetPieceIds, activePieceId, onEmptySlotClick,
   suppressPanOnPiecePress, intentPreview, intentGhosts, highlightHoverSlot, fitRequest, fitFocusSlots,
-  onPieceMove, placingNpcId, onNpcPlaced, onViewportTransform,
+  onPieceMove, placingNpcId, onNpcPlaced, onNpcPlacementCancel, onPieceDragToRoster, onPieceDragStart, onPieceDragEnd,
+  onViewportTransform,
 }: Props) {
   return (
     <TacticalMapStage
@@ -79,6 +86,10 @@ export default function TacticalMapViewer({
       onPieceMove={onPieceMove}
       placingNpcId={placingNpcId}
       onNpcPlaced={onNpcPlaced}
+      onNpcPlacementCancel={onNpcPlacementCancel}
+      onPieceDragToRoster={onPieceDragToRoster}
+      onPieceDragStart={onPieceDragStart}
+      onPieceDragEnd={onPieceDragEnd}
       onViewportTransform={onViewportTransform}
     />
   );

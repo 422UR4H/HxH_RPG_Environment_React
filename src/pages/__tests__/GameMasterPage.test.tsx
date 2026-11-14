@@ -35,6 +35,7 @@ vi.mock("../../features/tactical-map/TacticalMapViewer", () => ({
     onPieceMove?: (pieceId: string, slot: { kind: "square"; col: number; row: number } | { kind: "hex"; q: number; r: number }) => void;
     placingNpcId?: string | null;
     onNpcPlaced?: (slot: { kind: "square"; col: number; row: number }) => void;
+    onNpcPlacementCancel?: () => void;
     fog?: unknown;
   }) => (
     <div
@@ -54,6 +55,7 @@ vi.mock("../../features/tactical-map/TacticalMapViewer", () => ({
       // F12: o pré-visualizar do destino pendente e o "pôr" do placer do lobby.
       data-intent-preview={props.intentPreview ? JSON.stringify(props.intentPreview) : ""}
       data-placing-npc-id={props.placingNpcId ?? ""}
+      data-has-placement-cancel={String(!!props.onNpcPlacementCancel)}
       // O tabuleiro pelos olhos da peça: o fog que o viewer recebe ("" = sem fog).
       data-fog={props.fog ? JSON.stringify(props.fog) : ""}
     >
@@ -1313,6 +1315,75 @@ describe("GameMasterPage", () => {
       act(() => screen.getByTestId("place-slot").click());
       expect(dialog()).not.toBeInTheDocument();
       expect(ws.sent("enqueue_master_action")).toEqual([]);
+    });
+    // ─── Arrastar o card de quem está fora do mapa ───────────────────────────
+    describe("arrastar o card ao mapa", () => {
+      const dragCard = (id: string) => {
+        const row = screen.getByTestId(`character-row-${id}`);
+        fireEvent.pointerDown(row, { pointerId: 1, button: 0, pointerType: "mouse", clientX: 10, clientY: 10 });
+        fireEvent.pointerMove(window, { pointerId: 1, pointerType: "mouse", clientX: 40, clientY: 40 });
+      };
+
+      it("fora do modo Arrumar: arrastar o card de quem não tem peça arma o pôr e confirma pelo mesmo diálogo", async () => {
+        renderMasterPage();
+        const ws = await waitForSocket();
+        openWithServerBoard(ws, [piecesFixture[0]]);
+        await user.click(await screen.findByRole("button", { name: "Ver histórico" }));
+        await user.click(screen.getByRole("button", { name: "Personagens" }));
+        expect(await screen.findByTestId("character-row-npc1")).toHaveTextContent("Fora do mapa");
+        expect(screen.getByTestId("character-row-c1")).not.toHaveTextContent("Fora do mapa");
+
+        dragCard("npc1");
+        expect(mapStub()).toHaveAttribute("data-placing-npc-id", "npc1");
+        expect(mapStub()).toHaveAttribute("data-has-placement-cancel", "true");
+        // com o card na mão nenhuma peça arrasta
+        expect(mapStub()).toHaveAttribute("data-draggable-piece-ids", "[]");
+
+        await user.click(screen.getByTestId("place-slot"));
+        expect(mapStub()).toHaveAttribute("data-placing-npc-id", "");
+        expect(dialog()).toHaveTextContent("Pôr Capanga em coluna 4, linha 6?");
+        expect(mapStub().getAttribute("data-intent-preview")).toContain('"to"');
+        expect(ws.sent("enqueue_master_action")).toEqual([]);
+
+        await user.click(screen.getByRole("button", { name: "Confirmar" }));
+        expect(ws.sent("enqueue_master_action")).toEqual([{ targetIds: ["npc1"], move: { position: [3, 5, 0] } }]);
+      });
+
+      it("soltar sobre um controle por cima do mapa não vira pôr", async () => {
+        renderMasterPage();
+        const ws = await waitForSocket();
+        openWithServerBoard(ws, [piecesFixture[0]]);
+        await user.click(await screen.findByRole("button", { name: "Ver histórico" }));
+        await user.click(screen.getByRole("button", { name: "Personagens" }));
+        await screen.findByTestId("character-row-npc1");
+        dragCard("npc1");
+        fireEvent.pointerUp(screen.getByRole("button", { name: "Enquadrar" }));
+        act(() => screen.getByTestId("place-slot").click());
+        expect(dialog()).not.toBeInTheDocument();
+        expect(mapStub()).toHaveAttribute("data-placing-npc-id", "");
+      });
+
+      it("um clique simples no card continua abrindo a ficha", async () => {
+        renderMasterPage();
+        const ws = await waitForSocket();
+        openWithServerBoard(ws, [piecesFixture[0]]);
+        await user.click(await screen.findByRole("button", { name: "Ver histórico" }));
+        await user.click(screen.getByRole("button", { name: "Personagens" }));
+        await user.click(await screen.findByTestId("character-row-npc1"));
+        expect(await screen.findByTestId("match-sheet")).toBeInTheDocument();
+        expect(mapStub()).toHaveAttribute("data-placing-npc-id", "");
+      });
+
+      it("o card de quem já tem peça não arrasta", async () => {
+        renderMasterPage();
+        const ws = await waitForSocket();
+        openWithServerBoard(ws, [piecesFixture[0]]);
+        await user.click(await screen.findByRole("button", { name: "Ver histórico" }));
+        await user.click(screen.getByRole("button", { name: "Personagens" }));
+        await screen.findByTestId("character-row-c1");
+        dragCard("c1");
+        expect(mapStub()).toHaveAttribute("data-placing-npc-id", "");
+      });
     });
     // ─── Follow-up (revisão da T17) ──────────────────────────────────────────
     it("chip armado: um toque num controle por cima do mapa não vira pôr e desarma", async () => {

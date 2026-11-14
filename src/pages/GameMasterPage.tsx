@@ -47,6 +47,7 @@ import CloseTurnRefusedDialog from "../features/match/combat/CloseTurnRefusedDia
 import SceneChangeDialog from "../features/match/combat/SceneChangeDialog";
 import { useSceneChangeFlow } from "../features/match/combat/useSceneChangeFlow";
 import ArrangeConfirmDialog from "../features/match/combat/ArrangeConfirmDialog";
+import type { Participant } from "../types/match";
 import type { ArrangePending } from "../features/match/combat/ArrangeConfirmDialog";
 import MapPickConfirm from "../features/match/combat/MapPickConfirm";
 import type { MasterActionPayload } from "../features/match/combat/combatMessages";
@@ -67,7 +68,9 @@ import {
   StageNotices,
 } from "../features/match/combat/mapCanvasStyles";
 import { MapCornerStack, MapCornerStackButton } from "../features/tactical-map/stage/mapCornerStyles";
-import { isSameSlot, slotToTriple, tripleToSlot } from "../features/tactical-map/utils/coords";
+import { isSameSlot, slotScreenInradius, slotToTriple, tripleToSlot } from "../features/tactical-map/utils/coords";
+import { PieceDragGhostPortal } from "../features/tactical-map/PieceDragGhost";
+import { usePointerGhost } from "../features/match/usePointerGhost";
 import type { SlotTriple } from "../features/tactical-map/utils/coords";
 import type { IntentPreview } from "../features/tactical-map/utils/intentGeometry";
 import type { SlotCoord, WallSegment } from "../types/tacticalMap";
@@ -205,6 +208,23 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   const [arrangePending, setArrangePending] = useState<ArrangePending | null>(null);
   const [arrangePieceId, setArrangePieceId] = useState<string | undefined>(undefined);
   const [placingId, setPlacingId] = useState<string | undefined>(undefined);
+  // Arrastar o card de quem está fora do mapa até o tabuleiro (vale em qualquer modo, e sempre
+  // confirma pelo mesmo diálogo do Arrumar). `x`/`y`: onde o ponteiro estava; `size`: o diâmetro do ghost.
+  const [cardDrag, setCardDrag] = useState<{
+    id: string;
+    avatarUrl?: string | null;
+    size: number;
+    x: number;
+    y: number;
+  } | null>(null);
+  const clearCardDrag = useCallback(() => setCardDrag(null), []);
+  // Estáveis: o PiecesLayer reassina os ouvintes a cada troca delas.
+  const handlePieceDragStart = useCallback((pieceId: string) => setDraggingPieceId(pieceId), []);
+  const handlePieceDragEnd = useCallback(() => setDraggingPieceId(null), []);
+  const cardGhostRef = usePointerGhost(cardDrag);
+  // Arrumar: uma peça está sendo arrastada para fora do mapa (acende a lista de Personagens).
+  const [draggingPieceId, setDraggingPieceId] = useState<string | null>(null);
+  const charactersListRef = useRef<HTMLDivElement | null>(null);
 
   // ─── Onde cai a fuga que falhou (F14) ──────────────────────────────────────
   const fallPicking = boardMode === "fallPick";
@@ -293,8 +313,9 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   // zona Pixi: com o chip armado, um ouvinte de captura (roda antes do da janela, que o placer
   // usa) anota se a soltura caiu no mapa mesmo; o `onNpcPlaced` de uma que não caiu é descartado.
   const releaseOnMapRef = useRef(false);
+  const cardDragging = cardDrag != null;
   useEffect(() => {
-    if (!arranging || !placingId) return;
+    if (!(arranging && placingId) && !cardDragging) return;
     const onUp = (e: PointerEvent) => {
       releaseOnMapRef.current = !!canvasRef.current?.contains(e.target as Node);
     };
@@ -303,7 +324,23 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
       window.removeEventListener("pointerup", onUp, { capture: true });
       releaseOnMapRef.current = false;
     };
-  }, [arranging, placingId]);
+  }, [arranging, placingId, cardDragging]);
+
+  // Arrumar, peça → lista de Personagens: o Pixi só diz "soltou fora do canvas"; quem diz se foi
+  // sobre a lista é este ouvinte de captura (roda antes do da janela, onde o Pixi decide).
+  const releaseOnListRef = useRef(false);
+  const pieceDragging = draggingPieceId != null;
+  useEffect(() => {
+    if (!arranging || !pieceDragging) return;
+    const onUp = (e: PointerEvent) => {
+      releaseOnListRef.current = !!charactersListRef.current?.contains(e.target as Node);
+    };
+    window.addEventListener("pointerup", onUp, { capture: true });
+    return () => {
+      window.removeEventListener("pointerup", onUp, { capture: true });
+      releaseOnListRef.current = false;
+    };
+  }, [arranging, pieceDragging]);
 
   // Toda (re)conexão derruba o pedido ainda não confirmado: o tabuleiro que ele mirava pode
   // não ser mais o que o servidor tem.
@@ -539,6 +576,47 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     },
     [placingId, game.boardPieces],
   );
+  const handleCardDragStart = useCallback(
+    (participant: Participant, point: { x: number; y: number }) => {
+      const scale = game.viewport.getSnapshot()?.scale ?? 1;
+      setCardDrag({
+        id: participant.characterSheet.uuid,
+        avatarUrl: participant.characterSheet.avatarUrl,
+        // O diâmetro da peça na tela, como o ghost do lobby; não encolhe abaixo do que se agarra.
+        size: map ? Math.max(44, slotScreenInradius(map.grid) * 2 * 0.9 * scale) : 44,
+        x: point.x,
+        y: point.y,
+      });
+      closeAsideIfDrawer();
+    },
+    [game.viewport, map, closeAsideIfDrawer],
+  );
+  const handleCardPlaced = useCallback(
+    (slot: SlotCoord) => {
+      if (!cardDrag) return;
+      setCardDrag(null);
+      // Soltura num controle por cima do mapa: não é um pôr.
+      if (!releaseOnMapRef.current) return;
+      if (game.boardPieces.some((p) => isSameSlot(p.coord.slot, slot))) return;
+      setArrangePending({ kind: "place", characterId: cardDrag.id, to: slotToTriple(slot, 0) });
+    },
+    [cardDrag, game.boardPieces],
+  );
+  const handlePieceDragToRoster = useCallback(
+    (pieceId: string) => {
+      if (!releaseOnListRef.current) return;
+      const piece = game.boardPieces.find((p) => p.id === pieceId);
+      if (piece?.characterId) setArrangePending({ kind: "remove", characterId: piece.characterId });
+    },
+    [game.boardPieces],
+  );
+  // Quem participa, não saiu e não tem peça: o card vira arrastável e ganha o selo.
+  const offBoardIds = useMemo(() => {
+    const onBoard = new Set(game.boardPieces.map((p) => p.characterId));
+    return new Set(
+      participants.filter((p) => !p.leftAt && !onBoard.has(p.characterSheet.uuid)).map((p) => p.characterSheet.uuid),
+    );
+  }, [participants, game.boardPieces]);
   const confirmArrange = () => {
     if (!arrangePending) return;
     if (!combat.send.masterAction(arrangePayload(arrangePending))) return;
@@ -809,7 +887,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                   isWallTappable={isWallTappable}
                   piecesInteractive
                   // Com um chip armado nada arrasta: a mesma soltura arrastaria E poria.
-                  draggablePieceIds={arranging && !placingId ? allPieceIds : NO_DRAG}
+                  draggablePieceIds={arranging && !placingId && !cardDrag ? allPieceIds : NO_DRAG}
                   suppressPanOnPiecePress
                   onPieceSelect={
                     fallPicking || reactionPicking ? undefined : arranging ? handleArrangeSelect : handlePieceTap
@@ -827,7 +905,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                   targetPieceIds={reactionPicking ? undefined : composer.targetPieceIds}
                   activePieceId={game.openTurnPieceId}
                   intentPreview={
-                    reactionPicking ? undefined : fallPicking ? fallPreview : arranging ? arrangePreview : composer.preview ?? masterWallPreview
+                    reactionPicking ? undefined : fallPicking ? fallPreview : arranging || arrangePending ? arrangePreview : composer.preview ?? masterWallPreview
                   }
                   intentGhosts={intentGhosts}
                   highlightHoverSlot={fallPicking || reactionPicking || (!arranging && !!actorId && !sheetVisible)}
@@ -838,8 +916,13 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                       : fallPicking ? handleFallSlot : boardMode === "play" && actorId && !sheetVisible ? handleSlotTap : undefined
                   }
                   onPieceMove={arranging ? handleArrangeMove : undefined}
-                  placingNpcId={arranging ? (placingId ?? null) : null}
-                  onNpcPlaced={arranging ? handleArrangePlaced : undefined}
+                  placingNpcId={cardDrag?.id ?? (arranging ? (placingId ?? null) : null)}
+                  onNpcPlaced={cardDrag ? handleCardPlaced : arranging ? handleArrangePlaced : undefined}
+                  // Só o arraste do card desarma sozinho; o chip do Arrumar segue como era.
+                  onNpcPlacementCancel={cardDrag ? clearCardDrag : undefined}
+                  onPieceDragStart={arranging ? handlePieceDragStart : undefined}
+                  onPieceDragEnd={arranging ? handlePieceDragEnd : undefined}
+                  onPieceDragToRoster={arranging ? handlePieceDragToRoster : undefined}
                   onViewportTransform={game.setViewport}
                 />
               ) : !map ? (
@@ -979,6 +1062,10 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                 gameStarted
                 enrollments={[]}
                 participants={participantsWithLiveHp}
+                offBoardIds={offBoardIds}
+                onCardDragStart={handleCardDragStart}
+                containerRef={charactersListRef}
+                isDropTarget={arranging && draggingPieceId != null}
                 isMaster
                 actionLoading={{}}
                 onAccept={() => {}}
@@ -1020,6 +1107,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
         }}
         onKeep={() => setCancelling(null)}
       />
+      {cardDrag && <PieceDragGhostPortal ghostRef={cardGhostRef} size={cardDrag.size} avatarUrl={cardDrag.avatarUrl} />}
       <ArrangeConfirmDialog
         pending={arrangePending}
         nameOf={nameOf}
