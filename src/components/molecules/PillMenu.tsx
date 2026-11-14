@@ -53,7 +53,7 @@ export default function PillMenu({ items, label, className }: PillMenuProps) {
     fitRowFont: { min: MENU_ITEM_MIN_FONT_PX, max: MENU_ITEM_MAX_FONT_PX },
     maxOpenRadius: ATTACHED_MAX_OPEN_RADIUS_PX,
   });
-  const { open, mounted, placement, side, state, openRadius, listId, anchorName, triggerRef, listRef } = list;
+  const { open, mounted, placement, side, state, openRadius, closedRadius, listId, anchorName, triggerRef, listRef } = list;
   const triggerId = useId();
   // Item a focar assim que a lista estiver posicionada (antes disso ela está invisível).
   const pendingFocus = useRef<Edge | null>(null);
@@ -171,7 +171,13 @@ export default function PillMenu({ items, label, className }: PillMenuProps) {
         // quais diminuem) só se sabe depois, e a transição dos cantos partiria do valor errado. Tudo
         // antes da pintura: na tela, a pílula já abre do lado certo.
         data-state={state === "open" && !placement ? "closed" : state}
-        style={{ "--pill-anchor": anchorName, "--attached-open-radius": openRadius } as CSSProperties}
+        style={
+          {
+            "--pill-anchor": anchorName,
+            "--attached-open-radius": openRadius,
+            "--attached-closed-radius": closedRadius,
+          } as CSSProperties
+        }
         onClick={handleTriggerClick}
         onKeyDown={handleTriggerKeyDown}
         onBlur={handleBlur}

@@ -56,6 +56,18 @@ function largestRadius(a: string, b: string) {
   return `${Math.max(pa, pb)}px`;
 }
 
+/**
+ * O raio que a pílula mostra de fato: o navegador reduz um raio maior que metade do lado a essa
+ * metade (o `999px` da pílula vira metade da altura). Medido em px de layout (sem transformação);
+ * sem layout (testes), fica o declarado.
+ */
+function renderedRadius(radius: string, el: HTMLElement) {
+  const h = el.offsetHeight;
+  const w = el.offsetWidth;
+  if (!radius.endsWith("px") || !h || !w) return radius;
+  return `${Math.min(parseFloat(radius), h / 2, w / 2)}px`;
+}
+
 /** O raio aberto: o fechado, sem passar de `max` px. */
 export function capRadius(radius: string, max: number) {
   if (radius.endsWith("px")) return `${Math.min(parseFloat(radius), max)}px`;
@@ -138,6 +150,8 @@ export function useAttachedList<T extends HTMLElement>({
   const [placement, setPlacement] = useState<AttachedPlacement | null>(null);
   // Com `maxOpenRadius`: o raio da forma aberta, medido na pílula ainda fechada (ao abrir).
   const [openRadius, setOpenRadius] = useState<string | undefined>(undefined);
+  // O raio de onde os cantos externos partem ao abrir (o que a pílula fechada mostrava).
+  const [closedRadius, setClosedRadius] = useState<string | undefined>(undefined);
   const triggerRef = useRef<T>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<() => void>(() => {});
@@ -302,7 +316,9 @@ export function useAttachedList<T extends HTMLElement>({
       // Fechada, a pílula mostra o raio de verdade nos dois lados. (Ainda voltando a arredondar, o
       // raio está entre o aberto e o fechado: o mínimo dá o mesmo.)
       const cs = getComputedStyle(trigger);
-      setOpenRadius(capRadius(largestRadius(cs.borderTopLeftRadius, cs.borderBottomLeftRadius), maxOpenRadius));
+      const closed = renderedRadius(largestRadius(cs.borderTopLeftRadius, cs.borderBottomLeftRadius), trigger);
+      setClosedRadius(closed);
+      setOpenRadius(capRadius(closed, maxOpenRadius));
     }
     setSettling(false);
     setClosing(false);
@@ -330,6 +346,7 @@ export function useAttachedList<T extends HTMLElement>({
     state,
     side: placement?.side ?? "below",
     openRadius,
+    closedRadius,
     placement,
     listId,
     anchorName,

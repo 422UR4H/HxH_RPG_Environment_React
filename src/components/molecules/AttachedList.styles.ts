@@ -15,6 +15,13 @@ const EASING = "ease";
 
 type Side = "below" | "above";
 
+const shrinkOuter = (outer: "top" | "bottom") => keyframes`
+  from {
+    border-${outer}-left-radius: var(--attached-closed-radius, var(--attached-open-radius));
+    border-${outer}-right-radius: var(--attached-closed-radius, var(--attached-open-radius));
+  }
+`;
+
 /**
  * O que a pílula precisa para a lista continuá-la: a âncora e os estados aberto/fechando/assentando
  * (lido de `data-state`). `&&` garante que o estado aberto vença o estilo do consumidor, qualquer que
@@ -47,7 +54,10 @@ export const attachedTrigger = css<{ $side: Side; $capOpenRadius?: boolean }>`
   ${({ $side, $capOpenRadius }) => {
     if (!$capOpenRadius) return "";
     // `maxOpenRadius`: os cantos externos (os do lado oposto à lista) diminuem até o raio aberto,
-    // na mesma duração da lista. `&&&` vence o `&&` do consumidor (que zera a transição aberto).
+    // na mesma duração da lista. `&&&` vence o `&&` do consumidor.
+    // Animação, não transição: a transição partiria do raio declarado (`999px`), que fica bolha em
+    // quase todo o percurso e só cai no último instante. A animação parte do raio que a pílula
+    // mostrava (`--attached-closed-radius`, medido ao abrir).
     const outer = $side === "below" ? "top" : "bottom";
     return css`
       &&&[data-state="open"],
@@ -57,9 +67,7 @@ export const attachedTrigger = css<{ $side: Side; $capOpenRadius?: boolean }>`
       }
       @media (prefers-reduced-motion: no-preference) {
         &&&[data-state="open"] {
-          transition:
-            border-${outer}-left-radius ${DURATION} ${EASING},
-            border-${outer}-right-radius ${DURATION} ${EASING};
+          animation: ${shrinkOuter(outer)} ${DURATION} ${EASING};
         }
       }
     `;

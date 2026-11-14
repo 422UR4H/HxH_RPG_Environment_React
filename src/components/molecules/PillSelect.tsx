@@ -62,7 +62,7 @@ export default function PillSelect({
     onClose: () => setActiveIndex(-1),
     maxOpenRadius,
   });
-  const { open, mounted, placement, side, state, openRadius, listId, anchorName, triggerRef } = list;
+  const { open, mounted, placement, side, state, openRadius, closedRadius, listId, anchorName, triggerRef } = list;
   const capped = maxOpenRadius !== undefined;
   const typed = useRef({ text: "", timer: 0 });
 
@@ -246,7 +246,7 @@ export default function PillSelect({
         style={
           {
             "--pill-anchor": anchorName,
-            ...(capped ? { "--attached-open-radius": openRadius } : {}),
+            ...(capped ? { "--attached-open-radius": openRadius, "--attached-closed-radius": closedRadius } : {}),
           } as CSSProperties
         }
         onClick={() => {
