@@ -32,7 +32,7 @@ export const pillLook = css`
 `;
 
 // O consumidor estiliza a pílula (`styled(PillSelect)`); aqui só o que o componente precisa.
-export const Trigger = styled.div<{ $side: "below" | "above" }>`
+export const Trigger = styled.div<{ $side: "below" | "above"; $capOpenRadius?: boolean }>`
   display: inline-grid;
   box-sizing: border-box;
   text-align: left;

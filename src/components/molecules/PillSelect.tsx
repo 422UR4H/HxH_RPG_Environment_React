@@ -31,6 +31,8 @@ interface PillSelectProps {
   /** O nome acessível vem de `aria-label` ou `aria-labelledby`: `<label htmlFor>` não funciona num `div` combobox. */
   "aria-label"?: string;
   "aria-labelledby"?: string;
+  /** Raio máximo (px) dos cantos externos com a lista aberta; sem isto, a lista copia o raio da pílula. */
+  maxOpenRadius?: number;
 }
 
 const PAGE_STEP = 10;
@@ -50,6 +52,7 @@ export default function PillSelect({
   placeholder,
   "aria-label": ariaLabel,
   "aria-labelledby": ariaLabelledBy,
+  maxOpenRadius,
 }: PillSelectProps) {
   const [scrollbarWidth, setScrollbarWidth] = useState(0);
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -57,8 +60,10 @@ export default function PillSelect({
     rowSelector: '[role="option"]',
     remeasureKey: options,
     onClose: () => setActiveIndex(-1),
+    maxOpenRadius,
   });
-  const { open, mounted, placement, side, state, listId, anchorName, triggerRef } = list;
+  const { open, mounted, placement, side, state, openRadius, listId, anchorName, triggerRef } = list;
+  const capped = maxOpenRadius !== undefined;
   const typed = useRef({ text: "", timer: 0 });
 
   const selectedIndex = options.findIndex((o) => o.value === value);
@@ -226,6 +231,7 @@ export default function PillSelect({
         id={id}
         className={className}
         $side={side}
+        $capOpenRadius={capped}
         role="combobox"
         tabIndex={disabled ? -1 : 0}
         aria-haspopup="listbox"
@@ -235,8 +241,14 @@ export default function PillSelect({
         aria-label={ariaLabel}
         aria-labelledby={ariaLabelledBy}
         aria-disabled={disabled || undefined}
-        data-state={state}
-        style={{ "--pill-anchor": anchorName } as CSSProperties}
+        // Com teto, a pílula segue fechada até a lista ser medida (ver PillMenu).
+        data-state={capped && state === "open" && !placement ? "closed" : state}
+        style={
+          {
+            "--pill-anchor": anchorName,
+            ...(capped ? { "--attached-open-radius": openRadius } : {}),
+          } as CSSProperties
+        }
         onClick={() => {
           if (disabled) return;
           if (open) closeList();

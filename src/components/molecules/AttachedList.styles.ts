@@ -4,6 +4,11 @@ import { scopedScrollbar, scrollbarPalettes } from "../../styles/scrollbar";
 
 /** Altura mínima de uma linha (px); também a reserva quando a linha ainda não tem layout. */
 export const ATTACHED_ROW_MIN_HEIGHT = 44;
+/**
+ * Raio máximo (px) dos cantos externos da forma aberta (pílula + lista): uma pílula de raio grande
+ * com uma lista curta virava uma bolha oval que cortava o texto. Passe a `useAttachedList({ maxOpenRadius })`.
+ */
+export const ATTACHED_MAX_OPEN_RADIUS_PX = 16;
 export const ATTACHED_LIST_DURATION_MS = 160;
 const DURATION = `${ATTACHED_LIST_DURATION_MS}ms`;
 const EASING = "ease";
