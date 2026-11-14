@@ -10,3 +10,14 @@ export interface RuleChapter {
 export interface SheetRulesResponse {
   chapters: RuleChapter[];
 }
+
+// Catálogo de armas — GET /rules/weapons (docs/dev/api/rules.md).
+export interface WeaponInfo {
+  name: string;
+  dice: number[];
+  flatDamage: number;
+}
+
+export interface WeaponsResponse {
+  weapons: WeaponInfo[];
+}
