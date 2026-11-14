@@ -11,7 +11,7 @@ import {
   ProficiencyLevel,
   ProficiencyName,
   capitalize,
-  textSize,
+  secondaryTextSize,
 } from "./proficiencyCardParts";
 
 // A partir deste número de armas a lista aberta precisa da linha inteira.
@@ -84,8 +84,9 @@ const Card = styled(ProficiencyItem)<{ $fullRow: boolean }>`
 
 const ToggleButton = styled.button`
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
+  gap: 8px;
   width: 100%;
   margin: 0;
   padding: 4px 15px 10px;
@@ -93,7 +94,7 @@ const ToggleButton = styled.button`
   background: none;
   color: ${colors.textMuted};
   font: inherit;
-  font-size: calc(${textSize} * 0.77);
+  font-size: ${secondaryTextSize};
   text-align: left;
   cursor: pointer;
   ${iconButtonFx(1.15)}
@@ -114,7 +115,7 @@ const WeaponList = styled.ul`
   list-style: none;
   margin: 0;
   padding: 0 15px 8px;
-  font-size: calc(${textSize} * 0.77);
+  font-size: ${secondaryTextSize};
   column-width: 220px;
   column-gap: 24px;
 `;

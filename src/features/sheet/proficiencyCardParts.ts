@@ -8,6 +8,9 @@ export const capitalize = (name: string) => name.charAt(0).toUpperCase() + name.
 // O balão da EXP acompanha o texto do card (sem isso, em tela larga ele dobra de tamanho e o card corta o topo).
 export const textSize = "min(22px, 5cqi)";
 
+// Texto secundário (dano, rótulo "N armas", lista de armas): 0.77 do texto do card, nunca abaixo de 14px no celular.
+export const secondaryTextSize = `max(14px, calc(${textSize} * 0.77))`;
+
 export const ProficiencyItem = styled.div`
   ${BAR_BUBBLE_FONT_SIZE}: ${textSize};
   font-size: 24px;
@@ -30,7 +33,7 @@ export const ProficiencyCardContent = styled.div<{ $hasBelow: boolean }>`
 
 export const ProficiencyDamage = styled.div`
   padding: 2px 15px 10px;
-  font-size: calc(${textSize} * 0.77);
+  font-size: ${secondaryTextSize};
   color: ${colors.textMuted};
 `;
 

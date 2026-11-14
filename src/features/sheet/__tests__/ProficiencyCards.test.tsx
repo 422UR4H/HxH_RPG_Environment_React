@@ -41,13 +41,32 @@ describe("ProficiencyCard damage", () => {
     expect(await screen.findByText("D12 + D4 +7")).toBeInTheDocument();
   });
 
-  it("shows no damage when the catalogue fails", async () => {
-    server.use(http.get("http://localhost:5000/rules/weapons", () => HttpResponse.error()));
+  it("shows no damage while the catalogue has not loaded", async () => {
+    server.use(http.get("http://localhost:5000/rules/weapons", () => new Promise(() => {})));
     renderWithProviders(
       <ProficienciesList mode="view" commonProfs={{ katana: { level: 2, currExp: 1, nextLvlBaseExp: 5 } }} />,
       { token: null },
     );
-    await waitFor(() => expect(screen.getByText("Katana")).toBeInTheDocument());
+    expect(screen.getByText("Katana")).toBeInTheDocument();
+    expect(screen.queryByText(/D12/)).toBeNull();
+  });
+
+  it("shows no damage after the catalogue request failed for good", async () => {
+    let calls = 0;
+    server.use(
+      http.get("http://localhost:5000/rules/weapons", () => {
+        calls++;
+        return HttpResponse.error();
+      }),
+    );
+    renderWithProviders(
+      <ProficienciesList mode="view" commonProfs={{ katana: { level: 2, currExp: 1, nextLvlBaseExp: 5 } }} />,
+      { token: null },
+    );
+    // Primeira tentativa + o único retry; depois a query assenta no estado de erro.
+    await waitFor(() => expect(calls).toBe(2), { timeout: 5000 });
+    await new Promise((r) => setTimeout(r, 100));
+    expect(screen.getByText("Katana")).toBeInTheDocument();
     expect(screen.queryByText(/D12/)).toBeNull();
   });
 });
