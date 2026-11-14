@@ -90,6 +90,7 @@ export function distributeJointProficiencies(charClass: CharacterClass) {
       exp: prof.exp || 0,
       level: prof.level || 0,
       name,
+      weapons: prof.weapons,
       currExp: prof.currExp,
       nextLvlBaseExp: prof.nextLvlBaseExp,
     };

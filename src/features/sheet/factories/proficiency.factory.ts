@@ -13,6 +13,7 @@ export function createEmptyJointProficiency(): JointProficiency {
   return {
     level: 0,
     name: "",
+    weapons: [],
   };
 }
 
