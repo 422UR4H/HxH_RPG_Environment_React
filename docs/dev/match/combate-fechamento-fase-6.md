@@ -127,6 +127,34 @@ Arrastar, pôr e tirar abrem um diálogo de confirmação ("Mover X para…?", "
 lugar. Pôr o personagem de um jogador que não participa é recusado pelo servidor
 (`not_participant`, "Esse personagem não está na partida.").
 
+### Arrastar para pôr e para tirar (card ↔ mapa)
+
+Dois gestos alimentam o mesmo `arrangePending` e o mesmo diálogo de confirmação do Arrumar.
+
+- **Card → mapa (em qualquer modo, só o mestre).** Na aba Personagens, quem participa, não saiu
+  e não tem peça ganha o selo "Fora do mapa" e o card vira arrastável. Com mouse/caneta, andar
+  mais que `TAP_TOLERANCE_PX` começa o arraste; um clique sem andar continua abrindo a ficha, e
+  o clique que segue um arraste é engolido. No toque, só começa depois de segurar `HOLD_MS` sem
+  andar (andar antes é rolar a lista); durante o arraste a página não rola (`touchmove` não
+  passivo no `document`) e o menu de contexto do toque longo é suprimido. O gesto vive em
+  `cardDragGesture.ts` (puro) + `useCardDragGesture.ts`. Ao começar, a gaveta fecha em tela
+  estreita e o ghost (`usePointerGhost`) segue o ponteiro a partir de onde o arraste começou.
+  Soltar sobre um controle por cima do mapa, fora do canvas ou numa casa ocupada descarta o
+  pedido; senão abre "Pôr X em…?", com o destino pré-visualizado mesmo fora do Arrumar.
+  Enquanto o card está na mão, nenhuma peça arrasta.
+- **Peça → lista de Personagens (só no Arrumar).** Em jogo, mover peça é declarado ao servidor,
+  então o arraste de peças continua exclusivo do Arrumar. Soltar uma peça fora do canvas,
+  sobre a lista de Personagens, abre "Tirar X do mapa?"; a lista acende (`dropTarget.ts`, o mesmo
+  realce do roster do lobby) enquanto a peça é arrastada. Não há troca automática de aba.
+- **Onde a soltura caiu = o elemento debaixo do ponto** (`releasedInside` em `GameMasterPage`,
+  via `document.elementFromPoint`), nunca o `e.target`. No toque o navegador prende o ponteiro ao
+  elemento do `pointerdown` (captura implícita): o `pointerup` de um card arrastado chega com
+  target = o card mesmo com o dedo sobre o mapa, e o de uma peça chega com target = o canvas.
+  Com `e.target`, os dois gestos funcionavam no mouse e morriam calados no tablet.
+- **Limite conhecido:** fora do canvas a peça arrastada some (o Pixi não a desenha fora dele);
+  o retorno visual até a lista é só o realce dela. O lobby tem um ghost para isso
+  (`canvasDragGhostRef` do `useRosterDrag`), não ligado na mesa.
+
 ### I1 — a declaração no card em andamento
 
 `turn_opened.action` e `match_full_state.openTurn.action` (B2, nível Full para o mestre)

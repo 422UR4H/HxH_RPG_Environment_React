@@ -576,6 +576,55 @@ describe("PillSelect", () => {
     expect(trigger().style.getPropertyValue("--attached-open-radius")).toBe("");
   });
 
+  it("caps the open radius at maxOpenRadius on the pill and its list", async () => {
+    restoreMotion = mockReducedMotion(true);
+    const realComputed = window.getComputedStyle.bind(window);
+    const fake: Record<string, string> = { borderTopLeftRadius: "999px", borderBottomLeftRadius: "999px" };
+    const computedSpy = vi.spyOn(window, "getComputedStyle").mockImplementation((el, pseudo) => {
+      const real = realComputed(el, pseudo);
+      if (el.getAttribute("role") !== "combobox") return real;
+      return new Proxy(real, {
+        get: (t, k: string) => (k in fake ? fake[k] : Reflect.get(t, k).bind?.(t) ?? Reflect.get(t, k)),
+      });
+    });
+    render(<PillSelect aria-label="Classe" value="" options={OPTIONS} onChange={() => {}} maxOpenRadius={16} />);
+    try {
+      await userEvent.click(trigger());
+    } finally {
+      computedSpy.mockRestore();
+    }
+    expect(trigger()).toHaveAttribute("data-state", "open");
+    expect(trigger().style.getPropertyValue("--attached-open-radius")).toBe("16px");
+    expect(screen.getByRole("listbox").style.getPropertyValue("--pill-radius")).toBe("16px");
+  });
+
+  it("starts the open corners from the radius the pill shows, not the 999px it declares", async () => {
+    restoreMotion = mockReducedMotion(true);
+    const realComputed = window.getComputedStyle.bind(window);
+    const fake: Record<string, string> = { borderTopLeftRadius: "999px", borderBottomLeftRadius: "999px" };
+    const computedSpy = vi.spyOn(window, "getComputedStyle").mockImplementation((el, pseudo) => {
+      const real = realComputed(el, pseudo);
+      if (el.getAttribute("role") !== "combobox") return real;
+      return new Proxy(real, {
+        get: (t, k: string) => (k in fake ? fake[k] : Reflect.get(t, k).bind?.(t) ?? Reflect.get(t, k)),
+      });
+    });
+    // A pílula do painel da mesa: 279 × 29 px. O navegador desenha o 999px como 14,5px (metade da altura).
+    const heightSpy = vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(29);
+    const widthSpy = vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(279);
+    render(<PillSelect aria-label="Classe" value="" options={OPTIONS} onChange={() => {}} maxOpenRadius={16} />);
+    try {
+      await userEvent.click(trigger());
+    } finally {
+      computedSpy.mockRestore();
+      heightSpy.mockRestore();
+      widthSpy.mockRestore();
+    }
+    expect(trigger().style.getPropertyValue("--attached-closed-radius")).toBe("14.5px");
+    expect(trigger().style.getPropertyValue("--attached-open-radius")).toBe("14.5px");
+    expect(screen.getByRole("listbox").style.getPropertyValue("--pill-radius")).toBe("14.5px");
+  });
+
   it("pairs a unique anchor-name on the pill with the position-anchor of its list", async () => {
     restoreMotion = mockReducedMotion(true);
     render(

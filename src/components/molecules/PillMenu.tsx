@@ -11,7 +11,7 @@ import {
 import styled from "styled-components";
 import AttachedList from "./AttachedList";
 import BlockableButton from "./BlockableButton";
-import { attachedTrigger } from "./AttachedList.styles";
+import { ATTACHED_MAX_OPEN_RADIUS_PX, attachedTrigger } from "./AttachedList.styles";
 import { ROW_FONT_VAR, useAttachedList } from "./useAttachedList";
 import { colors } from "../../styles/tokens";
 
@@ -37,9 +37,6 @@ type Edge = "first" | "last";
 // O corpo do menu de antes (17 px) é o teto; abaixo de 10 px o rótulo quebra linha em vez de encolher mais.
 const MENU_ITEM_MAX_FONT_PX = 17;
 const MENU_ITEM_MIN_FONT_PX = 10;
-// Aberto, a forma (pílula + lista) não arredonda mais que isto: a pílula de 50 px de raio com uma
-// lista curta virava uma bolha.
-const MENU_MAX_OPEN_RADIUS_PX = 16;
 
 /**
  * Menu de ações (padrão WAI-ARIA APG *menu button*) com a mesma lista presa à pílula do
@@ -54,9 +51,9 @@ export default function PillMenu({ items, label, className }: PillMenuProps) {
     // A lista é sempre da largura da pílula: numa pílula estreita (celular) é o texto que encolhe
     // para ícone + rótulo + "?" de indisponível caberem, como o texto da própria pílula.
     fitRowFont: { min: MENU_ITEM_MIN_FONT_PX, max: MENU_ITEM_MAX_FONT_PX },
-    maxOpenRadius: MENU_MAX_OPEN_RADIUS_PX,
+    maxOpenRadius: ATTACHED_MAX_OPEN_RADIUS_PX,
   });
-  const { open, mounted, placement, side, state, openRadius, listId, anchorName, triggerRef, listRef } = list;
+  const { open, mounted, placement, side, state, openRadius, closedRadius, listId, anchorName, triggerRef, listRef } = list;
   const triggerId = useId();
   // Item a focar assim que a lista estiver posicionada (antes disso ela está invisível).
   const pendingFocus = useRef<Edge | null>(null);
@@ -174,7 +171,13 @@ export default function PillMenu({ items, label, className }: PillMenuProps) {
         // quais diminuem) só se sabe depois, e a transição dos cantos partiria do valor errado. Tudo
         // antes da pintura: na tela, a pílula já abre do lado certo.
         data-state={state === "open" && !placement ? "closed" : state}
-        style={{ "--pill-anchor": anchorName, "--attached-open-radius": openRadius } as CSSProperties}
+        style={
+          {
+            "--pill-anchor": anchorName,
+            "--attached-open-radius": openRadius,
+            "--attached-closed-radius": closedRadius,
+          } as CSSProperties
+        }
         onClick={handleTriggerClick}
         onKeyDown={handleTriggerKeyDown}
         onBlur={handleBlur}

@@ -5,6 +5,7 @@ import usePointerVerb from "../../../hooks/usePointerVerb";
 import styled, { css } from "styled-components";
 import PillSelect from "../../../components/molecules/PillSelect";
 import { pillLook } from "../../../components/molecules/PillSelect.styles";
+import { ATTACHED_MAX_OPEN_RADIUS_PX } from "../../../components/molecules/AttachedList.styles";
 import Tooltip from "../../../components/ions/Tooltip";
 import { colors } from "../../../styles/tokens";
 import { media } from "../../../styles/breakpoints";
@@ -199,6 +200,7 @@ export function AddNpcPicker({
         onChange={setChosen}
         placeholder="Escolha um NPC da campanha"
         options={options}
+        maxOpenRadius={ATTACHED_MAX_OPEN_RADIUS_PX}
       />
       <SmallButton type="button" disabled={!chosen} onClick={() => { onAdd(chosen); setChosen(""); }}>
         Adicionar

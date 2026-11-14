@@ -19,6 +19,8 @@ interface CharacterSidebarItemProps {
   isMaster: boolean;
   isOwn?: boolean;
   hasLeft?: boolean;
+  /** Participante sem peça no tabuleiro (visão do mestre). */
+  offBoard?: boolean;
   isOnline?: boolean;
   onClick: () => void;
 }
@@ -28,6 +30,7 @@ export default function CharacterSidebarItem({
   isMaster,
   isOwn,
   hasLeft,
+  offBoard,
   isOnline,
   onClick,
 }: CharacterSidebarItemProps) {
@@ -80,6 +83,7 @@ export default function CharacterSidebarItem({
       {isNpc && <OverlayBadge tone="ongoing" size="sm" uppercase={false}>NPC</OverlayBadge>}
       {isDead && <OverlayBadge tone="danger" size="sm" uppercase={false}>Morto</OverlayBadge>}
       {hasLeft && <OverlayBadge tone="muted" size="sm" uppercase={false}>Saiu</OverlayBadge>}
+      {offBoard && <OffBoardBadge tone="scheduled" size="sm" uppercase={false}>Fora do mapa</OffBoardBadge>}
       {isOnline === true && <OverlayBadge tone="ongoing" size="sm" uppercase={false}>CONECTADO</OverlayBadge>}
       {isOnline === false && <OverlayBadge tone="muted" size="sm" uppercase={false}>AGUARDANDO</OverlayBadge>}
     </ItemContainer>
@@ -132,4 +136,9 @@ const OverlayBadge = styled(Badge)`
   top: 10px;
   right: 10px;
   z-index: 10;
+`;
+
+// Segunda linha de selos: abaixo do "Saiu"/"NPC"/"Morto", que ocupam o canto de cima.
+const OffBoardBadge = styled(OverlayBadge)`
+  top: 34px;
 `;

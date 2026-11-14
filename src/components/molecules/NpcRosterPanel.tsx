@@ -4,7 +4,8 @@ import type { CharacterPrivateSummary } from "../../types/characterSheet";
 import useToken from "../../hooks/useToken";
 import { useCampaignDetails } from "../../hooks/useCampaignDetails";
 import CharacterSidebarItem from "./CharacterSidebarItem";
-import { colors, alpha } from "../../styles/tokens";
+import { colors } from "../../styles/tokens";
+import { dropTargetBackground, dropTargetBorderColor } from "../../styles/dropTarget";
 import { touchTarget } from "../../styles/touchTarget";
 
 type Props = {
@@ -90,11 +91,9 @@ const DropZone = styled.div<{ $isDropTarget: boolean }>`
   flex-direction: column;
   padding: 8px;
   border: 2px solid
-    ${({ $isDropTarget }) =>
-      $isDropTarget ? colors.brandAccent : "transparent"};
+    ${({ $isDropTarget }) => dropTargetBorderColor($isDropTarget)};
   border-radius: 6px;
-  background: ${({ $isDropTarget }) =>
-    $isDropTarget ? `${alpha(colors.brandAccent, 0.05)}` : "transparent"};
+  background: ${({ $isDropTarget }) => dropTargetBackground($isDropTarget)};
   transition: border-color 0.15s, background 0.15s;
 `;
 

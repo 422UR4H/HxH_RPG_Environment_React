@@ -4,11 +4,23 @@ import { scopedScrollbar, scrollbarPalettes } from "../../styles/scrollbar";
 
 /** Altura mínima de uma linha (px); também a reserva quando a linha ainda não tem layout. */
 export const ATTACHED_ROW_MIN_HEIGHT = 44;
+/**
+ * Raio máximo (px) dos cantos externos da forma aberta (pílula + lista): uma pílula de raio grande
+ * com uma lista curta virava uma bolha oval que cortava o texto. Passe a `useAttachedList({ maxOpenRadius })`.
+ */
+export const ATTACHED_MAX_OPEN_RADIUS_PX = 16;
 export const ATTACHED_LIST_DURATION_MS = 160;
 const DURATION = `${ATTACHED_LIST_DURATION_MS}ms`;
 const EASING = "ease";
 
 type Side = "below" | "above";
+
+const shrinkOuter = (outer: "top" | "bottom") => keyframes`
+  from {
+    border-${outer}-left-radius: var(--attached-closed-radius, var(--attached-open-radius));
+    border-${outer}-right-radius: var(--attached-closed-radius, var(--attached-open-radius));
+  }
+`;
 
 /**
  * O que a pílula precisa para a lista continuá-la: a âncora e os estados aberto/fechando/assentando
@@ -42,7 +54,10 @@ export const attachedTrigger = css<{ $side: Side; $capOpenRadius?: boolean }>`
   ${({ $side, $capOpenRadius }) => {
     if (!$capOpenRadius) return "";
     // `maxOpenRadius`: os cantos externos (os do lado oposto à lista) diminuem até o raio aberto,
-    // na mesma duração da lista. `&&&` vence o `&&` do consumidor (que zera a transição aberto).
+    // na mesma duração da lista. `&&&` vence o `&&` do consumidor.
+    // Animação, não transição: a transição partiria do raio declarado (`999px`), que fica bolha em
+    // quase todo o percurso e só cai no último instante. A animação parte do raio que a pílula
+    // mostrava (`--attached-closed-radius`, medido ao abrir).
     const outer = $side === "below" ? "top" : "bottom";
     return css`
       &&&[data-state="open"],
@@ -52,9 +67,7 @@ export const attachedTrigger = css<{ $side: Side; $capOpenRadius?: boolean }>`
       }
       @media (prefers-reduced-motion: no-preference) {
         &&&[data-state="open"] {
-          transition:
-            border-${outer}-left-radius ${DURATION} ${EASING},
-            border-${outer}-right-radius ${DURATION} ${EASING};
+          animation: ${shrinkOuter(outer)} ${DURATION} ${EASING};
         }
       }
     `;
