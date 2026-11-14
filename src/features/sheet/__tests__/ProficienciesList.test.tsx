@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { beforeEach, describe, it, expect } from "vitest";
 import { useState } from "react";
 import userEvent from "@testing-library/user-event";
 import { screen, fireEvent, within } from "@testing-library/react";
@@ -106,6 +106,12 @@ function ExternalCharSheetChangeHarness() {
 }
 
 describe("ProficienciesList – slot behaviour", () => {
+  // Estes testes são sobre a seleção, não sobre dano: com o catálogo pendente as opções
+  // ficam só com o nome da arma (sem o dano no rótulo acessível).
+  beforeEach(() => {
+    server.use(http.get("http://localhost:5000/rules/weapons", () => new Promise(() => {})));
+  });
+
   it("slots start empty on initial render", async () => {
     renderWithProviders(<ClassChangeHarness />);
     const selects = screen.getAllByRole("combobox");

@@ -12,7 +12,9 @@ export function buildWeaponDamageLookup(
 ): (weapon: string) => string | undefined {
   const byName = new Map<string, string>();
   for (const w of weapons ?? []) {
-    byName.set(w.name.toLowerCase(), formatDamage(w.dice, w.flatDamage));
+    // `dice` nulo na rede conta como lista vazia; sem nada a mostrar, o dano fica ausente (D9).
+    const damage = formatDamage(w.dice ?? [], w.flatDamage);
+    if (damage) byName.set(w.name.toLowerCase(), damage);
   }
   return (weapon) => byName.get(weapon.toLowerCase());
 }

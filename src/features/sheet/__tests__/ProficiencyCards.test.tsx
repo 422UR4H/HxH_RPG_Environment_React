@@ -75,7 +75,7 @@ describe("JointProficiencyCard", () => {
   it("is collapsed by default and toggles the weapon list", async () => {
     const user = userEvent.setup();
     renderJoint(five);
-    const toggle = screen.getByRole("button", { name: /5 armas/ });
+    const toggle = screen.getByRole("button", { name: "Blades: 5 armas" });
     expect(toggle).toHaveAttribute("aria-expanded", "false");
     const list = document.getElementById(toggle.getAttribute("aria-controls")!)!;
     expect(list).toHaveAttribute("inert");
@@ -99,7 +99,20 @@ describe("JointProficiencyCard", () => {
 
   it("uses the singular for one weapon", () => {
     renderJoint(["Katana"]);
-    expect(screen.getByRole("button", { name: /^1 arma$/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Blades: 1 arma" })).toBeInTheDocument();
+  });
+
+  it("gives each joint card's toggle a name that includes the proficiency", () => {
+    renderWithProviders(
+      <>
+        <JointProficiencyCard name="blades" level={1} weapons={five} damageOf={damageOf} />
+        <JointProficiencyCard name="ranged" level={1} weapons={["Bow", "Longbow"]} damageOf={damageOf} />
+      </>,
+      { token: null },
+    );
+    const names = screen.getAllByRole("button").map((b) => b.getAttribute("aria-label"));
+    expect(names).toEqual(["Blades: 5 armas", "Ranged: 2 armas"]);
+    expect(screen.getByRole("button", { name: "Ranged: 2 armas" })).toHaveTextContent("2 armas");
   });
 
   it("renders no toggle without weapons", () => {
@@ -112,7 +125,7 @@ describe("JointProficiencyCard", () => {
     const user = userEvent.setup();
     renderJoint(five);
     await user.tab();
-    const toggle = screen.getByRole("button", { name: /5 armas/ });
+    const toggle = screen.getByRole("button", { name: "Blades: 5 armas" });
     expect(toggle).toHaveFocus();
     await user.keyboard("{Enter}");
     expect(toggle).toHaveAttribute("aria-expanded", "true");

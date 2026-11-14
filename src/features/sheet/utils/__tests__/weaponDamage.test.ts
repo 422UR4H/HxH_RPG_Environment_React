@@ -28,4 +28,14 @@ describe("buildWeaponDamageLookup", () => {
   it("returns undefined for everything when the catalogue is undefined", () => {
     expect(buildWeaponDamageLookup(undefined)("Katana")).toBeUndefined();
   });
+
+  it("treats null dice as an empty list without throwing", () => {
+    const wire = [
+      { name: "Fist", dice: null, flatDamage: 5 },
+      { name: "Ghost", dice: null, flatDamage: 0 },
+    ] as unknown as WeaponInfo[];
+    const lookup = buildWeaponDamageLookup(wire);
+    expect(lookup("Fist")).toBe("+5");
+    expect(lookup("Ghost")).toBeUndefined();
+  });
 });

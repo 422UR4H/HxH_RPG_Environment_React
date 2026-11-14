@@ -37,11 +37,13 @@ export default function JointProficiencyCard({
   const [open, setOpen] = useState(false);
   const listId = useId();
   const hasWeapons = weapons.length > 0;
+  const displayName = capitalize(name);
+  const weaponsLabel = weapons.length === 1 ? "1 arma" : `${weapons.length} armas`;
 
   return (
     <Card $fullRow={open && weapons.length >= JOINT_FULL_ROW_FROM}>
       <ProficiencyCardContent $hasBelow={hasWeapons}>
-        <ProficiencyName>{capitalize(name)}</ProficiencyName>
+        <ProficiencyName>{displayName}</ProficiencyName>
         <ProficiencyLevel>Level: {level}</ProficiencyLevel>
       </ProficiencyCardContent>
       {hasWeapons && (
@@ -51,8 +53,9 @@ export default function JointProficiencyCard({
             onClick={() => setOpen((prev) => !prev)}
             aria-expanded={open}
             aria-controls={listId}
+            aria-label={`${displayName}: ${weaponsLabel}`}
           >
-            <span>{weapons.length === 1 ? "1 arma" : `${weapons.length} armas`}</span>
+            <span>{weaponsLabel}</span>
             <ExpandButton isExpanded={open} />
           </ToggleButton>
           <Collapse open={open} id={listId}>
@@ -98,6 +101,11 @@ const ToggleButton = styled.button`
   text-align: left;
   cursor: pointer;
   ${iconButtonFx(1.15)}
+
+  /* O card é overflow: hidden e o botão ocupa a largura toda: o anel global (offset 3px) seria cortado. */
+  &:focus-visible {
+    outline-offset: -3px;
+  }
 
   /* Seta "vazando": maior que a linha de texto e sai do padding sem aumentar a altura da linha. */
   img {
