@@ -1363,6 +1363,28 @@ describe("GameMasterPage", () => {
         expect(mapStub()).toHaveAttribute("data-placing-npc-id", "");
       });
 
+      it("touch: the release counts where the finger is, not on the card that captured the pointer", async () => {
+        renderMasterPage();
+        const ws = await waitForSocket();
+        openWithServerBoard(ws, [piecesFixture[0]]);
+        await user.click(await screen.findByRole("button", { name: "Ver histórico" }));
+        await user.click(screen.getByRole("button", { name: "Personagens" }));
+        const row = await screen.findByTestId("character-row-npc1");
+        dragCard("npc1");
+        // No toque o navegador prende o ponteiro ao card (captura implícita): o pointerup chega
+        // com target = card, mesmo com o dedo solto sobre o mapa.
+        const slot = screen.getByTestId("place-slot");
+        const original = document.elementFromPoint;
+        document.elementFromPoint = () => slot;
+        try {
+          fireEvent.pointerUp(row, { pointerId: 1, pointerType: "touch", clientX: 300, clientY: 300 });
+        } finally {
+          document.elementFromPoint = original;
+        }
+        act(() => slot.click());
+        expect(dialog()).toHaveTextContent("Pôr Capanga em coluna 4, linha 6?");
+      });
+
       it("um clique simples no card continua abrindo a ficha", async () => {
         renderMasterPage();
         const ws = await waitForSocket();

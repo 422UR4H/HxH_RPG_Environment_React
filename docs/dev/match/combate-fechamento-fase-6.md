@@ -146,6 +146,14 @@ Dois gestos alimentam o mesmo `arrangePending` e o mesmo diálogo de confirmaç�
   então o arraste de peças continua exclusivo do Arrumar. Soltar uma peça fora do canvas,
   sobre a lista de Personagens, abre "Tirar X do mapa?"; a lista acende (`dropTarget.ts`, o mesmo
   realce do roster do lobby) enquanto a peça é arrastada. Não há troca automática de aba.
+- **Onde a soltura caiu = o elemento debaixo do ponto** (`releasedInside` em `GameMasterPage`,
+  via `document.elementFromPoint`), nunca o `e.target`. No toque o navegador prende o ponteiro ao
+  elemento do `pointerdown` (captura implícita): o `pointerup` de um card arrastado chega com
+  target = o card mesmo com o dedo sobre o mapa, e o de uma peça chega com target = o canvas.
+  Com `e.target`, os dois gestos funcionavam no mouse e morriam calados no tablet.
+- **Limite conhecido:** fora do canvas a peça arrastada some (o Pixi não a desenha fora dele);
+  o retorno visual até a lista é só o realce dela. O lobby tem um ghost para isso
+  (`canvasDragGhostRef` do `useRosterDrag`), não ligado na mesa.
 
 ### I1 — a declaração no card em andamento
 

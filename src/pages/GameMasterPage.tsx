@@ -87,6 +87,16 @@ type RailTab = "fila" | "agir" | "ficha";
 // o modo Arrumar, e mesmo lá soltar só pede confirmação — a peça anda com o `piece_moved`.
 const NO_DRAG = new Set<string>();
 
+// Onde a soltura caiu: o elemento debaixo do ponto, não o `target` do evento. No toque o
+// navegador prende o ponteiro ao elemento do pointerdown (captura implícita), então o
+// pointerup de um card arrastado chega com target = o card, mesmo com o dedo sobre o mapa.
+// A peça fantasma tem pointer-events: none e não atrapalha o teste de ponto.
+function releasedInside(el: HTMLElement | null, e: PointerEvent): boolean {
+  if (!el) return false;
+  const hit = document.elementFromPoint?.(e.clientX, e.clientY) ?? (e.target as Node | null);
+  return !!hit && el.contains(hit);
+}
+
 /**
  * O que um gesto no mapa do mestre significa. "play" é o da Fase 6 (tocar escolhe ator/alvo,
  * segurar marca alvos). "fallPick" (F14): um toque num slot vazio escolhe onde cai a fuga que
@@ -317,7 +327,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   useEffect(() => {
     if (!(arranging && placingId) && !cardDragging) return;
     const onUp = (e: PointerEvent) => {
-      releaseOnMapRef.current = !!canvasRef.current?.contains(e.target as Node);
+      releaseOnMapRef.current = releasedInside(canvasRef.current, e);
     };
     window.addEventListener("pointerup", onUp, { capture: true });
     return () => {
@@ -333,7 +343,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   useEffect(() => {
     if (!arranging || !pieceDragging) return;
     const onUp = (e: PointerEvent) => {
-      releaseOnListRef.current = !!charactersListRef.current?.contains(e.target as Node);
+      releaseOnListRef.current = releasedInside(charactersListRef.current, e);
     };
     window.addEventListener("pointerup", onUp, { capture: true });
     return () => {
