@@ -8,6 +8,8 @@ import type {
 } from "../../types/characterSheet";
 import type { Distribution } from "../../types/characterClass";
 import ProficiencyCard from "./ProficiencyCard";
+import JointProficiencyCard from "./JointProficiencyCard";
+import { useWeaponDamage } from "../../hooks/useWeaponDamage";
 import { colors } from "../../styles/tokens";
 import { ProfilePillSelect } from "./ProfileFieldStyles";
 
@@ -54,6 +56,7 @@ export default function ProficienciesList({
   charSheet,
   setCharSheet,
 }: ProficienciesListProps) {
+  const damageOf = useWeaponDamage();
   // proficienciesAllowed values are PascalCase ("ThrowingDagger").
   // commonProficiencies keys arrive from the backend already camelCase ("throwingDagger").
   // Build a bidirectional map so we can look up by either casing.
@@ -114,6 +117,7 @@ export default function ProficienciesList({
             level={prof.level}
             currExp={prof.currExp}
             nextLvlBaseExp={prof.nextLvlBaseExp}
+            damage={damageOf(name)}
           />
         ))}
 
@@ -138,12 +142,14 @@ export default function ProficienciesList({
 
       {jointProfs &&
         Object.entries(jointProfs).map(([name, prof]) => (
-          <ProficiencyCard
+          <JointProficiencyCard
             key={name}
             name={name}
             level={prof.level}
             currExp={prof.currExp}
             nextLvlBaseExp={prof.nextLvlBaseExp}
+            weapons={prof.weapons ?? []}
+            damageOf={damageOf}
           />
         ))}
     </ProficienciesListContainer>
@@ -151,9 +157,16 @@ export default function ProficienciesList({
 }
 
 const ProficienciesListContainer = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 300px));
+  display: flex;
+  flex-wrap: wrap;
   gap: 15px;
+  align-items: flex-start;
+
+  /* Cada card ou espaço cresce por igual até preencher a linha. */
+  > * {
+    flex: 1 1 260px;
+    min-width: 0;
+  }
 `;
 
 const DistributionSlot = styled.div<{ $selected: boolean }>`

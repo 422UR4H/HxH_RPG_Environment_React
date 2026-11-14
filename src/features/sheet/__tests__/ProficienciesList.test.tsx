@@ -1,8 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { useState } from "react";
 import userEvent from "@testing-library/user-event";
-import { render, screen, fireEvent, within } from "@testing-library/react";
+import { screen, fireEvent, within } from "@testing-library/react";
 import { pickComboboxOption } from "../../../test/pickCombobox";
+import { renderWithProviders } from "../../../test/render";
 import ProficienciesList from "../ProficienciesList";
 import type { CharacterSheet } from "../../../types/characterSheet";
 import type { Distribution } from "../../../types/characterClass";
@@ -104,21 +105,21 @@ function ExternalCharSheetChangeHarness() {
 
 describe("ProficienciesList – slot behaviour", () => {
   it("slots start empty on initial render", async () => {
-    render(<ClassChangeHarness />);
+    renderWithProviders(<ClassChangeHarness />);
     const selects = screen.getAllByRole("combobox");
     expect(selects[0]).toHaveTextContent("Escolher…");
     expect(selects[1]).toHaveTextContent("Escolher…");
   });
 
   it("slot updates when user selects a weapon", async () => {
-    render(<ClassChangeHarness />);
+    renderWithProviders(<ClassChangeHarness />);
     const [slot0] = screen.getAllByRole("combobox");
     await pickComboboxOption(slot0, "ThrowingDagger");
     expect(slot0).toHaveTextContent("ThrowingDagger");
   });
 
   it("a weapon taken by another slot is disabled and cannot be picked", async () => {
-    render(<ClassChangeHarness />);
+    renderWithProviders(<ClassChangeHarness />);
     const [slot0, slot1] = screen.getAllByRole("combobox");
     await pickComboboxOption(slot0, "Bow");
     await userEvent.click(slot1);
@@ -129,7 +130,7 @@ describe("ProficienciesList – slot behaviour", () => {
   });
 
   it("slots reset when class changes", async () => {
-    render(<ClassChangeHarness />);
+    renderWithProviders(<ClassChangeHarness />);
 
     const [slot0, slot1] = screen.getAllByRole("combobox");
     await pickComboboxOption(slot0, "ThrowingDagger");
@@ -145,7 +146,7 @@ describe("ProficienciesList – slot behaviour", () => {
   });
 
   it("slots reset on EVERY class change — no accumulation across multiple switches", async () => {
-    render(<ClassChangeHarness />);
+    renderWithProviders(<ClassChangeHarness />);
 
     // Hunter: fill both slots
     const [slot0, slot1] = screen.getAllByRole("combobox");
@@ -170,7 +171,7 @@ describe("ProficienciesList – slot behaviour", () => {
   });
 
   it("an external charSheet update does not clear slot selections", async () => {
-    render(<ExternalCharSheetChangeHarness />);
+    renderWithProviders(<ExternalCharSheetChangeHarness />);
 
     const [slot0] = screen.getAllByRole("combobox");
     await pickComboboxOption(slot0, "ThrowingDagger");
