@@ -126,7 +126,7 @@ export const colors = {
   actionHighlightOnLight: palette.blue700, // anel de foco sobre superfície clara: cartão do login e do cadastro
   actionDestructive: palette.red700, // botões que removem, excluem, rejeitam ou saem: nunca o vermelho base (é o da peça)
   actionDestructiveText: palette.red500, // texto de ação destrutiva sobre painel escuro: o contraste manda (4,8:1 no hover #252525, 5,4:1 no painel #1c1c1c; o red600 dava 3,0 a 3,3)
-  actionConfirm: palette.green500, // contorno da ação de aceitar sobre painel escuro (o verde da marca some ali)
+  actionConfirm: palette.green500, // contorno da ação de aceitar sobre painel escuro (o verde base some ali)
   actionCurrent: palette.green500, // item atual de um sumário: o capítulo em que a leitura está (painel de regras)
 
   // feedback

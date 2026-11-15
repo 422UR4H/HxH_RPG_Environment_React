@@ -51,3 +51,19 @@ tons de cor.
 dos nomes `brandPrimary`/`brandAccent`.
 
 **Commit:** `docs(styles): tom de referência da paleta se chama base, não brand`
+
+## Task 2: os três "marca" que sobraram nomeando cor
+
+Achados na revisão da Task 1 (fora da lista original). Mesmas Global Constraints: só comentário/markdown.
+
+**Arquivos:** `src/styles/tokens.ts`, `src/styles/ResetStyle.ts`, `src/components/CLAUDE.md`
+
+Substituições exatas (texto antigo → texto novo):
+
+1. `src/styles/tokens.ts`, comentário de `actionConfirm`: `(o verde da marca some ali)` → `(o verde base some ali)`
+2. `src/styles/ResetStyle.ts`: `/* Controles nativos na cor da marca. */` → `/* Controles nativos no verde dos botões (brandAccent). */`
+3. `src/components/CLAUDE.md`: `` `PageHeader` (cor de marca)`` → `` `PageHeader` (cabeçalho verde)``
+
+**Verificação:** `git grep -n -i "da marca\|de marca" -- src` não acha mais nada; `npx tsc -p tsconfig.app.json --noEmit` e `npx vitest run src/styles` passam.
+
+**Commit:** `docs(styles): tira "marca" dos comentários que nomeiam cor`
