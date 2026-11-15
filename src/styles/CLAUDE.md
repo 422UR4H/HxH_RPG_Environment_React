@@ -7,7 +7,7 @@ Carrega quando alguém abre `tokens.ts`. Leia antes de tocar em cor.
 O designer vai apresentar o produto e a identidade visual está aprovada: a base de cores precisa mudar
 de lugar sem caçar uso espalhado. Dois problemas antigos motivaram a estrutura:
 
-- cores **esquemáticas** (HP, SP, EXP, status, mapa) reaproveitavam as cores do **brand**, então mexer
+- cores **esquemáticas** (HP, SP, EXP, status, mapa) reaproveitavam os tons **base** das famílias, então mexer
   em uma mexia na outra;
 - cada tarefa criava um token novo ou um hex solto, e as cores se espalharam.
 
@@ -16,11 +16,13 @@ de lugar sem caçar uso espalhado. Dois problemas antigos motivaram a estrutura:
 | `palette` | `tokens.ts` | O **único** lugar com hex/rgba. Nome = matiz + intensidade (`green700`, `red800`, `neutral850`). | Só `src/styles/`. Componente não importa (um teste falha se importar). |
 | `colors` | `tokens.ts` | Semântica. Nome = **papel**, com prefixo de um grupo fechado. Cada valor aponta para a `palette`. | Todos os componentes. |
 
+**Nome dos tons:** o tom de referência de cada família (`red800`, `green700`, `gold700`, `blue700`) é a **base**; os vizinhos dele são **escuro** e **claro** (`green900`, `blue600`). É o vocabulário do documento de cores do designer: "brand"/"marca" não nomeiam tom de cor (o grupo semântico `brand` continua sendo o nome de um papel).
+
 **Papéis diferentes = tokens diferentes, mesmo quando a cor é a mesma.** O HP (`vitalHp`) e o botão de
 excluir (`actionDestructive`) são tokens separados para o designer trocar um sem tocar no outro.
 
-**Vermelho do brand (`red800`) não vai em elemento clicável.** É a cor da peça (emblema do avatar); botão
-na mesma cor misturaria marca com perigo. Botões destrutivos usam o intermediário (`red700`); só texto
+**Vermelho base (`red800`) não vai em elemento clicável.** É a cor da peça (emblema do avatar); botão
+na mesma cor confundiria a peça com perigo. Botões destrutivos usam o intermediário (`red700`); só texto
 sobre painel escuro sobe ao saturado (`actionDestructiveText`), porque ali o contraste manda.
 
 ### Grupo fechado de prefixos
