@@ -35,26 +35,26 @@ export const palette = {
   brown850: "#382a1a",
   brown900: "#2d2215",
 
-  // verdes: 4 variações (escuro do cabeçalho, brand, intermediário, saturado)
+  // verdes: 4 variações (escuro do cabeçalho, base, intermediário, saturado)
   green900: "#08491f", // cabeçalho; reservado a outros usos escuros
-  green700: "#107135", // brand
+  green700: "#107135", // base
   green600: "#17993d",
   green500: "#1fc140", // saturado
 
   // vermelhos
-  red800: "#ba1a3e", // brand
+  red800: "#ba1a3e", // base
   red700: "#cb1437",
   red600: "#db0e2f", // saturado
   red500: "#ff5257", // combate: Atacar, linha de ataque, anel do alvo
 
   gold800: "#b8860b", // escuro
-  gold700: "#dba306", // brand
+  gold700: "#dba306", // base
   gold400: "#ffc300", // saturado: EXP, anel de seleção
   gold300: "#ffa216", // quente: borda de item aberto, alça skew, botões laranja
 
   // azuis: 4 variações
-  blue700: "#2e5397", // brand
-  blue600: "#4b70a4", // brand claro (degradê do login)
+  blue700: "#2e5397", // base
+  blue600: "#4b70a4", // claro (degradê do login)
   blue500: "#38bdf8", // combate: movimento no mapa e nos botões Mover
   blue400: "#4da3ff", // saturado (mana)
 } as const;
@@ -124,7 +124,7 @@ export const colors = {
   actionDisabled: alpha(palette.gold700, 0.45), // submit desabilitado
   actionHighlight: palette.gold700, // controles do header (seta, logo): halo do hover e anel de foco
   actionHighlightOnLight: palette.blue700, // anel de foco sobre superfície clara: cartão do login e do cadastro
-  actionDestructive: palette.red700, // botões que removem, excluem, rejeitam ou saem: nunca o vermelho do brand (é o da peça)
+  actionDestructive: palette.red700, // botões que removem, excluem, rejeitam ou saem: nunca o vermelho base (é o da peça)
   actionDestructiveText: palette.red500, // texto de ação destrutiva sobre painel escuro: o contraste manda (4,8:1 no hover #252525, 5,4:1 no painel #1c1c1c; o red600 dava 3,0 a 3,3)
   actionConfirm: palette.green500, // contorno da ação de aceitar sobre painel escuro (o verde da marca some ali)
   actionCurrent: palette.green500, // item atual de um sumário: o capítulo em que a leitura está (painel de regras)
