@@ -47,6 +47,43 @@ describe("LoginPage", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("E-mail ou senha incorretos.");
   });
 
+  it("shows the server detail of a 401 as-is", async () => {
+    server.use(
+      http.post(`${baseUrl}/auth/login`, () =>
+        HttpResponse.json({ detail: "Detalhe vindo do servidor." }, { status: 401 }),
+      ),
+    );
+    renderPage();
+    await fillAndSubmit();
+    expect(await screen.findByText("Detalhe vindo do servidor.")).toBeInTheDocument();
+  });
+
+  it("masks a 422 detail with the generic wrong-credentials text", async () => {
+    server.use(
+      http.post(`${baseUrl}/auth/login`, () =>
+        HttpResponse.json(
+          { detail: "O e-mail deve ter entre 12 e 64 caracteres." },
+          { status: 422 },
+        ),
+      ),
+    );
+    renderPage();
+    await fillAndSubmit();
+    expect(await screen.findByText("E-mail ou senha incorretos.")).toBeInTheDocument();
+    expect(screen.queryByText(/entre 12 e 64/i)).not.toBeInTheDocument();
+  });
+
+  it("shows the front fallback for a 500 without body", async () => {
+    server.use(
+      http.post(`${baseUrl}/auth/login`, () => new HttpResponse(null, { status: 500 })),
+    );
+    renderPage();
+    await fillAndSubmit();
+    expect(
+      await screen.findByText("Não foi possível entrar agora. Tente novamente em instantes."),
+    ).toBeInTheDocument();
+  });
+
   it("mostra mensagem de conexão quando a rede falha", async () => {
     server.use(http.post(`${baseUrl}/auth/login`, () => HttpResponse.error()));
     renderPage();
