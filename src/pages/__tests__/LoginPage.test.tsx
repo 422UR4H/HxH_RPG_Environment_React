@@ -35,17 +35,16 @@ async function fillAndSubmit() {
 describe("LoginPage", () => {
   beforeEach(() => sessionStorage.clear());
 
-  it("mostra mensagem amigável no 401, sem o texto cru do backend", async () => {
+  it("mostra o detail do 401", async () => {
     server.use(
       http.post(`${baseUrl}/auth/login`, () =>
-        HttpResponse.json({ detail: "validation error: access denied" }, { status: 401 }),
+        HttpResponse.json({ detail: "E-mail ou senha incorretos." }, { status: 401 }),
       ),
     );
     renderPage();
     await fillAndSubmit();
     expect(await screen.findByText("E-mail ou senha incorretos.")).toBeInTheDocument();
     expect(screen.getByRole("alert")).toHaveTextContent("E-mail ou senha incorretos.");
-    expect(screen.queryByText(/access denied/i)).not.toBeInTheDocument();
   });
 
   it("mostra mensagem de conexão quando a rede falha", async () => {
@@ -67,7 +66,7 @@ describe("LoginPage", () => {
     server.use(
       http.post(`${baseUrl}/auth/login`, async () => {
         await gate;
-        return HttpResponse.json({ detail: "validation error: access denied" }, { status: 401 });
+        return HttpResponse.json({ detail: "E-mail ou senha incorretos." }, { status: 401 });
       }),
     );
     renderPage();
@@ -102,7 +101,7 @@ describe("LoginPage", () => {
   it("keeps a single message for wrong credentials", async () => {
     server.use(
       http.post(`${baseUrl}/auth/login`, () =>
-        HttpResponse.json({ detail: "validation error: access denied" }, { status: 401 }),
+        HttpResponse.json({ detail: "E-mail ou senha incorretos." }, { status: 401 }),
       ),
     );
     renderPage();
@@ -121,7 +120,7 @@ describe("LoginPage", () => {
   it("consumes the sign-up notice", async () => {
     server.use(
       http.post(`${baseUrl}/auth/login`, () =>
-        HttpResponse.json({ detail: "validation error: access denied" }, { status: 401 }),
+        HttpResponse.json({ detail: "E-mail ou senha incorretos." }, { status: 401 }),
       ),
     );
     const { rerender } = renderPage({ registered: "novo@mail.com" });

@@ -25,29 +25,27 @@ async function fillAndSubmit() {
 }
 
 describe("RegisterPage", () => {
-  it("traduz o 409 de e-mail já cadastrado", async () => {
+  it("mostra o detail do 409 de e-mail já cadastrado", async () => {
     server.use(
       http.post(`${baseUrl}/auth/register`, () =>
-        HttpResponse.json({ detail: "validation error: email already exists" }, { status: 409 }),
+        HttpResponse.json({ detail: "Já existe uma conta com esse e-mail." }, { status: 409 }),
       ),
     );
     renderPage();
     await fillAndSubmit();
     expect(await screen.findByText("Já existe uma conta com esse e-mail.")).toBeInTheDocument();
     expect(screen.getByRole("alert")).toHaveTextContent("Já existe uma conta com esse e-mail.");
-    expect(screen.queryByText(/validation error/i)).not.toBeInTheDocument();
   });
 
-  it("usa o fallback para detail desconhecido, sem o texto cru", async () => {
+  it("usa o fallback quando a resposta não traz detail", async () => {
     server.use(
       http.post(`${baseUrl}/auth/register`, () =>
-        HttpResponse.json({ detail: "something unmapped" }, { status: 422 }),
+        HttpResponse.json({}, { status: 500 }),
       ),
     );
     renderPage();
     await fillAndSubmit();
     expect(await screen.findByText("Não foi possível criar a conta. Tente novamente.")).toBeInTheDocument();
-    expect(screen.queryByText(/something unmapped/i)).not.toBeInTheDocument();
   });
 
   it("shows each field error under its field", async () => {

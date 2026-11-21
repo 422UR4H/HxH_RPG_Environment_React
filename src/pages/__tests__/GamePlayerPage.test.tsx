@@ -251,7 +251,7 @@ describe("GamePlayerPage", () => {
     renderPlayerPage();
     const ws = await waitForSocket();
     act(() => ws.onopen?.());
-    act(() => ws.emit("error", { code: "forbidden", message: "only the master can perform this action" }));
+    act(() => ws.emit("error", { code: "forbidden", message: "Só o mestre pode fazer isso." }));
     expect(await screen.findByRole("alert")).toHaveTextContent(/só o mestre/i);
   });
 

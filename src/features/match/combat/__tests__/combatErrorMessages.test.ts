@@ -2,37 +2,31 @@ import { describe, it, expect } from "vitest";
 import { combatErrorText } from "../combatErrorMessages";
 
 describe("combatErrorText", () => {
-  it("not_participant vira texto em PT-BR, com o prefixo do envio", () => {
+  it("shows the server message as-is for game_error", () => {
+    expect(combatErrorText("game_error", "A fila de ações está vazia.")).toBe("A fila de ações está vazia.");
+  });
+
+  it("shows the server message once, with no duplicated message in parentheses", () => {
+    expect(combatErrorText("forbidden", "Só o mestre pode fazer isso.")).toBe("Só o mestre pode fazer isso.");
+  });
+
+  it("keeps the send prefix before the server message", () => {
+    expect(combatErrorText("forbidden", "Só o mestre pode fazer isso.", "open_reaction")).toBe(
+      "Não foi possível dar a palavra: Só o mestre pode fazer isso.",
+    );
+    expect(combatErrorText("game_error", "Essa ação não é sua.", "attach_reaction")).toBe(
+      "Não foi possível reagir: Essa ação não é sua.",
+    );
+  });
+
+  it("falls back to the code text when the message is empty, with the send prefix", () => {
     expect(combatErrorText("not_participant", "", "enqueue_master_action")).toBe(
       "Não foi possível executar a ação do mestre: Esse personagem não está na partida.",
     );
   });
 
-  it("game_error passa a prosa do domínio como veio", () => {
-    expect(combatErrorText("game_error", "not enough balance")).toBe("not enough balance");
-  });
-
-  it("prefixa as recusas de reagir e de dar a palavra", () => {
-    expect(combatErrorText("game_error", "this character already reacted to the open action", "attach_reaction"))
-      .toBe("Não foi possível reagir: this character already reacted to the open action");
-    expect(combatErrorText("forbidden", "only the master can perform this action", "open_reaction"))
-      .toBe("Não foi possível dar a palavra: Só o mestre pode fazer isso. (only the master can perform this action)");
-  });
-
-  it("traduz as mensagens de domínio documentadas, sem prefixo", () => {
-    expect(combatErrorText("game_error", "action queue is empty", "open_next_action")).toBe("A fila de ações está vazia.");
-    expect(combatErrorText("game_error", "action not found in queue", "cancel_action")).toBe("A ação já não está na fila.");
-    expect(combatErrorText("game_error", "action actor does not match player", "cancel_action")).toBe("Essa ação não é sua.");
-  });
-
-  it("translates the stacked pull refusal", () => {
-    expect(combatErrorText("game_error", "action is stacked on a pending move", "pull_action")).toBe(
-      "Este movimento está empilhado em outro que ainda não abriu — abra aquele primeiro.",
-    );
-  });
-
-  it("mensagem de domínio desconhecida mantém o prefixo", () => {
-    expect(combatErrorText("game_error", "algo novo", "cancel_action")).toBe("Não foi possível cancelar a ação: algo novo");
+  it("uses a generic text for an unknown code with no message", () => {
+    expect(combatErrorText("game_error", "")).toBe("Erro do servidor.");
   });
 });
 

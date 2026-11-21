@@ -2055,7 +2055,7 @@ describe("GameMasterPage", () => {
       ]);
 
       // A recusa aparece dentro do diálogo, não no banner da mesa.
-      act(() => { ws.emit("error", { code: "match_in_battle", message: "match in battle" }); });
+      act(() => { ws.emit("error", { code: "match_in_battle", message: "Encerre o combate antes de encerrar a partida." }); });
       expect(within(screen.getByRole("dialog", { name: "Encerrar partida" })).getByRole("alert")).toHaveTextContent(
         "Encerre o combate antes de encerrar a partida.",
       );

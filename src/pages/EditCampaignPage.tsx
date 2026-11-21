@@ -7,7 +7,6 @@ import useForm from "../hooks/useForm";
 import { useCampaignDetails } from "../hooks/useCampaignDetails";
 import { useUpdateCampaign } from "../hooks/useUpdateCampaign";
 import { isApiError } from "../services/httpClient";
-import { getCampaignValidationMessage } from "../features/campaign/campaignErrorMessages";
 import CreateFormTemplate from "../components/templates/CreateFormTemplate";
 import FormField from "../components/molecules/FormField";
 import FormRow from "../components/molecules/FormRow";
@@ -33,16 +32,7 @@ type CampaignEditFormData = {
 };
 
 function getErrorMessage(err: unknown): string {
-  if (isApiError(err, 403)) return "Apenas o mestre pode editar esta campanha.";
-  if (isApiError(err, 404)) return "Campanha não encontrada.";
-  if (isApiError(err, 422)) {
-    const detail = getApiErrorDetail(err);
-    return (
-      getCampaignValidationMessage(detail ?? "") ||
-      "Dados inválidos. Verifique os campos e tente novamente."
-    );
-  }
-  return "Erro ao salvar campanha. Tente novamente.";
+  return getApiErrorDetail(err) ?? "Erro ao salvar campanha. Tente novamente.";
 }
 
 export default function EditCampaignPage() {

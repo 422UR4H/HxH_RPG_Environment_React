@@ -34,39 +34,19 @@ import { useQueryClient } from "@tanstack/react-query";
 import { getApiErrorDetail } from "../utils/apiError";
 import { consumeEndedNotice, rememberMatchPageEntry } from "../features/match/clock/matchHistoryEntry";
 
-const MAP_LOCKED_TEXT = "O mapa não pode ser trocado depois que a partida começou.";
-const MAP_LOCKED_DETAIL = "cannot change map after match has started";
-
-/** Recusas da herança de tabuleiro (B16), pelo `detail` — o back usa um 422 para as cinco. */
-const INHERIT_REFUSALS: Record<string, string> = {
-  [MAP_LOCKED_DETAIL]: MAP_LOCKED_TEXT,
-  "source match has no board to inherit": "Essa partida não deixou um tabuleiro para continuar.",
-  "source match's board is on a different map": "O tabuleiro dessa partida está em outro mapa.",
-  "source match is not in the same campaign": "Essa partida não é desta campanha.",
-  "source match cannot be the same match being attached to":
-    "Uma partida não pode continuar o próprio tabuleiro.",
-  "match not found": "A partida não foi encontrada.",
-  "map not found": "O mapa não foi encontrado.",
-};
-
 /**
- * Sem herança, o único 422 de anexar/desanexar é o de partida iniciada (F16, garantido pelo
- * contrato): o status basta, e um `detail` reescrito no back não quebra a recusa. Com herança,
- * o 422 tem cinco motivos e só o `detail` diz qual.
+ * Recusa de trocar/herdar o mapa: o texto é o `detail` do back (já em português).
+ * O 422 é o status das recusas de regra (partida já iniciada, e os cinco motivos da herança).
  */
-function mapChangeRefusal(err: unknown, inheriting: boolean): { text: string; locked: boolean } {
-  if (!inheriting) {
-    if (isApiError(err, 422)) return { text: MAP_LOCKED_TEXT, locked: true };
-  } else {
-    const detail = getApiErrorDetail(err);
-    const known = detail ? INHERIT_REFUSALS[detail] : undefined;
-    if (known) return { text: known, locked: detail === MAP_LOCKED_DETAIL };
-    // Recusa que o front não conhece: tentar de novo daria o mesmo 422.
-    if (isApiError(err, 422)) {
-      return { text: "Não dá para continuar o tabuleiro dessa partida.", locked: false };
-    }
-  }
-  return { text: "Não foi possível trocar o mapa. Tente novamente.", locked: false };
+function mapChangeRefusal(err: unknown): { text: string; refetch: boolean } {
+  return {
+    text: getApiErrorDetail(err) ?? "Não foi possível trocar o mapa. Tente novamente.",
+    // O único comportamento que dependia do motivo era "partida já iniciada: rebuscar a partida
+    // para a troca de mapa sumir". A herança tem cinco motivos de 422 e só um é esse, mas
+    // rebuscar nos outros quatro é inofensivo (nada muda), então o status basta e não se
+    // compara texto.
+    refetch: isApiError(err, 422),
+  };
 }
 
 // Encerrada = `gameEndAt` preenchido (contrato match.md); `storyEndAt` é só a data da história.
@@ -148,11 +128,11 @@ export default function MatchPage() {
   const [mapChangeNotice, setMapChangeNotice] = useState<string | null>(null);
   // Recusa por partida iniciada: esta tela carregou antes do início. Rebuscar a partida traz o
   // `gameStartAt`, e a troca de mapa some.
-  const onMapChangeError = (err: unknown, inheriting = false) => {
-    const refusal = mapChangeRefusal(err, inheriting);
+  const onMapChangeError = (err: unknown) => {
+    const refusal = mapChangeRefusal(err);
     setMapChangeNotice(null);
     setMapChangeError(refusal.text);
-    if (refusal.locked) {
+    if (refusal.refetch) {
       void queryClient.invalidateQueries({ queryKey: ["matchDetails", token, matchId] });
     }
   };
@@ -250,7 +230,7 @@ export default function MatchPage() {
             source ? `O tabuleiro de «${source.title}» continua nesta partida.` : null,
           );
         },
-        onError: (err: unknown) => onMapChangeError(err, true),
+        onError: (err: unknown) => onMapChangeError(err),
       },
     );
   };

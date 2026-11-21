@@ -346,11 +346,9 @@ export default function TacticalMapEditor({
       setSaveSuccess("Mapa salvo!");
       onSaveSuccess?.();
     } catch (err: unknown) {
-      const detail = getApiErrorDetail(err) ?? "";
       setSaveError(
-        detail === "wall segment out of grid bounds"
-          ? "Uma ou mais paredes estão fora dos limites do mapa. Ajuste ou remova-as antes de salvar."
-          : "Não foi possível salvar. Suas alterações estão protegidas localmente.",
+        getApiErrorDetail(err) ??
+          "Não foi possível salvar. Suas alterações estão protegidas localmente.",
       );
     } finally {
       setIsSaving(false);
