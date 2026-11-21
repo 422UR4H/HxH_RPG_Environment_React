@@ -342,7 +342,7 @@ function CharacterSheetTemplate({
           </GridSection>
 
           <ProficienciesSection>
-            <SectionTitle>Proficiências</SectionTitle>
+            <ProficienciesTitle>Proficiências</ProficienciesTitle>
             <ProficienciesList
               key={charSheet?.characterClass ?? "none"}
               mode={sheetMode.proficiencyMode}
@@ -485,6 +485,20 @@ const SectionTitle = styled.h2`
   color: ${colors.textPrimary};
   margin-bottom: 5cqi;
   padding-left: 1cqi;
+`;
+
+/* Mesmo tamanho de fonte dos títulos de coluna ("ATRIBUTOS"/"PERÍCIAS"): 8% da largura da coluna.
+   Seja c a largura do conteúdo desta seção. Em uma coluna a coluna da ficha mede c + 40px, logo
+   8cqi + 3.2px. Em duas colunas (a partir de c >= 510px) cada coluna mede (c + 10px) / 2, logo
+   4cqi + 0.4px. */
+const ProficienciesTitle = styled(SectionTitle)`
+  font-size: calc(8cqi + 3.2px);
+  margin-bottom: 0.625em;
+  padding-left: 0.125em;
+
+  @container (min-width: 510px) {
+    font-size: calc(4cqi + 0.4px);
+  }
 `;
 
 const GridSection = styled.div`

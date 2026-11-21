@@ -10,12 +10,14 @@ import {
 import { camelCaseSegments } from "../../utils/camelCaseSegments";
 import AttachedList from "./AttachedList";
 import { useAttachedList } from "./useAttachedList";
-import { Check, Label, Option, Sizer, Trigger, Value } from "./PillSelect.styles";
+import { Check, Description, Label, Option, Text, Sizer, Trigger, Value } from "./PillSelect.styles";
 
 export interface PillSelectOption {
   value: string;
   label: string;
   disabled?: boolean;
+  /** Segunda linha, menor, sob o rótulo na lista aberta; a pílula fechada e a digitação só usam o rótulo. */
+  description?: string;
 }
 
 interface PillSelectProps {
@@ -37,6 +39,19 @@ interface PillSelectProps {
 
 const PAGE_STEP = 10;
 const TYPEAHEAD_RESET_MS = 500;
+function renderLabel(o: PillSelectOption) {
+  return (
+    <Label>
+      {camelCaseSegments(o.label).map((part, n) => (
+        <Fragment key={n}>
+          {n > 0 && <wbr />}
+          {part}
+        </Fragment>
+      ))}
+    </Label>
+  );
+}
+
 /**
  * Select-only combobox (padrão WAI-ARIA APG): o foco fica no gatilho e a lista, num portal,
  * continua a pílula — mesma largura, bordas e cantos —, abrindo para baixo ou para cima
@@ -285,14 +300,14 @@ export default function PillSelect({
               if (!o.disabled) commit(i);
             }}
           >
-            <Label>
-              {camelCaseSegments(o.label).map((part, n) => (
-                <Fragment key={n}>
-                  {n > 0 && <wbr />}
-                  {part}
-                </Fragment>
-              ))}
-            </Label>
+            {o.description ? (
+              <Text>
+                {renderLabel(o)}
+                <Description data-description>{o.description}</Description>
+              </Text>
+            ) : (
+              renderLabel(o)
+            )}
             {i === selectedIndex && <Check aria-hidden="true">✓</Check>}
           </Option>
         ))}

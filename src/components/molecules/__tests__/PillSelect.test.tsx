@@ -659,3 +659,53 @@ describe("PillSelect — placeholder", () => {
     expect(screen.getByRole("combobox", { name: "Campo" })).toHaveTextContent("Alquimista");
   });
 });
+
+describe("PillSelect — option description", () => {
+  const WEAPONS: PillSelectOption[] = [
+    { value: "", label: "Selecione" },
+    { value: "s", label: "Espada", description: "1d8+2" },
+    { value: "t", label: "Adaga", description: "1d4 · já escolhida", disabled: true },
+  ];
+
+  function Weapons({ onChange = () => {} }: { onChange?: (v: string) => void }) {
+    return <PillSelect aria-label="Arma" value="" options={WEAPONS} onChange={onChange} />;
+  }
+  const weaponTrigger = () => screen.getByRole("combobox", { name: "Arma" });
+  const optionByLabel = (label: string) =>
+    screen.getAllByRole("option").find((o) => o.textContent?.startsWith(label)) as HTMLElement;
+
+  it("renders the description inside its option and nothing for options without one", async () => {
+    restoreMotion = mockReducedMotion(true);
+    render(<Weapons />);
+    await userEvent.click(weaponTrigger());
+    expect(optionByLabel("Espada").querySelector("[data-description]")).toHaveTextContent("1d8+2");
+    expect(optionByLabel("Selecione").querySelector("[data-description]")).toBeNull();
+  });
+
+  it("shows only the label on the closed trigger", () => {
+    render(<PillSelect aria-label="Arma" value="s" options={WEAPONS} onChange={() => {}} />);
+    expect(weaponTrigger()).toHaveTextContent("Espada");
+    expect(weaponTrigger()).not.toHaveTextContent("1d8+2");
+  });
+
+  it("keeps typeahead matching on the label only", async () => {
+    restoreMotion = mockReducedMotion(true);
+    render(<Weapons />);
+    weaponTrigger().focus();
+    await userEvent.keyboard("es");
+    expect(document.getElementById(weaponTrigger().getAttribute("aria-activedescendant") ?? "")?.textContent).toContain("Espada");
+    await userEvent.keyboard("{Escape}");
+    await userEvent.keyboard("1");
+    expect(screen.queryByRole("listbox")).toBeNull(); // "1d8" não é rótulo
+  });
+
+  it("does not select a disabled option that has a description", async () => {
+    restoreMotion = mockReducedMotion(true);
+    const onChange = vi.fn();
+    render(<Weapons onChange={onChange} />);
+    await userEvent.click(weaponTrigger());
+    await userEvent.click(optionByLabel("Adaga"));
+    expect(onChange).not.toHaveBeenCalled();
+    expect(optionByLabel("Adaga")).toHaveAttribute("aria-disabled", "true");
+  });
+});

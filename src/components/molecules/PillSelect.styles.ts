@@ -89,6 +89,21 @@ export const Label = styled.span`
   overflow-wrap: normal;
 `;
 
+// Rótulo e descrição numa coluna só; sem descrição, esta coluna nem existe.
+export const Text = styled.span`
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+`;
+
+export const Description = styled.span`
+  font-size: 0.6em;
+  font-weight: 400;
+  line-height: 1.25;
+  color: ${colors.textMuted};
+  white-space: normal;
+`;
+
 export const Check = styled.span`
   position: absolute;
   top: 0;

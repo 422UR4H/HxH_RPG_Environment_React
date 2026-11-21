@@ -155,6 +155,7 @@ export interface JointProficiency {
   nextLvlBaseExp?: number;
   level: number;
   name: string;
+  weapons: string[];
 }
 
 export interface Category {

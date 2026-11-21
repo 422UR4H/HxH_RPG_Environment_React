@@ -72,3 +72,31 @@ perder o que o jogador já preencheu. Por isso o estado mora na URL e a ficha nu
   aberto corrige a rolagem para a leitura não pular; chip ou link para um capítulo ainda não montado
   monta todos antes de rolar. A ficha busca as regras ao montar (`usePrefetchSheetRules`), então o "?"
   não espera a rede. Montar os dez de uma vez custava ~0,9 s de CPU (4× mais lento) na abertura.
+
+## Proficiências e dano da arma
+
+- **O dano vem do back, nunca de tabela no front.** `GET /rules/weapons` (`rulesService.getWeapons`) →
+  `useWeaponDamage()` devolve `(arma) => dano formatado | undefined`, buscando por nome. Formatar só via
+  `formatDamage(dice, flat)` (`src/utils/dice.ts`). Catálogo estático e rota pública: sem token na chave,
+  `staleTime: Infinity` (exceção consciente às invariantes de hook de `docs/dev/frontend-architecture.md`).
+  Por quê: arma nova ou balanceada no back aparece sozinha; uma tabela no front divergiria em silêncio.
+- **Dano desconhecido é silêncio.** Catálogo carregando, falho ou sem a arma: card, slot e opção simplesmente
+  não mostram dano. Sem spinner, sem texto de erro, sem dica. Por quê: a ficha continua usável sem o catálogo.
+- **A seção preenche a linha.** `ProficienciesList` usa flex-wrap (`flex: 1 1 260px`, gap 15px): até três
+  cards lado a lado na largura de desktop, um card sozinho ocupa a linha toda. Por quê: o cinza morto à
+  direita era feio e desperdiçava espaço.
+- **Card conjunto** (`JointProficiencyCard`): fechado por padrão, botão "N armas" com a seta logo depois do
+  rótulo (gap de 8px). Aberto, lista as armas em colunas CSS (`column-width: 220px`, `column-gap: 24px`,
+  linhas sem quebrar entre colunas). Com `JOINT_FULL_ROW_FROM = 9` armas ou mais (ou seja, mais de 8) o card
+  aberto ocupa a linha toda; com 8 ou menos fica no lugar. **Nunca rolagem** dentro do card: se a lista não
+  cabe, o card cresce. Por quê: rolagem aninhada esconde armas e briga com a rolagem da ficha.
+- **Tamanhos de texto** em `proficiencyCardParts.ts`: `textSize = min(22px, 5cqi)`; `secondaryTextSize`
+  (dano, rótulo "N armas", lista) = 0.77× disso, com piso de 14px no celular. Por quê: abaixo de 14px o
+  dano some na leitura em tablet/celular.
+- **Título "Proficiências"** (`ProficienciesTitle` em `CharacterSheetTemplate.tsx`) tem o mesmo tamanho do
+  título "ATRIBUTOS" em qualquer largura (a coluna dele tem `8cqi` da própria largura). Como a seção é um
+  container diferente, a fórmula usa a largura de conteúdo `c` dela: uma coluna `calc(8cqi + 3.2px)`; duas
+  colunas (`c >= 510px`) `calc(4cqi + 0.4px)`. Os `px` compensam o padding da coluna (`c + 40px` em uma
+  coluna; `(c + 10px) / 2` em duas). Se mudar o padding ou o breakpoint do grid, refaça a conta.
+  "PERÍCIAS" fica ~2px menor que "ATRIBUTOS" por padding interno da coluna dela; isso é anterior e não é
+  deste título, que segue o ATRIBUTOS.

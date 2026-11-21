@@ -3,6 +3,7 @@ import { http, HttpResponse } from "msw";
 import { campaignApiFixture, campaignSummaryApiFixture } from "./fixtures/campaign";
 import { matchApiFixture } from "./fixtures/match";
 import { sheetRulesFixture } from "./fixtures/rules";
+import { weaponsCatalogueFixture } from "./fixtures/weapons";
 import { sheetApiFixture, sheetSummaryApiFixture } from "./fixtures/sheet";
 
 const baseUrl = "http://localhost:5000";
@@ -20,6 +21,9 @@ const baseUrl = "http://localhost:5000";
 export const defaultHandlers = [
   http.get(`${baseUrl}/rules/character-sheet`, () =>
     HttpResponse.json({ chapters: sheetRulesFixture }),
+  ),
+  http.get(`${baseUrl}/rules/weapons`, () =>
+    HttpResponse.json({ weapons: weaponsCatalogueFixture }),
   ),
   http.get(`${baseUrl}/campaigns`, () =>
     HttpResponse.json({ campaigns: [campaignSummaryApiFixture] }),

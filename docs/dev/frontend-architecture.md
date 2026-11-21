@@ -59,6 +59,9 @@ Três invariantes que valem para (praticamente) todo hook do diretório:
    não dispara sem os pré-requisitos.
 3. **`retry: 1`** — em todo hook, e é também o default global em `main.tsx`.
 
+Exceção: `useWeaponDamage` (catálogo público `GET /rules/weapons`, estático) não leva token na
+`queryKey` nem `enabled`, e usa `staleTime: Infinity`.
+
 React Query é só para estado de servidor. Estado de UI local continua em
 `useState`/context.
 
