@@ -90,7 +90,7 @@ const ResetStyle = createGlobalStyle`
 		outline-offset: 3px;
 	}
 
-	/* Controles nativos na cor da marca. */
+	/* Controles nativos no verde dos botões (brandAccent). */
 	input[type="checkbox"], input[type="radio"], input[type="range"] {
 		accent-color: ${colors.brandAccent};
 	}

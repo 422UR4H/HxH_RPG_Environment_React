@@ -23,7 +23,7 @@ Wrappers de HTML que poderiam viver em qualquer projeto React. Ex.: `BaseButton`
 > **Por que `ions/` existe além de `atoms/`?** O Atomic Design canônico (Brad Frost) não tem essa camada. Foi adicionada porque, na prática, é útil distinguir "wrapper de HTML genérico" (ion) de "unidade com semântica do nosso jogo" (atom).
 
 ### `atoms/` — UI pequena com semântica de domínio
-Já carrega noção do projeto. Ex.: `CampaignCard` (sabe o que é uma campanha), `PageHeader` (cor de marca), `CharacterSheetCard`, `CreateButton`.
+Já carrega noção do projeto. Ex.: `CampaignCard` (sabe o que é uma campanha), `PageHeader` (cabeçalho verde), `CharacterSheetCard`, `CreateButton`.
 
 ### `molecules/` — composição de 2-3 ions/atoms
 Pequenas unidades funcionais. Ex.: `ConfirmDialog`, `ExpandableText`, `FormField` (Label + campo + ajuda), `FormCheckbox`, `FormRow`, `RuleSection`, `EmptyState`, `CharacterSidebarItem`, `AdaptiveActionButton`, `BlockableButton` (o jeito único de ação indisponível: `aria-disabled` + "?" + motivo no `Tooltip`), `CharacterSheetHeader`, `PillSelect` (escolher um valor) e `PillMenu` (menu de ações, ex.: "Gerenciar") — a mesma lista presa à pílula, de `useAttachedList` + `AttachedList`; outra lista assim usa essa peça, não copia —, `EdgeDrawer` (aba na borda + gaveta com véu; usada pelos templates para recolher colunas laterais).
