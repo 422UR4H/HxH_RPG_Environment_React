@@ -56,7 +56,7 @@ describe("RegisterPage", () => {
     await u.type(screen.getByLabelText("Confirme a senha"), "456");
     await u.click(screen.getByRole("button", { name: /Criar conta/i }));
     expect(screen.getByText("O e-mail deve ter entre 12 e 64 caracteres.")).toBeInTheDocument();
-    expect(screen.getByText("Informe um nick.")).toBeInTheDocument();
+    expect(screen.getByText("Informe o nick (apelido).")).toBeInTheDocument();
     expect(screen.getByText("A senha deve ter pelo menos 8 caracteres.")).toBeInTheDocument();
     expect(screen.getByText("As senhas não coincidem.")).toBeInTheDocument();
     expect(screen.getByLabelText("E-mail")).toHaveFocus();
@@ -72,11 +72,11 @@ describe("RegisterPage", () => {
     await u.type(screen.getByLabelText("Senha"), "123");
     await u.click(screen.getByRole("button", { name: /Criar conta/i }));
     expect(screen.getByLabelText("Nick")).toHaveFocus();
-    expect(screen.getByText("Informe um nick.")).toBeInTheDocument();
+    expect(screen.getByText("Informe o nick (apelido).")).toBeInTheDocument();
     expect(screen.getByText("A senha deve ter pelo menos 8 caracteres.")).toBeInTheDocument();
 
     await u.type(screen.getByLabelText("Nick"), "T");
-    expect(screen.queryByText("Informe um nick.")).not.toBeInTheDocument();
+    expect(screen.queryByText("Informe o nick (apelido).")).not.toBeInTheDocument();
     expect(screen.getByText("A senha deve ter pelo menos 8 caracteres.")).toBeInTheDocument();
     expect(screen.getByText("Confirme a senha.")).toBeInTheDocument();
   });

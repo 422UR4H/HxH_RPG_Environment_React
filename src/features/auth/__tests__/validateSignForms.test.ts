@@ -41,10 +41,10 @@ describe("validateRegister", () => {
     expect(validateRegister({ ...validRegister, nick: ok }).nick).toBeUndefined();
 
     expect(validateRegister({ ...validRegister, nick: `${ok}ã` }).nick).toBe(
-      "O nick deve ter entre 3 e 20 caracteres.",
+      "O nick (apelido) deve ter entre 3 e 20 caracteres.",
     );
     expect(validateRegister({ ...validRegister, nick: "ab" }).nick).toBe(
-      "O nick deve ter entre 3 e 20 caracteres.",
+      "O nick (apelido) deve ter entre 3 e 20 caracteres.",
     );
   });
 

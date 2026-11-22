@@ -5,6 +5,8 @@
 O campo de erro do backend é `data.detail`, não `data.message`. A forma única de ler
 isso é `getApiErrorDetail(err)` (`src/utils/apiError.ts`) — não acesse
 `err.response?.data` direto, e não tipe o erro como `any` (é `unknown`).
+`getApiErrorDetail` devolve `null` quando a resposta tem `errors` não-vazio (validação da
+própria biblioteca HTTP, em inglês), para o fallback em português da página aparecer.
 
 ```tsx
 onError: (err: unknown) => {

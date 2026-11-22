@@ -122,6 +122,9 @@ com a mensagem específica do erro é `detail` — não existe `data.message`.
 
 - confirma que é um erro Axios e que há `response`;
 - confirma que `response.data` é um objeto e que `detail` é uma string não-vazia;
+- devolve `null` se o corpo tem um array `errors` não-vazio: é a validação da própria
+  biblioteca HTTP (inglês, ex.: "validation failed"), não frase de tela — o fallback do
+  chamador aparece (exceção inalcançável: "request body is required", sem `errors`);
 - devolve essa string, ou `null` quando não há mensagem aproveitável — para o
   chamador aplicar o próprio fallback com `??`.
 

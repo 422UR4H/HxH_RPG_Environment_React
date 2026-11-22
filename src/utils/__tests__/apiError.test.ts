@@ -84,28 +84,38 @@ describe("getApiErrorDetail", () => {
     expect(getApiErrorDetail(null)).toBeNull();
   });
 
-  it("case 7: ignores errors array and returns detail", () => {
+
+  const buildError = (data: unknown) => {
     const error = new axios.AxiosError("Request failed");
-    const response: Partial<AxiosResponse> = {
+    error.response = {
       status: 422,
       statusText: "Unprocessable Entity",
       headers: {},
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       config: { headers: {} } as any,
-      data: {
-        detail: "Validation failed",
-        errors: [
-          {
-            message: "Invalid field",
-            field: "email",
-          },
-        ],
-      },
-    };
-    error.response = response as AxiosResponse;
+      data,
+    } as AxiosResponse;
+    return error;
+  };
 
-    const result = getApiErrorDetail(error);
-    expect(result).toBe("Validation failed");
+  it("returns null when the body has a non-empty errors array (library validation)", () => {
+    const error = buildError({
+      detail: "validation failed",
+      errors: [{ message: "expected string", location: "body.email", value: 1 }],
+    });
+    expect(getApiErrorDetail(error)).toBeNull();
+  });
+
+  it("returns detail when errors is an empty array", () => {
+    expect(getApiErrorDetail(buildError({ detail: "Informe o nick (apelido).", errors: [] }))).toBe(
+      "Informe o nick (apelido).",
+    );
+  });
+
+  it("returns detail when there is no errors field", () => {
+    expect(getApiErrorDetail(buildError({ detail: "Informe o nick (apelido)." }))).toBe(
+      "Informe o nick (apelido).",
+    );
   });
 });
 

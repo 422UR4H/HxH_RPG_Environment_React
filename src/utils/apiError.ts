@@ -17,6 +17,13 @@ export function isConnectionError(err: unknown): boolean {
  *
  * Devolve `null` quando não há mensagem aproveitável, para o chamador aplicar o próprio
  * fallback com `??`.
+ *
+ * Também devolve `null` quando o corpo traz um array `errors` não-vazio: é o sinal
+ * estrutural de que a validação da própria biblioteca HTTP (huma) recusou a requisição
+ * (JSON malformado, campo obrigatório ausente, tipo errado), e o `detail` dela é inglês
+ * ("validation failed"), não frase de tela. As recusas do nosso domínio nunca trazem
+ * `errors`. Única exceção conhecida: "request body is required" (400, sem `errors`),
+ * inalcançável pelo app, que sempre envia corpo.
  */
 export function getApiErrorDetail(err: unknown): string | null {
   // Verify it's an axios error
@@ -40,6 +47,12 @@ export function getApiErrorDetail(err: unknown): string | null {
 
   // Verify detail is a string
   if (typeof detail !== "string") {
+    return null;
+  }
+
+  // `errors` não-vazio = validação da biblioteca (inglês): usar o fallback do chamador
+  const errors = (data as Record<string, unknown>).errors;
+  if (Array.isArray(errors) && errors.length > 0) {
     return null;
   }
 
