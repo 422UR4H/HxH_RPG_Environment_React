@@ -5,15 +5,19 @@
 O campo de erro do backend é `data.detail`, não `data.message`. A forma única de ler
 isso é `getApiErrorDetail(err)` (`src/utils/apiError.ts`) — não acesse
 `err.response?.data` direto, e não tipe o erro como `any` (é `unknown`).
+`getApiErrorDetail` devolve `null` quando a resposta tem `errors` não-vazio (validação da
+própria biblioteca HTTP, em inglês), para o fallback em português da página aparecer.
 
 ```tsx
 onError: (err: unknown) => {
-  const detail = getApiErrorDetail(err);
-  setError(friendlyMessages[detail ?? ""] || "Mensagem genérica em português.");
+  setError(getApiErrorDetail(err) ?? "Fallback em português.");
 },
 ```
 
-Mapeie os erros de validação esperados para mensagens em português. O que não estiver no mapa cai no fallback genérico. Ver `src/pages/EditCampaignPage.tsx` para um exemplo real combinando isso com `isApiError` para diferenciar por status code.
+O `detail` do backend já é a frase de tela, em português (back PR #115): mostre-o como veio,
+sem dicionário de tradução no front. O fallback em português só vale para quando não há
+`detail` (rede caiu, resposta sem corpo). Nunca compare o texto do `detail` para decidir
+comportamento — use o status com `isApiError(err, status)`.
 
 ## Dados assíncronos no formulário
 

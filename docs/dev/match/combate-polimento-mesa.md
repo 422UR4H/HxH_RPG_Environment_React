@@ -202,8 +202,8 @@ O saldo que chega (`actionBalance`/`moveBalance`) já pagou a próxima ação no
   lido duas vezes). `enabled={false}` não renderiza nada e tira o `aria-describedby`.
 
 O `MatchErrorBanner` ganhou um `×` (`CloseButton`, `aria-label="Fechar aviso"`): só ele fecha; o
-aviso inteiro deixou de ser clicável. `combatErrorMessages` traduz as mensagens de domínio que o
-contrato documenta (`byGameMessage`: fila vazia, ação já não está na fila, ação não é sua) e tem
+aviso inteiro deixou de ser clicável. `combatErrorMessages` mostra a `message` do servidor como veio (já em português desde o
+back #115; o mapa por código é só o fallback para mensagem vazia) e tem
 `cancel_action` na tabela dos envios.
 
 ## Repelir e Desarmado
@@ -296,7 +296,7 @@ movimento não entra na cadeia nem a quebra. O servidor não abre um empilhado a
   Um empilhado com a peça no destino dele é um vai-e-volta, não um pedido cumprido.
 - **Antecipar:** o `pull_action` de um empilhado é recusado (`action is stacked on a pending
   move`); o banner diz "Este movimento está empilhado em outro que ainda não abriu — abra aquele
-  primeiro." (`combatErrorMessages.byGameMessage`).
+  primeiro." (mensagem do servidor, mostrada como veio desde o back #115).
 - **Reação (D6):** a fuga gasta a cabeça da cadeia; para outra casa, os empilhados nela caem.
   `useReactionControls` marca `dialog.losesStacked`/`pick.losesStacked` (`stackedLostByEscape`), e
   a configuração da fuga (`ReactionConfigDialog`) e a instrução da fuga armada (`ReactionButtons`

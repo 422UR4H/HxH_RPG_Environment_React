@@ -1,6 +1,5 @@
 import { MATCH_LIMITS, SESSION_MAX_MONTHS } from "../../constants/fieldLimits";
 import { todayLocalISODate } from "../../utils/date";
-import { getMatchValidationMessage } from "./matchErrorMessages";
 
 export const SESSION_IN_PAST = "Escolha um horário a partir de agora.";
 export const SESSION_PASSED_NOTICE = "A data desta sessão já passou. Escolha uma nova data para reagendar.";
@@ -33,16 +32,14 @@ export function sessionDayBounds(now: Date = new Date()): { min: string; max: st
   return { min: todayLocalISODate(now), max: todayLocalISODate(addMonths(now, SESSION_MAX_MONTHS)) };
 }
 
-/** Data da história fora do intervalo da campanha, com as mesmas mensagens do back. */
+/** Data da história fora do intervalo da campanha (validação do front, com texto próprio). */
 export function storyStartError(
   storyStartAt: string,
   campaign: { storyStartAt?: string; storyEndAt?: string | null },
 ): string | null {
-  const detail =
-    campaign.storyStartAt && storyStartAt < campaign.storyStartAt
-      ? "validation error: story start date must be after campaign start date"
-      : campaign.storyEndAt && storyStartAt > campaign.storyEndAt
-        ? "validation error: story start date must be before campaign end date"
-        : null;
-  return detail ? (getMatchValidationMessage(detail) ?? null) : null;
+  if (campaign.storyStartAt && storyStartAt < campaign.storyStartAt)
+    return "A data de início na história deve ser igual ou posterior ao início da campanha.";
+  if (campaign.storyEndAt && storyStartAt > campaign.storyEndAt)
+    return "A data de início na história deve ser anterior ao fim da campanha.";
+  return null;
 }

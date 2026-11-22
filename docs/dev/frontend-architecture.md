@@ -122,6 +122,9 @@ com a mensagem específica do erro é `detail` — não existe `data.message`.
 
 - confirma que é um erro Axios e que há `response`;
 - confirma que `response.data` é um objeto e que `detail` é uma string não-vazia;
+- devolve `null` se o corpo tem um array `errors` não-vazio: é a validação da própria
+  biblioteca HTTP (inglês, ex.: "validation failed"), não frase de tela — o fallback do
+  chamador aparece (exceção inalcançável: "request body is required", sem `errors`);
 - devolve essa string, ou `null` quando não há mensagem aproveitável — para o
   chamador aplicar o próprio fallback com `??`.
 
@@ -135,17 +138,15 @@ setError(getApiErrorDetail(err) ?? "Erro ao fazer login");
 ```
 
 ```tsx
-// src/pages/EditCampaignPage.tsx:38-39
-if (isApiError(err, 422)) {
-  const detail = getApiErrorDetail(err);
-  return getCampaignValidationMessage(detail ?? "") || "Dados inválidos. ...";
-}
+// src/pages/EditCampaignPage.tsx
+return getApiErrorDetail(err) ?? "Erro ao salvar campanha. Tente novamente.";
 ```
 
-Páginas que precisam de mensagens específicas por código de erro (403, 404,
-422 etc.) combinam `getApiErrorDetail` com verificações de status
-(`isApiError`) e mapeiam o `detail` para uma mensagem amigável em português —
-ver `src/pages/CLAUDE.md` para o padrão de página completo, incluindo o
+Desde o back #115, o `detail` já é a frase de tela em português: o front o mostra
+como veio e só usa texto próprio (fallback) quando não há `detail` (rede caiu,
+resposta sem corpo). Não há dicionário de tradução. Nunca se decide
+comportamento comparando o texto do `detail`: use o status com `isApiError(err,
+status)`. Ver `src/pages/CLAUDE.md` para o padrão de página completo, incluindo o
 loading guard para formulários dependentes de query.
 
 ## Zona pixel-tuned — não mexer sem motivo

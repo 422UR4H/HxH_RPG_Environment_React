@@ -1,9 +1,9 @@
 /** Uma recusa do servidor. Mora aqui, e não no banner, porque o reducer (T4) também a guarda. */
 export type WsError = { code: string; message: string; sentType?: string; at: number };
 
-// Mapeia o CÓDIGO do erro (contrato §7), nunca a prosa. `game_error` é o texto do erro de
-// domínio e vai como veio — exceto as poucas mensagens que o contrato documenta e o usuário
-// vê sempre (`byGameMessage`); o resto traduzir seria manter um dicionário do domínio no front.
+// Desde o back #115, a `message` do servidor já é a frase de tela, para todo código: vai como
+// veio. O mapa por CÓDIGO (contrato §7) é só o fallback do front para quando a mensagem vem
+// vazia; nunca se decide nada pela prosa.
 const byCode: Record<string, string> = {
   invalid_message: "Mensagem malformada — recarregue a página.",
   unknown_type: "O servidor não reconheceu esta operação.",
@@ -51,15 +51,6 @@ const bySentType: Record<string, string> = {
   end_match: "Não foi possível encerrar a partida",
 };
 
-// Mensagens de domínio documentadas no contrato; a tradução vai sozinha, sem o prefixo do envio.
-const byGameMessage: Record<string, string> = {
-  "action queue is empty": "A fila de ações está vazia.",
-  "action not found in queue": "A ação já não está na fila.",
-  "action is stacked on a pending move": "Este movimento está empilhado em outro que ainda não abriu — abra aquele primeiro.",
-  "action actor does not match player": "Essa ação não é sua.",
-  "validation error: no turn opened in this round yet": "Nenhum turno aconteceu nesta rodada ainda — não há o que encerrar.",
-};
-
 // Recusas cujo sentido muda com o envio: o mesmo código, frase própria (sem prefixo — o diálogo
 // já diz o que se tentou).
 const byCodeAndSentType: Record<string, string> = {
@@ -70,9 +61,7 @@ const byCodeAndSentType: Record<string, string> = {
 export function combatErrorText(code: string, message: string, sentType?: string): string {
   const specific = sentType ? byCodeAndSentType[`${code}:${sentType}`] : undefined;
   if (specific) return specific;
-  if (code === "game_error" && byGameMessage[message]) return byGameMessage[message];
-  const base = code === "game_error" ? message : (byCode[code] ?? message ?? "Erro do servidor.");
+  const base = message || byCode[code] || "Erro do servidor.";
   const prefix = sentType ? bySentType[sentType] : undefined;
-  const detail = code === "game_error" || !message ? base : `${base} (${message})`;
-  return prefix ? `${prefix}: ${detail}` : detail;
+  return prefix ? `${prefix}: ${base}` : base;
 }

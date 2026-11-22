@@ -13,7 +13,6 @@ import DateField from "../components/molecules/DateField";
 import FormTextArea from "../components/ions/FormTextArea";
 import UpcomingRulesSidebar from "../components/organisms/UpcomingRulesSidebar";
 import { CONNECTION_ERROR_MESSAGE, getApiErrorDetail, isConnectionError } from "../utils/apiError";
-import { getCampaignValidationMessage } from "../features/campaign/campaignErrorMessages";
 import { todayLocalISODate } from "../utils/date";
 import { CAMPAIGN_LIMITS } from "../constants/fieldLimits";
 import useFieldValidation, { focusField } from "../hooks/useFieldValidation";
@@ -80,8 +79,7 @@ export default function CreateCampaignPage() {
           return;
         }
         setError(
-          getCampaignValidationMessage(getApiErrorDetail(err) ?? "") ??
-            "Erro ao criar campanha. Tente novamente.",
+          getApiErrorDetail(err) ?? "Erro ao criar campanha. Tente novamente.",
         );
       },
     });

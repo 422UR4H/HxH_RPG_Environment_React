@@ -167,7 +167,7 @@ describe("CreateCampaignPage", () => {
   it("mostra erro quando API retorna falha no submit", async () => {
     server.use(
       http.post(`${baseUrl}/campaigns`, () =>
-        HttpResponse.json({ detail: "Server explodiu" }, { status: 500 }),
+        HttpResponse.json({}, { status: 500 }),
       ),
     );
     renderPage();
@@ -178,7 +178,6 @@ describe("CreateCampaignPage", () => {
     expect(
       await screen.findByText("Erro ao criar campanha. Tente novamente.", {}, { timeout: 5000 }),
     ).toBeInTheDocument();
-    expect(screen.queryByText(/Server explodiu/i)).not.toBeInTheDocument();
     const banner = screen.getByText("Erro ao criar campanha. Tente novamente.");
     expect(
       banner.compareDocumentPosition(screen.getByRole("button", { name: "Cancelar" })) &
@@ -186,11 +185,11 @@ describe("CreateCampaignPage", () => {
     ).toBeTruthy();
   });
 
-  it("traduz o 403 do limite de campanhas", async () => {
+  it("mostra o detail do 403 do limite de campanhas", async () => {
     server.use(
       http.post(`${baseUrl}/campaigns`, () =>
         HttpResponse.json(
-          { detail: "validation error: user cannot have more than 10 campaigns" },
+          { detail: "Você não pode ter mais de 10 campanhas." },
           { status: 403 },
         ),
       ),
@@ -200,8 +199,7 @@ describe("CreateCampaignPage", () => {
     await u.type(screen.getByLabelText(/Nome da Campanha/i), "Nova Campanha");
     await u.type(screen.getByLabelText(/Descrição Breve/i), "Brief");
     await u.click(screen.getByRole("button", { name: /Criar Campanha/i }));
-    expect(await screen.findByText("Você atingiu o limite de 10 campanhas.")).toBeInTheDocument();
-    expect(screen.queryByText(/validation error/i)).not.toBeInTheDocument();
+    expect(await screen.findByText("Você não pode ter mais de 10 campanhas.")).toBeInTheDocument();
   });
 
   it("toggle de 'Campanha Pública' inverte o checkbox", async () => {

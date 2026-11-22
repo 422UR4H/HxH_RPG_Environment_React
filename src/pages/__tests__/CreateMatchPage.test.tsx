@@ -190,7 +190,7 @@ describe("CreateMatchPage", () => {
     server.use(
       http.post(`${baseUrl}/matches`, () =>
         HttpResponse.json(
-          { detail: "validation error: game scheduled at cannot be in the past" },
+          { detail: "A data e hora da sessão não pode estar no passado." },
           { status: 422 },
         ),
       ),

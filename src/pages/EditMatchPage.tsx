@@ -8,7 +8,6 @@ import { useCampaignDetails } from "../hooks/useCampaignDetails";
 import { useMatchDetails } from "../hooks/useMatchDetails";
 import { useUpdateMatch } from "../hooks/useUpdateMatch";
 import { isApiError } from "../services/httpClient";
-import { getMatchValidationMessage } from "../features/match/matchErrorMessages";
 import {
   MATCH_TITLE_TOO_SHORT,
   SESSION_PASSED_NOTICE,
@@ -41,20 +40,7 @@ type MatchFormData = {
 };
 
 function getErrorMessage(err: unknown): string {
-  if (isApiError(err, 403)) return "Apenas o mestre pode editar esta partida.";
-  if (isApiError(err, 404)) return "Partida não encontrada.";
-  if (isApiError(err, 422)) {
-    const detail = getApiErrorDetail(err);
-    if (detail?.toLowerCase().includes("already started"))
-      return "A partida já foi iniciada e não pode ser editada.";
-    if (detail?.toLowerCase().includes("already finished"))
-      return "A partida já foi encerrada e não pode ser editada.";
-    return (
-      getMatchValidationMessage(detail ?? "") ||
-      "Dados inválidos. Verifique os campos e tente novamente."
-    );
-  }
-  return "Erro ao salvar partida. Tente novamente.";
+  return getApiErrorDetail(err) ?? "Erro ao salvar partida. Tente novamente.";
 }
 
 export default function EditMatchPage() {

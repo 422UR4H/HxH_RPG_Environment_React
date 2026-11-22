@@ -4,7 +4,6 @@ import useDocumentTitle from "../hooks/useDocumentTitle";
 import { useCreateMatch } from "../hooks/useCreateMatch";
 import { useCampaignDetails } from "../hooks/useCampaignDetails";
 import useToken from "../hooks/useToken";
-import { getMatchValidationMessage } from "../features/match/matchErrorMessages";
 import {
   MATCH_TITLE_TOO_SHORT,
   sessionDayBounds,
@@ -109,10 +108,9 @@ export default function CreateMatchPage() {
     createMatch(matchData, {
       onSuccess: () => navigate(-1),
       onError: (err: unknown) => {
-        const detail = getApiErrorDetail(err) ?? "";
         setError(
-          getMatchValidationMessage(detail) ||
-            "Não foi possível criar a partida. Verifique os dados e tente novamente."
+          getApiErrorDetail(err) ??
+            "Não foi possível criar a partida. Verifique os dados e tente novamente.",
         );
       },
     });

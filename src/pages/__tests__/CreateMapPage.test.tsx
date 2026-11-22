@@ -119,7 +119,7 @@ describe("CreateMapPage", () => {
   it("erro do servidor exibe mensagem de fallback sem navegar", async () => {
     server.use(
       http.post(`${baseUrl}/campaigns/:campaignId/maps`, () =>
-        HttpResponse.json({ detail: "unexpected_error" }, { status: 422 }),
+        HttpResponse.json({}, { status: 500 }),
       ),
     );
     renderPage();
