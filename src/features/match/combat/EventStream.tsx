@@ -76,7 +76,7 @@ function eventLine(event: TableEvent, nameOf: (id: string) => string, gridKind: 
       return {
         icon: "♥",
         tone: "hp",
-        text: `${nameOf(event.characterId)}: ${event.hp}/${event.maxHp} (${MINUS}${event.damage})`,
+        text: `${nameOf(event.characterId)}: ${event.hp}/${event.maxHp} (${event.damage < 0 ? `+${-event.damage}` : `${MINUS}${event.damage}`})`,
       };
     case "round_closed":
       return { icon: "↻", tone: "muted", text: "Fim da rodada" };

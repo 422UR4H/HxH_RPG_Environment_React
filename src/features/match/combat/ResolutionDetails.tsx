@@ -123,7 +123,9 @@ export default function ResolutionDetails({
           {!!t.reaction?.systemBias && <Muted>{SYSTEM_BIAS_REASON}</Muted>}
           <Line>
             dano {t.rawDamage} → {t.projectedDamage} (defesa −{t.defenseApplied})
+            {t.criticalDamage && " · crítico ×2"}
           </Line>
+          {t.dies && <Dies>morre</Dies>}
           {t.escape && !t.escape.escaped && (
             <FallBox>
               <strong>Escape falhou — posição final a critério do mestre</strong>
@@ -245,6 +247,9 @@ const Target = styled.div`
   background: ${colors.surfaceInput};
 `;
 const Line = styled.span``;
+const Dies = styled.strong`
+  color: ${colors.feedbackDanger};
+`;
 const FallBox = styled.div`
   display: flex;
   flex-direction: column;

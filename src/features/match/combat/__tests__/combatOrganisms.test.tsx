@@ -422,6 +422,22 @@ describe("ResolutionDetails", () => {
     expect(screen.getByText(/incompleto/i)).toBeInTheDocument();
   });
 
+  it("marca crítico ×2 e morre só quando o alvo traz criticalDamage e dies", () => {
+    const marked: ResolutionPayload = {
+      ...res,
+      targets: [{ ...res.targets[0], criticalDamage: true, dies: true }],
+    };
+    render(<ResolutionDetails resolution={marked} nameOf={resolutionNameOf} />);
+    expect(screen.getByText(/crítico ×2/)).toBeInTheDocument();
+    expect(screen.getByText("morre")).toBeInTheDocument();
+  });
+
+  it("sem criticalDamage nem dies, nenhuma das duas marcas aparece", () => {
+    render(<ResolutionDetails resolution={res} nameOf={resolutionNameOf} />);
+    expect(screen.queryByText(/crítico ×2/)).not.toBeInTheDocument();
+    expect(screen.queryByText("morre")).not.toBeInTheDocument();
+  });
+
   it("hides the Acerto block when the action has no attack", () => {
     const moveOnly: ResolutionPayload = {
       turnId: "t1", isSettled: false, targets: [],
@@ -986,6 +1002,16 @@ describe("EventStream", () => {
     expect(rows[1]).toHaveTextContent(`Fim do turno de Gon — Hisoka ${MINUS}7, Killua esquivou`);
     expect(rows[2]).toHaveTextContent(`Hisoka: 13/20 (${MINUS}7)`);
     expect(rows[3]).toHaveTextContent("Regime: Disputado");
+  });
+
+  it("hp_changed com dano negativo (volta do Morto) mostra (+N), sem hífen duplo", () => {
+    const events: TableEvent[] = [
+      { kind: "hp_changed", at: 1, receivedAt: 1, characterId: "n1", hp: -5, maxHp: 20, damage: -12 },
+    ];
+    render(<EventStream rows={historyRows(undefined, events, undefined, undefined)} nameOf={nameOf} gridKind="square" />);
+    const row = screen.getByTestId("event-row");
+    expect(row).toHaveTextContent("(+12)");
+    expect(row).not.toHaveTextContent(`${MINUS}-`);
   });
 
   it("alvo depois de um aparo aparece como ficou a salvo na linha do turno", () => {

@@ -215,6 +215,10 @@ export type ResolutionTarget = {
   rawDamage: number;
   defenseApplied: number;
   projectedDamage: number;
+  /** O acerto crítico dobrou o dano final deste alvo; ausente quando false. */
+  criticalDamage?: boolean;
+  /** Só o mestre: com este dano o HP ficaria abaixo do mínimo da barra (prévia); ausente quando false. */
+  dies?: boolean;
   reaction?: ReactionResult;
   payouts?: Payout[];
   escape?: EscapeVerdict;
