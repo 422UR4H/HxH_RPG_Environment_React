@@ -6,6 +6,7 @@ import type { MatchWsStatus } from "../../../hooks/useMatchWs";
 import type { RoundMode, ScenePayload } from "./combatMessages";
 import { ROUND_MODE_LABELS } from "./combatText";
 import { SCENE_LABEL } from "./sceneLabels";
+import { useFullscreen } from "../../../hooks/useFullscreen";
 import { GAME_SERVER_WAKING } from "../../../services/serverWake";
 
 const STATUS_LABELS: Record<MatchWsStatus, string> = {
@@ -50,6 +51,7 @@ export default function MatchTopBar({
   asideOpen: boolean;
   onToggleAside: () => void;
 }) {
+  const fullscreen = useFullscreen();
   return (
     <Bar>
       <SceneLabel title={scene?.briefInitialDescription}>
@@ -80,6 +82,16 @@ export default function MatchTopBar({
       >
         Histórico
       </SmallButton>
+      {fullscreen.available && (
+        <SmallButton
+          type="button"
+          aria-pressed={fullscreen.active}
+          aria-label={fullscreen.active ? "Sair da tela cheia" : "Tela cheia"}
+          onClick={fullscreen.toggle}
+        >
+          Tela cheia
+        </SmallButton>
+      )}
     </Bar>
   );
 }

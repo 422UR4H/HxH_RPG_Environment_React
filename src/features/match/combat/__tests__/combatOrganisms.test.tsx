@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent, within } from "@testing-library/react";
+import { describe, it, expect, vi, afterEach } from "vitest";
+import { render, screen, fireEvent, within, act } from "@testing-library/react";
 import GeneralBar from "../GeneralBar";
 import OwnBars from "../OwnBars";
 import QueuePanel from "../QueuePanel";
@@ -1307,6 +1307,45 @@ describe("MatchTopBar", () => {
     const status = screen.getByTestId("ws-status");
     expect(status).toHaveTextContent("Acordando o servidor…");
     expect(status).toHaveAttribute("title", "Acordando o servidor da mesa… pode levar até um minuto.");
+  });
+
+  describe("fullscreen button", () => {
+    const setDoc = (prop: string, value: unknown) =>
+      Object.defineProperty(document, prop, { configurable: true, writable: true, value });
+    const bar = () => (
+      <MatchTopBar roundMode="Free" status="connected" asideOpen={false} onToggleAside={() => {}} />
+    );
+
+    afterEach(() => {
+      for (const prop of ["fullscreenEnabled", "fullscreenElement"]) {
+        delete (document as unknown as Record<string, unknown>)[prop];
+      }
+      delete (document.documentElement as unknown as Record<string, unknown>).requestFullscreen;
+    });
+
+    it("is absent when the Fullscreen API is unavailable", () => {
+      setDoc("fullscreenEnabled", false);
+      render(bar());
+      expect(screen.queryByRole("button", { name: "Tela cheia" })).toBeNull();
+    });
+
+    it("requests fullscreen on click and shows the pressed state after entering", () => {
+      const request = vi.fn().mockResolvedValue(undefined);
+      setDoc("fullscreenEnabled", true);
+      setDoc("fullscreenElement", null);
+      Object.defineProperty(document.documentElement, "requestFullscreen", { configurable: true, writable: true, value: request });
+      render(bar());
+      const button = screen.getByRole("button", { name: "Tela cheia" });
+      expect(button).toHaveAttribute("aria-pressed", "false");
+      fireEvent.click(button);
+      expect(request).toHaveBeenCalledWith({ navigationUI: "hide" });
+
+      act(() => {
+        setDoc("fullscreenElement", document.documentElement);
+        document.dispatchEvent(new Event("fullscreenchange"));
+      });
+      expect(screen.getByRole("button", { name: "Sair da tela cheia" })).toHaveAttribute("aria-pressed", "true");
+    });
   });
 });
 
