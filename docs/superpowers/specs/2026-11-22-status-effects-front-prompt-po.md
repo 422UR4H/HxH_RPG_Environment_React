@@ -19,7 +19,7 @@
      **exceto a etapa 6 ("Aba Status")**, substituída pela lista de personagens v2 (aba "Personagens");
    - lista de personagens: **`personagens-v3.html`** (v1–v2 são histórico);
    - destaque no jogador: **`destaque-v5.html`** (final; v1–v4 são histórico);
-   - aba "Partida" do mestre, painel fixo e ficha: **`partida-v5.html`** (final; rascunho e v2–v4 são histórico).
+   - aba "Partida" do mestre, painel fixo e ficha: **`partida-v6.html`** (final; rascunho e v2–v5 são histórico).
 3. Siga o **Design System do projeto** (artefato `https://claude.ai/artifact/TxCRCJxNB6qX13WKxAjZRV`,
    `project/README.md`; link também em `System_X_System_React/src/styles/CLAUDE.md`). A sessão de PD
    só passou a lê-lo na v3, e boa parte das correções abaixo era regra escrita lá.
@@ -209,7 +209,7 @@ lista (não existe aba "Status" separada).
    uma **barra própria** de congelamento que **aplica outros status** (Lento, Corpo debilitado e
    outros a discutir).
 
-## Aba "Partida" do mestre, painel fixo e ficha (`partida-v5.html`, fechado em 2026-11-25)
+## Aba "Partida" do mestre, painel fixo e ficha (`partida-v6.html`, fechado em 2026-11-25)
 
 - **O header não muda**, em nenhum tamanho de tela.
 - **Celular:** o painel de baixo do mestre **não é folha** — sempre visível, **mapa e painel meio a
@@ -227,6 +227,8 @@ lista (não existe aba "Status" separada).
   escolhida em cima (Agir por padrão, ou Partida), fila embaixo**, cada uma rolando por dentro;
   navegação da coluna: Agir · Ficha · Partida (Personagens fica na coluna da direita, com o Histórico).
   **O jogador não muda.**
+- **Fila num tom mais escuro** onde divide a tela com outras seções (computador padrão, tablet,
+  widescreen): `surfaceSidebar` com véu `alpha(neutral1000, 0.3)` — sem cor nova. No celular, como está.
 - **Widescreen e ultrawide (mestre):** **duas seções fixas** à esquerda — a **fila** (≈ 240 px, sempre) e,
   ao lado, **uma seção que Agir, Ficha e Partida dividem** (≈ 320 px, Agir por padrão); histórico
   ≈ 260 px; nada flutua sobre o mapa (no 1920 px o mapa fica com ~1028 px). Ponto de troca entre o

@@ -22,7 +22,7 @@ aqui é histórico de versões.
 | Mestre: aplicar, editar e tirar status | `mestre-v7.html` (menos a etapa "Aba Status", substituída pela lista de personagens) |
 | Lista de personagens | `personagens-v3.html` |
 | Destaque no jogador | `destaque-v5.html` |
-| Mestre: painel fixo, aba "Partida", ficha, layout por tamanho de tela | `partida-v5.html` |
+| Mestre: painel fixo, aba "Partida", ficha, layout por tamanho de tela | `partida-v6.html` |
 
 ## Decisões (uma por linha)
 
@@ -66,6 +66,7 @@ aqui é histórico de versões.
 - "Partida": Nova cena, revelar barras, configurações da mesa, Encerrar partida; Regime continua na Fila.
 - Computador padrão e tablet (mestre): coluna em duas metades — interface em cima, fila embaixo.
 - Widescreen (mestre): fila e a seção de Agir/Ficha/Partida em duas colunas fixas.
+- Fila num tom mais escuro onde divide a tela com outras seções (no celular, como está).
 - Fila sempre à esquerda do tablet para cima; celular deitado com fila e navegação à esquerda.
 
 ## Lacunas de contrato e perguntas de regra
