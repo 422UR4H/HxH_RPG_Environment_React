@@ -16,7 +16,7 @@
 |---|---|---|
 | 1. Peça do mapa | **fechado** | `peca-pilha.html`, `peca-faixa-e-caixa.html` |
 | 2. Painel de ação (jogador, celular) | **fechado** | `painel-acao-jogador.html` |
-| Mestre: aba "Partida" no footer | **v3 (2026-11-25), aguardando o dono** | `partida-v3.html`; `rascunho-mestre-partida.html` e `partida-v2.html` histórico |
+| Mestre: aba "Partida" no footer | **v4 (2026-11-25), aguardando o dono** | `partida-v4.html`; rascunho, v2 e v3 histórico |
 | Mestre: aplicar / editar / tirar | **FECHADO na v7** (dono: "a última versão é a que ficou perfeita; ignore as anteriores") | `comparativo-mestre.html` (celular × desktop por etapa); separados: `mestre-aplicar.html`, `mestre-aplicar-desktop.html` |
 | 3. Lista de personagens da mesa | **v3 (2026-11-25): abas juntadas, sem botão geral, título centralizado** | `personagens-v3.html` (+ `card-*.png`); v1–v2 histórico |
 | 4. Destaque no jogador ao ganhar status | **FECHADO na v5 (2026-11-25)** — Guarda em `gold400` | `destaque-v5.html`; v1–v4 histórico |
@@ -395,6 +395,23 @@ Para o PO (registrado a pedido do dono):
   668 px, histórico 320 px. Proposta: **fila fixa 240 px, histórico 260 px, e os painéis de
   Agir/Ficha/Personagens/Partida flutuam sobre o mapa** (fecham clicando de novo no item ou no mapa);
   num notebook de 1366 px o mapa fica com ~794 px. [dono pediu mapa maior; proposta: Claude]
+
+## Mestre — aba "Partida", rodada v4 (2026-11-25) — `partida-v4.html`
+
+- **Ficha (celular):** sem o card do jogador por cima (confundia: só o texto "a ficha de hoje,
+  inteira" indica o conteúdo); folha **≈ 16 % mais baixa** que a v3; **X mais para a direita**
+  (vaza um pouco à direita, como nos avisos). [dono]
+- **Celular: mapa e interface do mestre meio a meio, fixo** (a interface conta com a navegação). [dono]
+- **Computador padrão e tablet (mestre):** a coluna da esquerda se divide em **duas metades fixas —
+  em cima a interface escolhida (Agir por padrão, ou Partida), embaixo a fila**; cada metade rola
+  por dentro; a navegação da coluna fica Agir · Ficha · Partida (Personagens já é aba da coluna da
+  direita, com o Histórico). **O jogador não muda** (não vê a fila). [dono propôs; Claude concordou:
+  o mapa ganha uma coluna e o mestre vê fila e ação juntas; cuidado: ~320 px por metade num notebook]
+- **Widescreen e ultrawide:** fica a proposta da v3 (fila em coluna própria, painéis flutuando sobre o
+  mapa) — o dono testou no notebook widescreen a 100 % e numa ultrawide. Ponto de troca sugerido:
+  ~1600 px de largura (PO decide). [dono]
+- **Computador: a ficha abre como hoje**, ao lado da coluna — sem mudança (o dono refina depois com o
+  líder de PD). [dono]
 
 ## Fechamento da tela do mestre (2026-11-22)
 

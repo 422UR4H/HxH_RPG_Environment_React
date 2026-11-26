@@ -19,7 +19,7 @@
      **exceto a etapa 6 ("Aba Status")**, substituída pela lista de personagens v2 (aba "Personagens");
    - lista de personagens: **`personagens-v3.html`** (v1–v2 são histórico);
    - destaque no jogador: **`destaque-v5.html`** (final; v1–v4 são histórico);
-   - aba "Partida" do mestre e o painel fixo: `partida-v3.html` (**aguardando o dono**; o rascunho e a v2 são histórico).
+   - aba "Partida" do mestre e o painel fixo: `partida-v4.html` (**aguardando o dono**; rascunho, v2 e v3 são histórico).
 3. Siga o **Design System do projeto** (artefato `https://claude.ai/artifact/TxCRCJxNB6qX13WKxAjZRV`,
    `project/README.md`; link também em `System_X_System_React/src/styles/CLAUDE.md`). A sessão de PD
    só passou a lê-lo na v3, e boa parte das correções abaixo era regra escrita lá.
@@ -209,21 +209,26 @@ lista (não existe aba "Status" separada).
    uma **barra própria** de congelamento que **aplica outros status** (Lento, Corpo debilitado e
    outros a discutir).
 
-## Aba "Partida" do mestre, painel fixo e ficha (`partida-v3.html`, aguardando o dono)
+## Aba "Partida" do mestre, painel fixo e ficha (`partida-v4.html`, aguardando o dono)
 
 - **O header não muda**, em nenhum tamanho de tela.
-- **Celular:** o painel de baixo do mestre **não é folha** — sempre visível, **altura fixa** em todas as
-  abas, conteúdo rolando dentro, **sem X**. (Hoje: Fila ≈ 97 px num celular de 844 px; Ação do jogador
-  ≈ 388 px; o mockup usa 300 px; o PO/designer fecha o número.)
-- **Ficha = exceção, em todo dispositivo, para mestre e jogador:** abre no formato de folha do jogador,
-  cobrindo boa parte do mapa, com X; fecha no X ou tocando no mapa que sobra.
-- **Footer do mestre:** Fila · Ficha · **Agir** · Personagens · Partida, com o **mesmo recorte e botão
-  redondo** do jogador quando Agir está aberto ("Enviar ação").
+- **Celular:** o painel de baixo do mestre **não é folha** — sempre visível, **mapa e painel meio a
+  meio, fixo** (o painel conta com a navegação), em todas as abas; o conteúdo rola dentro; **sem X**.
+- **Ficha no celular = exceção, para mestre e jogador:** abre no formato de folha do jogador, cobrindo
+  boa parte do mapa (sem nada por cima do conteúdo da ficha de hoje), com X que vaza um pouco à
+  direita; fecha no X ou tocando no mapa que sobra. **No computador a ficha abre como hoje.**
+- **Footer do mestre (celular):** Fila · Ficha · **Agir** · Personagens · Partida, com o **mesmo recorte
+  e botão redondo** do jogador quando Agir está aberto ("Enviar ação").
 - **Regime** continua na Fila; **Nova cena** (botão que abre o fluxo de hoje, sem caixa de texto) e
   **Encerrar partida** vão para Partida; Partida também tem "revelar barras" (todos os PJs a todos;
   todos os NPCs — quando existir; um por um no card da lista) e o espaço das configurações da mesa.
-- **Computador:** fila fixa 240 px, histórico 260 px, painéis flutuando sobre o mapa (fecham clicando de
-  novo no item ou no mapa); hoje o mapa é 668 de 1400 px.
+- **Computador padrão e tablet (mestre):** coluna da esquerda em **duas metades fixas — interface
+  escolhida em cima (Agir por padrão, ou Partida), fila embaixo**, cada uma rolando por dentro;
+  navegação da coluna: Agir · Ficha · Partida (Personagens fica na coluna da direita, com o Histórico).
+  **O jogador não muda.**
+- **Widescreen e ultrawide (mestre):** fila em coluna própria (≈ 240 px), histórico ≈ 260 px, e os
+  painéis flutuam sobre o mapa (fecham clicando de novo no item ou no mapa). Ponto de troca sugerido:
+  ~1600 px. Hoje (1400 px) o mapa é 668 px: esquerda 412, histórico 320.
 
 ## Em aberto / fora do escopo agora
 
