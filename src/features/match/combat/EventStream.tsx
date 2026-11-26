@@ -72,12 +72,15 @@ function eventLine(event: TableEvent, nameOf: (id: string) => string, gridKind: 
       const outcomes = outcomesOf(event.resolution, nameOf);
       return { icon: "■", text: `Fim do turno${who}${outcomes.length ? ` — ${outcomes.join(", ")}` : ""}` };
     }
-    case "hp_changed":
+    case "hp_changed": {
+      const change = event.hpChange < 0 ? ` (${MINUS}${-event.hpChange})` : event.hpChange > 0 ? ` (+${event.hpChange})` : "";
       return {
         icon: "♥",
         tone: "hp",
-        text: `${nameOf(event.characterId)}: ${event.hp}/${event.maxHp} (${event.damage < 0 ? `+${-event.damage}` : `${MINUS}${event.damage}`})`,
+        // TODO(cards de evento): usar o sinal de hpChange para escolher o card — negativo = dano recebido, positivo = cura/volta do Morto.
+        text: `${nameOf(event.characterId)}: ${event.hp}/${event.maxHp}${change}`,
       };
+    }
     case "round_closed":
       return { icon: "↻", tone: "muted", text: "Fim da rodada" };
     case "round_mode_changed":

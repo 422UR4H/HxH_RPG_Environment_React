@@ -65,7 +65,7 @@ export type TableEvent =
   | { kind: "round_closed"; at: number; receivedAt: number; roundMode: RoundMode }
   | { kind: "round_mode_changed"; at: number; receivedAt: number; mode: RoundMode }
   | { kind: "scene_changed"; at: number; receivedAt: number; scene: ScenePayload }
-  | { kind: "hp_changed"; at: number; receivedAt: number; characterId: string; hp: number; maxHp: number; damage: number };
+  | { kind: "hp_changed"; at: number; receivedAt: number; characterId: string; hp: number; maxHp: number; hpChange: number };
 
 export type CombatState = {
   scene?: ScenePayload;
@@ -440,7 +440,7 @@ export function combatReducer(state: CombatState, action: CombatAction): CombatS
         hp: { ...state.hp, [p.characterId]: { hp: p.hp, maxHp: p.maxHp } },
         events: push(state.events, {
           kind: "hp_changed", ...stampOf(action), characterId: p.characterId,
-          hp: p.hp, maxHp: p.maxHp, damage: p.damage,
+          hp: p.hp, maxHp: p.maxHp, hpChange: p.hpChange,
         }),
       };
     }

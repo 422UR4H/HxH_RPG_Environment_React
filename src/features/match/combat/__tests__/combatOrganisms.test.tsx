@@ -989,7 +989,7 @@ describe("EventStream", () => {
           ],
         },
       },
-      { kind: "hp_changed", at: 3, receivedAt: 3, characterId: "n1", hp: 13, maxHp: 20, damage: 7 },
+      { kind: "hp_changed", at: 3, receivedAt: 3, characterId: "n1", hp: 13, maxHp: 20, hpChange: -7 },
       { kind: "round_mode_changed", at: 4, receivedAt: 4, mode: "Race" },
     ];
     // t1 continua aberto para o turn_opened aparecer; sem REST, tudo é ao vivo.
@@ -1006,7 +1006,7 @@ describe("EventStream", () => {
 
   it("hp_changed com dano negativo (volta do Morto) mostra (+N), sem hífen duplo", () => {
     const events: TableEvent[] = [
-      { kind: "hp_changed", at: 1, receivedAt: 1, characterId: "n1", hp: -5, maxHp: 20, damage: -12 },
+      { kind: "hp_changed", at: 1, receivedAt: 1, characterId: "n1", hp: -5, maxHp: 20, hpChange: 12 },
     ];
     render(<EventStream rows={historyRows(undefined, events, undefined, undefined)} nameOf={nameOf} gridKind="square" />);
     const row = screen.getByTestId("event-row");

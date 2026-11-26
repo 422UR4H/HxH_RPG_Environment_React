@@ -123,7 +123,8 @@ export type HpChangedPayload = {
   characterId: string;
   hp: number;
   maxHp: number;
-  damage: number;
+  /** Variação do HP com o sinal natural (HP de agora − HP de antes): negativo = perdeu, positivo = ganhou. */
+  hpChange: number;
 };
 
 export type PendingReaction = {

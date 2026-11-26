@@ -220,9 +220,9 @@ describe("combatReducer — histórico", () => {
   });
 
   it("guarda o HP aplicado", () => {
-    const s = run([{ type: "character_hp_changed", payload: { characterId: "c2", hp: 84, maxHp: 100, damage: 16 } }]);
+    const s = run([{ type: "character_hp_changed", payload: { characterId: "c2", hp: 84, maxHp: 100, hpChange: -16 } }]);
     expect(s.hp["c2"]).toEqual({ hp: 84, maxHp: 100 });
-    expect(s.events[0]).toMatchObject({ kind: "hp_changed", hp: 84, maxHp: 100, damage: 16 });
+    expect(s.events[0]).toMatchObject({ kind: "hp_changed", hp: 84, maxHp: 100, hpChange: -16 });
   });
 });
 
@@ -301,7 +301,7 @@ describe("combatReducer — a ação em andamento continua na Fila (F7)", () => 
 describe("combatReducer — HP na reconexão", () => {
   it("match_full_state zera o HP ao vivo (o REST rebuscado vira a base)", () => {
     const s = run([
-      { type: "character_hp_changed", payload: { characterId: "c1", hp: 80, maxHp: 100, damage: 20 } },
+      { type: "character_hp_changed", payload: { characterId: "c1", hp: 80, maxHp: 100, hpChange: -20 } },
       { type: "match_full_state", payload: { roundMode: "Race" } },
     ]);
     expect(s.hp).toEqual({});
