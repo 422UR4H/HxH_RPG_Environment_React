@@ -16,7 +16,7 @@
 |---|---|---|
 | 1. Peça do mapa | **fechado** | `peca-pilha.html`, `peca-faixa-e-caixa.html` |
 | 2. Painel de ação (jogador, celular) | **fechado** | `painel-acao-jogador.html` |
-| Mestre: aba "Partida" no footer | **v4 (2026-11-25), aguardando o dono** | `partida-v4.html`; rascunho, v2 e v3 histórico |
+| Mestre: aba "Partida" no footer | **FECHADO na v5 (2026-11-25)** | `partida-v5.html`; rascunho, v2–v4 histórico |
 | Mestre: aplicar / editar / tirar | **FECHADO na v7** (dono: "a última versão é a que ficou perfeita; ignore as anteriores") | `comparativo-mestre.html` (celular × desktop por etapa); separados: `mestre-aplicar.html`, `mestre-aplicar-desktop.html` |
 | 3. Lista de personagens da mesa | **v3 (2026-11-25): abas juntadas, sem botão geral, título centralizado** | `personagens-v3.html` (+ `card-*.png`); v1–v2 histórico |
 | 4. Destaque no jogador ao ganhar status | **FECHADO na v5 (2026-11-25)** — Guarda em `gold400` | `destaque-v5.html`; v1–v4 histórico |
@@ -412,6 +412,15 @@ Para o PO (registrado a pedido do dono):
   ~1600 px de largura (PO decide). [dono]
 - **Computador: a ficha abre como hoje**, ao lado da coluna — sem mudança (o dono refina depois com o
   líder de PD). [dono]
+
+## Mestre — aba "Partida", rodada v5, final (2026-11-25) — `partida-v5.html`
+
+- **A ficha (celular) fecha também tocando fora dela ou tocando de novo em "Ficha"** na navegação,
+  não só no X. [dono]
+- **Widescreen e ultrawide (mestre):** sem painel flutuante — **duas seções fixas** à esquerda: a
+  **fila** (sempre) e, ao lado, **uma seção que Agir, Ficha e Partida dividem** (Agir por padrão).
+  No 1920 px o mapa fica com ~1028 px. [dono]
+- Celular e computador padrão: como na v4. [dono: "gostei da tela de celular e de desktop"]
 
 ## Fechamento da tela do mestre (2026-11-22)
 
