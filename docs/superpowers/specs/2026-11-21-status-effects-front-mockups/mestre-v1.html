@@ -1,0 +1,302 @@
+<!DOCTYPE html><meta charset="utf-8"><body style="background:#f4f4f6;font-family:system-ui;padding:24px"><style>.cel .phones{ display: grid; grid-template-columns: repeat(3, 340px); gap: 22px; justify-content: center; }
+@media (max-width: 1150px){.cel .phones{ grid-template-columns: repeat(2, 340px); }}
+.cel .ph h4{ margin: 0 0 6px; font: 600 14px system-ui; }
+.cel .ph p{ margin: 0 0 8px; font: 12.5px/1.35 system-ui; color: #666; min-height: 50px; }
+.cel .scr{ position: relative; width: 340px; height: 700px; border-radius: 26px; overflow: hidden; background: #0b1220; border: 6px solid #111; font: 13px system-ui; color: #fff;
+    background-image: linear-gradient(#ffffff12 1px, transparent 1px), linear-gradient(90deg, #ffffff12 1px, transparent 1px); background-size: 48px 48px; }
+.cel .tok{ position: absolute; width: 40px; height: 40px; border-radius: 50%; background: #fff; border: 3px solid #1c1c1c; transform: translate(-50%, -50%);
+    display: flex; align-items: center; justify-content: center; font: 800 13px system-ui; color: #1c1c1c; }
+.cel .navm{ position: absolute; left: 0; right: 0; bottom: 0; height: 56px; background: #382a1a; display: flex; z-index: 6; }
+.cel .navm span{ flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font: 11px system-ui; color: #ccc; }
+.cel .navm span.on{ background: #493823; color: #fff; font-weight: 700; }
+.cel /* folha do mestre: colada às bordas */
+  .sheet{ position: absolute; left: 0; right: 0; bottom: 56px; top: var(--top, 120px); background: #2d2215; border-top: 1px solid #604d31; padding: 12px; display: flex; flex-direction: column; gap: 11px; overflow: hidden; z-index: 5; }
+.cel .sh-h{ display: flex; align-items: center; gap: 8px; }
+.cel .sh-h .x{ margin-left: auto; width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; background: #493823; }
+.cel .back{ width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; background: #493823; }
+.cel .ttl{ font: 700 15px system-ui; }
+.cel .ttl small{ display: block; font: 12px system-ui; color: #aaa; }
+.cel .fam{ font: 700 10px system-ui; color: #aaa; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+.cel .fam i{ width: 8px; height: 8px; border-radius: 2px; background: var(--f); }
+.cel .kinds{ display: flex; gap: 5px; flex-wrap: wrap; }
+.cel .k{ display: inline-flex; align-items: center; gap: 5px; padding: 5px 9px 5px 5px; border-radius: 7px; font-size: 12.5px;
+    background: color-mix(in srgb, var(--f) 13%, transparent); box-shadow: inset 3px 0 0 var(--f); }
+.cel .k svg{ width: 16px; height: 16px; color: var(--f); margin-left: 3px; }
+.cel .k.has{ opacity: .4; }
+.cel .k.has::after{ content: "já tem"; font-size: 10px; color: #ccc; margin-left: 2px; }
+.cel .k .var{ font-size: 11px; color: #ccc; }
+.cel .vars{ display: flex; gap: 4px; flex-wrap: wrap; margin: 4px 0 0 4px; }
+.cel .vars span{ font-size: 11.5px; border: 1px solid color-mix(in srgb, var(--f) 60%, transparent); border-radius: 12px; padding: 2px 8px; }
+.cel .scroll{ display: flex; flex-direction: column; gap: 9px; overflow: hidden; }
+.cel .lbl{ font: 700 10.5px system-ui; color: #aaa; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 5px; }
+.cel .field{ display: flex; flex-direction: column; }
+.cel .inp{ background: #493823; border: 1px solid #604d31; border-radius: 6px; padding: 8px 10px; font-size: 13px; color: #fff; }
+.cel .inp.ph{ color: #aaa; }
+.cel .inp.req{ border-color: #ffc300; }
+.cel .chips{ display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; }
+.cel .chips span{ font-size: 12px; border: 1px solid #604d31; border-radius: 13px; padding: 3px 10px; color: #ddd; }
+.cel .chips span.on{ background: #107135; border-color: #1fc140; color: #fff; }
+.cel .seg{ display: flex; border: 1px solid #604d31; border-radius: 7px; overflow: hidden; }
+.cel .seg span{ flex: 1; text-align: center; padding: 7px 4px; font-size: 11.5px; color: #ccc; border-right: 1px solid #604d31; }
+.cel .seg span:last-child{ border: 0; }
+.cel .seg span.on{ background: #107135; color: #fff; font-weight: 700; }
+.cel .hint{ font-size: 11.5px; color: #aaa; font-style: italic; margin-top: 4px; }
+.cel .step{ display: flex; align-items: center; gap: 0; border: 1px solid #604d31; border-radius: 7px; overflow: hidden; width: max-content; }
+.cel .step span{ padding: 6px 12px; font-size: 14px; }
+.cel .step b{ padding: 6px 14px; background: #493823; min-width: 22px; text-align: center; }
+.cel .grid4{ display: grid; grid-template-columns: 74px 1fr; gap: 6px; align-items: center; font-size: 12.5px; }
+.cel .foot{ margin-top: auto; display: flex; gap: 8px; }
+.cel .ok{ flex: 1; text-align: center; background: #107135; border-radius: 8px; padding: 11px; font-weight: 700; }
+.cel .ok.off{ background: #2b3d2f; color: #888; }
+.cel .rm{ text-align: center; border: 1px solid #cb1437; color: #ff5257; border-radius: 8px; padding: 11px 14px; font-weight: 700; }
+.cel .err{ background: #1c1c1c; border: 1px solid #db0e2f; border-radius: 8px; padding: 8px 10px; font-size: 12.5px; }
+.cel .err b{ color: #ff5257; }
+.cel /* caixa aberta no mapa (versão do mestre) */
+  .open{ position: absolute; z-index: 4; left: 50%; transform: translateX(-50%); background: #1c1c1c; border: 1px solid #ffffff24; border-radius: 12px; padding: 6px; box-shadow: 0 10px 28px #000e;
+    display: flex; flex-direction: column; gap: 4px; width: 250px; }
+.cel .row{ display: grid; grid-template-columns: 26px 1fr auto; align-items: center; gap: 8px; padding: 4px 8px 4px 4px; border-radius: 8px;
+    background: color-mix(in srgb, var(--f) 12%, transparent); box-shadow: inset 3px 0 0 var(--f); font: 13px/1.2 system-ui; }
+.cel .row .ic{ width: 26px; height: 26px; border-radius: 7px; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--f) 25%, transparent); }
+.cel .row .ic svg{ width: 17px; height: 17px; color: var(--f); }
+.cel .row .nm{ font-weight: 600; }
+.cel .row .al{ display: block; font-size: 11.5px; color: #ccc; font-style: italic; font-weight: 400; }
+.cel .row .ed{ font-size: 15px; color: #ccc; }
+.cel .row.secret{ opacity: .8; }
+.cel .add{ text-align: center; padding: 7px; border: 1px dashed #888; border-radius: 8px; font-size: 12.5px; color: #ddd; }
+.cel /* fila */
+  .qcard{ background: #382a1a; border-radius: 8px; padding: 9px 10px; display: flex; flex-direction: column; gap: 6px; border-left: 3px solid #ff5257; }
+.cel .note{ display: flex; gap: 6px; font-size: 12px; color: #ffc300; }
+.cel .note svg{ width: 15px; height: 15px; flex: none; }
+.cel .dlg{ position: absolute; inset: 0; background: #000a; z-index: 8; display: flex; align-items: center; justify-content: center; padding: 18px; }
+.cel .dlg .box{ background: #2d2215; border: 1px solid #604d31; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px; font-size: 13px; }
+.cel .dlg .box h5{ margin: 0; font: 700 15px system-ui; }
+.cel .dlg .q{ background: #382a1a; border-radius: 7px; padding: 7px 9px; font-size: 12.5px; }
+.cel .dlg .bt{ display: flex; flex-direction: column; gap: 7px; }
+.cel .dlg .bt span{ text-align: center; border-radius: 8px; padding: 10px; font-weight: 700; }
+.desk .frames{ display: flex; flex-direction: column; gap: 30px; align-items: center; }
+.desk .fr h4{ margin: 0 0 6px; font: 600 15px system-ui; }
+.desk .fr p{ margin: 0 0 8px; font: 13px/1.4 system-ui; color: #666; max-width: 1100px; }
+.desk .app{ position: relative; width: 1100px; height: 720px; border: 6px solid #111; border-radius: 12px; overflow: hidden; background: #0b1220; font: 13px system-ui; color: #fff; }
+.desk .topb{ position: absolute; left: 0; right: 0; top: 0; height: 42px; background: #2d2215; border-bottom: 1px solid #493823; display: flex; align-items: center; gap: 8px; padding: 0 10px; }
+.desk .topb .sc{ font-weight: 700; }
+.desk .topb .tb{ margin-left: auto; display: flex; gap: 6px; }
+.desk .topb .tb span{ font: 600 11.5px system-ui; padding: 6px 9px; border-radius: 6px; background: #555; color: #ccc; }
+.desk .topb .tb span.seg{ background: #493823; }
+.desk .topb .tb span.g{ background: #107135; color: #fff; }
+.desk .topb .tb span.d{ background: transparent; border: 1px solid #cb1437; color: #ff5257; }
+.desk .rail{ position: absolute; left: 0; top: 42px; bottom: 0; width: 64px; background: #2d2215; display: flex; flex-direction: column; }
+.desk .rail span{ padding: 12px 0; text-align: center; font-size: 11px; color: #ccc; }
+.desk .rail span.on{ background: #493823; color: #fff; font-weight: 700; }
+.desk .side{ position: absolute; left: 64px; top: 42px; bottom: 0; width: 300px; background: #2d2215; border-right: 1px solid #493823; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.desk .aside{ position: absolute; right: 0; top: 42px; bottom: 0; width: 270px; background: #2d2215; border-left: 1px solid #493823; padding: 10px; font-size: 12px; color: #ccc; display: flex; flex-direction: column; gap: 8px; }
+.desk .aside .tabs{ display: flex; }
+.desk .aside .tabs span{ flex: 1; text-align: center; padding: 6px; }
+.desk .aside .tabs span.on{ color: #fff; border-bottom: 2px solid #1fc140; }
+.desk .map{ position: absolute; left: 364px; right: 270px; top: 42px; bottom: 0;
+    background-image: linear-gradient(#ffffff12 1px, transparent 1px), linear-gradient(90deg, #ffffff12 1px, transparent 1px); background-size: 52px 52px; }
+.desk .tok{ position: absolute; width: 44px; height: 44px; border-radius: 50%; background: #fff; border: 3px solid #1c1c1c; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; font: 800 13px system-ui; color: #1c1c1c; }
+.desk .lbl{ font: 700 10.5px system-ui; color: #aaa; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 5px; }
+.desk .qcard{ background: #382a1a; border-radius: 8px; padding: 9px 10px; display: flex; flex-direction: column; gap: 6px; border-left: 3px solid #ff5257; }
+.desk .note{ display: flex; gap: 6px; font-size: 12px; color: #ffc300; }
+.desk .note svg{ width: 15px; height: 15px; flex: none; }
+.desk .open{ position: absolute; z-index: 4; background: #1c1c1c; border: 1px solid #ffffff24; border-radius: 12px; padding: 6px; box-shadow: 0 10px 28px #000e; display: flex; flex-direction: column; gap: 4px; width: 240px; transform: translateX(-50%); }
+.desk .row{ display: grid; grid-template-columns: 26px 1fr auto; align-items: center; gap: 8px; padding: 4px 8px 4px 4px; border-radius: 8px; background: color-mix(in srgb, var(--f) 12%, transparent); box-shadow: inset 3px 0 0 var(--f); }
+.desk .row .ic{ width: 26px; height: 26px; border-radius: 7px; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--f) 25%, transparent); }
+.desk .row .ic svg{ width: 17px; height: 17px; color: var(--f); }
+.desk .row .nm{ font-weight: 600; }
+.desk .row .al{ display: block; font-size: 11.5px; color: #ccc; font-style: italic; font-weight: 400; }
+.desk .row .ed{ color: #ccc; }
+.desk .row.secret{ opacity: .8; }
+.desk .add{ text-align: center; padding: 7px; border: 1px dashed #888; border-radius: 8px; font-size: 12.5px; color: #ddd; }
+.desk /* diálogo */
+  .scrim{ position: absolute; inset: 0; background: #000a; z-index: 10; display: flex; align-items: center; justify-content: center; }
+.desk .dlg{ background: #2d2215; border: 1px solid #604d31; border-radius: 14px; box-shadow: 0 20px 50px #000; display: flex; flex-direction: column; overflow: hidden; }
+.desk .dh{ display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid #493823; }
+.desk .dh .t{ font: 700 16px system-ui; }
+.desk .dh .t small{ font: 12.5px system-ui; color: #aaa; margin-left: 6px; }
+.desk .dh .x{ margin-left: auto; width: 36px; height: 36px; border-radius: 8px; background: #493823; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+.desk .db{ display: grid; grid-template-columns: 560px 1fr; min-height: 0; flex: 1; }
+.desk .pick{ padding: 12px 14px; border-right: 1px solid #493823; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px 14px; align-content: start; }
+.desk .fam{ font: 700 10px system-ui; color: #aaa; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 5px; display: flex; align-items: center; gap: 6px; }
+.desk .fam i{ width: 8px; height: 8px; border-radius: 2px; background: var(--f); }
+.desk .kinds{ display: flex; gap: 4px; flex-wrap: wrap; }
+.desk .k{ display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px 4px 4px; border-radius: 7px; font-size: 12px; background: color-mix(in srgb, var(--f) 13%, transparent); box-shadow: inset 3px 0 0 var(--f); }
+.desk .k svg{ width: 15px; height: 15px; color: var(--f); margin-left: 3px; }
+.desk .k.has{ opacity: .4; }
+.desk .k.has::after{ content: "já tem"; font-size: 10px; color: #ccc; }
+.desk .k.sel{ outline: 2px solid #fff; background: color-mix(in srgb, var(--f) 35%, transparent); }
+.desk .form{ padding: 12px 16px; display: flex; flex-direction: column; gap: 11px; }
+.desk .fh{ display: flex; align-items: center; gap: 8px; }
+.desk .fh .big{ width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--f) 25%, transparent); }
+.desk .fh .big svg{ width: 22px; height: 22px; color: var(--f); }
+.desk .fh b{ font-size: 16px; color: var(--f); }
+.desk .fh small{ display: block; font-size: 12px; color: #aaa; }
+.desk .inp{ background: #493823; border: 1px solid #604d31; border-radius: 6px; padding: 7px 10px; color: #fff; }
+.desk .inp.ph{ color: #aaa; }
+.desk .inp.req{ border-color: #ffc300; width: 120px; }
+.desk .chips{ display: flex; gap: 5px; flex-wrap: wrap; margin-top: 5px; }
+.desk .chips span{ font-size: 12px; border: 1px solid #604d31; border-radius: 13px; padding: 3px 10px; color: #ddd; }
+.desk .chips span.on{ background: #107135; border-color: #1fc140; color: #fff; }
+.desk .chips span.dis{ opacity: .4; }
+.desk .seg{ display: inline-flex; border: 1px solid #604d31; border-radius: 7px; overflow: hidden; }
+.desk .seg span{ padding: 6px 11px; font-size: 12px; color: #ccc; border-right: 1px solid #604d31; }
+.desk .seg span:last-child{ border: 0; }
+.desk .seg span.on{ background: #107135; color: #fff; font-weight: 700; }
+.desk .hint{ font-size: 11.5px; color: #aaa; font-style: italic; margin-top: 4px; }
+.desk .two{ display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.desk .df{ display: flex; gap: 8px; justify-content: flex-end; padding: 12px 14px; border-top: 1px solid #493823; }
+.desk .ok{ background: #107135; border-radius: 8px; padding: 10px 18px; font-weight: 700; }
+.desk .ok.off{ background: #2b3d2f; color: #888; }
+.desk .cn{ border: 1px solid #604d31; border-radius: 8px; padding: 10px 16px; }
+.desk .rm{ border: 1px solid #cb1437; color: #ff5257; border-radius: 8px; padding: 10px 16px; font-weight: 700; margin-right: auto; }
+.desk .grid4{ display: grid; grid-template-columns: 90px auto; gap: 7px 10px; align-items: center; }
+.st{margin:0 0 40px;padding-top:10px;border-top:2px solid #ccc}.st h3{margin:6px 0 10px}
+.tg{display:inline-block;font:700 11px system-ui;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:#493823;border-radius:6px;padding:3px 9px;margin:8px 0}
+.cel .phones{justify-content:start}.n{color:#666;font-size:13px}</style>
+<h2>Mestre — aplicar, editar e tirar: celular × desktop</h2><p class="subtitle">Por etapa: o celular em cima, o desktop embaixo.</p><section class="st"><h3>1 · Entrar: a faixa da peça, e os avisos na fila</h3><div class="tg">Celular</div><div class="cel"><div class="phones" id="c0"></div></div><div class="tg">Desktop</div><div class="desk"><div class="frames" id="d0"></div></div></section><section class="st"><h3>2 · Escolher o status e preencher os campos</h3><div class="tg">Celular</div><div class="cel"><div class="phones" id="c1"></div></div><div class="tg">Desktop</div><div class="desk"><div class="frames" id="d1"></div></div></section><section class="st"><h3>3 · Editar e tirar (com o "devolver?")</h3><div class="tg">Celular</div><div class="cel"><div class="phones" id="c2"></div></div><div class="tg">Desktop</div><div class="desk"><div class="frames" id="d2"></div></div></section><section class="st"><h3>4 · Recusa do servidor</h3><div class="tg">Celular</div><div class="cel"><div class="phones" id="c3"></div></div><div class="tg">Desktop</div><p class="n">No desktop a recusa aparece na mesma caixa de erro, no pé da janela (não desenhado à parte).</p></section><script src="gi.js"></script><script>(() => {
+
+
+const FAM = { body: "#ffa216", part: "#a16207", sense: "#4da3ff", test: "#94a3b8", life: "#db0e2f", air: "#e0e0e0", guard: "#1fc140", mind: "#a855f7", presence: "#aaaaaa" };
+const toks = `<div class="tok" style="left:110px;top:220px">J1</div><div class="tok" style="left:206px;top:172px">J2</div><div class="tok" style="left:270px;top:120px">C</div>`;
+const nav = (on) => `<div class="navm">${["Fila", "Agir", "Ficha"].map(x => `<span class="${x === on ? "on" : ""}">${x}</span>`).join("")}</div>`;
+const k = (key, f, name, opt = {}) => `<span class="k${opt.has ? " has" : ""}" style="--f:${FAM[f]}">${GI[key]}${name}${opt.v ? ` <span class="var">${opt.v}</span>` : ""}</span>`;
+const famBlock = (f, title, items) => `<div><div class="fam" style="--f:${FAM[f]}"><i></i>${title}</div><div class="kinds">${items}</div></div>`;
+const head = (title, sub, back) => `<div class="sh-h">${back ? `<span class="back">‹</span>` : ""}<div class="ttl">${title}${sub ? `<small>${sub}</small>` : ""}</div><span class="x">✕</span></div>`;
+const vis = (on, def) => `<div class="field"><div class="lbl">Quem vê</div><div class="seg"><span class="${on === "def" ? "on" : ""}">Padrão</span><span class="${on === "all" ? "on" : ""}">Todos</span><span class="${on === "gm" ? "on" : ""}">Só o mestre</span><span class="${on === "pick" ? "on" : ""}">Escolher</span></div><div class="hint">${def}</div></div>`;
+const alias = (sugs, val) => `<div class="field"><div class="lbl">Apelido (opcional)</div><div class="inp${val ? "" : " ph"}">${val || "Nome de cena, ex.: " + sugs[0]}</div><div class="chips">${sugs.map(s => `<span class="${s === val ? "on" : ""}">${s}</span>`).join("")}</div></div>`;
+const also = (on) => `<div class="field"><div class="lbl">Aplicar em</div><div class="chips">${["Jogador1", "Jogador2", "Capanga", "Guarda"].map(n => `<span class="${on.includes(n) ? "on" : ""}">${n}</span>`).join("")}</div><div class="hint">Vários de uma vez: o mesmo status, com os mesmos campos.</div></div>`;
+const link = `<div class="field"><div class="lbl">Ligado a (turno aberto)</div><div class="seg"><span class="on">Ataque do Capanga</span><span>Reação do Jogador1</span><span>Turno todo</span></div><div class="hint">Onde a mudança aparece no histórico.</div></div>`;
+
+const P = [
+  { t: "1 · Começa pela peça", d: "O mestre toca a faixa de status de qualquer peça: cada cartão abre a edição (✎) e há \"+ Aplicar status\" no fim. Mesma entrada no painel de ação e na lista de personagens.",
+    h: toks + `<div class="open" style="top:250px">
+      <div class="row secret" style="--f:${FAM.body}"><span class="ic">${GI.paralyzed}</span><span class="nm">Paralisado 5<span class="al">Em choque</span></span><span class="ed">✎</span></div>
+      <div class="row" style="--f:${FAM.guard}"><span class="ic">${GI.prone}</span><span class="nm">Caído</span><span class="ed">✎</span></div>
+      <div class="add">＋ Aplicar status</div></div>` + nav("Fila") },
+  { t: "2 · Escolher o status", d: "Os 20 numa tela só, agrupados pela família (as cores da faixa). Sentido e Debilitado abrem as variantes ali mesmo. O que ele já tem fica apagado (\"já tem\") — o caminho é editar.",
+    h: toks + `<div class="sheet" style="--top:70px">${head("Aplicar status", "em Jogador1")}<div class="scroll">
+      ${famBlock("body", "Consciência e corpo", k("paralyzed", "body", "Paralisado", { has: 1 }) + k("stupefied", "body", "Atônito") + k("stunned", "body", "Atordoado") + k("unconscious", "body", "Inconsciente") + k("restrained", "body", "Preso"))}
+      ${famBlock("part", "Parte do corpo", k("injured", "part", "Lesionado") + k("slowed", "part", "Lento"))}
+      ${famBlock("sense", "Sentidos", k("vision", "sense", "Sentido afetado"))}<div class="vars" style="--f:${FAM.sense}"><span>Visão</span><span>Audição</span><span>Olfato</span><span>Tato</span><span>Paladar</span></div>
+      ${famBlock("test", "Testes", k("weakened", "test", "Corpo debilitado") + k("weakened", "test", "Mente debilitada") + k("weakened", "test", "Espírito debilitado"))}
+      ${famBlock("life", "Vida", k("bleeding", "life", "Sangrando") + k("burning", "life", "Queimando") + k("freezing", "life", "Congelando") + k("poisoned", "life", "Envenenado"))}
+      ${famBlock("air", "Ar", k("asphyxiating", "air", "Asfixiando"))}
+      ${famBlock("guard", "Guarda", k("prone", "guard", "Caído", { has: 1 }) + k("airborne", "guard", "No ar") + k("openGuard", "guard", "Guarda aberta"))}
+      ${famBlock("mind", "Mente", k("compelled", "mind", "Compelido") + k("controlled", "mind", "Controlado"))}
+      ${famBlock("presence", "Presença", k("hidden", "presence", "Escondido"))}</div></div>` + nav("Fila") },
+  { t: "3 · Caso simples: Preso", d: "Preso não tem campo nenhum: tocou, já vem pronto. Apelido, quem vê e em quem aplicar já estão no padrão — é só Aplicar.",
+    h: toks + `<div class="sheet" style="--top:110px">${head(`<span style="color:${FAM.body}">Preso</span>`, "Não se desloca; age e reage normalmente.", true)}
+      ${alias(["Agarrado", "Enredado", "Soterrado", "Pendurado"])}
+      ${vis("def", "Padrão do Preso: todos veem.")}
+      ${also(["Jogador1"])}
+      <div class="foot"><span class="ok">Aplicar em Jogador1</span></div></div>` + nav("Fila") },
+  { t: "4 · Com campos: Paralisado", d: "Só os campos dele: pontos (obrigatório, sem padrão — o mestre digita) e o que trava (os quatro marcados). Com turno aberto, \"Ligado a\" escolhe a ação. Terremoto: marcar vários em \"Aplicar em\".",
+    h: toks + `<div class="sheet" style="--top:40px">${head(`<span style="color:${FAM.body}">Paralisado</span>`, "O que está marcado não obedece; a mente está inteira.", true)}
+      <div class="field"><div class="lbl">Pontos</div><div class="inp req ph">Quanto faltou no teste</div></div>
+      <div class="field"><div class="lbl">Trava</div><div class="chips" style="margin:0"><span class="on">Ataque</span><span class="on">Defesa</span><span class="on">Movimento</span><span class="on">Esquiva</span></div></div>
+      ${alias(["Em choque", "Travado"], "Em choque")}
+      ${vis("def", "Padrão do Paralisado: o mestre e o dono veem.")}
+      ${also(["Jogador1", "Jogador2"])}
+      ${link}
+      <div class="foot"><span class="ok off">Aplicar em 2 personagens</span></div></div>` + nav("Fila") },
+  { t: "5 · Editar: Lesionado", d: "Tocar no cartão abre a mesma folha em edição: o tipo não muda; Salvar e Tirar. Lesionado: cada parte em nenhum / machucado / inutilizado.",
+    h: toks + `<div class="sheet" style="--top:120px">${head(`<span style="color:${FAM.part}">Lesionado</span>`, "Editando · em Capanga", true)}
+      <div class="field"><div class="lbl">Como está cada parte</div><div class="grid4">
+        <span>Ataque</span><div class="seg"><span>Nada</span><span>Machucado</span><span class="on">Inutilizado</span></div>
+        <span>Defesa</span><div class="seg"><span>Nada</span><span class="on">Machucado</span><span>Inutilizado</span></div>
+        <span>Movimento</span><div class="seg"><span class="on">Nada</span><span>Machucado</span><span>Inutilizado</span></div>
+        <span>Esquiva</span><div class="seg"><span class="on">Nada</span><span>Machucado</span><span>Inutilizado</span></div></div></div>
+      ${alias(["Braço direito quebrado"], "Braço direito quebrado")}
+      ${vis("gm", "Só o mestre vê. O dono do personagem não sabe.")}
+      <div class="foot"><span class="rm">Tirar status</span><span class="ok">Salvar</span></div></div>` + nav("Fila") },
+  { t: "6 · Tirar no mesmo turno: devolver?", d: "Só aparece quando o status, aplicado neste turno, derrubou ações ou reações. Fora disso, Tirar tira direto.",
+    h: toks + nav("Fila") + `<div class="dlg"><div class="box"><h5>Tirar Atordoado de Jogador1?</h5>
+      <div>Ao entrar neste turno, ele derrubou:</div><div class="q">⚔ Ataque de Jogador1 no Capanga</div><div class="q">↺ Reação de Jogador1 (esquiva)</div>
+      <div class="bt"><span style="background:#107135">Tirar e devolver</span><span style="border:1px solid #604d31">Só tirar</span><span style="color:#aaa;font-weight:400">Cancelar</span></div></div></div>` },
+  { t: "7 · Avisos na fila", d: "Os avisos ficam no cartão da ação, onde o mestre já decide. Calculados dos status de agora, não do instante em que a ação entrou.",
+    h: toks + `<div class="sheet" style="--top:330px"><div class="lbl">Fila de ações</div>
+      <div class="qcard"><b>Jogador1 ataca Capanga</b>
+        <div class="note">${GI.injured}<span>Vai atacar com o braço inutilizado (Lesionado).</span></div>
+        <div class="note">${GI.compelled}<span>Conduta imposta: "fugir do fogo" — irresistível (Compelido).</span></div></div>
+      <div class="qcard" style="border-color:#38bdf8"><b>Jogador2 se move</b></div></div>` + nav("Fila") },
+  { t: "8 · Recusa do servidor", d: "Erro do servidor no mesmo padrão do site, dentro da folha. Para \"já tem\", a folha leva direto à edição do existente.",
+    h: toks + `<div class="sheet" style="--top:260px">${head(`<span style="color:${FAM.body}">Paralisado</span>`, "em Jogador1, Jogador2", true)}
+      <div class="err"><b>Não aplicado.</b> O personagem já está paralisado. <u>Editar o de Jogador2</u></div>
+      <div class="foot"><span class="ok">Aplicar em 2 personagens</span></div></div>` + nav("Fila") },
+];
+
+window.renderCel = (only, el) => { el.innerHTML = P.filter((_, i) => only.includes(i + 1)).map(p => `<div class="ph"><h4>${p.t}</h4><p>${p.d}</p><div class="scr">${p.h}</div></div>`).join(""); };
+})();
+(() => {
+
+
+const FAM = { body: "#ffa216", part: "#a16207", sense: "#4da3ff", test: "#94a3b8", life: "#db0e2f", air: "#e0e0e0", guard: "#1fc140", mind: "#a855f7", presence: "#aaaaaa" };
+const shell = (side, rail = "Fila", extra = "") => `
+  <div class="topb"><span class="sc">Roleplay</span><span style="width:8px;height:8px;border-radius:50%;background:#17993d"></span><div class="tb"><span class="seg">Livre | <b style="color:#1fc140">Disputado</b></span><span>Nova cena</span><span class="d">Encerrar partida</span><span>Encerrar rodada</span><span>Fechar turno</span><span class="g">Histórico</span></div></div>
+  <div class="rail">${["Fila", "Agir", "Ficha"].map(x => `<span class="${x === rail ? "on" : ""}">${x}</span>`).join("")}</div>
+  <div class="side">${side}</div>
+  <div class="map"><div class="tok" style="left:120px;top:250px">J1</div><div class="tok" style="left:240px;top:190px">J2</div><div class="tok" style="left:340px;top:120px">C</div><div class="tok" style="left:300px;top:330px">G</div>${extra}</div>
+  <div class="aside"><div class="tabs"><span class="on">Histórico</span><span>Personagens</span></div><div>Cena: Roleplay</div><div>Turno de Capanga — atacou Jogador1</div></div>`;
+const queue = `<div class="lbl">Fila de ações</div><div class="qcard"><b>Jogador1 ataca Capanga</b>
+  <div class="note">${GI.injured}<span>Vai atacar com o braço inutilizado (Lesionado).</span></div>
+  <div class="note">${GI.compelled}<span>Conduta imposta: "fugir do fogo" — irresistível (Compelido).</span></div></div>
+  <div class="qcard" style="border-color:#38bdf8"><b>Jogador2 se move</b></div>`;
+const k = (key, f, name, o = {}) => `<span class="k${o.has ? " has" : ""}${o.sel ? " sel" : ""}" style="--f:${FAM[f]}">${GI[key]}${name}</span>`;
+const fam = (f, t, items) => `<div><div class="fam" style="--f:${FAM[f]}"><i></i>${t}</div><div class="kinds">${items}</div></div>`;
+const picker = (sel) => `<div class="pick">
+  ${fam("body", "Consciência e corpo", k("paralyzed", "body", "Paralisado", { sel: sel === "paralyzed" }) + k("stupefied", "body", "Atônito") + k("stunned", "body", "Atordoado") + k("unconscious", "body", "Inconsciente") + k("restrained", "body", "Preso"))}
+  ${fam("mind", "Mente", k("compelled", "mind", "Compelido") + k("controlled", "mind", "Controlado"))}
+  ${fam("part", "Parte do corpo", k("injured", "part", "Lesionado") + k("slowed", "part", "Lento"))}
+  ${fam("test", "Testes", k("weakened", "test", "Corpo debilitado") + k("weakened", "test", "Mente debilitada") + k("weakened", "test", "Espírito debilitado"))}
+  ${fam("sense", "Sentidos", k("vision", "sense", "Visão") + k("hearing", "sense", "Audição") + k("smell", "sense", "Olfato") + k("tact", "sense", "Tato") + k("taste", "sense", "Paladar"))}
+  ${fam("life", "Vida", k("bleeding", "life", "Sangrando") + k("burning", "life", "Queimando") + k("freezing", "life", "Congelando") + k("poisoned", "life", "Envenenado"))}
+  ${fam("guard", "Guarda", k("prone", "guard", "Caído", { has: 1 }) + k("airborne", "guard", "No ar") + k("openGuard", "guard", "Guarda aberta"))}
+  ${fam("air", "Ar", k("asphyxiating", "air", "Asfixiando"))}
+  ${fam("presence", "Presença", k("hidden", "presence", "Escondido"))}</div>`;
+const vis = (on, hint) => `<div><div class="lbl">Quem vê</div><div class="seg"><span class="${on === "def" ? "on" : ""}">Padrão</span><span class="${on === "all" ? "on" : ""}">Todos</span><span class="${on === "gm" ? "on" : ""}">Só o mestre</span><span class="${on === "pick" ? "on" : ""}">Escolher jogadores</span></div><div class="hint">${hint}</div></div>`;
+const aliasF = (s, v) => `<div><div class="lbl">Apelido (opcional)</div><div class="inp${v ? "" : " ph"}">${v || "Nome de cena"}</div><div class="chips">${s.map(x => `<span class="${x === v ? "on" : ""}">${x}</span>`).join("")}</div></div>`;
+
+const F = [
+  { t: "1 · Entrada pela peça e avisos na fila", d: "Clique na faixa de status de qualquer peça: a caixa abre com ✎ em cada status e \"+ Aplicar status\". Os avisos da ação ficam no cartão da fila, no painel da esquerda.",
+    h: shell(queue, "Fila", `<div class="open" style="left:240px;top:212px">
+      <div class="row secret" style="--f:${FAM.body}"><span class="ic">${GI.paralyzed}</span><span class="nm">Paralisado 5<span class="al">Em choque</span></span><span class="ed">✎</span></div>
+      <div class="row" style="--f:${FAM.guard}"><span class="ic">${GI.prone}</span><span class="nm">Caído</span><span class="ed">✎</span></div>
+      <div class="add">＋ Aplicar status</div></div>`) },
+  { t: "2 · Aplicar: lista e campos lado a lado", d: "Esquerda: todos os status à vista, pela família (Sentidos já mostram cada sentido; Debilitado, cada aptidão). Direita: só os campos do escolhido. \"Aplicar em\" já apaga quem tem o status. \"Ligado a\" só com turno aberto.",
+    h: shell(queue) + `<div class="scrim"><div class="dlg" style="width:1060px">
+      <div class="dh"><span class="t">Aplicar status<small>em Jogador1</small></span><span class="x">✕</span></div>
+      <div class="db">${picker("paralyzed")}<div class="form" style="--f:${FAM.body}">
+        <div class="fh"><span class="big">${GI.paralyzed}</span><div><b>Paralisado</b><small>O que está marcado não obedece; a mente está inteira.</small></div></div>
+        <div class="two"><div><div class="lbl">Pontos</div><div class="inp req ph">Quanto faltou</div></div>
+          <div><div class="lbl">Trava</div><div class="chips" style="margin:0"><span class="on">Ataque</span><span class="on">Defesa</span><span class="on">Movimento</span><span class="on">Esquiva</span></div></div></div>
+        ${aliasF(["Em choque", "Travado"], "Em choque")}
+        ${vis("def", "Padrão do Paralisado: o mestre e o dono do personagem veem.")}
+        <div><div class="lbl">Aplicar em</div><div class="chips"><span class="on">Jogador1</span><span class="on">Jogador2</span><span>Capanga</span><span class="dis">Guarda · já tem</span></div></div>
+        <div><div class="lbl">Ligado a (turno aberto)</div><div class="seg"><span class="on">Ataque do Capanga</span><span>Reação do Jogador1</span><span>Turno todo</span></div><div class="hint">Onde a mudança aparece no histórico.</div></div>
+      </div></div>
+      <div class="df"><span class="cn">Cancelar</span><span class="ok off">Aplicar em 2 personagens</span></div></div></div>` },
+  { t: "3 · Editar e tirar", d: "Clique no ✎ de um status: a mesma janela, mais estreita, sem a lista (o tipo não muda). Tirar status à esquerda, Salvar à direita. Se o status entrou neste turno e derrubou ações, Tirar pergunta se devolve.",
+    h: shell(queue) + `<div class="scrim"><div class="dlg" style="width:520px">
+      <div class="dh"><span class="t">Editar status<small>em Capanga</small></span><span class="x">✕</span></div>
+      <div class="form" style="--f:${FAM.part}">
+        <div class="fh"><span class="big">${GI.injured}</span><div><b>Lesionado</b><small>As partes marcadas estão machucadas ou inutilizadas.</small></div></div>
+        <div><div class="lbl">Como está cada parte</div><div class="grid4">
+          <span>Ataque</span><div class="seg"><span>Nada</span><span>Machucado</span><span class="on">Inutilizado</span></div>
+          <span>Defesa</span><div class="seg"><span>Nada</span><span class="on">Machucado</span><span>Inutilizado</span></div>
+          <span>Movimento</span><div class="seg"><span class="on">Nada</span><span>Machucado</span><span>Inutilizado</span></div>
+          <span>Esquiva</span><div class="seg"><span class="on">Nada</span><span>Machucado</span><span>Inutilizado</span></div></div></div>
+        ${aliasF([], "Braço direito quebrado")}
+        ${vis("gm", "Só o mestre vê. O dono do personagem não sabe.")}
+      </div>
+      <div class="df"><span class="rm">Tirar status</span><span class="cn">Cancelar</span><span class="ok">Salvar</span></div></div></div>` },
+];
+
+window.renderDesk = (only, el) => { el.innerHTML = F.filter((_, i) => only.includes(i + 1)).map(f => `<div class="fr"><h4>${f.t}</h4><p>${f.d}</p><div class="app">${f.h}</div></div>`).join(""); };
+})();
+renderCel([1, 7], document.getElementById("c0"));renderDesk([1], document.getElementById("d0"));renderCel([2, 3, 4], document.getElementById("c1"));renderDesk([2], document.getElementById("d1"));renderCel([5, 6], document.getElementById("c2"));renderDesk([3], document.getElementById("d2"));renderCel([8], document.getElementById("c3"));</script><style id="tema-escuro">/* mesmo fundo escuro do servidor de mockups (frame do brainstorm, modo escuro) */
+body{background:#1d1d1f!important;color:#f5f5f7!important}
+h2,h3,h4,b{color:inherit}
+.sub,.subtitle,.n,.ph p,.fr p,.note,.cap,p[style*="#666"],p[style*="color:#666"]{color:#a1a1a6!important}
+.st{border-top-color:#3d3d3f!important}
+.mockup{background:#2d2d2f;border-radius:10px;overflow:hidden}.mockup-header{color:#a1a1a6;padding:8px 12px;font-size:13px}
+</style>

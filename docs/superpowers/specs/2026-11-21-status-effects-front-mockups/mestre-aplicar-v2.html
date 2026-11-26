@@ -1,0 +1,159 @@
+<!DOCTYPE html><meta charset="utf-8"><body style="background:#f4f4f6;font-family:system-ui;padding:24px"><style>
+  .phones { display: grid; grid-template-columns: repeat(3, 340px); gap: 22px; justify-content: center; }
+  @media (max-width: 1150px) { .phones { grid-template-columns: repeat(2, 340px); } }
+  .ph h4 { margin: 0 0 6px; font: 600 14px system-ui; }
+  .ph p { margin: 0 0 8px; font: 12.5px/1.35 system-ui; color: #666; min-height: 66px; }
+  .scr { position: relative; width: 340px; height: 760px; border-radius: 26px; overflow: hidden; background: #0b1220; border: 6px solid #111; font: 13px system-ui; color: #fff;
+    background-image: linear-gradient(#ffffff12 1px, transparent 1px), linear-gradient(90deg, #ffffff12 1px, transparent 1px); background-size: 48px 48px; }
+  .tok { position: absolute; width: 40px; height: 40px; border-radius: 50%; background: #fff; border: 3px solid #1c1c1c; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; font: 800 13px system-ui; color: #1c1c1c; }
+  .navm { position: absolute; left: 0; right: 0; bottom: 0; height: 56px; background: #382a1a; display: flex; z-index: 6; }
+  .navm span { flex: 1; display: flex; align-items: center; justify-content: center; font: 11px system-ui; color: #ccc; } .navm span.on { background: #493823; color: #fff; font-weight: 700; }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 56px; top: var(--top, 60px); background: #2d2215; border-top: 1px solid #604d31; padding: 12px; display: flex; flex-direction: column; gap: 12px; overflow: hidden; z-index: 5; }
+  .sh-h { display: flex; align-items: center; gap: 8px; }
+  .x, .back { width: 38px; height: 38px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; background: #493823; flex: none; }
+  .x { margin-left: auto; }
+  .tt { display: flex; align-items: center; gap: 8px; } .tt .ic { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--f) 25%, transparent); flex: none; }
+  .tt .ic svg { width: 20px; height: 20px; color: var(--f); }
+  .tt b { font-size: 15px; color: #fff; } .tt small { display: block; font-size: 12px; color: #ccc; }
+  .lbl { font: 700 10.5px system-ui; color: #ccc; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+  .lbl .opt { text-transform: none; letter-spacing: 0; font-weight: 400; color: #aaa; }
+  .inp { background: #493823; border: 1px solid #604d31; border-radius: 6px; padding: 9px 10px; color: #fff; } .inp.ph { color: #aaa; }
+  .typer { display: inline-flex; align-items: center; gap: 6px; color: #ddd; font-size: 12.5px; padding: 4px 0; }
+  .typer img { width: 16px; height: 13px; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chips span { font-size: 12.5px; border: 1px solid #604d31; border-radius: 14px; padding: 5px 11px; color: #ddd; } .chips span.on { background: #107135; border-color: #1fc140; color: #fff; }
+  .seg { display: grid; grid-template-columns: repeat(var(--n, 4), 1fr); border: 1px solid #604d31; border-radius: 8px; overflow: hidden; }
+  .seg span { text-align: center; padding: 8px 3px; font-size: 11.5px; color: #ccc; border-right: 1px solid #604d31; line-height: 1.15; } .seg span:last-child { border: 0; }
+  .seg span.on { background: #107135; color: #fff; font-weight: 700; }
+  .seg span small { display: block; font-size: 9.5px; font-weight: 400; color: #ffffffaa; }
+  .hint { font-size: 11.5px; color: #bbb; font-style: italic; margin-top: 5px; }
+  .num { display: flex; align-items: center; border: 1px solid #604d31; border-radius: 8px; overflow: hidden; width: max-content; }
+  .num span { width: 40px; text-align: center; padding: 7px 0; font-size: 17px; background: #493823; } .num b { width: 54px; text-align: center; font-size: 15px; }
+  .num b.empty { color: #888; font-weight: 400; font-size: 12px; }
+  /* resumo recolhido de "Aplicar em" — botão expandir padrão do site */
+  .exp { display: flex; align-items: center; gap: 8px; background: #382a1a; border: 1px solid #604d31; border-radius: 8px; padding: 9px 10px; }
+  .exp .who { flex: 1; font-size: 13px; } .exp .who small { display: block; color: #aaa; font-size: 11.5px; }
+  .exp img { width: 20px; height: 16px; } .exp img.up { transform: rotate(180deg); }
+  /* lista de personagens (padrão dos cards: capa, ícone, nickname) com caixas de seleção */
+  .list { display: flex; flex-direction: column; gap: 6px; }
+  .lh { display: grid; grid-template-columns: 1fr 44px 44px; font: 700 10px system-ui; color: #ccc; text-transform: uppercase; letter-spacing: .05em; padding: 0 6px; }
+  .lh.one { grid-template-columns: 1fr 44px; } .lh span { text-align: center; } .lh span:first-child { text-align: left; }
+  .it { position: relative; display: grid; grid-template-columns: 1fr 44px 44px; align-items: center; height: 54px; border-radius: 9px; overflow: hidden; border: 1px solid #604d31; }
+  .it.one { grid-template-columns: 1fr 44px; }
+  .it.sel { border-color: #1fc140; }
+  .it .cv { position: absolute; inset: 0; background: url(cover.png) center/cover; opacity: .55; }
+  .it .cv::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, #2d2215 10%, #2d2215cc 55%, #2d2215ee 100%); }
+  .it .who { position: relative; display: flex; align-items: center; gap: 9px; padding-left: 6px; }
+  .gk { position: relative; width: 44px; height: 44px; flex: none; }
+  .gk img { position: absolute; } .gk .em { width: 104%; height: 104%; top: 48%; left: 50.5%; transform: translate(-50%, -50%); } .gk .fr { inset: 0; width: 100%; height: 100%; top: -1px; }
+  .gk .av { width: 70%; height: 70%; left: 15%; top: calc(15% - 1px); border-radius: 50%; object-fit: cover; }
+  .it .nm b { display: block; font-size: 13.5px; } .it .nm small { font-size: 11px; color: #ccc; }
+  .cb { position: relative; justify-self: center; width: 26px; height: 26px; border-radius: 6px; border: 2px solid #888; background: #1c1c1c99; display: flex; align-items: center; justify-content: center; }
+  .cb.on { border-color: #1fc140; }
+  .cb img { width: 18px; } .cb svg { width: 17px; height: 17px; color: #1fc140; }
+  .cb.na { border: 0; background: none; color: #888; font-size: 11px; }
+  .foot { margin-top: auto; display: flex; gap: 8px; }
+  .ok { flex: 1; text-align: center; background: #107135; border-radius: 8px; padding: 12px; font-weight: 700; } .ok.off { background: #2b3d2f; color: #888; }
+  .ghost { text-align: center; border: 1px solid #604d31; border-radius: 8px; padding: 12px 14px; }
+  .rm { text-align: center; border: 1px solid #cb1437; color: #ff5257; border-radius: 8px; padding: 12px 14px; font-weight: 700; }
+  /* caixa aberta na peça */
+  .open { position: absolute; z-index: 4; left: 50%; transform: translateX(-50%); background: #1c1c1c; border: 1px solid #ffffff24; border-radius: 12px; padding: 6px; box-shadow: 0 10px 28px #000e; display: flex; flex-direction: column; gap: 4px; width: 250px; }
+  .row { display: grid; grid-template-columns: 26px 1fr 34px; align-items: center; gap: 8px; padding: 4px 4px 4px 4px; border-radius: 8px; background: color-mix(in srgb, var(--f) 12%, transparent); box-shadow: inset 3px 0 0 var(--f); }
+  .row .ic { width: 26px; height: 26px; border-radius: 7px; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--f) 25%, transparent); }
+  .row .ic svg { width: 17px; height: 17px; color: var(--f); } .row .nm { font-weight: 600; } .row .al { display: block; font-size: 11.5px; color: #ccc; font-style: italic; font-weight: 400; }
+  .pen { width: 34px; height: 34px; border-radius: 8px; background: #2d2215; display: flex; align-items: center; justify-content: center; } .pen img { width: 20px; }
+  .add { text-align: center; padding: 9px; border: 1px dashed #888; border-radius: 8px; font-size: 12.5px; color: #ddd; }
+  /* resumo antes de aplicar */
+  .sum { background: #382a1a; border: 1px solid #604d31; border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+  .sum .k { font-size: 11px; color: #aaa; text-transform: uppercase; letter-spacing: .05em; font-weight: 700; }
+  .mini { display: flex; gap: 6px; flex-wrap: wrap; } .mini span { display: inline-flex; align-items: center; gap: 5px; background: #2d2215; border-radius: 14px; padding: 3px 9px 3px 3px; font-size: 12.5px; }
+  .mini span i { width: 20px; height: 20px; border-radius: 50%; background: url(avatar.png) center/cover #fff; display: inline-block; }
+  .dlg { position: absolute; inset: 0; background: #000b; z-index: 8; display: flex; align-items: center; justify-content: center; padding: 16px; }
+  .dlg .box { background: #2d2215; border: 1px solid #604d31; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px; font-size: 13px; }
+  .dlg h5 { margin: 0; font: 700 16px system-ui; }
+  .dlg .q { background: #382a1a; border-radius: 8px; padding: 8px 10px; font-size: 13px; }
+  .choice { border-radius: 9px; padding: 10px 12px; } .choice b { display: block; font-size: 14px; } .choice small { display: block; font-size: 12px; color: #ffffffcc; margin-top: 2px; }
+  .choice.pri { background: #107135; } .choice.sec { border: 1px solid #604d31; }
+</style>
+
+<h2>Mestre — aplicar, editar e tirar (celular) — v2</h2>
+<p class="subtitle">Com as decisões de hoje: lápis do projeto; apelido sem teclado ("Digitar ⌄"); uma lista só de personagens (recebe ✓ e, ao Escolher quem vê, 👁); "Ligado a" acima de "Quem vê" (em todo status); "Intensidade"; resumo antes de aplicar em vários; textos do "devolver" refeitos.</p>
+
+<div class="phones" id="ph"></div>
+
+<script src="gi.js"></script>
+<script>
+const FAM = { body: "#ffa216", part: "#a16207", sense: "#4da3ff", test: "#94a3b8", life: "#db0e2f", air: "#e0e0e0", guard: "#1fc140", mind: "#a855f7", presence: "#aaaaaa" };
+const EYE = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>`;
+const toks = `<div class="tok" style="left:110px;top:220px">J1</div><div class="tok" style="left:206px;top:172px">J2</div><div class="tok" style="left:270px;top:120px">C</div>`;
+const nav = `<div class="navm"><span class="on">Fila</span><span>Agir</span><span>Ficha</span></div>`;
+const head = (key, f, name, sub) => `<div class="sh-h"><span class="back">‹</span><div class="tt" style="--f:${FAM[f]}"><span class="ic">${GI[key]}</span><div><b>${name}</b><small>${sub}</small></div></div><span class="x">✕</span></div>`;
+const alias = (sugs, typed) => `<div><div class="lbl">Apelido <span class="opt">(opcional)</span></div>
+  <div class="chips">${sugs.map(s => `<span class="${s === typed ? "on" : ""}">${s}</span>`).join("")}</div>
+  <div class="typer">Digitar <img src="arrowheadDown.svg"></div></div>`;
+const link = `<div><div class="lbl">Ligado a <span class="opt">(turno aberto)</span></div><div class="seg" style="--n:3"><span class="on">Ataque do Capanga</span><span>Reação do Jogador1</span><span>Turno todo</span></div></div>`;
+const vis = (on, def, hint) => `<div><div class="lbl">Quem vê</div><div class="seg">${[["all", "Todos"], ["mt", "Mestre e alvo"], ["gm", "Só o mestre"], ["pick", "Escolher"]].map(([k, l]) => `<span class="${on === k ? "on" : ""}">${l}${def === k ? "<small>padrão</small>" : ""}</span>`).join("")}</div>${hint ? `<div class="hint">${hint}</div>` : ""}</div>`;
+const CH = [["Jogador1", "Ninja", 1], ["Jogador2", "Swordsman", 1], ["Capanga", "NPC", 0], ["Guarda", "NPC", 0]];
+const gk = `<span class="gk"><img class="em" src="icon-emblem.svg"><img class="fr" src="gungi.svg"><img class="av" src="avatar.png"></span>`;
+const list = (recv, eyes) => {
+  const two = !!eyes;
+  return `<div class="list"><div class="lh${two ? "" : " one"}"><span>Personagem</span>${two ? `<span>vê</span>` : ""}<span>recebe</span></div>` +
+    CH.map(([n, c, pj]) => `<div class="it${two ? "" : " one"}${recv.includes(n) ? " sel" : ""}"><span class="cv"></span><span class="who">${gk}<span class="nm"><b>${n}</b><small>${c}</small></span></span>` +
+      (two ? (pj ? `<span class="cb${eyes.includes(n) ? " on" : ""}">${eyes.includes(n) ? EYE : ""}</span>` : `<span class="cb na" title="NPC não tem jogador">—</span>`) : "") +
+      `<span class="cb${recv.includes(n) ? " on" : ""}">${recv.includes(n) ? `<img src="ativo10.svg">` : ""}</span></div>`).join("") + `</div>`;
+};
+const applyTo = (names, open) => `<div><div class="lbl">Aplicar em</div><div class="exp"><span class="who">${names.join(", ")}<small>${names.length} personagem${names.length > 1 ? "s" : ""}</small></span><img class="${open ? "up" : ""}" src="arrowheadDown.svg"></div></div>`;
+
+const P = [
+  { t: "1 · Entrada pela faixa", d: "Lápis do projeto (pen.svg) em cada status — botão grande, como o dono pede para botões só de ícone. \"+ Aplicar status\" no fim.",
+    h: toks + `<div class="open" style="top:250px">
+      <div class="row" style="--f:${FAM.body}"><span class="ic">${GI.paralyzed}</span><span class="nm">Paralisado 5<span class="al">Em choque</span></span><span class="pen"><img src="pen.svg"></span></div>
+      <div class="row" style="--f:${FAM.guard}"><span class="ic">${GI.prone}</span><span class="nm">Caído</span><span class="pen"><img src="pen.svg"></span></div>
+      <div class="add">＋ Aplicar status</div></div>` + nav },
+  { t: "2 · Preso, recolhido (caso simples)", d: "Sem teclado: sugestões de apelido tocáveis e \"Digitar ⌄\" abre o campo. Ligado a acima de Quem vê. \"Aplicar em\" recolhido no expandir padrão. Um toque em Aplicar.",
+    h: toks + `<div class="sheet" style="--top:150px">${head("restrained", "body", "Preso", "Não se desloca; age e reage normalmente.")}
+      ${alias(["Agarrado", "Amarrado", "Soterrado", "Pendurado"])}${link}${vis("all", "all", "Todos veem que Jogador1 está preso.")}${applyTo(["Jogador1"])}
+      <div class="foot"><span class="ok">Aplicar em Jogador1</span></div></div>` + nav },
+  { t: "3 · Aplicar em, expandido", d: "Uma lista só, no padrão dos cards (ícone, capa, nickname). Só a coluna \"recebe\" (✓ = Ativo 10.svg, borda verde). Selecionado = borda verde no card também.",
+    h: toks + `<div class="sheet" style="--top:40px">${head("restrained", "body", "Preso", "Não se desloca; age e reage normalmente.")}
+      ${link}${vis("all", "all")}${applyTo(["Jogador1", "Jogador2"], true)}${list(["Jogador1", "Jogador2"])}
+      <div class="foot"><span class="ok">Aplicar em 2 personagens</span></div></div>` + nav },
+  { t: "4 · Paralisado, Escolher quem vê", d: "\"Escolher\" abre a mesma lista com a coluna 👁. Quem recebe já vem com o olho marcado (vê o próprio status). NPC não tem jogador: \"—\". Intensidade num seletor de toque (sem teclado).",
+    h: toks + `<div class="sheet" style="--top:12px">${head("paralyzed", "body", "Paralisado", "O que está marcado não obedece.")}
+      <div style="display:flex;gap:14px"><div><div class="lbl">Intensidade</div><div class="num"><span>−</span><b>5</b><span>＋</span></div></div>
+      <div style="flex:1"><div class="lbl">Trava</div><div class="chips"><span class="on">Ataque</span><span class="on">Defesa</span><span class="on">Movimento</span><span class="on">Esquiva</span></div></div></div>
+      ${link}${vis("pick", "mt", "Marcados com 👁 veem o status em todos os que recebem.")}${list(["Jogador1", "Jogador2"], ["Jogador1", "Jogador2"])}
+      <div class="foot"><span class="ok">Aplicar em 2 personagens</span></div></div>` + nav },
+  { t: "5 · Confira antes de aplicar (vários)", d: "Com mais de um personagem, Aplicar mostra o resumo do que vai acontecer. \"Voltar e ajustar\" volta ao formulário com tudo preenchido.",
+    h: toks + `<div class="sheet" style="--top:120px">${head("paralyzed", "body", "Confira antes de aplicar", "Paralisado")}
+      <div class="sum"><div class="k">O status</div><div>Paralisado, intensidade <b>5</b> · trava ataque, defesa, movimento e esquiva · apelido <i>Em choque</i></div>
+        <div class="k">Em quem</div><div class="mini"><span><i></i>Jogador1</span><span><i></i>Jogador2</span></div>
+        <div class="k">Quem vê</div><div>O mestre, Jogador1 e Jogador2</div>
+        <div class="k">Ligado a</div><div>Ataque do Capanga</div></div>
+      <div class="foot"><span class="ghost">Voltar e ajustar</span><span class="ok">Aplicar em 2</span></div></div>` + nav },
+  { t: "6 · Editar: Lesionado", d: "Título em branco (a cor da família fica só no ícone, para ter contraste). Quem vê \"Só o mestre\": o dono do personagem não sabe.",
+    h: toks + `<div class="sheet" style="--top:110px">${head("injured", "part", "Lesionado", "Editando · em Capanga")}
+      <div><div class="lbl">Como está cada parte</div><div style="display:grid;grid-template-columns:76px 1fr;gap:7px;align-items:center;font-size:12.5px">
+        <span>Ataque</span><div class="seg" style="--n:3"><span>Nada</span><span>Machucado</span><span class="on">Inutilizado</span></div>
+        <span>Defesa</span><div class="seg" style="--n:3"><span>Nada</span><span class="on">Machucado</span><span>Inutilizado</span></div>
+        <span>Movimento</span><div class="seg" style="--n:3"><span class="on">Nada</span><span>Machucado</span><span>Inutilizado</span></div>
+        <span>Esquiva</span><div class="seg" style="--n:3"><span class="on">Nada</span><span>Machucado</span><span>Inutilizado</span></div></div></div>
+      ${alias(["Braço direito quebrado"], "Braço direito quebrado")}${vis("gm", "mt", "Só o mestre vê.")}
+      <div class="foot"><span class="rm">Tirar status</span><span class="ok">Salvar</span></div></div>` + nav },
+  { t: "7 · Tirar no mesmo turno", d: "Só quando o status entrou neste turno e tirou ações da fila. Cada botão diz o que acontece.",
+    h: toks + nav + `<div class="dlg"><div class="box"><h5>Tirar Atordoado de Jogador1?</h5>
+      <div>Quando ficou atordoado neste turno, Jogador1 perdeu estas ações:</div>
+      <div class="q">⚔ Atacar o Capanga</div><div class="q">↺ Esquivar do ataque do Capanga</div>
+      <div class="choice pri"><b>Tirar e devolver as ações</b><small>Elas voltam para a fila, no mesmo lugar.</small></div>
+      <div class="choice sec"><b>Tirar e manter as ações canceladas</b><small>Jogador1 terá que declarar de novo.</small></div>
+      <div style="text-align:center;color:#bbb;padding:6px">Cancelar</div></div></div>` },
+];
+document.getElementById("ph").innerHTML = P.map(p => `<div class="ph"><h4>${p.t}</h4><p>${p.d}</p><div class="scr">${p.h}</div></div>`).join("");
+</script>
+<style id="tema-escuro">/* mesmo fundo escuro do servidor de mockups (frame do brainstorm, modo escuro) */
+body{background:#1d1d1f!important;color:#f5f5f7!important}
+h2,h3,h4,b{color:inherit}
+.sub,.subtitle,.n,.ph p,.fr p,.note,.cap,p[style*="#666"],p[style*="color:#666"]{color:#a1a1a6!important}
+.st{border-top-color:#3d3d3f!important}
+.mockup{background:#2d2d2f;border-radius:10px;overflow:hidden}.mockup-header{color:#a1a1a6;padding:8px 12px;font-size:13px}
+</style>

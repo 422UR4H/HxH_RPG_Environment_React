@@ -1,0 +1,94 @@
+<!DOCTYPE html><meta charset="utf-8"><title>Mestre — aba Partida — v2</title>
+<body style="background:#1d1d1f;color:#f5f5f7;font-family:system-ui;padding:24px">
+<style>
+  h2 { margin: 0 0 8px; } h3 { margin: 28px 0 6px; } .sub { color: #a1a1a6; font-size: 14px; max-width: 1150px; margin: 0 0 8px; line-height: 1.5; }
+  .phones { display: flex; flex-wrap: wrap; gap: 22px; margin-top: 12px; }
+  .ph { width: 340px; } .ph h4 { margin: 0 0 8px; font: 600 14px system-ui; }
+  .scr { position: relative; width: 340px; height: 700px; border-radius: 26px; overflow: hidden; background: #0b1220; border: 6px solid #111; font: 13px system-ui; color: #fff;
+    background-image: linear-gradient(#ffffff12 1px, transparent 1px), linear-gradient(90deg, #ffffff12 1px, transparent 1px); background-size: 48px 48px; }
+  .top { position: absolute; left: 0; right: 0; top: 0; height: 44px; background: #2d2215; border-bottom: 1px solid #493823; display: flex; align-items: center; gap: 6px; padding: 0 8px; z-index: 3; }
+  .top b { font-size: 13px; } .top .dot { width: 8px; height: 8px; border-radius: 50%; background: #17993d; }
+  .tb { margin-left: auto; display: flex; gap: 6px; } .tb span { font: 600 11px system-ui; padding: 6px 8px; border-radius: 6px; background: #555; color: #ddd; } .tb span.h { background: #493823; border: 1px solid #604d31; color: #fff; }
+  .tok { position: absolute; width: 36px; height: 36px; border-radius: 50%; background: #fff; border: 3px solid #1c1c1c; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; font: 800 12px system-ui; color: #1c1c1c; }
+  .nav { position: absolute; left: 0; right: 0; bottom: 0; height: 58px; background: #382a1a; display: flex; z-index: 6; }
+  .nav span { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font: 11px system-ui; color: #ccc; position: relative; }
+  .nav span.on { background: #493823; color: #fff; font-weight: 700; } .nav span.send { color: #1fc140; font-weight: 700; background: #493823; } .nav span.send i { font-style: normal; font-size: 20px; }
+  .nav span.new::after { content: "novo"; position: absolute; top: 5px; right: 4px; font: 700 9px system-ui; color: #1c1c1c; background: #ffc300; border-radius: 6px; padding: 0 4px; }
+  /* folha do mestre: colada às bordas (o formato do mestre não muda) */
+  .sheet { position: absolute; left: 0; right: 0; bottom: 58px; max-height: calc(100% - 100px); background: #2d2215; border-top: 1px solid #604d31; padding: 18px 14px 14px; display: flex; flex-direction: column; gap: 16px; z-index: 5; }
+  .sheet .x { position: absolute; top: -10px; right: 8px; width: 36px; height: 36px; filter: drop-shadow(0 2px 3px #000c); }
+  .ttl { font: 700 16px system-ui; }
+  .lbl { font: 700 10.5px system-ui; color: #ccc; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .soon { text-transform: none; letter-spacing: 0; font: 700 10px system-ui; color: #ffc300; border: 1px solid #ffc300; border-radius: 6px; padding: 0 5px; }
+  .row { display: flex; align-items: center; gap: 10px; }
+  .scene { flex: 1; background: #382a1a; border: 1px solid #604d31; border-radius: 8px; padding: 8px 10px; font-weight: 700; }
+  .btn { display: flex; align-items: center; justify-content: center; border-radius: 8px; padding: 9px 12px; font-weight: 700; font-size: 12.5px; background: #493823; border: 1px solid #604d31; white-space: nowrap; }
+  .btn.danger { background: transparent; border-color: #cb1437; color: #ff5257; }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid #604d31; border-radius: 8px; overflow: hidden; }
+  .seg span { display: flex; align-items: center; justify-content: center; min-height: 38px; font-size: 12.5px; color: #ccc; } .seg span.on { background: #107135; color: #fff; font-weight: 700; }
+  .ck { display: flex; align-items: center; gap: 10px; font-size: 12.5px; padding: 4px 0; }
+  .cb { position: relative; width: 24px; height: 24px; border-radius: 6px; border: 2px solid #888; background: #1c1c1c99; flex: none; } .cb.on { border-color: #1fc140; }
+  .cb img { position: absolute; width: 36px; left: 50%; top: 50%; transform: translate(-50%, -54%); }
+  .note { font-size: 11.5px; color: #bbb; font-style: italic; margin-top: 4px; }
+  .sep { height: 1px; background: #ffffff14; }
+  .q { background: #382a1a; border-radius: 8px; padding: 9px 10px; border-left: 3px solid #ff5257; } .q b { display: block; margin-bottom: 2px; } .q small { color: #bbb; }
+  .empty { font-size: 12.5px; color: #bbb; font-style: italic; }
+  /* computador */
+  .app { position: relative; width: 1150px; height: 560px; border: 6px solid #111; border-radius: 12px; overflow: hidden; background: #0b1220; margin-top: 10px; font: 13px system-ui;
+    background-image: linear-gradient(#ffffff12 1px, transparent 1px), linear-gradient(90deg, #ffffff12 1px, transparent 1px); background-size: 52px 52px; }
+  .app .top { height: 44px; }
+  .rail { position: absolute; left: 0; top: 44px; bottom: 0; width: 72px; background: #2d2215; border-right: 1px solid #493823; display: flex; flex-direction: column; z-index: 2; }
+  .rail span { padding: 14px 0; text-align: center; font-size: 11.5px; color: #ccc; position: relative; } .rail span.on { background: #493823; color: #fff; font-weight: 700; }
+  .rail span.new::after { content: "novo"; position: absolute; top: 2px; right: 2px; font: 700 9px system-ui; color: #1c1c1c; background: #ffc300; border-radius: 6px; padding: 0 3px; }
+  .qcol { position: absolute; left: 72px; top: 44px; bottom: 0; width: 250px; background: #2d2215; border-right: 1px solid #493823; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+  .panel { position: absolute; left: 322px; top: 44px; bottom: 0; width: 300px; background: #2d2215; border-right: 1px solid #604d31; padding: 18px 14px 14px; display: flex; flex-direction: column; gap: 16px; box-shadow: 8px 0 20px #0008; z-index: 2; }
+  .panel .x { position: absolute; top: 8px; right: 8px; width: 34px; height: 34px; }
+  .aside { position: absolute; right: 0; top: 44px; bottom: 0; width: 230px; background: #2d2215; border-left: 1px solid #493823; padding: 10px; color: #ccc; font-size: 12px; }
+  .box { background: #2d2d2f; border-radius: 10px; padding: 12px 16px; max-width: 1150px; font-size: 13.5px; line-height: 1.55; margin: 18px 0 0; } .box li { margin: 4px 0; }
+</style>
+
+<h2>Mestre — aba "Partida" — v2</h2>
+<p class="sub">Retomada do rascunho com o que mudou: o footer do mestre já tem "Personagens"; do tablet para cima a fila fica sempre à esquerda.</p>
+
+<h3>Celular (em pé)</h3>
+<div class="phones" id="ph"></div>
+
+<h3>Computador (proposta; a arrumação das colunas é a mudança de layout que vai ao PO)</h3>
+<div class="app" id="desk"></div>
+
+<div class="box"><b>Para decidir (recomendação minha em cada uma):</b><ol>
+  <li><b>Regime, Nova cena e Encerrar partida saem da aba Fila e vão para Partida?</b> — <i>Recomendo sim.</i> Critério: o que o mestre usa <b>a cada turno</b> fica à mão (barra de cima: Encerrar rodada, Fechar turno); o que muda <b>por cena ou por partida</b> vai para Partida. A Fila volta a ser só a fila — e do tablet para cima ela fica sempre à mostra, então controles dentro dela ocupariam espaço o tempo todo.</li>
+  <li><b>No celular, o "Agir" do mestre vira "Enviar ação" no próprio lugar, quando aberto?</b> — <i>Recomendo sim.</i> O recorte com botão redondo do jogador pede um item no centro, e o footer do mestre tem 5 itens; trocar no lugar mantém a regra "enviar fica no footer" sem desenhar outro recorte.</li>
+  <li><b>No computador, Partida é mais um item da coluna da esquerda</b> (Agir, Ficha, Personagens, Partida) e abre o painel ao lado da fila. — <i>Recomendo sim</i>: um lugar só para todo tamanho de tela, e a barra de cima fica só com o turno.</li>
+</ol></div>
+
+<script>
+const tokens = `<div class="tok" style="left:100px;top:200px">J1</div><div class="tok" style="left:190px;top:150px">J2</div><div class="tok" style="left:270px;top:110px">C</div>`;
+const topBar = `<div class="top"><b>Roleplay</b><span class="dot"></span><div class="tb"><span>Encerrar rodada</span><span>Fechar turno</span><span class="h">Histórico</span></div></div>`;
+const nav = (on, send) => `<div class="nav">${["Fila", "Agir", "Ficha", "Personagens", "Partida"].map(x => x === "Agir" && send ? `<span class="send"><i>➤</i>Enviar ação</span>` : `<span class="${x === on ? "on" : ""}${x === "Partida" ? " new" : ""}">${x}</span>`).join("")}</div>`;
+const ck = (on, t) => `<div class="ck"><span class="cb${on ? " on" : ""}">${on ? '<img src="ativo10.svg">' : ""}</span>${t}</div>`;
+const partida = `<div class="ttl">Partida</div>
+  <div><div class="lbl">Cena</div><div class="row"><span class="scene">Roleplay</span><span class="btn">Nova cena</span></div></div>
+  <div><div class="lbl">Regime</div><div class="seg"><span>Livre</span><span class="on">Disputado</span></div></div>
+  <div class="sep"></div>
+  <div><div class="lbl">Barras de vida e stamina <span class="soon">quando existir</span></div>
+    ${ck(false, "Revelar as de todos os personagens de jogador a todos")}${ck(false, "Revelar as de todos os NPCs")}
+    <div class="note">Um personagem por vez: no card dele, na aba Personagens.</div></div>
+  <div class="sep"></div>
+  <div class="note" style="margin:0">As configurações da mesa entram aqui quando existirem.</div>
+  <div class="row" style="margin-top:4px"><span class="btn danger">Encerrar partida</span></div>`;
+const fila = `<div class="ttl">Fila de ações</div><div class="q"><b>Jogador1 ataca Capanga</b><small>velocidade 14</small></div><div class="q" style="border-color:#38bdf8"><b>Jogador2 se move</b><small>velocidade 11</small></div>`;
+const agir = `<div class="ttl">Agir como Capanga</div><div class="empty">(o miolo do painel de ação já decidido: alvo no círculo, status, ação)</div>`;
+const sheet = (inner) => `<div class="sheet"><img class="x" src="x-red.svg" alt="Fechar">${inner}</div>`;
+document.getElementById("ph").innerHTML = [
+  ["Partida aberta", topBar + tokens + sheet(partida) + nav("Partida")],
+  ["Fila: só a fila", topBar + tokens + sheet(fila) + nav("Fila")],
+  ["Agir aberto: o item vira \"Enviar ação\"", topBar + tokens + sheet(agir) + nav("Agir", true)],
+].map(([t, h]) => `<div class="ph"><h4>${t}</h4><div class="scr">${h}</div></div>`).join("");
+document.getElementById("desk").innerHTML = topBar +
+  `<div class="rail"><span>Agir</span><span>Ficha</span><span>Personagens</span><span class="on new">Partida</span></div>
+   <div class="qcol">${fila}</div>
+   <div class="panel"><img class="x" src="x-red.svg" alt="Fechar">${partida}</div>
+   <div class="tok" style="left:760px;top:250px">J1</div><div class="tok" style="left:850px;top:200px">J2</div>
+   <div class="aside">Histórico · Personagens</div>`;
+</script>

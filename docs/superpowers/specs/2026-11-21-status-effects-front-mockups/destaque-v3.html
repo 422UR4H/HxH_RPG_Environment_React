@@ -1,0 +1,146 @@
+<!DOCTYPE html><meta charset="utf-8"><title>Destaque no jogador — v3</title>
+<body style="background:#1d1d1f;color:#f5f5f7;font-family:system-ui;padding:24px">
+<style>
+  h2 { margin: 0 0 8px; } h3 { margin: 30px 0 6px; } .sub { color: #a1a1a6; font-size: 14px; max-width: 1150px; margin: 0 0 8px; line-height: 1.5; }
+  .box { background: #2d2d2f; border-radius: 10px; padding: 12px 16px; max-width: 1150px; font-size: 13.5px; line-height: 1.55; margin: 10px 0; }
+  .box li { margin: 3px 0; } code { background: #3d3d3f; border-radius: 4px; padding: 0 4px; font-size: 12.5px; }
+  .phones { display: flex; flex-wrap: wrap; gap: 22px; margin-top: 14px; }
+  .ph { width: 340px; } .ph h4 { margin: 0 0 6px; font: 600 14px system-ui; } .ph p { margin: 0 0 8px; font: 12.5px/1.4 system-ui; color: #a1a1a6; min-height: 52px; }
+  .scr { position: relative; width: 340px; height: 600px; border-radius: 26px; overflow: hidden; background: #0b1220; border: 6px solid #111; font: 13px system-ui; color: #fff;
+    background-image: linear-gradient(#ffffff12 1px, transparent 1px), linear-gradient(90deg, #ffffff12 1px, transparent 1px); background-size: 48px 48px; }
+  /* a luz na borda da tela, na cor do status (pisca algumas vezes) */
+  .gz { position: absolute; left: 0; right: 0; top: 44px; bottom: 64px; pointer-events: none; z-index: 2;
+    box-shadow: inset 0 0 16px 4px var(--g), inset 0 0 52px 12px color-mix(in srgb, var(--g) 40%, transparent);
+    opacity: 0; animation: flash 4s ease-out infinite; }
+  /* uma piscada forte e depois some devagar (no jogo: uma vez só) */
+  @keyframes flash { 0% { opacity: 0; } 5% { opacity: 1; } 12% { opacity: .9; } 70% { opacity: 0; } 100% { opacity: 0; } }
+  .topb { position: absolute; left: 0; right: 0; top: 0; height: 44px; background: #2d2215; border-bottom: 1px solid #493823; display: flex; align-items: center; gap: 8px; padding: 0 10px; z-index: 3; }
+  .topb b { font-size: 13px; } .topb .pm { margin-left: auto; font-size: 11px; background: #493823; border-radius: 10px; padding: 2px 8px; color: #ddd; } .topb .hist { font-size: 11.5px; border: 1px solid #604d31; border-radius: 6px; padding: 5px 8px; }
+  .tok { position: absolute; width: 44px; height: 44px; border-radius: 50%; background: #fff; border: 3px solid #1c1c1c; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; font: 800 13px system-ui; color: #1c1c1c; }
+  .tok.me { box-shadow: 0 0 0 3px #0b1220, 0 0 0 6px #ffc300; }
+  .stack { position: absolute; transform: translate(-50%, -100%); display: flex; flex-direction: column-reverse; align-items: center; gap: 4px; }
+  .strip { display: flex; gap: 3px; padding: 3px; border-radius: 9px; background: #1c1c1cf0; border: 1px solid #ffffff24; }
+  .chip { position: relative; width: 22px; height: 22px; border-radius: 6px; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--f) 22%, transparent); }
+  .chip svg { width: 16px; height: 16px; color: var(--f); }
+  .chip .n { position: absolute; right: -5px; bottom: -6px; font: 700 9px/12px system-ui; background: #000; border: 1px solid var(--f); border-radius: 7px; padding: 0 2px; }
+  .chip.new { box-shadow: 0 0 0 2px var(--f), 0 0 12px 2px var(--f); }
+  .bars { width: 44px; display: flex; flex-direction: column; gap: 2px; } .bar { height: 5px; background: #252525; border-radius: 3px; overflow: hidden; } .bar i { display: block; height: 100%; }
+  .hp i { background: #db0e2f; } .sp i { background: #1fc140; }
+  /* pilha de avisos: mais baixa, um pouco mais estreita e mais espaçada, para o X vazar sem encostar no header nem na borda */
+  .notices { position: absolute; left: 20px; right: 20px; top: 64px; display: flex; flex-direction: column; gap: 20px; z-index: 4; }
+  .nt { position: relative; display: flex; flex-direction: column; gap: 7px; padding: 11px 34px 11px 12px; border-radius: 6px; border: 1px solid var(--b); background: #2d2215; font-size: 13px; line-height: 1.4; box-shadow: 0 4px 14px #0009; }
+  .nt.big { border-width: 2px; font-size: 14px; }
+  .nt .x { position: absolute; width: 36px; height: 36px; top: -10px; right: -10px; filter: drop-shadow(0 2px 3px #000c); }
+  .nt b.red { color: #ff5257; }
+  .pills { display: flex; gap: 5px; flex-wrap: wrap; }
+  .pill { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px 3px 4px; border-radius: 7px; font-size: 12px; background: color-mix(in srgb, var(--f) 15%, transparent); box-shadow: inset 3px 0 0 var(--f); }
+  .pill svg { width: 15px; height: 15px; color: var(--f); margin-left: 3px; } .pill b { font-weight: 700; } .pill i { color: #ccc; }
+  .nav { position: absolute; left: 0; right: 0; bottom: 0; height: 64px; background: #382a1a; display: flex; justify-content: space-around; align-items: center; z-index: 3; }
+  .nv { position: relative; width: 84px; text-align: center; font: 11px system-ui; color: #ccc; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .nv .i { font-size: 20px; line-height: 24px; }
+  .nv .lock { position: absolute; top: -8px; right: 14px; width: 20px; height: 20px; color: #db0e2f; filter: drop-shadow(0 1px 1px #000); }
+  .nv.blocked { color: #999; } .nv.pressed { background: #493823; border-radius: 8px; padding: 4px 0; color: #fff; }
+  /* motivo ao tocar no Ação bloqueado: um balão acima da navegação */
+  .why { position: absolute; left: 20px; right: 20px; bottom: 82px; z-index: 5; }
+  .why::after { content: ""; position: absolute; left: 50%; bottom: -8px; transform: translateX(-50%) rotate(45deg); width: 14px; height: 14px; background: #2d2215; border-right: 2px solid #db0e2f; border-bottom: 2px solid #db0e2f; }
+  .cap { font-size: 11.5px; color: #a1a1a6; margin-top: 6px; }
+  /* desktop */
+  .app { position: relative; width: 1100px; height: 440px; border: 6px solid #111; border-radius: 12px; overflow: hidden; background: #0b1220; margin-top: 10px;
+    background-image: linear-gradient(#ffffff12 1px, transparent 1px), linear-gradient(90deg, #ffffff12 1px, transparent 1px); background-size: 52px 52px; }
+  .app .rail { position: absolute; left: 0; top: 44px; bottom: 0; width: 64px; background: #2d2215; display: flex; flex-direction: column; font-size: 11px; color: #ccc; z-index: 3; }
+  .app .rail > span { padding: 24px 0 10px; text-align: center; position: relative; } .app .rail > span.blocked { color: #999; }
+  .app .rail .lock { position: absolute; top: 3px; right: 6px; width: 18px; height: 18px; color: #db0e2f; }
+  .app .notices { left: 50%; right: auto; transform: translateX(-50%); width: 440px; top: 64px; }
+  .sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; background: var(--c); vertical-align: -1px; margin-right: 4px; }
+</style>
+
+<h2>Destaque no jogador — v3</h2>
+<p class="sub"><b>Na página, a luz se repete a cada 4 s só para dar para ver; no jogo ela pisca uma vez e some.</b></p>
+
+<div class="box"><b>Lembrete: a pilha de avisos da mesa.</b> No topo do mapa a mesa já tem um lugar onde os avisos se
+empilham, um embaixo do outro. Hoje aparecem ali: o erro de uma ação recusada (some em 6 s, tem X), o aviso do relógio
+quando o mestre muda o tempo (some em 6 s) e o "o servidor perdeu sua ação" (fica até fechar). A ideia é o status
+entrar nessa mesma pilha — o jogador já aprendeu a olhar ali.<br>
+<span style="color:#a1a1a6">Técnico: <code>StageNotices</code> em <code>MatchStageTemplate.tsx</code> (z-index 50, abaixo dos véus e da gaveta);
+dentro, <code>MatchErrorBanner</code>, <code>ClockNotice</code> e <code>LostDeclaredNotice</code> na <code>GamePlayerPage</code>.
+O aviso de status seria mais um componente nessa pilha.</span></div>
+
+<div class="box"><b>A luz na borda da tela</b> pisca algumas vezes quando o personagem ganha um status, como nos jogos, na cor da família —
+exceto os <b>debilitados</b>, na cor da aptidão (<span class="sw" style="--c:#db0e2f"></span>corpo vermelho,
+<span class="sw" style="--c:#a855f7"></span>mente roxo, <span class="sw" style="--c:#4da3ff"></span>espírito azul-claro, as cores dos atributos na ficha).
+<b>Vermelho</b> também para dano: os status da família vida (dano por rodada) e qualquer outro dano que ele levar.
+<b>Guarda</b> deixa de ser verde (verde fica para status bons, no futuro): nesta versão com o <span class="sw" style="--c:#ffc300"></span>dourado saturado que já existe (<code>gold400</code>), para comparar com o amarelo novo da v2.</div>
+
+<h3>Celular — status de famílias diferentes</h3>
+<p class="sub">Avisos comuns somem sozinhos em <b>10 s</b> (e têm X para fechar antes). A faixa da peça mostra o status novo com um anel.</p>
+<div class="phones" id="p1"></div>
+
+<h3>Celular — os que se destacam: fora de ação</h3>
+<p class="sub">Atordoado, Atônito e Inconsciente impedem de agir: aviso com borda vermelha mais grossa, e o "Ação" da navegação ganha um cadeado vermelho enquanto durar. Tocar no "Ação" bloqueado mostra o motivo, em vez de abrir o painel.</p>
+<div class="phones" id="p2"></div>
+
+<h3>Computador</h3>
+<div class="app" id="desk"></div>
+
+<div class="box"><b>Regras (proposta):</b><ul>
+  <li>Só avisa o que ele vê; status que só o mestre vê não gera aviso, luz nem anel na faixa.</li>
+  <li>Avisos de status: somem em <b>10 s</b>; "Já pode agir": <b>6 s</b>; todos com X para fechar antes. Tocar ou passar o mouse no aviso segura o tempo (para dar tempo de ler).</li>
+  <li>"Sua ação saiu da fila": <b>fica até fechar</b> — como o "o servidor perdeu sua ação" de hoje: sem ele, o jogador espera um turno que não vem.</li>
+  <li>Dano: só a luz vermelha (a barra de vida já mostra quanto).</li>
+  <li>Mudou só o número ou o apelido: nada.</li>
+</ul></div>
+
+<script src="gi.js"></script>
+<script>
+const FAM = { body: "#ffa216", part: "#a16207", sense: "#4da3ff", test: "#94a3b8", life: "#db0e2f", air: "#e0e0e0", guard: "#ffc300", mind: "#a855f7", presence: "#aaaaaa" };
+const APT = { physical: "#db0e2f", mental: "#a855f7", spiritual: "#4da3ff" };
+const pill = (k, f, name, o = {}) => `<span class="pill" style="--f:${o.c || FAM[f]}">${GI[k]}<span>${name}${o.n ? ` <b>${o.n}</b>` : ""}${o.al ? ` <i>· ${o.al}</i>` : ""}</span></span>`;
+const chip = (k, f, o = {}) => `<span class="chip${o.new ? " new" : ""}" style="--f:${o.c || FAM[f]}">${GI[k]}${o.n ? `<span class="n">${o.n}</span>` : ""}</span>`;
+const topBar = `<div class="topb"><b>Roleplay</b><span class="pm">Disputado</span><span class="hist">Histórico</span></div>`;
+const me = (chips, hp = 87, x = 120, y = 430) => `<div class="tok me" style="left:${x}px;top:${y}px">J1</div><div class="stack" style="left:${x}px;top:${y - 30}px">${chips ? `<div class="strip">${chips}</div>` : ""}<div class="bars"><div class="bar hp"><i style="width:${hp}%"></i></div><div class="bar sp"><i style="width:100%"></i></div></div></div>
+  <div class="tok" style="left:230px;top:360px">J2</div><div class="tok" style="left:270px;top:480px">C</div>`;
+const X = `<img class="x" src="x-red.svg" alt="Fechar aviso">`;
+const nt = (color, body, o = {}) => `<div class="nt${o.big ? " big" : ""}" style="--b:${color}">${body}${X}</div>`;
+const LOCK = `<svg class="lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2" fill="#2d2215"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>`;
+const nav = (blocked, pressed) => `<div class="nav"><div class="nv"><span class="i">📜</span>Ficha</div><div class="nv${blocked ? " blocked" : ""}${pressed ? " pressed" : ""}"><span class="i">⚔</span>Ação${blocked ? LOCK : ""}</div><div class="nv"><span class="i">☰</span>Histórico</div></div>`;
+const scr = (glow, inner) => `<div class="scr">${glow ? `<div class="gz" style="--g:${glow}"></div>` : ""}${inner}</div>`;
+const PH = (t, d, h, cap) => `<div class="ph"><h4>${t}</h4><p>${d}</p>${h}${cap ? `<div class="cap">${cap}</div>` : ""}</div>`;
+
+document.getElementById("p1").innerHTML = [
+  PH("Preso (consciência e corpo)", "Luz laranja, a cor da família.",
+    scr(FAM.body, topBar + me(chip("restrained", "body", { new: 1 })) + `<div class="notices">${nt(FAM.body, `<span>Você está <b>preso</b>. Não se desloca, mas age e reage normalmente.</span><div class="pills">${pill("restrained", "body", "Preso", { al: "Amarrado" })}</div>`)}</div>` + nav()), "some em 10 s"),
+  PH("Visão anulada (sentidos)", "Luz azul, a cor da família.",
+    scr(FAM.sense, topBar + me(chip("vision", "sense", { new: 1 })) + `<div class="notices">${nt(FAM.sense, `<span>Você <b>não consegue enxergar</b>. Seus ataques e defesas ficam mais difíceis.</span><div class="pills">${pill("vision", "sense", "Visão anulada", { al: "Ofuscado" })}</div>`)}</div>` + nav()), "some em 10 s"),
+  PH("Corpo debilitado (testes)", "Debilitado: luz, faixa e etiqueta na cor da aptidão.",
+    scr(APT.physical, topBar + me(chip("weakened", "test", { new: 1, c: APT.physical })) + `<div class="notices">${nt(APT.physical, `<span>Seu <b>corpo está debilitado</b>. Seus testes físicos ficam mais difíceis.</span><div class="pills">${pill("weakened", "test", "Corpo debilitado", { al: "Enjoado", c: APT.physical })}</div>`)}</div>` + nav()), "some em 10 s"),
+  PH("Mente debilitada (testes)", "Mente = roxo.",
+    scr(APT.mental, topBar + me(chip("weakened", "test", { new: 1, c: APT.mental })) + `<div class="notices">${nt(APT.mental, `<span>Sua <b>mente está debilitada</b>. Seus testes mentais ficam mais difíceis.</span><div class="pills">${pill("weakened", "test", "Mente debilitada", { al: "Abalado", c: APT.mental })}</div>`)}</div>` + nav()), "some em 10 s"),
+  PH("Espírito debilitado (testes)", "Espírito = azul-claro.",
+    scr(APT.spiritual, topBar + me(chip("weakened", "test", { new: 1, c: APT.spiritual })) + `<div class="notices">${nt(APT.spiritual, `<span>Seu <b>espírito está debilitado</b>. Seus testes espirituais ficam mais difíceis.</span><div class="pills">${pill("weakened", "test", "Espírito debilitado", { al: "Aura abalada", c: APT.spiritual })}</div>`)}</div>` + nav()), "some em 10 s"),
+  PH("Sangrando (vida)", "Vida e dano: vermelho.",
+    scr(FAM.life, topBar + me(chip("bleeding", "life", { new: 1, n: 2 }), 70) + `<div class="notices">${nt(FAM.life, `<span>Você está <b>sangrando</b>. Perde 2 de vida por rodada até ser socorrido.</span><div class="pills">${pill("bleeding", "life", "Sangrando", { n: 2 })}</div>`)}</div>` + nav()), "some em 10 s"),
+  PH("Caído (guarda)", "Guarda com o dourado saturado (gold400).",
+    scr(FAM.guard, topBar + me(chip("prone", "guard", { new: 1 })) + `<div class="notices">${nt(FAM.guard, `<span>Você <b>caiu</b>. No chão, só rola ou desliza; esquivar por reflexo e repelir ficam mais difíceis.</span><div class="pills">${pill("prone", "guard", "Caído")}</div>`)}</div>` + nav()), "some em 10 s"),
+  PH("Compelido (mente)", "Roxo, a cor da família.",
+    scr(FAM.mind, topBar + me(chip("compelled", "mind", { new: 1 })) + `<div class="notices">${nt(FAM.mind, `<span>Você se sente <b>compelido</b> a: fugir do fogo.</span><div class="pills">${pill("compelled", "mind", "Compelido", { al: "Amedrontado" })}</div>`)}</div>` + nav()), "some em 10 s"),
+  PH("Levou dano", "Só a luz vermelha; a barra de vida já mostra quanto.",
+    scr(FAM.life, topBar + me("", 55) + nav()), "sem aviso"),
+].join("");
+
+document.getElementById("p2").innerHTML = [
+  PH("Ficou atordoado", "Borda vermelha mais grossa; cadeado vermelho no \"Ação\" enquanto durar.",
+    scr(FAM.body, topBar + me(chip("stunned", "body", { new: 1, n: 6 })) + `<div class="notices">${nt("#db0e2f", `<span>Você está <b class="red">atordoado</b>. Não pode agir nem reagir enquanto durar.</span><div class="pills">${pill("stunned", "body", "Atordoado", { n: 6 })}</div>`, { big: 1 })}</div>` + nav(true)), "some em 10 s; o cadeado fica"),
+  PH("Tocou no \"Ação\" bloqueado", "Em vez de abrir o painel, mostra o motivo, num balão acima do botão.",
+    scr("", topBar + me(chip("stunned", "body", { n: 6 })) + `<div class="why">${nt("#db0e2f", `<span>Você está <b class="red">atordoado</b> e não pode agir nem reagir enquanto durar.</span><div class="pills">${pill("stunned", "body", "Atordoado", { n: 6 })}</div>`, { big: 1 })}</div>` + nav(true, true)), "fecha no X ou tocando fora"),
+  PH("Perdeu uma ação da fila", "Diz qual ação saiu e por quê; fica até fechar.",
+    scr("", topBar + me(chip("stunned", "body", { n: 6 })) + `<div class="notices">${nt("#ffa216", `<span>Sua ação <b>Atacar o Capanga</b> saiu da fila porque você ficou atordoado.</span>`)}${nt("#db0e2f", `<span>Você está <b class="red">atordoado</b>. Não pode agir nem reagir enquanto durar.</span><div class="pills">${pill("stunned", "body", "Atordoado", { n: 6 })}</div>`, { big: 1 })}</div>` + nav(true)), "a de cima fica até fechar"),
+  PH("Já pode agir", "Agora também com X.",
+    scr("", topBar + me("") + `<div class="notices">${nt("#1fc140", `<span>Você não está mais atordoado. <b>Já pode agir.</b></span>`)}</div>` + nav()), "some em 6 s"),
+].join("");
+
+document.getElementById("desk").innerHTML = `<div class="topb"><b>Roleplay</b><span class="pm">Disputado</span><span class="hist">Histórico</span></div>
+  <div class="rail"><span>Ficha</span><span class="blocked">Ação${LOCK}</span></div>
+  <div class="notices">${nt("#ffa216", `<span>Sua ação <b>Atacar o Capanga</b> saiu da fila porque você ficou atordoado.</span>`)}${nt("#db0e2f", `<span>Você está <b class="red">atordoado</b>. Não pode agir nem reagir enquanto durar.</span><div class="pills">${pill("stunned", "body", "Atordoado", { n: 6 })}</div>`, { big: 1 })}</div>
+  ${me(chip("stunned", "body", { new: 1, n: 6 }), 87, 420, 360)}`;
+document.getElementById("desk").insertAdjacentHTML("afterbegin", `<div class="gz" style="--g:${FAM.body};left:64px;bottom:0"></div>`);
+</script>

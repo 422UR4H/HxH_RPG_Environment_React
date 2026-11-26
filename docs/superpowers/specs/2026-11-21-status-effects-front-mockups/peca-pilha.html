@@ -1,0 +1,122 @@
+<!DOCTYPE html><meta charset="utf-8"><body style="background:#f4f4f6;font-family:system-ui;padding:24px">
+<style>
+  .board { position: relative; height: 340px; background: #0b1220; border-radius: 8px; overflow: hidden;
+    background-image: linear-gradient(#ffffff10 1px, transparent 1px), linear-gradient(90deg, #ffffff10 1px, transparent 1px);
+    background-size: 80px 80px; }
+  .pc { position: absolute; width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font: 700 18px system-ui; color: #fff; box-shadow: 0 2px 6px #0009; transform: translate(-50%, -50%); }
+  .pc.sel::before { content: ""; position: absolute; inset: -7px; border-radius: 50%; border: 2px solid #ffc300; box-shadow: 0 0 0 3px #0b1220, 0 0 0 5px #ffc300; }
+  .stack { position: absolute; display: flex; flex-direction: column-reverse; align-items: center; gap: 3px; transform: translate(-50%, -100%); z-index: 2; }
+  .strip { display: flex; gap: 2px; background: #1c1c1cee; border-radius: 11px; padding: 2px 4px; border: 1px solid #555; }
+  .g { width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; color: var(--f); position: relative; }
+  .g svg { width: 15px; height: 15px; }
+  .g .n { position: absolute; right: -4px; bottom: -5px; font: 700 9px system-ui; color: #fff; background: #000; border-radius: 5px; padding: 0 2px; line-height: 11px; }
+  .bars { width: 64px; display: flex; flex-direction: column; gap: 2px; }
+  .bar { height: 5px; background: #252525; border-radius: 3px; overflow: hidden; box-shadow: 0 0 0 1px #0008; }
+  .bar i { display: block; height: 100%; }
+  .hp i { background: #db0e2f; } .sp i { background: #1fc140; }
+  .balloon { background: #1c1c1cf2; border: 1px solid #ff5257; color: #fff; font: 12px system-ui; padding: 4px 8px; border-radius: 8px; white-space: nowrap; margin-bottom: 4px; }
+  .list { position: absolute; display: flex; flex-direction: column; gap: 4px; z-index: 3; }
+  .pill { display: flex; align-items: center; gap: 6px; background: #1c1c1cf2; border: 1px solid var(--f); border-left-width: 4px; border-radius: 6px;
+    padding: 3px 8px 3px 5px; font: 13px system-ui; color: #fff; white-space: nowrap; }
+  .pill svg { width: 15px; height: 15px; flex: none; color: var(--f); }
+  .pill .al { color: #aaa; font-style: italic; } .pill .num { font-weight: 700; }
+  .cap { position: absolute; left: 8px; bottom: 6px; right: 8px; font: 12px system-ui; color: #ccc; }
+  .tag { position: absolute; left: 8px; top: 6px; font: 700 11px system-ui; color: #ffc300; letter-spacing: .05em; text-transform: uppercase; }
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; font: 13px system-ui; margin: 8px 0 16px; }
+</style>
+
+<h2>A pilha acima da peça — confere?</h2>
+<p class="subtitle">Do chão para cima: <b>peça → faixa de status (se houver) → vida e stamina (se visíveis) → balão da action/reaction (se estiver agindo)</b>. Cada andar só existe quando tem conteúdo; o de cima desce para ocupar o lugar do que falta. Barras do tamanho da peça: cor esquemática no valor atual, fundo escuro na parte vazia.</p>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">Visão do mestre — vê tudo</div>
+    <div class="mockup-body" style="padding:0"><div class="board" id="m"></div></div>
+  </div>
+  <div class="mockup">
+    <div class="mockup-header">Visão do jogador do Gon — só a própria barra</div>
+    <div class="mockup-body" style="padding:0"><div class="board" id="p"></div></div>
+  </div>
+</div>
+
+<h3 style="margin-top:28px">E ao selecionar a peça, onde abrem os nomes?</h3>
+<p class="subtitle">A pilha não pode pular: se os nomes abrissem para cima, empurrariam barras e balão a cada clique.</p>
+<div class="options">
+  <div class="option" data-choice="side" onclick="toggleSelect(this)">
+    <div class="letter">1</div>
+    <div class="content">
+      <h3>Ao lado da faixa</h3>
+      <p>A lista sai para a direita, na altura da faixa (para a esquerda perto da borda do mapa). A pilha fica parada. <b>Minha recomendação.</b></p>
+      <div class="board" id="s1" style="height:230px"></div>
+    </div>
+  </div>
+  <div class="option" data-choice="below" onclick="toggleSelect(this)">
+    <div class="letter">2</div>
+    <div class="content">
+      <h3>Embaixo da peça</h3>
+      <p>A lista abre sob a peça, longe da pilha. Fica no lugar onde você pensa pôr as reações e cobre a peça de baixo.</p>
+      <div class="board" id="s2" style="height:230px"></div>
+    </div>
+  </div>
+  <div class="option" data-choice="replace" onclick="toggleSelect(this)">
+    <div class="letter">3</div>
+    <div class="content">
+      <h3>A faixa vira a lista</h3>
+      <p>A própria faixa se desdobra no lugar, de cima para baixo, por cima da peça. A pilha não se mexe, mas a lista cobre o avatar da selecionada.</p>
+      <div class="board" id="s3" style="height:230px"></div>
+    </div>
+  </div>
+</div>
+
+<script src="./gi.js"></script>
+<script>
+const FAM = { body: "#ffa216", part: "#a16207", sense: "#4da3ff", test: "#94a3b8", life: "#db0e2f", air: "#e0e0e0", guard: "#1fc140", mind: "#a855f7", presence: "#aaaaaa" };
+const GON = [
+  { k: "paralyzed", f: "body", name: "Paralisado", n: 5, al: "Em choque" },
+  { k: "prone", f: "guard", name: "Caído" },
+  { k: "bleeding", f: "life", name: "Sangrando", n: 2 },
+  { k: "vision", f: "sense", name: "Visão anulada", al: "Ofuscado" },
+];
+const KIL = [{ k: "restrained", f: "body", name: "Preso", al: "Enredado" }];
+const NPC = [{ k: "burning", f: "life", name: "Queimando", n: 1 }, { k: "poisoned", f: "life", name: "Envenenado", n: 2 }];
+const NPC_PUBLIC = [NPC[0]]; // Envenenado é escondido: o jogador não o vê
+function stripHtml(list) { return `<div class="strip">${list.map(x => `<span class="g" style="--f:${FAM[x.f]}">${GI[x.k]}${x.n ? `<span class="n">${x.n}</span>` : ""}</span>`).join("")}</div>`; }
+function barsHtml(hp, sp) { return `<div class="bars"><div class="bar hp"><i style="width:${hp}%"></i></div><div class="bar sp"><i style="width:${sp}%"></i></div></div>`; }
+function put(B, x, y, label, bg, o = {}) {
+  const p = document.createElement("div"); p.className = "pc" + (o.sel ? " sel" : ""); p.style.left = x + "px"; p.style.top = y + "px"; p.style.background = bg; p.textContent = label; B.appendChild(p);
+  const s = document.createElement("div"); s.className = "stack"; s.style.left = x + "px"; s.style.top = (y - 34) + "px";
+  s.innerHTML = (o.st?.length && !o.hideStrip ? stripHtml(o.st) : "") + (o.bars ? barsHtml(...o.bars) : "") + (o.balloon ? `<div class="balloon">${o.balloon}</div>` : "");
+  B.appendChild(s);
+}
+function list(B, x, y, l) {
+  const d = document.createElement("div"); d.className = "list"; d.style.left = x + "px"; d.style.top = y + "px";
+  d.innerHTML = l.map(s => `<div class="pill" style="--f:${FAM[s.f]}">${GI[s.k]}<span>${s.name}${s.n ? ` <span class="num">${s.n}</span>` : ""}</span>${s.al ? `<span class="al">${s.al}</span>` : ""}</div>`).join(""); B.appendChild(d);
+}
+function cap(B, t) { const c = document.createElement("div"); c.className = "cap"; c.innerHTML = t; B.appendChild(c); }
+
+const M = document.getElementById("m");
+put(M, 80, 250, "G", "#107135", { st: GON, bars: [62, 80] });
+put(M, 200, 250, "K", "#2e5397", { st: KIL, bars: [100, 45], balloon: "⚔ Ataca o Bandido" });
+put(M, 320, 250, "B", "#493823", { st: NPC, bars: [30, 70] });
+put(M, 200, 330, "L", "#5a4529", { bars: [100, 100] });
+cap(M, "Killua agindo: balão no topo da pilha · Leorio sem status: barras logo acima da peça");
+
+const P = document.getElementById("p");
+put(P, 80, 250, "G", "#107135", { st: GON, bars: [62, 80] });
+put(P, 200, 250, "K", "#2e5397", { st: KIL, balloon: "⚔ Ataca o Bandido" });
+put(P, 320, 250, "B", "#493823", { st: NPC_PUBLIC });
+put(P, 200, 330, "L", "#5a4529", {});
+cap(P, "sem barras dos outros (até o mestre revelar) · do Bandido só o Queimando: Envenenado é escondido · Leorio: nada");
+
+const S1 = document.getElementById("s1"); put(S1, 70, 170, "G", "#107135", { st: GON, bars: [62, 80], sel: true }); list(S1, 128, 40, GON);
+const S2 = document.getElementById("s2"); put(S2, 70, 110, "G", "#107135", { st: GON, bars: [62, 80], sel: true }); list(S2, 14, 150, GON);
+const S3 = document.getElementById("s3"); put(S3, 70, 170, "G", "#107135", { st: GON, bars: [62, 80], sel: true }); list(S3, 14, 112, GON);
+</script>
+<style id="tema-escuro">/* mesmo fundo escuro do servidor de mockups (frame do brainstorm, modo escuro) */
+body{background:#1d1d1f!important;color:#f5f5f7!important}
+h2,h3,h4,b{color:inherit}
+.sub,.subtitle,.n,.ph p,.fr p,.note,.cap,p[style*="#666"],p[style*="color:#666"]{color:#a1a1a6!important}
+.st{border-top-color:#3d3d3f!important}
+.mockup{background:#2d2d2f;border-radius:10px;overflow:hidden}.mockup-header{color:#a1a1a6;padding:8px 12px;font-size:13px}
+</style>

@@ -1,0 +1,145 @@
+<!DOCTYPE html><meta charset="utf-8"><body style="background:#f4f4f6;font-family:system-ui;padding:24px">
+<style>
+  .phones { display: grid; grid-template-columns: repeat(3, 340px); gap: 22px; justify-content: center; }
+  @media (max-width: 1150px) { .phones { grid-template-columns: repeat(2, 340px); } }
+  .ph h4 { margin: 0 0 6px; font: 600 14px system-ui; }
+  .ph p { margin: 0 0 8px; font: 12.5px/1.35 system-ui; color: #666; min-height: 34px; }
+  .scr { position: relative; width: 340px; height: 700px; border-radius: 26px; overflow: hidden; background: #0b1220; border: 6px solid #111;
+    background-image: linear-gradient(#ffffff12 1px, transparent 1px), linear-gradient(90deg, #ffffff12 1px, transparent 1px); background-size: 48px 48px;
+    font: 13px system-ui; color: #fff; }
+  .tok { position: absolute; width: 40px; height: 40px; border-radius: 50%; background: #fff; border: 3px solid #1c1c1c; transform: translate(-50%, -50%);
+    display: flex; align-items: center; justify-content: center; font: 800 14px system-ui; color: #1c1c1c; box-shadow: 0 2px 6px #000a; }
+  .tok.me { box-shadow: 0 0 0 3px #0b1220, 0 0 0 6px #ffc300; }
+  .tok.tg { box-shadow: 0 0 0 3px #0b1220, 0 0 0 6px #ff5257; }
+
+  /* bottom sheet: vem de trás e de baixo da navegação */
+  .sheet { position: absolute; left: 8px; right: 8px; bottom: 0; top: var(--top); background: #2d2215; border-radius: 22px 22px 0 0;
+    box-shadow: 0 -6px 24px #000a; padding: 12px 14px 90px; display: flex; flex-direction: column; gap: 10px; }
+  .head { display: flex; justify-content: space-between; align-items: center; min-height: 22px; }
+  .nick { font: 700 15px system-ui; }
+  .tag { font: 700 11px system-ui; border-radius: 9px; padding: 2px 9px; }
+  .tag.self { background: #ffc300; color: #1c1c1c; } .tag.tgt { background: #ff5257; color: #fff; }
+
+  /* avatar da ficha: emblema + moldura de gungi + foto */
+  .gk { position: absolute; left: 50%; width: 104px; height: 104px; transform: translateX(-50%); top: calc(var(--top) - 58px); z-index: 3; }
+  .gk img { position: absolute; }
+  .gk .em { width: 104%; height: 104%; top: 48%; left: 50.5%; transform: translate(-50%, -50%); }
+  .gk .fr { width: 100%; height: 100%; top: -2px; left: 0; }
+  .gk .ph2 { width: 70%; height: 70%; top: 15%; left: 15%; border-radius: 50%; object-fit: cover; top: calc(15% - 2px); }
+  .gk .ini { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font: 800 13px system-ui; color: #1c1c1c; padding-top: 52px; }
+
+  /* barras da ficha (ProgressBar: borda preta, trilho surfaceControl, degradê até o tom escuro sob o número) */
+  .pb { position: absolute; width: 118px; top: calc(var(--top) - 24px); z-index: 2; border: 3px solid #000; background: #444; }
+  .pb.l { right: calc(50% + 26px); } .pb.r { left: calc(50% + 26px); }
+  .pb .f { position: absolute; inset: 0; }
+  .pb.l .f { background: linear-gradient(to left, #db0e2f calc(100% - 44px), #ba1a3e calc(100% - 22px)); }
+  .pb.r .f { background: linear-gradient(to right, #1fc140 calc(100% - 44px), #107135 calc(100% - 22px)); }
+  .pb span { position: relative; display: block; text-align: right; padding: 1px 6px 0; font: 700 11px/13px system-ui; text-shadow: 0 0 2px #000e; font-variant-numeric: tabular-nums; }
+
+  .sec { font: 700 10.5px system-ui; color: #aaa; text-transform: uppercase; letter-spacing: .06em; }
+  .pills { display: flex; gap: 5px; flex-wrap: wrap; }
+  .pill { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px 3px 4px; border-radius: 7px; font-size: 12px;
+    background: color-mix(in srgb, var(--f) 15%, transparent); box-shadow: inset 3px 0 0 var(--f); }
+  .pill svg { width: 15px; height: 15px; color: var(--f); margin-left: 3px; flex: none; }
+  .pill b { font-weight: 700; } .pill i { color: #ccc; } .pill.secret { opacity: .5; }
+  .div { height: 1px; background: #ffffff14; margin: 2px 0; }
+  .actor { display: flex; align-items: center; gap: 8px; background: #382a1a; border-radius: 10px; padding: 5px 8px; }
+  .actor .mini { width: 24px; height: 24px; border-radius: 50%; background: #fff; color: #1c1c1c; font: 800 10px system-ui; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px #ffc300; }
+  .actor .sw { margin-left: auto; color: #aaa; font-size: 12px; }
+  .bal { font-size: 12px; color: #e0e0e0; display: flex; gap: 10px; } .bal .k { color: #aaa; }
+  .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .btn { border-radius: 8px; padding: 9px; text-align: center; font-weight: 700; background: #493823; border: 1px solid #604d31; }
+  .btn.mv { border-color: #38bdf8; background: #2a3a44; } .btn.at { border-color: #ff5257; background: #4a2a26; } .btn.off { opacity: .35; }
+  .sub { display: flex; gap: 5px; flex-wrap: wrap; }
+  .sub span { border: 1px solid #604d31; border-radius: 14px; padding: 3px 10px; font-size: 12px; color: #ccc; }
+  .sub span.on { border-color: #38bdf8; color: #fff; background: #2a3a44; } .sub.w span.on { border-color: #ff5257; background: #4a2a26; }
+  .sub span.fut { border-style: dashed; color: #777; }
+  .err { background: #1c1c1c; border: 1px solid #db0e2f; border-radius: 8px; padding: 8px 10px; font-size: 12.5px; } .err b { color: #ff5257; }
+  .hint { color: #aaa; font-size: 12px; font-style: italic; }
+
+  /* navegação: plana quando fechada; com recorte e botão encaixado quando aberta */
+  .nav { position: absolute; left: 0; right: 0; bottom: 0; height: 66px; z-index: 5; }
+  .nav svg.bg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 -3px 6px #0008); }
+  .items { position: absolute; inset: 0; display: flex; justify-content: space-around; align-items: center; padding-top: 4px; }
+  .nv { width: 84px; text-align: center; font: 11px system-ui; color: #ccc; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .nv .i { font-size: 21px; line-height: 24px; }
+  .nv.on { color: #fff; font-weight: 700; }
+  .nv.c { justify-content: flex-end; height: 100%; padding-bottom: 8px; box-sizing: border-box; }
+  .orb { position: absolute; left: 50%; top: -41px; transform: translateX(-50%); width: 62px; height: 62px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 24px; box-shadow: 0 4px 12px #000a, inset 0 1px 0 #ffffff22; }
+  .orb.ready { background: #107135; } .orb.off { background: #444; color: #888; }
+  .nv.c .lb { color: #1fc140; }
+  .nv.c .lb.off { color: #888; }
+  .pb.l span { text-align: left; }
+  .gk { z-index: 4; }
+  .orb { background: #382a1a !important; color: #1fc140; font-size: 30px; box-shadow: 0 3px 10px #0009, inset 0 1px 0 #ffffff18; }
+  .orb.off { color: #666; }
+  .orb.deep { width: 48px; height: 48px; top: -18px; font-size: 24px; }
+</style>
+
+<h2>Painel de ação do jogador — final</h2>
+<p class="subtitle">Versão aprovada: recorte fundo, botão do tamanho da referência e "Enviar ação" no verde da seta (green500).</p>
+
+<div class="phones" id="ph"></div>
+
+<script src="./gi.js"></script>
+<script>
+const FAM = { body: "#ffa216", part: "#a16207", sense: "#4da3ff", test: "#94a3b8", life: "#db0e2f", air: "#e0e0e0", guard: "#1fc140", mind: "#a855f7", presence: "#aaaaaa" };
+const W = 328, CX = W / 2;
+const navBg = (notch, deep) => {
+  let path;
+  if (!notch) path = `M0,0 H${W} V66 H0 Z`;
+  else if (!deep) {
+    const cy = -6, R = 39, k = Math.sqrt(R * R - (8 - cy) ** 2), x0 = Math.sqrt(R * R - cy * cy);
+    path = `M0,0 H${CX - x0 - 10} Q${CX - x0},0 ${CX - k},8 A${R},${R} 0 0 0 ${CX + k},8 Q${CX + x0},0 ${CX + x0 + 10},0 H${W} V66 H0 Z`;
+  } else {
+    // botão: centro 10px abaixo do topo, raio 24; recorte em U: concordância até a parede e meia-volta por baixo (raio 31)
+    const cy = 10, R = 31, f = 12;
+    path = `M0,0 H${CX - R - f} Q${CX - R},0 ${CX - R},${cy} A${R},${R} 0 0 0 ${CX + R},${cy} Q${CX + R},0 ${CX + R + f},0 H${W} V66 H0 Z`;
+  }
+  return `<svg class="bg" viewBox="0 0 ${W} 66"><path d="${path}" fill="#382a1a"/></svg>`;
+};
+const nav = (state, deep = true) => {
+  if (state === "closed") return `<div class="nav">${navBg(false)}<div class="items"><div class="nv"><span class="i">📜</span>Ficha</div><div class="nv"><span class="i">⚔</span>Ação</div><div class="nv"><span class="i">☰</span>Histórico</div></div></div>`;
+  return `<div class="nav">${navBg(true, deep)}<div class="items"><div class="nv"><span class="i">📜</span>Ficha</div><div class="nv c on" style="position:relative"><div class="orb ${state}${deep ? " deep" : ""}">➤</div><span class="lb${state === "off" ? " off" : ""}">Enviar ação</span></div><div class="nv"><span class="i">☰</span>Histórico</div></div></div>`;
+};
+const POS = { J1: [110, 190], J2: [206, 140], C: [286, 90] };
+const map = (me = "J1", tg = "") => (tg ? `<svg style="position:absolute;left:0;top:0" width="340" height="320"><line x1="${POS[me][0]}" y1="${POS[me][1]}" x2="${POS[tg][0]}" y2="${POS[tg][1]}" stroke="#ff5257" stroke-width="2" stroke-dasharray="5 4"/></svg>` : "") +
+  Object.entries(POS).map(([k, [x, y]]) => `<div class="tok${k === me ? " me" : k === tg ? " tg" : ""}" style="left:${x}px;top:${y}px">${k}</div>`).join("");
+const avatar = `<div class="gk"><img class="fr" src="./gungi.svg"><img class="ph2" src="./avatar.png"></div>`;
+const bars = (hp, hpT, sp, spT) => `<div class="pb l"><div class="f" style="clip-path:inset(0 0 0 ${100 - hp}%)"></div><span>${hpT}</span></div><div class="pb r"><div class="f" style="clip-path:inset(0 ${100 - sp}% 0 0)"></div><span>${spT}</span></div>`;
+const pill = (s) => `<span class="pill${s.secret ? " secret" : ""}" style="--f:${FAM[s.f]}">${GI[s.k]}<span>${s.name}${s.n ? ` <b>${s.n}</b>` : ""}${s.al ? ` <i>· ${s.al}</i>` : ""}</span></span>`;
+const statuses = (l) => `<div class="sec">Status</div><div class="pills">${l.map(pill).join("")}</div>`;
+const head = (nick, tag) => `<div class="head"><span class="nick">${nick}</span><span class="tag ${tag}">${tag === "self" ? "você" : "alvo"}</span></div>`;
+const moveSub = `<div class="sub"><span class="on">Dash</span><span>Shift</span><span class="fut">Deslizar</span><span class="fut">Rolar</span><span class="fut">Saltar</span></div>`;
+const weapSub = `<div class="sub w"><span class="on">Throwing Dagger</span><span>Katana</span><span>Desarmado</span></div>`;
+const bal = `<div class="bal"><span class="k">Saldo</span><span>⚔ +0.0</span><span>➜ +0.0</span></div>`;
+const sheet = (top, inner, extra = "") => `<div style="--top:${top}px">${extra}${avatar}<div class="sheet">${inner}</div></div>`;
+
+const P = [
+  { t: "1 · Fechado", d: "Clicou no mapa: o cartão some atrás da navegação, que volta plana. O rascunho fica guardado.", h: map() + nav("closed") },
+  { t: "2 · Sem alvo: você", d: "Ainda sem alvo (ou tocou na própria peça): o círculo é você, com as suas barras e os seus status.",
+    h: map() + sheet(350, head("Jogador1", "self") + statuses([{ k: "bleeding", f: "life", name: "Sangrando", n: 2 }, { k: "prone", f: "guard", name: "Caído" }]) +
+      `<div class="div"></div>${bal}<div class="btns"><div class="btn">➜ Mover</div><div class="btn">⚔ Atacar</div></div><div class="hint">Toque num espaço do mapa para se mover, ou em alguém para agir.</div>`, bars(87, "46/53", 100, "110/110")) + nav("off") },
+  { t: "3 · Alvo escolhido", d: "O círculo vira o alvo, sem barras (o jogador não tem acesso às do Jogador2). Status com apelido.",
+    h: map("J1", "J2") + sheet(290, head("Jogador2", "tgt") + statuses([{ k: "restrained", f: "body", name: "Preso", al: "Enredado" }, { k: "burning", f: "life", name: "Queimando", n: 1, al: "Em chamas" }]) +
+      `<div class="div"></div>${bal}<div class="btns"><div class="btn mv">➜ Mover</div><div class="btn at">⚔ Atacar</div></div>${moveSub}${weapSub}`) + nav("ready") },
+  { t: "4 · Você está Atordoado", d: "Status que ele vê e que impede de agir: aviso curto, Mover/Atacar e o envio apagados.",
+    h: map() + sheet(350, head("Jogador1", "self") + statuses([{ k: "stunned", f: "body", name: "Atordoado", n: 6 }, { k: "prone", f: "guard", name: "Caído" }]) +
+      `<div class="div"></div><div class="err">Você está <b>Atordoado</b>. Não pode agir nem reagir enquanto durar.</div><div class="btns"><div class="btn off">➜ Mover</div><div class="btn off">⚔ Atacar</div></div>`, bars(60, "32/53", 80, "88/110")) + nav("off") },
+  { t: "5 · Recusado por status desconhecido", d: "Status que ele não vê: enviou, o servidor recusou (depende do back mandar o motivo em campos).",
+    h: map("J1", "J2") + sheet(320, head("Jogador2", "tgt") + statuses([{ k: "restrained", f: "body", name: "Preso", al: "Enredado" }]) +
+      `<div class="div"></div><div class="err">Você <b>não pode atacar</b> devido a um status desconhecido.</div>${bal}<div class="btns"><div class="btn">➜ Mover</div><div class="btn at">⚔ Atacar</div></div>${weapSub}`) + nav("ready") },
+  { t: "6 · Mestre agindo por NPC", d: "\"Agindo como\" só para quem tem mais de um personagem para agir. O mestre vê as barras; apagado = a mesa não vê.",
+    h: map("C", "J1") + sheet(290, head("Jogador1", "tgt") + statuses([{ k: "vision", f: "sense", name: "Visão anulada", al: "Ofuscado", secret: true }, { k: "bleeding", f: "life", name: "Sangrando", n: 2, secret: true }, { k: "prone", f: "guard", name: "Caído" }]) +
+      `<div class="div"></div><div class="actor"><span class="mini">C</span><span>Agindo como <b>Capanga</b></span><span class="sw">trocar ▾</span></div>${bal}<div class="btns"><div class="btn">➜ Mover</div><div class="btn at">⚔ Atacar</div></div>${weapSub}`, bars(87, "46/53", 100, "110/110")) + nav("ready") },
+];
+document.getElementById("ph").innerHTML = P.map(p => `<div class="ph"><h4>${p.t}</h4><p>${p.d}</p><div class="scr">${p.h}</div></div>`).join("");
+</script>
+<style id="tema-escuro">/* mesmo fundo escuro do servidor de mockups (frame do brainstorm, modo escuro) */
+body{background:#1d1d1f!important;color:#f5f5f7!important}
+h2,h3,h4,b{color:inherit}
+.sub,.subtitle,.n,.ph p,.fr p,.note,.cap,p[style*="#666"],p[style*="color:#666"]{color:#a1a1a6!important}
+.st{border-top-color:#3d3d3f!important}
+.mockup{background:#2d2d2f;border-radius:10px;overflow:hidden}.mockup-header{color:#a1a1a6;padding:8px 12px;font-size:13px}
+</style>

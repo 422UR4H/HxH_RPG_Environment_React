@@ -1,0 +1,140 @@
+<!DOCTYPE html><meta charset="utf-8"><title>Mestre — aba Partida — v5</title>
+<body style="background:#1d1d1f;color:#f5f5f7;font-family:system-ui;padding:24px">
+<style>
+  h2 { margin: 0 0 8px; } h3 { margin: 28px 0 6px; } .sub { color: #a1a1a6; font-size: 14px; max-width: 1200px; margin: 0 0 8px; line-height: 1.5; }
+  .phones { display: flex; flex-wrap: wrap; gap: 22px; margin-top: 12px; }
+  .ph { width: 340px; } .ph h4 { margin: 0 0 8px; font: 600 14px system-ui; }
+  .scr { position: relative; width: 340px; height: 700px; border-radius: 26px; overflow: hidden; background: #0b1220; border: 6px solid #111; font: 13px system-ui; color: #fff;
+    background-image: linear-gradient(#ffffff12 1px, transparent 1px), linear-gradient(90deg, #ffffff12 1px, transparent 1px); background-size: 48px 48px; }
+  /* o header de hoje, sem mudança: só indicado */
+  .hdr { position: absolute; left: 0; right: 0; top: 0; height: 44px; background: repeating-linear-gradient(135deg, #2d2215 0 10px, #33271a 10px 20px); border-bottom: 1px solid #493823;
+    display: flex; align-items: center; justify-content: center; font: 600 11.5px system-ui; color: #bba98a; z-index: 3; letter-spacing: .02em; }
+  .tok { position: absolute; width: 36px; height: 36px; border-radius: 50%; background: #fff; border: 3px solid #1c1c1c; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; font: 800 12px system-ui; color: #1c1c1c; }
+  /* navegação do mestre: Agir no centro, para o recorte */
+  .nav { position: absolute; left: 0; right: 0; bottom: 0; height: 60px; z-index: 6; }
+  .nav svg.bg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .items { position: absolute; inset: 0; display: flex; }
+  .items > span { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font: 11px system-ui; color: #ccc; position: relative; }
+  .items > span.on { color: #fff; font-weight: 700; }
+  .items > span.on::before { content: ""; position: absolute; left: 10px; right: 10px; top: 0; height: 3px; border-radius: 0 0 3px 3px; background: #1fc140; }
+  .items > span.new::after { content: "novo"; position: absolute; top: 5px; right: 2px; font: 700 9px system-ui; color: #1c1c1c; background: #ffc300; border-radius: 6px; padding: 0 4px; }
+  .items > span.c { justify-content: flex-end; padding-bottom: 8px; }
+  .items span.c .lb { color: #1fc140; font-weight: 700; }
+  .orb { position: absolute; left: 50%; top: -18px; transform: translateX(-50%); width: 48px; height: 48px; border-radius: 50%; background: #382a1a; display: flex; align-items: center; justify-content: center;
+    color: #1fc140; font-size: 24px; box-shadow: 0 3px 10px #0009, inset 0 1px 0 #ffffff18; }
+  /* painel fixo do mestre: sempre visível, sempre da mesma altura; o conteúdo rola dentro */
+  .fixed { position: absolute; left: 0; right: 0; bottom: 0; height: 328px; padding-bottom: 60px; box-sizing: border-box; background: #2d2215; border-top: 1px solid #604d31; z-index: 5; overflow: hidden; }
+  .fixed .in { padding: 14px; display: flex; flex-direction: column; gap: 14px; }
+  .fixed .scroll { position: absolute; right: 3px; top: 8px; width: 4px; height: 90px; border-radius: 2px; background: #604d31; }
+  .ttl { font: 700 15px system-ui; }
+  .lbl { font: 700 10.5px system-ui; color: #ccc; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .soon { text-transform: none; letter-spacing: 0; font: 700 10px system-ui; color: #ffc300; border: 1px solid #ffc300; border-radius: 6px; padding: 0 5px; }
+  .row { display: flex; align-items: center; gap: 10px; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; padding: 9px 12px; font-weight: 700; font-size: 12.5px; background: #493823; border: 1px solid #604d31; white-space: nowrap; }
+  .btn.danger { background: transparent; border-color: #cb1437; color: #ff5257; }
+  .seg { display: inline-grid; grid-template-columns: 1fr 1fr; border: 1px solid #604d31; border-radius: 8px; overflow: hidden; }
+  .seg span { display: flex; align-items: center; justify-content: center; min-height: 34px; padding: 0 12px; font-size: 12.5px; color: #ccc; } .seg span.on { background: #107135; color: #fff; font-weight: 700; }
+  .ck { display: flex; align-items: center; gap: 10px; font-size: 12.5px; padding: 4px 0; }
+  .cb { position: relative; width: 24px; height: 24px; border-radius: 6px; border: 2px solid #888; background: #1c1c1c99; flex: none; }
+  .note { font-size: 11.5px; color: #bbb; font-style: italic; }
+  .sep { height: 1px; background: #ffffff14; }
+  .q { background: #382a1a; border-radius: 8px; padding: 9px 10px; border-left: 3px solid #ff5257; } .q b { display: block; margin-bottom: 2px; } .q small { color: #bbb; }
+  .scene { flex: 1; } .scene small { display: block; color: #aaa; font-size: 11px; } .scene b { font-size: 14px; }
+  /* ficha: abre como a folha do jogador (arredondada, afastada das laterais, vindo de trás da navegação), cobrindo o mapa */
+  .ficha { position: absolute; left: 8px; right: 8px; bottom: 0; top: 170px; background: #2d2215; border-radius: 22px 22px 0 0; box-shadow: 0 -8px 30px #000c; z-index: 7; padding: 16px 14px 80px; display: flex; flex-direction: column; gap: 10px; }
+  .ficha .x { position: absolute; top: -10px; right: -5px; width: 36px; height: 36px; filter: drop-shadow(0 2px 3px #000c); }
+  .ficha img.card { width: 100%; border-radius: 10px; }
+  .ficha .ph2 { flex: 1; border: 1px dashed #604d31; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #aaa; font-size: 12.5px; text-align: center; padding: 10px; }
+  .ficha-over .fixed { z-index: 4; } .ficha-over .nav { z-index: 8; }
+  /* computador, 1366 px (notebook comum) mostrado em 85 % */
+  .wrap { width: 1161px; height: 595px; overflow: hidden; margin-top: 10px; border: 6px solid #111; border-radius: 12px; }
+  .app { position: relative; width: 1366px; height: 700px; background: #0b1220; font: 13px system-ui; transform: scale(.85); transform-origin: 0 0;
+    background-image: linear-gradient(#ffffff12 1px, transparent 1px), linear-gradient(90deg, #ffffff12 1px, transparent 1px); background-size: 52px 52px; }
+  .app .hdr { height: 44px; }
+  .rail { position: absolute; left: 0; top: 44px; bottom: 0; width: 72px; background: #2d2215; border-right: 1px solid #493823; display: flex; flex-direction: column; z-index: 2; }
+  .rail span { padding: 14px 0; text-align: center; font-size: 11.5px; color: #ccc; position: relative; } .rail span.on { background: #493823; color: #fff; font-weight: 700; }
+  .rail span.new::after { content: "novo"; position: absolute; top: 2px; right: 2px; font: 700 9px system-ui; color: #1c1c1c; background: #ffc300; border-radius: 6px; padding: 0 3px; }
+  .qcol { position: absolute; left: 72px; top: 44px; bottom: 0; width: 240px; background: #2d2215; border-right: 1px solid #493823; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+  .float { position: absolute; left: 326px; top: 58px; width: 300px; background: #2d2215; border: 1px solid #604d31; border-radius: 12px; padding: 16px 14px 14px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 12px 30px #000c; z-index: 3; }
+  .aside { position: absolute; right: 0; top: 44px; bottom: 0; width: 260px; background: #2d2215; border-left: 1px solid #493823; padding: 10px; color: #ccc; font-size: 12px; }
+  .meas { position: absolute; bottom: 8px; font: 700 11px system-ui; color: #ffc300; background: #000a; border-radius: 6px; padding: 2px 6px; z-index: 4; }
+  .app .ficha { left: 330px; right: 270px; top: 90px; bottom: 0; }
+  .box { background: #2d2d2f; border-radius: 10px; padding: 12px 16px; max-width: 1200px; font-size: 13.5px; line-height: 1.55; margin: 18px 0 0; } .box li { margin: 4px 0; }
+  .split { position: absolute; left: 72px; top: 44px; bottom: 0; width: 320px; background: #2d2215; border-right: 1px solid #493823; display: flex; flex-direction: column; }
+  .split .half { flex: 1 1 50%; min-height: 0; overflow: hidden; padding: 12px; display: flex; flex-direction: column; gap: 12px; position: relative; }
+  .split .half + .half { border-top: 2px solid #604d31; }
+  .split .sbar { position: absolute; right: 3px; top: 10px; width: 4px; height: 70px; border-radius: 2px; background: #604d31; }
+  .aside2 { position: absolute; right: 0; top: 44px; bottom: 0; width: 260px; background: #2d2215; border-left: 1px solid #493823; padding: 10px; color: #ccc; font-size: 12px; }
+  .aside2 .tabs { display: flex; } .aside2 .tabs span { flex: 1; text-align: center; padding: 6px; } .aside2 .tabs span.on { color: #fff; border-bottom: 2px solid #1fc140; }
+  .wrapw { width: 1161px; height: 490px; overflow: hidden; margin-top: 10px; border: 6px solid #111; border-radius: 12px; }
+  .appw { position: relative; width: 1920px; height: 810px; background: #0b1220; font: 13px system-ui; transform: scale(.605); transform-origin: 0 0;
+    background-image: linear-gradient(#ffffff12 1px, transparent 1px), linear-gradient(90deg, #ffffff12 1px, transparent 1px); background-size: 52px 52px; }
+  .sect { position: absolute; left: 312px; top: 44px; bottom: 0; width: 320px; background: #2d2215; border-right: 1px solid #493823; padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+</style>
+
+<h2>Mestre — aba "Partida" — v5</h2>
+
+<div class="box"><b>O que não aparece na imagem:</b><ul>
+  <li><b>O header não muda</b> (faixa listrada = o de hoje, igual).</li>
+  <li><b>Celular:</b> mapa e interface do mestre dividem a tela <b>meio a meio</b>, fixo (a interface conta com a navegação). O conteúdo rola dentro dela; sem X.</li>
+  <li><b>Ficha no celular:</b> fecha no X, tocando fora dela ou tocando de novo em "Ficha" na navegação.</li>
+  <li><b>Computador padrão e tablet (mestre):</b> a coluna da esquerda divide em duas metades fixas — <b>em cima, a interface escolhida</b> (Agir por padrão, ou Partida), <b>embaixo, a fila</b>; cada metade rola por dentro. A navegação da coluna fica com Agir · Ficha · Partida (Personagens já é aba da coluna da direita, junto do Histórico). O jogador não muda (ele não vê a fila).</li>
+  <li><b>Computador: a ficha abre como hoje</b>, ao lado da coluna — sem mudança.</li>
+  <li><b>Widescreen e ultrawide:</b> duas seções fixas na esquerda — a <b>fila</b> (sempre) e, ao lado, a seção que <b>Agir, Ficha e Partida dividem</b> (Agir por padrão). Nada flutua sobre o mapa. Onde trocar do padrão para o widescreen (sugestão: ~1600 px de largura) é do PO.</li>
+</ul></div>
+
+<h3>Celular (em pé) — mestre</h3>
+<div class="phones" id="ph"></div>
+
+<h3>Computador padrão (1366 px, mostrado em 85 %) — vale também para o tablet</h3>
+<div class="wrap"><div class="app" id="d1"></div></div>
+<h3>Widescreen (1920 px, mostrado em 60 %)</h3>
+<div class="wrapw"><div class="appw" id="d2"></div></div>
+
+<script>
+const W = 328, CX = W / 2;
+const navBg = (notch) => {
+  const cy = 10, R = 31, f = 12;
+  const p = notch ? `M0,0 H${CX - R - f} Q${CX - R},0 ${CX - R},${cy} A${R},${R} 0 0 0 ${CX + R},${cy} Q${CX + R},0 ${CX + R + f},0 H${W} V60 H0 Z` : `M0,0 H${W} V60 H0 Z`;
+  return `<svg class="bg" viewBox="0 0 ${W} 60"><path d="${p}" fill="#382a1a"/></svg>`;
+};
+const ITEMS = ["Fila", "Ficha", "Agir", "Personagens", "Partida"];
+const nav = (on) => `<div class="nav">${navBg(on === "Agir")}<div class="items">${ITEMS.map(x => x === "Agir" && on === "Agir"
+  ? `<span class="c"><span class="orb">➤</span><span class="lb">Enviar ação</span></span>`
+  : `<span class="${x === on ? "on" : ""}${x === "Partida" ? " new" : ""}">${x}</span>`).join("")}</div></div>`;
+const hdr = `<div class="hdr">header de hoje — sem mudança</div>`;
+const tokens = `<div class="tok" style="left:100px;top:180px">J1</div><div class="tok" style="left:190px;top:140px">J2</div><div class="tok" style="left:270px;top:100px">C</div>`;
+const ck = (t) => `<div class="ck"><span class="cb"></span>${t}</div>`;
+const fila = `<div class="row"><span class="lbl" style="margin:0">Regime</span><span class="seg"><span>Livre</span><span class="on">Disputado</span></span></div>
+  <div class="ttl">Fila de ações</div><div class="q"><b>Jogador1 ataca Capanga</b><small>velocidade 14</small></div><div class="q" style="border-color:#38bdf8"><b>Jogador2 se move</b><small>velocidade 11</small></div>`;
+const partida = `<div class="ttl">Partida</div>
+  <div class="row"><span class="scene"><small>Cena atual</small><b>Roleplay</b></span><span class="btn">Nova cena</span></div>
+  <div class="sep"></div>
+  <div><div class="lbl">Barras de vida e stamina <span class="soon">quando existir</span></div>${ck("Revelar as de todos os personagens de jogador a todos")}${ck("Revelar as de todos os NPCs")}
+    <div class="note" style="margin-top:4px">Um personagem por vez: no card dele, na aba Personagens.</div></div>
+  <div class="sep"></div>
+  <div class="note">As configurações da mesa entram aqui quando existirem.</div>
+  <div><span class="btn danger">Encerrar partida</span></div>`;
+const agir = `<div class="ttl">Agir como Capanga</div><div class="note">(o miolo do painel de ação já decidido: alvo no círculo, status, ação)</div>`;
+const fixed = (inner) => `<div class="fixed"><div class="in">${inner}</div><span class="scroll"></span></div>`;
+const ficha = `<div class="ficha"><img class="x" src="x-red.svg" alt="Fechar"><div class="ph2">a ficha de hoje, inteira, rolando dentro desta folha</div></div>`;
+document.getElementById("ph").innerHTML = [
+  ["Fila (Regime continua aqui)", hdr + tokens + fixed(fila) + nav("Fila")],
+  ["Partida", hdr + tokens + fixed(partida) + nav("Partida")],
+  ["Agir: recorte e botão redondo", hdr + tokens + fixed(agir) + nav("Agir")],
+  ["Ficha aberta (exceção: folha)", hdr + tokens + fixed(fila) + nav("Ficha") + ficha],
+].map(([t, h]) => `<div class="ph"><h4>${t}</h4><div class="scr${t.startsWith("Ficha") ? " ficha-over" : ""}">${h}</div></div>`).join("");
+const partidaShort = partida.replace('<div class="ttl">Partida</div>', '<div class="ttl">Partida</div>');
+document.getElementById("d1").innerHTML = `<div class="hdr">header de hoje — sem mudança</div>
+  <div class="rail">${["Agir", "Ficha", "Partida"].map(x => `<span class="${x === "Partida" ? "on new" : ""}">${x}</span>`).join("")}</div>
+  <div class="split"><div class="half">${partida}<span class="sbar"></span></div><div class="half">${fila}<span class="sbar"></span></div></div>
+  <div class="tok" style="left:700px;top:330px">J1</div><div class="tok" style="left:800px;top:270px">J2</div><div class="tok" style="left:900px;top:220px">C</div>
+  <div class="aside2"><div class="tabs"><span class="on">Histórico</span><span>Personagens</span></div></div>
+  <span class="meas" style="left:80px">interface + fila 320</span><span class="meas" style="left:640px">mapa ~714</span><span class="meas" style="right:90px">260</span>`;
+document.getElementById("d2").innerHTML = `<div class="hdr">header de hoje — sem mudança</div>
+  <div class="rail">${["Agir", "Ficha", "Partida"].map(x => `<span class="${x === "Partida" ? "on new" : ""}">${x}</span>`).join("")}</div>
+  <div class="qcol">${fila}</div><div class="sect">${partida}</div>
+  <div class="tok" style="left:1100px;top:380px">J1</div><div class="tok" style="left:1200px;top:320px">J2</div><div class="tok" style="left:1300px;top:270px">C</div>
+  <div class="aside2"><div class="tabs"><span class="on">Histórico</span><span>Personagens</span></div></div>
+  <span class="meas" style="left:80px">fila 240</span><span class="meas" style="left:330px">Agir · Ficha · Partida 320</span><span class="meas" style="left:1050px">mapa ~1028</span><span class="meas" style="right:90px">260</span>`;
+</script>

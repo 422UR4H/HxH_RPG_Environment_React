@@ -1,0 +1,139 @@
+<!DOCTYPE html><meta charset="utf-8"><body style="background:#f4f4f6;font-family:system-ui;padding:24px">
+<style>
+  .frames { display: flex; flex-direction: column; gap: 30px; align-items: center; }
+  .fr h4 { margin: 0 0 6px; font: 600 15px system-ui; } .fr p { margin: 0 0 8px; font: 13px/1.4 system-ui; color: #666; max-width: 1100px; }
+  .app { position: relative; width: 1100px; height: 720px; border: 6px solid #111; border-radius: 12px; overflow: hidden; background: #0b1220; font: 13px system-ui; color: #fff; }
+  .topb { position: absolute; left: 0; right: 0; top: 0; height: 42px; background: #2d2215; border-bottom: 1px solid #493823; display: flex; align-items: center; gap: 8px; padding: 0 10px; }
+  .topb .sc { font-weight: 700; } .topb .tb { margin-left: auto; display: flex; gap: 6px; }
+  .topb .tb span { font: 600 11.5px system-ui; padding: 6px 9px; border-radius: 6px; background: #555; color: #ccc; }
+  .topb .tb span.seg { background: #493823; } .topb .tb span.g { background: #107135; color: #fff; } .topb .tb span.d { background: transparent; border: 1px solid #cb1437; color: #ff5257; }
+  .rail { position: absolute; left: 0; top: 42px; bottom: 0; width: 64px; background: #2d2215; display: flex; flex-direction: column; }
+  .rail span { padding: 12px 0; text-align: center; font-size: 11px; color: #ccc; } .rail span.on { background: #493823; color: #fff; font-weight: 700; }
+  .side { position: absolute; left: 64px; top: 42px; bottom: 0; width: 300px; background: #2d2215; border-right: 1px solid #493823; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+  .aside { position: absolute; right: 0; top: 42px; bottom: 0; width: 270px; background: #2d2215; border-left: 1px solid #493823; padding: 10px; font-size: 12px; color: #ccc; display: flex; flex-direction: column; gap: 8px; }
+  .aside .tabs { display: flex; } .aside .tabs span { flex: 1; text-align: center; padding: 6px; } .aside .tabs span.on { color: #fff; border-bottom: 2px solid #1fc140; }
+  .map { position: absolute; left: 364px; right: 270px; top: 42px; bottom: 0;
+    background-image: linear-gradient(#ffffff12 1px, transparent 1px), linear-gradient(90deg, #ffffff12 1px, transparent 1px); background-size: 52px 52px; }
+  .tok { position: absolute; width: 44px; height: 44px; border-radius: 50%; background: #fff; border: 3px solid #1c1c1c; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; font: 800 13px system-ui; color: #1c1c1c; }
+  .lbl { font: 700 10.5px system-ui; color: #aaa; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 5px; }
+  .qcard { background: #382a1a; border-radius: 8px; padding: 9px 10px; display: flex; flex-direction: column; gap: 6px; border-left: 3px solid #ff5257; }
+  .note { display: flex; gap: 6px; font-size: 12px; color: #ffc300; } .note svg { width: 15px; height: 15px; flex: none; }
+  .open { position: absolute; z-index: 4; background: #1c1c1c; border: 1px solid #ffffff24; border-radius: 12px; padding: 6px; box-shadow: 0 10px 28px #000e; display: flex; flex-direction: column; gap: 4px; width: 240px; transform: translateX(-50%); }
+  .row { display: grid; grid-template-columns: 26px 1fr auto; align-items: center; gap: 8px; padding: 4px 8px 4px 4px; border-radius: 8px; background: color-mix(in srgb, var(--f) 12%, transparent); box-shadow: inset 3px 0 0 var(--f); }
+  .row .ic { width: 26px; height: 26px; border-radius: 7px; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--f) 25%, transparent); }
+  .row .ic svg { width: 17px; height: 17px; color: var(--f); } .row .nm { font-weight: 600; } .row .al { display: block; font-size: 11.5px; color: #ccc; font-style: italic; font-weight: 400; }
+  .row .ed { color: #ccc; } .row.secret { opacity: .8; }
+  .add { text-align: center; padding: 7px; border: 1px dashed #888; border-radius: 8px; font-size: 12.5px; color: #ddd; }
+  /* diálogo */
+  .scrim { position: absolute; inset: 0; background: #000a; z-index: 10; display: flex; align-items: center; justify-content: center; }
+  .dlg { background: #2d2215; border: 1px solid #604d31; border-radius: 14px; box-shadow: 0 20px 50px #000; display: flex; flex-direction: column; overflow: hidden; }
+  .dh { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid #493823; }
+  .dh .t { font: 700 16px system-ui; } .dh .t small { font: 12.5px system-ui; color: #aaa; margin-left: 6px; }
+  .dh .x { margin-left: auto; width: 36px; height: 36px; border-radius: 8px; background: #493823; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+  .db { display: grid; grid-template-columns: 560px 1fr; min-height: 0; flex: 1; }
+  .pick { padding: 12px 14px; border-right: 1px solid #493823; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px 14px; align-content: start; }
+  .fam { font: 700 10px system-ui; color: #aaa; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 5px; display: flex; align-items: center; gap: 6px; }
+  .fam i { width: 8px; height: 8px; border-radius: 2px; background: var(--f); }
+  .kinds { display: flex; gap: 4px; flex-wrap: wrap; }
+  .k { display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px 4px 4px; border-radius: 7px; font-size: 12px; background: color-mix(in srgb, var(--f) 13%, transparent); box-shadow: inset 3px 0 0 var(--f); }
+  .k svg { width: 15px; height: 15px; color: var(--f); margin-left: 3px; }
+  .k.has { opacity: .4; } .k.has::after { content: "já tem"; font-size: 10px; color: #ccc; }
+  .k.sel { outline: 2px solid #fff; background: color-mix(in srgb, var(--f) 35%, transparent); }
+  .form { padding: 12px 16px; display: flex; flex-direction: column; gap: 11px; }
+  .fh { display: flex; align-items: center; gap: 8px; } .fh .big { width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--f) 25%, transparent); }
+  .fh .big svg { width: 22px; height: 22px; color: var(--f); } .fh b { font-size: 16px; color: var(--f); } .fh small { display: block; font-size: 12px; color: #aaa; }
+  .inp { background: #493823; border: 1px solid #604d31; border-radius: 6px; padding: 7px 10px; color: #fff; } .inp.ph { color: #aaa; } .inp.req { border-color: #ffc300; width: 120px; }
+  .chips { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 5px; }
+  .chips span { font-size: 12px; border: 1px solid #604d31; border-radius: 13px; padding: 3px 10px; color: #ddd; } .chips span.on { background: #107135; border-color: #1fc140; color: #fff; }
+  .chips span.dis { opacity: .4; }
+  .seg { display: inline-flex; border: 1px solid #604d31; border-radius: 7px; overflow: hidden; }
+  .seg span { padding: 6px 11px; font-size: 12px; color: #ccc; border-right: 1px solid #604d31; } .seg span:last-child { border: 0; } .seg span.on { background: #107135; color: #fff; font-weight: 700; }
+  .hint { font-size: 11.5px; color: #aaa; font-style: italic; margin-top: 4px; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .df { display: flex; gap: 8px; justify-content: flex-end; padding: 12px 14px; border-top: 1px solid #493823; }
+  .ok { background: #107135; border-radius: 8px; padding: 10px 18px; font-weight: 700; } .ok.off { background: #2b3d2f; color: #888; }
+  .cn { border: 1px solid #604d31; border-radius: 8px; padding: 10px 16px; }
+  .rm { border: 1px solid #cb1437; color: #ff5257; border-radius: 8px; padding: 10px 16px; font-weight: 700; margin-right: auto; }
+  .grid4 { display: grid; grid-template-columns: 90px auto; gap: 7px 10px; align-items: center; }
+</style>
+
+<h2>Mestre — aplicar, editar e tirar status (desktop)</h2>
+<p class="subtitle">No desktop há espaço: escolher o status e preencher os campos ficam <b>na mesma janela, lado a lado</b> — a lista de status inteira à vista (sem rolar) e os campos do escolhido à direita. Clique num status: os campos aparecem; caso simples, Aplicar. Editar usa a mesma janela, sem a lista.</p>
+
+<div class="frames" id="fr"></div>
+
+<script src="./gi.js"></script>
+<script>
+const _q = new URLSearchParams(location.search); const _only = (_q.get("only") || "").split(",").filter(Boolean).map(Number);
+const _pick = (arr) => _only.length ? arr.filter((_, i) => _only.includes(i + 1)) : arr;
+if (_q.has("bare")) document.addEventListener("DOMContentLoaded", () => { document.querySelectorAll("h2, .subtitle").forEach(e => e.remove()); document.body.style.padding = "8px"; });
+
+const FAM = { body: "#ffa216", part: "#a16207", sense: "#4da3ff", test: "#94a3b8", life: "#db0e2f", air: "#e0e0e0", guard: "#1fc140", mind: "#a855f7", presence: "#aaaaaa" };
+const shell = (side, rail = "Fila", extra = "") => `
+  <div class="topb"><span class="sc">Roleplay</span><span style="width:8px;height:8px;border-radius:50%;background:#17993d"></span><div class="tb"><span class="seg">Livre | <b style="color:#1fc140">Disputado</b></span><span>Nova cena</span><span class="d">Encerrar partida</span><span>Encerrar rodada</span><span>Fechar turno</span><span class="g">Histórico</span></div></div>
+  <div class="rail">${["Fila", "Agir", "Ficha"].map(x => `<span class="${x === rail ? "on" : ""}">${x}</span>`).join("")}</div>
+  <div class="side">${side}</div>
+  <div class="map"><div class="tok" style="left:120px;top:250px">J1</div><div class="tok" style="left:240px;top:190px">J2</div><div class="tok" style="left:340px;top:120px">C</div><div class="tok" style="left:300px;top:330px">G</div>${extra}</div>
+  <div class="aside"><div class="tabs"><span class="on">Histórico</span><span>Personagens</span></div><div>Cena: Roleplay</div><div>Turno de Capanga — atacou Jogador1</div></div>`;
+const queue = `<div class="lbl">Fila de ações</div><div class="qcard"><b>Jogador1 ataca Capanga</b>
+  <div class="note">${GI.injured}<span>Vai atacar com o braço inutilizado (Lesionado).</span></div>
+  <div class="note">${GI.compelled}<span>Conduta imposta: "fugir do fogo" — irresistível (Compelido).</span></div></div>
+  <div class="qcard" style="border-color:#38bdf8"><b>Jogador2 se move</b></div>`;
+const k = (key, f, name, o = {}) => `<span class="k${o.has ? " has" : ""}${o.sel ? " sel" : ""}" style="--f:${FAM[f]}">${GI[key]}${name}</span>`;
+const fam = (f, t, items) => `<div><div class="fam" style="--f:${FAM[f]}"><i></i>${t}</div><div class="kinds">${items}</div></div>`;
+const picker = (sel) => `<div class="pick">
+  ${fam("body", "Consciência e corpo", k("paralyzed", "body", "Paralisado", { sel: sel === "paralyzed" }) + k("stupefied", "body", "Atônito") + k("stunned", "body", "Atordoado") + k("unconscious", "body", "Inconsciente") + k("restrained", "body", "Preso"))}
+  ${fam("mind", "Mente", k("compelled", "mind", "Compelido") + k("controlled", "mind", "Controlado"))}
+  ${fam("part", "Parte do corpo", k("injured", "part", "Lesionado") + k("slowed", "part", "Lento"))}
+  ${fam("test", "Testes", k("weakened", "test", "Corpo debilitado") + k("weakened", "test", "Mente debilitada") + k("weakened", "test", "Espírito debilitado"))}
+  ${fam("sense", "Sentidos", k("vision", "sense", "Visão") + k("hearing", "sense", "Audição") + k("smell", "sense", "Olfato") + k("tact", "sense", "Tato") + k("taste", "sense", "Paladar"))}
+  ${fam("life", "Vida", k("bleeding", "life", "Sangrando") + k("burning", "life", "Queimando") + k("freezing", "life", "Congelando") + k("poisoned", "life", "Envenenado"))}
+  ${fam("guard", "Guarda", k("prone", "guard", "Caído", { has: 1 }) + k("airborne", "guard", "No ar") + k("openGuard", "guard", "Guarda aberta"))}
+  ${fam("air", "Ar", k("asphyxiating", "air", "Asfixiando"))}
+  ${fam("presence", "Presença", k("hidden", "presence", "Escondido"))}</div>`;
+const vis = (on, hint) => `<div><div class="lbl">Quem vê</div><div class="seg"><span class="${on === "def" ? "on" : ""}">Padrão</span><span class="${on === "all" ? "on" : ""}">Todos</span><span class="${on === "gm" ? "on" : ""}">Só o mestre</span><span class="${on === "pick" ? "on" : ""}">Escolher jogadores</span></div><div class="hint">${hint}</div></div>`;
+const aliasF = (s, v) => `<div><div class="lbl">Apelido (opcional)</div><div class="inp${v ? "" : " ph"}">${v || "Nome de cena"}</div><div class="chips">${s.map(x => `<span class="${x === v ? "on" : ""}">${x}</span>`).join("")}</div></div>`;
+
+const F = [
+  { t: "1 · Entrada pela peça e avisos na fila", d: "Clique na faixa de status de qualquer peça: a caixa abre com ✎ em cada status e \"+ Aplicar status\". Os avisos da ação ficam no cartão da fila, no painel da esquerda.",
+    h: shell(queue, "Fila", `<div class="open" style="left:240px;top:212px">
+      <div class="row secret" style="--f:${FAM.body}"><span class="ic">${GI.paralyzed}</span><span class="nm">Paralisado 5<span class="al">Em choque</span></span><span class="ed">✎</span></div>
+      <div class="row" style="--f:${FAM.guard}"><span class="ic">${GI.prone}</span><span class="nm">Caído</span><span class="ed">✎</span></div>
+      <div class="add">＋ Aplicar status</div></div>`) },
+  { t: "2 · Aplicar: lista e campos lado a lado", d: "Esquerda: todos os status à vista, pela família (Sentidos já mostram cada sentido; Debilitado, cada aptidão). Direita: só os campos do escolhido. \"Aplicar em\" já apaga quem tem o status. \"Ligado a\" só com turno aberto.",
+    h: shell(queue) + `<div class="scrim"><div class="dlg" style="width:1060px">
+      <div class="dh"><span class="t">Aplicar status<small>em Jogador1</small></span><span class="x">✕</span></div>
+      <div class="db">${picker("paralyzed")}<div class="form" style="--f:${FAM.body}">
+        <div class="fh"><span class="big">${GI.paralyzed}</span><div><b>Paralisado</b><small>O que está marcado não obedece; a mente está inteira.</small></div></div>
+        <div class="two"><div><div class="lbl">Pontos</div><div class="inp req ph">Quanto faltou</div></div>
+          <div><div class="lbl">Trava</div><div class="chips" style="margin:0"><span class="on">Ataque</span><span class="on">Defesa</span><span class="on">Movimento</span><span class="on">Esquiva</span></div></div></div>
+        ${aliasF(["Em choque", "Travado"], "Em choque")}
+        ${vis("def", "Padrão do Paralisado: o mestre e o dono do personagem veem.")}
+        <div><div class="lbl">Aplicar em</div><div class="chips"><span class="on">Jogador1</span><span class="on">Jogador2</span><span>Capanga</span><span class="dis">Guarda · já tem</span></div></div>
+        <div><div class="lbl">Ligado a (turno aberto)</div><div class="seg"><span class="on">Ataque do Capanga</span><span>Reação do Jogador1</span><span>Turno todo</span></div><div class="hint">Onde a mudança aparece no histórico.</div></div>
+      </div></div>
+      <div class="df"><span class="cn">Cancelar</span><span class="ok off">Aplicar em 2 personagens</span></div></div></div>` },
+  { t: "3 · Editar e tirar", d: "Clique no ✎ de um status: a mesma janela, mais estreita, sem a lista (o tipo não muda). Tirar status à esquerda, Salvar à direita. Se o status entrou neste turno e derrubou ações, Tirar pergunta se devolve.",
+    h: shell(queue) + `<div class="scrim"><div class="dlg" style="width:520px">
+      <div class="dh"><span class="t">Editar status<small>em Capanga</small></span><span class="x">✕</span></div>
+      <div class="form" style="--f:${FAM.part}">
+        <div class="fh"><span class="big">${GI.injured}</span><div><b>Lesionado</b><small>As partes marcadas estão machucadas ou inutilizadas.</small></div></div>
+        <div><div class="lbl">Como está cada parte</div><div class="grid4">
+          <span>Ataque</span><div class="seg"><span>Nada</span><span>Machucado</span><span class="on">Inutilizado</span></div>
+          <span>Defesa</span><div class="seg"><span>Nada</span><span class="on">Machucado</span><span>Inutilizado</span></div>
+          <span>Movimento</span><div class="seg"><span class="on">Nada</span><span>Machucado</span><span>Inutilizado</span></div>
+          <span>Esquiva</span><div class="seg"><span class="on">Nada</span><span>Machucado</span><span>Inutilizado</span></div></div></div>
+        ${aliasF([], "Braço direito quebrado")}
+        ${vis("gm", "Só o mestre vê. O dono do personagem não sabe.")}
+      </div>
+      <div class="df"><span class="rm">Tirar status</span><span class="cn">Cancelar</span><span class="ok">Salvar</span></div></div></div>` },
+];
+document.getElementById("fr").innerHTML = _pick(F).map(f => `<div class="fr"><h4>${f.t}</h4><p>${f.d}</p><div class="app">${f.h}</div></div>`).join("");
+</script>
+<style id="tema-escuro">/* mesmo fundo escuro do servidor de mockups (frame do brainstorm, modo escuro) */
+body{background:#1d1d1f!important;color:#f5f5f7!important}
+h2,h3,h4,b{color:inherit}
+.sub,.subtitle,.n,.ph p,.fr p,.note,.cap,p[style*="#666"],p[style*="color:#666"]{color:#a1a1a6!important}
+.st{border-top-color:#3d3d3f!important}
+.mockup{background:#2d2d2f;border-radius:10px;overflow:hidden}.mockup-header{color:#a1a1a6;padding:8px 12px;font-size:13px}
+</style>
