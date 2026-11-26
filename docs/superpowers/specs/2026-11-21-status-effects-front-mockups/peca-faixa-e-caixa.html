@@ -1,0 +1,107 @@
+<!DOCTYPE html><meta charset="utf-8"><body style="background:#f4f4f6;font-family:system-ui;padding:24px">
+<style>
+  .board { position: relative; height: 340px; background: #0b1220; border-radius: 8px; overflow: hidden; cursor: default;
+    background-image: linear-gradient(#ffffff10 1px, transparent 1px), linear-gradient(90deg, #ffffff10 1px, transparent 1px);
+    background-size: 80px 80px; }
+  .pc { position: absolute; width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font: 700 18px system-ui; color: #fff; box-shadow: 0 3px 8px #000a; transform: translate(-50%, -50%); }
+  .stack { position: absolute; display: flex; flex-direction: column-reverse; align-items: center; gap: 4px; transform: translate(-50%, -100%); }
+  .bars { width: 64px; display: flex; flex-direction: column; gap: 2px; }
+  .bar { height: 5px; background: #252525; border-radius: 3px; overflow: hidden; box-shadow: 0 0 0 1px #000a; }
+  .bar i { display: block; height: 100%; } .hp i { background: #db0e2f; } .sp i { background: #1fc140; }
+
+  /* faixa fechada */
+  .anchor { position: relative; height: 26px; display: flex; justify-content: center; }
+  .strip { display: flex; gap: 3px; padding: 3px; border-radius: 9px; cursor: pointer;
+    background: #1c1c1cf0; border: 1px solid #ffffff24; box-shadow: 0 2px 6px #000a; transition: border-color .12s; }
+  .strip:hover { border-color: #ffffff55; }
+  .chip { position: relative; width: 20px; height: 20px; border-radius: 6px; display: flex; align-items: center; justify-content: center;
+    background: color-mix(in srgb, var(--f) 22%, transparent); }
+  .chip svg { width: 15px; height: 15px; color: var(--f); }
+  .chip .n { position: absolute; right: -5px; bottom: -6px; min-width: 13px; text-align: center; font: 700 9px/12px system-ui; color: #fff;
+    background: #000; border: 1px solid var(--f); border-radius: 7px; padding: 0 2px; }
+  .chip.secret { opacity: .45; }
+
+  /* caixa aberta: nasce do centro da faixa e cresce para todos os lados */
+  .open { position: absolute; left: 50%; top: 50%; z-index: 10; width: max-content; min-width: 190px;
+    transform: translate(-50%, -50%) scale(.3); opacity: 0; pointer-events: none;
+    transition: transform .16s cubic-bezier(.2,.8,.3,1.1), opacity .12s;
+    background: #1c1c1c; border: 1px solid #ffffff24; border-radius: 12px; padding: 6px; box-shadow: 0 10px 28px #000e, 0 0 0 1px #000;
+    display: flex; flex-direction: column; gap: 4px; }
+  .anchor.is-open .open { transform: translate(-50%, -50%) scale(1); opacity: 1; pointer-events: auto; }
+  .anchor.is-open .strip { visibility: hidden; }
+  .row { display: grid; grid-template-columns: 26px 1fr auto; align-items: center; gap: 8px; padding: 4px 8px 4px 4px; border-radius: 8px;
+    background: color-mix(in srgb, var(--f) 12%, transparent); box-shadow: inset 3px 0 0 var(--f); font: 13px/1.2 system-ui; color: #fff; }
+  .row .ic { width: 26px; height: 26px; border-radius: 7px; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--f) 25%, transparent); }
+  .row .ic svg { width: 17px; height: 17px; color: var(--f); }
+  .row .nm { font-weight: 600; white-space: nowrap; }
+  .row .al { display: block; font-weight: 400; font-size: 11.5px; color: #ccc; font-style: italic; }
+  .row .num { font: 700 12px system-ui; color: #fff; background: #000; border: 1px solid var(--f); border-radius: 8px; padding: 1px 7px; }
+  .row .side { display: flex; align-items: center; gap: 6px; }
+  .vis { font: 11px system-ui; color: #aaa; white-space: nowrap; display: flex; align-items: center; gap: 3px; }
+  .vis svg { width: 12px; height: 12px; }
+  .vis.pub { color: #1fc140; }
+  .row.secret { opacity: .8; }
+  .cap { position: absolute; left: 10px; bottom: 8px; right: 10px; font: 12px system-ui; color: #ccc; }
+</style>
+
+<h2>Faixa e caixa — v2, clicável</h2>
+<p class="subtitle"><b>Clique na faixa de status</b> para abrir; clique em qualquer outro lugar do mapa para fechar. A caixa nasce do centro da faixa e cresce para todos os lados, por cima das barras e da peça.</p>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">Jogador do Gon</div>
+    <div class="mockup-body" style="padding:0"><div class="board" id="p"></div></div>
+  </div>
+  <div class="mockup">
+    <div class="mockup-header">Mestre</div>
+    <div class="mockup-body" style="padding:0"><div class="board" id="m"></div></div>
+  </div>
+</div>
+
+<script src="./gi.js"></script>
+<script>
+const FAM = { body: "#ffa216", part: "#a16207", sense: "#4da3ff", test: "#94a3b8", life: "#db0e2f", air: "#e0e0e0", guard: "#1fc140", mind: "#a855f7", presence: "#aaaaaa" };
+const GON = [
+  { k: "paralyzed", f: "body", name: "Paralisado", n: 5, al: "Em choque", vis: "mestre e dono" },
+  { k: "vision", f: "sense", name: "Visão anulada", al: "Ofuscado", vis: "só o mestre" },
+  { k: "bleeding", f: "life", name: "Sangrando", n: 2, vis: "mestre e dono" },
+  { k: "prone", f: "guard", name: "Caído", vis: "público", pub: true },
+];
+const KIL = [{ k: "restrained", f: "body", name: "Preso", al: "Enredado", vis: "público", pub: true }];
+const visible = (l, master) => master ? l : l.filter(s => s.vis !== "só o mestre");
+function put(B, x, y, label, bg, st, master, withBars) {
+  const p = document.createElement("div"); p.className = "pc"; p.style.cssText = `left:${x}px;top:${y}px;background:${bg}`; p.textContent = label; B.appendChild(p);
+  const s = document.createElement("div"); s.className = "stack"; s.style.cssText = `left:${x}px;top:${y - 36}px`;
+  const list = visible(st, master);
+  const chips = list.map(z => `<span class="chip${master && !z.pub ? " secret" : ""}" style="--f:${FAM[z.f]}">${GI[z.k]}${z.n ? `<span class="n">${z.n}</span>` : ""}</span>`).join("");
+  const rows = list.map(z => `<div class="row${master && !z.pub ? " secret" : ""}" style="--f:${FAM[z.f]}"><span class="ic">${GI[z.k]}</span><span class="nm">${z.name}${z.al ? `<span class="al">${z.al}</span>` : ""}</span><span class="side">${z.n ? `<span class="num">${z.n}</span>` : ""}${master ? `<span class="vis${z.pub ? " pub" : ""}">${z.pub ? "" : GI.eye}${z.vis}</span>` : ""}</span></div>`).join("");
+  s.innerHTML = (list.length ? `<div class="anchor"><div class="strip">${chips}</div><div class="open">${rows}</div></div>` : "") +
+    (withBars ? `<div class="bars"><div class="bar hp"><i style="width:62%"></i></div><div class="bar sp"><i style="width:80%"></i></div></div>` : "");
+  B.appendChild(s);
+}
+function wire(B) {
+  B.addEventListener("click", (e) => {
+    const a = e.target.closest(".anchor");
+    if (a && e.target.closest(".strip")) { B.querySelectorAll(".anchor").forEach(x => x !== a && x.classList.remove("is-open")); a.classList.add("is-open"); return; }
+    if (a && e.target.closest(".open")) return; // clicar dentro da caixa não fecha
+    B.querySelectorAll(".anchor").forEach(x => x.classList.remove("is-open"));
+  });
+}
+const P = document.getElementById("p");
+put(P, 110, 220, "G", "#107135", GON, false, true);
+put(P, 270, 220, "K", "#2e5397", KIL, false, false);
+P.insertAdjacentHTML("beforeend", `<div class="cap">sem a Visão anulada (só o mestre) · Killua sem barras: só a faixa</div>`); wire(P);
+const M = document.getElementById("m");
+put(M, 150, 220, "G", "#107135", GON, true, true);
+put(M, 310, 220, "K", "#2e5397", KIL, true, true);
+M.insertAdjacentHTML("beforeend", `<div class="cap">apagados = a mesa não vê · olho = quem vê · verde = público</div>`); wire(M);
+document.querySelector("#m .anchor").classList.add("is-open");
+</script>
+<style id="tema-escuro">/* mesmo fundo escuro do servidor de mockups (frame do brainstorm, modo escuro) */
+body{background:#1d1d1f!important;color:#f5f5f7!important}
+h2,h3,h4,b{color:inherit}
+.sub,.subtitle,.n,.ph p,.fr p,.note,.cap,p[style*="#666"],p[style*="color:#666"]{color:#a1a1a6!important}
+.st{border-top-color:#3d3d3f!important}
+.mockup{background:#2d2d2f;border-radius:10px;overflow:hidden}.mockup-header{color:#a1a1a6;padding:8px 12px;font-size:13px}
+</style>

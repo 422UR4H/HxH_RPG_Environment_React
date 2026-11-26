@@ -1,0 +1,75 @@
+<!DOCTYPE html><meta charset="utf-8"><title>Lista de personagens — status — v3</title>
+<body style="background:#1d1d1f;color:#f5f5f7;font-family:system-ui;padding:24px">
+<style>
+  h2 { margin: 0 0 8px; } .sub { color: #a1a1a6; font-size: 14px; max-width: 1150px; margin: 0 0 8px; line-height: 1.45; }
+  .row { display: flex; gap: 40px; flex-wrap: wrap; align-items: flex-start; margin-top: 22px; }
+  .col h4 { margin: 0 0 4px; font-size: 15px; } .col p { margin: 0 0 10px; font-size: 12.5px; color: #a1a1a6; max-width: 330px; line-height: 1.4; }
+  /* a coluna PERSONAGENS de hoje (aside do desktop) */
+  .aside { width: 300px; background: #2d2215; border-radius: 8px; padding: 10px 14px 14px; }
+  .aside .tabs { display: flex; font-size: 13px; color: #ccc; margin-bottom: 10px; } .aside .tabs span { flex: 1; text-align: center; padding: 6px; } .aside .tabs span.on { color: #fff; border-bottom: 2px solid #1fc140; }
+  .aside .hd { display: flex; align-items: center; justify-content: space-between; margin: 4px 0 10px; }
+  .aside .hd b { font: 800 22px system-ui; letter-spacing: .02em; }
+  .addall { background: #107135; border-radius: 8px; padding: 7px 10px; font-weight: 700; font-size: 12.5px; }
+  .items { display: flex; flex-direction: column; gap: 12px; }
+  /* o card de hoje (imagem real) + a faixa de status presa embaixo dele */
+  .ci { display: flex; flex-direction: column; }
+  .ci img.card { width: 269px; display: block; border-radius: 10px 10px 0 0; }
+  .ci.nostrip img.card { border-radius: 10px; }
+  .strip { width: 269px; box-sizing: border-box; background: #1c1c1c; border: 1px solid #493823; border-top: 0; border-radius: 0 0 10px 10px; padding: 7px 8px 8px; display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
+  .pill { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px 3px 4px; border-radius: 7px; font-size: 12px;
+    background: color-mix(in srgb, var(--f) 15%, transparent); box-shadow: inset 3px 0 0 var(--f); }
+  .pill svg { width: 15px; height: 15px; color: var(--f); margin-left: 3px; flex: none; } .pill b { font-weight: 700; } .pill i { color: #ccc; }
+  .pill.secret { opacity: .5; }
+  .plus { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #eee; border: 1px dashed #888; border-radius: 7px; padding: 3px 9px; }
+  /* celular */
+  .scr { position: relative; width: 340px; height: 780px; border-radius: 26px; overflow: hidden; background: #0b1220; border: 6px solid #111; font: 13px system-ui; color: #fff;
+    background-image: linear-gradient(#ffffff12 1px, transparent 1px), linear-gradient(90deg, #ffffff12 1px, transparent 1px); background-size: 48px 48px; }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 56px; top: 110px; background: #2d2215; border-top: 1px solid #604d31; padding: 12px 14px; overflow: hidden; display: flex; flex-direction: column; gap: 10px; }
+  .sheet .hd { display: flex; align-items: center; justify-content: space-between; } .sheet .hd b { font-size: 15px; }
+  .sheet .items { align-items: center; }
+  .navm { position: absolute; left: 0; right: 0; bottom: 0; height: 56px; background: #382a1a; display: flex; }
+  .navm span { flex: 1; display: flex; align-items: center; justify-content: center; font: 11px system-ui; color: #ccc; position: relative; } .navm span.on { background: #493823; color: #fff; font-weight: 700; }
+  .q { background: #2d2d2f; border-radius: 10px; padding: 12px 14px; max-width: 1100px; font-size: 14px; line-height: 1.5; margin-top: 26px; }
+  .aside .hd, .sheet .hd { justify-content: center; text-align: center; }
+  .aside .hd { border-bottom: 1px solid #604d31; padding-bottom: 8px; }
+</style>
+
+<h2>Lista de personagens com status — v3</h2>
+<p class="sub"><b>O que é:</b> a aba <b>Personagens</b> que já existe (no computador, a coluna da direita, ao lado de "Histórico"; no celular, dentro da gaveta do Histórico). Hoje ela mostra o card de cada personagem com vida e SP. O brief pede que ela mostre também os <b>status</b>, com número e apelido, e que o mestre possa editar e tirar por ali.</p>
+<p class="sub"><b>Muda em relação à v2:</b> o título "PERSONAGENS" volta a ficar centralizado, como hoje.</p>
+<p class="sub"><b>Muda em relação à v1:</b> as abas juntaram — o footer do mestre ganha <b>"Personagens"</b> (no lugar de "Status"), que abre esta lista; sai o "＋ Aplicar status" geral do topo: aplicar fica só no "＋ status" de cada card.</p>
+<p class="sub"><b>Proposta:</b> o card de hoje fica <b>igual</b> (é zona ajustada à mão no código) e ganha, preso embaixo dele, uma faixa com as etiquetas de status — o mesmo padrão do painel de ação (ícone e cor da família, nome, número, apelido). Personagem sem status visível: sem faixa.</p>
+
+<div class="row" id="row"></div>
+
+<div class="q"><b>Decidido (dono, 2026-11-25):</b> juntar as abas — o footer do mestre tem "Personagens", que abre esta lista; sem o botão geral de aplicar; aplicar pelo "＋ status" de cada card.</div>
+
+<script src="gi.js"></script>
+<script>
+const FAM = { body: "#ffa216", part: "#a16207", sense: "#4da3ff", test: "#94a3b8", life: "#db0e2f", air: "#e0e0e0", guard: "#1fc140", mind: "#a855f7", presence: "#aaaaaa" };
+const P = (k, f, name, o = {}) => ({ k, f, name, ...o });
+const pill = (s) => `<span class="pill${s.secret ? " secret" : ""}" style="--f:${FAM[s.f]}">${GI[s.k]}<span>${s.name}${s.n ? ` <b>${s.n}</b>` : ""}${s.al ? ` <i>· ${s.al}</i>` : ""}</span></span>`;
+// o que cada um tem (a verdade, como o mestre vê)
+const ALL = {
+  jogador1: [P("bleeding", "life", "Sangrando", { n: 2, secret: 1 }), P("prone", "guard", "Caído")],
+  jogador2: [P("restrained", "body", "Preso", { al: "Amarrado" })],
+  capanga: [P("injured", "part", "Lesionado", { al: "Braço direito quebrado", secret: 1 }), P("prone", "guard", "Caído")],
+  guarda: [],
+};
+// o jogador do Jogador1 vê: os próprios (todos) e só os públicos dos outros
+const PLAYER = { jogador1: ALL.jogador1.map(s => ({ ...s, secret: 0 })), jogador2: ALL.jogador2, capanga: ALL.capanga.filter(s => !s.secret), guarda: [] };
+const card = (id, list, master) => {
+  const strip = list.length || master ? `<div class="strip">${list.map(pill).join("")}${master ? `<span class="plus">＋ status</span>` : ""}</div>` : "";
+  return `<div class="ci${strip ? "" : " nostrip"}"><img class="card" src="card-${id}.png">${strip}</div>`;
+};
+const ids = ["capanga", "guarda", "jogador1", "jogador2"];
+const aside = (data, master) => `<div class="aside"><div class="tabs"><span>Histórico</span><span class="on">Personagens</span></div>
+  <div class="hd"><b>PERSONAGENS</b></div>
+  <div class="items">${ids.map(id => card(id, data[id], master)).join("")}</div></div>`;
+document.getElementById("row").innerHTML = `
+  <div class="col"><h4>Jogador (o do Jogador1), computador</h4><p>Vê todos os próprios status e, dos outros, só o que é público. O Lesionado do Capanga só o mestre vê: não aparece. O Guarda não tem status: card sem faixa.</p>${aside(PLAYER, false)}</div>
+  <div class="col"><h4>Mestre, computador</h4><p>Vê tudo; o que a mesa não vê fica apagado (como na faixa da peça). Tocar numa etiqueta abre a edição; "＋ status" aplica naquele personagem (e o "Aplicar em" da folha deixa marcar outros).</p>${aside(ALL, true)}</div>
+  <div class="col"><h4>Mestre, celular</h4><p>O footer ganha "Personagens" (no lugar de "Status") e abre a mesma lista, na folha do mestre.</p>
+    <div class="scr"><div class="sheet"><div class="hd"><b>Personagens</b></div><div class="items">${ids.slice(2).concat(ids.slice(0, 2)).map(id => card(id, ALL[id], true)).join("")}</div></div>
+    <div class="navm"><span>Fila</span><span>Agir</span><span>Ficha</span><span class="on">Personagens</span></div></div></div>`;
+</script>

@@ -1,0 +1,140 @@
+<!DOCTYPE html><meta charset="utf-8"><body style="background:#f4f4f6;font-family:system-ui;padding:24px">
+<style>
+  .phones { display: grid; grid-template-columns: repeat(3, 340px); gap: 22px; justify-content: center; }
+  @media (max-width: 1150px) { .phones { grid-template-columns: repeat(2, 340px); } }
+  .ph h4 { margin: 0 0 6px; font: 600 14px system-ui; }
+  .ph p { margin: 0 0 8px; font: 12.5px/1.35 system-ui; color: #666; min-height: 50px; }
+  .scr { position: relative; width: 340px; height: 700px; border-radius: 26px; overflow: hidden; background: #0b1220; border: 6px solid #111;
+    font: 13px system-ui; color: #fff; }
+  .scr.img { background: #000; } .scr.img img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+  .grid { position: absolute; inset: 44px 0 0 0; background-image: linear-gradient(#ffffff12 1px, transparent 1px), linear-gradient(90deg, #ffffff12 1px, transparent 1px); background-size: 34px 34px; }
+  .tok { position: absolute; width: 30px; height: 30px; border-radius: 50%; background: #fff; border: 3px solid #1c1c1c; transform: translate(-50%, -50%);
+    display: flex; align-items: center; justify-content: center; font: 800 11px system-ui; color: #1c1c1c; }
+  .tok.me { box-shadow: 0 0 0 2px #0b1220, 0 0 0 5px #ffc300; } .tok.tg { box-shadow: 0 0 0 2px #0b1220, 0 0 0 5px #ff5257; }
+  /* barra de cima do mestre (a de hoje) */
+  .top { position: absolute; left: 0; right: 0; top: 0; height: 44px; background: #2d2215; display: flex; align-items: center; gap: 6px; padding: 0 8px; border-bottom: 1px solid #493823; }
+  .top .scene { font-weight: 700; font-size: 13px; } .top .dot { width: 8px; height: 8px; border-radius: 50%; background: #17993d; }
+  .tb { margin-left: auto; display: flex; gap: 6px; }
+  .tb span { font: 600 11.5px system-ui; padding: 6px 8px; border-radius: 6px; background: #555; color: #ccc; }
+  .tb span.hist { background: #493823; border: 1px solid #604d31; color: #fff; }
+  /* navegação do mestre: 4 itens, colada às bordas (formato do mestre não muda) */
+  .nav { position: absolute; left: 0; right: 0; bottom: 0; height: 60px; background: #382a1a; display: flex; z-index: 5; }
+  .nv { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font: 11.5px system-ui; color: #ccc; }
+  .nv .i { font-size: 19px; line-height: 22px; }
+  .nv.on { background: #493823; color: #fff; font-weight: 700; }
+  .nv.new { position: relative; }
+  .nv.new::after { content: "novo"; position: absolute; top: 5px; right: 10px; font: 700 9px system-ui; color: #1c1c1c; background: #ffc300; border-radius: 6px; padding: 0 4px; }
+  /* painel do mestre: o de hoje, colado às bordas */
+  .panel { position: absolute; left: 0; right: 0; bottom: 60px; top: var(--top); background: #2d2215; border-top: 1px solid #604d31; padding: 12px 12px 14px; display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
+  .ttl { font: 700 11px system-ui; color: #ccc; text-transform: uppercase; letter-spacing: .07em; }
+  .grp { display: flex; flex-direction: column; gap: 7px; }
+  .rowx { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .lbl { font-size: 12px; color: #aaa; min-width: 62px; }
+  .seg { display: inline-flex; border: 1px solid #604d31; border-radius: 6px; overflow: hidden; }
+  .seg span { padding: 6px 10px; font-size: 12px; color: #ccc; } .seg span.on { background: #107135; color: #fff; font-weight: 700; }
+  .b { padding: 7px 11px; border-radius: 6px; font: 600 12px system-ui; background: #493823; border: 1px solid #604d31; }
+  .b.danger { background: transparent; border-color: #cb1437; color: #ff5257; }
+  .tog { display: flex; align-items: center; gap: 10px; font-size: 12.5px; }
+  .sw { width: 34px; height: 19px; border-radius: 10px; background: #444; position: relative; flex: none; }
+  .sw::after { content: ""; position: absolute; left: 2px; top: 2px; width: 15px; height: 15px; border-radius: 50%; background: #aaa; }
+  .soon { font: 700 9.5px system-ui; color: #ffc300; border: 1px solid #ffc300; border-radius: 6px; padding: 0 5px; }
+  .note { font-size: 11.5px; color: #999; font-style: italic; }
+  .sep { height: 1px; background: #ffffff14; }
+  .queue .empty { font-size: 12px; color: #aaa; font-style: italic; }
+  /* Agir do mestre: miolo novo do componente, formato de hoje (colado) */
+  .gk { position: absolute; left: 50%; width: 88px; height: 88px; transform: translateX(-50%); top: calc(var(--top) - 50px); z-index: 3; }
+  .gk img { position: absolute; } .gk .fr { width: 100%; height: 100%; top: -2px; left: 0; }
+  .gk .ph2 { width: 70%; height: 70%; left: 15%; top: calc(15% - 2px); border-radius: 50%; object-fit: cover; }
+  .pb { position: absolute; width: 112px; top: calc(var(--top) - 22px); z-index: 2; border: 3px solid #000; background: #444; }
+  .pb.l { right: calc(50% + 22px); } .pb.r { left: calc(50% + 22px); }
+  .pb .f { position: absolute; inset: 0; }
+  .pb.l .f { background: linear-gradient(to left, #db0e2f calc(100% - 44px), #ba1a3e calc(100% - 22px)); }
+  .pb.r .f { background: linear-gradient(to right, #1fc140 calc(100% - 44px), #107135 calc(100% - 22px)); }
+  .pb span { position: relative; display: block; text-align: right; padding: 1px 6px 0; font: 700 11px/13px system-ui; text-shadow: 0 0 2px #000e; }
+  .pb.l span { text-align: left; }
+  .head { display: flex; justify-content: space-between; align-items: center; }
+  .nick { font: 700 15px system-ui; } .tag { font: 700 11px system-ui; border-radius: 9px; padding: 2px 9px; background: #ff5257; }
+  .pills { display: flex; gap: 5px; flex-wrap: wrap; }
+  .pill { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px 3px 4px; border-radius: 7px; font-size: 12px;
+    background: color-mix(in srgb, var(--f) 15%, transparent); box-shadow: inset 3px 0 0 var(--f); }
+  .pill svg { width: 15px; height: 15px; color: var(--f); margin-left: 3px; } .pill i { color: #ccc; } .pill.secret { opacity: .5; }
+  .actor { display: flex; align-items: center; gap: 8px; background: #382a1a; border-radius: 10px; padding: 5px 8px; font-size: 12.5px; }
+  .actor .mini { width: 22px; height: 22px; border-radius: 50%; background: #fff; color: #1c1c1c; font: 800 10px system-ui; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px #ffc300; }
+  .actor .swp { margin-left: auto; color: #aaa; }
+  .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .btn { border-radius: 8px; padding: 8px; text-align: center; font-weight: 700; background: #493823; border: 1px solid #604d31; }
+  .btn.at { border-color: #ff5257; background: #4a2a26; }
+  .send { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font: 700 11.5px system-ui; color: #1fc140; background: #493823; }
+  .send .i { font-size: 21px; }
+  .cmp { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 30px; }
+  .tab { position: relative; height: 380px; border-radius: 14px; overflow: hidden; border: 6px solid #111; background: #0b1220; font: 12px system-ui; color: #fff; }
+  .tab .rail { position: absolute; left: 0; top: 40px; bottom: 0; width: 58px; background: #2d2215; display: flex; flex-direction: column; }
+  .tab .rail span { padding: 10px 0; text-align: center; font-size: 10.5px; color: #ccc; } .tab .rail span.on { background: #493823; color: #fff; font-weight: 700; }
+  .tab .side { position: absolute; left: 58px; top: 40px; bottom: 0; width: 210px; background: #2d2215; border-right: 1px solid #493823; padding: 10px; display: flex; flex-direction: column; gap: 9px; }
+  .tab .top { height: 40px; }
+</style>
+
+<h2>RASCUNHO — Mestre: opção "Partida" no footer</h2><p style="color:#b8860b"><b>Rascunho guardado em 2026-11-21 a pedido do dono ("vai ser muito complexa").</b> Perguntas em aberto: (1) tirar Regime, Nova cena e Encerrar partida da aba Fila? (2) "Agir" vira "Enviar ação" no próprio lugar, para o mestre?</p>
+<p class="subtitle">O formato do mestre não muda (painel colado às bordas, como hoje); só entram o miolo novo do painel de ação e uma quarta aba, <b>Partida</b>, que junta os controles que hoje se espalham pela barra de cima e pela aba Fila. Critério: o que o mestre usa <b>a cada turno</b> fica à mão (barra de cima); o que muda <b>por cena ou por partida</b> vai para Partida.</p>
+
+<div class="phones" id="ph"></div>
+
+<h3 style="margin-top:34px">Tablet e telas grandes (proposta)</h3>
+<p class="subtitle">Tablet na vertical: igual ao celular. Tablet deitado e desktop: a navegação já é a coluna da esquerda (Fila, Agir, Ficha); <b>Partida vira o quarto item dela</b>, abrindo no mesmo painel lateral. Recomendo ter nas telas grandes também: a barra de cima do desktop já tem 6 botões e vai ganhar "revelar barras"; com Partida, ela fica só com os do turno. Um lugar só para todo tamanho de tela.</p>
+<div class="cmp">
+  <div><div class="tab" id="t1"></div><p class="note">Desktop hoje: 6 controles na barra de cima.</p></div>
+  <div><div class="tab" id="t2"></div><p class="note">Proposta: barra de cima só com o turno; Partida na coluna.</p></div>
+</div>
+
+<script src="./gi.js"></script>
+<script>
+const FAM = { body: "#ffa216", sense: "#4da3ff", life: "#db0e2f", guard: "#1fc140" };
+const topBar = (all) => `<div class="top"><span class="scene">Roleplay</span><span class="dot"></span><div class="tb">${all ? "" : ""}<span>Encerrar rodada</span><span>Fechar turno</span><span class="hist">Histórico</span></div></div>`;
+const map = (me, tg) => `<div class="grid"></div>` + [["J1", 100, 210], ["J2", 190, 160], ["C", 270, 120], ["G", 240, 260]].map(([k, x, y]) => `<div class="tok${k === me ? " me" : k === tg ? " tg" : ""}" style="left:${x}px;top:${y}px">${k}</div>`).join("");
+const nav = (on, send) => `<div class="nav">${[["☰", "Fila"], ["⚔", "Agir"], ["📜", "Ficha"], ["⚙", "Partida"]].map(([i, l]) =>
+  l === "Agir" && send ? `<div class="send"><span class="i">➤</span>Enviar ação</div>` :
+  `<div class="nv${l === on ? " on" : ""}${l === "Partida" ? " new" : ""}"><span class="i">${i}</span>${l}</div>`).join("")}</div>`;
+const gestao = `
+  <div class="ttl">Partida</div>
+  <div class="grp"><div class="rowx"><span class="lbl">Cena</span><b>Roleplay</b><span class="b" style="margin-left:auto">Nova cena</span></div>
+    <div class="rowx"><span class="lbl">Regime</span><span class="seg"><span>Livre</span><span class="on">Disputado</span></span></div></div>
+  <div class="sep"></div>
+  <div class="grp"><div class="rowx"><span class="lbl" style="min-width:0">Barras de vida e stamina</span><span class="soon">quando existir</span></div>
+    <div class="tog"><span class="sw"></span>Revelar as de todos os jogadores a todos</div>
+    <div class="tog"><span class="sw"></span>Revelar as de todos os NPCs</div>
+    <div class="note">Uma por uma: na lista de personagens.</div></div>
+  <div class="sep"></div>
+  <div class="grp"><div class="note">Configurações da mesa entram aqui quando existirem (ex.: status de jogador públicos).</div></div>
+  <div style="margin-top:auto" class="rowx"><span class="b danger">Encerrar partida</span></div>`;
+const fila = `<div class="ttl">Fila de ações</div><div class="queue"><div class="empty">Ninguém declarou nada ainda. O que for declarado aparece aqui.</div></div>`;
+const pill = (s) => `<span class="pill${s.secret ? " secret" : ""}" style="--f:${FAM[s.f]}">${GI[s.k]}<span>${s.name}${s.al ? ` <i>· ${s.al}</i>` : ""}</span></span>`;
+const agir = `<div class="head"><span class="nick">Jogador1</span><span class="tag">alvo</span></div>
+  <div class="pills">${[{ k: "vision", f: "sense", name: "Visão anulada", al: "Ofuscado", secret: true }, { k: "prone", f: "guard", name: "Caído" }].map(pill).join("")}</div>
+  <div class="actor"><span class="mini">C</span><span>Agindo como <b>Capanga</b></span><span class="swp">trocar ▾</span></div>
+  <div class="btns"><div class="btn">➜ Mover</div><div class="btn at">⚔ Atacar</div></div>`;
+const avatarBars = `<div class="pb l"><div class="f" style="clip-path:inset(0 0 0 13%)"></div><span>46/53</span></div><div class="pb r"><div class="f"></div><span>110/110</span></div><div class="gk"><img class="fr" src="./gungi.svg"><img class="ph2" src="./avatar.png"></div>`;
+
+const P = [
+  { t: "Hoje (print da mesa da seed)", d: "Regime, Nova cena e Encerrar partida moram na aba Fila; Encerrar rodada e Fechar turno, na barra de cima.", img: "./mestre-hoje.png" },
+  { t: "Partida aberta", d: "Cena, regime, revelar barras (quando existir), futuras configurações e, separado no pé, Encerrar partida. A Fila volta a ser só a fila.",
+    h: topBar() + map() + `<div class="panel" style="--top:300px">${gestao}</div>` + nav("Partida") },
+  { t: "Fila (sem os controles)", d: "A aba Fila fica só com a fila de ações.",
+    h: topBar() + map() + `<div class="panel" style="--top:470px">${fila}</div>` + nav("Fila") },
+  { t: "Agir do mestre", d: "Miolo novo (avatar, barras, status, \"agindo como\") no formato de hoje, colado às bordas. Na aba Agir aberta, o próprio item vira Enviar ação, sem o recorte do jogador.",
+    h: topBar() + map("C", "J1") + `<div style="--top:430px">${avatarBars}<div class="panel" style="--top:430px; padding-top:46px">${agir}</div></div>` + nav("Agir", true) },
+];
+document.getElementById("ph").innerHTML = P.map(p => `<div class="ph"><h4>${p.t}</h4><p>${p.d}</p>${p.img ? `<div class="scr img"><img src="${p.img}"></div>` : `<div class="scr">${p.h}</div>`}</div>`).join("");
+
+const tabTop = (btns) => `<div class="top"><span class="scene">Roleplay</span><span class="dot"></span><div class="tb">${btns.map(b => `<span${b === "Histórico" ? ' class="hist"' : ""}>${b}</span>`).join("")}</div></div>`;
+document.getElementById("t1").innerHTML = tabTop(["Livre|Disputado", "Nova cena", "Encerrar partida", "Encerrar rodada", "Fechar turno", "Histórico"]) +
+  `<div class="rail"><span class="on">Fila</span><span>Agir</span><span>Ficha</span></div><div class="side">${fila}</div>`;
+document.getElementById("t2").innerHTML = tabTop(["Encerrar rodada", "Fechar turno", "Histórico"]) +
+  `<div class="rail"><span>Fila</span><span>Agir</span><span>Ficha</span><span class="on">Partida</span></div><div class="side" style="font-size:11px">${gestao.replace(/min-width:62px/g, "")}</div>`;
+</script>
+<style id="tema-escuro">/* mesmo fundo escuro do servidor de mockups (frame do brainstorm, modo escuro) */
+body{background:#1d1d1f!important;color:#f5f5f7!important}
+h2,h3,h4,b{color:inherit}
+.sub,.subtitle,.n,.ph p,.fr p,.note,.cap,p[style*="#666"],p[style*="color:#666"]{color:#a1a1a6!important}
+.st{border-top-color:#3d3d3f!important}
+.mockup{background:#2d2d2f;border-radius:10px;overflow:hidden}.mockup-header{color:#a1a1a6;padding:8px 12px;font-size:13px}
+</style>
