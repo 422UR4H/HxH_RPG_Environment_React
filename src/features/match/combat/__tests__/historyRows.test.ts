@@ -40,7 +40,7 @@ describe("historyRows", () => {
   it("fetch que começou no MESMO milissegundo em que o evento chegou o derruba", () => {
     // O refetch do turn_closed roda no mesmo stack síncrono que carimbou o receivedAt.
     const closed: TableEvent = { kind: "turn_closed", turnId: "t1", at: T("2026-01-01T00:01:00Z"), receivedAt: 200 };
-    const hp: TableEvent = { kind: "hp_changed", characterId: "c2", hp: 5, maxHp: 10, damage: 5, at: 1, receivedAt: 200 };
+    const hp: TableEvent = { kind: "hp_changed", characterId: "c2", hp: 5, maxHp: 10, hpChange: -5, at: 1, receivedAt: 200 };
     const rows = historyRows(history(turn("t1", "2026-01-01T00:01:00Z")), [hp, closed], 200, undefined);
     expect(keys(rows)).toEqual(["rest:scene:s1", "rest:t1"]);
   });
@@ -52,7 +52,7 @@ describe("historyRows", () => {
   });
 
   it("hp_changed e resolução liquidada seguem a mesma regra", () => {
-    const hp: TableEvent = { kind: "hp_changed", characterId: "c2", hp: 5, maxHp: 10, damage: 5, at: 1, receivedAt: 100 };
+    const hp: TableEvent = { kind: "hp_changed", characterId: "c2", hp: 5, maxHp: 10, hpChange: -5, at: 1, receivedAt: 100 };
     expect(live(historyRows(history(), [hp], 200, undefined))).toHaveLength(0);
     expect(live(historyRows(history(), [hp], 50, undefined))).toHaveLength(1);
   });

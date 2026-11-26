@@ -1,11 +1,11 @@
 // Espelho de internal/domain/entity/character_sheet/status (Go).
 import type { Ability } from "./ability";
 import type { DistributableAttribute, GameAttribute } from "./attribute";
-import { AP_COEF_VALUE, HP_BASE_VALUE, SP_COEF_VALUE } from "./constants";
+import { AP_COEF_VALUE, HP_BASE_VALUE, HP_MIN_BASE_VALUE, SP_COEF_VALUE } from "./constants";
 import type { CommonSkill } from "./skill";
 
 export abstract class StatusBar {
-  readonly min = 0;
+  min = 0;
   current = 0;
   max = 0;
 
@@ -35,6 +35,13 @@ export class HealthPoints extends StatusBar {
   protected computeMax(): number {
     const coeff = this.vitality.getLevel() + this.resistance.getValue();
     return HP_BASE_VALUE + Math.trunc(coeff * this.physicals.getBonus());
+  }
+
+  /** Mínimo negativo: −⌊10 + nível de Vitality + valor de Resistance + bônus de Physicals⌋. */
+  override upgrade(): void {
+    super.upgrade();
+    const sum = HP_MIN_BASE_VALUE + this.vitality.getLevel() + this.resistance.getValue() + this.physicals.getBonus();
+    this.min = -Math.floor(sum) || 0;
   }
 }
 

@@ -1012,7 +1012,7 @@ describe("GamePlayerPage", () => {
     await user.click(screen.getByRole("button", { name: /Ficha/ }));
     await screen.findByTestId("match-sheet");
     act(() => {
-      ws.emit("character_hp_changed", { characterId: "c1", hp: 7, maxHp: 30, damage: 3 });
+      ws.emit("character_hp_changed", { characterId: "c1", hp: 7, maxHp: 30, hpChange: -3 });
     });
     const sheet = screen.getByTestId("match-sheet");
     expect(await within(sheet).findAllByText(/7\/30/)).toHaveLength(1);
@@ -1118,7 +1118,7 @@ describe("GamePlayerPage", () => {
     const now = vi.spyOn(Date, "now").mockReturnValue(Date.parse("2026-06-01T00:01:00Z"));
     try {
       act(() => {
-        ws.emit("character_hp_changed", { characterId: "c2", hp: 7, maxHp: 10, damage: 3 });
+        ws.emit("character_hp_changed", { characterId: "c2", hp: 7, maxHp: 10, hpChange: -3 });
         ws.emit("turn_closed", { turnId: "t1" });
       });
       await vi.waitFor(() => expect(calls).toBe(2));

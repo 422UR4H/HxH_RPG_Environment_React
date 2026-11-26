@@ -6,7 +6,7 @@ import type { ResolutionPayload, RoundMode, SceneCategory } from "../features/ma
 export type RollCheck = {
   skillName: string;
   skillValue: number;
-  attempts: { primary: number[]; secondary?: number[] };
+  attempts: { primary: number[]; extra?: number[] };
   result: number;
 };
 

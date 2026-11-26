@@ -26,5 +26,7 @@ export const JOINT_PROFICIENCY_COEFF = 1.0;
 
 // status/health_points_bar.go, stamina_points_bar.go, aura_points_bar.go
 export const HP_BASE_VALUE = 20;
+/** Base do mínimo negativo do HP (a barra vai de −⌊10 + …⌋ ao máximo). */
+export const HP_MIN_BASE_VALUE = 10;
 export const SP_COEF_VALUE = 10;
 export const AP_COEF_VALUE = 10;

@@ -123,7 +123,8 @@ export type HpChangedPayload = {
   characterId: string;
   hp: number;
   maxHp: number;
-  damage: number;
+  /** Variação do HP com o sinal natural (HP de agora − HP de antes): negativo = perdeu, positivo = ganhou. */
+  hpChange: number;
 };
 
 export type PendingReaction = {
@@ -215,6 +216,10 @@ export type ResolutionTarget = {
   rawDamage: number;
   defenseApplied: number;
   projectedDamage: number;
+  /** O acerto crítico dobrou o dano final deste alvo; ausente quando false. */
+  criticalDamage?: boolean;
+  /** Só o mestre: com este dano o HP ficaria abaixo do mínimo da barra (prévia); ausente quando false. */
+  dies?: boolean;
   reaction?: ReactionResult;
   payouts?: Payout[];
   escape?: EscapeVerdict;
