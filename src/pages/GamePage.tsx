@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Navigate, useParams } from "react-router-dom";
 import useDocumentTitle from "../hooks/useDocumentTitle";
 import useToken from "../hooks/useToken";
@@ -7,6 +8,7 @@ import { PageLoading, PageError, PageNotFound } from "../components/templates/Pa
 import { isApiError } from "../services/httpClient";
 import GamePlayerPage from "./GamePlayerPage";
 import GameMasterPage from "./GameMasterPage";
+import { exitFullscreen } from "../hooks/useFullscreen";
 import { matchPagePath } from "../features/match/clock/endMatch";
 
 /**
@@ -20,6 +22,10 @@ import { matchPagePath } from "../features/match/clock/endMatch";
 export default function GamePage() {
   const { token } = useToken();
   const { campaignId, matchId } = useParams<{ campaignId: string; matchId: string }>();
+
+  // Ao sair da mesa (partida encerrada ou outra navegação) sai da tela cheia: as outras
+  // páginas não têm o botão para sair dela.
+  useEffect(() => () => exitFullscreen(), []);
 
   if (!token) return <Navigate to="/" replace />;
 

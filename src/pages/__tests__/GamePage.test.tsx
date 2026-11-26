@@ -3,7 +3,7 @@
 // GamePage é a ROTA (Tarefa 12): loading guard + escolha da página pelo papel. Os
 // comportamentos de tela (mapa, ação, histórico...) são cobertos por
 // GamePlayerPage.test.tsx — aqui só o que é responsabilidade da rota.
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { http, HttpResponse, delay } from "msw";
 import { screen, waitFor } from "@testing-library/react";
 import { Route, Routes, useLocation, useNavigationType } from "react-router-dom";
@@ -55,6 +55,29 @@ describe("GamePage (rota)", () => {
     renderPage();
 
     expect(await screen.findByRole("button", { name: /^ação$/i })).toBeInTheDocument();
+  });
+
+  it("leaves fullscreen when the route unmounts", async () => {
+    server.use(
+      http.get(`${baseUrl}/matches/:id`, () => HttpResponse.json({ match: matchApiFixture })),
+      http.get(`${baseUrl}/matches/:id/map`, () => new HttpResponse(null, { status: 204 })),
+      http.get(`${baseUrl}/matches/:id/participants`, () =>
+        HttpResponse.json({ participants: [] }),
+      ),
+    );
+    const exit = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(document, "fullscreenElement", { configurable: true, writable: true, value: document.documentElement });
+    Object.defineProperty(document, "exitFullscreen", { configurable: true, writable: true, value: exit });
+
+    try {
+      const { unmount } = renderPage();
+      await screen.findByRole("button", { name: /^ação$/i });
+      unmount();
+      expect(exit).toHaveBeenCalled();
+    } finally {
+      delete (document as unknown as Record<string, unknown>).fullscreenElement;
+      delete (document as unknown as Record<string, unknown>).exitFullscreen;
+    }
   });
 
   // Tarefa 13: o ramo do mestre monta GameMasterPage — rail Fila/Agir, não Ação.
