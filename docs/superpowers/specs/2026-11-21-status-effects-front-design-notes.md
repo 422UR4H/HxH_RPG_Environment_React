@@ -16,7 +16,7 @@
 |---|---|---|
 | 1. Peça do mapa | **fechado** | `peca-pilha.html`, `peca-faixa-e-caixa.html` |
 | 2. Painel de ação (jogador, celular) | **fechado** | `painel-acao-jogador.html` |
-| Mestre: aba "Partida" no footer | **rascunho guardado** ("vai ser muito complexa") | `rascunho-mestre-partida.html` |
+| Mestre: aba "Partida" no footer | **v3 (2026-11-25), aguardando o dono** | `partida-v3.html`; `rascunho-mestre-partida.html` e `partida-v2.html` histórico |
 | Mestre: aplicar / editar / tirar | **FECHADO na v7** (dono: "a última versão é a que ficou perfeita; ignore as anteriores") | `comparativo-mestre.html` (celular × desktop por etapa); separados: `mestre-aplicar.html`, `mestre-aplicar-desktop.html` |
 | 3. Lista de personagens da mesa | **v3 (2026-11-25): abas juntadas, sem botão geral, título centralizado** | `personagens-v3.html` (+ `card-*.png`); v1–v2 histórico |
 | 4. Destaque no jogador ao ganhar status | **FECHADO na v5 (2026-11-25)** — Guarda em `gold400` | `destaque-v5.html`; v1–v4 histórico |
@@ -372,6 +372,29 @@ Para o PO (registrado a pedido do dono):
 
 - **Curva da luz refeita:** a v4 ficou lenta. Agora chega ao máximo quase na hora (≈ 0,15 s), mais
   intensa que antes, e some devagar (≈ 3,2 s, um pouco mais lento que a v3). [dono]
+
+## Mestre — aba "Partida", rodada v3 (2026-11-25) — `partida-v3.html`
+
+- **O header não muda** (em todo tamanho de tela). Nos mockups ele aparece só indicado. [dono]
+- **O painel de baixo do mestre (celular) não é folha:** fica **sempre visível e sempre da mesma
+  altura**, em todas as abas; o conteúdo **rola dentro**. Não some, não cresce, não encolhe. **Sem X**
+  (não fecha). Hoje a altura muda por aba (Fila ≈ 97 px num celular de 844 px; o painel de Ação do
+  jogador ≈ 388 px); o mockup usa 300 px — o número final é do PO/designer. [dono]
+- **Exceção: a ficha** abre no **formato de folha do jogador** (arredondada, afastada das laterais,
+  vindo de trás da navegação), **cobrindo boa parte do mapa**, **em todo dispositivo, para mestre e
+  jogador** — a exibição de hoje da ficha na mesa é ruim. Tem X; fecha no X ou tocando no pedaço de
+  mapa que sobra. [dono: a exceção e o formato; fechar tocando no mapa: Claude]
+- **Regime (Livre/Disputado) continua na aba Fila**, como hoje. [dono]
+- **Nova cena vai para Partida**, como **botão que abre o fluxo de hoje** — nada de caixa de texto na
+  tela. Encerrar partida também vai para Partida (separado, no pé). [dono]
+- **Recorte com botão redondo também no mestre** ("poderia ser legal nas duas telas"): para o botão
+  ficar no centro, o "Agir" vai para o meio: **Fila · Ficha · Agir · Personagens · Partida**. Só o
+  jogador tem folha que abre e fecha; no mestre o recorte fica sobre o painel fixo. [dono inclinado;
+  ordem: Claude]
+- **Computador:** medido no print de hoje (1400 px): esquerda 412 px (navegação 72 + painel 340), mapa
+  668 px, histórico 320 px. Proposta: **fila fixa 240 px, histórico 260 px, e os painéis de
+  Agir/Ficha/Personagens/Partida flutuam sobre o mapa** (fecham clicando de novo no item ou no mapa);
+  num notebook de 1366 px o mapa fica com ~794 px. [dono pediu mapa maior; proposta: Claude]
 
 ## Fechamento da tela do mestre (2026-11-22)
 

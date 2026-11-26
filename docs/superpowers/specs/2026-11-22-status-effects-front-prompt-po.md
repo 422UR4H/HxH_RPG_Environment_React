@@ -19,7 +19,7 @@
      **exceto a etapa 6 ("Aba Status")**, substituída pela lista de personagens v2 (aba "Personagens");
    - lista de personagens: **`personagens-v3.html`** (v1–v2 são histórico);
    - destaque no jogador: **`destaque-v5.html`** (final; v1–v4 são histórico);
-   - rascunho, fora do escopo agora: `rascunho-mestre-partida.html`.
+   - aba "Partida" do mestre e o painel fixo: `partida-v3.html` (**aguardando o dono**; o rascunho e a v2 são histórico).
 3. Siga o **Design System do projeto** (artefato `https://claude.ai/artifact/TxCRCJxNB6qX13WKxAjZRV`,
    `project/README.md`; link também em `System_X_System_React/src/styles/CLAUDE.md`). A sessão de PD
    só passou a lê-lo na v3, e boa parte das correções abaixo era regra escrita lá.
@@ -209,8 +209,23 @@ lista (não existe aba "Status" separada).
    uma **barra própria** de congelamento que **aplica outros status** (Lento, Corpo debilitado e
    outros a discutir).
 
+## Aba "Partida" do mestre, painel fixo e ficha (`partida-v3.html`, aguardando o dono)
+
+- **O header não muda**, em nenhum tamanho de tela.
+- **Celular:** o painel de baixo do mestre **não é folha** — sempre visível, **altura fixa** em todas as
+  abas, conteúdo rolando dentro, **sem X**. (Hoje: Fila ≈ 97 px num celular de 844 px; Ação do jogador
+  ≈ 388 px; o mockup usa 300 px; o PO/designer fecha o número.)
+- **Ficha = exceção, em todo dispositivo, para mestre e jogador:** abre no formato de folha do jogador,
+  cobrindo boa parte do mapa, com X; fecha no X ou tocando no mapa que sobra.
+- **Footer do mestre:** Fila · Ficha · **Agir** · Personagens · Partida, com o **mesmo recorte e botão
+  redondo** do jogador quando Agir está aberto ("Enviar ação").
+- **Regime** continua na Fila; **Nova cena** (botão que abre o fluxo de hoje, sem caixa de texto) e
+  **Encerrar partida** vão para Partida; Partida também tem "revelar barras" (todos os PJs a todos;
+  todos os NPCs — quando existir; um por um no card da lista) e o espaço das configurações da mesa.
+- **Computador:** fila fixa 240 px, histórico 260 px, painéis flutuando sobre o mapa (fecham clicando de
+  novo no item ou no mapa); hoje o mapa é 668 de 1400 px.
+
 ## Em aberto / fora do escopo agora
 
-- Aba **"Partida"** do mestre (gerenciamento): rascunho guardado, "muito complexa agora".
-- Formato da tela do mestre (minimizar a folha etc.): o dono revê com o designer humano.
-- Tablet do mestre: em pé = celular; deitado = desktop (proposta).
+- Formato da tela do mestre além do acima: o dono revê com o designer humano.
+- Celular deitado: fila e footer à esquerda (seção "Layout da mesa").
