@@ -27,7 +27,7 @@ export function useFullscreen() {
 
   const toggle = useCallback(() => {
     if (document.fullscreenElement != null) {
-      document.exitFullscreen().catch(() => {});
+      exitFullscreen();
     } else {
       document.documentElement.requestFullscreen({ navigationUI: "hide" }).catch(() => {});
     }
