@@ -97,9 +97,10 @@ além do descrito aqui (o dono revê com o designer humano). Os **itens da fila 
 **Celular deitado** [dono]: deitado sobra pouca altura, e header + footer comem a tela.
 - A **fila fica à esquerda, como no computador**, e o **footer vira a coluna de navegação à
   esquerda** (como a do computador). **O header continua.**
-- **Como reconhecer "celular deitado"** [PO]: `(orientation: landscape) and (max-height: 540px)` —
-  um celular deitado passa de 768 px de largura e cairia no tablet; quem decide é a altura. Conferir
-  no aparelho e ajustar o número se preciso, registrando no PR.
+- **Como reconhecer "celular deitado": decisão do tech lead** [dono, 2026-11-25]. Ponto de
+  partida do PO: pela altura — `(orientation: landscape) and (max-height: 540px)` —, porque um celular
+  deitado passa de 768 px de largura e cairia no tablet. Conferir no aparelho e registrar a escolha
+  no PR.
 
 **Tablet (em pé e deitado) e computador padrão** (de `tabletUp` até o widescreen):
 - **A fila fica sempre à mostra, à esquerda** [dono].
@@ -121,8 +122,11 @@ além do descrito aqui (o dono revê com o designer humano). Os **itens da fila 
 
 - **Nova cena**: um botão que abre o fluxo de hoje (sem caixa de texto na aba).
 - **Encerrar partida**: sai de onde está hoje e vem para cá.
-- **Revelar barras** e **configurações da mesa**: **não entram na F1** (os dados e os comandos não
-  existem no back). Não desenhar controles vazios: a aba mostra só o que funciona [PO].
+- **Revelar barras** e **configurações da mesa**: ainda não funcionam (os dados e os comandos não
+  existem no back). **Aparecem na aba com a etiqueta "(em breve)"**, desabilitadas [dono,
+  2026-11-25] — o mesmo selo que o painel de regras da ficha já usa para regra ainda não disponível.
+  Revelar barras: "das barras de todos os personagens de jogador, para todos" e, separado, "de todos
+  os NPCs" (spec do back §16.3, item 25).
 
 ### 4.5 "Personagens" no footer do mestre (nesta fase)
 
@@ -149,7 +153,7 @@ status presa embaixo de cada card e o "＋ status" chegam na F3/F4. Não existe 
    muda de lugar. Começar a F1 depois do merge evita conflito.
 2. **Merge do PR #115 do front** (os documentos do PD e este), para quem implementa ler da `main`.
 3. **Nada do back.**
-4. A pergunta 0 da §6, se o dono não aceitar a leitura do PO.
+4. ~~A pergunta 0 da §6~~ — respondida.
 
 ## 5. Fases 2 a 5 — escopo
 
@@ -168,10 +172,9 @@ despachar cada uma, a sessão de PO escreve aqui a seção detalhada dela, com a
 
 ## 6. Perguntas em aberto (com o dono)
 
-0. **[para a F1] O que muda para o jogador no layout?** Leitura do PO: na F1 o jogador **só** ganha a
-   ficha como folha no celular e o celular deitado com a navegação à esquerda; "fila sempre à mostra
-   à esquerda no tablet e maiores" é do mestre, porque é ele quem conduz a fila. Se a fila também
-   deve ficar à mostra para o jogador, a F1 muda.
+0. ~~O que muda para o jogador no layout?~~ — **decidido** [dono, 2026-11-25]: a fila sempre à
+   mostra é **só do mestre**. Na F1 o jogador só ganha a ficha como folha no celular e, no celular
+   deitado, a navegação à esquerda.
 1. O jogador vê os **números** dos status de outro personagem (ex.: "Queimando 1")? (F3)
 2. **Vários alvos** no painel de ação: de quem mostrar barras e status? Ideia do dono: avatares dos
    alvos no topo, o escolhido no centro, os outros menores; tocar troca. (F2/F3)
@@ -189,6 +192,6 @@ despachar cada uma, a sessão de PO escreve aqui a seção detalhada dela, com a
 - Corte em cinco fases, com a F1 só de layout.
 - Widescreen a partir de **1600 px**.
 - "Celular deitado" reconhecido pela altura (`max-height: 540px` deitado).
-- Aba "Partida" na F1 só com Nova cena e Encerrar partida; nada de controles vazios.
+- ~~Aba "Partida" só com o que funciona~~ — o dono preferiu mostrar o resto com "(em breve)".
 - Footer do mestre no celular com cinco itens, pela `partida-v6` (a mais nova).
-- Leitura da pergunta 0 (o jogador quase não muda na F1).
+- ~~Leitura da pergunta 0~~ — confirmada pelo dono.
