@@ -428,6 +428,12 @@ Para o PO (registrado a pedido do dono):
   widescreen): o marrom do painel (`surfaceSidebar`) com um véu de `alpha(neutral1000, 0.3)` por
   cima — variação por `alpha`, sem token nem cor nova. No celular fica como está. [dono]
 
+## Observação final do dono (2026-11-25)
+
+- Na `partida-v6` a fila perdeu a margem do Regime e dos itens, e os "cards" de ação da fila não
+  existem hoje: registrado no prompt como regra para o implementador (manter o espaçamento e os itens
+  de hoje). Sem mockup novo. [dono]
+
 ## Fechamento da tela do mestre (2026-11-22)
 
 - **A v7 é a versão final** da tela de aplicar/editar/tirar; as anteriores são só histórico. [dono]

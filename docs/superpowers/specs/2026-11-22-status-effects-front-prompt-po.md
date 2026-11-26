@@ -4,6 +4,9 @@
 > escreve o documento de front que vai para quem implementa **sem perder nenhuma correção que o
 > dono e o líder de product design já fizeram** — cada item da seção "Regras de desenho" custou uma
 > rodada de correção e não pode voltar. O PO pode citar este arquivo inteiro no documento dele.
+>
+> **Tudo o que está aqui é para chegar a quem implementa** — o dono pediu vários registros "para o PO"
+> justamente para o PO repassá-los ao implementador. Não resumir nem cortar as regras de desenho.
 
 ## Como usar
 
@@ -48,6 +51,14 @@
 - **Segmentados** ("Quem vê", "Como está cada parte"…): texto **centrado nos dois sentidos**.
 - **Peça de gungi sem o emblema vermelho** nas listas, resumos e no círculo do painel (moldura de
   gungi + avatar). O emblema fica só onde já está hoje (o card da lista de personagens, a ficha).
+
+**Mockups não são especificação de espaçamento**
+- Os mockups são desenhos à mão em HTML; **margens, recuos e espaçamentos do que já existe no site
+  valem os de hoje**. Na `partida-v6.html` (computador e widescreen) a seção da fila **perdeu a margem**
+  do seletor de Regime (Livre/Disputado) e dos itens da fila — **isso não pode acontecer** na
+  implementação: a fila mantém o espaçamento de hoje.
+- Os **"cards" de ação da fila nos mockups não existem hoje** e não foram pedidos: a fila mantém os
+  itens como são hoje (`QueuePanel`); nos mockups eles só ocupam o lugar.
 
 **Hierarquia e diagramação**
 - **Cabeçalho de folha/diálogo:** Voltar e X no topo (acima), respiro, depois o **ícone do status na
