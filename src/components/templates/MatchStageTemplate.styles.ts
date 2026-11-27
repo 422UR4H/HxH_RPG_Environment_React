@@ -4,7 +4,7 @@ import { colors } from "../../styles/tokens";
 import { iconButtonFx } from "../../styles/iconButtonFx";
 import CloseButton from "../ions/CloseButton";
 
-/** Altura do rail quando ele deita e vira rodapé (abaixo de `railUp`). */
+/** Altura do rodapé: o rail deita no celular em pé e, sem `queue`, até `railUp`; no celular deitado ele é sempre coluna. */
 export const RAIL_BAR_HEIGHT = 56;
 
 // BF4: a gaveta (aside) é posicionada sobre o palco abaixo de `tabletUp` e precisa ficar
@@ -66,6 +66,8 @@ const sheetBox = (width: string) => css`
   inset: auto;
   height: 100%;
   width: ${width};
+  /* Nunca passa da largura do palco: em tela estreita não pode vazar sobre a coluna do Histórico. */
+  max-width: 100%;
   padding-bottom: 0;
   border-radius: 0;
   border-right: 1px solid ${colors.surfaceInput};

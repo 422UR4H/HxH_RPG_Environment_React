@@ -185,5 +185,10 @@ describe("MatchStageTemplate", () => {
       render(<MatchStageTemplate {...base} sheet={<div />} />);
       expect(emittedCss()).toContain("clamp(340px, calc(100% - 300px), 420px)");
     });
+
+    it("never lets the sheet box exceed the stage width", () => {
+      render(<MatchStageTemplate {...base} sheet={<div />} />);
+      expect(emittedCss()).toContain("max-width:100%;");
+    });
   });
 });

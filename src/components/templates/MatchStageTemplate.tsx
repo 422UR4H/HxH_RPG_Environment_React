@@ -27,12 +27,12 @@ type Props = {
   aside?: ReactNode;
   panelOpen?: boolean;
   asideOpen?: boolean;
-  /** O painel mostra algo largo (a ficha): a coluna alarga a partir de `railUp`. */
+  /** O painel mostra algo largo (a ficha): a coluna alarga a partir de `asideUp` (só sem `queue`). */
   panelWide?: boolean;
   /** O conteúdo do painel não pede toque no mapa: abaixo de railUp, um véu cobre o palco e o toque nele fecha o painel. */
   panelDismissible?: boolean;
   onDismissPanel?: () => void;
-  /** Abaixo de asideUp, com a gaveta aberta, um véu cobre o resto e o toque nele a fecha. */
+  /** No celular em pé, com a gaveta aberta, um véu cobre o resto e o toque nele a fecha. */
   onDismissAside?: () => void;
   /** A fila fixa do mestre. Com ela a navegação fica em pé a partir de `tabletUp` e a coluna da esquerda divide em duas. */
   queue?: ReactNode;
