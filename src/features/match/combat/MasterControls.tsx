@@ -48,7 +48,7 @@ export function RoundModeSwitch({
   );
 }
 
-/** O Round no header: rótulo + seletor Livre/Disputado. Some no celular em pé (lá vive no topo da fila). */
+/** O Round no header: rótulo + seletor Livre/Disputado. Some só no celular em pé (lá vive no topo da fila); no celular deitado fica sempre aqui. */
 export function HeaderRound({
   mode,
   onModeChange,
@@ -111,7 +111,7 @@ export function TurnControls({
 
 /**
  * O topo da Fila, em todo tamanho: `turn` (os botões do turno) sempre; `round` (título + seletor
- * do Round) só no celular em pé, onde o header não tem largura para ele.
+ * do Round) só no celular em pé, onde o header não tem largura para ele; no celular deitado o Round fica no header.
  */
 export function QueueHeader({ round, turn }: { round: ReactNode; turn: ReactNode }) {
   return (
@@ -463,6 +463,11 @@ const PhoneOnly = styled.div`
   ${media.tabletUp} {
     display: none;
   }
+
+  /* No celular deitado o Round fica sempre no header (como no tablet), nunca no topo da fila. */
+  ${media.landscapePhone} {
+    display: none;
+  }
 `;
 
 const Turn = styled.div`
@@ -479,6 +484,11 @@ const RoundBox = styled.div`
 
   ${media.phone} {
     display: none;
+  }
+
+  /* Regras do celular deitado por último: vale sobre a largura (ex.: 667x375 é < 768 px). */
+  ${media.landscapePhone} {
+    display: flex;
   }
 `;
 

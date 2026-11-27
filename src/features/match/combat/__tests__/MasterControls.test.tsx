@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { AddNpcPicker, EndMatchButton, TurnControls } from "../MasterControls";
+import { AddNpcPicker, EndMatchButton, HeaderRound, QueueHeader, TurnControls } from "../MasterControls";
 import type { RoundMode } from "../combatMessages";
 
 function setup(mode: RoundMode, queueLength: number, orderLength: number, roundTurns?: number) {
@@ -133,5 +133,35 @@ describe("EndMatchButton", () => {
       />,
     );
     expect(screen.getByRole("button", { name: "Fechar turno" })).toBeDisabled();
+  });
+});
+
+describe("Round placement on the landscape phone", () => {
+  // O jsdom não avalia @media: lemos o CSS gerado e exigimos a regra do celular deitado.
+  const css = () =>
+    Array.from(document.querySelectorAll("style"))
+      .map((el) => el.textContent ?? "")
+      .join("\n") +
+    Array.from(document.styleSheets)
+      .flatMap((sheet) => Array.from(sheet.cssRules).map((r) => r.cssText))
+      .join("\n");
+
+  it("keeps the Round in the header and hides it from the queue top", () => {
+    render(
+      <>
+        <HeaderRound mode="Free" onModeChange={vi.fn()} />
+        <QueueHeader round={<span>fila-round</span>} turn={<span>turno</span>} />
+      </>,
+    );
+    const headerBox = screen.getByText("Round").parentElement!;
+    const queueRound = screen.getByText("fila-round").parentElement!;
+    const rules = css();
+    const landscape = "(orientation: landscape) and (max-height: 540px)";
+    const rulesFor = (el: Element) =>
+      Array.from(el.classList)
+        .filter((c) => c.startsWith("sc-") === false)
+        .map((c) => new RegExp(`@media ${landscape.replace(/[()]/g, "\\$&")}[^{]*\\{\\s*\\.${c}\\s*\\{([^}]*)\\}`).exec(rules)?.[1] ?? "");
+    expect(rulesFor(headerBox).join("")).toMatch(/display:\s*flex/);
+    expect(rulesFor(queueRound).join("")).toMatch(/display:\s*none/);
   });
 });
