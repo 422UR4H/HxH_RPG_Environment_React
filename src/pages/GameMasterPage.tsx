@@ -247,7 +247,10 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   const cardGhostRef = usePointerGhost(cardDrag);
   // Arrumar: uma peça está sendo arrastada para fora do mapa (acende a lista de Personagens).
   const [draggingPieceId, setDraggingPieceId] = useState<string | null>(null);
-  const charactersListRef = useRef<HTMLDivElement | null>(null);
+  // Um ref por posição: a lista pode estar montada no Histórico e na seção Personagens ao mesmo
+  // tempo, e um ref só seria zerado quando qualquer uma das duas desmontasse.
+  const asideListRef = useRef<HTMLDivElement | null>(null);
+  const panelListRef = useRef<HTMLDivElement | null>(null);
 
   // ─── Onde cai a fuga que falhou (F14) ──────────────────────────────────────
   const fallPicking = boardMode === "fallPick";
@@ -358,7 +361,8 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   useEffect(() => {
     if (!arranging || !pieceDragging) return;
     const onUp = (e: PointerEvent) => {
-      releaseOnListRef.current = releasedInside(charactersListRef.current, e);
+      releaseOnListRef.current =
+        releasedInside(asideListRef.current, e) || releasedInside(panelListRef.current, e);
     };
     window.addEventListener("pointerup", onUp, { capture: true });
     return () => {
@@ -783,8 +787,8 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     return actorId ? undefined : `${verb} num NPC para agir por ele.`;
   }
 
-  // O mesmo elemento no Histórico (aba Personagens) e na seção Personagens do painel.
-  const charactersSidebar = (
+  // A mesma lista no Histórico (aba Personagens) e na seção Personagens do painel, cada uma com o seu ref.
+  const renderCharactersSidebar = (listRef: typeof asideListRef) => (
     <MatchCharactersSidebar
       fluid
       footer={<AddNpcPicker candidates={npcCandidates} onAdd={(id) => combat.send.addNpc(id)} />}
@@ -793,7 +797,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
       participants={participantsWithLiveHp}
       offBoardIds={offBoardIds}
       onCardDragStart={handleCardDragStart}
-      containerRef={charactersListRef}
+      containerRef={listRef}
       isDropTarget={arranging && draggingPieceId != null}
       isMaster
       actionLoading={{}}
@@ -919,7 +923,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
       onEndMatch={openEndMatch}
     />
   ) : shownSection === "personagens" ? (
-    charactersSidebar
+    renderCharactersSidebar(panelListRef)
   ) : shownSection === "fila" ? (
     queueContent
   ) : (
@@ -1019,9 +1023,11 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                   highlightHoverSlot={fallPicking || reactionPicking || (!arranging && !!actorId && !sheetOpen)}
                   fitRequest={game.fitRequest}
                   onEmptySlotClick={
-                    reactionPicking
+                    sheetOpen
+                      ? undefined
+                      : reactionPicking
                       ? handleReactionSlot
-                      : fallPicking ? handleFallSlot : boardMode === "play" && (actorId || sheetWaiting) && !sheetOpen ? handleSlotTap : undefined
+                      : fallPicking ? handleFallSlot : boardMode === "play" && (actorId || sheetWaiting) ? handleSlotTap : undefined
                   }
                   onPieceMove={arranging ? handleArrangeMove : undefined}
                   placingNpcId={cardDrag?.id ?? (arranging ? (placingId ?? null) : null)}
@@ -1163,7 +1169,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                 }
               />
             }
-            personagens={charactersSidebar}
+            personagens={renderCharactersSidebar(asideListRef)}
           />
         }
       />

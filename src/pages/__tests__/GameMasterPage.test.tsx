@@ -32,6 +32,8 @@ vi.mock("../../features/tactical-map/TacticalMapViewer", () => ({
     inspectedPieceId?: string | null;
     intentGhosts?: unknown[];
     intentPreview?: unknown;
+    onPieceDragStart?: (pieceId: string) => void;
+    onPieceDragToRoster?: (pieceId: string) => void;
     onPieceMove?: (pieceId: string, slot: { kind: "square"; col: number; row: number } | { kind: "hex"; q: number; r: number }) => void;
     placingNpcId?: string | null;
     onNpcPlaced?: (slot: { kind: "square"; col: number; row: number }) => void;
@@ -67,6 +69,17 @@ vi.mock("../../features/tactical-map/TacticalMapViewer", () => ({
           onContextMenu={() => props.onPieceLongPress?.(piece.id)}
         >
           {piece.id}
+        </button>
+      ))}
+      {/* Arrumar: arrastar a peça para fora do mapa (começo e soltura sobre a lista, como o PiecesLayer). */}
+      {props.map.pieces.map((piece) => (
+        <button key={`drag-${piece.id}`} data-testid={`drag-start-${piece.id}`} onClick={() => props.onPieceDragStart?.(piece.id)}>
+          drag {piece.id}
+        </button>
+      ))}
+      {props.map.pieces.map((piece) => (
+        <button key={`roster-${piece.id}`} data-testid={`drag-to-roster-${piece.id}`} onClick={() => props.onPieceDragToRoster?.(piece.id)}>
+          roster {piece.id}
         </button>
       ))}
       {/* F12: soltar a peça arrastada num slot vazio, como o PiecesLayer faz. */}
@@ -1875,6 +1888,24 @@ describe("GameMasterPage", () => {
       expect(screen.queryByText("Arrumar o tabuleiro")).not.toBeInTheDocument();
       expect(screen.getByText("Agir por")).toBeInTheDocument();
       expect(dialog()).not.toBeInTheDocument();
+    });
+
+    it("dropping a piece on the aside list removes it even with the same list open in the panel", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      // A lista nos dois lugares: seção Personagens do painel e aba Personagens do Histórico.
+      await user.click(railButton("Personagens"));
+      await user.click(await screen.findByRole("button", { name: "Ver histórico" }));
+      await user.click(asideTab("Personagens"));
+      // Entrar no Arrumar troca o painel pelo ArrangePanel e desmonta a cópia do painel.
+      await user.click(screen.getByRole("button", { name: "Arrumar" }));
+      act(() => screen.getByTestId("drag-start-piece-c1").click());
+      const asideList = await within(screen.getByTestId("match-aside")).findByTestId("character-row-c1");
+      fireEvent.pointerUp(asideList);
+      act(() => screen.getByTestId("drag-to-roster-piece-c1").click());
+      // A confirmação de tirar do mapa abriu: a soltura contou como sobre a lista.
+      expect(await screen.findByRole("dialog")).toBeInTheDocument();
     });
 
     it("tocar de novo na peça selecionada a solta", async () => {
