@@ -562,7 +562,26 @@ describe("GameMasterPage", () => {
       expect(screen.getByTestId("match-aside")).toHaveAttribute("data-open", "false");
     });
 
-    it("keeps the sheet open on the same character across a layout change", async () => {
+    it("on a portrait phone, opening the Histórico drawer closes the sheet and vice versa", async () => {
+      mockScreen({ width: 390, height: 800 });
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      const headerHistory = () => screen.getByRole("button", { name: /(Ver|Ocultar) histórico/ });
+      act(() => screen.getByTestId("select-actor-c1").click());
+      await user.click(railButton("Ficha"));
+      expect(zone()).toHaveAttribute("data-open", "true");
+
+      await user.click(headerHistory());
+      expect(screen.getByTestId("match-aside")).toHaveAttribute("data-open", "true");
+      expect(zone()).toHaveAttribute("data-open", "false");
+
+      await user.click(railButton("Ficha"));
+      expect(zone()).toHaveAttribute("data-open", "true");
+      expect(screen.getByTestId("match-aside")).toHaveAttribute("data-open", "false");
+    });
+
+        it("keeps the sheet open on the same character across a layout change", async () => {
       const screenMock = mockScreen({ width: 390, height: 800 });
       renderMasterPage();
       const ws = await waitForSocket();

@@ -130,13 +130,13 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
   const [cancelling, setCancelling] = useState<DeclaredAction | null>(null);
   const cancelPending =
     cancelling && state.declared.some((d) => d.id === cancelling.id && d.status === "queued") ? cancelling : null;
-  const { panelOpen, setPanelOpen, asideOpen, setAsideOpen, closeAsideIfDrawer } = useStageOverlays();
+  const { panelOpen, setPanelOpen, asideOpen, setAsideOpen, sheetOpen, setSheetOpen, closeAsideIfDrawer } =
+    useStageOverlays();
 
   // Celular em pé: a ficha é uma folha por cima do mapa; widescreen: uma caixa ao lado do painel.
   // Nos outros tamanhos ela continua no painel (aba "Ficha"). A ficha é sempre a do próprio personagem.
   const layout = useMatchLayout();
   const sheetAsZone = layout.phonePortrait || layout.wide;
-  const [sheetOpen, setSheetOpen] = useState(false);
 
   // Trocar de tamanho com a ficha aberta não a fecha: ela muda de lugar (painel <-> zona).
   const wasZone = useRef(sheetAsZone);
@@ -156,7 +156,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
       setRailActive("ficha");
       setPanelOpen(true);
     }
-  }, [sheetAsZone, sheetOpen, railActive, panelOpen, layout.phonePortrait, setPanelOpen]);
+  }, [sheetAsZone, sheetOpen, railActive, panelOpen, layout.phonePortrait, setPanelOpen, setSheetOpen]);
 
   // Abre a ficha do próprio personagem onde ela mora no tamanho atual.
   const openSheet = useCallback(() => {
@@ -168,7 +168,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
       setRailActive("ficha");
       setPanelOpen(true);
     }
-  }, [sheetAsZone, layout.phonePortrait, setPanelOpen]);
+  }, [sheetAsZone, layout.phonePortrait, setPanelOpen, setSheetOpen]);
 
   const handleRailSelect = useCallback(
     (id: string) => {
@@ -189,7 +189,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
       setRailActive(id as RailTab);
       setPanelOpen(true);
     },
-    [sheetAsZone, sheetOpen, openSheet, layout.phonePortrait, railActive, setPanelOpen],
+    [sheetAsZone, sheetOpen, openSheet, layout.phonePortrait, railActive, setPanelOpen, setSheetOpen],
   );
 
   const pieceCharacter = useCallback(
@@ -214,7 +214,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
       setRailActive("acao");
       setPanelOpen(true);
     },
-    [sheetOpen, pieceCharacter, actorId, composerClosed, composer, setPanelOpen],
+    [sheetOpen, pieceCharacter, actorId, composerClosed, composer, setPanelOpen, setSheetOpen],
   );
   const handlePieceHold = useCallback(
     (pieceId: string) => {
@@ -228,7 +228,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
       setRailActive("acao");
       setPanelOpen(true);
     },
-    [sheetOpen, pieceCharacter, actorId, composerClosed, composer, setPanelOpen],
+    [sheetOpen, pieceCharacter, actorId, composerClosed, composer, setPanelOpen, setSheetOpen],
   );
   // A parede é alvo como uma peça: o toque vai ao compositor (aproximação, verbo, arma).
   const handleWallTap = useCallback(
@@ -242,7 +242,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
       setRailActive("acao");
       setPanelOpen(true);
     },
-    [sheetOpen, actorId, composerClosed, composer, setPanelOpen],
+    [sheetOpen, actorId, composerClosed, composer, setPanelOpen, setSheetOpen],
   );
   // Segurar numa parede a junta aos alvos (com personagens e outras paredes: golpe em área).
   const handleWallHold = useCallback(
@@ -256,7 +256,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
       setRailActive("acao");
       setPanelOpen(true);
     },
-    [sheetOpen, actorId, composerClosed, composer, setPanelOpen],
+    [sheetOpen, actorId, composerClosed, composer, setPanelOpen, setSheetOpen],
   );
   const handleSlotTap = useCallback(
     (slot: SlotCoord) => {
@@ -296,7 +296,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
     setSheetOpen(false);
     setRailActive("acao");
     setPanelOpen(true);
-  }, [setPanelOpen]);
+  }, [setPanelOpen, setSheetOpen]);
 
   // Botões de reação (abaixo da peça) e balões (acima): a mesma camada, os mesmos helpers nas duas telas.
   const anchoredItems: PieceAnchoredItem[] = useCombatAnchoredItems(controls, nameOf, game.balloons);
@@ -335,7 +335,11 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
         // Spec §4: véu só quando o painel não pede toque no mapa (regra em playerPanelDismissible).
         panelDismissible={playerPanelDismissible({ railActive, hasActor: !!actorId, picking })}
         onDismissPanel={() => setPanelOpen(false)}
-        sheet={<MatchSheetPanel token={token} sheetUuid={actorId} liveHp={actorId ? state.hp[actorId] : undefined} />}
+        sheet={
+          sheetAsZone ? (
+            <MatchSheetPanel token={token} sheetUuid={actorId} liveHp={actorId ? state.hp[actorId] : undefined} />
+          ) : undefined
+        }
         sheetOpen={sheetOpen}
         onDismissSheet={() => setSheetOpen(false)}
         onDismissAside={() => setAsideOpen(false)}

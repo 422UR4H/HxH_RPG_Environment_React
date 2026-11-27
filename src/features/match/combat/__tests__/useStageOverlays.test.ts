@@ -166,6 +166,52 @@ describe("useStageOverlays layout rules", () => {
   });
 });
 
+describe("useStageOverlays sheet rule", () => {
+  it("opening the sheet closes the aside on a portrait phone", () => {
+    const { result } = renderHook(() => useStageOverlays());
+    act(() => result.current.setAsideOpen(true));
+    act(() => result.current.setSheetOpen(true));
+    expect(result.current.sheetOpen).toBe(true);
+    expect(result.current.asideOpen).toBe(false);
+  });
+
+  it("opening the aside closes the sheet on a portrait phone", () => {
+    const { result } = renderHook(() => useStageOverlays());
+    act(() => result.current.setSheetOpen(true));
+    act(() => result.current.setAsideOpen(true));
+    expect(result.current.asideOpen).toBe(true);
+    expect(result.current.sheetOpen).toBe(false);
+  });
+
+  it("closing one never touches the other", () => {
+    const { result } = renderHook(() => useStageOverlays());
+    act(() => result.current.setSheetOpen(true));
+    act(() => result.current.setSheetOpen(false));
+    expect(result.current.asideOpen).toBe(false);
+    act(() => result.current.setAsideOpen(true));
+    act(() => result.current.setAsideOpen(false));
+    expect(result.current.sheetOpen).toBe(false);
+  });
+
+  it("accepts an updater for the sheet", () => {
+    const { result } = renderHook(() => useStageOverlays());
+    act(() => result.current.setSheetOpen((o) => !o));
+    expect(result.current.sheetOpen).toBe(true);
+  });
+
+  it("does not couple the sheet and the aside from 768 px", () => {
+    mockScreen({ width: 768 });
+    const { result } = renderHook(() => useStageOverlays());
+    act(() => result.current.setAsideOpen(true));
+    act(() => result.current.setSheetOpen(true));
+    expect(result.current.asideOpen).toBe(true);
+    expect(result.current.sheetOpen).toBe(true);
+    act(() => result.current.setAsideOpen(false));
+    act(() => result.current.setAsideOpen(true));
+    expect(result.current.sheetOpen).toBe(true);
+  });
+});
+
 describe("playerPanelDismissible", () => {
   it("Ação com personagem é o compositor: não", () => {
     expect(playerPanelDismissible({ railActive: "acao", hasActor: true, picking: false })).toBe(false);

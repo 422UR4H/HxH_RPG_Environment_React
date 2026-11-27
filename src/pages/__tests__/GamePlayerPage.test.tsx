@@ -1092,7 +1092,22 @@ describe("GamePlayerPage", () => {
       expect(panel()).toHaveAttribute("data-open", "true");
     });
 
-    it("closes the bottom sheet from the close button, the map and the Ficha item", async () => {
+    it("on a portrait phone, opening the Histórico drawer closes the sheet and vice versa", async () => {
+      await openBoard();
+      const headerHistory = () => screen.getByRole("button", { name: /(Ver|Ocultar) histórico/ });
+      await user.click(railButton("Ficha"));
+      expect(zone()).toHaveAttribute("data-open", "true");
+
+      await user.click(headerHistory());
+      expect(screen.getByTestId("match-aside")).toHaveAttribute("data-open", "true");
+      expect(zone()).toHaveAttribute("data-open", "false");
+
+      await user.click(railButton("Ficha"));
+      expect(zone()).toHaveAttribute("data-open", "true");
+      expect(screen.getByTestId("match-aside")).toHaveAttribute("data-open", "false");
+    });
+
+        it("closes the bottom sheet from the close button, the map and the Ficha item", async () => {
       await openBoard();
       await user.click(railButton("Ficha"));
       await user.click(screen.getByRole("button", { name: "Fechar a ficha" }));
@@ -1129,9 +1144,10 @@ describe("GamePlayerPage", () => {
       mockScreen({ width: 1400, height: 900 });
       await openBoard();
       await user.click(railButton("Ficha"));
+      expect(screen.getAllByTestId("match-sheet")).toHaveLength(1);
       expect(within(panel()).getByTestId("match-sheet")).toBeInTheDocument();
       expect(panel()).toHaveAttribute("data-open", "true");
-      expect(zone()).toHaveAttribute("data-open", "false");
+      expect(screen.queryByTestId("match-sheet-zone")).not.toBeInTheDocument();
     });
 
     it("keeps the sheet open when the screen changes size", async () => {
@@ -1139,7 +1155,7 @@ describe("GamePlayerPage", () => {
       await openBoard();
       await user.click(railButton("Ficha"));
       screenMock.resize({ width: 1400, height: 900 });
-      expect(zone()).toHaveAttribute("data-open", "false");
+      expect(screen.queryByTestId("match-sheet-zone")).not.toBeInTheDocument();
       expect(panel()).toHaveAttribute("data-open", "true");
       expect(within(panel()).getByTestId("match-sheet")).toBeInTheDocument();
 

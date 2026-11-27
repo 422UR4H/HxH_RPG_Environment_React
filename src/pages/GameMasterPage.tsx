@@ -181,7 +181,6 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   const shownSection: MasterSection = split ? (section === "partida" ? "partida" : "agir") : section;
   // A ficha: a folha (celular em pé) ou a caixa sobre o mapa. Do mestre é a do último personagem
   // que ele tocou, escolheu ou abriu pelo card; sem nenhum, "Ficha" espera uma peça.
-  const [sheetOpen, setSheetOpen] = useState(false);
   const [sheetWaiting, setSheetWaiting] = useState(false);
   const [lastCharacterId, setLastCharacterId] = useState<string | undefined>(undefined);
   // Cancelar uma ação declarada: o pedido espera a confirmação; se a linha deixa de estar
@@ -189,7 +188,9 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   const [cancelling, setCancelling] = useState<DeclaredAction | null>(null);
   const cancelPending =
     cancelling && state.declared.some((d) => d.id === cancelling.id && d.status === "queued") ? cancelling : null;
-  const { asideOpen, setAsideOpen, closeAsideIfDrawer } = useStageOverlays({ panelFixed: true });
+  const { asideOpen, setAsideOpen, sheetOpen, setSheetOpen, closeAsideIfDrawer } = useStageOverlays({
+    panelFixed: true,
+  });
   // As paredes que o mestre tocou SEM NPC escolhido: o card "Ação do Mestre" no Agir. Tocar
   // troca a seleção; segurar junta (o terremoto). Guarda ids — o card lê as paredes ao vivo.
   const [masterWallIds, setMasterWallIds] = useState<string[]>([]);
@@ -285,7 +286,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     // O Arrumar ocupa o mapa e o painel: a ficha e a espera por uma peça ficam para depois.
     setSheetOpen(false);
     setSheetWaiting(false);
-  }, [arranging, exitBoardMode]);
+  }, [arranging, exitBoardMode, setSheetOpen]);
   const chooseFallSlot = useCallback(
     (targetId: string) => {
       exitBoardMode();
@@ -315,6 +316,9 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   } else if (!reactionPick && reactionPicking) {
     setBoardMode("play");
   }
+  // Esperando uma peça para a ficha: entrar na escolha da casa (queda ou fuga) desiste da espera,
+  // senão a dica some e "Ficha" fica marcada sem nada acontecendo.
+  if ((fallPicking || reactionPicking) && sheetWaiting) setSheetWaiting(false);
   const reactionPiece = reactionPick ? game.pieceByCharacter.get(reactionPick.actorId) : undefined;
   // O toque envia: sem preview nem confirmação (decisão 6). O modo cai quando o `pick` some.
   const handleReactionSlot = useCallback((slot: SlotCoord) => { onSlotForPick(slot); }, [onSlotForPick]);
@@ -386,13 +390,20 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
       setSheetOpen(false);
     } else if (sheetWaiting) {
       setSheetWaiting(false);
-    } else if (lastCharacterId) {
+    } else if (lastCharacterId && participants.some((p) => p.characterSheet.uuid === lastCharacterId)) {
+      // O último personagem pode ter saído da partida: sem ele, "Ficha" espera uma peça.
       setSheetId(lastCharacterId);
       setSheetOpen(true);
     } else {
       setSheetWaiting(true);
     }
-  }, [sheetOpen, sheetWaiting, lastCharacterId]);
+  }, [sheetOpen, sheetWaiting, lastCharacterId, participants, setSheetOpen]);
+
+  // No celular em pé abrir a gaveta cobre o mapa: abrir o Histórico também desiste da espera da ficha.
+  const toggleAside = useCallback(() => {
+    if (!asideOpen && layout.asideIsDrawer) setSheetWaiting(false);
+    setAsideOpen((o) => !o);
+  }, [asideOpen, layout.asideIsDrawer, setAsideOpen]);
 
   const handleRailSelect = useCallback(
     (id: string) => {
@@ -407,7 +418,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
       if (layout.phonePortrait) setSheetOpen(false);
       setSection(id as MasterSection);
     },
-    [arranging, exitBoardMode, toggleSheet, layout.phonePortrait],
+    [arranging, exitBoardMode, toggleSheet, layout.phonePortrait, setSheetOpen],
   );
 
   const chooseActor = useCallback((id: string | undefined) => {
@@ -461,7 +472,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
       }
       setInspectedId(charId);
     },
-    [pieceCharacter, sheetOpen, sheetWaiting, actorId, composer, npcIds, chooseActor],
+    [pieceCharacter, sheetOpen, sheetWaiting, actorId, composer, npcIds, chooseActor, setSheetOpen],
   );
   const handlePieceHold = useCallback(
     (pieceId: string) => {
@@ -501,7 +512,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
       else setMasterWallIds([wall.id]);
       setSection("agir");
     },
-    [actorId, composer, sheetOpen, sheetWaiting],
+    [actorId, composer, sheetOpen, sheetWaiting, setSheetOpen],
   );
   const handleWallHold = useCallback(
     (wall: WallSegment) => {
@@ -520,7 +531,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
       setMasterWallIds((ids) => (ids.includes(wall.id) ? ids.filter((id) => id !== wall.id) : [...ids, wall.id]));
       setSection("agir");
     },
-    [actorId, composer, sheetOpen, sheetWaiting],
+    [actorId, composer, sheetOpen, sheetWaiting, setSheetOpen],
   );
   // Com NPC: o que o NPC faz com ela. Sem NPC: toda parede — o mestre lê a vida até da destruída.
   const isWallTappable = useCallback(
@@ -971,7 +982,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
             status={combat.status}
             onReconnect={combat.reconnect}
             asideOpen={asideOpen}
-            onToggleAside={() => setAsideOpen((o) => !o)}
+            onToggleAside={toggleAside}
             actions={<HeaderRound mode={state.roundMode} onModeChange={combat.send.changeRoundMode} />}
           />
         }

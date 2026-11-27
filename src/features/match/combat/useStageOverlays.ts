@@ -11,13 +11,17 @@ type Setter = (next: boolean | ((open: boolean) => boolean)) => void;
  * 768 px em diante a coluna do Histórico convive com o painel e com tudo. Com `panelFixed`
  * (painel do mestre) o painel está sempre aberto: `setPanelOpen` não muda nada e abrir a
  * gaveta não o fecha. Estado inicial: o painel abre a partir de `railUp` ou no celular
- * deitado; o Histórico, a partir de `asideUp` e nunca no celular deitado.
+ * deitado; o Histórico, a partir de `asideUp` e nunca no celular deitado. A ficha (`sheetOpen`)
+ * segue a mesma regra do painel no celular em pé: abrir a ficha fecha a gaveta e abrir a
+ * gaveta fecha a ficha (fechar nunca mexe no outro); de 768 px em diante não se acoplam.
  */
 export function useStageOverlays(options: { panelFixed?: boolean } = {}): {
   panelOpen: boolean;
   setPanelOpen: Setter;
   asideOpen: boolean;
   setAsideOpen: Setter;
+  sheetOpen: boolean;
+  setSheetOpen: Setter;
   /** Só no celular em pé a gaveta cobre o mapa: escolher algo nela que abre outra coisa a fecha. */
   closeAsideIfDrawer: () => void;
 } {
@@ -30,6 +34,7 @@ export function useStageOverlays(options: { panelFixed?: boolean } = {}): {
   const [open, setOpen] = useState(() => ({
     panel: railUp || landscape,
     aside: asideUp && !landscape,
+    sheet: false,
   }));
 
   const setPanelOpen = useCallback<Setter>(
@@ -37,7 +42,7 @@ export function useStageOverlays(options: { panelFixed?: boolean } = {}): {
       if (panelFixed) return;
       setOpen((s) => {
         const panel = typeof next === "function" ? next(s.panel) : next;
-        return { panel, aside: panel && asideIsDrawer ? false : s.aside };
+        return { ...s, panel, aside: panel && asideIsDrawer ? false : s.aside };
       });
     },
     [panelFixed, asideIsDrawer],
@@ -47,9 +52,23 @@ export function useStageOverlays(options: { panelFixed?: boolean } = {}): {
     (next) =>
       setOpen((s) => {
         const aside = typeof next === "function" ? next(s.aside) : next;
-        return { aside, panel: aside && asideIsDrawer && !panelFixed ? false : s.panel };
+        return {
+          ...s,
+          aside,
+          panel: aside && asideIsDrawer && !panelFixed ? false : s.panel,
+          sheet: aside && asideIsDrawer ? false : s.sheet,
+        };
       }),
     [asideIsDrawer, panelFixed],
+  );
+
+  const setSheetOpen = useCallback<Setter>(
+    (next) =>
+      setOpen((s) => {
+        const sheet = typeof next === "function" ? next(s.sheet) : next;
+        return { ...s, sheet, aside: sheet && asideIsDrawer ? false : s.aside };
+      }),
+    [asideIsDrawer],
   );
 
   const closeAsideIfDrawer = useCallback(() => {
@@ -61,6 +80,8 @@ export function useStageOverlays(options: { panelFixed?: boolean } = {}): {
     setPanelOpen,
     asideOpen: open.aside,
     setAsideOpen,
+    sheetOpen: open.sheet,
+    setSheetOpen,
     closeAsideIfDrawer,
   };
 }
