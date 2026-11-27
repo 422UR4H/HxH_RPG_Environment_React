@@ -1,8 +1,14 @@
 import styled from "styled-components";
 import { colors } from "../../../styles/tokens";
-import { media } from "../../../styles/breakpoints";
 
-export type RailNavItem = { id: string; label: string; icon?: string; badge?: number };
+export type RailNavItem = {
+  id: string;
+  label: string;
+  icon?: string;
+  badge?: number;
+  /** Quando definido, substitui o cálculo `id === active && panelOpen` (ex.: "Ficha" marcada com o painel em outra aba). */
+  pressed?: boolean;
+};
 
 /**
  * Um componente só para o rail em pé e o rodapé deitado — o `MatchStageTemplate` decide a
@@ -25,7 +31,7 @@ export default function RailNav({
         <NavButton
           key={item.id}
           type="button"
-          aria-pressed={item.id === active && panelOpen}
+          aria-pressed={item.pressed ?? (item.id === active && panelOpen)}
           onClick={() => onSelect(item.id)}
         >
           {item.icon && <Icon aria-hidden>{item.icon}</Icon>}
@@ -47,7 +53,9 @@ const Nav = styled.div`
 
 const NavButton = styled.button`
   position: relative;
-  flex: 1;
+  /* As variáveis vêm do RailZone, que sabe se o rail está deitado, em pé ou no celular deitado. */
+  flex: var(--rail-item-flex, 1);
+  min-height: var(--rail-item-min-height, auto);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -59,11 +67,6 @@ const NavButton = styled.button`
   border: none;
   padding: 8px 4px;
   cursor: pointer;
-
-  ${media.railUp} {
-    flex: 0 0 auto;
-    min-height: 64px;
-  }
 
   &[aria-pressed="true"] {
     color: ${colors.textPrimary};

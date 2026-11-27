@@ -114,4 +114,76 @@ describe("MatchStageTemplate", () => {
       expect(onWindowPointerDown).not.toHaveBeenCalled();
     });
   });
+
+  describe("queue, sheet and widths", () => {
+    const base = { topbar: <div />, rail: <div />, stage: <div /> };
+    const emittedCss = () => Array.from(document.querySelectorAll("style")).map((s) => s.textContent).join("\n");
+
+    it("renders the queue zone only when a queue is given", () => {
+      const { rerender } = render(<MatchStageTemplate {...base} panel={<div />} />);
+      expect(screen.queryByTestId("match-queue")).toBeNull();
+      rerender(<MatchStageTemplate {...base} panel={<div />} queue={<div>queue-zone</div>} />);
+      expect(screen.getByTestId("match-queue")).toHaveTextContent("queue-zone");
+    });
+
+    it("renders the sheet zone closed by default and reflects sheetOpen", () => {
+      const { rerender } = render(<MatchStageTemplate {...base} sheet={<div>sheet-zone</div>} />);
+      expect(screen.getByTestId("match-sheet-zone")).toHaveAttribute("data-open", "false");
+      rerender(<MatchStageTemplate {...base} sheet={<div>sheet-zone</div>} sheetOpen />);
+      expect(screen.getByTestId("match-sheet-zone")).toHaveAttribute("data-open", "true");
+    });
+
+    it("dismisses the sheet from the close button and from the transparent scrim", () => {
+      const onDismissSheet = vi.fn();
+      render(<MatchStageTemplate {...base} sheet={<div />} sheetOpen onDismissSheet={onDismissSheet} />);
+      fireEvent.click(screen.getByRole("button", { name: "Fechar a ficha" }));
+      fireEvent.click(screen.getByTestId("sheet-scrim"));
+      expect(onDismissSheet).toHaveBeenCalledTimes(2);
+    });
+
+    it("has no sheet scrim while the sheet is closed", () => {
+      render(<MatchStageTemplate {...base} sheet={<div />} onDismissSheet={() => {}} />);
+      expect(screen.queryByTestId("sheet-scrim")).toBeNull();
+    });
+
+    it("stops pointerdown on the sheet scrim before it reaches the window", () => {
+      const onWindowPointerDown = vi.fn();
+      window.addEventListener("pointerdown", onWindowPointerDown);
+      render(<MatchStageTemplate {...base} sheet={<div />} sheetOpen onDismissSheet={() => {}} />);
+      fireEvent.pointerDown(screen.getByTestId("sheet-scrim"));
+      window.removeEventListener("pointerdown", onWindowPointerDown);
+      expect(onWindowPointerDown).not.toHaveBeenCalled();
+    });
+
+    it("splits the left column into panel and queue when a queue is given", () => {
+      render(<MatchStageTemplate {...base} panel={<div />} queue={<div />} aside={<div />} />);
+      expect(emittedCss()).toContain('"rail panel stage aside" "rail queue stage aside"');
+    });
+
+    it("gives the widescreen master a queue column left of the panel", () => {
+      render(<MatchStageTemplate {...base} panel={<div />} queue={<div />} aside={<div />} />);
+      expect(emittedCss()).toContain('"rail queue panel stage aside"');
+      expect(emittedCss()).toContain("grid-template-columns:72px 240px 320px");
+    });
+
+    it("makes the aside a 200 px column outside the portrait phone", () => {
+      render(<MatchStageTemplate {...base} aside={<div />} />);
+      expect(emittedCss()).toContain("width:200px");
+    });
+
+    it("lets the player's bottom panel run under the aside on a portrait tablet", () => {
+      render(<MatchStageTemplate {...base} panel={<div />} aside={<div />} />);
+      expect(emittedCss()).toContain('"stage aside" "panel panel" "rail rail"');
+    });
+
+    it("splits the portrait phone in equal halves with panelHalf", () => {
+      render(<MatchStageTemplate {...base} panel={<div />} panelHalf />);
+      expect(emittedCss()).toContain("minmax(0, 1fr) minmax(0, 1fr) 56px");
+    });
+
+    it("caps the sheet box at 420 px and leaves the map 300 px", () => {
+      render(<MatchStageTemplate {...base} sheet={<div />} />);
+      expect(emittedCss()).toContain("clamp(340px, calc(100% - 300px), 420px)");
+    });
+  });
 });

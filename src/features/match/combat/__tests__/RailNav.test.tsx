@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import RailNav from "../RailNav";
-import { breakpoints } from "../../../../styles/breakpoints";
 
 describe("RailNav", () => {
   it("marca o item ativo (com o painel aberto) e dispara onSelect com o id clicado", () => {
@@ -39,10 +38,24 @@ describe("RailNav", () => {
   // O mesmo componente é rodapé deitado e rail em pé: quem decide a orientação é o
   // container (MatchStageTemplate), por CSS. jsdom não avalia media query — o que dá para
   // afirmar é o CSS emitido.
-  it("segue a orientação do container e para de esticar os botões a partir de railUp", () => {
+  it("follows the container orientation through CSS variables instead of a media query", () => {
     render(<RailNav items={[{ id: "a", label: "A" }]} active="a" panelOpen onSelect={() => {}} />);
     const css = document.head.innerHTML;
     expect(css).toMatch(/\.\S+\{display:flex;flex-direction:inherit;justify-content:inherit;width:100%;height:100%;\}/);
-    expect(css).toContain(`@media (min-width: ${breakpoints.railUp}px)`);
+    expect(css).toContain("flex:var(--rail-item-flex, 1);");
+    expect(css).toContain("min-height:var(--rail-item-min-height, auto);");
+  });
+
+  it("marks an item pressed by its own pressed flag", () => {
+    render(
+      <RailNav
+        items={[{ id: "a", label: "A" }, { id: "b", label: "B", pressed: true }]}
+        active="a"
+        panelOpen
+        onSelect={() => {}}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "A" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "B" })).toHaveAttribute("aria-pressed", "true");
   });
 });
