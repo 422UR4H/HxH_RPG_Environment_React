@@ -210,6 +210,11 @@ function openWithServerBoard(
   });
 }
 
+/** "Nova cena" e "Encerrar partida" moram na aba Partida do painel do mestre. */
+async function openPartida() {
+  await user.click(screen.getByRole("button", { name: "Partida" }));
+}
+
 function renderMasterPage() {
   return renderWithProviders(<GameMasterPage token="fake-jwt-token" matchId="match-1" />);
 }
@@ -1007,12 +1012,70 @@ describe("GameMasterPage", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
+
+  it("keeps scene, end-match and turn buttons out of the header", async () => {
+    renderMasterPage();
+    const ws = await waitForSocket();
+    openWithServerBoard(ws);
+    const header = screen.getByRole("banner");
+    for (const name of ["Nova cena", "Encerrar partida", "Abrir próxima", "Encerrar rodada", "Fechar turno"]) {
+      expect(within(header).queryByRole("button", { name })).not.toBeInTheDocument();
+    }
+  });
+
+  it("labels the header round switch 'Round'", async () => {
+    renderMasterPage();
+    const ws = await waitForSocket();
+    openWithServerBoard(ws);
+    const header = screen.getByRole("banner");
+    expect(within(header).getByText("Round")).toBeInTheDocument();
+    expect(within(header).getByRole("radiogroup", { name: "Round" })).toBeInTheDocument();
+    expect(within(header).queryByText("Regime")).not.toBeInTheDocument();
+  });
+
+  it("puts Abrir próxima and Fechar turno at the top of the queue", async () => {
+    renderMasterPage();
+    const ws = await waitForSocket();
+    openWithServerBoard(ws);
+    await user.click(screen.getByRole("button", { name: /Fila/ }));
+    expect(screen.getByRole("button", { name: "Abrir próxima" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Fechar turno" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Nova cena" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Encerrar partida" })).not.toBeInTheDocument();
+  });
+
+  it("titles the queue round switch 'Round' on a portrait phone", async () => {
+    renderMasterPage();
+    const ws = await waitForSocket();
+    openWithServerBoard(ws);
+    await user.click(screen.getByRole("button", { name: /Fila/ }));
+    // O CSS esconde o bloco fora do celular em pé; no jsdom ele fica no DOM: um seletor no header e outro na fila.
+    expect(screen.getAllByRole("radiogroup", { name: "Round" })).toHaveLength(2);
+    expect(screen.getByRole("heading", { name: "Round" })).toBeInTheDocument();
+  });
+
+  it("shows the Partida tab with Nova cena, coming-soon groups and Encerrar partida", async () => {
+    renderMasterPage();
+    const ws = await waitForSocket();
+    openWithServerBoard(ws);
+    await openPartida();
+    expect(screen.getByRole("button", { name: "Nova cena" })).toBeEnabled();
+    expect(screen.getByRole("heading", { name: "Cena" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Revelar barras de vida e stamina/ })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Configurações da mesa/ })).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "De todos os personagens de jogador, para todos" })).toBeDisabled();
+    expect(screen.getByRole("checkbox", { name: "De todos os NPCs" })).toBeDisabled();
+    expect(screen.getAllByText("Em breve")).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "Encerrar partida" })).toBeInTheDocument();
+  });
+
   it("F8: nova cena manda change_scene com a categoria minúscula", async () => {
     renderMasterPage();
     const ws = await waitForSocket();
     openWithServerBoard(ws);
 
-    await user.click(screen.getAllByRole("button", { name: "Nova cena" })[0]);
+    await openPartida();
+    await user.click(screen.getByRole("button", { name: "Nova cena" }));
     await user.click(screen.getByRole("radio", { name: "Roleplay" }));
     await user.type(screen.getByLabelText("Descrição inicial"), "Taverna");
     await user.click(screen.getByRole("button", { name: "Trocar de cena" }));
@@ -1024,7 +1087,8 @@ describe("GameMasterPage", () => {
     const ws = await waitForSocket();
     openWithServerBoard(ws);
 
-    await user.click(screen.getAllByRole("button", { name: "Nova cena" })[0]);
+    await openPartida();
+    await user.click(screen.getByRole("button", { name: "Nova cena" }));
     await user.click(screen.getByRole("button", { name: "Trocar de cena" }));
     act(() => ws.emit("error", { code: "invalid_payload", message: "bad", sentType: "change_scene" }));
     expect(screen.getAllByText(/Não foi possível trocar de cena/)).toHaveLength(1);
@@ -1038,12 +1102,13 @@ describe("GameMasterPage", () => {
     const ws = await waitForSocket();
     openWithServerBoard(ws);
 
-    await user.click(screen.getAllByRole("button", { name: "Nova cena" })[0]);
+    await openPartida();
+    await user.click(screen.getByRole("button", { name: "Nova cena" }));
     await user.click(screen.getByRole("radio", { name: "Roleplay" }));
     await user.type(screen.getByLabelText("Descrição inicial"), "Taverna");
     await user.click(screen.getByRole("button", { name: "Cancelar" }));
 
-    await user.click(screen.getAllByRole("button", { name: "Nova cena" })[0]);
+    await user.click(screen.getByRole("button", { name: "Nova cena" }));
     expect(screen.getByLabelText("Descrição inicial")).toHaveValue("");
     expect(screen.getByRole("radio", { name: "Batalha" })).toBeChecked();
   });
@@ -1053,7 +1118,8 @@ describe("GameMasterPage", () => {
     const ws = await waitForSocket();
     openWithServerBoard(ws);
     act(() => { ws.emit("turn_opened", { turnId: "t1", actorId: "c1", actionId: "a1", actionType: "" }); });
-    for (const b of screen.getAllByRole("button", { name: "Nova cena" })) expect(b).toBeDisabled();
+    await openPartida();
+    expect(screen.getByRole("button", { name: "Nova cena" })).toBeDisabled();
   });
 
   it("F3: tocar num card abre a ficha no painel, sem navegar", async () => {
@@ -1441,9 +1507,10 @@ describe("GameMasterPage", () => {
       renderMasterPage();
       const ws = await waitForSocket();
       openWithServerBoard(ws);
+      // Trocar de aba sai do Arrumar: abre o diálogo pela aba Partida e só então entra no modo.
+      await openPartida();
+      await user.click(screen.getByRole("button", { name: "Nova cena" }));
       enterArrange();
-
-      await user.click(screen.getAllByRole("button", { name: "Nova cena" })[0]);
       await user.keyboard("{Escape}");
       expect(screen.getByRole("button", { name: "Arrumar" })).toHaveAttribute("aria-pressed", "true");
       await user.click(screen.getByRole("button", { name: "Cancelar" }));
@@ -2035,10 +2102,10 @@ describe("GameMasterPage", () => {
       const ws = await waitForSocket();
       openWithServerBoard(ws);
       fullState(ws, { scene: { sceneId: "s1", category: "battle", briefInitialDescription: "" } });
-      for (const b of screen.getAllByRole("button", { name: "Encerrar partida" })) {
-        expect(b).toHaveAttribute("aria-disabled", "true");
-        expect(b).toHaveAccessibleDescription("Encerre o combate antes (troque de cena).");
-      }
+      await openPartida();
+      const b = screen.getByRole("button", { name: "Encerrar partida" });
+      expect(b).toHaveAttribute("aria-disabled", "true");
+      expect(b).toHaveAccessibleDescription("Encerre o combate antes (troque de cena).");
     });
 
     it("confirm → end time → end_match with the exact time and the summary", async () => {
@@ -2046,7 +2113,8 @@ describe("GameMasterPage", () => {
       const ws = await waitForSocket();
       openWithServerBoard(ws);
       fullState(ws);
-      await user.click(screen.getAllByRole("button", { name: "Encerrar partida" })[0]);
+      await openPartida();
+      await user.click(screen.getByRole("button", { name: "Encerrar partida" }));
       await user.click(screen.getByRole("button", { name: "Continuar" }));
       await user.type(screen.getByLabelText(/Resumo final/), "Fim");
       await user.click(within(screen.getByRole("dialog", { name: "Encerrar partida" })).getByRole("button", { name: "Encerrar partida" }));

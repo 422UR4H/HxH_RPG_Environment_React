@@ -1,22 +1,17 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { AddNpcPicker, EndMatchButton, RegencyControls } from "../MasterControls";
+import { AddNpcPicker, EndMatchButton, TurnControls } from "../MasterControls";
 import type { RoundMode } from "../combatMessages";
 
 function setup(mode: RoundMode, queueLength: number, orderLength: number, roundTurns?: number) {
   const onOpenNext = vi.fn();
   render(
-    <RegencyControls
+    <TurnControls
       mode={mode}
-      onModeChange={vi.fn()}
       onOpenNext={onOpenNext}
       onCloseTurn={vi.fn()}
       canCloseTurn
-      onNewScene={vi.fn()}
-      canChangeScene
-      onEndMatch={vi.fn()}
-      endMatchBlockedReason={null}
       queueLength={queueLength}
       orderLength={orderLength}
       roundTurns={roundTurns}
@@ -25,7 +20,7 @@ function setup(mode: RoundMode, queueLength: number, orderLength: number, roundT
   return onOpenNext;
 }
 
-describe("RegencyControls — Abrir próxima", () => {
+describe("TurnControls — Abrir próxima", () => {
   it("Corrida com ordem vazia vira 'Encerrar rodada', habilitado", () => {
     const onOpenNext = setup("Race", 0, 0);
     const btn = screen.getByRole("button", { name: "Encerrar rodada" });
@@ -126,22 +121,17 @@ describe("EndMatchButton", () => {
     expect(screen.getByRole("tooltip", { hidden: true })).toHaveTextContent(reason);
   });
 
-  it("sits in the regency controls next to Nova cena", () => {
+  it("disables Fechar turno when no turn is open", () => {
     render(
-      <RegencyControls
+      <TurnControls
         mode="Free"
-        onModeChange={vi.fn()}
         onOpenNext={vi.fn()}
         onCloseTurn={vi.fn()}
-        canCloseTurn
-        onNewScene={vi.fn()}
-        canChangeScene
-        onEndMatch={vi.fn()}
-        endMatchBlockedReason="Feche o turno aberto antes."
+        canCloseTurn={false}
         queueLength={1}
         orderLength={0}
       />,
     );
-    expect(screen.getByRole("button", { name: "Encerrar partida" })).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByRole("button", { name: "Fechar turno" })).toBeDisabled();
   });
 });

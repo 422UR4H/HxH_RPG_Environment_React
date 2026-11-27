@@ -5,7 +5,7 @@ import { media } from "../../../styles/breakpoints";
 import type { MatchWsStatus } from "../../../hooks/useMatchWs";
 import type { RoundMode, ScenePayload } from "./combatMessages";
 import { ROUND_MODE_LABELS } from "./combatText";
-import { SCENE_LABEL } from "./sceneLabels";
+import { sceneTitle } from "./sceneLabels";
 import { useFullscreen } from "../../../hooks/useFullscreen";
 import { GAME_SERVER_WAKING } from "../../../services/serverWake";
 
@@ -55,7 +55,7 @@ export default function MatchTopBar({
   return (
     <Bar>
       <SceneLabel title={scene?.briefInitialDescription}>
-        {scene?.briefInitialDescription || (scene ? SCENE_LABEL[scene.category] : "Sem cena")}
+        {sceneTitle(scene)}
       </SceneLabel>
       {!actions && roundMode && <RoundBadge>{ROUND_MODE_LABELS[roundMode]}</RoundBadge>}
       <Status data-testid="ws-status" title={status === "waking" ? GAME_SERVER_WAKING : STATUS_LABELS[status]}>

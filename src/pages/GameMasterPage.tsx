@@ -17,7 +17,7 @@ import { useStageOverlays } from "../features/match/combat/useStageOverlays";
 import MatchStageTemplate from "../components/templates/MatchStageTemplate";
 import MatchTopBar from "../features/match/combat/MatchTopBar";
 import {
-  AddNpcPicker, ArrangePanel, EndMatchButton, NpcPicker, PanelSection, RegencyControls, RoundModeSwitch, WallMasterPanel,
+  AddNpcPicker, ArrangePanel, HeaderRound, NpcPicker, QueueHeader, RoundModeSwitch, TurnControls, WallMasterPanel,
 } from "../features/match/combat/MasterControls";
 import type { WsError } from "../features/match/combat/combatErrorMessages";
 import { actorWallVerbs } from "../features/match/combat/wallVerbs";
@@ -51,7 +51,8 @@ import type { Participant } from "../types/match";
 import type { ArrangePending } from "../features/match/combat/ArrangeConfirmDialog";
 import MapPickConfirm from "../features/match/combat/MapPickConfirm";
 import type { MasterActionPayload } from "../features/match/combat/combatMessages";
-import { SmallButton } from "../features/match/combat/MatchTopBar";
+import { sceneTitle } from "../features/match/combat/sceneLabels";
+import MatchTabPanel from "../features/match/combat/MatchTabPanel";
 import MatchErrorBanner from "../features/match/combat/MatchErrorBanner";
 import LostDeclaredNotice from "../features/match/combat/LostDeclaredNotice";
 import MatchSheetPanel from "../features/match/combat/MatchSheetPanel";
@@ -81,7 +82,7 @@ type Props = {
   matchId?: string;
 };
 
-type RailTab = "fila" | "agir" | "ficha";
+type RailTab = "fila" | "agir" | "ficha" | "partida";
 
 // No jogo nenhuma peça é arrastável: quem decide onde a peça para é o servidor. A exceção é
 // o modo Arrumar, e mesmo lá soltar só pede confirmação — a peça anda com o `piece_moved`.
@@ -747,22 +748,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
             onReconnect={combat.reconnect}
             asideOpen={asideOpen}
             onToggleAside={() => setAsideOpen((o) => !o)}
-            actions={
-              <RegencyControls
-                mode={state.roundMode}
-                onModeChange={combat.send.changeRoundMode}
-                onOpenNext={combat.send.openNextAction}
-                onCloseTurn={() => combat.send.closeTurn()}
-                canCloseTurn={canCloseTurn}
-                onNewScene={sceneFlow.openDialog}
-                canChangeScene={state.openTurn == null}
-                onEndMatch={openEndMatch}
-                endMatchBlockedReason={endMatchBlocked}
-                queueLength={state.queue.length}
-                orderLength={state.bars?.order.length ?? 0}
-                roundTurns={state.bars?.roundTurns}
-              />
-            }
+            actions={<HeaderRound mode={state.roundMode} onModeChange={combat.send.changeRoundMode} />}
           />
         }
         rail={
@@ -771,6 +757,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
               { id: "fila", label: "Fila", icon: "☰", badge: state.queue.length },
               { id: "agir", label: "Agir", icon: "⚔" },
               { id: "ficha", label: "Ficha", icon: "📜" },
+              { id: "partida", label: "Partida", icon: "🎲" },
             ]}
             active={railActive}
             panelOpen={panelOpen}
@@ -797,6 +784,14 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
               liveHp={sheetId ? state.hp[sheetId] : undefined}
               emptyHint={`${verb} numa peça ou num personagem para abrir a ficha.`}
             />
+          ) : railActive === "partida" ? (
+            <MatchTabPanel
+              sceneLabel={sceneTitle(state.scene)}
+              onNewScene={sceneFlow.openDialog}
+              canChangeScene={state.openTurn == null}
+              endMatchBlockedReason={endMatchBlocked}
+              onEndMatch={openEndMatch}
+            />
           ) : railActive === "fila" ? (
             <>
               <ReactionPanel
@@ -808,19 +803,25 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                 pick={controls.pick}
                 onCancelPick={cancelPick}
               />
-              <PanelSection>
-                <PanelTitle>Regime</PanelTitle>
-                <RoundModeSwitch mode={state.roundMode} onChange={combat.send.changeRoundMode} placement="panel" />
-                <SmallButton
-                  type="button"
-                  onClick={sceneFlow.openDialog}
-                  disabled={state.openTurn != null}
-                  title={state.openTurn == null ? undefined : "Feche o turno antes de trocar de cena"}
-                >
-                  Nova cena
-                </SmallButton>
-                <EndMatchButton blockedReason={endMatchBlocked} onClick={openEndMatch} />
-              </PanelSection>
+              <QueueHeader
+                round={
+                  <>
+                    <PanelTitle>Round</PanelTitle>
+                    <RoundModeSwitch mode={state.roundMode} onChange={combat.send.changeRoundMode} placement="panel" />
+                  </>
+                }
+                turn={
+                  <TurnControls
+                    mode={state.roundMode}
+                    onOpenNext={combat.send.openNextAction}
+                    onCloseTurn={() => combat.send.closeTurn()}
+                    canCloseTurn={canCloseTurn}
+                    queueLength={state.queue.length}
+                    orderLength={state.bars?.order.length ?? 0}
+                    roundTurns={state.bars?.roundTurns}
+                  />
+                }
+              />
               <QueuePanel
                 queue={state.queue}
                 open={

@@ -1,6 +1,7 @@
-// Os controles que só a tela do mestre monta: regência (regime, abrir, fechar), a escolha
+// Os controles que só a tela do mestre monta: regência (Round, abrir, fechar), a escolha
 // do NPC por quem agir, a ação direta numa porta/janela e o painel de arrumar o tabuleiro. Nenhum pergunta "sou mestre?" — a página é que decide montá-los.
 import { useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import usePointerVerb from "../../../hooks/usePointerVerb";
 import styled, { css } from "styled-components";
 import PillSelect from "../../../components/molecules/PillSelect";
@@ -22,10 +23,10 @@ import { MASTER_WALL_LABELS, masterWallVerbs, wallLifeText, wallName } from "./w
 import type { MasterWallKind } from "./wallVerbs";
 
 /**
- * Livre × Disputado. Clicar no regime atual não manda nada: o servidor responderia com
+ * Livre × Disputado (o "Round"). Clicar no modo atual não manda nada: o servidor responderia com
  * `round_mode_changed` sem gravar a troca (não é troca), e a linha ao vivo do Histórico
- * piscaria e sumiria no refetch. `placement` decide onde ele aparece: na topbar a partir do tablet, e
- * no painel da fila no celular — a topbar não tem largura para ele lá.
+ * piscaria e sumiria no refetch. `placement` decide onde ele aparece: no header a partir do tablet, e
+ * no topo da fila no celular — a topbar não tem largura para ele lá.
  */
 export function RoundModeSwitch({
   mode,
@@ -37,7 +38,7 @@ export function RoundModeSwitch({
   placement: "topbar" | "panel";
 }) {
   return (
-    <ModeGroup role="radiogroup" aria-label="Regime" $placement={placement}>
+    <ModeGroup role="radiogroup" aria-label="Round" $placement={placement}>
       {(["Free", "Race"] as RoundMode[]).map((m) => (
         <ModeButton key={m} type="button" role="radio" aria-checked={mode === m} onClick={() => { if (m !== mode) onChange(m); }}>
           {ROUND_MODE_LABELS[m]}
@@ -47,31 +48,36 @@ export function RoundModeSwitch({
   );
 }
 
-/** Abrir a próxima ação da ordem e fechar o turno aberto — o bastão do mestre. */
-export function RegencyControls({
+/** O Round no header: rótulo + seletor Livre/Disputado. Some no celular em pé (lá vive no topo da fila). */
+export function HeaderRound({
   mode,
   onModeChange,
+}: {
+  mode: RoundMode | "";
+  onModeChange: (mode: RoundMode) => void;
+}) {
+  return (
+    <RoundBox>
+      <RoundLabel>Round</RoundLabel>
+      <RoundModeSwitch mode={mode} onChange={onModeChange} placement="topbar" />
+    </RoundBox>
+  );
+}
+
+/** Abrir a próxima ação da ordem e fechar o turno aberto — o bastão do mestre. */
+export function TurnControls({
+  mode,
   onOpenNext,
   onCloseTurn,
   canCloseTurn,
-  onNewScene,
-  canChangeScene,
-  onEndMatch,
-  endMatchBlockedReason,
   queueLength,
   orderLength,
   roundTurns,
 }: {
   mode: RoundMode | "";
-  onModeChange: (mode: RoundMode) => void;
   onOpenNext: () => void;
   onCloseTurn: () => void;
   canCloseTurn: boolean;
-  onNewScene: () => void;
-  canChangeScene: boolean;
-  onEndMatch: () => void;
-  /** Por que não dá para encerrar agora (`endMatchBlockReason`); `null` = pode. */
-  endMatchBlockedReason: string | null;
   queueLength: number;
   /** Tamanho da ordem da Corrida (`bars.order`). */
   orderLength: number;
@@ -86,22 +92,7 @@ export function RegencyControls({
   const idleRound = endsRound && roundTurns === 0;
   const blocked = empty || idleRound;
   return (
-    <Regency>
-      <RoundModeSwitch mode={mode} onChange={onModeChange} placement="topbar" />
-      {/* BF5: abaixo de tabletUp o botão vive no painel da Fila (PanelSection acima) — na
-          topbar ele era um dos itens que, somados a "Abrir próxima"/"Fechar turno"/
-          "Histórico", estourava a largura em 390px e deixava os dois últimos inalcançáveis. */}
-      <NewSceneButton
-        type="button"
-        onClick={onNewScene}
-        disabled={!canChangeScene}
-        title={canChangeScene ? undefined : "Feche o turno antes de trocar de cena"}
-      >
-        Nova cena
-      </NewSceneButton>
-      <TopbarOnly>
-        <EndMatchButton blockedReason={endMatchBlockedReason} onClick={onEndMatch} />
-      </TopbarOnly>
+    <Turn>
       {/* aria-disabled (e não disabled): o botão segue focável e o hover/foco mostram o porquê. */}
       <Tooltip
         label={idleRound ? "Nenhum turno aconteceu nesta rodada ainda" : "A fila de ações está vazia"}
@@ -114,7 +105,20 @@ export function RegencyControls({
       <SmallButton type="button" onClick={onCloseTurn} disabled={!canCloseTurn}>
         Fechar turno
       </SmallButton>
-    </Regency>
+    </Turn>
+  );
+}
+
+/**
+ * O topo da Fila, em todo tamanho: `turn` (os botões do turno) sempre; `round` (título + seletor
+ * do Round) só no celular em pé, onde o header não tem largura para ele.
+ */
+export function QueueHeader({ round, turn }: { round: ReactNode; turn: ReactNode }) {
+  return (
+    <QueueTop>
+      <PhoneOnly>{round}</PhoneOnly>
+      {turn}
+    </QueueTop>
   );
 }
 
@@ -443,31 +447,45 @@ const NpcSelect = styled(PillSelect)`
   background-size: 14px;
 `;
 
-/** Painel da fila no celular: o regime vem para cá (ver `RoundModeSwitch`). */
-export const PanelSection = styled.div`
+/** Topo da Fila: o Round (só no celular em pé) e os botões do turno; quebra de linha se não couber. */
+const QueueTop = styled.div`
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
   padding: 12px 12px 0;
+`;
+
+const PhoneOnly = styled.div`
+  display: contents;
 
   ${media.tabletUp} {
     display: none;
   }
 `;
 
-// BF5: sem isso a Regência nunca cedia espaço (flex-shrink: 0) e empurrava a barra toda
-// além da viewport em 390px, deixando "Fechar turno" e "Histórico" inalcançáveis. Agora ela
-// pode encolher até 0 e, se ainda não couber (telas bem estreitas), rola na horizontal POR
-// DENTRO de si mesma — nunca a página.
-const Regency = styled.div`
+const Turn = styled.div`
   display: flex;
   align-items: center;
   gap: 6px;
-  flex-shrink: 1;
-  min-width: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
+`;
+
+const RoundBox = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+
+  ${media.phone} {
+    display: none;
+  }
+`;
+
+const RoundLabel = styled.span`
+  font-size: 12px;
+  font-weight: 600;
+  color: ${colors.textPlaceholderStrong};
 `;
 
 const ModeGroup = styled.div<{ $placement: "topbar" | "panel" }>`
@@ -524,22 +542,6 @@ const DestructiveButton = styled(SmallButton)`
     color: ${colors.textDisabledOnDark};
     filter: none;
     cursor: not-allowed;
-  }
-`;
-
-/* Como o Nova cena (BF5): na topbar só a partir do tablet; no celular ele vive no painel da Fila. */
-const TopbarOnly = styled.span`
-  display: contents;
-
-  ${media.phone} {
-    display: none;
-  }
-`;
-
-/* BF5: some da topbar abaixo de tabletUp — o painel da Fila (PanelSection) já tem o dela. */
-const NewSceneButton = styled(SmallButton)`
-  ${media.phone} {
-    display: none;
   }
 `;
 
