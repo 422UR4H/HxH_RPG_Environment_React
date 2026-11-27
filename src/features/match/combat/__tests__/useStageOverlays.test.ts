@@ -114,18 +114,27 @@ describe("useStageOverlays", () => {
 
 describe("useStageOverlays layout rules", () => {
   it("keeps a fixed panel open and ignores setPanelOpen(false)", () => {
-    const { result } = renderHook(() => useStageOverlays({ panelFixed: true }));
+    mockScreen({ width: 844, height: 390, landscape: true }); // painel abre de início
+    const { result, rerender } = renderHook((p: { fixed: boolean }) => useStageOverlays({ panelFixed: p.fixed }), {
+      initialProps: { fixed: true },
+    });
     expect(result.current.panelOpen).toBe(true);
     act(() => result.current.setPanelOpen(false));
-    expect(result.current.panelOpen).toBe(true);
-    act(() => result.current.setPanelOpen((o) => !o));
+    // Solta o panelFixed para ler o estado de verdade: o setter não pode tê-lo fechado.
+    rerender({ fixed: false });
     expect(result.current.panelOpen).toBe(true);
   });
 
   it("opening the drawer does not close a fixed panel on a portrait phone", () => {
-    const { result } = renderHook(() => useStageOverlays({ panelFixed: true }));
+    const { result, rerender } = renderHook((p: { fixed: boolean }) => useStageOverlays({ panelFixed: p.fixed }), {
+      initialProps: { fixed: false },
+    });
+    act(() => result.current.setPanelOpen(true));
+    rerender({ fixed: true });
     act(() => result.current.setAsideOpen(true));
     expect(result.current.asideOpen).toBe(true);
+    expect(result.current.panelOpen).toBe(true);
+    rerender({ fixed: false });
     expect(result.current.panelOpen).toBe(true);
   });
 
