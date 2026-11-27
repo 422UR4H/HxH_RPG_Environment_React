@@ -17,8 +17,6 @@ import {
   TopBarZone,
 } from "./MatchStageTemplate.styles";
 
-export { RAIL_BAR_HEIGHT } from "./MatchStageTemplate.styles";
-
 type Props = {
   topbar: ReactNode;
   rail: ReactNode;
