@@ -13,7 +13,7 @@ import { defaultMoveCategory } from "../features/match/combat/defaultMoveCategor
 import { useReactionControls } from "../features/match/combat/useReactionControls";
 import { usePiecePerspective } from "../features/match/combat/usePiecePerspective";
 import { boardThroughPiece } from "../features/match/combat/piecePerspective";
-import { masterPanelDismissible, useStageOverlays } from "../features/match/combat/useStageOverlays";
+import { useStageOverlays } from "../features/match/combat/useStageOverlays";
 import MatchStageTemplate from "../components/templates/MatchStageTemplate";
 import MatchTopBar from "../features/match/combat/MatchTopBar";
 import {
@@ -735,8 +735,8 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
         panelOpen={panelOpen}
         asideOpen={asideOpen}
         panelWide={!arranging && railActive === "ficha" && !!sheetId}
-        // Spec §4: véu só quando o painel não pede toque no mapa (regra em masterPanelDismissible).
-        panelDismissible={masterPanelDismissible({ railActive, mapPicking: arranging || fallPicking || reactionPicking })}
+        // O painel do mestre nunca mais é folha (a Task 5 reescreve esta página).
+        panelDismissible={false}
         onDismissPanel={() => setPanelOpen(false)}
         onDismissAside={() => setAsideOpen(false)}
         topbar={

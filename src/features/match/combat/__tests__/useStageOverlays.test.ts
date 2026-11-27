@@ -1,15 +1,26 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { useStageOverlays, masterPanelDismissible, playerPanelDismissible } from "../useStageOverlays";
+import { useStageOverlays, playerPanelDismissible } from "../useStageOverlays";
 
 const original = window.matchMedia;
 
-// O setup devolve sempre `matches: false` (tela estreita); para tela larga responde por query.
-function setWidth(px: number) {
+function mockScreen({ width, height = 900, landscape = false }: { width: number; height?: number; landscape?: boolean }) {
   window.matchMedia = ((query: string) => {
-    const min = /min-width:\s*(\d+)px/.exec(query);
+    const minW = /min-width:\s*(\d+)px/.exec(query);
+    const minH = /min-height:\s*(\d+)px/.exec(query);
+    const maxH = /max-height:\s*(\d+)px/.exec(query);
+    let matches: boolean;
+    if (query.includes("orientation: landscape")) {
+      matches = landscape && (!maxH || height <= Number(maxH[1]));
+    } else if (minW) {
+      matches = width >= Number(minW[1]);
+    } else if (minH) {
+      matches = height >= Number(minH[1]);
+    } else {
+      matches = false;
+    }
     return {
-      matches: min ? px >= Number(min[1]) : false,
+      matches,
       media: query,
       addEventListener: () => {},
       removeEventListener: () => {},
@@ -76,14 +87,14 @@ describe("useStageOverlays", () => {
 
   describe("tela larga (>= asideUp)", () => {
     it("começa com painel e gaveta abertos", () => {
-      setWidth(1400);
+      mockScreen({ width: 1400 });
       const { result } = renderHook(() => useStageOverlays());
       expect(result.current.panelOpen).toBe(true);
       expect(result.current.asideOpen).toBe(true);
     });
 
     it("abrir um não fecha o outro", () => {
-      setWidth(1400);
+      mockScreen({ width: 1400 });
       const { result } = renderHook(() => useStageOverlays());
       act(() => result.current.setPanelOpen(false));
       act(() => result.current.setAsideOpen(true));
@@ -93,7 +104,7 @@ describe("useStageOverlays", () => {
     });
 
     it("closeAsideIfDrawer não faz nada", () => {
-      setWidth(1400);
+      mockScreen({ width: 1400 });
       const { result } = renderHook(() => useStageOverlays());
       act(() => result.current.closeAsideIfDrawer());
       expect(result.current.asideOpen).toBe(true);
@@ -101,19 +112,48 @@ describe("useStageOverlays", () => {
   });
 });
 
-describe("masterPanelDismissible", () => {
-  it("Agir nunca é dispensável (com ou sem ator o toque no mapa é do mestre)", () => {
-    expect(masterPanelDismissible({ railActive: "agir", mapPicking: false })).toBe(false);
+describe("useStageOverlays layout rules", () => {
+  it("keeps a fixed panel open and ignores setPanelOpen(false)", () => {
+    const { result } = renderHook(() => useStageOverlays({ panelFixed: true }));
+    expect(result.current.panelOpen).toBe(true);
+    act(() => result.current.setPanelOpen(false));
+    expect(result.current.panelOpen).toBe(true);
+    act(() => result.current.setPanelOpen((o) => !o));
+    expect(result.current.panelOpen).toBe(true);
   });
-  it("Ficha pede toque no mapa (tocar na peça mostra a ficha): não", () => {
-    expect(masterPanelDismissible({ railActive: "ficha", mapPicking: false })).toBe(false);
+
+  it("opening the drawer does not close a fixed panel on a portrait phone", () => {
+    const { result } = renderHook(() => useStageOverlays({ panelFixed: true }));
+    act(() => result.current.setAsideOpen(true));
+    expect(result.current.asideOpen).toBe(true);
+    expect(result.current.panelOpen).toBe(true);
   });
-  it("só a Fila é dispensável", () => {
-    expect(masterPanelDismissible({ railActive: "fila", mapPicking: false })).toBe(true);
+
+  it("lets the aside column and the panel stay open together from 768 px", () => {
+    mockScreen({ width: 768 });
+    const { result } = renderHook(() => useStageOverlays());
+    act(() => result.current.setPanelOpen(true));
+    act(() => result.current.setAsideOpen(true));
+    expect(result.current.panelOpen).toBe(true);
+    expect(result.current.asideOpen).toBe(true);
+    act(() => result.current.setPanelOpen(false));
+    act(() => result.current.setPanelOpen(true));
+    expect(result.current.asideOpen).toBe(true);
   });
-  it("Arrumar, queda e fuga (mapPicking) não são dispensáveis", () => {
-    expect(masterPanelDismissible({ railActive: "fila", mapPicking: true })).toBe(false);
-    expect(masterPanelDismissible({ railActive: "ficha", mapPicking: true })).toBe(false);
+
+  it("opens the panel at start on a landscape phone and keeps the aside closed", () => {
+    mockScreen({ width: 844, height: 390, landscape: true });
+    const { result } = renderHook(() => useStageOverlays());
+    expect(result.current.panelOpen).toBe(true);
+    expect(result.current.asideOpen).toBe(false);
+  });
+
+  it("closeAsideIfDrawer leaves the aside column open on a tablet", () => {
+    mockScreen({ width: 900 });
+    const { result } = renderHook(() => useStageOverlays());
+    act(() => result.current.setAsideOpen(true));
+    act(() => result.current.closeAsideIfDrawer());
+    expect(result.current.asideOpen).toBe(true);
   });
 });
 
