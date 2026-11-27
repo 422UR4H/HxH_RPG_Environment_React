@@ -212,7 +212,61 @@ function openWithServerBoard(
 
 /** "Nova cena" e "Encerrar partida" moram na aba Partida do painel do mestre. */
 async function openPartida() {
-  await user.click(screen.getByRole("button", { name: "Partida" }));
+  await user.click(railButton("Partida"));
+}
+
+
+// Tamanhos de tela: o jsdom é um celular em pé; os outros são simulados por matchMedia.
+// `resize` troca o tamanho e dispara os ouvintes `change` que o `useMediaQuery` registrou,
+// sem remontar a página (o estado dela precisa sobreviver).
+type Screen = { width: number; height: number; landscape?: boolean };
+const originalMatchMedia = window.matchMedia;
+
+function mockScreen(initial: Screen) {
+  let current = initial;
+  const listeners = new Map<string, Set<(e: { matches: boolean }) => void>>();
+  const evaluate = (query: string, s: Screen): boolean => {
+    const minW = /min-width:\s*(\d+)px/.exec(query);
+    const minH = /min-height:\s*(\d+)px/.exec(query);
+    const maxH = /max-height:\s*(\d+)px/.exec(query);
+    if (query.includes("orientation: landscape")) return !!s.landscape && (!maxH || s.height <= Number(maxH[1]));
+    if (minW) return s.width >= Number(minW[1]);
+    if (minH) return s.height >= Number(minH[1]);
+    return false;
+  };
+  window.matchMedia = ((query: string) => ({
+    get matches() { return evaluate(query, current); },
+    media: query,
+    addEventListener: (_: string, l: (e: { matches: boolean }) => void) => {
+      if (!listeners.has(query)) listeners.set(query, new Set());
+      listeners.get(query)!.add(l);
+    },
+    removeEventListener: (_: string, l: (e: { matches: boolean }) => void) => { listeners.get(query)?.delete(l); },
+    addListener: () => {},
+    removeListener: () => {},
+    onchange: null,
+    dispatchEvent: () => false,
+  })) as unknown as typeof window.matchMedia;
+  return {
+    resize(next: Screen) {
+      current = next;
+      act(() => {
+        listeners.forEach((set, query) => set.forEach((l) => l({ matches: evaluate(query, next) })));
+      });
+    },
+  };
+}
+
+/** A aba do Histórico (a coluna/gaveta da direita), não o item de mesmo nome da navegação. */
+function asideTab(name: string) {
+  return within(screen.getByTestId("match-aside")).getByRole("button", { name });
+}
+
+/** Um item da navegação (o rodapé/coluna), não o botão de mesmo nome da aba do Histórico. */
+function railButton(name: string | RegExp) {
+  const found = screen.getAllByRole("button", { name }).find((b) => !b.closest('[data-testid="match-aside"]'));
+  if (!found) throw new Error(`rail button ${String(name)} not found`);
+  return found;
 }
 
 function renderMasterPage() {
@@ -243,6 +297,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  window.matchMedia = originalMatchMedia;
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
 });
@@ -310,13 +365,253 @@ describe("GameMasterPage", () => {
     });
   });
 
-  it("a mesa abre com o painel fechado e sem véu em tela estreita", async () => {
+  it("keeps the master panel open on a portrait phone with Fila first", async () => {
     renderMasterPage();
     const ws = await waitForSocket();
     openWithServerBoard(ws);
     await screen.findByTestId("map-stub");
-    expect(screen.getByTestId("match-panel")).toHaveAttribute("data-open", "false");
+    expect(screen.getByTestId("match-panel")).toHaveAttribute("data-open", "true");
     expect(screen.queryByTestId("panel-scrim")).not.toBeInTheDocument();
+    expect(railButton(/^Fila/)).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Abrir próxima" })).toBeInTheDocument();
+    // Tocar no item ativo não fecha nada: o painel do mestre é fixo.
+    await user.click(railButton(/^Fila/));
+    expect(screen.getByTestId("match-panel")).toHaveAttribute("data-open", "true");
+    expect(screen.queryByTestId("queue-open")).not.toBeInTheDocument();
+  });
+
+  it("lists Fila, Ficha, Agir, Personagens and Partida in the phone navigation", async () => {
+    renderMasterPage();
+    const ws = await waitForSocket();
+    openWithServerBoard(ws);
+    const items = Array.from(railButton(/^Fila/).parentElement!.querySelectorAll("button"));
+    const labels = ["Fila", "Ficha", "Agir", "Personagens", "Partida"];
+    const icons = ["☰", "📜", "⚔", "👥", "🎲"];
+    expect(items).toHaveLength(5);
+    items.forEach((b, i) => {
+      expect(b.textContent).toContain(labels[i]);
+      expect(b.textContent).toContain(icons[i]);
+    });
+  });
+
+  it("shows the characters list in the Personagens section", async () => {
+    renderMasterPage();
+    const ws = await waitForSocket();
+    openWithServerBoard(ws);
+    await user.click(railButton("Personagens"));
+    const panel = screen.getByTestId("match-panel");
+    expect(await within(panel).findByTestId("character-row-c1")).toBeInTheDocument();
+    expect(within(panel).queryByRole("button", { name: "Abrir próxima" })).not.toBeInTheDocument();
+  });
+
+  describe("the sheet of the master", () => {
+    const zone = () => screen.getByTestId("match-sheet-zone");
+    let requested: string[] = [];
+    beforeEach(() => {
+      requested = [];
+      server.use(
+        http.get(`${baseUrl}/charactersheets/:id`, ({ params }) => {
+          requested.push(String(params.id));
+          return HttpResponse.json({ characterSheet: { uuid: params.id } });
+        }),
+      );
+    });
+
+    it("opens the sheet on the last touched piece", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      expect(zone()).toHaveAttribute("data-open", "false");
+      act(() => screen.getByTestId("select-actor-c1").click());
+      await user.click(railButton("Ficha"));
+      expect(zone()).toHaveAttribute("data-open", "true");
+      expect(await within(zone()).findByTestId("match-sheet")).toBeInTheDocument();
+      expect(requested).toContain("c1");
+      expect(railButton("Ficha")).toHaveAttribute("aria-pressed", "true");
+      // Tocar de novo fecha.
+      await user.click(railButton("Ficha"));
+      expect(zone()).toHaveAttribute("data-open", "false");
+    });
+
+    it("closes the sheet with the X of the sheet", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      act(() => screen.getByTestId("select-actor-c1").click());
+      await user.click(railButton("Ficha"));
+      await user.click(screen.getByRole("button", { name: "Fechar a ficha" }));
+      expect(zone()).toHaveAttribute("data-open", "false");
+    });
+
+    it("waits for a piece when Ficha is tapped with nothing touched", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      await user.click(railButton("Ficha"));
+      expect(zone()).toHaveAttribute("data-open", "false");
+      expect(railButton("Ficha")).toHaveAttribute("aria-pressed", "true");
+      expect(screen.getByText("Toque numa peça para ver a ficha.")).toBeInTheDocument();
+      expect(screen.queryByText("Toque num NPC para agir por ele.")).not.toBeInTheDocument();
+
+      act(() => screen.getByTestId("select-actor-npc1").click());
+      expect(zone()).toHaveAttribute("data-open", "true");
+      expect(await within(zone()).findByTestId("match-sheet")).toBeInTheDocument();
+      expect(requested).toContain("npc1");
+      // Só abriu a ficha: não escolheu o NPC como ator.
+      expect(screen.getByTestId("map-stub")).toHaveAttribute("data-selected-piece-id", "");
+      expect(screen.queryByText("Toque numa peça para ver a ficha.")).not.toBeInTheDocument();
+    });
+
+    it("gives up waiting when the empty map is tapped", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      await user.click(railButton("Ficha"));
+      expect(screen.getByTestId("map-stub")).toHaveAttribute("data-has-empty-slot-click", "true");
+      act(() => screen.getByTestId("empty-slot").click());
+      expect(railButton("Ficha")).toHaveAttribute("aria-pressed", "false");
+      expect(screen.queryByText("Toque numa peça para ver a ficha.")).not.toBeInTheDocument();
+      // Sem espera, sem ator: o slot volta a não ter handler.
+      expect(screen.getByTestId("map-stub")).toHaveAttribute("data-has-empty-slot-click", "false");
+    });
+
+    it("gives up waiting on a wall tap, on Ficha again and on another rail item", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws, piecesFixture, [{ id: "door-1", p1: [0, 0], p2: [1, 0], wallType: "door", material: "wood" }]);
+      await user.click(railButton("Ficha"));
+      act(() => screen.getByTestId("wall-door-1").click());
+      expect(railButton("Ficha")).toHaveAttribute("aria-pressed", "false");
+
+      await user.click(railButton("Ficha"));
+      expect(railButton("Ficha")).toHaveAttribute("aria-pressed", "true");
+      await user.click(railButton("Ficha"));
+      expect(railButton("Ficha")).toHaveAttribute("aria-pressed", "false");
+
+      await user.click(railButton("Ficha"));
+      await user.click(railButton("Agir"));
+      expect(railButton("Ficha")).toHaveAttribute("aria-pressed", "false");
+      expect(zone()).toHaveAttribute("data-open", "false");
+    });
+
+    it("closes the sheet on a map tap without choosing an actor", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      act(() => screen.getByTestId("select-actor-c1").click());
+      await user.click(railButton("Ficha"));
+      expect(zone()).toHaveAttribute("data-open", "true");
+
+      act(() => screen.getByTestId("select-actor-npc1").click());
+      expect(zone()).toHaveAttribute("data-open", "false");
+      expect(screen.getByTestId("map-stub")).toHaveAttribute("data-selected-piece-id", "");
+      await user.click(railButton("Agir"));
+      expect(screen.queryByLabelText("Compor ação")).not.toBeInTheDocument();
+      // O mapa também não arma slot nem segurar com a ficha aberta.
+      await user.click(railButton("Ficha"));
+      expect(zone()).toHaveAttribute("data-open", "true");
+      expect(screen.getByTestId("map-stub")).toHaveAttribute("data-has-long-press", "false");
+      expect(screen.getByTestId("map-stub")).toHaveAttribute("data-has-empty-slot-click", "false");
+    });
+
+    it("closes the sheet when entering Arrumar", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      act(() => screen.getByTestId("select-actor-c1").click());
+      await user.click(railButton("Ficha"));
+      expect(zone()).toHaveAttribute("data-open", "true");
+      await user.click(screen.getByRole("button", { name: "Arrumar" }));
+      expect(zone()).toHaveAttribute("data-open", "false");
+
+      // E a espera também cai.
+      await user.click(screen.getByRole("button", { name: "Arrumar" }));
+      await user.click(railButton("Ficha"));
+      await user.click(screen.getByRole("button", { name: "Arrumar" }));
+      expect(railButton("Ficha")).toHaveAttribute("aria-pressed", "false");
+    });
+
+    it("opens on the actor chosen in Agir por and on the card of Personagens", async () => {
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      await user.click(railButton("Agir"));
+      await user.click(await screen.findByRole("button", { name: "Capanga" }));
+      await user.click(railButton("Ficha"));
+      expect(requested).toContain("npc1");
+      await user.click(railButton("Ficha"));
+
+      await user.click(await screen.findByRole("button", { name: "Ver histórico" }));
+      await user.click(asideTab("Personagens"));
+      await user.click(await screen.findByTestId("character-row-c1"));
+      expect(zone()).toHaveAttribute("data-open", "true");
+      expect(requested).toContain("c1");
+      expect(screen.getByTestId("match-aside")).toHaveAttribute("data-open", "false");
+    });
+
+    it("keeps the sheet open on the same character across a layout change", async () => {
+      const screenMock = mockScreen({ width: 390, height: 800 });
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      act(() => screen.getByTestId("select-actor-c1").click());
+      await user.click(railButton("Ficha"));
+      expect(await within(zone()).findByTestId("match-sheet")).toBeInTheDocument();
+      expect(screen.queryByTestId("match-queue")).not.toBeInTheDocument();
+
+      screenMock.resize({ width: 1400, height: 900 });
+      expect(screen.getByTestId("match-queue")).toBeInTheDocument();
+      expect(zone()).toHaveAttribute("data-open", "true");
+      expect(within(zone()).getByTestId("match-sheet")).toBeInTheDocument();
+      expect(railButton("Ficha")).toHaveAttribute("aria-pressed", "true");
+    });
+  });
+
+  describe("other screen sizes", () => {
+    it("renders the queue in its own zone with Agir first once the queue splits", async () => {
+      mockScreen({ width: 1400, height: 900 });
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      const queue = screen.getByTestId("match-queue");
+      // O jsdom não avalia @media: a zona da fila (escondida por padrão) fica fora da árvore de acessibilidade.
+      expect(within(queue).getByRole("button", { name: "Abrir próxima", hidden: true })).toBeInTheDocument();
+      const panel = screen.getByTestId("match-panel");
+      expect(within(panel).queryByRole("button", { name: "Abrir próxima" })).not.toBeInTheDocument();
+      expect(within(panel).getByText("Agir por")).toBeInTheDocument();
+      const items = Array.from(railButton("Agir").parentElement!.querySelectorAll("button"));
+      expect(items.map((b) => b.textContent)).toEqual(["⚔Agir", "📜Ficha", "🎲Partida"]);
+      expect(railButton("Agir")).toHaveAttribute("aria-pressed", "true");
+      await user.click(railButton("Partida"));
+      expect(within(screen.getByTestId("match-panel")).getByRole("button", { name: "Nova cena" })).toBeInTheDocument();
+      expect(screen.getByTestId("match-queue")).toBeInTheDocument();
+    });
+
+    it("falls back to one section at a time on a short landscape phone", async () => {
+      mockScreen({ width: 844, height: 330, landscape: true });
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      expect(screen.queryByTestId("match-queue")).not.toBeInTheDocument();
+      expect(railButton(/^Fila/).parentElement!.querySelectorAll("button")).toHaveLength(5);
+      expect(screen.getByRole("button", { name: "Abrir próxima" })).toBeInTheDocument();
+    });
+
+    it("hides the reaction hint while the split queue is on screen", async () => {
+      mockScreen({ width: 1400, height: 900 });
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      act(() => ws.emit("action_queued", { actionId: "a1", actorId: "c1", bars: ["action"] }));
+      act(() =>
+        ws.emit("turn_opened", {
+          turnId: "t1", actorId: "c1", actionId: "a1", actionType: "",
+          action: { uuid: "a1", actorId: "c1", reactionKind: "", targetId: ["npc1"], attack: {} },
+        }),
+      );
+      expect(screen.getByRole("group", { name: "Reagir — Capanga", hidden: true })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Um NPC seu é alvo — reaja no painel." })).not.toBeInTheDocument();
+    });
   });
 
   it("abre a próxima ação e antecipa uma da fila", async () => {
@@ -587,44 +882,42 @@ describe("GameMasterPage", () => {
     expect(sent[sent.length - 1]?.payload.actorId).toBe("npc1");
   });
 
-  describe("D3: com a Ficha aberta, tocar numa peça mostra a ficha dela", () => {
+  describe("D3: a Ficha do mestre é a da última peça tocada e deixa o mapa quieto", () => {
     const mapStub = () => screen.getByTestId("map-stub");
+    const zone = () => screen.getByTestId("match-sheet-zone");
     const openFicha = async () => {
-      await user.click(screen.getByRole("button", { name: "Ficha" }));
-      expect(screen.getByTestId("match-panel")).toHaveAttribute("data-open", "true");
+      await user.click(railButton("Ficha"));
     };
 
-    it("sem ator: tocar num NPC mostra a ficha dele, não o escolhe e não vai ao Agir", async () => {
+    it("sem ator: a ficha espera uma peça; tocar num NPC mostra a ficha dele, não o escolhe e não vai ao Agir", async () => {
       renderMasterPage();
       const ws = await waitForSocket();
       openWithServerBoard(ws);
       await openFicha();
-      expect(screen.getByText("Toque numa peça ou num personagem para abrir a ficha.")).toBeInTheDocument();
-      // O painel já diz isso: a dica repetida sob o mapa sai.
-      expect(screen.queryByText("Toque numa peça para ver a ficha.")).not.toBeInTheDocument();
+      // A espera troca a dica do mapa pela da ficha.
+      expect(screen.getByText("Toque numa peça para ver a ficha.")).toBeInTheDocument();
       expect(screen.queryByText("Toque num NPC para agir por ele.")).not.toBeInTheDocument();
 
       act(() => screen.getByTestId("select-actor-npc1").click());
-      expect(await screen.findByTestId("match-sheet")).toBeInTheDocument();
-      expect(mapStub()).toHaveAttribute("data-inspected-piece-id", "piece-npc1");
+      expect(await within(zone()).findByTestId("match-sheet")).toBeInTheDocument();
       expect(mapStub()).toHaveAttribute("data-selected-piece-id", "");
-      expect(screen.getByRole("button", { name: "Agir" })).toHaveAttribute("aria-pressed", "false");
-      expect(screen.getByRole("button", { name: "Ficha" })).toHaveAttribute("aria-pressed", "true");
+      expect(railButton("Agir")).toHaveAttribute("aria-pressed", "false");
+      expect(railButton("Ficha")).toHaveAttribute("aria-pressed", "true");
     });
 
-    it("com ator já escolhido: o alvo tocado não entra no compositor", async () => {
+    it("com ator já escolhido: a ficha abre nele e o toque no mapa só a fecha, sem pôr o alvo no compositor", async () => {
       renderMasterPage();
       const ws = await waitForSocket();
       openWithServerBoard(ws);
       act(() => screen.getByTestId("select-actor-npc1").click());
       await openFicha();
+      expect(await within(zone()).findByTestId("match-sheet")).toBeInTheDocument();
 
       act(() => screen.getByTestId("select-actor-c1").click());
-      expect(await screen.findByTestId("match-sheet")).toBeInTheDocument();
-      expect(mapStub()).toHaveAttribute("data-inspected-piece-id", "piece-c1");
+      expect(zone()).toHaveAttribute("data-open", "false");
       expect(mapStub()).toHaveAttribute("data-selected-piece-id", "piece-npc1");
 
-      await user.click(screen.getByRole("button", { name: "Agir" }));
+      await user.click(railButton("Agir"));
       expect(screen.getByRole("button", { name: /declarar/i })).toBeDisabled();
     });
 
@@ -639,7 +932,7 @@ describe("GameMasterPage", () => {
       expect(mapStub()).toHaveAttribute("data-has-long-press", "false");
       expect(mapStub()).toHaveAttribute("data-has-empty-slot-click", "false");
 
-      await user.click(screen.getByRole("button", { name: "Agir" }));
+      await openFicha();
       expect(mapStub()).toHaveAttribute("data-has-long-press", "true");
       expect(mapStub()).toHaveAttribute("data-has-empty-slot-click", "true");
     });
@@ -811,7 +1104,7 @@ describe("GameMasterPage", () => {
 
     const toggle = await screen.findByRole("button", { name: "Ver histórico" });
     act(() => toggle.click());
-    act(() => screen.getByRole("button", { name: "Personagens" }).click());
+    act(() => asideTab("Personagens").click());
 
     // Continua mostrando os participantes normais.
     expect(await screen.findByText("Gon")).toBeInTheDocument();
@@ -837,7 +1130,7 @@ describe("GameMasterPage", () => {
     // pra inspecionar em qual aba ela ficou.
     act(() => screen.getByRole("button", { name: "Ver histórico" }).click());
     expect(screen.getByRole("button", { name: "Histórico" })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByRole("button", { name: "Personagens" })).toHaveAttribute("aria-pressed", "false");
+    expect(asideTab("Personagens")).toHaveAttribute("aria-pressed", "false");
     // não virou ator: a bottom sheet de compor ação não aparece
     expect(screen.queryByRole("button", { name: /declarar/i })).not.toBeInTheDocument();
 
@@ -940,7 +1233,7 @@ describe("GameMasterPage", () => {
 
     // "Adicionar à partida" mora no fim da aba Personagens.
     act(() => screen.getByRole("button", { name: "Ver histórico" }).click());
-    act(() => screen.getByRole("button", { name: "Personagens" }).click());
+    act(() => asideTab("Personagens").click());
     await user.click(await screen.findByRole("combobox", { name: "Adicionar à partida" }));
     await user.click(await screen.findByRole("option", { name: npcFixture.nickName }));
     await user.click(screen.getByRole("button", { name: "Adicionar" }));
@@ -1004,7 +1297,7 @@ describe("GameMasterPage", () => {
 
     // "Adicionar à partida" mora no fim da aba Personagens.
     act(() => screen.getByRole("button", { name: "Ver histórico" }).click());
-    act(() => screen.getByRole("button", { name: "Personagens" }).click());
+    act(() => asideTab("Personagens").click());
     await user.click(await screen.findByRole("combobox", { name: "Adicionar à partida" }));
     await user.click(await screen.findByRole("option", { name: npcFixture.nickName }));
     await user.click(screen.getByRole("button", { name: "Adicionar" }));
@@ -1128,15 +1421,17 @@ describe("GameMasterPage", () => {
     openWithServerBoard(ws);
 
     await user.click(await screen.findByRole("button", { name: "Ver histórico" }));
-    await user.click(screen.getByRole("button", { name: "Personagens" }));
+    await user.click(asideTab("Personagens"));
     await user.click(await screen.findByTestId("character-row-c1"));
     expect(await screen.findByTestId("match-sheet")).toBeInTheDocument();
-    // o painel alarga só para a ficha; em tela estreita (o jsdom é sempre estreito) a gaveta
-    // cobre o mapa e fecha ao escolher o card — a ficha abre no painel, que ela não encobre
-    expect(screen.getByTestId("match-panel")).toHaveAttribute("data-wide", "true");
+    // a ficha abre na folha, fora do painel; em tela estreita (o jsdom é sempre estreito) a
+    // gaveta cobre o mapa e fecha ao escolher o card
+    expect(within(screen.getByTestId("match-sheet-zone")).getByTestId("match-sheet")).toBeInTheDocument();
+    expect(screen.getByTestId("match-sheet-zone")).toHaveAttribute("data-open", "true");
     expect(screen.getByTestId("match-aside")).toHaveAttribute("data-open", "false");
-    await user.click(screen.getByRole("button", { name: /Fila/ }));
-    expect(screen.getByTestId("match-panel")).toHaveAttribute("data-wide", "false");
+    // o painel não mudou de seção por causa da ficha
+    expect(screen.getByTestId("match-panel")).toHaveAttribute("data-open", "true");
+    expect(railButton(/^Fila/)).toHaveAttribute("aria-pressed", "true");
   });
   it("Histórico que falha (depois da nova tentativa) avisa na aba", async () => {
     server.use(http.get(`${baseUrl}/matches/:id/history`, () => new HttpResponse(null, { status: 500 })));
@@ -1395,7 +1690,7 @@ describe("GameMasterPage", () => {
         const ws = await waitForSocket();
         openWithServerBoard(ws, [piecesFixture[0]]);
         await user.click(await screen.findByRole("button", { name: "Ver histórico" }));
-        await user.click(screen.getByRole("button", { name: "Personagens" }));
+        await user.click(asideTab("Personagens"));
         expect(await screen.findByTestId("character-row-npc1")).toHaveTextContent("Fora do mapa");
         expect(screen.getByTestId("character-row-c1")).not.toHaveTextContent("Fora do mapa");
 
@@ -1420,7 +1715,7 @@ describe("GameMasterPage", () => {
         const ws = await waitForSocket();
         openWithServerBoard(ws, [piecesFixture[0]]);
         await user.click(await screen.findByRole("button", { name: "Ver histórico" }));
-        await user.click(screen.getByRole("button", { name: "Personagens" }));
+        await user.click(asideTab("Personagens"));
         await screen.findByTestId("character-row-npc1");
         dragCard("npc1");
         fireEvent.pointerUp(screen.getByRole("button", { name: "Enquadrar" }));
@@ -1434,7 +1729,7 @@ describe("GameMasterPage", () => {
         const ws = await waitForSocket();
         openWithServerBoard(ws, [piecesFixture[0]]);
         await user.click(await screen.findByRole("button", { name: "Ver histórico" }));
-        await user.click(screen.getByRole("button", { name: "Personagens" }));
+        await user.click(asideTab("Personagens"));
         const row = await screen.findByTestId("character-row-npc1");
         dragCard("npc1");
         // No toque o navegador prende o ponteiro ao card (captura implícita): o pointerup chega
@@ -1456,7 +1751,7 @@ describe("GameMasterPage", () => {
         const ws = await waitForSocket();
         openWithServerBoard(ws, [piecesFixture[0]]);
         await user.click(await screen.findByRole("button", { name: "Ver histórico" }));
-        await user.click(screen.getByRole("button", { name: "Personagens" }));
+        await user.click(asideTab("Personagens"));
         await user.click(await screen.findByTestId("character-row-npc1"));
         expect(await screen.findByTestId("match-sheet")).toBeInTheDocument();
         expect(mapStub()).toHaveAttribute("data-placing-npc-id", "");
@@ -1467,7 +1762,7 @@ describe("GameMasterPage", () => {
         const ws = await waitForSocket();
         openWithServerBoard(ws, [piecesFixture[0]]);
         await user.click(await screen.findByRole("button", { name: "Ver histórico" }));
-        await user.click(screen.getByRole("button", { name: "Personagens" }));
+        await user.click(asideTab("Personagens"));
         await screen.findByTestId("character-row-c1");
         dragCard("c1");
         expect(mapStub()).toHaveAttribute("data-placing-npc-id", "");
@@ -1560,7 +1855,7 @@ describe("GameMasterPage", () => {
       enterArrange();
 
       await user.click(await screen.findByRole("button", { name: "Ver histórico" }));
-      await user.click(screen.getByRole("button", { name: "Personagens" }));
+      await user.click(asideTab("Personagens"));
       await user.click(await screen.findByTestId("character-row-c1"));
 
       expect(screen.getByRole("button", { name: "Arrumar" })).toHaveAttribute("aria-pressed", "false");
@@ -1821,13 +2116,6 @@ describe("GameMasterPage", () => {
       act(() => hint()!.click());
       expect(reactionGroup()).toBeInTheDocument();
       expect(hint()).not.toBeInTheDocument();
-
-      // Fila fechada (o toque na própria aba) também esconde a seção.
-      await user.click(screen.getByRole("button", { name: /Fila/ }));
-      expect(screen.getByTestId("match-panel")).toHaveAttribute("data-open", "false");
-      act(() => hint()!.click());
-      expect(screen.getByTestId("match-panel")).toHaveAttribute("data-open", "true");
-      expect(reactionGroup()).toBeInTheDocument();
 
       // Reagiu: não há mais o que avisar.
       act(() => screen.getByRole("button", { name: "Agir" }).click());
