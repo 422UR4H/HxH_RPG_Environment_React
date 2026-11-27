@@ -914,14 +914,14 @@ describe("GameMasterPage", () => {
     expect(sent[sent.length - 1]?.payload.actorId).toBe("npc1");
   });
 
-  describe("D3: a Ficha do mestre é a da última peça tocada e deixa o mapa quieto", () => {
+  describe("D3: the master's sheet follows the last touched piece and leaves the map quiet", () => {
     const mapStub = () => screen.getByTestId("map-stub");
     const zone = () => screen.getByTestId("match-sheet-zone");
     const openFicha = async () => {
       await user.click(railButton("Ficha"));
     };
 
-    it("sem ator: a ficha espera uma peça; tocar num NPC mostra a ficha dele, não o escolhe e não vai ao Agir", async () => {
+    it("without an actor: the sheet waits for a piece; tapping an NPC shows its sheet without choosing it or going to Agir", async () => {
       renderMasterPage();
       const ws = await waitForSocket();
       openWithServerBoard(ws);
@@ -937,7 +937,7 @@ describe("GameMasterPage", () => {
       expect(railButton("Ficha")).toHaveAttribute("aria-pressed", "true");
     });
 
-    it("com ator já escolhido: a ficha abre nele e o toque no mapa só a fecha, sem pôr o alvo no compositor", async () => {
+    it("with an actor chosen: the sheet opens on it and a map tap only closes it, without targeting", async () => {
       renderMasterPage();
       const ws = await waitForSocket();
       openWithServerBoard(ws);

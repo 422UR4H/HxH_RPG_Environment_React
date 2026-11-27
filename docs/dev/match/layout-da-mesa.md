@@ -16,9 +16,10 @@ Referência de onde cada zona da partida fica, por papel e tamanho de tela. Vem 
 | Widescreen | ≥ 1600 |
 
 Breakpoints com nome (`breakpoints`: `tabletUp` 768, `railUp` 1024, `asideUp` 1280, `wideUp` 1600),
-nunca número solto. O celular deitado passa de 768 px de largura, por isso é reconhecido pela
-**altura** (`LANDSCAPE_PHONE_QUERY`): um tablet ou computador deitado nunca tem 540 px ou menos de
-altura. O tablet gira: em pé cai em `tabletUp`, deitado em `railUp`.
+nunca número solto. O celular deitado é reconhecido pela **altura** (`LANDSCAPE_PHONE_QUERY`), não
+pela largura: os Androids comuns deitados medem 640–740 px (menos de 768), e o iPhone, mais. Por
+isso a regra "vale sobre os outros": uma janela de computador baixa (540 px de altura ou menos, ex.:
+DevTools acoplado embaixo) também ganha o layout de celular deitado. O tablet gira: em pé cai em `tabletUp`, deitado em `railUp`.
 
 ## Larguras (px)
 
@@ -52,6 +53,9 @@ tem X e rola por dentro.
   vale só no celular em pé (`asideIsDrawer`); de 768 em diante o Histórico convive com tudo. Com
   `panelFixed` (mestre) o painel está sempre aberto. Inicial: painel aberto a partir de `railUp` ou
   no celular deitado; Histórico aberto só a partir de `asideUp` e nunca no celular deitado.
+  O hook também guarda `sheetOpen`/`setSheetOpen` com a mesma regra: no celular em pé abrir a ficha
+  fecha a gaveta do Histórico e abrir a gaveta fecha a ficha (fechar nunca mexe na outra); de 768 em
+  diante não se acoplam. As duas páginas usam o hook em vez de estado próprio.
 
 ## Pilha de camadas (z-index)
 
@@ -74,6 +78,10 @@ folha tem `padding-bottom` de 56). Detalhe do comentário em `MatchStageTemplate
 - **Espera (mestre sem personagem):** tocar em "Ficha" não abre nada; o item fica marcado e a dica
   `${verb} numa peça para ver a ficha.` substitui as dicas do mapa (`MapHint`). A peça tocada abre a
   ficha (e só isso). Tocar no mapa fora de uma peça, numa parede ou de novo em "Ficha" desiste.
+- No celular em pé, escolher outra seção da navegação fecha a folha (ela cobriria o painel); abrir o
+  Histórico fecha a folha e, no mestre, também desiste da espera. Entrar na escolha da casa (queda
+  ou fuga) também desiste da espera. Se o último personagem tocado saiu da partida, "Ficha" age como
+  sem nenhum (espera uma peça).
 - Onde a ficha é folha ou caixa, "Ficha" abre/fecha a ficha e não troca o painel (no celular em pé,
   abrir a folha fecha o painel de Ação do jogador).
 
@@ -90,7 +98,8 @@ passa por baixo da coluna, em toda a largura: o Histórico nunca cobre painel ne
 
 ## Header e controles do mestre
 
-A partir de 768: conexão, depois "Round" + seletor Livre/Disputado. Abrir próxima/Encerrar rodada e
+A partir de 768, e sempre no celular deitado (mesmo abaixo de 768 px, como 667×375): conexão,
+depois "Round" + seletor Livre/Disputado. No celular deitado o Round nunca vai para o topo da Fila. Abrir próxima/Encerrar rodada e
 Fechar turno ficam no topo da Fila (no celular em pé, o título "Round" + seletor vêm antes). "Nova
 cena" e "Encerrar partida" ficam na aba Partida. Código: `HeaderRound`, `TurnControls`,
 `QueueHeader`, `MatchTabPanel`.
