@@ -1,5 +1,5 @@
 import "./pixiViewportTypes";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useApplication } from "@pixi/react";
 import type { Viewport } from "pixi-viewport";
 import type { Graphics as PixiGraphics } from "pixi.js";
@@ -16,6 +16,7 @@ import GridLayer from "./GridLayer";
 import PiecesLayer from "./PiecesLayer";
 import IntentLayer from "../IntentLayer";
 import { createPanTracker } from "../hooks/panGesture";
+import { resizeShift, type CanvasBox } from "./resizeAnchor";
 import { colors } from "../../../styles/tokens";
 import { toPixi } from "../../../styles/pixi";
 
@@ -149,10 +150,39 @@ export default function ViewportInner({
     });
   }, [clampToGrid, map.grid]);
 
-  useEffect(() => {
+  // Regra do dono: abrir ou fechar uma coluna lateral (Histórico, ficha) não mexe no mapa —
+  // ele pular a cada coluna era "bem ruim e irritante". Mudança só de largura (ou só de
+  // posição) do canvas não reenquadra: compensa o quanto a borda andou, e cada ponto do mundo
+  // fica no mesmo pixel da tela. Mudança de altura (painel de baixo do celular, girar o
+  // aparelho) continua reenquadrando como antes; a decisão fica em `resizeRefitRef`, que o
+  // efeito de enquadramento lê. Vale onde há enquadramento automático (`fitRequest`: mesa,
+  // editor, posicionador); sem ele o comportamento de antes fica intacto.
+  // useLayoutEffect: compensar antes de pintar, para não aparecer um quadro deslocado.
+  const canvasBoxRef = useRef<CanvasBox | null>(null);
+  const resizeRefitRef = useRef(true);
+  const autoFrames = fitRequest !== undefined;
+  const autoFramesRef = useRef(autoFrames);
+  autoFramesRef.current = autoFrames;
+  useLayoutEffect(() => {
     if (!app.renderer || width <= 0 || height <= 0) return;
     app.renderer.resize(width, height);
-    vpRef.current?.resize(width, height);
+    const vp = vpRef.current;
+    vp?.resize(width, height);
+    const rect = (app.canvas as HTMLCanvasElement).getBoundingClientRect();
+    // Canvas escondido (caixa zerada): não guarda a caixa, senão a próxima medida compensaria
+    // contra uma posição falsa. Sem medida, vale o de antes (reenquadrar).
+    if (rect.width <= 0 || rect.height <= 0) {
+      resizeRefitRef.current = true;
+      return;
+    }
+    const next: CanvasBox = { left: rect.left, top: rect.top, width, height };
+    const shift = resizeShift(canvasBoxRef.current, next);
+    canvasBoxRef.current = next;
+    resizeRefitRef.current = shift.refit;
+    if (!shift.refit && vp && autoFramesRef.current) {
+      vp.x += shift.dx;
+      vp.y += shift.dy;
+    }
   }, [app, width, height]);
 
   // Game only: a camada HTML (botões de reação, balões) ancora coisas nas peças por este
@@ -188,10 +218,12 @@ export default function ViewportInner({
   }, [app, vpReady, emitsTransform]);
 
   // Game only: frame the whole grid, centered — on every new `fitRequest` (mount, or the
-  // "enquadrar" button), and again when the canvas changes size (a panel opening on the
+  // "enquadrar" button), and again when the canvas changes HEIGHT (a panel opening on the
   // phone) as long as the viewer has not panned or zoomed by hand since the last framing.
   // Without it the map opened at 1:1 from the top-left corner and a grid wider than the
   // screen was simply cut off.
+  // Mudança só de largura (coluna lateral abrindo/fechando) não reenquadra: o efeito de
+  // redimensionar acima já compensou a borda e o mapa fica parado (`resizeRefitRef`).
   // A grade vai num ref para o efeito poder ler o valor atual sem depender dela; só entra nas
   // dependências (via `gridTrigger`) quando `refitOnGridChange` está ligado.
   const gridRef = useRef(map.grid);
@@ -204,11 +236,18 @@ export default function ViewportInner({
   focusSlotsRef.current = fitFocusSlots;
   const hasFocus = !!fitFocusSlots?.length;
   const fittedRequestRef = useRef<number | undefined>(undefined);
+  // Última rodada vista por este efeito: separa "só o canvas mudou de tamanho" das outras
+  // causas (grade, primeira peça própria), que continuam reenquadrando como antes.
+  const fitSeenRef = useRef<{ gridTrigger: unknown; hasFocus: boolean } | null>(null);
   useEffect(() => {
     const vp = vpRef.current;
     if (fitRequest === undefined || !vp || !vpReady || width <= 0 || height <= 0) return;
+    const seen = fitSeenRef.current;
+    const otherCause = !seen || seen.gridTrigger !== gridTrigger || seen.hasFocus !== hasFocus;
+    fitSeenRef.current = { gridTrigger, hasFocus };
     const newRequest = fittedRequestRef.current !== fitRequest;
     if (!newRequest && userMovedRef.current) return;
+    if (!newRequest && !otherCause && !resizeRefitRef.current) return;
     fittedRequestRef.current = fitRequest;
     userMovedRef.current = false;
     const wb = gridWorldBounds(gridRef.current);

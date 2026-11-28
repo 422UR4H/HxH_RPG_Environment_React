@@ -142,6 +142,18 @@ Fechar turno ficam no topo da Fila (no celular em pé, o título "Round" + selet
 cena" e "Encerrar partida" ficam na aba Partida. Código: `HeaderRound`, `TurnControls`,
 `QueueHeader`, `MatchTabPanel`.
 
+## O mapa não se mexe
+
+Abrir ou fechar uma coluna lateral (o Histórico à direita, a ficha ou a coluna à esquerda) não mexe
+no mapa: cada ponto do tabuleiro fica no mesmo lugar da tela (pedido do dono, 2026-11-27). Quando o
+canvas muda **só de largura** (ou só de posição), o `ViewportInner` não reenquadra; mede a caixa do
+canvas na tela e soma a `vp.x`/`vp.y` o quanto a borda andou (`resizeShift`, em
+`src/features/tactical-map/stage/resizeAnchor.ts`). Quando a **altura** muda (o painel de baixo do
+celular, girar o aparelho), continua como antes: reenquadra, se ninguém arrastou nem deu zoom desde o
+último enquadramento. O botão Enquadrar e a abertura da mesa enquadram sempre. Vale onde há
+enquadramento automático (`fitRequest`: mesa, editor e posicionador de mapa). A camada Pixi não tem
+teste; só a função `resizeShift` tem.
+
 ## Fica para a F2
 
 Rodapé novo com o recorte do botão "Enviar ação" e o painel de ação novo. Nada disso existe na F1.
