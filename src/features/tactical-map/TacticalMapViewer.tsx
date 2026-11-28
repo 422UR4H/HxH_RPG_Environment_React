@@ -42,7 +42,7 @@ type Props = {
   onNpcPlacementCancel?: () => void;
   // Peça arrastada para fora do canvas (o Arrumar do mestre a tira do mapa pela lista de Personagens).
   onPieceDragToRoster?: (pieceId: string) => void;
-  onPieceDragStart?: (pieceId: string) => void;
+  onPieceDragStart?: (pieceId: string, npc: CharacterPrivateSummary | undefined, point: { x: number; y: number }) => void;
   onPieceDragEnd?: () => void;
   // See stageProps.ts — the HTML layer anchors reaction buttons and balloons on the pieces.
   onViewportTransform?: (t: ViewportTransform) => void;

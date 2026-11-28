@@ -1,7 +1,29 @@
 import type { PointerEvent, ReactNode } from "react";
-import styled from "styled-components";
-import { media } from "../../styles/breakpoints";
-import { colors } from "../../styles/tokens";
+import type { AsideMode } from "./MatchStageTemplate.types";
+import ExpandButton from "../ions/ExpandButton";
+import {
+  AsideExpandScrim,
+  AsideScrim,
+  AsideSurface,
+  AsideWidthButton,
+  AsideWidthIcon,
+  AsideZone,
+  Middle,
+  PanelScrim,
+  PanelZone,
+  QueueZone,
+  RailZone,
+  SheetBody,
+  SheetCloseIcon,
+  SheetCloseX,
+  SheetScrim,
+  SheetZone,
+  Shell,
+  StageZone,
+  TopBarZone,
+} from "./MatchStageTemplate.styles";
+
+export type { AsideMode };
 
 type Props = {
   topbar: ReactNode;
@@ -10,44 +32,55 @@ type Props = {
   panel?: ReactNode;
   aside?: ReactNode;
   panelOpen?: boolean;
-  asideOpen?: boolean;
-  /** O painel mostra algo largo (a ficha): a coluna alarga a partir de `railUp`. */
+  asideMode?: AsideMode;
+  /** O painel mostra algo largo (a ficha): a coluna alarga a partir de `asideUp` (só sem `queue`). */
   panelWide?: boolean;
-  /** O conteúdo do painel não pede toque no mapa: abaixo de railUp, um véu cobre o palco e o toque nele fecha o painel. */
+  /** O conteúdo do painel não pede toque no mapa: no empilhado, um véu cobre o palco e o toque nele fecha o painel. */
   panelDismissible?: boolean;
   onDismissPanel?: () => void;
-  /** Abaixo de asideUp, com a gaveta aberta, um véu cobre o resto e o toque nele a fecha. */
+  /** No celular em pé, com a gaveta aberta, um véu cobre o resto e o toque nele a fecha. */
   onDismissAside?: () => void;
+  /** Só nas telas estreitas: o botão que alterna o Histórico entre 200 e 280. */
+  onToggleAsideWidth?: () => void;
+  /** O véu transparente do Histórico ampliado: o toque fora o dispensa. */
+  onDismissExpandedAside?: () => void;
+  /** A fila fixa do mestre (só com colunas laterais): a coluna da esquerda divide em painel e fila. */
+  queue?: ReactNode;
+  /** No empilhado, painel e palco dividem a altura meio a meio. */
+  panelHalf?: boolean;
+  /**
+   * A ficha: folha no empilhado; aberta, toma o lugar da coluna da esquerda (painel e fila
+   * somem) com colunas laterais abaixo de `asideUp` e no celular deitado; caixa sobre o mapa a
+   * partir de `asideUp`.
+   */
+  sheet?: ReactNode;
+  sheetOpen?: boolean;
+  onDismissSheet?: () => void;
+  /**
+   * Largura (px) da coluna da esquerda com colunas laterais: painel (deitado) e fila. A partir de
+   * `asideUp` a coluna segue as medidas do computador.
+   */
+  columnWidth: number;
 };
 
-/** Altura do rail quando ele deita e vira rodapé (abaixo de `railUp`). */
-export const RAIL_BAR_HEIGHT = 56;
-
-// BF4: a gaveta (aside) é posicionada sobre o palco abaixo de `asideUp` e precisa ficar
-// acima de QUALQUER coisa que flutue sobre o mapa — hoje o maior desses overlays são os
-// avisos do palco (`StageNotices`, z-index: 50, onde mora o MatchErrorBanner), seguidos da
-// barra geral e do botão de enquadrar (30).
-// Sem isso a barra geral fica desenhada por cima da gaveta e esconde as abas Histórico/
-// Personagens quando ela está aberta em telas estreitas.
-// Os véus (painel e gaveta, `SCRIM_Z_INDEX`) ficam entre os dois: acima dos avisos do palco
-// (50) — o toque fora de uma folha aberta não pode cair num aviso — e abaixo da gaveta (60).
-// O painel do relógio do mestre (`CLOCK_PANEL_Z_INDEX`, 52, em clockLayout.ts) fica entre os
-// avisos (50) e os véus (55): aberto, nenhum aviso o cobre; a pílula fica em 40.
-const ASIDE_DRAWER_Z_INDEX = 60;
-const SCRIM_Z_INDEX = 55;
-
 /**
- * As cinco zonas da partida. O template decide ONDE cada zona aparece em cada largura; a
- * página decide O QUE vai dentro.
+ * As zonas da partida. O template decide ONDE cada zona aparece em cada tamanho; a página
+ * decide O QUE vai dentro. Em pé até 1279 px é empilhado; deitado ou a partir de 1280 px há
+ * colunas laterais (`media.side`):
  *
- * - Abaixo de `railUp` (celular, tablet em pé) é uma coluna: mapa, painel (quando aberto)
- *   e o rail deitado no rodapé. O painel EMPURRA o mapa em vez de cobri-lo — quem compõe
- *   uma ação precisa tocar no mapa com o painel aberto. Quando o conteúdo NÃO pede toque
- *   no mapa (`panelDismissible`), o painel também vira modal: um véu cobre o palco e tocar
- *   nele fecha o painel sem selecionar nada.
- * - A partir de `railUp` o rail fica em pé à esquerda e o painel vira coluna ao lado dele.
- * - O `aside` é gaveta sobre o mapa até `asideUp` (com véu: tocar fora a fecha), e coluna
- *   a partir dali.
+ * - Empilhado, celular em pé (< 600 px): mapa, painel e o rail deitado no rodapé. O painel
+ *   EMPURRA o mapa (com `panelHalf`, divide a altura ao meio). A ficha é uma folha por trás do
+ *   rodapé e o Histórico, uma gaveta com véu.
+ * - Empilhado, tablet em pé (`media.tabletPortrait`): o mesmo, com o Histórico em coluna
+ *   encaixada de 280 (200 só sob `asideNarrow`, a regra do mapa, com a alternância
+ *   200/280/escondido) só na faixa do mapa (painel e rodapé passam por baixo, na largura toda).
+ * - Colunas laterais (deitado, abaixo de 1280 px): rail em pé, coluna de `columnWidth`, Histórico
+ *   de 280 (200 sob `asideNarrow`) e a ficha aberta no lugar da coluna; com `queue`, a fila ocupa a metade de baixo.
+ * - Celular deitado (altura baixa, vale sobre os outros, por último): como as colunas, com
+ *   Histórico de 280, ou 200 sob `asideNarrow` (alternância 200/280/escondido); a fila só divide a coluna quando há altura.
+ * - Computador (`asideUp`): a ficha vira caixa de até 420 sobre o mapa; a aba Ficha do jogador
+ *   alarga para 420.
+ * - Widescreen (`wideUp`): a fila do mestre vira coluna própria à esquerda do painel.
  *
  * O rail e o rodapé são o MESMO componente: quem deita o rail é o CSS, não um ramo de
  * JavaScript. O `stage` nunca colapsa — é a única faixa flexível.
@@ -59,20 +92,34 @@ export default function MatchStageTemplate({
   panel,
   aside,
   panelOpen = true,
-  asideOpen = true,
+  asideMode = "docked",
   panelWide = false,
   panelDismissible = false,
   onDismissPanel,
   onDismissAside,
+  onToggleAsideWidth,
+  onDismissExpandedAside,
+  queue,
+  panelHalf = false,
+  sheet,
+  sheetOpen = false,
+  onDismissSheet,
+  columnWidth,
 }: Props) {
+  const sheetInColumn = !!sheet && sheetOpen;
+  const asideOpen = asideMode !== "closed";
+  const asideExpanded = asideMode === "expanded" || asideMode === "expandedOverDocked";
   return (
     <Shell>
       <TopBarZone>{topbar}</TopBarZone>
-      <Middle>
+      <Middle $queue={!!queue} $half={panelHalf}>
         <StageZone>
           {stage}
           {panel && panelOpen && panelDismissible && (
             <PanelScrim data-testid="panel-scrim" aria-hidden onPointerDown={stopPointerDown} onClick={onDismissPanel} />
+          )}
+          {sheet && sheetOpen && onDismissSheet && (
+            <SheetScrim data-testid="sheet-scrim" aria-hidden onPointerDown={stopPointerDown} onClick={onDismissSheet} />
           )}
         </StageZone>
         {panel && (
@@ -82,15 +129,62 @@ export default function MatchStageTemplate({
             data-wide={!!panelWide}
             $open={panelOpen}
             $wide={panelWide}
+            $queue={!!queue}
+            $half={panelHalf}
+            $columnWidth={columnWidth}
+            $sheetInColumn={sheetInColumn}
           >
             {panel}
           </PanelZone>
         )}
+        {queue && (
+          <QueueZone data-testid="match-queue" $columnWidth={columnWidth} $sheetInColumn={sheetInColumn}>
+            {queue}
+          </QueueZone>
+        )}
+        {sheet && (
+          <SheetZone data-testid="match-sheet-zone" data-open={sheetOpen} $open={sheetOpen} $queue={!!queue}>
+            {onDismissSheet && (
+              <SheetCloseX type="button" aria-label="Fechar a ficha" onClick={onDismissSheet}>
+                <SheetCloseIcon />
+              </SheetCloseX>
+            )}
+            <SheetBody>{sheet}</SheetBody>
+          </SheetZone>
+        )}
         <RailZone>{rail}</RailZone>
         {aside && (
-          <AsideZone data-testid="match-aside" data-open={asideOpen} $open={asideOpen}>
-            {aside}
+          <AsideZone
+            data-testid="match-aside"
+            data-open={asideOpen}
+            data-aside-mode={asideMode}
+            $open={asideOpen}
+            $mode={asideMode}
+            $queue={!!queue}
+            $columnWidth={columnWidth}
+          >
+            <AsideSurface $expanded={asideExpanded}>{aside}</AsideSurface>
+            {asideOpen && onToggleAsideWidth && (
+              <AsideWidthButton
+                type="button"
+                $mode={asideMode}
+                aria-label={asideExpanded ? "Reduzir o Histórico" : "Ampliar o Histórico"}
+                onClick={onToggleAsideWidth}
+              >
+                <AsideWidthIcon $expanded={asideExpanded}>
+                  <ExpandButton isExpanded={false} />
+                </AsideWidthIcon>
+              </AsideWidthButton>
+            )}
           </AsideZone>
+        )}
+        {aside && asideExpanded && onDismissExpandedAside && (
+          <AsideExpandScrim
+            data-testid="aside-expand-scrim"
+            aria-hidden
+            onPointerDown={stopPointerDown}
+            onClick={onDismissExpandedAside}
+          />
         )}
         {aside && asideOpen && onDismissAside && (
           <AsideScrim data-testid="aside-scrim" aria-hidden onPointerDown={stopPointerDown} onClick={onDismissAside} />
@@ -104,151 +198,3 @@ export default function MatchStageTemplate({
 // pointerdown: dispensar no pointerdown desmontaria o véu no meio do gesto e o soltar cairia
 // no canvas recém-descoberto. Por isso o pointerdown morre aqui.
 const stopPointerDown = (e: PointerEvent<HTMLElement>) => e.stopPropagation();
-
-const Shell = styled.div`
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  height: 100dvh;
-  overflow: hidden;
-  background: ${colors.surfaceSidebar};
-  color: ${colors.textPrimary};
-  /* Spec §13: arrastar no mapa/HUD não pode virar seleção de texto. Campos continuam selecionáveis. */
-  user-select: none;
-  -webkit-user-select: none;
-  /* Sem zoom de página (pinça ou toque duplo) na mesa: só o mapa dá zoom. O canvas mantém o
-     none dele; sem isto a pinça sobre o véu ampliava a página. */
-  touch-action: pan-x pan-y;
-
-  & input,
-  & textarea,
-  & select {
-    user-select: text;
-    -webkit-user-select: text;
-  }
-`;
-
-const TopBarZone = styled.header`
-  min-height: 44px;
-  border-bottom: 1px solid ${colors.surfaceInput};
-`;
-
-const Middle = styled.div`
-  position: relative;
-  display: grid;
-  min-height: 0;
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: minmax(0, 1fr) auto ${RAIL_BAR_HEIGHT}px;
-  grid-template-areas:
-    "stage"
-    "panel"
-    "rail";
-
-  ${media.railUp} {
-    grid-template-columns: 72px auto minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr);
-    grid-template-areas: "rail panel stage";
-  }
-  ${media.asideUp} {
-    grid-template-columns: 72px auto minmax(0, 1fr) auto;
-    grid-template-areas: "rail panel stage aside";
-  }
-`;
-
-/* O mapa ocupa o palco inteiro; tudo o mais flutua sobre ele (posição absoluta). */
-const StageZone = styled.main`
-  grid-area: stage;
-  position: relative;
-  min-width: 0;
-  min-height: 0;
-  overflow: hidden;
-`;
-
-/* Rodapé deitado abaixo de railUp; coluna em pé a partir dele. Um componente, duas formas. */
-const RailZone = styled.nav`
-  grid-area: rail;
-  display: flex;
-  flex-direction: row;
-  justify-content: space-around;
-  background: ${colors.surfaceSidebar};
-  border-top: 1px solid ${colors.surfaceInput};
-
-  ${media.railUp} {
-    flex-direction: column;
-    justify-content: flex-start;
-    border-top: none;
-    border-right: 1px solid ${colors.surfaceInput};
-  }
-`;
-
-const PanelZone = styled.section<{ $open: boolean; $wide?: boolean }>`
-  grid-area: panel;
-  display: ${({ $open }) => ($open ? "block" : "none")};
-  max-height: 46dvh;
-  overflow-y: auto;
-  /* Coluna lateral nunca rola na horizontal; o conteúdo é que cabe. */
-  overflow-x: hidden;
-  overscroll-behavior: contain;
-  background: ${colors.surfaceSidebar};
-  border-top: 1px solid ${colors.surfaceInput};
-
-  ${media.tabletUp} {
-    max-height: 42dvh;
-  }
-  ${media.railUp} {
-    width: ${({ $wide }) => ($wide ? "clamp(340px, 46vw, 640px)" : "340px")};
-    max-height: none;
-    border-top: none;
-    border-right: 1px solid ${colors.surfaceInput};
-  }
-`;
-
-/* Gaveta sobre o mapa abaixo de asideUp; coluna a partir dele. */
-const AsideZone = styled.aside<{ $open: boolean }>`
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: ${RAIL_BAR_HEIGHT}px;
-  width: min(86%, 360px);
-  z-index: ${ASIDE_DRAWER_Z_INDEX};
-  display: ${({ $open }) => ($open ? "block" : "none")};
-  overflow-y: auto;
-  /* Coluna lateral nunca rola na horizontal; o conteúdo é que cabe. */
-  overflow-x: hidden;
-  background: ${colors.surfaceSidebar};
-  border-left: 1px solid ${colors.surfaceInput};
-  box-shadow: -8px 0 24px ${colors.shadowStrong};
-
-  ${media.railUp} {
-    bottom: 0;
-  }
-  ${media.asideUp} {
-    position: static;
-    grid-area: aside;
-    width: 320px;
-    box-shadow: none;
-  }
-`;
-
-/* Véu sobre o palco inteiro: só existe como modal abaixo de railUp (a partir dali o painel é coluna). */
-const PanelScrim = styled.div`
-  position: absolute;
-  inset: 0;
-  z-index: ${SCRIM_Z_INDEX};
-  background: ${colors.overlayScrim};
-
-  ${media.railUp} {
-    display: none;
-  }
-`;
-
-/* Véu sobre o resto da partida (filho do Middle), por baixo da gaveta; some quando ela vira coluna. */
-const AsideScrim = styled.div`
-  position: absolute;
-  inset: 0;
-  z-index: ${SCRIM_Z_INDEX};
-  background: ${colors.overlayScrim};
-
-  ${media.asideUp} {
-    display: none;
-  }
-`;

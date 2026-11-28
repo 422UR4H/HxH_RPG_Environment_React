@@ -66,7 +66,7 @@ export default function PiecesLayer({
   highlightHoverSlot?: boolean;
   onPieceMove?: (pieceId: string, slot: SlotCoord) => void;
   onPieceDragToRoster?: (pieceId: string) => void;
-  onPieceDragStart?: (pieceId: string, npc: CharacterPrivateSummary | undefined) => void;
+  onPieceDragStart?: (pieceId: string, npc: CharacterPrivateSummary | undefined, point: { x: number; y: number }) => void;
   onPieceDragEnd?: () => void;
   onStageDeselect?: () => void;
   onEmptySlotClick?: (slot: SlotCoord, clientX: number, clientY: number) => void;
@@ -166,7 +166,7 @@ export default function PiecesLayer({
         setDraggingPieceId(drag.pieceId);
         const pieceData = map.pieces.find((p) => p.id === drag.pieceId);
         const npc = pieceData ? npcMapRef.current?.get(pieceData.characterId) : undefined;
-        onPieceDragStart?.(drag.pieceId, npc);
+        onPieceDragStart?.(drag.pieceId, npc, { x: e.clientX, y: e.clientY });
       }
       if (!drag.isDragging) return;
       const vp = vpRef.current;

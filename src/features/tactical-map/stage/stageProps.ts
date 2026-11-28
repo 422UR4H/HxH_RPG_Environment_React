@@ -59,7 +59,7 @@ export type TacticalMapStageProps = {
   // reenquadram.
   refitOnGridChange?: boolean;
   onPieceDragToRoster?: (pieceId: string) => void;
-  onPieceDragStart?: (pieceId: string, npc: CharacterPrivateSummary | undefined) => void;
+  onPieceDragStart?: (pieceId: string, npc: CharacterPrivateSummary | undefined, point: { x: number; y: number }) => void;
   onPieceDragEnd?: () => void;
   onNpcPlaced?: (slot: SlotCoord) => void;
   onNpcPlacementCancel?: () => void;

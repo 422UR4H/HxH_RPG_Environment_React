@@ -74,7 +74,7 @@ export default function DetailPageTemplate({
             open={isLeftOpen}
             onOpen={openLeft}
             onClose={closeLeft}
-            width={300}
+            width={280}
           >
             {leftSidebar}
           </EdgeDrawer>

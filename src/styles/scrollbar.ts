@@ -99,6 +99,17 @@ export const scopedScrollbar = (p: ScrollbarPalette) => css`
 `;
 
 /**
+ * Para um scroller com canto arredondado no topo: o trilho começa `topPx` abaixo da borda de cima,
+ * para a barra não entrar no canto (nem ficar por trás de um X que vaza do canto). Use dentro do
+ * próprio elemento rolável, junto com `scopedScrollbar` ou sozinho.
+ */
+export const scrollbarTrackInset = (topPx: number) => css`
+  &::-webkit-scrollbar-track {
+    margin-top: ${topPx}px;
+  }
+`;
+
+/**
  * Para páginas cuja rolagem é a da janela: a barra do viewport pertence ao `html` e ao `#root`
  * (o scroller real), que um container não alcança; `html #root` vence o `#root` do `globalScrollbar`. Use dentro de `createGlobalStyle`, montado só enquanto a página existe;
  * o seletor `html` vence o `*` do `globalScrollbar` (e `html *` o `*` interno dele); no fallback do Firefox, `html:root` empata

@@ -10,6 +10,7 @@ import { mapApiFixture } from "../../test/fixtures/map";
 import GamePlayerPage from "../GamePlayerPage";
 import { useLocation } from "react-router-dom";
 import { installFakeWebSocket, waitForSocket } from "../../test/fakeWebSocket";
+import { mockScreen } from "../../test/mockScreen";
 import type { FakeWS } from "../../test/fakeWebSocket";
 
 const baseUrl = "http://localhost:5000";
@@ -144,6 +145,17 @@ const storedDraft = () => {
 const lastSent = (ws: { send: { mock: { calls: unknown[][] } } }) =>
   ws.send.mock.calls[ws.send.mock.calls.length - 1]?.[0];
 
+// Tamanhos de tela: o jsdom é um celular em pé; os outros são simulados por matchMedia
+// (`mockScreen`, com a orientação tirada das medidas).
+const originalMatchMedia = window.matchMedia;
+
+/** Um item da navegação, não o botão de mesmo nome da aba do Histórico. */
+function railButton(name: string | RegExp) {
+  const found = screen.getAllByRole("button", { name }).find((b) => !b.closest('[data-testid="match-aside"]'));
+  if (!found) throw new Error(`rail button ${String(name)} not found`);
+  return found;
+}
+
 function renderPlayerPage() {
   return renderWithProviders(<GamePlayerPage token="fake-jwt-token" matchId="match-1" />);
 }
@@ -172,6 +184,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  window.matchMedia = originalMatchMedia;
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
 });
@@ -1002,6 +1015,143 @@ describe("GamePlayerPage", () => {
 
     await user.click(screen.getByRole("button", { name: /Ficha/ }));
     expect(await screen.findByTestId("match-sheet")).toBeInTheDocument();
+  });
+
+  describe("the player's own sheet by screen size", () => {
+    const zone = () => screen.getByTestId("match-sheet-zone");
+    const panel = () => screen.getByTestId("match-panel");
+    async function openBoard() {
+      renderPlayerPage();
+      const ws = await waitForSocket();
+      act(() => ws.onopen?.());
+      act(() =>
+        ws.emit("map_full_state", {
+          grid: mapApiFixture.grid, bg: null,
+          pieces: [{ pieceId: "piece-c1", slot: { kind: "square", col: 1, row: 1 }, characterId: "c1", visible: true, z: 0 }],
+          walls: [],
+          visiblePolygons: [],
+          fogMode: "explored",
+        }),
+      );
+      await screen.findByTestId("map-stub");
+      return ws;
+    }
+
+    it("opens the player's own sheet as a bottom sheet on a portrait phone", async () => {
+      await openBoard();
+      await user.click(railButton("Ficha"));
+      expect(zone()).toHaveAttribute("data-open", "true");
+      expect(within(zone()).getByTestId("match-sheet")).toBeInTheDocument();
+      expect(panel()).toHaveAttribute("data-open", "false");
+      expect(railButton("Ficha")).toHaveAttribute("aria-pressed", "true");
+    });
+
+    it("closes the Ação panel when the bottom sheet opens and the sheet when Ação opens", async () => {
+      await openBoard();
+      await user.click(railButton("Ação"));
+      expect(panel()).toHaveAttribute("data-open", "true");
+      await user.click(railButton("Ficha"));
+      expect(panel()).toHaveAttribute("data-open", "false");
+      await user.click(railButton("Ação"));
+      expect(zone()).toHaveAttribute("data-open", "false");
+      expect(panel()).toHaveAttribute("data-open", "true");
+    });
+
+    it("on a portrait phone, opening the Histórico drawer closes the sheet and vice versa", async () => {
+      await openBoard();
+      const headerHistory = () => screen.getByRole("button", { name: /(Ver|Ocultar) histórico/ });
+      await user.click(railButton("Ficha"));
+      expect(zone()).toHaveAttribute("data-open", "true");
+
+      await user.click(headerHistory());
+      expect(screen.getByTestId("match-aside")).toHaveAttribute("data-open", "true");
+      expect(zone()).toHaveAttribute("data-open", "false");
+
+      await user.click(railButton("Ficha"));
+      expect(zone()).toHaveAttribute("data-open", "true");
+      expect(screen.getByTestId("match-aside")).toHaveAttribute("data-open", "false");
+    });
+
+        it("closes the bottom sheet from the close button, the map and the Ficha item", async () => {
+      await openBoard();
+      await user.click(railButton("Ficha"));
+      await user.click(screen.getByRole("button", { name: "Fechar a ficha" }));
+      expect(zone()).toHaveAttribute("data-open", "false");
+
+      await user.click(railButton("Ficha"));
+      await user.click(screen.getByTestId("sheet-scrim"));
+      expect(zone()).toHaveAttribute("data-open", "false");
+      expect(storedDraft()).toBeNull();
+
+      await user.click(railButton("Ficha"));
+      act(() => screen.getByTestId("select-actor-c1").click());
+      expect(zone()).toHaveAttribute("data-open", "false");
+      expect(screen.getByTestId("map-stub").getAttribute("data-target-piece-ids")).not.toContain("piece-c1");
+
+      await user.click(railButton("Ficha"));
+      await user.click(railButton("Ficha"));
+      expect(zone()).toHaveAttribute("data-open", "false");
+    });
+
+    it("keeps the Ação panel independent from the sheet on widescreen", async () => {
+      mockScreen({ width: 1920, height: 1080 });
+      await openBoard();
+      expect(panel()).toHaveAttribute("data-open", "true");
+      await user.click(railButton("Ficha"));
+      expect(zone()).toHaveAttribute("data-open", "true");
+      expect(panel()).toHaveAttribute("data-open", "true");
+      expect(within(panel()).queryByTestId("match-sheet")).not.toBeInTheDocument();
+      expect(railButton("Ação")).toHaveAttribute("aria-pressed", "true");
+      expect(railButton("Ficha")).toHaveAttribute("aria-pressed", "true");
+    });
+
+    it("uses the phone's sheet on a portrait tablet, beside an open Histórico column", async () => {
+      mockScreen({ width: 753, height: 1205 });
+      await openBoard();
+      const headerHistory = () => screen.getByRole("button", { name: /(Ver|Ocultar) histórico/ });
+      await user.click(headerHistory());
+      await user.click(railButton("Ficha"));
+      expect(zone()).toHaveAttribute("data-open", "true");
+      expect(panel()).toHaveAttribute("data-open", "false");
+      // No tablet em pé o Histórico é coluna: a ficha não o fecha.
+      expect(screen.getByTestId("match-aside")).toHaveAttribute("data-open", "true");
+    });
+
+    it("opens the Histórico expanded on a narrow landscape screen and the width button docks it", async () => {
+      mockScreen({ width: 907, height: 427 });
+      await openBoard();
+      await user.click(screen.getByRole("button", { name: /(Ver|Ocultar) histórico/ }));
+      expect(screen.getByTestId("match-aside")).toHaveAttribute("data-aside-mode", "expanded");
+      expect(screen.getByTestId("aside-expand-scrim")).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: "Reduzir o Histórico" }));
+      expect(screen.getByTestId("match-aside")).toHaveAttribute("data-aside-mode", "docked");
+      expect(screen.queryByTestId("aside-expand-scrim")).toBeNull();
+    });
+
+    it("keeps the sheet in the panel on a regular desktop", async () => {
+      mockScreen({ width: 1400, height: 900 });
+      await openBoard();
+      await user.click(railButton("Ficha"));
+      expect(screen.getAllByTestId("match-sheet")).toHaveLength(1);
+      expect(within(panel()).getByTestId("match-sheet")).toBeInTheDocument();
+      expect(panel()).toHaveAttribute("data-open", "true");
+      expect(screen.queryByTestId("match-sheet-zone")).not.toBeInTheDocument();
+    });
+
+    it("keeps the sheet open when the screen changes size", async () => {
+      const screenMock = mockScreen({ width: 390, height: 800 });
+      await openBoard();
+      await user.click(railButton("Ficha"));
+      screenMock.resize({ width: 1400, height: 900 });
+      expect(screen.queryByTestId("match-sheet-zone")).not.toBeInTheDocument();
+      expect(panel()).toHaveAttribute("data-open", "true");
+      expect(within(panel()).getByTestId("match-sheet")).toBeInTheDocument();
+
+      screenMock.resize({ width: 390, height: 800 });
+      expect(zone()).toHaveAttribute("data-open", "true");
+      expect(within(zone()).getByTestId("match-sheet")).toBeInTheDocument();
+      expect(panel()).toHaveAttribute("data-open", "false");
+    });
   });
 
   it("F3: a ficha mostra o HP ao vivo", async () => {

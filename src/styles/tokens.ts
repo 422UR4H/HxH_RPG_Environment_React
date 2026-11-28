@@ -34,6 +34,7 @@ export const palette = {
   brown700: "#493823",
   brown850: "#382a1a",
   brown900: "#2d2215",
+  brown950: "#1f180f", // o passo abaixo do 900 (luz 9%): faixas e fundos rebaixados
 
   // verdes: 4 variações (escuro do cabeçalho, base, intermediário, saturado)
   green900: "#08491f", // cabeçalho; reservado a outros usos escuros
@@ -72,6 +73,9 @@ export const colors = {
 
   // surface — opacas
   surfaceSidebar: palette.brown900, // fundo da sidebar de personagens/regras
+  surfaceSidebarGutter: palette.brown950, // as laterais de 8 px da lista de personagens, mais escuras que o miolo
+  surfaceTabStrip: palette.brown850, // faixa das abas Histórico/Personagens da coluna da mesa (pedido do dono: Marrom 850)
+  surfaceRecessed: palette.brown950, // fundo rebaixado de painel da mesa (a fila do mestre)
   surfaceInput: palette.brown700, // fundo de campo de formulário e de seção de regra
   surfaceInputHover: palette.brown850, // hover de linha e de item na mesa (fila, eventos, compositor)
   surfaceTabPanel: palette.brown700, // painel das abas de pasta e a aba ativa, que se funde a ele

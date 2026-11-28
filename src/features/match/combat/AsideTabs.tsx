@@ -60,6 +60,7 @@ const Wrapper = styled.div`
 const TabList = styled.div`
   display: flex;
   flex-shrink: 0;
+  background: ${colors.surfaceTabStrip};
 `;
 
 const TabButton = styled.button`

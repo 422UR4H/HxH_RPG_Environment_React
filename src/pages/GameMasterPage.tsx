@@ -13,16 +13,19 @@ import { defaultMoveCategory } from "../features/match/combat/defaultMoveCategor
 import { useReactionControls } from "../features/match/combat/useReactionControls";
 import { usePiecePerspective } from "../features/match/combat/usePiecePerspective";
 import { boardThroughPiece } from "../features/match/combat/piecePerspective";
-import { masterPanelDismissible, useStageOverlays } from "../features/match/combat/useStageOverlays";
+import { useStageOverlays } from "../features/match/combat/useStageOverlays";
+import { queueIsSplit, useMatchLayout } from "../features/match/combat/useMatchLayout";
 import MatchStageTemplate from "../components/templates/MatchStageTemplate";
+import { MASTER_COLUMN_WIDTH } from "../components/templates/MatchStageTemplate.styles";
 import MatchTopBar from "../features/match/combat/MatchTopBar";
 import {
-  AddNpcPicker, ArrangePanel, EndMatchButton, NpcPicker, PanelSection, RegencyControls, RoundModeSwitch, WallMasterPanel,
+  AddNpcPicker, ArrangePanel, HeaderRound, NpcPicker, QueueHeader, RoundModeSwitch, TurnControls, WallMasterPanel,
 } from "../features/match/combat/MasterControls";
 import type { WsError } from "../features/match/combat/combatErrorMessages";
 import { actorWallVerbs } from "../features/match/combat/wallVerbs";
 import { PanelTitle } from "../features/match/combat/panelStyles";
 import RailNav from "../features/match/combat/RailNav";
+import type { RailNavItem } from "../features/match/combat/RailNav";
 import AsideTabs from "../features/match/combat/AsideTabs";
 import GeneralBar from "../features/match/combat/GeneralBar";
 import ClockPanel from "../features/match/clock/ClockPanel";
@@ -51,7 +54,8 @@ import type { Participant } from "../types/match";
 import type { ArrangePending } from "../features/match/combat/ArrangeConfirmDialog";
 import MapPickConfirm from "../features/match/combat/MapPickConfirm";
 import type { MasterActionPayload } from "../features/match/combat/combatMessages";
-import { SmallButton } from "../features/match/combat/MatchTopBar";
+import { sceneTitle } from "../features/match/combat/sceneLabels";
+import MatchTabPanel from "../features/match/combat/MatchTabPanel";
 import MatchErrorBanner from "../features/match/combat/MatchErrorBanner";
 import LostDeclaredNotice from "../features/match/combat/LostDeclaredNotice";
 import MatchSheetPanel from "../features/match/combat/MatchSheetPanel";
@@ -81,7 +85,9 @@ type Props = {
   matchId?: string;
 };
 
-type RailTab = "fila" | "agir" | "ficha";
+// As seções do painel do mestre. A "Ficha" não é uma delas: ela é a folha/caixa, fora do painel.
+// Com a fila fixa (`queueIsSplit`) a "fila" e "personagens" saem da navegação.
+type MasterSection = "fila" | "agir" | "personagens" | "partida";
 
 // No jogo nenhuma peça é arrastável: quem decide onde a peça para é o servidor. A exceção é
 // o modo Arrumar, e mesmo lá soltar só pede confirmação — a peça anda com o `piece_moved`.
@@ -111,6 +117,9 @@ function arrangePayload(p: ArrangePending): MasterActionPayload {
     ? { targetIds: [p.characterId], remove: {} }
     : { targetIds: [p.characterId], move: { position: p.to } };
 }
+
+// Estado de um arraste com fantasma: quem, o diâmetro na tela e onde o ponteiro estava.
+type GhostDrag = { id: string; avatarUrl?: string | null; size: number; x: number; y: number };
 
 export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
@@ -169,13 +178,27 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   });
   const { onSlotForPick, cancelPick } = controls;
 
-  const [railActive, setRailActive] = useState<RailTab>("fila");
+  const layout = useMatchLayout({ columnWidth: MASTER_COLUMN_WIDTH, queue: true });
+  const split = queueIsSplit(layout);
+  const [section, setSection] = useState<MasterSection>("fila");
+  // Com a fila fixa só Agir e Partida moram no painel; qualquer outra seção cai em Agir.
+  const shownSection: MasterSection = split ? (section === "partida" ? "partida" : "agir") : section;
+  // A ficha: a folha (empilhado), no lugar da coluna ou a caixa sobre o mapa. Do mestre é a do último personagem
+  // que ele tocou, escolheu ou abriu pelo card; sem nenhum, "Ficha" espera uma peça.
+  const [sheetWaiting, setSheetWaiting] = useState(false);
+  const [lastCharacterId, setLastCharacterId] = useState<string | undefined>(undefined);
   // Cancelar uma ação declarada: o pedido espera a confirmação; se a linha deixa de estar
   // "na fila" com o diálogo aberto (abriu no meio-tempo), o diálogo fecha sozinho.
   const [cancelling, setCancelling] = useState<DeclaredAction | null>(null);
   const cancelPending =
     cancelling && state.declared.some((d) => d.id === cancelling.id && d.status === "queued") ? cancelling : null;
-  const { panelOpen, setPanelOpen, asideOpen, setAsideOpen, closeAsideIfDrawer } = useStageOverlays();
+  const {
+    asideOpen, asideMode, setAsideOpen, toggleAsideWidth, dismissExpandedAside, sheetOpen, setSheetOpen, closeAsideIfDrawer,
+  } = useStageOverlays({
+    columnWidth: MASTER_COLUMN_WIDTH,
+    queue: true,
+    panelFixed: true,
+  });
   // As paredes que o mestre tocou SEM NPC escolhido: o card "Ação do Mestre" no Agir. Tocar
   // troca a seleção; segurar junta (o terremoto). Guarda ids — o card lê as paredes ao vivo.
   const [masterWallIds, setMasterWallIds] = useState<string[]>([]);
@@ -214,27 +237,29 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   // ─── Arrumar (F12) ─────────────────────────────────────────────────────────
   const [boardMode, setBoardMode] = useState<BoardMode>("play");
   const arranging = boardMode === "arrange";
-  const sheetVisible = panelOpen && !arranging && railActive === "ficha";
   const [arrangePending, setArrangePending] = useState<ArrangePending | null>(null);
   const [arrangePieceId, setArrangePieceId] = useState<string | undefined>(undefined);
   const [placingId, setPlacingId] = useState<string | undefined>(undefined);
   // Arrastar o card de quem está fora do mapa até o tabuleiro (vale em qualquer modo, e sempre
   // confirma pelo mesmo diálogo do Arrumar). `x`/`y`: onde o ponteiro estava; `size`: o diâmetro do ghost.
-  const [cardDrag, setCardDrag] = useState<{
-    id: string;
-    avatarUrl?: string | null;
-    size: number;
-    x: number;
-    y: number;
-  } | null>(null);
+  const [cardDrag, setCardDrag] = useState<GhostDrag | null>(null);
   const clearCardDrag = useCallback(() => setCardDrag(null), []);
-  // Estáveis: o PiecesLayer reassina os ouvintes a cada troca delas.
-  const handlePieceDragStart = useCallback((pieceId: string) => setDraggingPieceId(pieceId), []);
-  const handlePieceDragEnd = useCallback(() => setDraggingPieceId(null), []);
   const cardGhostRef = usePointerGhost(cardDrag);
   // Arrumar: uma peça está sendo arrastada para fora do mapa (acende a lista de Personagens).
   const [draggingPieceId, setDraggingPieceId] = useState<string | null>(null);
-  const charactersListRef = useRef<HTMLDivElement | null>(null);
+  // O fantasma da peça arrastada no Arrumar: o PiecesLayer a esconde da cena e conta conosco para desenhá-la.
+  const [pieceDrag, setPieceDrag] = useState<GhostDrag | null>(null);
+  const pieceGhostRef = usePointerGhost(pieceDrag);
+  // Os dois handlers do arraste de peça são estáveis: o PiecesLayer reassina os ouvintes a cada
+  // troca de identidade deles, e um estado ao vivo mudando no meio do arraste não pode fazer isso.
+  const handlePieceDragEnd = useCallback(() => {
+    setDraggingPieceId(null);
+    setPieceDrag(null);
+  }, []);
+  // Um ref por posição: a lista pode estar montada no Histórico e na seção Personagens ao mesmo
+  // tempo, e um ref só seria zerado quando qualquer uma das duas desmontasse.
+  const asideListRef = useRef<HTMLDivElement | null>(null);
+  const panelListRef = useRef<HTMLDivElement | null>(null);
 
   // ─── Onde cai a fuga que falhou (F14) ──────────────────────────────────────
   const fallPicking = boardMode === "fallPick";
@@ -250,6 +275,9 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     setPlacingId(undefined);
     setChoosingFall(null);
     setFallPending(null);
+    // Um arraste de peça em curso morre com o modo: o fantasma não pode sobrar na tela.
+    setDraggingPieceId(null);
+    setPieceDrag(null);
   }, []);
   // Sair de um modo é sair de todos: dois nunca estão ligados juntos.
   const exitBoardMode = useCallback(() => {
@@ -266,8 +294,10 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     setActorId(undefined);
     setInspectedId(undefined);
     setBoardMode("arrange");
-    setPanelOpen(true);
-  }, [arranging, exitBoardMode, setPanelOpen]);
+    // O Arrumar ocupa o mapa e o painel: a ficha e a espera por uma peça ficam para depois.
+    setSheetOpen(false);
+    setSheetWaiting(false);
+  }, [arranging, exitBoardMode, setSheetOpen]);
   const chooseFallSlot = useCallback(
     (targetId: string) => {
       exitBoardMode();
@@ -297,6 +327,9 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   } else if (!reactionPick && reactionPicking) {
     setBoardMode("play");
   }
+  // Esperando uma peça para a ficha: entrar na escolha da casa (queda ou fuga) desiste da espera,
+  // senão a dica some e "Ficha" fica marcada sem nada acontecendo.
+  if ((fallPicking || reactionPicking) && sheetWaiting) setSheetWaiting(false);
   const reactionPiece = reactionPick ? game.pieceByCharacter.get(reactionPick.actorId) : undefined;
   // O toque envia: sem preview nem confirmação (decisão 6). O modo cai quando o `pick` some.
   const handleReactionSlot = useCallback((slot: SlotCoord) => { onSlotForPick(slot); }, [onSlotForPick]);
@@ -343,7 +376,8 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   useEffect(() => {
     if (!arranging || !pieceDragging) return;
     const onUp = (e: PointerEvent) => {
-      releaseOnListRef.current = releasedInside(charactersListRef.current, e);
+      releaseOnListRef.current =
+        releasedInside(asideListRef.current, e) || releasedInside(panelListRef.current, e);
     };
     window.addEventListener("pointerup", onUp, { capture: true });
     return () => {
@@ -362,23 +396,41 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     setFallPending(null);
   }
 
+  const toggleSheet = useCallback(() => {
+    if (sheetOpen) {
+      setSheetOpen(false);
+    } else if (sheetWaiting) {
+      setSheetWaiting(false);
+    } else if (lastCharacterId && participants.some((p) => p.characterSheet.uuid === lastCharacterId)) {
+      // O último personagem pode ter saído da partida: sem ele, "Ficha" espera uma peça.
+      setSheetId(lastCharacterId);
+      setSheetOpen(true);
+    } else {
+      setSheetWaiting(true);
+    }
+  }, [sheetOpen, sheetWaiting, lastCharacterId, participants, setSheetOpen]);
+
+  // No celular em pé abrir a gaveta cobre o mapa: abrir o Histórico também desiste da espera da ficha.
+  const toggleAside = useCallback(() => {
+    if (!asideOpen && layout.asideIsDrawer) setSheetWaiting(false);
+    setAsideOpen((o) => !o);
+  }, [asideOpen, layout.asideIsDrawer, setAsideOpen]);
+
   const handleRailSelect = useCallback(
     (id: string) => {
-      // O Arrumar ocupa o painel: escolher outra aba sai dele.
-      if (arranging) {
-        exitBoardMode();
-        setRailActive(id as RailTab);
-        setPanelOpen(true);
+      // O Arrumar ocupa o painel: escolher outro item sai dele.
+      if (arranging) exitBoardMode();
+      if (id === "ficha") {
+        toggleSheet();
         return;
       }
-      if (id === railActive) {
-        setPanelOpen((o) => !o);
-        return;
-      }
-      setRailActive(id as RailTab);
-      setPanelOpen(true);
+      setSheetWaiting(false);
+      // Empilhado (celular ou tablet em pé), a folha cobre o painel; com colunas abaixo de 1280 px
+      // e no celular deitado, a ficha ocupa o lugar da seção. Escolher outra seção fecha a ficha, senão nada mudaria na tela.
+      if (layout.stacked || layout.sheetReplacesColumn) setSheetOpen(false);
+      setSection(id as MasterSection);
     },
-    [railActive, arranging, exitBoardMode, setPanelOpen],
+    [arranging, exitBoardMode, toggleSheet, layout.stacked, layout.sheetReplacesColumn, setSheetOpen],
   );
 
   const chooseActor = useCallback((id: string | undefined) => {
@@ -386,16 +438,16 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     setInspectedId(undefined);
     setMasterWallIds([]);
     if (id) {
+      setLastCharacterId(id);
       // Escolher um ator (pela lista do Agir) é voltar a jogar: sai da escolha de onde cai e
       // da casa da fuga (esta volta a "play" sozinha quando o `pick` some).
       setBoardMode((m) => (m === "fallPick" ? "play" : m));
       setChoosingFall(null);
       setFallPending(null);
       cancelPick();
-      setRailActive("agir");
-      setPanelOpen(true);
+      setSection("agir");
     }
-  }, [cancelPick, setPanelOpen]);
+  }, [cancelPick]);
 
   const pieceCharacter = useCallback(
     (pieceId: string) => game.boardPieces.find((p) => p.id === pieceId)?.characterId,
@@ -409,10 +461,17 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     (pieceId: string) => {
       const charId = pieceCharacter(pieceId);
       if (!charId) return;
-      // Ficha visível: o toque na peça é para ler a ficha, não para agir (o compositor está escondido).
-      if (sheetVisible) {
+      setLastCharacterId(charId);
+      // Ficha aberta: todo toque no mapa só a fecha (na prática o véu já pega o toque).
+      if (sheetOpen) {
+        setSheetOpen(false);
+        return;
+      }
+      // Esperando uma peça: este toque abre a ficha dela, e só isso.
+      if (sheetWaiting) {
         setSheetId(charId);
-        setInspectedId(charId);
+        setSheetOpen(true);
+        setSheetWaiting(false);
         return;
       }
       if (actorId) {
@@ -425,43 +484,66 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
       }
       setInspectedId(charId);
     },
-    [pieceCharacter, sheetVisible, actorId, composer, npcIds, chooseActor],
+    [pieceCharacter, sheetOpen, sheetWaiting, actorId, composer, npcIds, chooseActor, setSheetOpen],
   );
   const handlePieceHold = useCallback(
     (pieceId: string) => {
       const charId = pieceCharacter(pieceId);
+      if (sheetWaiting) {
+        setSheetWaiting(false);
+        return;
+      }
       if (charId && actorId) composer.onCharacterHold(charId);
     },
-    [pieceCharacter, actorId, composer],
+    [pieceCharacter, actorId, composer, sheetWaiting],
   );
   const handleSlotTap = useCallback(
     (slot: SlotCoord) => {
+      // Esperando uma peça, tocar fora de uma peça desiste.
+      if (sheetWaiting) {
+        setSheetWaiting(false);
+        return;
+      }
       if (actorId) composer.onSlotTap(slot);
     },
-    [actorId, composer],
+    [actorId, composer, sheetWaiting],
   );
   // Com NPC, o mestre age só pelo NPC: a parede é alvo do compositor, como para o jogador. Sem NPC,
   // é a mão do mestre: o card "Ação do Mestre" no Agir (nada de modal). Os dois nunca juntos.
   const handleWallTap = useCallback(
     (wall: WallSegment) => {
+      if (sheetOpen) {
+        setSheetOpen(false);
+        return;
+      }
+      if (sheetWaiting) {
+        setSheetWaiting(false);
+        return;
+      }
       if (actorId) composer.onWallTap(wall);
       else setMasterWallIds([wall.id]);
-      setRailActive("agir");
-      setPanelOpen(true);
+      setSection("agir");
     },
-    [actorId, composer, setPanelOpen],
+    [actorId, composer, sheetOpen, sheetWaiting, setSheetOpen],
   );
   const handleWallHold = useCallback(
     (wall: WallSegment) => {
+      if (sheetOpen) {
+        setSheetOpen(false);
+        return;
+      }
+      if (sheetWaiting) {
+        setSheetWaiting(false);
+        return;
+      }
       if (actorId) {
         composer.onWallHold(wall);
         return;
       }
       setMasterWallIds((ids) => (ids.includes(wall.id) ? ids.filter((id) => id !== wall.id) : [...ids, wall.id]));
-      setRailActive("agir");
-      setPanelOpen(true);
+      setSection("agir");
     },
-    [actorId, composer, setPanelOpen],
+    [actorId, composer, sheetOpen, sheetWaiting, setSheetOpen],
   );
   // Com NPC: o que o NPC faz com ela. Sem NPC: toda parede — o mestre lê a vida até da destruída.
   const isWallTappable = useCallback(
@@ -586,20 +668,42 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     },
     [placingId, game.boardPieces],
   );
-  const handleCardDragStart = useCallback(
-    (participant: Participant, point: { x: number; y: number }) => {
+  // Fantasma de arraste (card ou peça): o diâmetro da peça na tela, como o ghost do lobby;
+  // não encolhe abaixo do que se agarra. Um só lugar para a fórmula.
+  const buildGhostDrag = useCallback(
+    (characterId: string, point: { x: number; y: number }): GhostDrag => {
       const scale = game.viewport.getSnapshot()?.scale ?? 1;
-      setCardDrag({
-        id: participant.characterSheet.uuid,
-        avatarUrl: participant.characterSheet.avatarUrl,
-        // O diâmetro da peça na tela, como o ghost do lobby; não encolhe abaixo do que se agarra.
+      const sheet = participants.find((p) => p.characterSheet.uuid === characterId)?.characterSheet;
+      return {
+        id: characterId,
+        avatarUrl: sheet?.avatarUrl,
         size: map ? Math.max(44, slotScreenInradius(map.grid) * 2 * 0.9 * scale) : 44,
         x: point.x,
         y: point.y,
-      });
+      };
+    },
+    [game.viewport, map, participants],
+  );
+  const handleCardDragStart = useCallback(
+    (participant: Participant, point: { x: number; y: number }) => {
+      setCardDrag(buildGhostDrag(participant.characterSheet.uuid, point));
       closeAsideIfDrawer();
     },
-    [game.viewport, map, closeAsideIfDrawer],
+    [buildGhostDrag, closeAsideIfDrawer],
+  );
+  // O que o início do arraste lê do estado ao vivo fica num ref, para o handler não mudar de identidade.
+  const pieceGhostSourceRef = useRef({ boardPieces: game.boardPieces, buildGhostDrag });
+  useEffect(() => {
+    pieceGhostSourceRef.current = { boardPieces: game.boardPieces, buildGhostDrag };
+  }, [game.boardPieces, buildGhostDrag]);
+  const handlePieceDragStart = useCallback(
+    (pieceId: string, _npc: unknown, point: { x: number; y: number }) => {
+      setDraggingPieceId(pieceId);
+      const { boardPieces, buildGhostDrag: build } = pieceGhostSourceRef.current;
+      const characterId = boardPieces.find((p) => p.id === pieceId)?.characterId;
+      if (characterId) setPieceDrag(build(characterId, point));
+    },
+    [],
   );
   const handleCardPlaced = useCallback(
     (slot: SlotCoord) => {
@@ -711,34 +815,205 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   // à Fila. Fica abaixo das dicas dos modos (casa da fuga, onde cai, Arrumar) — o toque, ali,
   // é do modo, e sair dele devolve a dica.
   const reactionWaiting = controls.targets.some((t) => t.status === "available");
-  const reactionSectionShown = panelOpen && !arranging && railActive === "fila";
+  // Com a fila fixa ela está sempre na tela; sem ela, só na seção Fila.
+  const reactionSectionShown = split || (!arranging && section === "fila");
   const showReactionHint = !!map && reactionWaiting && !reactionSectionShown;
   const showReactionSection = useCallback(() => {
-    setRailActive("fila");
-    setPanelOpen(true);
-  }, [setPanelOpen]);
+    if (!split) setSection("fila");
+  }, [split]);
   // O onde cai tem a barra dele (MapPickConfirm); a casa da fuga, só a dica — o toque já envia.
   const mapHint = pickMapHint();
   function pickMapHint(): string | undefined {
     if (!map || (fallPicking && choosingFall)) return undefined;
     if (reactionPicking && reactionPick) return `${verb} na casa para onde ${nameOf(reactionPick.actorId)} escapa.`;
     if (arranging) return placingId ? `${verb} num slot vazio para pôr ${nameOf(placingId)}.` : "Arraste uma peça para movê-la.";
+    if (sheetWaiting) return `${verb} numa peça para ver a ficha.`;
     if (showReactionHint) return undefined;
-    // Sem ficha escolhida o painel já diz o que fazer: a dica sob o mapa seria repetida.
-    if (sheetVisible) return sheetId ? `${verb} numa peça para ver a ficha.` : undefined;
     return actorId ? undefined : `${verb} num NPC para agir por ele.`;
   }
+
+  // A mesma lista no Histórico (aba Personagens) e na seção Personagens do painel, cada uma com o seu ref.
+  // Personagens no Histórico encaixado a 200: o seletor de NPC usa os textos curtos (a Task 3 usa).
+  const asideCompact = layout.asideNarrow && asideMode === "docked";
+  const renderCharactersSidebar = (listRef: typeof asideListRef, compact = false) => (
+    <MatchCharactersSidebar
+      fluid
+      footer={<AddNpcPicker candidates={npcCandidates} onAdd={(id) => combat.send.addNpc(id)} compact={compact} />}
+      gameStarted
+      enrollments={[]}
+      participants={participantsWithLiveHp}
+      offBoardIds={offBoardIds}
+      onCardDragStart={handleCardDragStart}
+      containerRef={listRef}
+      isDropTarget={arranging && draggingPieceId != null}
+      isMaster
+      actionLoading={{}}
+      onAccept={() => {}}
+      onReject={() => {}}
+      onSelectCharacterSheet={(sheetUuid) => {
+        // Abrir a ficha é largar o tabuleiro: o Arrumar não convive com ela.
+        exitBoardMode();
+        setSheetId(sheetUuid);
+        setLastCharacterId(sheetUuid);
+        setSheetWaiting(false);
+        setSheetOpen(true);
+        closeAsideIfDrawer();
+      }}
+    />
+  );
+
+  // A Fila: aba do painel, ou a zona própria quando há espaço (`split`). Nunca nos dois.
+  const queueContent = (
+    <>
+      <ReactionPanel
+        title="Reagir pelo NPC"
+        targets={controls.targets}
+        nameOf={nameOf}
+        onQuick={controls.quick}
+        onConfigure={controls.configure}
+        pick={controls.pick}
+        onCancelPick={cancelPick}
+      />
+      <QueueHeader
+        round={
+          <>
+            <PanelTitle>Round</PanelTitle>
+            <RoundModeSwitch mode={state.roundMode} onChange={combat.send.changeRoundMode} placement="panel" />
+          </>
+        }
+        turn={
+          <TurnControls
+            mode={state.roundMode}
+            onOpenNext={combat.send.openNextAction}
+            onCloseTurn={() => combat.send.closeTurn()}
+            canCloseTurn={canCloseTurn}
+            queueLength={state.queue.length}
+            orderLength={state.bars?.order.length ?? 0}
+            roundTurns={state.bars?.roundTurns}
+          />
+        }
+      />
+      <QueuePanel
+        queue={state.queue}
+        open={
+          state.openTurn
+            ? {
+                actorId: state.openTurn.actorId,
+                bars: state.openQueued?.bars,
+                action: state.openTurn.action ?? state.openQueued?.action,
+                resolution: state.openResolution,
+              }
+            : undefined
+        }
+        order={state.bars?.order}
+        mode={state.roundMode}
+        gridKind={gridKind}
+        nameOf={nameOf}
+        onPull={combat.send.pullAction}
+        onChooseFallSlot={chooseFallSlot}
+        onOpenReaction={combat.send.openReaction}
+        onEditAction={combat.send.editAction}
+        passiveValue={state.passiveValue}
+      />
+    </>
+  );
+
+  const agirContent = (
+    <>
+      <NpcPicker npcs={npcs} actorId={actorId} onChoose={chooseActor} />
+      <WallMasterPanel
+        walls={masterWalls}
+        onInteract={(kind, targetIds) => combat.send.masterAction({ targetIds, interact: { kind } })}
+        onDismiss={() => setMasterWallIds([])}
+      />
+      {actorId && (
+        <>
+          <OwnBars bars={state.bars} characterId={actorId} hp={actorHp} />
+          <ActionComposer
+            actorName={actorSheet?.nickName ?? nameOf(actorId)}
+            onClearActor={() => chooseActor(undefined)}
+            draft={composer.draft}
+            resolved={composer.resolved}
+            verdict={composer.verdict}
+            catalogue={catalogue}
+            gridKind={gridKind}
+            defaultCategory={defaultMoveCategory(state)}
+            nameOf={nameOf}
+            onDraftChange={composer.updateDraft}
+            onDeclare={game.declare}
+            canDeclare={game.canDeclare}
+            blockedReason={game.blockedReason}
+          />
+        </>
+      )}
+    </>
+  );
+
+  const panelContent = arranging ? (
+    <ArrangePanel
+      placeable={placeable}
+      placingId={placingId}
+      onChoosePlace={setPlacingId}
+      selectedName={arrangeSelected?.characterId ? nameOf(arrangeSelected.characterId) : undefined}
+      onRemove={() => {
+        if (arrangeSelected?.characterId) {
+          setArrangePending({ kind: "remove", characterId: arrangeSelected.characterId });
+        }
+      }}
+    />
+  ) : shownSection === "partida" ? (
+    <MatchTabPanel
+      sceneLabel={sceneTitle(state.scene)}
+      onNewScene={sceneFlow.openDialog}
+      canChangeScene={state.openTurn == null}
+      endMatchBlockedReason={endMatchBlocked}
+      onEndMatch={openEndMatch}
+    />
+  ) : shownSection === "personagens" ? (
+    renderCharactersSidebar(panelListRef)
+  ) : shownSection === "fila" ? (
+    queueContent
+  ) : (
+    agirContent
+  );
+
+  const railItems: RailNavItem[] = split
+    ? [
+        { id: "agir", label: "Agir", icon: "⚔" },
+        { id: "ficha", label: "Ficha", icon: "📜", pressed: sheetOpen || sheetWaiting },
+        { id: "partida", label: "Partida", icon: "🎲" },
+      ]
+    : [
+        { id: "fila", label: "Fila", icon: "☰", badge: state.queue.length },
+        { id: "ficha", label: "Ficha", icon: "📜", pressed: sheetOpen || sheetWaiting },
+        { id: "agir", label: "Agir", icon: "⚔" },
+        { id: "personagens", label: "Personagens", icon: "👥" },
+        { id: "partida", label: "Partida", icon: "🎲" },
+      ];
 
   return (
     <>
       <MatchStageTemplate
-        panelOpen={panelOpen}
-        asideOpen={asideOpen}
-        panelWide={!arranging && railActive === "ficha" && !!sheetId}
-        // Spec §4: véu só quando o painel não pede toque no mapa (regra em masterPanelDismissible).
-        panelDismissible={masterPanelDismissible({ railActive, mapPicking: arranging || fallPicking || reactionPicking })}
-        onDismissPanel={() => setPanelOpen(false)}
+        // O painel do mestre é fixo: sempre aberto, na metade de baixo do empilhado, sem véu nem X.
+        panelOpen
+        panelHalf
+        panelDismissible={false}
+        columnWidth={MASTER_COLUMN_WIDTH}
+        queue={split ? queueContent : undefined}
+        sheet={
+          <MatchSheetPanel
+            token={token}
+            sheetUuid={sheetId}
+            liveHp={sheetId ? state.hp[sheetId] : undefined}
+            emptyHint={`${verb} numa peça ou num personagem para abrir a ficha.`}
+          />
+        }
+        sheetOpen={sheetOpen}
+        onDismissSheet={() => setSheetOpen(false)}
+        asideMode={asideMode}
         onDismissAside={() => setAsideOpen(false)}
+        onToggleAsideWidth={layout.asideNarrow ? toggleAsideWidth : undefined}
+        onDismissExpandedAside={dismissExpandedAside}
         topbar={
           <MatchTopBar
             scene={state.scene}
@@ -746,135 +1021,12 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
             status={combat.status}
             onReconnect={combat.reconnect}
             asideOpen={asideOpen}
-            onToggleAside={() => setAsideOpen((o) => !o)}
-            actions={
-              <RegencyControls
-                mode={state.roundMode}
-                onModeChange={combat.send.changeRoundMode}
-                onOpenNext={combat.send.openNextAction}
-                onCloseTurn={() => combat.send.closeTurn()}
-                canCloseTurn={canCloseTurn}
-                onNewScene={sceneFlow.openDialog}
-                canChangeScene={state.openTurn == null}
-                onEndMatch={openEndMatch}
-                endMatchBlockedReason={endMatchBlocked}
-                queueLength={state.queue.length}
-                orderLength={state.bars?.order.length ?? 0}
-                roundTurns={state.bars?.roundTurns}
-              />
-            }
+            onToggleAside={toggleAside}
+            actions={<HeaderRound mode={state.roundMode} onModeChange={combat.send.changeRoundMode} />}
           />
         }
-        rail={
-          <RailNav
-            items={[
-              { id: "fila", label: "Fila", icon: "☰", badge: state.queue.length },
-              { id: "agir", label: "Agir", icon: "⚔" },
-              { id: "ficha", label: "Ficha", icon: "📜" },
-            ]}
-            active={railActive}
-            panelOpen={panelOpen}
-            onSelect={handleRailSelect}
-          />
-        }
-        panel={
-          arranging ? (
-            <ArrangePanel
-              placeable={placeable}
-              placingId={placingId}
-              onChoosePlace={setPlacingId}
-              selectedName={arrangeSelected?.characterId ? nameOf(arrangeSelected.characterId) : undefined}
-              onRemove={() => {
-                if (arrangeSelected?.characterId) {
-                  setArrangePending({ kind: "remove", characterId: arrangeSelected.characterId });
-                }
-              }}
-            />
-          ) : railActive === "ficha" ? (
-            <MatchSheetPanel
-              token={token}
-              sheetUuid={sheetId}
-              liveHp={sheetId ? state.hp[sheetId] : undefined}
-              emptyHint={`${verb} numa peça ou num personagem para abrir a ficha.`}
-            />
-          ) : railActive === "fila" ? (
-            <>
-              <ReactionPanel
-                title="Reagir pelo NPC"
-                targets={controls.targets}
-                nameOf={nameOf}
-                onQuick={controls.quick}
-                onConfigure={controls.configure}
-                pick={controls.pick}
-                onCancelPick={cancelPick}
-              />
-              <PanelSection>
-                <PanelTitle>Regime</PanelTitle>
-                <RoundModeSwitch mode={state.roundMode} onChange={combat.send.changeRoundMode} placement="panel" />
-                <SmallButton
-                  type="button"
-                  onClick={sceneFlow.openDialog}
-                  disabled={state.openTurn != null}
-                  title={state.openTurn == null ? undefined : "Feche o turno antes de trocar de cena"}
-                >
-                  Nova cena
-                </SmallButton>
-                <EndMatchButton blockedReason={endMatchBlocked} onClick={openEndMatch} />
-              </PanelSection>
-              <QueuePanel
-                queue={state.queue}
-                open={
-                  state.openTurn
-                    ? {
-                        actorId: state.openTurn.actorId,
-                        bars: state.openQueued?.bars,
-                        action: state.openTurn.action ?? state.openQueued?.action,
-                        resolution: state.openResolution,
-                      }
-                    : undefined
-                }
-                order={state.bars?.order}
-                mode={state.roundMode}
-                gridKind={gridKind}
-                nameOf={nameOf}
-                onPull={combat.send.pullAction}
-                onChooseFallSlot={chooseFallSlot}
-                onOpenReaction={combat.send.openReaction}
-                onEditAction={combat.send.editAction}
-                passiveValue={state.passiveValue}
-              />
-            </>
-          ) : (
-            <>
-              <NpcPicker npcs={npcs} actorId={actorId} onChoose={chooseActor} />
-              <WallMasterPanel
-                walls={masterWalls}
-                onInteract={(kind, targetIds) => combat.send.masterAction({ targetIds, interact: { kind } })}
-                onDismiss={() => setMasterWallIds([])}
-              />
-              {actorId && (
-                <>
-                  <OwnBars bars={state.bars} characterId={actorId} hp={actorHp} />
-                  <ActionComposer
-                    actorName={actorSheet?.nickName ?? nameOf(actorId)}
-                    onClearActor={() => chooseActor(undefined)}
-                    draft={composer.draft}
-                    resolved={composer.resolved}
-                    verdict={composer.verdict}
-                    catalogue={catalogue}
-                    gridKind={gridKind}
-                    defaultCategory={defaultMoveCategory(state)}
-                    nameOf={nameOf}
-                    onDraftChange={composer.updateDraft}
-                    onDeclare={game.declare}
-                    canDeclare={game.canDeclare}
-                    blockedReason={game.blockedReason}
-                  />
-                </>
-              )}
-            </>
-          )
-        }
+        rail={<RailNav items={railItems} active={shownSection} panelOpen onSelect={handleRailSelect} />}
+        panel={panelContent}
         stage={
           <>
             <CanvasWrapper ref={canvasRef}>
@@ -902,7 +1054,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                   onPieceSelect={
                     fallPicking || reactionPicking ? undefined : arranging ? handleArrangeSelect : handlePieceTap
                   }
-                  onPieceLongPress={boardMode === "play" && actorId && !sheetVisible ? handlePieceHold : undefined}
+                  onPieceLongPress={boardMode === "play" && actorId && !sheetOpen ? handlePieceHold : undefined}
                   selectedPieceId={
                     reactionPicking
                       ? reactionPiece?.id
@@ -918,12 +1070,14 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                     reactionPicking ? undefined : fallPicking ? fallPreview : arranging || arrangePending ? arrangePreview : composer.preview ?? masterWallPreview
                   }
                   intentGhosts={intentGhosts}
-                  highlightHoverSlot={fallPicking || reactionPicking || (!arranging && !!actorId && !sheetVisible)}
+                  highlightHoverSlot={fallPicking || reactionPicking || (!arranging && !!actorId && !sheetOpen)}
                   fitRequest={game.fitRequest}
                   onEmptySlotClick={
-                    reactionPicking
+                    sheetOpen
+                      ? undefined
+                      : reactionPicking
                       ? handleReactionSlot
-                      : fallPicking ? handleFallSlot : boardMode === "play" && actorId && !sheetVisible ? handleSlotTap : undefined
+                      : fallPicking ? handleFallSlot : boardMode === "play" && (actorId || sheetWaiting) ? handleSlotTap : undefined
                   }
                   onPieceMove={arranging ? handleArrangeMove : undefined}
                   placingNpcId={cardDrag?.id ?? (arranging ? (placingId ?? null) : null)}
@@ -931,7 +1085,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                   // Só o arraste do card desarma sozinho; o chip do Arrumar segue como era.
                   onNpcPlacementCancel={cardDrag ? clearCardDrag : undefined}
                   onPieceDragStart={arranging ? handlePieceDragStart : undefined}
-                  onPieceDragEnd={arranging ? handlePieceDragEnd : undefined}
+                  onPieceDragEnd={handlePieceDragEnd}
                   onPieceDragToRoster={arranging ? handlePieceDragToRoster : undefined}
                   onViewportTransform={game.setViewport}
                 />
@@ -1065,31 +1219,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                 }
               />
             }
-            personagens={
-              <MatchCharactersSidebar
-                fluid
-                footer={<AddNpcPicker candidates={npcCandidates} onAdd={(id) => combat.send.addNpc(id)} />}
-                gameStarted
-                enrollments={[]}
-                participants={participantsWithLiveHp}
-                offBoardIds={offBoardIds}
-                onCardDragStart={handleCardDragStart}
-                containerRef={charactersListRef}
-                isDropTarget={arranging && draggingPieceId != null}
-                isMaster
-                actionLoading={{}}
-                onAccept={() => {}}
-                onReject={() => {}}
-                onSelectCharacterSheet={(sheetUuid) => {
-                  // Abrir a ficha é largar o tabuleiro: o Arrumar ocupa o painel onde ela aparece.
-                  exitBoardMode();
-                  setSheetId(sheetUuid);
-                  setRailActive("ficha");
-                  setPanelOpen(true);
-                  closeAsideIfDrawer();
-                }}
-              />
-            }
+            personagens={renderCharactersSidebar(asideListRef, asideCompact)}
           />
         }
       />
@@ -1117,6 +1247,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
         }}
         onKeep={() => setCancelling(null)}
       />
+      {arranging && pieceDrag && <PieceDragGhostPortal ghostRef={pieceGhostRef} size={pieceDrag.size} avatarUrl={pieceDrag.avatarUrl} />}
       {cardDrag && <PieceDragGhostPortal ghostRef={cardGhostRef} size={cardDrag.size} avatarUrl={cardDrag.avatarUrl} />}
       <ArrangeConfirmDialog
         pending={arrangePending}

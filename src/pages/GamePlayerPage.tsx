@@ -11,8 +11,10 @@ import { useCharacterSheet } from "../hooks/useCharacterSheet";
 import { useGameTable } from "../features/match/combat/useGameTable";
 import { defaultMoveCategory } from "../features/match/combat/defaultMoveCategory";
 import { useReactionControls } from "../features/match/combat/useReactionControls";
+import { useMatchLayout } from "../features/match/combat/useMatchLayout";
 import { playerPanelDismissible, useStageOverlays } from "../features/match/combat/useStageOverlays";
 import MatchStageTemplate from "../components/templates/MatchStageTemplate";
+import { PLAYER_COLUMN_WIDTH } from "../components/templates/MatchStageTemplate.styles";
 import MatchTopBar from "../features/match/combat/MatchTopBar";
 import RailNav from "../features/match/combat/RailNav";
 import AsideTabs from "../features/match/combat/AsideTabs";
@@ -129,10 +131,62 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
   const [cancelling, setCancelling] = useState<DeclaredAction | null>(null);
   const cancelPending =
     cancelling && state.declared.some((d) => d.id === cancelling.id && d.status === "queued") ? cancelling : null;
-  const { panelOpen, setPanelOpen, asideOpen, setAsideOpen, closeAsideIfDrawer } = useStageOverlays();
+  const {
+    panelOpen, setPanelOpen, asideOpen, asideMode, setAsideOpen, toggleAsideWidth, dismissExpandedAside, sheetOpen, setSheetOpen,
+    closeAsideIfDrawer,
+  } =
+    useStageOverlays({ columnWidth: PLAYER_COLUMN_WIDTH, queue: false });
+
+  // Empilhado (celular ou tablet em pé): a ficha é uma folha por cima do mapa; widescreen: uma
+  // caixa ao lado do painel.
+  // Nos outros tamanhos ela continua no painel (aba "Ficha"). A ficha é sempre a do próprio personagem.
+  const layout = useMatchLayout({ columnWidth: PLAYER_COLUMN_WIDTH, queue: false });
+  const sheetAsZone = layout.stacked || layout.wide;
+
+  // Trocar de tamanho com a ficha aberta não a fecha: ela muda de lugar (painel <-> zona).
+  const wasZone = useRef(sheetAsZone);
+  useEffect(() => {
+    if (wasZone.current === sheetAsZone) return;
+    wasZone.current = sheetAsZone;
+    if (sheetAsZone) {
+      if (railActive === "ficha") {
+        setRailActive("acao");
+        if (panelOpen) {
+          setSheetOpen(true);
+          if (layout.stacked) setPanelOpen(false);
+        }
+      }
+    } else if (sheetOpen) {
+      setSheetOpen(false);
+      setRailActive("ficha");
+      setPanelOpen(true);
+    }
+  }, [sheetAsZone, sheetOpen, railActive, panelOpen, layout.stacked, setPanelOpen, setSheetOpen]);
+
+  // Abre a ficha do próprio personagem onde ela mora no tamanho atual.
+  const openSheet = useCallback(() => {
+    if (sheetAsZone) {
+      setSheetOpen(true);
+      // A folha cobre o painel no empilhado (celular ou tablet em pé): abrir uma fecha a outra.
+      if (layout.stacked) setPanelOpen(false);
+    } else {
+      setRailActive("ficha");
+      setPanelOpen(true);
+    }
+  }, [sheetAsZone, layout.stacked, setPanelOpen, setSheetOpen]);
 
   const handleRailSelect = useCallback(
     (id: string) => {
+      if (sheetAsZone) {
+        if (id === "ficha") {
+          if (sheetOpen) setSheetOpen(false);
+          else openSheet();
+          return;
+        }
+        if (layout.stacked) setSheetOpen(false);
+        setPanelOpen((o) => !o);
+        return;
+      }
       if (id === railActive) {
         setPanelOpen((o) => !o);
         return;
@@ -140,7 +194,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
       setRailActive(id as RailTab);
       setPanelOpen(true);
     },
-    [railActive, setPanelOpen],
+    [sheetAsZone, sheetOpen, openSheet, layout.stacked, railActive, setPanelOpen, setSheetOpen],
   );
 
   const pieceCharacter = useCallback(
@@ -155,43 +209,59 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
 
   const handlePieceTap = useCallback(
     (pieceId: string) => {
+      if (sheetOpen) {
+        setSheetOpen(false);
+        return;
+      }
       const charId = pieceCharacter(pieceId);
       if (!charId || !actorId || composerClosed) return;
       composer.onCharacterTap(charId);
       setRailActive("acao");
       setPanelOpen(true);
     },
-    [pieceCharacter, actorId, composerClosed, composer, setPanelOpen],
+    [sheetOpen, pieceCharacter, actorId, composerClosed, composer, setPanelOpen, setSheetOpen],
   );
   const handlePieceHold = useCallback(
     (pieceId: string) => {
+      if (sheetOpen) {
+        setSheetOpen(false);
+        return;
+      }
       const charId = pieceCharacter(pieceId);
       if (!charId || !actorId || composerClosed) return;
       composer.onCharacterHold(charId);
       setRailActive("acao");
       setPanelOpen(true);
     },
-    [pieceCharacter, actorId, composerClosed, composer, setPanelOpen],
+    [sheetOpen, pieceCharacter, actorId, composerClosed, composer, setPanelOpen, setSheetOpen],
   );
   // A parede é alvo como uma peça: o toque vai ao compositor (aproximação, verbo, arma).
   const handleWallTap = useCallback(
     (wall: WallSegment) => {
+      if (sheetOpen) {
+        setSheetOpen(false);
+        return;
+      }
       if (!actorId || composerClosed) return;
       composer.onWallTap(wall);
       setRailActive("acao");
       setPanelOpen(true);
     },
-    [actorId, composerClosed, composer, setPanelOpen],
+    [sheetOpen, actorId, composerClosed, composer, setPanelOpen, setSheetOpen],
   );
   // Segurar numa parede a junta aos alvos (com personagens e outras paredes: golpe em área).
   const handleWallHold = useCallback(
     (wall: WallSegment) => {
+      if (sheetOpen) {
+        setSheetOpen(false);
+        return;
+      }
       if (!actorId || composerClosed) return;
       composer.onWallHold(wall);
       setRailActive("acao");
       setPanelOpen(true);
     },
-    [actorId, composerClosed, composer, setPanelOpen],
+    [sheetOpen, actorId, composerClosed, composer, setPanelOpen, setSheetOpen],
   );
   const handleSlotTap = useCallback(
     (slot: SlotCoord) => {
@@ -228,9 +298,10 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
   const reactionWaiting = controls.targets.some((t) => t.status === "available");
   const showReactionHint = !!map && !picking && reactionWaiting && !(panelOpen && railActive === "acao");
   const showReactionSection = useCallback(() => {
+    setSheetOpen(false);
     setRailActive("acao");
     setPanelOpen(true);
-  }, [setPanelOpen]);
+  }, [setPanelOpen, setSheetOpen]);
 
   // Botões de reação (abaixo da peça) e balões (acima): a mesma camada, os mesmos helpers nas duas telas.
   const anchoredItems: PieceAnchoredItem[] = useCombatAnchoredItems(controls, nameOf, game.balloons);
@@ -264,12 +335,22 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
     <>
       <MatchStageTemplate
         panelOpen={panelOpen}
-        asideOpen={asideOpen}
-        panelWide={railActive === "ficha" && !!actorId}
+        asideMode={asideMode}
+        panelWide={!sheetAsZone && railActive === "ficha" && !!actorId}
+        columnWidth={PLAYER_COLUMN_WIDTH}
         // Spec §4: véu só quando o painel não pede toque no mapa (regra em playerPanelDismissible).
         panelDismissible={playerPanelDismissible({ railActive, hasActor: !!actorId, picking })}
         onDismissPanel={() => setPanelOpen(false)}
+        sheet={
+          sheetAsZone ? (
+            <MatchSheetPanel token={token} sheetUuid={actorId} liveHp={actorId ? state.hp[actorId] : undefined} />
+          ) : undefined
+        }
+        sheetOpen={sheetOpen}
+        onDismissSheet={() => setSheetOpen(false)}
         onDismissAside={() => setAsideOpen(false)}
+        onToggleAsideWidth={layout.asideNarrow ? toggleAsideWidth : undefined}
+        onDismissExpandedAside={dismissExpandedAside}
         topbar={
           <MatchTopBar
             scene={state.scene}
@@ -283,8 +364,8 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
         rail={
           <RailNav
             items={[
-              { id: "acao", label: "Ação", icon: "⚔" },
-              { id: "ficha", label: "Ficha", icon: "📜" },
+              { id: "acao", label: "Ação", icon: "⚔", pressed: sheetAsZone ? panelOpen : undefined },
+              { id: "ficha", label: "Ficha", icon: "📜", pressed: sheetAsZone ? sheetOpen : undefined },
             ]}
             active={railActive}
             panelOpen={panelOpen}
@@ -292,7 +373,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
           />
         }
         panel={
-          railActive === "ficha" ? (
+          !sheetAsZone && railActive === "ficha" ? (
             <MatchSheetPanel token={token} sheetUuid={actorId} liveHp={actorId ? state.hp[actorId] : undefined} />
           ) : actorId ? (
             <>
@@ -363,7 +444,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
                   highlightHoverSlot={!!actorId}
                   fitRequest={game.fitRequest}
                   fitFocusSlots={myPieceSlots}
-                  onEmptySlotClick={handleSlotTap}
+                  onEmptySlotClick={sheetOpen ? undefined : handleSlotTap}
                   onViewportTransform={game.setViewport}
                 />
               ) : !map ? (
@@ -448,8 +529,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
                 ownPlayerUuid={user?.uuid}
                 onSelectCharacterSheet={(sheetUuid) => {
                   setChosenActor(sheetUuid);
-                  setRailActive("ficha");
-                  setPanelOpen(true);
+                  openSheet();
                   closeAsideIfDrawer();
                 }}
               />
