@@ -33,7 +33,7 @@ vi.mock("../../features/tactical-map/TacticalMapViewer", () => ({
     inspectedPieceId?: string | null;
     intentGhosts?: unknown[];
     intentPreview?: unknown;
-    onPieceDragStart?: (pieceId: string) => void;
+    onPieceDragStart?: (pieceId: string, npc: undefined, point: { x: number; y: number }) => void;
     onPieceDragToRoster?: (pieceId: string) => void;
     onPieceMove?: (pieceId: string, slot: { kind: "square"; col: number; row: number } | { kind: "hex"; q: number; r: number }) => void;
     placingNpcId?: string | null;
@@ -74,7 +74,7 @@ vi.mock("../../features/tactical-map/TacticalMapViewer", () => ({
       ))}
       {/* Arrumar: arrastar a peça para fora do mapa (começo e soltura sobre a lista, como o PiecesLayer). */}
       {props.map.pieces.map((piece) => (
-        <button key={`drag-${piece.id}`} data-testid={`drag-start-${piece.id}`} onClick={() => props.onPieceDragStart?.(piece.id)}>
+        <button key={`drag-${piece.id}`} data-testid={`drag-start-${piece.id}`} onClick={() => props.onPieceDragStart?.(piece.id, undefined, { x: 10, y: 20 })}>
           drag {piece.id}
         </button>
       ))}
