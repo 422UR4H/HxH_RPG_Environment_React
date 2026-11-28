@@ -244,13 +244,14 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   // confirma pelo mesmo diálogo do Arrumar). `x`/`y`: onde o ponteiro estava; `size`: o diâmetro do ghost.
   const [cardDrag, setCardDrag] = useState<GhostDrag | null>(null);
   const clearCardDrag = useCallback(() => setCardDrag(null), []);
-  // Estáveis: o PiecesLayer reassina os ouvintes a cada troca delas.
   const cardGhostRef = usePointerGhost(cardDrag);
   // Arrumar: uma peça está sendo arrastada para fora do mapa (acende a lista de Personagens).
   const [draggingPieceId, setDraggingPieceId] = useState<string | null>(null);
   // O fantasma da peça arrastada no Arrumar: o PiecesLayer a esconde da cena e conta conosco para desenhá-la.
   const [pieceDrag, setPieceDrag] = useState<GhostDrag | null>(null);
   const pieceGhostRef = usePointerGhost(pieceDrag);
+  // Os dois handlers do arraste de peça são estáveis: o PiecesLayer reassina os ouvintes a cada
+  // troca de identidade deles, e um estado ao vivo mudando no meio do arraste não pode fazer isso.
   const handlePieceDragEnd = useCallback(() => {
     setDraggingPieceId(null);
     setPieceDrag(null);
@@ -687,13 +688,19 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     },
     [buildGhostDrag, closeAsideIfDrawer],
   );
+  // O que o início do arraste lê do estado ao vivo fica num ref, para o handler não mudar de identidade.
+  const pieceGhostSourceRef = useRef({ boardPieces: game.boardPieces, buildGhostDrag });
+  useEffect(() => {
+    pieceGhostSourceRef.current = { boardPieces: game.boardPieces, buildGhostDrag };
+  }, [game.boardPieces, buildGhostDrag]);
   const handlePieceDragStart = useCallback(
     (pieceId: string, _npc: unknown, point: { x: number; y: number }) => {
       setDraggingPieceId(pieceId);
-      const characterId = game.boardPieces.find((p) => p.id === pieceId)?.characterId;
-      if (characterId) setPieceDrag(buildGhostDrag(characterId, point));
+      const { boardPieces, buildGhostDrag: build } = pieceGhostSourceRef.current;
+      const characterId = boardPieces.find((p) => p.id === pieceId)?.characterId;
+      if (characterId) setPieceDrag(build(characterId, point));
     },
-    [game.boardPieces, buildGhostDrag],
+    [],
   );
   const handleCardPlaced = useCallback(
     (slot: SlotCoord) => {
