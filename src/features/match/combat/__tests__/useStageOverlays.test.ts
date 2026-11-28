@@ -264,6 +264,23 @@ describe("useStageOverlays aside width modes", () => {
     expect(result.current.asideMode).toBe("docked");
   });
 
+  it("closeAsideIfDrawer also collapses the expanded modes, which sit over the map", () => {
+    mockScreen(NARROW);
+    const { result } = renderHook(() => useStageOverlays(OPTS));
+    act(() => result.current.setAsideOpen(true));
+    expect(result.current.asideMode).toBe("expanded");
+    act(() => result.current.closeAsideIfDrawer());
+    expect(result.current.asideMode).toBe("closed");
+    act(() => result.current.setAsideOpen(true));
+    act(() => result.current.toggleAsideWidth());
+    act(() => result.current.toggleAsideWidth());
+    expect(result.current.asideMode).toBe("expandedOverDocked");
+    act(() => result.current.closeAsideIfDrawer());
+    expect(result.current.asideMode).toBe("docked");
+    act(() => result.current.closeAsideIfDrawer());
+    expect(result.current.asideMode).toBe("docked");
+  });
+
   it("dismissExpandedAside does nothing when docked", () => {
     mockScreen(NARROW);
     const { result } = renderHook(() => useStageOverlays(OPTS));

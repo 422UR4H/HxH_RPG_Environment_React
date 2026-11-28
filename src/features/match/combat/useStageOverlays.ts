@@ -108,9 +108,17 @@ export function useStageOverlays(options: MatchLayoutOptions & { panelFixed?: bo
     [asideIsDrawer],
   );
 
+  // A gaveta e os modos ampliados cobrem o mapa (o véu transparente intercepta o ponteiro): recolhem
+  // quando algo precisa do mapa ou da ficha por baixo. O Histórico encaixado não cobre nada.
   const closeAsideIfDrawer = useCallback(() => {
-    if (asideIsDrawer) setOpen((s) => ({ ...s, aside: "closed" }));
-  }, [asideIsDrawer]);
+    setOpen((s) => {
+      if (asideIsDrawer) return { ...s, aside: "closed" };
+      const current = normalizeAside(s.aside, asideNarrow);
+      if (current === "expanded") return { ...s, aside: "closed" };
+      if (current === "expandedOverDocked") return { ...s, aside: "docked" };
+      return s;
+    });
+  }, [asideIsDrawer, asideNarrow]);
 
   return {
     panelOpen: panelFixed || open.panel,

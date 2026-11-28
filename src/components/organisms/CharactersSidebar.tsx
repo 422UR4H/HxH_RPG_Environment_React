@@ -66,8 +66,12 @@ const SidebarContainer = styled.aside<{ $fluid?: boolean; $isDropTarget: boolean
 
 const SidebarTitle = styled.h2`
   font-weight: 700;
-  /* 32 px a 280 (264 úteis × 12,13% = 32); a 200 cai para ~22 e cabe. */
-  font-size: min(32px, 12.13cqi);
+  /* 32 px por padrão; na coluna de 200 (container até 240) cai para 22 e cabe. Degrau, não cqi:
+     a barra de rolagem come a caixa de conteúdo e encolheria o título a 280. */
+  font-size: 32px;
+  @container (max-width: 240px) {
+    font-size: 22px;
+  }
   text-align: center;
   color: ${colors.textPrimary};
   margin-bottom: 20px;

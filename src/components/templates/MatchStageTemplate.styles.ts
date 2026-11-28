@@ -501,12 +501,13 @@ export const AsideSurface = styled.div<{ $expanded: boolean }>`
 
 /*
  * Ampliar/reduzir o Histórico: inteiro para fora da superfície, pendurado no mapa com a borda direita
- * encostada na borda esquerda dela, na altura da faixa das abas (nunca cobre uma aba). Mora na célula,
+ * encostada na borda esquerda dela, no meio da altura (a faixa da direita do mapa é livre; nunca cobre o "Barras" da barra geral). Mora na célula,
  * não na superfície que rola, para poder vazar.
  */
 export const AsideWidthButton = styled.button<{ $mode: AsideMode }>`
   position: absolute;
-  top: 0;
+  top: 50%;
+  transform: translateY(-50%);
   left: ${({ $mode }) => {
     // A borda esquerda da superfície em relação à célula: 0 (200), -280 (ampliado sozinho), -80 (sobre o encaixado).
     const surfaceLeft =

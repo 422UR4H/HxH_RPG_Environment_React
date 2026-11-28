@@ -275,6 +275,9 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     setPlacingId(undefined);
     setChoosingFall(null);
     setFallPending(null);
+    // Um arraste de peça em curso morre com o modo: o fantasma não pode sobrar na tela.
+    setDraggingPieceId(null);
+    setPieceDrag(null);
   }, []);
   // Sair de um modo é sair de todos: dois nunca estão ligados juntos.
   const exitBoardMode = useCallback(() => {
@@ -1082,7 +1085,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                   // Só o arraste do card desarma sozinho; o chip do Arrumar segue como era.
                   onNpcPlacementCancel={cardDrag ? clearCardDrag : undefined}
                   onPieceDragStart={arranging ? handlePieceDragStart : undefined}
-                  onPieceDragEnd={arranging ? handlePieceDragEnd : undefined}
+                  onPieceDragEnd={handlePieceDragEnd}
                   onPieceDragToRoster={arranging ? handlePieceDragToRoster : undefined}
                   onViewportTransform={game.setViewport}
                 />
@@ -1244,7 +1247,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
         }}
         onKeep={() => setCancelling(null)}
       />
-      {pieceDrag && <PieceDragGhostPortal ghostRef={pieceGhostRef} size={pieceDrag.size} avatarUrl={pieceDrag.avatarUrl} />}
+      {arranging && pieceDrag && <PieceDragGhostPortal ghostRef={pieceGhostRef} size={pieceDrag.size} avatarUrl={pieceDrag.avatarUrl} />}
       {cardDrag && <PieceDragGhostPortal ghostRef={cardGhostRef} size={cardDrag.size} avatarUrl={cardDrag.avatarUrl} />}
       <ArrangeConfirmDialog
         pending={arrangePending}

@@ -72,11 +72,12 @@ type Props = {
  *   EMPURRA o mapa (com `panelHalf`, divide a altura ao meio). A ficha é uma folha por trás do
  *   rodapé e o Histórico, uma gaveta com véu.
  * - Empilhado, tablet em pé (`media.tabletPortrait`): o mesmo, com o Histórico em coluna
- *   encaixada de 200 só na faixa do mapa (painel e rodapé passam por baixo, na largura toda).
+ *   encaixada de 280 (200 só sob `asideNarrow`, a regra do mapa, com a alternância
+ *   200/280/escondido) só na faixa do mapa (painel e rodapé passam por baixo, na largura toda).
  * - Colunas laterais (deitado, abaixo de 1280 px): rail em pé, coluna de `columnWidth`, Histórico
- *   de 280 e a ficha aberta no lugar da coluna; com `queue`, a fila ocupa a metade de baixo.
+ *   de 280 (200 sob `asideNarrow`) e a ficha aberta no lugar da coluna; com `queue`, a fila ocupa a metade de baixo.
  * - Celular deitado (altura baixa, vale sobre os outros, por último): como as colunas, com
- *   Histórico de 200; a fila só divide a coluna quando há altura.
+ *   Histórico de 280, ou 200 sob `asideNarrow` (alternância 200/280/escondido); a fila só divide a coluna quando há altura.
  * - Computador (`asideUp`): a ficha vira caixa de até 420 sobre o mapa; a aba Ficha do jogador
  *   alarga para 420.
  * - Widescreen (`wideUp`): a fila do mestre vira coluna própria à esquerda do painel.
