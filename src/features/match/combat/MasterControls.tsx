@@ -188,10 +188,11 @@ export function NpcPicker({
 export function AddNpcPicker({
   candidates,
   onAdd,
+  compact = false,
 }: {
   candidates: Array<{ id: string; name: string }>;
   onAdd: (id: string) => void;
-  /** O Histórico encaixado a 200: os textos ficam curtos (usado na Task 3). */
+  /** O Histórico encaixado a 200: os textos ficam curtos (e a pílula, mais estreita). */
   compact?: boolean;
 }) {
   const [chosen, setChosen] = useState("");
@@ -204,7 +205,7 @@ export function AddNpcPicker({
         aria-labelledby="add-npc-title"
         value={chosen}
         onChange={setChosen}
-        placeholder="Escolha um NPC da campanha"
+        placeholder={compact ? "Escolha um NPC" : "Escolha um NPC da campanha"}
         options={options}
         maxOpenRadius={ATTACHED_MAX_OPEN_RADIUS_PX}
       />

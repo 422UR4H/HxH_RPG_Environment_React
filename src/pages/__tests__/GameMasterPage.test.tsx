@@ -537,6 +537,29 @@ describe("GameMasterPage", () => {
       expect(screen.getByTestId("match-aside")).toHaveAttribute("data-aside-mode", "closed");
     });
 
+    it("the NPC picker uses the short placeholder only in the docked 200 px Histórico", async () => {
+      server.use(
+        http.get(`${baseUrl}/campaigns/:id`, () =>
+          HttpResponse.json({ campaign: campaignWithNpcsApi([npcFixture]) }),
+        ),
+      );
+      mockScreen({ width: 907, height: 427 });
+      renderWithProviders(
+        <GameMasterPage token="fake-jwt-token" matchId="match-1" campaignId="campaign-1" />,
+      );
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      await user.click(screen.getByRole("button", { name: /(Ver|Ocultar) histórico/ }));
+      await user.click(asideTab("Personagens"));
+      // Ampliado (280): o texto completo.
+      await screen.findByText("Adicionar à partida");
+      expect(screen.getAllByText("Escolha um NPC da campanha").length).toBeGreaterThan(0);
+      await user.click(screen.getByRole("button", { name: "Reduzir o Histórico" }));
+      expect(screen.getByTestId("match-aside")).toHaveAttribute("data-aside-mode", "docked");
+      expect((await screen.findAllByText("Escolha um NPC")).length).toBeGreaterThan(0);
+      expect(screen.queryByText("Escolha um NPC da campanha")).not.toBeInTheDocument();
+    });
+
     it("on a portrait phone, opening the Histórico drawer closes the sheet and vice versa", async () => {
       mockScreen({ width: 390, height: 800 });
       renderMasterPage();

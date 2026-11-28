@@ -48,6 +48,8 @@ const SidebarContainer = styled.aside<{ $fluid?: boolean; $isDropTarget: boolean
     inset 8px 0 0 ${colors.surfaceSidebarGutter},
     inset -8px 0 0 ${colors.surfaceSidebarGutter};
   position: relative;
+  /* O título escala pela largura da coluna (200 ou 280). */
+  container-type: inline-size;
   overflow-y: auto;
   /* Coluna lateral nunca rola na horizontal; o conteúdo é que cabe. */
   overflow-x: hidden;
@@ -64,7 +66,8 @@ const SidebarContainer = styled.aside<{ $fluid?: boolean; $isDropTarget: boolean
 
 const SidebarTitle = styled.h2`
   font-weight: 700;
-  font-size: 32px;
+  /* 32 px a 280; a 200 cai para ~22 e cabe. */
+  font-size: min(32px, 12cqi);
   text-align: center;
   color: ${colors.textPrimary};
   margin-bottom: 20px;
