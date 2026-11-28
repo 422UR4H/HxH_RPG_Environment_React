@@ -222,7 +222,7 @@ export const QueueZone = styled.section`
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
-  background: linear-gradient(${colors.shadowSoft}, ${colors.shadowSoft}), ${colors.surfaceSidebar};
+  background: ${colors.surfaceRecessed};
   border-top: 1px solid ${colors.surfaceInput};
   border-right: 1px solid ${colors.surfaceInput};
 

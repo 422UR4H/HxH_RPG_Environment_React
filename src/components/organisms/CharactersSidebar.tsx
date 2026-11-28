@@ -9,7 +9,7 @@ interface CharactersSidebarProps<T> {
   renderItem: (item: T) => ReactNode;
   footer?: ReactNode;
   containerRef?: RefObject<HTMLDivElement | null>;
-  /** Ocupa a largura toda do pai (a aba da mesa) em vez dos 300px da coluna fixa. */
+  /** Ocupa a largura toda do pai (a aba da mesa) em vez dos 280px da coluna fixa. */
   fluid?: boolean;
   /** Realça a coluna como alvo de soltura (a mesma cor do roster do lobby). */
   isDropTarget?: boolean;
@@ -36,12 +36,17 @@ export default function CharactersSidebar<T>({
 }
 
 const SidebarContainer = styled.aside<{ $fluid?: boolean; $isDropTarget: boolean }>`
-  width: ${({ $fluid }) => ($fluid ? "100%" : "300px")};
+  width: ${({ $fluid }) => ($fluid ? "100%" : "280px")};
   /* Dentro da gaveta, a largura útil é menor que a da coluna (a barra vertical come ~12 px):
      o teto de 100% faz a coluna caber sem rolagem horizontal. No desktop não muda nada. */
   max-width: 100%;
   background-color: ${colors.surfaceSidebar};
-  padding: 20px;
+  padding: 20px 8px;
+  /* As duas laterais de 8 px pintadas por sombra interna: borda mudaria a largura útil e o
+     background-image já é do realce de alvo de soltura. */
+  box-shadow:
+    inset 8px 0 0 ${colors.surfaceSidebarGutter},
+    inset -8px 0 0 ${colors.surfaceSidebarGutter};
   position: relative;
   overflow-y: auto;
   /* Coluna lateral nunca rola na horizontal; o conteúdo é que cabe. */

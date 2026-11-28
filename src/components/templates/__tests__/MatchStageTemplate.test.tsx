@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import MatchStageTemplate from "../MatchStageTemplate";
+import { colors } from "../../../styles/tokens";
 
 // jsdom não avalia media query contra layout: a disposição por largura só se verifica no
 // browser. Aqui fica o contrato das zonas.
@@ -164,6 +165,12 @@ describe("MatchStageTemplate", () => {
       render(<MatchStageTemplate {...base} panel={<div />} queue={<div />} aside={<div />} />);
       expect(emittedCss()).toContain('"rail queue panel stage aside"');
       expect(emittedCss()).toContain("grid-template-columns:72px 240px 320px");
+    });
+
+    it("paints the master's queue with the recessed surface, without a shadow gradient", () => {
+      render(<MatchStageTemplate {...base} panel={<div />} queue={<div />} />);
+      expect(emittedCss()).toContain(`background:${colors.surfaceRecessed};`);
+      expect(emittedCss()).not.toContain(`linear-gradient(${colors.shadowSoft},${colors.shadowSoft})`);
     });
 
     it("makes the aside a 200 px column outside the portrait phone", () => {
