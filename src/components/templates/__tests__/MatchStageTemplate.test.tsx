@@ -7,8 +7,11 @@ import { media } from "../../../styles/breakpoints";
 
 const emittedCss = () => Array.from(document.querySelectorAll("style")).map((s) => s.textContent).join("\n");
 
-/** A faixa em que a ficha do mestre toma o lugar da coluna (fora o celular deitado). */
-const BELOW_ASIDE_UP = "@media (min-width: 768px) and (max-width: 1279px)";
+/** Colunas laterais abaixo de 1280 px: a ficha do mestre toma o lugar da coluna (fora o celular deitado). */
+const SIDE_BELOW_ASIDE_UP = "@media (orientation: landscape) and (max-width: 1279px)";
+
+/** O stylis tira o espaço depois da vírgula de uma lista de media queries ao emitir. */
+const emitted = (atMedia: string) => atMedia.replace(/,\s+/g, ",");
 
 /**
  * As declarações que o styled-components emitiu para o elemento, na ordem do CSS: sem
@@ -20,7 +23,7 @@ function declarationsOf(el: Element, atMedia?: string): string {
   return Array.from(el.classList)
     .flatMap((cls) => {
       const rule = atMedia
-        ? new RegExp(`${escape(atMedia)}\\{\\.${cls}\\{([^}]*)\\}`, "g")
+        ? new RegExp(`${escape(emitted(atMedia))}\\{\\.${cls}\\{([^}]*)\\}`, "g")
         : new RegExp(`(?:^|\\})\\s*\\.${cls}\\{([^}]*)\\}`, "g");
       return Array.from(css.matchAll(rule), (m) => m[1]);
     })
@@ -203,9 +206,10 @@ describe("MatchStageTemplate", () => {
     });
 
 
-    it("lets the player's bottom panel run under the aside on a portrait tablet", () => {
+    it("lets the bottom panel and the nav run under the aside column on a portrait tablet", () => {
       render(<MatchStageTemplate {...base} panel={<div />} aside={<div />} />);
-      expect(emittedCss()).toContain('"stage aside" "panel panel" "rail rail"');
+      const middle = screen.getByTestId("match-panel").parentElement!;
+      expect(declarationsOf(middle, media.tabletPortrait)).toContain('"stage aside" "panel panel" "rail rail"');
     });
 
     it("splits the portrait phone in equal halves with panelHalf", () => {
@@ -224,27 +228,61 @@ describe("MatchStageTemplate", () => {
     });
   });
 
+  describe("stacked up to 1279 px in portrait, side columns otherwise", () => {
+    const base = { topbar: <div />, rail: <div />, stage: <div /> };
+
+    it("lays the side grids and the upright rail under media.side, never under tabletUp or railUp", () => {
+      const { container } = render(
+        <MatchStageTemplate {...base} panel={<div />} queue={<div />} aside={<div />} columnWidth={MASTER_COLUMN_WIDTH} />,
+      );
+      const middle = screen.getByTestId("match-panel").parentElement!;
+      const rail = container.querySelector("nav")!;
+      expect(declarationsOf(middle, media.side)).toContain('"rail panel stage aside" "rail queue stage aside"');
+      expect(lastValue(declarationsOf(rail, media.side), "flex-direction")).toBe("column");
+      for (const el of [middle, rail, screen.getByTestId("match-panel"), screen.getByTestId("match-queue")]) {
+        expect(declarationsOf(el, media.tabletUp)).toBe("");
+        expect(declarationsOf(el, media.railUp)).toBe("");
+      }
+    });
+
+    it("uses the single-column grid for the player under media.side", () => {
+      render(<MatchStageTemplate {...base} panel={<div />} aside={<div />} columnWidth={PLAYER_COLUMN_WIDTH} />);
+      const middle = screen.getByTestId("match-panel").parentElement!;
+      expect(declarationsOf(middle, media.side)).toContain('grid-template-areas:"rail panel stage aside";');
+    });
+
+    it("keeps the portrait tablet's panel at the bottom, without a column width", () => {
+      render(<MatchStageTemplate {...base} panel={<div />} aside={<div />} columnWidth={PLAYER_COLUMN_WIDTH} />);
+      expect(declarationsOf(screen.getByTestId("match-panel"), media.tabletPortrait)).toBe("");
+    });
+
+    it("shows the panel scrim only when stacked", () => {
+      render(<MatchStageTemplate {...base} panel={<div />} panelOpen panelDismissible onDismissPanel={() => {}} />);
+      const scrim = screen.getByTestId("panel-scrim");
+      expect(lastValue(declarationsOf(scrim, media.side), "display")).toBe("none");
+      expect(declarationsOf(scrim, media.tabletPortrait)).toBe("");
+    });
+  });
+
   describe("fixed column widths", () => {
     const base = { topbar: <div />, rail: <div />, stage: <div /> };
 
-    it("gives the master's panel and queue the column width on tablet and landscape phone", () => {
+    it("gives the master's panel and queue the column width on side screens and the landscape phone", () => {
       render(<MatchStageTemplate {...base} panel={<div />} queue={<div />} columnWidth={MASTER_COLUMN_WIDTH} />);
       const panel = screen.getByTestId("match-panel");
       const queue = screen.getByTestId("match-queue");
-      expect(lastValue(declarationsOf(panel, media.tabletUp), "width")).toBe("320px");
+      expect(lastValue(declarationsOf(panel, media.side), "width")).toBe("320px");
       expect(lastValue(declarationsOf(panel, media.landscapePhone), "width")).toBe("320px");
       expect(lastValue(declarationsOf(panel, media.asideUp), "width")).toBe("320px");
-      expect(lastValue(declarationsOf(queue, media.tabletUp), "width")).toBe("320px");
+      expect(lastValue(declarationsOf(queue, media.side), "width")).toBe("320px");
       expect(lastValue(declarationsOf(queue, media.landscapePhone), "width")).toBe("320px");
       expect(lastValue(declarationsOf(queue, media.wideUp), "width")).toBe("240px");
     });
 
-    it("gives the player's panel the column width from railUp and on the landscape phone", () => {
+    it("gives the player's panel the column width on side screens and the landscape phone", () => {
       render(<MatchStageTemplate {...base} panel={<div />} columnWidth={PLAYER_COLUMN_WIDTH} />);
       const panel = screen.getByTestId("match-panel");
-      // No tablet em pé o painel do jogador continua embaixo, sem largura de coluna.
-      expect(lastValue(declarationsOf(panel, media.tabletUp), "width")).toBeUndefined();
-      expect(lastValue(declarationsOf(panel, media.railUp), "width")).toBe("340px");
+      expect(lastValue(declarationsOf(panel, media.side), "width")).toBe("340px");
       expect(lastValue(declarationsOf(panel, media.asideUp), "width")).toBe("340px");
       expect(lastValue(declarationsOf(panel, media.landscapePhone), "width")).toBe("340px");
     });
@@ -252,25 +290,31 @@ describe("MatchStageTemplate", () => {
     it("widens the player's sheet tab to 420 px only from asideUp", () => {
       render(<MatchStageTemplate {...base} panel={<div />} panelWide columnWidth={PLAYER_COLUMN_WIDTH} />);
       const panel = screen.getByTestId("match-panel");
-      expect(lastValue(declarationsOf(panel, media.railUp), "width")).toBe("340px");
+      expect(lastValue(declarationsOf(panel, media.side), "width")).toBe("340px");
       expect(lastValue(declarationsOf(panel, media.asideUp), "width")).toBe("420px");
     });
 
-    it("makes the Histórico a 280 px column, 200 px on the landscape phone", () => {
-      render(<MatchStageTemplate {...base} panel={<div />} aside={<div />} columnWidth={PLAYER_COLUMN_WIDTH} />);
+    it("makes the Histórico a 280 px column on side screens and 200 px on the landscape phone", () => {
+      render(<MatchStageTemplate {...base} panel={<div />} queue={<div />} aside={<div />} />);
       const aside = screen.getByTestId("match-aside");
-      expect(lastValue(declarationsOf(aside, media.tabletUp), "width")).toBe("280px");
+      expect(lastValue(declarationsOf(aside, media.side), "width")).toBe("280px");
       expect(lastValue(declarationsOf(aside, media.landscapePhone), "width")).toBe("200px");
     });
 
-    it("narrows the master's Histórico to 200 px between tabletUp and railUp", () => {
-      render(
-        <MatchStageTemplate {...base} panel={<div />} queue={<div />} aside={<div />} columnWidth={MASTER_COLUMN_WIDTH} />,
-      );
-      const aside = screen.getByTestId("match-aside");
-      expect(lastValue(declarationsOf(aside, media.tabletUp), "width")).toBe("200px");
-      expect(lastValue(declarationsOf(aside, media.railUp), "width")).toBe("280px");
-      expect(lastValue(declarationsOf(aside, media.landscapePhone), "width")).toBe("200px");
+    it("docks the Histórico as a 200 px column without a shadow on a portrait tablet", () => {
+      render(<MatchStageTemplate {...base} panel={<div />} aside={<div />} />);
+      const rules = declarationsOf(screen.getByTestId("match-aside"), media.tabletPortrait);
+      expect(lastValue(rules, "width")).toBe("200px");
+      expect(lastValue(rules, "position")).toBe("static");
+      expect(lastValue(rules, "grid-area")).toBe("aside");
+      expect(lastValue(rules, "box-shadow")).toBe("none");
+    });
+
+    it("hides the Histórico scrim on a portrait tablet and with side columns", () => {
+      render(<MatchStageTemplate {...base} aside={<div />} asideOpen onDismissAside={() => {}} />);
+      const scrim = screen.getByTestId("aside-scrim");
+      expect(lastValue(declarationsOf(scrim, media.tabletPortrait), "display")).toBe("none");
+      expect(lastValue(declarationsOf(scrim, media.side), "display")).toBe("none");
     });
 
     it("keeps the portrait-phone Histórico a drawer of at most 280 px, with a shadow only there", () => {
@@ -278,7 +322,7 @@ describe("MatchStageTemplate", () => {
       const aside = screen.getByTestId("match-aside");
       expect(lastValue(declarationsOf(aside), "width")).toBe("min(86%, 280px)");
       expect(lastValue(declarationsOf(aside), "box-shadow")).not.toBe("none");
-      expect(lastValue(declarationsOf(aside, media.tabletUp), "box-shadow")).toBe("none");
+      expect(lastValue(declarationsOf(aside, media.side), "box-shadow")).toBe("none");
       expect(lastValue(declarationsOf(aside, media.landscapePhone), "box-shadow")).toBe("none");
     });
   });
@@ -297,7 +341,7 @@ describe("MatchStageTemplate", () => {
     it("docks the open sheet in the left column below asideUp and on the landscape phone", () => {
       render(<MatchStageTemplate {...base} sheetOpen />);
       const sheet = screen.getByTestId("match-sheet-zone");
-      for (const at of [BELOW_ASIDE_UP, media.landscapePhone]) {
+      for (const at of [SIDE_BELOW_ASIDE_UP, media.landscapePhone]) {
         const rules = declarationsOf(sheet, at);
         expect(lastValue(rules, "grid-column")).toBe("2");
         // O stylis compacta `1 / -1` ao emitir.
@@ -315,15 +359,24 @@ describe("MatchStageTemplate", () => {
     it("hides the panel and the queue while the docked sheet is open", () => {
       render(<MatchStageTemplate {...base} sheetOpen />);
       for (const zone of [screen.getByTestId("match-panel"), screen.getByTestId("match-queue")]) {
-        expect(lastValue(declarationsOf(zone, BELOW_ASIDE_UP), "display")).toBe("none");
+        expect(lastValue(declarationsOf(zone, SIDE_BELOW_ASIDE_UP), "display")).toBe("none");
         expect(lastValue(declarationsOf(zone, media.landscapePhone), "display")).toBe("none");
       }
     });
 
     it("keeps the panel and the queue while the sheet is closed", () => {
       render(<MatchStageTemplate {...base} />);
-      expect(declarationsOf(screen.getByTestId("match-panel"), BELOW_ASIDE_UP)).not.toContain("display:none");
+      expect(declarationsOf(screen.getByTestId("match-panel"), SIDE_BELOW_ASIDE_UP)).not.toContain("display:none");
       expect(lastValue(declarationsOf(screen.getByTestId("match-queue"), media.landscapePhone), "display")).toBe("block");
+    });
+
+    it("keeps the sheet a sheet (with its close X) on a portrait tablet", () => {
+      render(<MatchStageTemplate {...base} sheetOpen onDismissSheet={() => {}} />);
+      expect(declarationsOf(screen.getByTestId("match-sheet-zone"), media.tabletPortrait)).toBe("");
+      expect(declarationsOf(screen.getByTestId("match-panel"), media.tabletPortrait)).not.toContain("display:none");
+      const closeX = screen.getByRole("button", { name: "Fechar a ficha" });
+      expect(declarationsOf(closeX, media.tabletPortrait)).toBe("");
+      expect(lastValue(declarationsOf(closeX, media.side), "display")).toBe("none");
     });
 
     it("keeps the sheet box beside the column from asideUp", () => {

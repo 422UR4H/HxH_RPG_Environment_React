@@ -180,7 +180,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   const [section, setSection] = useState<MasterSection>("fila");
   // Com a fila fixa só Agir e Partida moram no painel; qualquer outra seção cai em Agir.
   const shownSection: MasterSection = split ? (section === "partida" ? "partida" : "agir") : section;
-  // A ficha: a folha (celular em pé) ou a caixa sobre o mapa. Do mestre é a do último personagem
+  // A ficha: a folha (empilhado), no lugar da coluna ou a caixa sobre o mapa. Do mestre é a do último personagem
   // que ele tocou, escolheu ou abriu pelo card; sem nenhum, "Ficha" espera uma peça.
   const [sheetWaiting, setSheetWaiting] = useState(false);
   const [lastCharacterId, setLastCharacterId] = useState<string | undefined>(undefined);
@@ -415,12 +415,12 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
         return;
       }
       setSheetWaiting(false);
-      // No celular em pé a folha cobre o painel; abaixo de 1280 px e no celular deitado a ficha
-      // ocupa o lugar da seção. Escolher outra seção fecha a ficha, senão nada mudaria na tela.
-      if (layout.phonePortrait || layout.sheetReplacesColumn) setSheetOpen(false);
+      // Empilhado (celular ou tablet em pé), a folha cobre o painel; com colunas abaixo de 1280 px
+      // e no celular deitado, a ficha ocupa o lugar da seção. Escolher outra seção fecha a ficha, senão nada mudaria na tela.
+      if (layout.stacked || layout.sheetReplacesColumn) setSheetOpen(false);
       setSection(id as MasterSection);
     },
-    [arranging, exitBoardMode, toggleSheet, layout.phonePortrait, layout.sheetReplacesColumn, setSheetOpen],
+    [arranging, exitBoardMode, toggleSheet, layout.stacked, layout.sheetReplacesColumn, setSheetOpen],
   );
 
   const chooseActor = useCallback((id: string | undefined) => {
@@ -960,7 +960,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   return (
     <>
       <MatchStageTemplate
-        // O painel do mestre é fixo: sempre aberto, na metade de baixo do celular em pé, sem véu nem X.
+        // O painel do mestre é fixo: sempre aberto, na metade de baixo do empilhado, sem véu nem X.
         panelOpen
         panelHalf
         panelDismissible={false}

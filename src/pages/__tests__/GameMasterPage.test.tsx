@@ -11,6 +11,7 @@ import { campaignWithNpcsApi, npcFixture } from "../../test/fixtures/campaign";
 import GameMasterPage from "../GameMasterPage";
 import { useLocation } from "react-router-dom";
 import { installFakeWebSocket, waitForSocket } from "../../test/fakeWebSocket";
+import { mockScreen } from "../../test/mockScreen";
 import type { FakeWS } from "../../test/fakeWebSocket";
 
 const baseUrl = "http://localhost:5000";
@@ -229,46 +230,9 @@ async function openPartida() {
 }
 
 
-// Tamanhos de tela: o jsdom é um celular em pé; os outros são simulados por matchMedia.
-// `resize` troca o tamanho e dispara os ouvintes `change` que o `useMediaQuery` registrou,
-// sem remontar a página (o estado dela precisa sobreviver).
-type Screen = { width: number; height: number; landscape?: boolean };
+// Tamanhos de tela: o jsdom é um celular em pé; os outros são simulados por matchMedia
+// (`mockScreen`, com a orientação tirada das medidas).
 const originalMatchMedia = window.matchMedia;
-
-function mockScreen(initial: Screen) {
-  let current = initial;
-  const listeners = new Map<string, Set<(e: { matches: boolean }) => void>>();
-  const evaluate = (query: string, s: Screen): boolean => {
-    const minW = /min-width:\s*(\d+)px/.exec(query);
-    const minH = /min-height:\s*(\d+)px/.exec(query);
-    const maxH = /max-height:\s*(\d+)px/.exec(query);
-    if (query.includes("orientation: landscape")) return !!s.landscape && (!maxH || s.height <= Number(maxH[1]));
-    if (minW) return s.width >= Number(minW[1]);
-    if (minH) return s.height >= Number(minH[1]);
-    return false;
-  };
-  window.matchMedia = ((query: string) => ({
-    get matches() { return evaluate(query, current); },
-    media: query,
-    addEventListener: (_: string, l: (e: { matches: boolean }) => void) => {
-      if (!listeners.has(query)) listeners.set(query, new Set());
-      listeners.get(query)!.add(l);
-    },
-    removeEventListener: (_: string, l: (e: { matches: boolean }) => void) => { listeners.get(query)?.delete(l); },
-    addListener: () => {},
-    removeListener: () => {},
-    onchange: null,
-    dispatchEvent: () => false,
-  })) as unknown as typeof window.matchMedia;
-  return {
-    resize(next: Screen) {
-      current = next;
-      act(() => {
-        listeners.forEach((set, query) => set.forEach((l) => l({ matches: evaluate(query, next) })));
-      });
-    },
-  };
-}
 
 /** A aba do Histórico (a coluna/gaveta da direita), não o item de mesmo nome da navegação. */
 function asideTab(name: string) {
@@ -624,7 +588,7 @@ describe("GameMasterPage", () => {
     });
 
     it("closes the sheet when a section is chosen on a short landscape phone", async () => {
-      mockScreen({ width: 844, height: 330, landscape: true });
+      mockScreen({ width: 844, height: 330 });
       renderMasterPage();
       const ws = await waitForSocket();
       openWithServerBoard(ws);
@@ -668,8 +632,41 @@ describe("GameMasterPage", () => {
       expect(screen.getByTestId("match-queue")).toBeInTheDocument();
     });
 
+    it("stacks a portrait tablet like the phone: five nav items and no split queue", async () => {
+      mockScreen({ width: 753, height: 1205 });
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      expect(screen.queryByTestId("match-queue")).not.toBeInTheDocument();
+      expect(railButton(/^Fila/).parentElement!.querySelectorAll("button")).toHaveLength(5);
+    });
+
+    it("keeps the Histórico column and the sheet open together on a portrait tablet", async () => {
+      server.use(
+        http.get(`${baseUrl}/charactersheets/:id`, ({ params }) =>
+          HttpResponse.json({ characterSheet: { uuid: params.id } }),
+        ),
+      );
+      mockScreen({ width: 753, height: 1205 });
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      const headerHistory = () => screen.getByRole("button", { name: /(Ver|Ocultar) histórico/ });
+      const zone = () => screen.getByTestId("match-sheet-zone");
+      act(() => screen.getByTestId("select-actor-c1").click());
+      await user.click(railButton("Ficha"));
+      await user.click(headerHistory());
+      expect(screen.getByTestId("match-aside")).toHaveAttribute("data-open", "true");
+      expect(zone()).toHaveAttribute("data-open", "true");
+
+      // Escolher outra seção fecha a folha, como no celular; o Histórico fica.
+      await user.click(railButton("Agir"));
+      expect(zone()).toHaveAttribute("data-open", "false");
+      expect(screen.getByTestId("match-aside")).toHaveAttribute("data-open", "true");
+    });
+
     it("falls back to one section at a time on a short landscape phone", async () => {
-      mockScreen({ width: 844, height: 330, landscape: true });
+      mockScreen({ width: 844, height: 330 });
       renderMasterPage();
       const ws = await waitForSocket();
       openWithServerBoard(ws);

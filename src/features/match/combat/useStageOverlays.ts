@@ -7,13 +7,14 @@ type Setter = (next: boolean | ((open: boolean) => boolean)) => void;
 
 /**
  * Estado de abertura do painel e da coluna/gaveta do Histórico (aside) da mesa. "Abrir um
- * fecha o outro" vale só no celular em pé (`asideIsDrawer`), onde a gaveta cobre o mapa; de
- * 768 px em diante a coluna do Histórico convive com o painel e com tudo. Com `panelFixed`
- * (painel do mestre) o painel está sempre aberto: `setPanelOpen` não muda nada e abrir a
- * gaveta não o fecha. Estado inicial: o painel abre a partir de `railUp` ou no celular
- * deitado; o Histórico, a partir de `asideUp` e nunca no celular deitado. A ficha (`sheetOpen`)
- * segue a mesma regra do painel no celular em pé: abrir a ficha fecha a gaveta e abrir a
- * gaveta fecha a ficha (fechar nunca mexe no outro); de 768 px em diante não se acoplam.
+ * fecha o outro" vale só onde o Histórico é gaveta (`asideIsDrawer`: empilhado abaixo de
+ * 600 px), que cobre o mapa; no tablet em pé e com colunas laterais a coluna do Histórico
+ * convive com o painel e com tudo. Com `panelFixed` (painel do mestre) o painel está sempre
+ * aberto: `setPanelOpen` não muda nada e abrir a gaveta não o fecha. Estado inicial: o painel
+ * abre onde é coluna (fora do empilhado); o Histórico, a partir de `asideUp` e nunca no celular
+ * deitado. A ficha (`sheetOpen`) segue a mesma regra do painel onde há gaveta: abrir a ficha
+ * fecha a gaveta e abrir a gaveta fecha a ficha (fechar nunca mexe no outro); fora dali não se
+ * acoplam.
  */
 export function useStageOverlays(options: { panelFixed?: boolean } = {}): {
   panelOpen: boolean;
@@ -22,17 +23,16 @@ export function useStageOverlays(options: { panelFixed?: boolean } = {}): {
   setAsideOpen: Setter;
   sheetOpen: boolean;
   setSheetOpen: Setter;
-  /** Só no celular em pé a gaveta cobre o mapa: escolher algo nela que abre outra coisa a fecha. */
+  /** Só onde é gaveta (celular em pé) ela cobre o mapa: escolher algo nela que abre outra coisa a fecha. */
   closeAsideIfDrawer: () => void;
 } {
   const panelFixed = options.panelFixed ?? false;
-  const { landscape, asideIsDrawer } = useMatchLayout();
-  const railUp = useMediaQuery(`(min-width: ${breakpoints.railUp}px)`);
+  const { stacked, landscape, asideIsDrawer } = useMatchLayout();
   const asideUp = useMediaQuery(`(min-width: ${breakpoints.asideUp}px)`);
 
   // Um estado só, para o "abre um, fecha o outro" ser atômico e o updater ler o valor atual.
   const [open, setOpen] = useState(() => ({
-    panel: railUp || landscape,
+    panel: !stacked,
     aside: asideUp && !landscape,
     sheet: false,
   }));

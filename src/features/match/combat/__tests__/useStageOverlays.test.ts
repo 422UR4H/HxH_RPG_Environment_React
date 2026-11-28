@@ -1,36 +1,9 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useStageOverlays, playerPanelDismissible } from "../useStageOverlays";
+import { mockScreen } from "../../../../test/mockScreen";
 
 const original = window.matchMedia;
-
-function mockScreen({ width, height = 900, landscape = false }: { width: number; height?: number; landscape?: boolean }) {
-  window.matchMedia = ((query: string) => {
-    const minW = /min-width:\s*(\d+)px/.exec(query);
-    const minH = /min-height:\s*(\d+)px/.exec(query);
-    const maxH = /max-height:\s*(\d+)px/.exec(query);
-    let matches: boolean;
-    if (query.includes("orientation: landscape")) {
-      matches = landscape && (!maxH || height <= Number(maxH[1]));
-    } else if (minW) {
-      matches = width >= Number(minW[1]);
-    } else if (minH) {
-      matches = height >= Number(minH[1]);
-    } else {
-      matches = false;
-    }
-    return {
-      matches,
-      media: query,
-      addEventListener: () => {},
-      removeEventListener: () => {},
-      addListener: () => {},
-      removeListener: () => {},
-      onchange: null,
-      dispatchEvent: () => false,
-    };
-  }) as typeof window.matchMedia;
-}
 
 afterEach(() => {
   window.matchMedia = original;
@@ -87,14 +60,14 @@ describe("useStageOverlays", () => {
 
   describe("tela larga (>= asideUp)", () => {
     it("começa com painel e gaveta abertos", () => {
-      mockScreen({ width: 1400 });
+      mockScreen({ width: 1400, height: 900 });
       const { result } = renderHook(() => useStageOverlays());
       expect(result.current.panelOpen).toBe(true);
       expect(result.current.asideOpen).toBe(true);
     });
 
     it("abrir um não fecha o outro", () => {
-      mockScreen({ width: 1400 });
+      mockScreen({ width: 1400, height: 900 });
       const { result } = renderHook(() => useStageOverlays());
       act(() => result.current.setPanelOpen(false));
       act(() => result.current.setAsideOpen(true));
@@ -104,7 +77,7 @@ describe("useStageOverlays", () => {
     });
 
     it("closeAsideIfDrawer não faz nada", () => {
-      mockScreen({ width: 1400 });
+      mockScreen({ width: 1400, height: 900 });
       const { result } = renderHook(() => useStageOverlays());
       act(() => result.current.closeAsideIfDrawer());
       expect(result.current.asideOpen).toBe(true);
@@ -114,7 +87,7 @@ describe("useStageOverlays", () => {
 
 describe("useStageOverlays layout rules", () => {
   it("keeps a fixed panel open and ignores setPanelOpen(false)", () => {
-    mockScreen({ width: 844, height: 390, landscape: true }); // painel abre de início
+    mockScreen({ width: 844, height: 390 }); // painel abre de início
     const { result, rerender } = renderHook((p: { fixed: boolean }) => useStageOverlays({ panelFixed: p.fixed }), {
       initialProps: { fixed: true },
     });
@@ -138,8 +111,8 @@ describe("useStageOverlays layout rules", () => {
     expect(result.current.panelOpen).toBe(true);
   });
 
-  it("lets the aside column and the panel stay open together from 768 px", () => {
-    mockScreen({ width: 768 });
+  it("lets the aside column and the panel stay open together on a portrait tablet", () => {
+    mockScreen({ width: 753, height: 1205 });
     const { result } = renderHook(() => useStageOverlays());
     act(() => result.current.setPanelOpen(true));
     act(() => result.current.setAsideOpen(true));
@@ -151,18 +124,33 @@ describe("useStageOverlays layout rules", () => {
   });
 
   it("opens the panel at start on a landscape phone and keeps the aside closed", () => {
-    mockScreen({ width: 844, height: 390, landscape: true });
+    mockScreen({ width: 844, height: 390 });
     const { result } = renderHook(() => useStageOverlays());
     expect(result.current.panelOpen).toBe(true);
     expect(result.current.asideOpen).toBe(false);
   });
 
-  it("closeAsideIfDrawer leaves the aside column open on a tablet", () => {
-    mockScreen({ width: 900 });
+  it("closeAsideIfDrawer leaves the aside column open on a portrait tablet", () => {
+    mockScreen({ width: 768, height: 1024 });
     const { result } = renderHook(() => useStageOverlays());
     act(() => result.current.setAsideOpen(true));
     act(() => result.current.closeAsideIfDrawer());
     expect(result.current.asideOpen).toBe(true);
+  });
+});
+
+describe("useStageOverlays on a stacked tablet", () => {
+  it("starts with the panel closed on a portrait tablet, like the phone", () => {
+    mockScreen({ width: 1024, height: 1366 });
+    const { result } = renderHook(() => useStageOverlays());
+    expect(result.current.panelOpen).toBe(false);
+    expect(result.current.asideOpen).toBe(false);
+  });
+
+  it("starts with the panel open on a landscape tablet (side columns)", () => {
+    mockScreen({ width: 1024, height: 768 });
+    const { result } = renderHook(() => useStageOverlays());
+    expect(result.current.panelOpen).toBe(true);
   });
 });
 
@@ -199,8 +187,8 @@ describe("useStageOverlays sheet rule", () => {
     expect(result.current.sheetOpen).toBe(true);
   });
 
-  it("does not couple the sheet and the aside from 768 px", () => {
-    mockScreen({ width: 768 });
+  it("does not couple the sheet and the aside column from 600 px in portrait", () => {
+    mockScreen({ width: 753, height: 1205 });
     const { result } = renderHook(() => useStageOverlays());
     act(() => result.current.setAsideOpen(true));
     act(() => result.current.setSheetOpen(true));

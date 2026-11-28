@@ -10,6 +10,7 @@ import { mapApiFixture } from "../../test/fixtures/map";
 import GamePlayerPage from "../GamePlayerPage";
 import { useLocation } from "react-router-dom";
 import { installFakeWebSocket, waitForSocket } from "../../test/fakeWebSocket";
+import { mockScreen } from "../../test/mockScreen";
 import type { FakeWS } from "../../test/fakeWebSocket";
 
 const baseUrl = "http://localhost:5000";
@@ -144,45 +145,9 @@ const storedDraft = () => {
 const lastSent = (ws: { send: { mock: { calls: unknown[][] } } }) =>
   ws.send.mock.calls[ws.send.mock.calls.length - 1]?.[0];
 
-// Tamanhos de tela: o jsdom é um celular em pé; os outros são simulados por matchMedia.
-// `resize` troca o tamanho e dispara os ouvintes `change` sem remontar a página.
-type Screen = { width: number; height: number; landscape?: boolean };
+// Tamanhos de tela: o jsdom é um celular em pé; os outros são simulados por matchMedia
+// (`mockScreen`, com a orientação tirada das medidas).
 const originalMatchMedia = window.matchMedia;
-
-function mockScreen(initial: Screen) {
-  let current = initial;
-  const listeners = new Map<string, Set<(e: { matches: boolean }) => void>>();
-  const evaluate = (query: string, s: Screen): boolean => {
-    const minW = /min-width:\s*(\d+)px/.exec(query);
-    const minH = /min-height:\s*(\d+)px/.exec(query);
-    const maxH = /max-height:\s*(\d+)px/.exec(query);
-    if (query.includes("orientation: landscape")) return !!s.landscape && (!maxH || s.height <= Number(maxH[1]));
-    if (minW) return s.width >= Number(minW[1]);
-    if (minH) return s.height >= Number(minH[1]);
-    return false;
-  };
-  window.matchMedia = ((query: string) => ({
-    get matches() { return evaluate(query, current); },
-    media: query,
-    addEventListener: (_: string, l: (e: { matches: boolean }) => void) => {
-      if (!listeners.has(query)) listeners.set(query, new Set());
-      listeners.get(query)!.add(l);
-    },
-    removeEventListener: (_: string, l: (e: { matches: boolean }) => void) => { listeners.get(query)?.delete(l); },
-    addListener: () => {},
-    removeListener: () => {},
-    onchange: null,
-    dispatchEvent: () => false,
-  })) as unknown as typeof window.matchMedia;
-  return {
-    resize(next: Screen) {
-      current = next;
-      act(() => {
-        listeners.forEach((set, query) => set.forEach((l) => l({ matches: evaluate(query, next) })));
-      });
-    },
-  };
-}
 
 /** Um item da navegação, não o botão de mesmo nome da aba do Histórico. */
 function railButton(name: string | RegExp) {
@@ -1138,6 +1103,18 @@ describe("GamePlayerPage", () => {
       expect(within(panel()).queryByTestId("match-sheet")).not.toBeInTheDocument();
       expect(railButton("Ação")).toHaveAttribute("aria-pressed", "true");
       expect(railButton("Ficha")).toHaveAttribute("aria-pressed", "true");
+    });
+
+    it("uses the phone's sheet on a portrait tablet, beside an open Histórico column", async () => {
+      mockScreen({ width: 753, height: 1205 });
+      await openBoard();
+      const headerHistory = () => screen.getByRole("button", { name: /(Ver|Ocultar) histórico/ });
+      await user.click(headerHistory());
+      await user.click(railButton("Ficha"));
+      expect(zone()).toHaveAttribute("data-open", "true");
+      expect(panel()).toHaveAttribute("data-open", "false");
+      // No tablet em pé o Histórico é coluna: a ficha não o fecha.
+      expect(screen.getByTestId("match-aside")).toHaveAttribute("data-open", "true");
     });
 
     it("keeps the sheet in the panel on a regular desktop", async () => {

@@ -28,43 +28,44 @@ type Props = {
   asideOpen?: boolean;
   /** O painel mostra algo largo (a ficha): a coluna alarga a partir de `asideUp` (só sem `queue`). */
   panelWide?: boolean;
-  /** O conteúdo do painel não pede toque no mapa: abaixo de railUp, um véu cobre o palco e o toque nele fecha o painel. */
+  /** O conteúdo do painel não pede toque no mapa: no empilhado, um véu cobre o palco e o toque nele fecha o painel. */
   panelDismissible?: boolean;
   onDismissPanel?: () => void;
   /** No celular em pé, com a gaveta aberta, um véu cobre o resto e o toque nele a fecha. */
   onDismissAside?: () => void;
-  /** A fila fixa do mestre. Com ela a navegação fica em pé a partir de `tabletUp` e a coluna da esquerda divide em duas. */
+  /** A fila fixa do mestre (só com colunas laterais): a coluna da esquerda divide em painel e fila. */
   queue?: ReactNode;
-  /** Abaixo de `tabletUp`, painel e palco dividem a altura meio a meio. */
+  /** No empilhado, painel e palco dividem a altura meio a meio. */
   panelHalf?: boolean;
   /**
-   * A ficha: folha no celular em pé; aberta, toma o lugar da coluna da esquerda (painel e fila
-   * somem) de `tabletUp` até antes de `asideUp` e no celular deitado; caixa sobre o mapa a partir
-   * de `asideUp`.
+   * A ficha: folha no empilhado; aberta, toma o lugar da coluna da esquerda (painel e fila
+   * somem) com colunas laterais abaixo de `asideUp` e no celular deitado; caixa sobre o mapa a
+   * partir de `asideUp`.
    */
   sheet?: ReactNode;
   sheetOpen?: boolean;
   onDismissSheet?: () => void;
   /**
-   * Largura (px) da coluna da esquerda fora do celular em pé: painel no tablet e no celular
-   * deitado, e a fila. A partir de `asideUp` a coluna segue as medidas do computador.
+   * Largura (px) da coluna da esquerda com colunas laterais: painel (deitado) e fila. A partir de
+   * `asideUp` a coluna segue as medidas do computador.
    */
   columnWidth?: number;
 };
 
 /**
  * As zonas da partida. O template decide ONDE cada zona aparece em cada tamanho; a página
- * decide O QUE vai dentro. Os cinco tamanhos:
+ * decide O QUE vai dentro. Em pé até 1279 px é empilhado; deitado ou a partir de 1280 px há
+ * colunas laterais (`media.side`):
  *
- * - Celular em pé (< `tabletUp`): mapa, painel e o rail deitado no rodapé. O painel EMPURRA o
- *   mapa (com `panelHalf`, divide a altura ao meio). A ficha é uma folha por trás do rodapé e
- *   o Histórico, uma gaveta com véu.
- * - Celular deitado (altura baixa, vale sobre os outros): rail em pé, coluna de `columnWidth`,
- *   Histórico de 200 e a ficha no lugar da coluna; com `queue`, a fila ocupa a metade de baixo
- *   da coluna.
- * - Tablet (`tabletUp`): o jogador mantém o painel embaixo (passando sob o Histórico de 280) e o
- *   rodapé até `railUp`; o mestre (com `queue`) já tem rail em pé, a coluna dividida em painel e
- *   fila e, até `railUp`, Histórico de 200. A ficha aberta toma o lugar da coluna.
+ * - Empilhado, celular em pé (< 600 px): mapa, painel e o rail deitado no rodapé. O painel
+ *   EMPURRA o mapa (com `panelHalf`, divide a altura ao meio). A ficha é uma folha por trás do
+ *   rodapé e o Histórico, uma gaveta com véu.
+ * - Empilhado, tablet em pé (`media.tabletPortrait`): o mesmo, com o Histórico em coluna
+ *   encaixada de 200 só na faixa do mapa (painel e rodapé passam por baixo, na largura toda).
+ * - Colunas laterais (deitado, abaixo de 1280 px): rail em pé, coluna de `columnWidth`, Histórico
+ *   de 280 e a ficha aberta no lugar da coluna; com `queue`, a fila ocupa a metade de baixo.
+ * - Celular deitado (altura baixa, vale sobre os outros, por último): como as colunas, com
+ *   Histórico de 200; a fila só divide a coluna quando há altura.
  * - Computador (`asideUp`): a ficha vira caixa de até 420 sobre o mapa; a aba Ficha do jogador
  *   alarga para 420.
  * - Widescreen (`wideUp`): a fila do mestre vira coluna própria à esquerda do painel.
@@ -135,9 +136,9 @@ export default function MatchStageTemplate({
             <SheetBody>{sheet}</SheetBody>
           </SheetZone>
         )}
-        <RailZone $queue={!!queue}>{rail}</RailZone>
+        <RailZone>{rail}</RailZone>
         {aside && (
-          <AsideZone data-testid="match-aside" data-open={asideOpen} $open={asideOpen} $queue={!!queue}>
+          <AsideZone data-testid="match-aside" data-open={asideOpen} $open={asideOpen}>
             {aside}
           </AsideZone>
         )}

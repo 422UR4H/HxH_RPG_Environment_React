@@ -1,46 +1,24 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { useMatchLayout, queueIsSplit, type MatchLayout } from "../useMatchLayout";
+import { mockScreen, type TestScreen } from "../../../../test/mockScreen";
 
 const original = window.matchMedia;
-
-function mockScreen({ width, height, landscape = false }: { width: number; height: number; landscape?: boolean }) {
-  window.matchMedia = ((query: string) => {
-    const minW = /min-width:\s*(\d+)px/.exec(query);
-    const minH = /min-height:\s*(\d+)px/.exec(query);
-    const maxH = /max-height:\s*(\d+)px/.exec(query);
-    let matches: boolean;
-    if (query.includes("orientation: landscape")) {
-      matches = landscape && (!maxH || height <= Number(maxH[1]));
-    } else if (minW) {
-      matches = width >= Number(minW[1]);
-    } else if (minH) {
-      matches = height >= Number(minH[1]);
-    } else {
-      matches = false;
-    }
-    return {
-      matches,
-      media: query,
-      addEventListener: () => {},
-      removeEventListener: () => {},
-      addListener: () => {},
-      removeListener: () => {},
-      onchange: null,
-      dispatchEvent: () => false,
-    };
-  }) as typeof window.matchMedia;
-}
 
 afterEach(() => {
   window.matchMedia = original;
 });
 
+function layoutAt(s: TestScreen): MatchLayout {
+  mockScreen(s);
+  return renderHook(() => useMatchLayout()).result.current;
+}
+
 describe("useMatchLayout", () => {
   it("treats the jsdom default as a portrait phone", () => {
     const { result } = renderHook(() => useMatchLayout());
     expect(result.current).toEqual({
-      phonePortrait: true,
+      stacked: true,
       landscape: false,
       landscapeSplit: false,
       wide: false,
@@ -49,11 +27,60 @@ describe("useMatchLayout", () => {
     });
   });
 
+  it("stacks a portrait phone with the Histórico as a drawer", () => {
+    expect(layoutAt({ width: 390, height: 844 })).toEqual({
+      stacked: true,
+      landscape: false,
+      landscapeSplit: false,
+      wide: false,
+      asideIsDrawer: true,
+      sheetReplacesColumn: false,
+    });
+  });
+
+  it("stacks a portrait tablet with the Histórico as a column", () => {
+    const layout = layoutAt({ width: 753, height: 1205 });
+    expect(layout.stacked).toBe(true);
+    expect(layout.asideIsDrawer).toBe(false);
+    expect(layout.sheetReplacesColumn).toBe(false);
+    expect(queueIsSplit(layout)).toBe(false);
+  });
+
+  it("stacks every portrait screen up to 1279 px", () => {
+    for (const s of [{ width: 600, height: 960 }, { width: 768, height: 1024 }, { width: 1024, height: 1366 }]) {
+      const layout = layoutAt(s);
+      expect(layout.stacked).toBe(true);
+      expect(layout.asideIsDrawer).toBe(false);
+    }
+    expect(layoutAt({ width: 599, height: 960 }).asideIsDrawer).toBe(true);
+  });
+
+  it("uses side columns on a landscape tablet, with the split queue and the sheet in place of the column", () => {
+    const layout = layoutAt({ width: 1024, height: 768 });
+    expect(layout.stacked).toBe(false);
+    expect(layout.landscape).toBe(false);
+    expect(layout.asideIsDrawer).toBe(false);
+    expect(queueIsSplit(layout)).toBe(true);
+    expect(layout.sheetReplacesColumn).toBe(true);
+  });
+
+  it("uses side columns from 1280 px without the sheet in place of the column", () => {
+    const layout = layoutAt({ width: 1400, height: 900 });
+    expect(layout.stacked).toBe(false);
+    expect(queueIsSplit(layout)).toBe(true);
+    expect(layout.sheetReplacesColumn).toBe(false);
+  });
+
+  it("uses side columns on a low desktop window below 1024 px", () => {
+    const layout = layoutAt({ width: 900, height: 700 });
+    expect(layout.stacked).toBe(false);
+    expect(layout.landscape).toBe(false);
+    expect(layout.sheetReplacesColumn).toBe(true);
+  });
+
   it("reports a landscape phone tall enough to split", () => {
-    mockScreen({ width: 844, height: 390, landscape: true });
-    const { result } = renderHook(() => useMatchLayout());
-    expect(result.current).toEqual({
-      phonePortrait: false,
+    expect(layoutAt({ width: 844, height: 390 })).toEqual({
+      stacked: false,
       landscape: true,
       landscapeSplit: true,
       wide: false,
@@ -63,75 +90,28 @@ describe("useMatchLayout", () => {
   });
 
   it("reports a short landscape phone that cannot split", () => {
-    mockScreen({ width: 844, height: 330, landscape: true });
-    const { result } = renderHook(() => useMatchLayout());
-    expect(result.current.landscape).toBe(true);
-    expect(result.current.landscapeSplit).toBe(false);
-  });
-
-  it("reports a portrait tablet as neither phone nor wide", () => {
-    mockScreen({ width: 768, height: 1024 });
-    const { result } = renderHook(() => useMatchLayout());
-    expect(result.current).toEqual({
-      phonePortrait: false,
-      landscape: false,
-      landscapeSplit: false,
-      wide: false,
-      asideIsDrawer: false,
-      sheetReplacesColumn: true,
-    });
+    const layout = layoutAt({ width: 907, height: 303 });
+    expect(layout.landscape).toBe(true);
+    expect(layout.landscapeSplit).toBe(false);
+    expect(queueIsSplit(layout)).toBe(false);
+    expect(layout.sheetReplacesColumn).toBe(true);
   });
 
   it("reports widescreen from 1600 px", () => {
-    mockScreen({ width: 1600, height: 900 });
-    const { result } = renderHook(() => useMatchLayout());
-    expect(result.current.wide).toBe(true);
+    expect(layoutAt({ width: 1600, height: 900 }).wide).toBe(true);
   });
 
-  it("never reports widescreen in landscape-phone mode", () => {
-    mockScreen({ width: 1700, height: 500, landscape: true });
-    const { result } = renderHook(() => useMatchLayout());
-    expect(result.current.wide).toBe(false);
-    expect(result.current.landscape).toBe(true);
-  });
-
-  describe("sheetReplacesColumn", () => {
-    it("is true on a landscape phone, short or tall", () => {
-      mockScreen({ width: 844, height: 330, landscape: true });
-      expect(renderHook(() => useMatchLayout()).result.current.sheetReplacesColumn).toBe(true);
-      mockScreen({ width: 844, height: 390, landscape: true });
-      expect(renderHook(() => useMatchLayout()).result.current.sheetReplacesColumn).toBe(true);
-    });
-
-    it("is true between 768 and 1279 px", () => {
-      mockScreen({ width: 768, height: 1024 });
-      expect(renderHook(() => useMatchLayout()).result.current.sheetReplacesColumn).toBe(true);
-      mockScreen({ width: 1279, height: 800 });
-      expect(renderHook(() => useMatchLayout()).result.current.sheetReplacesColumn).toBe(true);
-    });
-
-    it("is false on a portrait phone", () => {
-      mockScreen({ width: 390, height: 800 });
-      expect(renderHook(() => useMatchLayout()).result.current.sheetReplacesColumn).toBe(false);
-    });
-
-    it("is false from 1280 px outside the landscape phone", () => {
-      mockScreen({ width: 1280, height: 800 });
-      expect(renderHook(() => useMatchLayout()).result.current.sheetReplacesColumn).toBe(false);
-      mockScreen({ width: 1700, height: 900 });
-      expect(renderHook(() => useMatchLayout()).result.current.sheetReplacesColumn).toBe(false);
-    });
-
-    it("stays true on a low window wider than 1280 px (the landscape phone wins)", () => {
-      mockScreen({ width: 1700, height: 500, landscape: true });
-      expect(renderHook(() => useMatchLayout()).result.current.sheetReplacesColumn).toBe(true);
-    });
+  it("never reports widescreen in landscape-phone mode, and keeps the sheet in place of the column there", () => {
+    const layout = layoutAt({ width: 1700, height: 500 });
+    expect(layout.wide).toBe(false);
+    expect(layout.landscape).toBe(true);
+    expect(layout.sheetReplacesColumn).toBe(true);
   });
 });
 
 describe("queueIsSplit", () => {
   const layout = (over: Partial<MatchLayout>): MatchLayout => ({
-    phonePortrait: false,
+    stacked: false,
     landscape: false,
     landscapeSplit: false,
     wide: false,
@@ -140,8 +120,9 @@ describe("queueIsSplit", () => {
     ...over,
   });
 
-  it("is false on a portrait phone", () => {
-    expect(queueIsSplit(layout({ phonePortrait: true, asideIsDrawer: true }))).toBe(false);
+  it("is false when stacked", () => {
+    expect(queueIsSplit(layout({ stacked: true, asideIsDrawer: true }))).toBe(false);
+    expect(queueIsSplit(layout({ stacked: true }))).toBe(false);
   });
 
   it("is false on a short landscape phone", () => {
@@ -152,7 +133,7 @@ describe("queueIsSplit", () => {
     expect(queueIsSplit(layout({ landscape: true, landscapeSplit: true }))).toBe(true);
   });
 
-  it("is true on tablet, desktop and widescreen", () => {
+  it("is true with side columns on tablet, desktop and widescreen", () => {
     expect(queueIsSplit(layout({}))).toBe(true);
     expect(queueIsSplit(layout({ wide: true }))).toBe(true);
   });

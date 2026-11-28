@@ -134,10 +134,11 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
   const { panelOpen, setPanelOpen, asideOpen, setAsideOpen, sheetOpen, setSheetOpen, closeAsideIfDrawer } =
     useStageOverlays();
 
-  // Celular em pé: a ficha é uma folha por cima do mapa; widescreen: uma caixa ao lado do painel.
+  // Empilhado (celular ou tablet em pé): a ficha é uma folha por cima do mapa; widescreen: uma
+  // caixa ao lado do painel.
   // Nos outros tamanhos ela continua no painel (aba "Ficha"). A ficha é sempre a do próprio personagem.
   const layout = useMatchLayout();
-  const sheetAsZone = layout.phonePortrait || layout.wide;
+  const sheetAsZone = layout.stacked || layout.wide;
 
   // Trocar de tamanho com a ficha aberta não a fecha: ela muda de lugar (painel <-> zona).
   const wasZone = useRef(sheetAsZone);
@@ -149,7 +150,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
         setRailActive("acao");
         if (panelOpen) {
           setSheetOpen(true);
-          if (layout.phonePortrait) setPanelOpen(false);
+          if (layout.stacked) setPanelOpen(false);
         }
       }
     } else if (sheetOpen) {
@@ -157,19 +158,19 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
       setRailActive("ficha");
       setPanelOpen(true);
     }
-  }, [sheetAsZone, sheetOpen, railActive, panelOpen, layout.phonePortrait, setPanelOpen, setSheetOpen]);
+  }, [sheetAsZone, sheetOpen, railActive, panelOpen, layout.stacked, setPanelOpen, setSheetOpen]);
 
   // Abre a ficha do próprio personagem onde ela mora no tamanho atual.
   const openSheet = useCallback(() => {
     if (sheetAsZone) {
       setSheetOpen(true);
-      // A folha cobre o painel no celular em pé: abrir uma fecha a outra.
-      if (layout.phonePortrait) setPanelOpen(false);
+      // A folha cobre o painel no empilhado (celular ou tablet em pé): abrir uma fecha a outra.
+      if (layout.stacked) setPanelOpen(false);
     } else {
       setRailActive("ficha");
       setPanelOpen(true);
     }
-  }, [sheetAsZone, layout.phonePortrait, setPanelOpen, setSheetOpen]);
+  }, [sheetAsZone, layout.stacked, setPanelOpen, setSheetOpen]);
 
   const handleRailSelect = useCallback(
     (id: string) => {
@@ -179,7 +180,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
           else openSheet();
           return;
         }
-        if (layout.phonePortrait) setSheetOpen(false);
+        if (layout.stacked) setSheetOpen(false);
         setPanelOpen((o) => !o);
         return;
       }
@@ -190,7 +191,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
       setRailActive(id as RailTab);
       setPanelOpen(true);
     },
-    [sheetAsZone, sheetOpen, openSheet, layout.phonePortrait, railActive, setPanelOpen, setSheetOpen],
+    [sheetAsZone, sheetOpen, openSheet, layout.stacked, railActive, setPanelOpen, setSheetOpen],
   );
 
   const pieceCharacter = useCallback(

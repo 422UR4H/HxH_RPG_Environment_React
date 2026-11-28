@@ -4,10 +4,10 @@ import { colors } from "../../styles/tokens";
 import { iconButtonFx } from "../../styles/iconButtonFx";
 import CloseButton from "../ions/CloseButton";
 
-/** Altura do rodapé: o rail deita no celular em pé e, sem `queue`, até `railUp`; no celular deitado ele é sempre coluna. */
+/** Altura do rodapé: o rail deita no empilhado (em pé até 1279 px); com colunas laterais (`media.side`) ele é coluna. */
 export const RAIL_BAR_HEIGHT = 56;
 
-// BF4: a gaveta (aside) é posicionada sobre o palco abaixo de `tabletUp` e precisa ficar
+// BF4: a gaveta (aside) é posicionada sobre o palco no celular em pé e precisa ficar
 // acima de QUALQUER coisa que flutue sobre o mapa. Pilha de baixo para cima:
 // - barra geral e botão de enquadrar do mapa: 30; pílula do relógio: 40;
 // - avisos do palco (`StageNotices`, onde mora o MatchErrorBanner): 50;
@@ -27,8 +27,8 @@ export const SHEET_SCRIM_Z_INDEX = 53;
 export const SHEET_Z_INDEX = 54;
 
 /*
- * Larguras fixas das colunas, em px. São as medidas do computador, valendo também no tablet e
- * no celular deitado: a coluna da esquerda não encolhe quando a tela encolhe.
+ * Larguras fixas das colunas, em px. São as medidas do computador, valendo também no tablet
+ * deitado e no celular deitado: a coluna da esquerda não encolhe quando a tela encolhe.
  */
 /** Coluna da esquerda do mestre: painel e fila. */
 export const MASTER_COLUMN_WIDTH = 320;
@@ -38,7 +38,7 @@ export const PLAYER_COLUMN_WIDTH = 340;
 const PLAYER_SHEET_TAB_WIDTH = 420;
 /** O Histórico em coluna. */
 export const ASIDE_WIDTH = 280;
-/** O Histórico onde 280 não cabe: celular deitado e tablet em pé do mestre. */
+/** O Histórico onde 280 não cabe: celular deitado e tablet em pé (coluna só na faixa do mapa). */
 export const ASIDE_NARROW_WIDTH = 200;
 /** A ficha do mestre quando toma o lugar da coluna da esquerda. */
 export const SHEET_COLUMN_WIDTH = 340;
@@ -46,10 +46,11 @@ export const SHEET_COLUMN_WIDTH = 340;
 const ASIDE_DRAWER_WIDTH = `min(86%, ${ASIDE_WIDTH}px)`;
 
 /**
- * Faixa (fora o celular deitado) em que a ficha do mestre toma o lugar da coluna da esquerda: de
- * `tabletUp` até antes de `asideUp`. A partir de `asideUp` ela volta a ser caixa sobre o mapa.
+ * Colunas laterais abaixo de `asideUp` (deitado, até 1279 px): a ficha do mestre toma o lugar da
+ * coluna da esquerda. Junto com o celular deitado, é onde `sheetReplacesColumn` vale. A partir de
+ * `asideUp` ela volta a ser caixa sobre o mapa.
  */
-const belowAsideUp = `@media (min-width: ${breakpoints.tabletUp}px) and (max-width: ${breakpoints.asideUp - 1}px)`;
+const sideBelowAsideUp = `@media (orientation: landscape) and (max-width: ${breakpoints.asideUp - 1}px)`;
 
 /* Coluna lateral do painel/fila: largura fixa, sem teto de altura, divisória à direita. */
 const sideColumn = (width: string) => css`
@@ -59,7 +60,7 @@ const sideColumn = (width: string) => css`
   border-right: 1px solid ${colors.surfaceInput};
 `;
 
-/* Grade com o rail em pé e (opcional) a fila embaixo do painel: tablet do mestre e celular deitado dividido. */
+/* Grade com o rail em pé e a fila embaixo do painel: mestre com colunas laterais (e celular deitado dividido). */
 const queueSplitGrid = css`
   grid-template-columns: 72px auto minmax(0, 1fr) auto;
   grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
@@ -68,14 +69,14 @@ const queueSplitGrid = css`
     "rail queue stage aside";
 `;
 
-/* Grade de uma coluna de painel só: jogador a partir de railUp e celular deitado sem fila. */
+/* Grade de uma coluna de painel só: jogador com colunas laterais e celular deitado sem fila. */
 const singleColumnGrid = css`
   grid-template-columns: 72px auto minmax(0, 1fr) auto;
   grid-template-rows: minmax(0, 1fr);
   grid-template-areas: "rail panel stage aside";
 `;
 
-/* O Histórico vira coluna encaixada (tablet em diante e celular deitado): sem sombra, sem véu. */
+/* O Histórico vira coluna encaixada (tablet em pé, colunas laterais, celular deitado): sem sombra, sem véu. */
 const asideColumn = (width: number) => css`
   position: static;
   grid-area: aside;
@@ -160,22 +161,17 @@ export const Middle = styled.div<{ $queue: boolean; $half: boolean }>`
     "panel"
     "rail";
 
-  ${media.tabletUp} {
-    ${({ $queue }) =>
-      $queue
-        ? queueSplitGrid
-        : css`
-            /* Jogador no tablet em pé: o painel passa por baixo do Histórico. */
-            grid-template-columns: minmax(0, 1fr) auto;
-            grid-template-rows: minmax(0, 1fr) auto ${RAIL_BAR_HEIGHT}px;
-            grid-template-areas:
-              "stage aside"
-              "panel panel"
-              "rail rail";
-          `}
+  /* Tablet em pé: o empilhado do celular com o Histórico em coluna só na faixa do mapa; o painel
+     e a navegação passam por baixo dele, na largura toda. */
+  ${media.tabletPortrait} {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "stage aside"
+      "panel panel"
+      "rail rail";
   }
-  ${media.railUp} {
-    ${({ $queue }) => !$queue && singleColumnGrid}
+  ${media.side} {
+    ${({ $queue }) => ($queue ? queueSplitGrid : singleColumnGrid)}
   }
   ${media.wideUp} {
     ${({ $queue }) =>
@@ -210,8 +206,8 @@ const railUpright = css`
   --rail-item-min-height: 64px;
 `;
 
-/* Rodapé deitado ou coluna em pé. Um componente, duas formas; o RailNav lê as variáveis. */
-export const RailZone = styled.nav<{ $queue: boolean }>`
+/* Rodapé deitado (empilhado) ou coluna em pé (colunas laterais). Um componente, duas formas; o RailNav lê as variáveis. */
+export const RailZone = styled.nav`
   grid-area: rail;
   position: relative;
   z-index: ${NAV_Z_INDEX};
@@ -223,10 +219,7 @@ export const RailZone = styled.nav<{ $queue: boolean }>`
   --rail-item-flex: 1;
   --rail-item-min-height: auto;
 
-  ${media.tabletUp} {
-    ${({ $queue }) => $queue && railUpright}
-  }
-  ${media.railUp} {
+  ${media.side} {
     ${railUpright}
   }
   ${media.landscapePhone} {
@@ -255,17 +248,14 @@ export const PanelZone = styled.section<{
   background: ${colors.surfaceSidebar};
   border-top: 1px solid ${colors.surfaceInput};
 
-  ${media.tabletUp} {
-    ${({ $queue, $columnWidth }) => ($queue ? sideColumn(`${$columnWidth}px`) : "max-height: 42dvh;")}
-  }
-  ${media.railUp} {
-    ${({ $queue, $columnWidth }) => !$queue && sideColumn(`${$columnWidth}px`)}
+  ${media.side} {
+    ${({ $columnWidth }) => sideColumn(`${$columnWidth}px`)}
   }
   ${media.asideUp} {
     ${({ $queue, $wide }) =>
       sideColumn(`${$queue ? MASTER_COLUMN_WIDTH : $wide ? PLAYER_SHEET_TAB_WIDTH : PLAYER_COLUMN_WIDTH}px`)}
   }
-  ${belowAsideUp} {
+  ${sideBelowAsideUp} {
     ${hiddenBySheet}
   }
   /* O celular deitado vale sobre os outros: por último. */
@@ -287,7 +277,7 @@ export const QueueZone = styled.section<{ $columnWidth: number; $sheetInColumn: 
   border-top: 1px solid ${colors.surfaceInput};
   border-right: 1px solid ${colors.surfaceInput};
 
-  ${media.tabletUp} {
+  ${media.side} {
     display: block;
     width: ${({ $columnWidth }) => $columnWidth}px;
   }
@@ -298,7 +288,7 @@ export const QueueZone = styled.section<{ $columnWidth: number; $sheetInColumn: 
     width: 240px;
     border-top: none;
   }
-  ${belowAsideUp} {
+  ${sideBelowAsideUp} {
     ${hiddenBySheet}
   }
   ${media.landscapePhone} {
@@ -310,9 +300,9 @@ export const QueueZone = styled.section<{ $columnWidth: number; $sheetInColumn: 
 `;
 
 /*
- * Celular em pé: folha sobre o Middle, por trás da navegação. De `tabletUp` até antes de
- * `asideUp` e no celular deitado: no lugar da coluna da esquerda. A partir de `asideUp`: caixa
- * sobre o mapa.
+ * Empilhado (celular e tablet em pé): folha sobre o Middle, por trás da navegação. Com colunas
+ * laterais abaixo de `asideUp` e no celular deitado: no lugar da coluna da esquerda. A partir de
+ * `asideUp`: caixa sobre o mapa.
  */
 export const SheetZone = styled.aside<{ $open: boolean }>`
   position: absolute;
@@ -328,7 +318,7 @@ export const SheetZone = styled.aside<{ $open: boolean }>`
   border-radius: 22px 22px 0 0;
   box-shadow: 0 -8px 30px ${colors.shadowStrong};
 
-  ${belowAsideUp} {
+  ${sideBelowAsideUp} {
     ${sheetColumn}
   }
   ${media.asideUp} {
@@ -361,10 +351,8 @@ export const SheetCloseX = styled.button`
   line-height: 0;
   ${iconButtonFx(1.15)}
 
-  ${media.tabletUp} {
-    display: none;
-  }
-  ${media.landscapePhone} {
+  /* O X é só da folha (empilhado). */
+  ${media.side} {
     display: none;
   }
 `;
@@ -384,10 +372,10 @@ export const SheetScrim = styled.div`
 `;
 
 /*
- * Gaveta sobre o mapa no celular em pé (com sombra e véu). Nos demais tamanhos, coluna encaixada
- * de 280; 200 onde não cabe: no celular deitado e no tablet em pé do mestre (com `queue`).
+ * Gaveta sobre o mapa no celular em pé (com sombra e véu). No tablet em pé, coluna encaixada de
+ * 200 só na faixa do mapa; com colunas laterais, coluna de 280; no celular deitado, 200.
  */
-export const AsideZone = styled.aside<{ $open: boolean; $queue: boolean }>`
+export const AsideZone = styled.aside<{ $open: boolean }>`
   position: absolute;
   top: 0;
   right: 0;
@@ -402,28 +390,27 @@ export const AsideZone = styled.aside<{ $open: boolean; $queue: boolean }>`
   border-left: 1px solid ${colors.surfaceInput};
   box-shadow: -8px 0 24px ${colors.shadowStrong};
 
-  ${media.tabletUp} {
-    ${({ $queue }) => asideColumn($queue ? ASIDE_NARROW_WIDTH : ASIDE_WIDTH)}
+  ${media.tabletPortrait} {
+    ${asideColumn(ASIDE_NARROW_WIDTH)}
+    /* Sem a pilha da gaveta: a folha da ficha, que abre por cima, passa na frente da coluna. */
+    z-index: auto;
   }
-  ${media.railUp} {
-    width: ${ASIDE_WIDTH}px;
+  ${media.side} {
+    ${asideColumn(ASIDE_WIDTH)}
   }
   ${media.landscapePhone} {
     ${asideColumn(ASIDE_NARROW_WIDTH)}
   }
 `;
 
-/* Véu sobre o palco inteiro: só existe como modal abaixo de railUp em pé (a partir dali o painel é coluna). */
+/* Véu sobre o palco inteiro: só existe no empilhado (com colunas laterais o painel é coluna). */
 export const PanelScrim = styled.div`
   position: absolute;
   inset: 0;
   z-index: ${SCRIM_Z_INDEX};
   background: ${colors.overlayScrim};
 
-  ${media.railUp} {
-    display: none;
-  }
-  ${media.landscapePhone} {
+  ${media.side} {
     display: none;
   }
 `;
@@ -435,10 +422,10 @@ export const AsideScrim = styled.div`
   z-index: ${SCRIM_Z_INDEX};
   background: ${colors.overlayScrim};
 
-  ${media.tabletUp} {
+  ${media.tabletPortrait} {
     display: none;
   }
-  ${media.landscapePhone} {
+  ${media.side} {
     display: none;
   }
 `;

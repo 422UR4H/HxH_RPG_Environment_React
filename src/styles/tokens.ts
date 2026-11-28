@@ -74,7 +74,7 @@ export const colors = {
   // surface — opacas
   surfaceSidebar: palette.brown900, // fundo da sidebar de personagens/regras
   surfaceSidebarGutter: palette.brown950, // as laterais de 8 px da lista de personagens, mais escuras que o miolo
-  surfaceTabStrip: palette.brown950, // faixa das abas Histórico/Personagens da coluna da mesa
+  surfaceTabStrip: palette.brown850, // faixa das abas Histórico/Personagens da coluna da mesa (pedido do dono: Marrom 850)
   surfaceRecessed: palette.brown950, // fundo rebaixado de painel da mesa (a fila do mestre)
   surfaceInput: palette.brown700, // fundo de campo de formulário e de seção de regra
   surfaceInputHover: palette.brown850, // hover de linha e de item na mesa (fila, eventos, compositor)
