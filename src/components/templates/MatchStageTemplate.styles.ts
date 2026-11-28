@@ -11,6 +11,7 @@ import {
 } from "../../styles/breakpoints";
 import { colors } from "../../styles/tokens";
 import { iconButtonFx } from "../../styles/iconButtonFx";
+import { scrollbarTrackInset } from "../../styles/scrollbar";
 import CloseButton from "../ions/CloseButton";
 import type { AsideMode } from "./MatchStageTemplate.types";
 
@@ -343,8 +344,8 @@ export const QueueZone = styled.section<{ $columnWidth: number; $sheetInColumn: 
  */
 export const SheetZone = styled.aside<{ $open: boolean; $queue: boolean }>`
   position: absolute;
-  left: 8px;
-  right: 8px;
+  left: 16px;
+  right: 16px;
   top: 20%;
   bottom: 0;
   z-index: ${SHEET_Z_INDEX};
@@ -383,6 +384,8 @@ export const SheetBody = styled.div`
   overflow-x: hidden;
   overscroll-behavior: contain;
   border-radius: inherit;
+  /* Trilho abaixo do canto arredondado de cima (22 px, o raio da folha). */
+  ${scrollbarTrackInset(22)}
 `;
 
 export const SheetCloseX = styled.button`
