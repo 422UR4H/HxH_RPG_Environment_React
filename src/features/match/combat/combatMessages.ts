@@ -59,9 +59,9 @@ export type BarsPayload = {
 export type QueuedActionDetail = HistoryAction;
 
 /**
- * `conditions`/`damageSkill`: o que o mestre editou nela ainda na fila (`edit_action` com o
- * `actionId` dela). `conditions` no formato de `resolution.conditions` (ausente sem nenhuma);
- * `damageSkill` só com ataque. Um `action_queued` de um `actionId` já conhecido substitui a entrada.
+ * `conditions`: o que o mestre editou nela ainda na fila (`edit_action` com o `actionId` dela),
+ * no formato de `resolution.conditions` (ausente sem nenhuma). `damageSkill` só vem com ataque
+ * (sempre "Force"; leitura apenas — serve para saber que há ataque). Um `action_queued` de um `actionId` já conhecido substitui a entrada.
  */
 export type QueuedAction = {
   actionId: string;
@@ -256,8 +256,8 @@ export type ResolutionPayload = {
   pendingReactions?: PendingReaction[];
   errors?: ResolutionError[];
   /**
-   * A perícia que mediu o dano ("Push" se o mestre não trocou). Presente SÓ quando a ação tem
-   * ataque — é assim que o painel sabe que há acerto e dano para editar.
+   * A perícia que mede o dano (sempre "Force"; só leitura, o mestre não a troca). Presente SÓ
+   * quando a ação tem ataque — é assim que o painel sabe que há acerto e dano para editar.
    */
   damageSkill?: string;
   /** As condições do mestre em vigor. Só o mestre, só com o turno aberto; ausente = nada editado. */
@@ -362,16 +362,14 @@ export type MasterActionPayload =
 /**
  * `edit_action` (c→s, só o mestre). Toda seção é opcional. `actionId` ausente = a ação
  * própria do turno; senão, o id de uma reação (aberta ou não, a padrão sentada inclusive) ou de
- * uma ação ainda NA FILA — aí só `conditions` e `damageSkill`, e a resposta é o `action_queued`
+ * uma ação ainda NA FILA — aí só `conditions`, e a resposta é o `action_queued`
  * que a redescreve, não um `resolution_updated`. `conditions` se aplica POR ROLAGEM, e uma
- * entrada zerada (`{ field }`) desfaz a edição daquela rolagem. `damageSkill` troca a perícia
- * do dano. `escapeLanding` (F14): `actionId` é o da reação de fuga; `position: null` limpa.
+ * entrada zerada (`{ field }`) desfaz a edição daquela rolagem. `escapeLanding` (F14): `actionId` é o da reação de fuga; `position: null` limpa.
  * `skills`/`targetIds` existem no contrato e ficam fora: editar perícias espera a corrente de
  * testes, e alvos não estão no escopo da Fase 8.
  */
 export type EditActionPayload = {
   actionId?: string;
   conditions?: ConditionEdit[];
-  damageSkill?: string;
   escapeLanding?: { position: [number, number, number] | null };
 };

@@ -156,9 +156,9 @@ function getBaseSkillsForType(type: "physical" | "spiritual") {
         "energy",
         "vitality",
         // strength
-        "carry",
+        "charge",
+        "force",
         "grab",
-        "push",
         // agility
         "accelerate",
         "brake",

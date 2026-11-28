@@ -4,8 +4,8 @@ import { colors } from "../../../styles/tokens";
 import type { EditActionPayload, ResolutionPayload } from "./combatMessages";
 import { orderPending, wallOutcomeText } from "./resolutionText";
 import { avoidedVerb, REACTION_KIND_LABELS, RUNG_LABELS } from "./combatText";
-import { SYSTEM_BIAS_REASON, damageSkillPayload, editableRolls, systemBiasText, type EditableRoll } from "./rollEdits";
-import { DamageSkillPicker, RollEditLine } from "./RollEditLine";
+import { SYSTEM_BIAS_REASON, editableRolls, systemBiasText, type EditableRoll } from "./rollEdits";
+import { RollEditLine } from "./RollEditLine";
 
 /**
  * O cálculo do turno aberto, que só o mestre recebe (F7). Os botões são três, e só onde a
@@ -98,10 +98,6 @@ export default function ResolutionDetails({
       {resolution.damageSkill !== undefined && onEditAction && (
         <Block>
           <Label>Dano</Label>
-          <DamageSkillPicker
-            current={resolution.damageSkill}
-            onPick={(skill) => onEditAction(damageSkillPayload(skill))}
-          />
           {damageRoll && renderRoll(damageRoll)}
         </Block>
       )}

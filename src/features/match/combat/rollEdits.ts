@@ -186,11 +186,6 @@ export function conditionPayload(roll: EditableRoll, draft: RollCondition): Edit
   });
 }
 
-/** A perícia do dano; `actionId` só para a ação na fila (a do turno vai sem id). */
-export function damageSkillPayload(skill: string, actionId?: string): EditActionPayload {
-  return actionId ? { actionId, damageSkill: skill } : { damageSkill: skill };
-}
-
 /** U+2212, o mesmo sinal de menos do resto do painel. */
 const signed = (n: number) => (n > 0 ? `+${n}` : `−${-n}`);
 

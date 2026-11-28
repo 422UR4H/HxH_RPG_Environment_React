@@ -7,8 +7,8 @@ import { BAR_ICONS, BAR_LABELS, costLabel, formatSlot, weaponLabel } from "./com
 import { fmt } from "./barsMath";
 import { orderQueue } from "./queueOrder";
 import ResolutionDetails from "./ResolutionDetails";
-import { DamageSkillPicker, RollEditLine } from "./RollEditLine";
-import { damageSkillPayload, describeCondition, queuedRolls } from "./rollEdits";
+import { RollEditLine } from "./RollEditLine";
+import { describeCondition, queuedRolls } from "./rollEdits";
 
 /**
  * Os ajustes do mestre numa ação ainda na fila: as rolagens que `queuedRolls` oferece, cada uma
@@ -44,12 +44,6 @@ function QueuedActionEdits({
           onSend={onEditAction}
         />
       ))}
-      {queued.damageSkill !== undefined && (
-        <DamageSkillPicker
-          current={queued.damageSkill}
-          onPick={(skill) => onEditAction(damageSkillPayload(skill, queued.actionId))}
-        />
-      )}
       <EditsNote>Mexer na velocidade muda o lugar na fila. O jogador não vê estes ajustes.</EditsNote>
     </Edits>
   );

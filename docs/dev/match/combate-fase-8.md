@@ -28,7 +28,7 @@ botão **Editar**, e o painel fica completo.
 | Total na linha | Esquiva mostra `dodgeTotal`, Defesa padrão `defenseTotal`, Aparo `reaction.total`. **Movimento não mostra total** (o painel não tem esse número à mão). |
 | Resumo em vigor | Ao lado de "Editar", em cor de aviso (`warningText`), o texto da condição que o servidor tem: "vantagem · −2 · escuridão". Vem de `resolution.conditions`, não do que o mestre digitou. |
 | Editor | Abre **inline**, embaixo da linha, um por vez: viés (Desvantagem / Normal / Vantagem, só onde cabe), Ajuste (inteiro, aceita negativo), Motivo (até 80 caracteres, opcional) e os botões Aplicar, Desfazer edição (só com condição em vigor) e Cancelar. Abre preenchido com a condição em vigor. |
-| Push / Grab | No bloco Dano, "medido por" com dois botões de alternância; o atual (`resolution.damageSkill`) fica `aria-pressed` e destacado (preenchimento verde). Clicar no outro manda `{ damageSkill }` na hora, sem Aplicar; clicar no que já está marcado não manda nada. Uma perícia fora das duas aparece como terceiro botão marcado e **desabilitado** (só leitura). |
+| Dano | O bloco Dano mostra só o resumo e o "Editar Dano" da condição. Não há seletor de perícia: o dano é sempre medido por Force (`resolution.damageSkill`, só leitura) e o servidor recusa `edit_action.damageSkill`. |
 
 Sem `onEditAction`, o `ResolutionDetails` não desenha **nenhum** botão de edição (nem o bloco
 Dano): o teste "sem onOpenReaction, não tem botão nenhum…" continua valendo. A página do mestre
@@ -68,8 +68,7 @@ alvo com `reaction` aberta, na ordem de `targets[]`. A tabela do contrato, como 
   `actionId`.
 - `conditionPayload(roll, draft)` monta `{ actionId?, conditions: [{ field, bias?, modifier?,
   description? }] }`: omite as chaves zeradas, apara o motivo e, com tudo neutro, devolve o
-  desfazer. `clearPayload(roll)` é a entrada zerada `{ field }`. `damageSkillPayload(skill)` é
-  `{ damageSkill }`. `describeCondition(c)` gera o resumo em vigor (sinal de menos U+2212).
+  desfazer. `clearPayload(roll)` é a entrada zerada `{ field }`. `describeCondition(c)` gera o resumo em vigor (sinal de menos U+2212).
 - **Cancelar é editar de volta.** A entrada zerada devolve a rolagem a "sem condição" e apaga a
   captura no servidor. Não há verbo de confirmação, e "Aplicar" com tudo neutro **é** o desfazer.
 
