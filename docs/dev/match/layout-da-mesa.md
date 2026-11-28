@@ -19,13 +19,18 @@ Tab S9, mede 753 px CSS em pé).
 | Celular em pé | empilhado, < 600 (`TABLET_PORTRAIT_MIN_WIDTH`) |
 | Tablet em pé | empilhado, ≥ 600 (`TABLET_PORTRAIT_QUERY`, `media.tabletPortrait`) |
 | Colunas laterais | `SIDE_LAYOUT_QUERY` = `(orientation: landscape), (min-width: 1280px)` (`media.side`) |
+| Colunas abaixo de 1280 | `SIDE_BELOW_ASIDE_UP_QUERY` (`media.sideBelowAsideUp`): onde, com o celular deitado, a ficha do mestre toma o lugar da coluna |
 | Celular deitado | `(orientation: landscape) and (max-height: 540px)` — também é `side`; vale sobre os outros |
 | Computador | `side`, 1280–1599 (`asideUp`) |
 | Widescreen | `side`, ≥ 1600 (`wideUp`) |
 
 O CSS é mobile-first: a base é o celular em pé; `media.tabletPortrait` e `media.side` sobrescrevem,
 e as regras do celular deitado vêm por último. No jsdom todo `matchMedia` responde falso, e isso é o
-celular em pé. Breakpoints com nome (`tabletUp` 768, `railUp` 1024, `asideUp` 1280, `wideUp` 1600),
+celular em pé. Todo teto de faixa que termina antes de 1280 é `1279.98px` (derivado de
+`breakpoints.asideUp`), não `1279px`: com largura fracionária (zoom da página), 1279.5 px não casaria
+com nenhuma das duas regras e o CSS discordaria do hook. O teste "the template's CSS queries agree
+with the hook" (`useMatchLayout.test.ts`) passa uma lista de telas pelas queries exportadas e pelo
+hook e exige que concordem. Breakpoints com nome (`tabletUp` 768, `railUp` 1024, `asideUp` 1280, `wideUp` 1600),
 nunca número solto; `tabletUp` e `media.phone` continuam dimensionando peças do header (pílula,
 barra, controles do mestre), não o layout. O celular deitado é reconhecido pela **altura**
 (`LANDSCAPE_PHONE_QUERY`), não pela largura: os Androids comuns deitados medem 640–740 px, e o
@@ -146,11 +151,13 @@ cena" e "Encerrar partida" ficam na aba Partida. Código: `HeaderRound`, `TurnCo
 
 Abrir ou fechar uma coluna lateral (o Histórico à direita, a ficha ou a coluna à esquerda) não mexe
 no mapa: cada ponto do tabuleiro fica no mesmo lugar da tela (pedido do dono, 2026-11-27). Quando o
-canvas muda **só de largura** (ou só de posição), o `ViewportInner` não reenquadra; mede a caixa do
-canvas na tela e soma a `vp.x`/`vp.y` o quanto a borda andou (`resizeShift`, em
-`src/features/tactical-map/stage/resizeAnchor.ts`). Quando a **altura** muda (o painel de baixo do
-celular, girar o aparelho), continua como antes: reenquadra, se ninguém arrastou nem deu zoom desde o
-último enquadramento. O botão Enquadrar e a abertura da mesa enquadram sempre. Vale onde há
+canvas muda **só de largura** (ou só de posição) **com a janela do mesmo tamanho**, o `ViewportInner`
+não reenquadra; mede a caixa do canvas na tela e soma a `vp.x`/`vp.y` o quanto a borda andou
+(`resizeShift`, em `src/features/tactical-map/stage/resizeAnchor.ts`; a caixa guarda também
+`window.innerWidth`). Continua como antes, reenquadrando se ninguém arrastou nem deu zoom desde o
+último enquadramento, quando muda a **altura** do canvas (o painel de baixo do celular, girar o
+aparelho) ou a **largura da janela** (encolher a janela, encaixá-la em meia tela, DevTools acoplado
+ao lado): aí não foi uma coluna, e o mapa parado podia ficar fora da tela. O botão Enquadrar e a abertura da mesa enquadram sempre. Vale onde há
 enquadramento automático (`fitRequest`: mesa, editor e posicionador de mapa). A camada Pixi não tem
 teste; só a função `resizeShift` tem.
 

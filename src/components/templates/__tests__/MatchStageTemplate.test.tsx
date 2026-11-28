@@ -7,9 +7,6 @@ import { media } from "../../../styles/breakpoints";
 
 const emittedCss = () => Array.from(document.querySelectorAll("style")).map((s) => s.textContent).join("\n");
 
-/** Colunas laterais abaixo de 1280 px: a ficha do mestre toma o lugar da coluna (fora o celular deitado). */
-const SIDE_BELOW_ASIDE_UP = "@media (orientation: landscape) and (max-width: 1279px)";
-
 /** O stylis tira o espaço depois da vírgula de uma lista de media queries ao emitir. */
 const emitted = (atMedia: string) => atMedia.replace(/,\s+/g, ",");
 
@@ -42,6 +39,7 @@ describe("MatchStageTemplate", () => {
   it("renders every zone it is given", () => {
     render(
       <MatchStageTemplate
+        columnWidth={MASTER_COLUMN_WIDTH}
         topbar={<div>topbar-zone</div>}
         rail={<div>rail-zone</div>}
         panel={<div>panel-zone</div>}
@@ -55,7 +53,14 @@ describe("MatchStageTemplate", () => {
   });
 
   it("omits the panel and the aside when they are not given", () => {
-    render(<MatchStageTemplate topbar={<div />} rail={<div />} stage={<div>stage-zone</div>} />);
+    render(
+      <MatchStageTemplate
+        columnWidth={MASTER_COLUMN_WIDTH}
+        topbar={<div />}
+        rail={<div />}
+        stage={<div>stage-zone</div>}
+      />,
+    );
     expect(screen.getByText("stage-zone")).toBeInTheDocument();
     expect(screen.queryByTestId("match-panel")).toBeNull();
     expect(screen.queryByTestId("match-aside")).toBeNull();
@@ -64,6 +69,7 @@ describe("MatchStageTemplate", () => {
   it("defaults panelOpen/asideOpen to true and reflects false", () => {
     const { rerender } = render(
       <MatchStageTemplate
+        columnWidth={MASTER_COLUMN_WIDTH}
         topbar={<div />}
         rail={<div />}
         panel={<div>panel-zone</div>}
@@ -76,6 +82,7 @@ describe("MatchStageTemplate", () => {
 
     rerender(
       <MatchStageTemplate
+        columnWidth={MASTER_COLUMN_WIDTH}
         topbar={<div />}
         rail={<div />}
         panel={<div>panel-zone</div>}
@@ -93,7 +100,13 @@ describe("MatchStageTemplate", () => {
   // dois, não uma camada fixa por cima.
   it("stacks stage, panel and rail as grid rows below railUp — the panel pushes, never covers", () => {
     render(
-      <MatchStageTemplate topbar={<div />} rail={<div />} panel={<div />} stage={<div />} />,
+      <MatchStageTemplate
+        columnWidth={MASTER_COLUMN_WIDTH}
+        topbar={<div />}
+        rail={<div />}
+        panel={<div />}
+        stage={<div />}
+      />,
     );
     const css = Array.from(document.querySelectorAll("style")).map((s) => s.textContent).join("\n");
     expect(css).toContain('grid-template-areas:"stage" "panel" "rail";');
@@ -101,7 +114,7 @@ describe("MatchStageTemplate", () => {
   });
 
   describe("véus em tela estreita", () => {
-    const base = { topbar: <div />, rail: <div />, stage: <div />, panel: <div />, aside: <div /> };
+    const base = { topbar: <div />, rail: <div />, stage: <div />, panel: <div />, aside: <div />, columnWidth: MASTER_COLUMN_WIDTH };
 
     it("véu do painel: existe com panelOpen + panelDismissible e o click o dispensa", () => {
       const onDismissPanel = vi.fn();
@@ -150,7 +163,7 @@ describe("MatchStageTemplate", () => {
   });
 
   describe("queue, sheet and widths", () => {
-    const base = { topbar: <div />, rail: <div />, stage: <div /> };
+    const base = { topbar: <div />, rail: <div />, stage: <div />, columnWidth: MASTER_COLUMN_WIDTH };
 
     it("renders the queue zone only when a queue is given", () => {
       const { rerender } = render(<MatchStageTemplate {...base} panel={<div />} />);
@@ -229,7 +242,7 @@ describe("MatchStageTemplate", () => {
   });
 
   describe("stacked up to 1279 px in portrait, side columns otherwise", () => {
-    const base = { topbar: <div />, rail: <div />, stage: <div /> };
+    const base = { topbar: <div />, rail: <div />, stage: <div />, columnWidth: MASTER_COLUMN_WIDTH };
 
     it("lays the side grids and the upright rail under media.side, never under tabletUp or railUp", () => {
       const { container } = render(
@@ -265,7 +278,7 @@ describe("MatchStageTemplate", () => {
   });
 
   describe("fixed column widths", () => {
-    const base = { topbar: <div />, rail: <div />, stage: <div /> };
+    const base = { topbar: <div />, rail: <div />, stage: <div />, columnWidth: MASTER_COLUMN_WIDTH };
 
     it("gives the master's panel and queue the column width on side screens and the landscape phone", () => {
       render(<MatchStageTemplate {...base} panel={<div />} queue={<div />} columnWidth={MASTER_COLUMN_WIDTH} />);
@@ -341,7 +354,7 @@ describe("MatchStageTemplate", () => {
     it("docks the open sheet in the left column below asideUp and on the landscape phone", () => {
       render(<MatchStageTemplate {...base} sheetOpen />);
       const sheet = screen.getByTestId("match-sheet-zone");
-      for (const at of [SIDE_BELOW_ASIDE_UP, media.landscapePhone]) {
+      for (const at of [media.sideBelowAsideUp, media.landscapePhone]) {
         const rules = declarationsOf(sheet, at);
         expect(lastValue(rules, "grid-column")).toBe("2");
         // O stylis compacta `1 / -1` ao emitir.
@@ -359,14 +372,14 @@ describe("MatchStageTemplate", () => {
     it("hides the panel and the queue while the docked sheet is open", () => {
       render(<MatchStageTemplate {...base} sheetOpen />);
       for (const zone of [screen.getByTestId("match-panel"), screen.getByTestId("match-queue")]) {
-        expect(lastValue(declarationsOf(zone, SIDE_BELOW_ASIDE_UP), "display")).toBe("none");
+        expect(lastValue(declarationsOf(zone, media.sideBelowAsideUp), "display")).toBe("none");
         expect(lastValue(declarationsOf(zone, media.landscapePhone), "display")).toBe("none");
       }
     });
 
     it("keeps the panel and the queue while the sheet is closed", () => {
       render(<MatchStageTemplate {...base} />);
-      expect(declarationsOf(screen.getByTestId("match-panel"), SIDE_BELOW_ASIDE_UP)).not.toContain("display:none");
+      expect(declarationsOf(screen.getByTestId("match-panel"), media.sideBelowAsideUp)).not.toContain("display:none");
       expect(lastValue(declarationsOf(screen.getByTestId("match-queue"), media.landscapePhone), "display")).toBe("block");
     });
 

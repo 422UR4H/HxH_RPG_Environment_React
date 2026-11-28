@@ -11,6 +11,13 @@
 export const breakpoints = { tabletUp: 768, railUp: 1024, asideUp: 1280, wideUp: 1600 } as const;
 
 /**
+ * Teto de uma faixa que termina antes de `asideUp`. É 1279.98, não 1279: com largura fracionária
+ * (zoom da página, DPR), 1279.5 px não casaria nem com `max-width: 1279px` nem com
+ * `min-width: 1280px`, e o CSS discordaria do hook (que lê `!(min-width: 1280px)`).
+ */
+const BELOW_ASIDE_UP_MAX = `${breakpoints.asideUp - 0.02}px`;
+
+/**
  * Colunas laterais na mesa (rail em pé, painel/fila em coluna): deitado ou a partir de `asideUp`.
  * Inclui o celular deitado, cujas regras são declaradas por último. Fora disto, empilhado.
  */
@@ -20,7 +27,13 @@ export const SIDE_LAYOUT_QUERY = `(orientation: landscape), (min-width: ${breakp
 export const TABLET_PORTRAIT_MIN_WIDTH = 600;
 
 /** Tablet em pé: empilhado (em pé, abaixo de `asideUp`) e com pelo menos 600 px. */
-export const TABLET_PORTRAIT_QUERY = `(orientation: portrait) and (min-width: ${TABLET_PORTRAIT_MIN_WIDTH}px) and (max-width: ${breakpoints.asideUp - 1}px)`;
+export const TABLET_PORTRAIT_QUERY = `(orientation: portrait) and (min-width: ${TABLET_PORTRAIT_MIN_WIDTH}px) and (max-width: ${BELOW_ASIDE_UP_MAX})`;
+
+/**
+ * Colunas laterais abaixo de `asideUp` (deitado, até 1279 px): a ficha do mestre toma o lugar da
+ * coluna da esquerda. Junto com `LANDSCAPE_PHONE_QUERY` é o CSS de `sheetReplacesColumn`.
+ */
+export const SIDE_BELOW_ASIDE_UP_QUERY = `(orientation: landscape) and (max-width: ${BELOW_ASIDE_UP_MAX})`;
 
 /** Celular deitado: a altura baixa é o que o separa de um tablet ou computador. */
 export const LANDSCAPE_PHONE_QUERY = "(orientation: landscape) and (max-height: 540px)";
@@ -37,5 +50,6 @@ export const media = {
   landscapePhone: `@media ${LANDSCAPE_PHONE_QUERY}`,
   side: `@media ${SIDE_LAYOUT_QUERY}`,
   tabletPortrait: `@media ${TABLET_PORTRAIT_QUERY}`,
+  sideBelowAsideUp: `@media ${SIDE_BELOW_ASIDE_UP_QUERY}`,
   landscapeSplit: `@media ${LANDSCAPE_PHONE_QUERY} and (min-height: ${LANDSCAPE_SPLIT_MIN_HEIGHT}px)`,
 } as const;

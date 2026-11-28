@@ -2,7 +2,6 @@ import type { PointerEvent, ReactNode } from "react";
 import {
   AsideScrim,
   AsideZone,
-  MASTER_COLUMN_WIDTH,
   Middle,
   PanelScrim,
   PanelZone,
@@ -49,7 +48,7 @@ type Props = {
    * Largura (px) da coluna da esquerda com colunas laterais: painel (deitado) e fila. A partir de
    * `asideUp` a coluna segue as medidas do computador.
    */
-  columnWidth?: number;
+  columnWidth: number;
 };
 
 /**
@@ -90,7 +89,7 @@ export default function MatchStageTemplate({
   sheet,
   sheetOpen = false,
   onDismissSheet,
-  columnWidth = MASTER_COLUMN_WIDTH,
+  columnWidth,
 }: Props) {
   const sheetInColumn = !!sheet && sheetOpen;
   return (

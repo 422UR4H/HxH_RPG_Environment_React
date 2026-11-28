@@ -1,7 +1,13 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { useMatchLayout, queueIsSplit, type MatchLayout } from "../useMatchLayout";
-import { mockScreen, type TestScreen } from "../../../../test/mockScreen";
+import { matchesMediaQuery, mockScreen, type TestScreen } from "../../../../test/mockScreen";
+import {
+  LANDSCAPE_PHONE_QUERY,
+  SIDE_BELOW_ASIDE_UP_QUERY,
+  SIDE_LAYOUT_QUERY,
+  TABLET_PORTRAIT_QUERY,
+} from "../../../../styles/breakpoints";
 
 const original = window.matchMedia;
 
@@ -136,5 +142,34 @@ describe("queueIsSplit", () => {
   it("is true with side columns on tablet, desktop and widescreen", () => {
     expect(queueIsSplit(layout({}))).toBe(true);
     expect(queueIsSplit(layout({ wide: true }))).toBe(true);
+  });
+});
+
+// O template decide pelo CSS (estas queries) e as páginas pelo hook: os dois têm de concordar em
+// toda tela, inclusive com largura fracionária (1279.5).
+describe("the template's CSS queries agree with the hook", () => {
+  const screens: TestScreen[] = [
+    { width: 390, height: 844 },
+    { width: 600, height: 960 },
+    { width: 753, height: 1205 },
+    { width: 1024, height: 1366 },
+    { width: 1279.5, height: 900 },
+    { width: 844, height: 390 },
+    { width: 907, height: 303 },
+    { width: 1024, height: 768 },
+    { width: 1279, height: 800 },
+    { width: 1280, height: 800 },
+    { width: 1400, height: 900 },
+    { width: 1920, height: 1080 },
+  ];
+
+  it.each(screens)("agrees at $width×$height", (s) => {
+    const layout = layoutAt(s);
+    const matches = (query: string) => matchesMediaQuery(query, s);
+    const side = matches(SIDE_LAYOUT_QUERY);
+    const tabletPortrait = matches(TABLET_PORTRAIT_QUERY);
+    expect(matches(SIDE_BELOW_ASIDE_UP_QUERY) || matches(LANDSCAPE_PHONE_QUERY)).toBe(layout.sheetReplacesColumn);
+    expect(!side && !tabletPortrait).toBe(layout.asideIsDrawer);
+    expect(side).toBe(!layout.stacked);
   });
 });

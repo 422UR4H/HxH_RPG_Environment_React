@@ -41,6 +41,8 @@ altura da barra, por isso não tem piso de tamanho (um piso deixaria a barra mai
 
 ## Véu (painel e gaveta em tela estreita)
 
+> **Regra atual em [`layout-da-mesa.md`](layout-da-mesa.md):** a F1 trocou os cortes por `railUp`/`asideUp`/`panelIsSheet` abaixo pelo empilhado × colunas laterais (`media.side`, `media.tabletPortrait`). Esta seção fica como histórico.
+
 Abaixo de `railUp` o painel é uma folha sobre o mapa; abaixo de `asideUp` a gaveta cobre o mapa.
 Dois véus em `MatchStageTemplate`, `colors.scrim`, `z-index: 55` (acima dos avisos do palco, 50;
 abaixo da gaveta, 60). Os dois somem por CSS (`media.railUp` / `media.asideUp`) quando viram coluna.

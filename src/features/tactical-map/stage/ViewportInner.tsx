@@ -151,11 +151,12 @@ export default function ViewportInner({
   }, [clampToGrid, map.grid]);
 
   // Regra do dono: abrir ou fechar uma coluna lateral (Histórico, ficha) não mexe no mapa —
-  // ele pular a cada coluna era "bem ruim e irritante". Mudança só de largura (ou só de
-  // posição) do canvas não reenquadra: compensa o quanto a borda andou, e cada ponto do mundo
-  // fica no mesmo pixel da tela. Mudança de altura (painel de baixo do celular, girar o
-  // aparelho) continua reenquadrando como antes; a decisão fica em `resizeRefitRef`, que o
-  // efeito de enquadramento lê. Vale onde há enquadramento automático (`fitRequest`: mesa,
+  // ele pular a cada coluna era "bem ruim e irritante". Com a janela do mesmo tamanho, mudança
+  // só de largura (ou só de posição) do canvas não reenquadra: compensa o quanto a borda andou,
+  // e cada ponto do mundo fica no mesmo pixel da tela. Mudança de altura (painel de baixo do
+  // celular, girar o aparelho) ou da largura da JANELA (encolher a janela, DevTools ao lado)
+  // continua reenquadrando como antes; a decisão fica em `resizeRefitRef`, que o efeito de
+  // enquadramento lê. Vale onde há enquadramento automático (`fitRequest`: mesa,
   // editor, posicionador); sem ele o comportamento de antes fica intacto.
   // useLayoutEffect: compensar antes de pintar, para não aparecer um quadro deslocado.
   const canvasBoxRef = useRef<CanvasBox | null>(null);
@@ -175,7 +176,7 @@ export default function ViewportInner({
       resizeRefitRef.current = true;
       return;
     }
-    const next: CanvasBox = { left: rect.left, top: rect.top, width, height };
+    const next: CanvasBox = { left: rect.left, top: rect.top, width, height, viewportWidth: window.innerWidth };
     const shift = resizeShift(canvasBoxRef.current, next);
     canvasBoxRef.current = next;
     resizeRefitRef.current = shift.refit;
@@ -220,13 +221,13 @@ export default function ViewportInner({
     };
   }, [app, vpReady, emitsTransform]);
 
-  // Game only: frame the whole grid, centered — on every new `fitRequest` (mount, or the
-  // "enquadrar" button), and again when the canvas changes HEIGHT (a panel opening on the
-  // phone) as long as the viewer has not panned or zoomed by hand since the last framing.
-  // Without it the map opened at 1:1 from the top-left corner and a grid wider than the
-  // screen was simply cut off.
-  // Mudança só de largura (coluna lateral abrindo/fechando) não reenquadra: o efeito de
-  // redimensionar acima já compensou a borda e o mapa fica parado (`resizeRefitRef`).
+  // Só no jogo: enquadra a grade inteira, centrada, a cada `fitRequest` novo (montagem ou o
+  // botão Enquadrar) e de novo quando o canvas muda de ALTURA (um painel abrindo no celular) ou
+  // a janela muda de largura, desde que ninguém tenha arrastado nem dado zoom à mão desde o
+  // último enquadramento. Sem isso o mapa abria em 1:1 a partir do canto de cima à esquerda, e
+  // uma grade mais larga que a tela simplesmente ficava cortada.
+  // Coluna lateral abrindo/fechando (canvas muda só de largura, janela igual) não reenquadra:
+  // o efeito de redimensionar acima já compensou a borda e o mapa fica parado (`resizeRefitRef`).
   // A grade vai num ref para o efeito poder ler o valor atual sem depender dela; só entra nas
   // dependências (via `gridTrigger`) quando `refitOnGridChange` está ligado.
   const gridRef = useRef(map.grid);

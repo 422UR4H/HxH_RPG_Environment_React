@@ -1,5 +1,5 @@
 import styled, { css } from "styled-components";
-import { breakpoints, media } from "../../styles/breakpoints";
+import { media } from "../../styles/breakpoints";
 import { colors } from "../../styles/tokens";
 import { iconButtonFx } from "../../styles/iconButtonFx";
 import CloseButton from "../ions/CloseButton";
@@ -44,13 +44,6 @@ export const ASIDE_NARROW_WIDTH = 200;
 export const SHEET_COLUMN_WIDTH = 340;
 /** A gaveta do Histórico no celular em pé. */
 const ASIDE_DRAWER_WIDTH = `min(86%, ${ASIDE_WIDTH}px)`;
-
-/**
- * Colunas laterais abaixo de `asideUp` (deitado, até 1279 px): a ficha do mestre toma o lugar da
- * coluna da esquerda. Junto com o celular deitado, é onde `sheetReplacesColumn` vale. A partir de
- * `asideUp` ela volta a ser caixa sobre o mapa.
- */
-const sideBelowAsideUp = `@media (orientation: landscape) and (max-width: ${breakpoints.asideUp - 1}px)`;
 
 /* Coluna lateral do painel/fila: largura fixa, sem teto de altura, divisória à direita. */
 const sideColumn = (width: string) => css`
@@ -255,7 +248,7 @@ export const PanelZone = styled.section<{
     ${({ $queue, $wide }) =>
       sideColumn(`${$queue ? MASTER_COLUMN_WIDTH : $wide ? PLAYER_SHEET_TAB_WIDTH : PLAYER_COLUMN_WIDTH}px`)}
   }
-  ${sideBelowAsideUp} {
+  ${media.sideBelowAsideUp} {
     ${hiddenBySheet}
   }
   /* O celular deitado vale sobre os outros: por último. */
@@ -288,7 +281,7 @@ export const QueueZone = styled.section<{ $columnWidth: number; $sheetInColumn: 
     width: 240px;
     border-top: none;
   }
-  ${sideBelowAsideUp} {
+  ${media.sideBelowAsideUp} {
     ${hiddenBySheet}
   }
   ${media.landscapePhone} {
@@ -318,7 +311,7 @@ export const SheetZone = styled.aside<{ $open: boolean }>`
   border-radius: 22px 22px 0 0;
   box-shadow: 0 -8px 30px ${colors.shadowStrong};
 
-  ${sideBelowAsideUp} {
+  ${media.sideBelowAsideUp} {
     ${sheetColumn}
   }
   ${media.asideUp} {
