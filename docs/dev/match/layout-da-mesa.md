@@ -23,15 +23,20 @@ DevTools acoplado embaixo) também ganha o layout de celular deitado. O tablet g
 
 ## Larguras (px)
 
+As colunas têm as medidas do computador em todo tamanho: não encolhem no tablet nem no celular
+deitado. Os números moram em `MatchStageTemplate.styles.ts` (`MASTER_COLUMN_WIDTH` 320,
+`PLAYER_COLUMN_WIDTH` 340, `ASIDE_WIDTH` 280, `ASIDE_NARROW_WIDTH` 200, `SHEET_COLUMN_WIDTH` 340);
+a página passa a largura da coluna da esquerda ao template pela prop `columnWidth`.
+
 | Zona | Celular em pé | Celular deitado | Tablet | Computador | Widescreen |
 |---|---|---|---|---|---|
 | Navegação | rodapé 56 | coluna 72 | mestre: coluna 72; jogador: rodapé < 1024, coluna 72 a partir de 1024 | coluna 72 | coluna 72 |
-| Painel do mestre | metade da altura, fixo | coluna 280 | coluna 280, metade de cima | coluna 320, metade de cima | coluna 320 |
-| Fila do mestre | aba do painel | metade de baixo (280) se dividir; senão aba | metade de baixo (280) | metade de baixo (320) | coluna 240, à esquerda do painel |
-| Painel do jogador | como antes | coluna 280 | em pé: embaixo; ≥ 1024: coluna 280 | coluna 340 | coluna 340 |
-| Ficha do mestre | folha | caixa 280 | caixa 280 | caixa `clamp(340px, 100% − 300px, 420px)` | idem |
-| Ficha do jogador | folha | no painel (280) | no painel (embaixo em pé; ≥ 1024 coluna 280) | no painel, 420 | caixa `clamp(…)` |
-| Histórico | gaveta | coluna 200 | coluna 200 | coluna 200 | coluna 200 |
+| Painel do mestre | metade da altura, fixo | coluna 320 | coluna 320, metade de cima | coluna 320, metade de cima | coluna 320 |
+| Fila do mestre | aba do painel | metade de baixo (320) se dividir; senão aba | metade de baixo (320) | metade de baixo (320) | coluna 240, à esquerda do painel |
+| Painel do jogador | como antes | coluna 340 | em pé: embaixo; ≥ 1024: coluna 340 | coluna 340 | coluna 340 |
+| Ficha do mestre | folha | no lugar da coluna, 340 | no lugar da coluna, 340 | caixa `clamp(340px, 100% − 300px, 420px)` | idem |
+| Ficha do jogador | folha | no painel (340) | no painel (embaixo em pé; ≥ 1024 coluna 340) | no painel, 420 | caixa `clamp(…)` |
+| Histórico | gaveta `min(86%, 280px)` | coluna 200 | coluna 280; mestre em pé (768–1023): 200 | coluna 280 | coluna 280 |
 
 **Dividir no celular deitado (mestre):** só com altura ≥ 364 px (`LANDSCAPE_SPLIT_MIN_HEIGHT` =
 44 do header + 2 × 160). Abaixo disso a coluna mostra uma seção por vez, com os 5 itens na navegação.
@@ -45,7 +50,8 @@ tem X e rola por dentro.
   breakpoint). Rodapé e coluna são o mesmo `rail`: quem o deita é o CSS, não um ramo de JS.
   `RAIL_BAR_HEIGHT` (56) vem de `MatchStageTemplate.styles.ts`.
 - **`useMatchLayout`** decide O QUE vai em cada zona: `phonePortrait`, `landscape`,
-  `landscapeSplit`, `wide`, `asideIsDrawer`. `queueIsSplit(layout)` diz se a fila do mestre é fixa
+  `landscapeSplit`, `wide`, `asideIsDrawer`, `sheetReplacesColumn` (a ficha do mestre toma o
+  lugar da coluna: `!phonePortrait && (landscape || !asideUp)`). `queueIsSplit(layout)` diz se a fila do mestre é fixa
   (`!phonePortrait && (!landscape || landscapeSplit)`).
 - **Páginas** (`GameMasterPage`, `GamePlayerPage`) escolhem os itens da navegação, o conteúdo do
   painel e a seção ativa a partir do layout.
@@ -69,8 +75,15 @@ folha tem `padding-bottom` de 56). Detalhe do comentário em `MatchStageTemplate
 - **Folha (celular em pé, mestre e jogador):** 8 px das laterais, topo a 20% da altura abaixo do
   header, cantos de 22 px em cima. X vermelho de 36 px (`CloseButton` + `iconButtonFx(1.15)`),
   `top: -10px; right: -5px`.
-- **Caixa (demais tamanhos):** altura do palco, colada à esquerda do mapa, **por cima do mapa sem
-  deslocá-lo**, sem cantos arredondados, `border-right` e sombra à direita. Sem X.
+- **No lugar da coluna (mestre, de 768 até 1279 px e no celular deitado):** aberta, a ficha ocupa
+  a coluna da esquerda e o painel e a fila somem enquanto ela está aberta. 340 px, a altura toda,
+  encaixada: sem sombra, sem canto arredondado, `border-right`. Sem X. O mapa ao lado é o mesmo
+  palco de sempre (o Histórico de 280 continua à direita, nada sobreposto). A regra é do CSS
+  (`sheet` + `sheetOpen` presentes), não do papel: o jogador só passa a ficha ao template no
+  celular em pé e no widescreen, então na prática só o mestre cai nela.
+- **Caixa (a partir de 1280 px, fora do celular deitado):** altura do palco, colada à esquerda do
+  mapa, **por cima do mapa sem deslocá-lo**, sem cantos arredondados, `border-right` e sombra à
+  direita. Sem X.
 - **Fechar:** tocar de novo em "Ficha", tocar no mapa (fecha e NÃO seleciona nada; é o
   `SheetScrim`, transparente) ou, na folha, o X.
 - **De quem é:** jogador = sempre o próprio personagem. Mestre = o último personagem tocado no mapa,
@@ -78,8 +91,9 @@ folha tem `padding-bottom` de 56). Detalhe do comentário em `MatchStageTemplate
 - **Espera (mestre sem personagem):** tocar em "Ficha" não abre nada; o item fica marcado e a dica
   `${verb} numa peça para ver a ficha.` substitui as dicas do mapa (`MapHint`). A peça tocada abre a
   ficha (e só isso). Tocar no mapa fora de uma peça, numa parede ou de novo em "Ficha" desiste.
-- No celular em pé, escolher outra seção da navegação fecha a folha (ela cobriria o painel); abrir o
-  Histórico fecha a folha e, no mestre, também desiste da espera. Entrar na escolha da casa (queda
+- No celular em pé, escolher outra seção da navegação fecha a folha (ela cobriria o painel); onde a
+  ficha toma o lugar da coluna (`sheetReplacesColumn`), escolher uma seção também fecha a ficha
+  e mostra a seção. Abrir o Histórico (no celular em pé) fecha a folha e, no mestre, também desiste da espera. Entrar na escolha da casa (queda
   ou fuga) também desiste da espera. Se o último personagem tocado saiu da partida, "Ficha" age como
   sem nenhum (espera uma peça).
 - Onde a ficha é folha ou caixa, "Ficha" abre/fecha a ficha e não troca o painel (no celular em pé,
@@ -92,9 +106,16 @@ Sem fila fixa: `Fila · Ficha · Agir · Personagens · Partida` (inicial: Fila)
 
 ## Histórico em coluna
 
-Coluna de 200 px, aberta junto com tudo, em todo tamanho menos o celular em pé (lá, a gaveta com
-véu). Abre/fecha pelo botão "Histórico" do header. No tablet em pé do jogador o painel de baixo
-passa por baixo da coluna, em toda a largura: o Histórico nunca cobre painel nem folha.
+Coluna de 280 px, aberta junto com tudo, em todo tamanho menos o celular em pé (lá, a gaveta com
+véu, `min(86%, 280px)`). Onde 280 não cabe, 200: no celular deitado (mestre e jogador) e no tablet
+em pé do mestre (768–1023, com a fila). Abre/fecha pelo botão "Histórico" do header. No tablet em
+pé do jogador o painel de baixo passa por baixo da coluna, em toda a largura: o Histórico nunca
+cobre painel nem folha.
+
+**Coluna encaixada × por cima:** a coluna encaixada (o Histórico em coluna, a ficha no lugar da
+coluna) não tem sombra. Sombra é só de quem abre por cima: a gaveta do celular em pé e a caixa da
+ficha a partir de 1280 px. A coluna do Histórico também não tem véu, então tocar fora não a
+fecha; a ficha mantém a regra dela (tocar no mapa fecha, em qualquer tamanho).
 
 ## Header e controles do mestre
 

@@ -599,6 +599,55 @@ describe("GameMasterPage", () => {
     });
   });
 
+  describe("the sheet in place of the column", () => {
+    const zone = () => screen.getByTestId("match-sheet-zone");
+    beforeEach(() => {
+      server.use(
+        http.get(`${baseUrl}/charactersheets/:id`, ({ params }) =>
+          HttpResponse.json({ characterSheet: { uuid: params.id } }),
+        ),
+      );
+    });
+
+    it("closes the sheet when a section is chosen below 1280 px (the sheet takes the section's place)", async () => {
+      mockScreen({ width: 1100, height: 800 });
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      act(() => screen.getByTestId("select-actor-c1").click());
+      await user.click(railButton("Ficha"));
+      expect(zone()).toHaveAttribute("data-open", "true");
+
+      await user.click(railButton("Partida"));
+      expect(zone()).toHaveAttribute("data-open", "false");
+      expect(railButton("Partida")).toHaveAttribute("aria-pressed", "true");
+    });
+
+    it("closes the sheet when a section is chosen on a short landscape phone", async () => {
+      mockScreen({ width: 844, height: 330, landscape: true });
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      act(() => screen.getByTestId("select-actor-c1").click());
+      await user.click(railButton("Ficha"));
+      expect(zone()).toHaveAttribute("data-open", "true");
+
+      await user.click(railButton("Personagens"));
+      expect(zone()).toHaveAttribute("data-open", "false");
+    });
+
+    it("keeps the sheet box open when a section is chosen from 1280 px", async () => {
+      mockScreen({ width: 1400, height: 900 });
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      act(() => screen.getByTestId("select-actor-c1").click());
+      await user.click(railButton("Ficha"));
+      await user.click(railButton("Partida"));
+      expect(zone()).toHaveAttribute("data-open", "true");
+    });
+  });
+
   describe("other screen sizes", () => {
     it("renders the queue in its own zone with Agir first once the queue splits", async () => {
       mockScreen({ width: 1400, height: 900 });

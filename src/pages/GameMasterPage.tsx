@@ -16,6 +16,7 @@ import { boardThroughPiece } from "../features/match/combat/piecePerspective";
 import { useStageOverlays } from "../features/match/combat/useStageOverlays";
 import { queueIsSplit, useMatchLayout } from "../features/match/combat/useMatchLayout";
 import MatchStageTemplate from "../components/templates/MatchStageTemplate";
+import { MASTER_COLUMN_WIDTH } from "../components/templates/MatchStageTemplate.styles";
 import MatchTopBar from "../features/match/combat/MatchTopBar";
 import {
   AddNpcPicker, ArrangePanel, HeaderRound, NpcPicker, QueueHeader, RoundModeSwitch, TurnControls, WallMasterPanel,
@@ -414,11 +415,12 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
         return;
       }
       setSheetWaiting(false);
-      // No celular em pé a folha cobre o painel: escolher outra seção a fecha, senão nada mudaria na tela.
-      if (layout.phonePortrait) setSheetOpen(false);
+      // No celular em pé a folha cobre o painel; abaixo de 1280 px e no celular deitado a ficha
+      // ocupa o lugar da seção. Escolher outra seção fecha a ficha, senão nada mudaria na tela.
+      if (layout.phonePortrait || layout.sheetReplacesColumn) setSheetOpen(false);
       setSection(id as MasterSection);
     },
-    [arranging, exitBoardMode, toggleSheet, layout.phonePortrait, setSheetOpen],
+    [arranging, exitBoardMode, toggleSheet, layout.phonePortrait, layout.sheetReplacesColumn, setSheetOpen],
   );
 
   const chooseActor = useCallback((id: string | undefined) => {
@@ -962,6 +964,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
         panelOpen
         panelHalf
         panelDismissible={false}
+        columnWidth={MASTER_COLUMN_WIDTH}
         queue={split ? queueContent : undefined}
         sheet={
           <MatchSheetPanel

@@ -2,6 +2,7 @@ import type { PointerEvent, ReactNode } from "react";
 import {
   AsideScrim,
   AsideZone,
+  MASTER_COLUMN_WIDTH,
   Middle,
   PanelScrim,
   PanelZone,
@@ -36,10 +37,19 @@ type Props = {
   queue?: ReactNode;
   /** Abaixo de `tabletUp`, painel e palco dividem a altura meio a meio. */
   panelHalf?: boolean;
-  /** A ficha: folha no celular em pé, caixa sobre o mapa nos demais tamanhos. */
+  /**
+   * A ficha: folha no celular em pé; aberta, toma o lugar da coluna da esquerda (painel e fila
+   * somem) de `tabletUp` até antes de `asideUp` e no celular deitado; caixa sobre o mapa a partir
+   * de `asideUp`.
+   */
   sheet?: ReactNode;
   sheetOpen?: boolean;
   onDismissSheet?: () => void;
+  /**
+   * Largura (px) da coluna da esquerda fora do celular em pé: painel no tablet e no celular
+   * deitado, e a fila. A partir de `asideUp` a coluna segue as medidas do computador.
+   */
+  columnWidth?: number;
 };
 
 /**
@@ -49,11 +59,14 @@ type Props = {
  * - Celular em pé (< `tabletUp`): mapa, painel e o rail deitado no rodapé. O painel EMPURRA o
  *   mapa (com `panelHalf`, divide a altura ao meio). A ficha é uma folha por trás do rodapé e
  *   o Histórico, uma gaveta com véu.
- * - Celular deitado (altura baixa, vale sobre os outros): rail em pé, painel de 280, Histórico
- *   de 200 e a ficha como caixa; com `queue`, a fila ocupa a metade de baixo da coluna.
- * - Tablet (`tabletUp`): o jogador mantém o painel embaixo (passando sob o Histórico) e o rodapé
- *   até `railUp`; o mestre (com `queue`) já tem rail em pé e a coluna dividida em painel e fila.
- * - Computador (`asideUp`): painéis mais largos; a ficha vira caixa de até 420.
+ * - Celular deitado (altura baixa, vale sobre os outros): rail em pé, coluna de `columnWidth`,
+ *   Histórico de 200 e a ficha no lugar da coluna; com `queue`, a fila ocupa a metade de baixo
+ *   da coluna.
+ * - Tablet (`tabletUp`): o jogador mantém o painel embaixo (passando sob o Histórico de 280) e o
+ *   rodapé até `railUp`; o mestre (com `queue`) já tem rail em pé, a coluna dividida em painel e
+ *   fila e, até `railUp`, Histórico de 200. A ficha aberta toma o lugar da coluna.
+ * - Computador (`asideUp`): a ficha vira caixa de até 420 sobre o mapa; a aba Ficha do jogador
+ *   alarga para 420.
  * - Widescreen (`wideUp`): a fila do mestre vira coluna própria à esquerda do painel.
  *
  * O rail e o rodapé são o MESMO componente: quem deita o rail é o CSS, não um ramo de
@@ -76,7 +89,9 @@ export default function MatchStageTemplate({
   sheet,
   sheetOpen = false,
   onDismissSheet,
+  columnWidth = MASTER_COLUMN_WIDTH,
 }: Props) {
+  const sheetInColumn = !!sheet && sheetOpen;
   return (
     <Shell>
       <TopBarZone>{topbar}</TopBarZone>
@@ -99,11 +114,17 @@ export default function MatchStageTemplate({
             $wide={panelWide}
             $queue={!!queue}
             $half={panelHalf}
+            $columnWidth={columnWidth}
+            $sheetInColumn={sheetInColumn}
           >
             {panel}
           </PanelZone>
         )}
-        {queue && <QueueZone data-testid="match-queue">{queue}</QueueZone>}
+        {queue && (
+          <QueueZone data-testid="match-queue" $columnWidth={columnWidth} $sheetInColumn={sheetInColumn}>
+            {queue}
+          </QueueZone>
+        )}
         {sheet && (
           <SheetZone data-testid="match-sheet-zone" data-open={sheetOpen} $open={sheetOpen}>
             {onDismissSheet && (
@@ -116,7 +137,7 @@ export default function MatchStageTemplate({
         )}
         <RailZone $queue={!!queue}>{rail}</RailZone>
         {aside && (
-          <AsideZone data-testid="match-aside" data-open={asideOpen} $open={asideOpen}>
+          <AsideZone data-testid="match-aside" data-open={asideOpen} $open={asideOpen} $queue={!!queue}>
             {aside}
           </AsideZone>
         )}

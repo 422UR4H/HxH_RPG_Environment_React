@@ -14,6 +14,7 @@ import { useReactionControls } from "../features/match/combat/useReactionControl
 import { useMatchLayout } from "../features/match/combat/useMatchLayout";
 import { playerPanelDismissible, useStageOverlays } from "../features/match/combat/useStageOverlays";
 import MatchStageTemplate from "../components/templates/MatchStageTemplate";
+import { PLAYER_COLUMN_WIDTH } from "../components/templates/MatchStageTemplate.styles";
 import MatchTopBar from "../features/match/combat/MatchTopBar";
 import RailNav from "../features/match/combat/RailNav";
 import AsideTabs from "../features/match/combat/AsideTabs";
@@ -332,6 +333,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
         panelOpen={panelOpen}
         asideOpen={asideOpen}
         panelWide={!sheetAsZone && railActive === "ficha" && !!actorId}
+        columnWidth={PLAYER_COLUMN_WIDTH}
         // Spec §4: véu só quando o painel não pede toque no mapa (regra em playerPanelDismissible).
         panelDismissible={playerPanelDismissible({ railActive, hasActor: !!actorId, picking })}
         onDismissPanel={() => setPanelOpen(false)}

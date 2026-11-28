@@ -45,6 +45,7 @@ describe("useMatchLayout", () => {
       landscapeSplit: false,
       wide: false,
       asideIsDrawer: true,
+      sheetReplacesColumn: false,
     });
   });
 
@@ -57,6 +58,7 @@ describe("useMatchLayout", () => {
       landscapeSplit: true,
       wide: false,
       asideIsDrawer: false,
+      sheetReplacesColumn: true,
     });
   });
 
@@ -76,6 +78,7 @@ describe("useMatchLayout", () => {
       landscapeSplit: false,
       wide: false,
       asideIsDrawer: false,
+      sheetReplacesColumn: true,
     });
   });
 
@@ -91,6 +94,39 @@ describe("useMatchLayout", () => {
     expect(result.current.wide).toBe(false);
     expect(result.current.landscape).toBe(true);
   });
+
+  describe("sheetReplacesColumn", () => {
+    it("is true on a landscape phone, short or tall", () => {
+      mockScreen({ width: 844, height: 330, landscape: true });
+      expect(renderHook(() => useMatchLayout()).result.current.sheetReplacesColumn).toBe(true);
+      mockScreen({ width: 844, height: 390, landscape: true });
+      expect(renderHook(() => useMatchLayout()).result.current.sheetReplacesColumn).toBe(true);
+    });
+
+    it("is true between 768 and 1279 px", () => {
+      mockScreen({ width: 768, height: 1024 });
+      expect(renderHook(() => useMatchLayout()).result.current.sheetReplacesColumn).toBe(true);
+      mockScreen({ width: 1279, height: 800 });
+      expect(renderHook(() => useMatchLayout()).result.current.sheetReplacesColumn).toBe(true);
+    });
+
+    it("is false on a portrait phone", () => {
+      mockScreen({ width: 390, height: 800 });
+      expect(renderHook(() => useMatchLayout()).result.current.sheetReplacesColumn).toBe(false);
+    });
+
+    it("is false from 1280 px outside the landscape phone", () => {
+      mockScreen({ width: 1280, height: 800 });
+      expect(renderHook(() => useMatchLayout()).result.current.sheetReplacesColumn).toBe(false);
+      mockScreen({ width: 1700, height: 900 });
+      expect(renderHook(() => useMatchLayout()).result.current.sheetReplacesColumn).toBe(false);
+    });
+
+    it("stays true on a low window wider than 1280 px (the landscape phone wins)", () => {
+      mockScreen({ width: 1700, height: 500, landscape: true });
+      expect(renderHook(() => useMatchLayout()).result.current.sheetReplacesColumn).toBe(true);
+    });
+  });
 });
 
 describe("queueIsSplit", () => {
@@ -100,6 +136,7 @@ describe("queueIsSplit", () => {
     landscapeSplit: false,
     wide: false,
     asideIsDrawer: false,
+    sheetReplacesColumn: false,
     ...over,
   });
 
