@@ -189,7 +189,9 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   const [cancelling, setCancelling] = useState<DeclaredAction | null>(null);
   const cancelPending =
     cancelling && state.declared.some((d) => d.id === cancelling.id && d.status === "queued") ? cancelling : null;
-  const { asideOpen, setAsideOpen, sheetOpen, setSheetOpen, closeAsideIfDrawer } = useStageOverlays({
+  const {
+    asideOpen, asideMode, setAsideOpen, toggleAsideWidth, dismissExpandedAside, sheetOpen, setSheetOpen, closeAsideIfDrawer,
+  } = useStageOverlays({
     columnWidth: MASTER_COLUMN_WIDTH,
     queue: true,
     panelFixed: true,
@@ -803,10 +805,12 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   }
 
   // A mesma lista no Histórico (aba Personagens) e na seção Personagens do painel, cada uma com o seu ref.
-  const renderCharactersSidebar = (listRef: typeof asideListRef) => (
+  // Personagens no Histórico encaixado a 200: o seletor de NPC usa os textos curtos (a Task 3 usa).
+  const asideCompact = layout.asideNarrow && asideMode === "docked";
+  const renderCharactersSidebar = (listRef: typeof asideListRef, compact = false) => (
     <MatchCharactersSidebar
       fluid
-      footer={<AddNpcPicker candidates={npcCandidates} onAdd={(id) => combat.send.addNpc(id)} />}
+      footer={<AddNpcPicker candidates={npcCandidates} onAdd={(id) => combat.send.addNpc(id)} compact={compact} />}
       gameStarted
       enrollments={[]}
       participants={participantsWithLiveHp}
@@ -978,8 +982,10 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
         }
         sheetOpen={sheetOpen}
         onDismissSheet={() => setSheetOpen(false)}
-        asideOpen={asideOpen}
+        asideMode={asideMode}
         onDismissAside={() => setAsideOpen(false)}
+        onToggleAsideWidth={layout.asideNarrow ? toggleAsideWidth : undefined}
+        onDismissExpandedAside={dismissExpandedAside}
         topbar={
           <MatchTopBar
             scene={state.scene}
@@ -1185,7 +1191,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
                 }
               />
             }
-            personagens={renderCharactersSidebar(asideListRef)}
+            personagens={renderCharactersSidebar(asideListRef, asideCompact)}
           />
         }
       />

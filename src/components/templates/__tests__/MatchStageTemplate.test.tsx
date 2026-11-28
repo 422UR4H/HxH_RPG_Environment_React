@@ -71,7 +71,7 @@ describe("MatchStageTemplate", () => {
     expect(screen.queryByTestId("match-aside")).toBeNull();
   });
 
-  it("defaults panelOpen/asideOpen to true and reflects false", () => {
+  it("defaults panelOpen/asideMode to true and reflects false", () => {
     const { rerender } = render(
       <MatchStageTemplate
         columnWidth={MASTER_COLUMN_WIDTH}
@@ -94,7 +94,7 @@ describe("MatchStageTemplate", () => {
         stage={<div />}
         aside={<div>aside-zone</div>}
         panelOpen={false}
-        asideOpen={false}
+        asideMode="closed"
       />,
     );
     expect(screen.getByTestId("match-panel")).toHaveAttribute("data-open", "false");
@@ -135,15 +135,15 @@ describe("MatchStageTemplate", () => {
       expect(screen.queryByTestId("panel-scrim")).toBeNull();
     });
 
-    it("véu da gaveta: existe com asideOpen + onDismissAside e o click o dispensa", () => {
+    it("véu da gaveta: existe com asideMode docked + onDismissAside e o click o dispensa", () => {
       const onDismissAside = vi.fn();
-      render(<MatchStageTemplate {...base} asideOpen onDismissAside={onDismissAside} />);
+      render(<MatchStageTemplate {...base} asideMode="docked" onDismissAside={onDismissAside} />);
       fireEvent.click(screen.getByTestId("aside-scrim"));
       expect(onDismissAside).toHaveBeenCalledTimes(1);
     });
 
     it("não há véu da gaveta fechada", () => {
-      render(<MatchStageTemplate {...base} asideOpen={false} onDismissAside={() => {}} />);
+      render(<MatchStageTemplate {...base} asideMode="closed" onDismissAside={() => {}} />);
       expect(screen.queryByTestId("aside-scrim")).toBeNull();
     });
 
@@ -156,7 +156,7 @@ describe("MatchStageTemplate", () => {
           panelOpen
           panelDismissible
           onDismissPanel={() => {}}
-          asideOpen
+          asideMode="docked"
           onDismissAside={() => {}}
         />,
       );
@@ -164,6 +164,63 @@ describe("MatchStageTemplate", () => {
       fireEvent.pointerDown(screen.getByTestId("aside-scrim"));
       window.removeEventListener("pointerdown", onWindowPointerDown);
       expect(onWindowPointerDown).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("modos do Histórico", () => {
+    const base = { topbar: <div />, rail: <div />, stage: <div />, panel: <div />, aside: <div />, columnWidth: MASTER_COLUMN_WIDTH };
+
+    it("exposes the mode on the aside cell and defaults to docked", () => {
+      const { rerender } = render(<MatchStageTemplate {...base} />);
+      expect(screen.getByTestId("match-aside")).toHaveAttribute("data-aside-mode", "docked");
+      rerender(<MatchStageTemplate {...base} asideMode="expandedOverDocked" />);
+      expect(screen.getByTestId("match-aside")).toHaveAttribute("data-aside-mode", "expandedOverDocked");
+      rerender(<MatchStageTemplate {...base} asideMode="closed" />);
+      expect(screen.getByTestId("match-aside")).toHaveAttribute("data-open", "false");
+    });
+
+    it("has the expand scrim only in the expanded modes, and clicking it dismisses", () => {
+      const onDismissExpandedAside = vi.fn();
+      const { rerender } = render(
+        <MatchStageTemplate {...base} asideMode="docked" onDismissExpandedAside={onDismissExpandedAside} />,
+      );
+      expect(screen.queryByTestId("aside-expand-scrim")).toBeNull();
+      rerender(<MatchStageTemplate {...base} asideMode="closed" onDismissExpandedAside={onDismissExpandedAside} />);
+      expect(screen.queryByTestId("aside-expand-scrim")).toBeNull();
+      rerender(<MatchStageTemplate {...base} asideMode="expanded" onDismissExpandedAside={onDismissExpandedAside} />);
+      fireEvent.click(screen.getByTestId("aside-expand-scrim"));
+      expect(onDismissExpandedAside).toHaveBeenCalledTimes(1);
+      rerender(
+        <MatchStageTemplate {...base} asideMode="expandedOverDocked" onDismissExpandedAside={onDismissExpandedAside} />,
+      );
+      expect(screen.getByTestId("aside-expand-scrim")).toBeInTheDocument();
+    });
+
+    it("keeps the pointerdown on the expand scrim away from the window", () => {
+      const onWindowPointerDown = vi.fn();
+      window.addEventListener("pointerdown", onWindowPointerDown);
+      render(<MatchStageTemplate {...base} asideMode="expanded" onDismissExpandedAside={() => {}} />);
+      fireEvent.pointerDown(screen.getByTestId("aside-expand-scrim"));
+      window.removeEventListener("pointerdown", onWindowPointerDown);
+      expect(onWindowPointerDown).not.toHaveBeenCalled();
+    });
+
+    it("renders the width button only with the handler, labelled by the current width", () => {
+      const onToggleAsideWidth = vi.fn();
+      const { rerender } = render(<MatchStageTemplate {...base} asideMode="docked" />);
+      expect(screen.queryByRole("button", { name: /Histórico/ })).toBeNull();
+      rerender(<MatchStageTemplate {...base} asideMode="docked" onToggleAsideWidth={onToggleAsideWidth} />);
+      fireEvent.click(screen.getByRole("button", { name: "Ampliar o Histórico" }));
+      expect(onToggleAsideWidth).toHaveBeenCalledTimes(1);
+      rerender(<MatchStageTemplate {...base} asideMode="expanded" onToggleAsideWidth={onToggleAsideWidth} />);
+      expect(screen.getByRole("button", { name: "Reduzir o Histórico" })).toBeInTheDocument();
+      rerender(<MatchStageTemplate {...base} asideMode="expandedOverDocked" onToggleAsideWidth={onToggleAsideWidth} />);
+      expect(screen.getByRole("button", { name: "Reduzir o Histórico" })).toBeInTheDocument();
+    });
+
+    it("has no width button while closed", () => {
+      render(<MatchStageTemplate {...base} asideMode="closed" onToggleAsideWidth={() => {}} />);
+      expect(screen.queryByRole("button", { name: /Histórico/ })).toBeNull();
     });
   });
 
@@ -372,13 +429,13 @@ describe("MatchStageTemplate", () => {
       render(<MatchStageTemplate {...base} panel={<div />} aside={<div />} />);
       const rules = declarationsOf(screen.getByTestId("match-aside"), media.tabletPortrait);
       expect(lastValue(rules, "width")).toBe("280px");
-      expect(lastValue(rules, "position")).toBe("static");
+      expect(lastValue(rules, "position")).toBe("relative");
       expect(lastValue(rules, "grid-area")).toBe("aside");
       expect(lastValue(rules, "box-shadow")).toBe("none");
     });
 
     it("hides the Histórico scrim on a portrait tablet and with side columns", () => {
-      render(<MatchStageTemplate {...base} aside={<div />} asideOpen onDismissAside={() => {}} />);
+      render(<MatchStageTemplate {...base} aside={<div />} asideMode="docked" onDismissAside={() => {}} />);
       const scrim = screen.getByTestId("aside-scrim");
       expect(lastValue(declarationsOf(scrim, media.tabletPortrait), "display")).toBe("none");
       expect(lastValue(declarationsOf(scrim, media.side), "display")).toBe("none");

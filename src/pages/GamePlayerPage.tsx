@@ -131,7 +131,10 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
   const [cancelling, setCancelling] = useState<DeclaredAction | null>(null);
   const cancelPending =
     cancelling && state.declared.some((d) => d.id === cancelling.id && d.status === "queued") ? cancelling : null;
-  const { panelOpen, setPanelOpen, asideOpen, setAsideOpen, sheetOpen, setSheetOpen, closeAsideIfDrawer } =
+  const {
+    panelOpen, setPanelOpen, asideOpen, asideMode, setAsideOpen, toggleAsideWidth, dismissExpandedAside, sheetOpen, setSheetOpen,
+    closeAsideIfDrawer,
+  } =
     useStageOverlays({ columnWidth: PLAYER_COLUMN_WIDTH, queue: false });
 
   // Empilhado (celular ou tablet em pé): a ficha é uma folha por cima do mapa; widescreen: uma
@@ -332,7 +335,7 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
     <>
       <MatchStageTemplate
         panelOpen={panelOpen}
-        asideOpen={asideOpen}
+        asideMode={asideMode}
         panelWide={!sheetAsZone && railActive === "ficha" && !!actorId}
         columnWidth={PLAYER_COLUMN_WIDTH}
         // Spec §4: véu só quando o painel não pede toque no mapa (regra em playerPanelDismissible).
@@ -346,6 +349,8 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
         sheetOpen={sheetOpen}
         onDismissSheet={() => setSheetOpen(false)}
         onDismissAside={() => setAsideOpen(false)}
+        onToggleAsideWidth={layout.asideNarrow ? toggleAsideWidth : undefined}
+        onDismissExpandedAside={dismissExpandedAside}
         topbar={
           <MatchTopBar
             scene={state.scene}

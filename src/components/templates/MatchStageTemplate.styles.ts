@@ -12,6 +12,7 @@ import {
 import { colors } from "../../styles/tokens";
 import { iconButtonFx } from "../../styles/iconButtonFx";
 import CloseButton from "../ions/CloseButton";
+import type { AsideMode } from "./MatchStageTemplate";
 
 /** Altura do rodapé: o rail deita no empilhado (em pé até 1279 px); com colunas laterais (`media.side`) ele é coluna. */
 export const RAIL_BAR_HEIGHT = 56;
@@ -101,10 +102,12 @@ const stackedWideGrid = css`
 
 /* O Histórico vira coluna encaixada (tablet em pé, colunas laterais, celular deitado): sem sombra, sem véu. */
 const asideColumn = (width: number) => css`
-  position: static;
+  position: relative;
   grid-area: aside;
   width: ${width}px;
   box-shadow: none;
+  /* Sem a pilha da gaveta: a ficha, que abre por cima, passa na frente da coluna. */
+  z-index: auto;
 `;
 
 /* A ficha como caixa na área do palco, por cima do mapa e sem deslocá-lo. */
@@ -414,12 +417,17 @@ export const SheetScrim = styled.div`
   background: transparent;
 `;
 
+/** O botão de largura do Histórico: alvo de toque de 44 px, preso à borda esquerda da superfície. */
+const WIDTH_BUTTON_SIZE = 44;
+
 /*
- * Gaveta sobre o mapa no celular em pé (com sombra e véu). Em coluna encaixada (tablet em pé só na
- * faixa do mapa, colunas laterais, celular deitado) tem 280, ou 200 quando o mapa ficaria com menos
- * de `MAP_MIN_WIDTH` (`media.asideNarrow`).
+ * A célula do Histórico na grade. Gaveta sobre o mapa no celular em pé (com sombra e véu). Em coluna
+ * encaixada (tablet em pé só na faixa do mapa, colunas laterais, celular deitado) tem 280, ou 200
+ * quando o mapa ficaria com menos de `MAP_MIN_WIDTH` (`media.asideNarrow`). Quem rola e desenha é a
+ * superfície (`AsideSurface`); nos modos ampliados ela transborda da célula para a esquerda, por
+ * cima do mapa, sem mexer na grade.
  */
-export const AsideZone = styled.aside<{ $open: boolean; $queue: boolean; $columnWidth: number }>`
+export const AsideZone = styled.aside<{ $open: boolean; $mode: AsideMode; $queue: boolean; $columnWidth: number }>`
   position: absolute;
   top: 0;
   right: 0;
@@ -427,17 +435,11 @@ export const AsideZone = styled.aside<{ $open: boolean; $queue: boolean; $column
   width: ${ASIDE_DRAWER_WIDTH};
   z-index: ${ASIDE_DRAWER_Z_INDEX};
   display: ${({ $open }) => ($open ? "block" : "none")};
-  overflow-y: auto;
-  /* Coluna lateral nunca rola na horizontal; o conteúdo é que cabe. */
-  overflow-x: hidden;
   background: ${colors.surfaceSidebar};
-  border-left: 1px solid ${colors.surfaceInput};
   box-shadow: -8px 0 24px ${colors.shadowStrong};
 
   ${media.tabletPortrait} {
     ${asideColumn(ASIDE_WIDTH)}
-    /* Sem a pilha da gaveta: a folha da ficha, que abre por cima, passa na frente da coluna. */
-    z-index: auto;
   }
   ${media.side} {
     ${asideColumn(ASIDE_WIDTH)}
@@ -459,6 +461,82 @@ export const AsideZone = styled.aside<{ $open: boolean; $queue: boolean; $column
         width: ${ASIDE_NARROW_WIDTH}px;
       }
     `}
+  /* Modos ampliados (só em tela estreita; por último, vale sobre as larguras acima). */
+  ${({ $mode }) =>
+    $mode === "expanded" &&
+    css`
+      width: 0;
+      z-index: ${ASIDE_DRAWER_Z_INDEX};
+    `}
+  ${({ $mode }) =>
+    $mode === "expandedOverDocked" &&
+    css`
+      z-index: ${ASIDE_DRAWER_Z_INDEX};
+    `}
+`;
+
+/* A superfície do Histórico: o que rola. Ampliada, tem 280, sombra da gaveta e vaza para a esquerda da célula. */
+export const AsideSurface = styled.div<{ $expanded: boolean }>`
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: ${({ $expanded }) => ($expanded ? `${ASIDE_WIDTH}px` : "100%")};
+  overflow-y: auto;
+  /* Coluna lateral nunca rola na horizontal; o conteúdo é que cabe. */
+  overflow-x: hidden;
+  background: ${colors.surfaceSidebar};
+  border-left: 1px solid ${colors.surfaceInput};
+  box-shadow: ${({ $expanded }) => ($expanded ? `-8px 0 24px ${colors.shadowStrong}` : "none")};
+`;
+
+/*
+ * Ampliar/reduzir o Histórico: preso à borda esquerda da superfície, na altura da faixa das abas,
+ * metade para o lado do mapa (o botão mora na célula, não na superfície que rola, para poder vazar).
+ */
+export const AsideWidthButton = styled.button<{ $mode: AsideMode }>`
+  position: absolute;
+  top: 0;
+  left: ${({ $mode }) => {
+    // A borda esquerda da superfície em relação à célula: 0 (200), -280 (ampliado sozinho), -80 (sobre o encaixado).
+    const surfaceLeft =
+      $mode === "expanded" ? -ASIDE_WIDTH : $mode === "expandedOverDocked" ? ASIDE_NARROW_WIDTH - ASIDE_WIDTH : 0;
+    return surfaceLeft - WIDTH_BUTTON_SIZE / 2;
+  }}px;
+  z-index: ${ASIDE_DRAWER_Z_INDEX};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: ${WIDTH_BUTTON_SIZE}px;
+  height: ${WIDTH_BUTTON_SIZE}px;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  line-height: 0;
+  ${iconButtonFx(1.15)}
+`;
+
+/* A seta do ion aponta para baixo; girada, aponta ‹ (ampliar, para o lado do mapa) ou › (reduzir). */
+export const AsideWidthIcon = styled.span<{ $expanded: boolean }>`
+  display: block;
+  width: 28px;
+  height: 28px;
+  transform: rotate(${({ $expanded }) => ($expanded ? -90 : 90)}deg);
+
+  & img {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+`;
+
+/* Véu transparente sobre o Middle inteiro, por baixo do Histórico ampliado: o toque o fecha sem selecionar nada. */
+export const AsideExpandScrim = styled.div`
+  position: absolute;
+  inset: 0;
+  z-index: ${SCRIM_Z_INDEX};
+  background: transparent;
 `;
 
 /* Véu sobre o palco inteiro: só existe no empilhado (com colunas laterais o painel é coluna). */

@@ -526,6 +526,17 @@ describe("GameMasterPage", () => {
       expect(screen.getByTestId("match-aside")).toHaveAttribute("data-open", "false");
     });
 
+    it("on a narrow landscape screen the Histórico opens expanded and a tap outside closes it", async () => {
+      mockScreen({ width: 907, height: 427 });
+      renderMasterPage();
+      const ws = await waitForSocket();
+      openWithServerBoard(ws);
+      await user.click(screen.getByRole("button", { name: /(Ver|Ocultar) histórico/ }));
+      expect(screen.getByTestId("match-aside")).toHaveAttribute("data-aside-mode", "expanded");
+      await user.click(screen.getByTestId("aside-expand-scrim"));
+      expect(screen.getByTestId("match-aside")).toHaveAttribute("data-aside-mode", "closed");
+    });
+
     it("on a portrait phone, opening the Histórico drawer closes the sheet and vice versa", async () => {
       mockScreen({ width: 390, height: 800 });
       renderMasterPage();

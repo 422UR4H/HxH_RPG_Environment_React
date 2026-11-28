@@ -191,6 +191,8 @@ export function AddNpcPicker({
 }: {
   candidates: Array<{ id: string; name: string }>;
   onAdd: (id: string) => void;
+  /** O Histórico encaixado a 200: os textos ficam curtos (usado na Task 3). */
+  compact?: boolean;
 }) {
   const [chosen, setChosen] = useState("");
   const options = useMemo(() => candidates.map((c) => ({ value: c.id, label: c.name })), [candidates]);

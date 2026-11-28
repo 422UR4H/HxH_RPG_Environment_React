@@ -1117,6 +1117,17 @@ describe("GamePlayerPage", () => {
       expect(screen.getByTestId("match-aside")).toHaveAttribute("data-open", "true");
     });
 
+    it("opens the Histórico expanded on a narrow landscape screen and the width button docks it", async () => {
+      mockScreen({ width: 907, height: 427 });
+      await openBoard();
+      await user.click(screen.getByRole("button", { name: /(Ver|Ocultar) histórico/ }));
+      expect(screen.getByTestId("match-aside")).toHaveAttribute("data-aside-mode", "expanded");
+      expect(screen.getByTestId("aside-expand-scrim")).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: "Reduzir o Histórico" }));
+      expect(screen.getByTestId("match-aside")).toHaveAttribute("data-aside-mode", "docked");
+      expect(screen.queryByTestId("aside-expand-scrim")).toBeNull();
+    });
+
     it("keeps the sheet in the panel on a regular desktop", async () => {
       mockScreen({ width: 1400, height: 900 });
       await openBoard();

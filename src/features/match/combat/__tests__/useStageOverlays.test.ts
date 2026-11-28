@@ -215,3 +215,95 @@ describe("playerPanelDismissible", () => {
     expect(playerPanelDismissible({ railActive: "acao", hasActor: false, picking: false })).toBe(true);
   });
 });
+
+describe("useStageOverlays aside width modes", () => {
+  const NARROW = { width: 907, height: 427 };
+  const NOT_NARROW = { width: 1024, height: 768 };
+
+  it("opens straight from closed as expanded on a narrow screen", () => {
+    mockScreen(NARROW);
+    const { result } = renderHook(() => useStageOverlays(OPTS));
+    expect(result.current.asideMode).toBe("closed");
+    act(() => result.current.setAsideOpen(true));
+    expect(result.current.asideMode).toBe("expanded");
+    expect(result.current.asideOpen).toBe(true);
+  });
+
+  it("toggles closed -> expanded -> closed with the nav button updater", () => {
+    mockScreen(NARROW);
+    const { result } = renderHook(() => useStageOverlays(OPTS));
+    act(() => result.current.setAsideOpen((o) => !o));
+    expect(result.current.asideMode).toBe("expanded");
+    act(() => result.current.setAsideOpen((o) => !o));
+    expect(result.current.asideMode).toBe("closed");
+  });
+
+  it("the width button turns expanded into docked, and docked into expandedOverDocked", () => {
+    mockScreen(NARROW);
+    const { result } = renderHook(() => useStageOverlays(OPTS));
+    act(() => result.current.setAsideOpen(true));
+    act(() => result.current.toggleAsideWidth());
+    expect(result.current.asideMode).toBe("docked");
+    act(() => result.current.toggleAsideWidth());
+    expect(result.current.asideMode).toBe("expandedOverDocked");
+    act(() => result.current.toggleAsideWidth());
+    expect(result.current.asideMode).toBe("docked");
+  });
+
+  it("dismissing the expanded aside closes it, and over the docked one it goes back to docked", () => {
+    mockScreen(NARROW);
+    const { result } = renderHook(() => useStageOverlays(OPTS));
+    act(() => result.current.setAsideOpen(true));
+    act(() => result.current.dismissExpandedAside());
+    expect(result.current.asideMode).toBe("closed");
+    act(() => result.current.setAsideOpen(true));
+    act(() => result.current.toggleAsideWidth());
+    act(() => result.current.toggleAsideWidth());
+    expect(result.current.asideMode).toBe("expandedOverDocked");
+    act(() => result.current.dismissExpandedAside());
+    expect(result.current.asideMode).toBe("docked");
+  });
+
+  it("dismissExpandedAside does nothing when docked", () => {
+    mockScreen(NARROW);
+    const { result } = renderHook(() => useStageOverlays(OPTS));
+    act(() => result.current.setAsideOpen(true));
+    act(() => result.current.toggleAsideWidth());
+    act(() => result.current.dismissExpandedAside());
+    expect(result.current.asideMode).toBe("docked");
+    act(() => result.current.dismissExpandedAside());
+    expect(result.current.asideMode).toBe("docked");
+  });
+
+  it("the nav button closes the aside from any shown mode", () => {
+    mockScreen(NARROW);
+    const { result } = renderHook(() => useStageOverlays(OPTS));
+    act(() => result.current.setAsideOpen(true));
+    act(() => result.current.toggleAsideWidth());
+    act(() => result.current.toggleAsideWidth());
+    expect(result.current.asideMode).toBe("expandedOverDocked");
+    act(() => result.current.setAsideOpen((o) => !o));
+    expect(result.current.asideMode).toBe("closed");
+    expect(result.current.asideOpen).toBe(false);
+  });
+
+  it("never expands where the aside is not narrow", () => {
+    mockScreen(NOT_NARROW);
+    const { result } = renderHook(() => useStageOverlays(OPTS));
+    act(() => result.current.setAsideOpen(false));
+    act(() => result.current.setAsideOpen(true));
+    expect(result.current.asideMode).toBe("docked");
+    act(() => result.current.toggleAsideWidth());
+    expect(result.current.asideMode).toBe("docked");
+  });
+
+  it("reads expanded as docked when the screen stops being narrow (no invisible scrim left)", () => {
+    const screen = mockScreen(NARROW);
+    const { result } = renderHook(() => useStageOverlays(OPTS));
+    act(() => result.current.setAsideOpen(true));
+    expect(result.current.asideMode).toBe("expanded");
+    screen.resize(NOT_NARROW);
+    expect(result.current.asideOpen).toBe(true);
+    expect(result.current.asideMode).toBe("docked");
+  });
+});

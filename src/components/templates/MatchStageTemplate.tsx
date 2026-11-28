@@ -1,6 +1,11 @@
 import type { PointerEvent, ReactNode } from "react";
+import ExpandButton from "../ions/ExpandButton";
 import {
+  AsideExpandScrim,
   AsideScrim,
+  AsideSurface,
+  AsideWidthButton,
+  AsideWidthIcon,
   AsideZone,
   Middle,
   PanelScrim,
@@ -17,6 +22,14 @@ import {
   TopBarZone,
 } from "./MatchStageTemplate.styles";
 
+/**
+ * Os modos do Histórico. Encaixado é a coluna (200 ou 280). Os ampliados só existem onde o
+ * Histórico é estreito (200): `expanded` abre direto do fechado, com a célula sem largura (o mapa
+ * não muda) e 280 por cima; `expandedOverDocked` mantém a coluna de 200 e a superfície de 280
+ * transborda 80 px para a esquerda.
+ */
+export type AsideMode = "closed" | "docked" | "expanded" | "expandedOverDocked";
+
 type Props = {
   topbar: ReactNode;
   rail: ReactNode;
@@ -24,7 +37,7 @@ type Props = {
   panel?: ReactNode;
   aside?: ReactNode;
   panelOpen?: boolean;
-  asideOpen?: boolean;
+  asideMode?: AsideMode;
   /** O painel mostra algo largo (a ficha): a coluna alarga a partir de `asideUp` (só sem `queue`). */
   panelWide?: boolean;
   /** O conteúdo do painel não pede toque no mapa: no empilhado, um véu cobre o palco e o toque nele fecha o painel. */
@@ -32,6 +45,10 @@ type Props = {
   onDismissPanel?: () => void;
   /** No celular em pé, com a gaveta aberta, um véu cobre o resto e o toque nele a fecha. */
   onDismissAside?: () => void;
+  /** Só nas telas estreitas: o botão que alterna o Histórico entre 200 e 280. */
+  onToggleAsideWidth?: () => void;
+  /** O véu transparente do Histórico ampliado: o toque fora o dispensa. */
+  onDismissExpandedAside?: () => void;
   /** A fila fixa do mestre (só com colunas laterais): a coluna da esquerda divide em painel e fila. */
   queue?: ReactNode;
   /** No empilhado, painel e palco dividem a altura meio a meio. */
@@ -79,11 +96,13 @@ export default function MatchStageTemplate({
   panel,
   aside,
   panelOpen = true,
-  asideOpen = true,
+  asideMode = "docked",
   panelWide = false,
   panelDismissible = false,
   onDismissPanel,
   onDismissAside,
+  onToggleAsideWidth,
+  onDismissExpandedAside,
   queue,
   panelHalf = false,
   sheet,
@@ -92,6 +111,8 @@ export default function MatchStageTemplate({
   columnWidth,
 }: Props) {
   const sheetInColumn = !!sheet && sheetOpen;
+  const asideOpen = asideMode !== "closed";
+  const asideExpanded = asideMode === "expanded" || asideMode === "expandedOverDocked";
   return (
     <Shell>
       <TopBarZone>{topbar}</TopBarZone>
@@ -140,12 +161,34 @@ export default function MatchStageTemplate({
           <AsideZone
             data-testid="match-aside"
             data-open={asideOpen}
+            data-aside-mode={asideMode}
             $open={asideOpen}
+            $mode={asideMode}
             $queue={!!queue}
             $columnWidth={columnWidth}
           >
-            {aside}
+            <AsideSurface $expanded={asideExpanded}>{aside}</AsideSurface>
+            {asideOpen && onToggleAsideWidth && (
+              <AsideWidthButton
+                type="button"
+                $mode={asideMode}
+                aria-label={asideExpanded ? "Reduzir o Histórico" : "Ampliar o Histórico"}
+                onClick={onToggleAsideWidth}
+              >
+                <AsideWidthIcon $expanded={asideExpanded}>
+                  <ExpandButton isExpanded={false} />
+                </AsideWidthIcon>
+              </AsideWidthButton>
+            )}
           </AsideZone>
+        )}
+        {aside && asideExpanded && onDismissExpandedAside && (
+          <AsideExpandScrim
+            data-testid="aside-expand-scrim"
+            aria-hidden
+            onPointerDown={stopPointerDown}
+            onClick={onDismissExpandedAside}
+          />
         )}
         {aside && asideOpen && onDismissAside && (
           <AsideScrim data-testid="aside-scrim" aria-hidden onPointerDown={stopPointerDown} onClick={onDismissAside} />
