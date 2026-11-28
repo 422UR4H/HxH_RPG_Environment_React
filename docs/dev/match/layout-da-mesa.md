@@ -21,6 +21,8 @@ Tab S9, mede 753 px CSS em pé).
 | Colunas laterais | `SIDE_LAYOUT_QUERY` = `(orientation: landscape), (min-width: 1280px)` (`media.side`) |
 | Colunas abaixo de 1280 | `SIDE_BELOW_ASIDE_UP_QUERY` (`media.sideBelowAsideUp`): onde, com o celular deitado, a ficha do mestre toma o lugar da coluna |
 | Celular deitado | `(orientation: landscape) and (max-height: 540px)` — também é `side`; vale sobre os outros |
+| Duas colunas (mestre) | `LANDSCAPE_TWO_COLUMN_QUERY` (`media.landscapeTwoColumns`): celular deitado sem altura para dividir (< 400) e com ≥ 1152 de largura |
+| Empilhado largo (mestre) | `STACKED_WIDE_QUERY` (`media.stackedWide`): em pé, 900–1279.98 |
 | Computador | `side`, 1280–1599 (`asideUp`) |
 | Widescreen | `side`, ≥ 1600 (`wideUp`) |
 
@@ -41,23 +43,38 @@ mais alta que isso, mesmo estreita (ex.: 900 × 700), usa as regras de `side`.
 ## Larguras (px)
 
 As colunas têm as medidas do computador em todo tamanho com colunas laterais: não encolhem no
-tablet deitado nem no celular deitado. Os números moram em `MatchStageTemplate.styles.ts`
-(`MASTER_COLUMN_WIDTH` 320, `PLAYER_COLUMN_WIDTH` 340, `ASIDE_WIDTH` 280, `ASIDE_NARROW_WIDTH` 200,
+tablet deitado nem no celular deitado. Os números moram em `breakpoints.ts` (`MASTER_COLUMN_WIDTH`
+320, `ASIDE_WIDTH` 280, `ASIDE_NARROW_WIDTH` 200, `RAIL_WIDTH` 72, `QUEUE_COLUMN_WIDTH` 240,
+`MAP_MIN_WIDTH` 320) e em `MatchStageTemplate.styles.ts` (`PLAYER_COLUMN_WIDTH` 340,
 `SHEET_COLUMN_WIDTH` 340); a página passa a largura da coluna da esquerda ao template pela prop
-`columnWidth`.
+`columnWidth` e ao `useMatchLayout({ columnWidth, queue })`.
+
+**A largura do Histórico sai do espaço do mapa** (dono, 2026-11-28): 280, a menos que, descontados a
+navegação (72), as colunas à esquerda e os 280, sobrem menos de `MAP_MIN_WIDTH` (320) de mapa; aí
+200. A query é `asideNarrowQuery(colunasÀEsquerda)` (só deitado): mestre abaixo de 992, jogador
+abaixo de 1012, mestre em duas colunas abaixo de 1232. Exemplos: o celular do dono deitado (907)
+fica com 200; 1024×768, o Tab S9 em pé, o monitor em pé e o computador ficam com 280.
 
 | Zona | Celular em pé | Tablet em pé | Celular deitado | Deitado < 1280 (tablet, janela) | Computador | Widescreen |
 |---|---|---|---|---|---|---|
 | Navegação | rodapé 56 | rodapé 56 | coluna 72 | coluna 72 | coluna 72 | coluna 72 |
 | Painel do mestre | metade da altura, fixo | idem | coluna 320 | coluna 320, metade de cima | coluna 320, metade de cima | coluna 320 |
-| Fila do mestre | aba do painel | aba do painel | metade de baixo (320) se dividir; senão aba | metade de baixo (320) | metade de baixo (320) | coluna 240, à esquerda do painel |
+| Fila do mestre | aba do painel | aba do painel; a partir de 900, coluna 320 à esquerda do painel de baixo | metade de baixo (320) se dividir; senão coluna 240 em duas colunas se couber; senão aba | metade de baixo (320) | metade de baixo (320) | coluna 240, à esquerda do painel |
 | Painel do jogador | embaixo | embaixo | coluna 340 | coluna 340 | coluna 340 | coluna 340 |
 | Ficha do mestre | folha | folha | no lugar da coluna, 340 | no lugar da coluna, 340 | caixa `clamp(340px, 100% − 300px, 420px)` | idem |
 | Ficha do jogador | folha | folha | no painel (340) | no painel (340) | no painel, 420 | caixa `clamp(…)` |
-| Histórico | gaveta `min(86%, 280px)` | coluna 200 na faixa do mapa | coluna 200 | coluna 280 | coluna 280 | coluna 280 |
+| Histórico | gaveta `min(86%, 280px)` | coluna 280 na faixa do mapa | 280 ou 200 (pelo mapa) | 280 ou 200 (pelo mapa) | coluna 280 | coluna 280 |
 
-**Dividir no celular deitado (mestre):** só com altura ≥ 364 px (`LANDSCAPE_SPLIT_MIN_HEIGHT` =
-44 do header + 2 × 160). Abaixo disso a coluna mostra uma seção por vez, com os 5 itens na navegação.
+**Dividir no celular deitado (mestre):** só com altura ≥ 400 px (`LANDSCAPE_SPLIT_MIN_HEIGHT`). O
+celular do dono tem 427 de altura em tela cheia e no web app (manifest `display: "fullscreen"`) e
+303 no navegador: em tela cheia divide, com 27 px de margem. Sem altura, se a largura dá para a fila
+e o painel lado a lado (≥ 1152), são **duas colunas** como no widescreen (fila 240, painel em coluna
+`auto`: a ficha de 340 alarga a própria coluna em vez de cobrir o mapa, e a fila continua à mostra
+com ela aberta). Sem nenhum dos dois, uma seção por vez, com os 5 itens na navegação.
+
+**Empilhado largo (mestre, em pé de 900 a 1279 px, como um monitor em pé):** a fila mora à esquerda
+do painel de baixo (coluna 320), sem cobrir o mapa; Fila e Personagens saem da navegação, como com
+a fila fixa.
 
 **Empilhado, mestre:** mapa e painel com a mesma altura (`panelHalf`); o painel nunca fecha, não
 tem X e rola por dentro.
@@ -67,13 +84,16 @@ tem X e rola por dentro.
 - **`MatchStageTemplate` (+ `.styles.ts`)** decide ONDE cada zona fica, só com CSS (grid por
   media query). Rodapé e coluna são o mesmo `rail`: quem o deita é o CSS, não um ramo de JS.
   `RAIL_BAR_HEIGHT` (56) vem de `MatchStageTemplate.styles.ts`.
-- **`useMatchLayout`** decide O QUE vai em cada zona: `stacked` (empilhado: `!side`), `landscape`
-  (celular deitado), `landscapeSplit`, `wide`, `asideIsDrawer` (`stacked && !tabletPortrait`),
+- **`useMatchLayout({ columnWidth, queue })`** decide O QUE vai em cada zona: `stacked` (empilhado:
+  `!side`), `landscape` (celular deitado), `landscapeSplit`, `twoColumns`, `stackedWide`, `wide`,
+  `asideNarrow` (o Histórico de 200), `asideIsDrawer` (`stacked && !tabletPortrait`),
   `sheetReplacesColumn` (a ficha do mestre toma o lugar da coluna: `side && (landscape || !asideUp)`).
-  `queueIsSplit(layout)` diz se a fila do mestre é fixa (`!stacked && (!landscape || landscapeSplit)`).
+  `queueIsSplit(layout)` diz se a fila do mestre é fixa
+  (`(!stacked && (!landscape || landscapeSplit || twoColumns)) || stackedWide`).
 - **Páginas** (`GameMasterPage`, `GamePlayerPage`) escolhem os itens da navegação, o conteúdo do
   painel e a seção ativa a partir do layout.
-- **`useStageOverlays({ panelFixed })`** guarda `panelOpen`/`asideOpen`. "Abrir um fecha o outro"
+- **`useStageOverlays({ columnWidth, queue, panelFixed })`** guarda `panelOpen` e o modo do
+  Histórico (`asideMode`, ver "Histórico em coluna"; `asideOpen` = modo ≠ `closed`). "Abrir um fecha o outro"
   vale só onde o Histórico é gaveta (`asideIsDrawer`, celular em pé); no tablet em pé e com colunas
   laterais o Histórico convive com tudo. Com `panelFixed` (mestre) o painel está sempre aberto.
   Inicial: painel aberto onde é coluna (`!stacked`); Histórico aberto só a partir de `asideUp` e
@@ -90,7 +110,9 @@ folha tem `padding-bottom` de 56). Detalhe do comentário em `MatchStageTemplate
 
 ## Ficha
 
-- **Folha (empilhado: celular e tablet em pé, mestre e jogador):** 8 px das laterais, topo a 20% da altura abaixo do
+- **Folha (empilhado: celular e tablet em pé, mestre e jogador):** 16 px das laterais (dono,
+  2026-11-28: com 8, a barra de rolagem dela encostava na do Histórico), o trilho da barra começa
+  22 px abaixo do topo (`scrollbarTrackInset`, para não entrar no canto arredondado), topo a 20% da altura abaixo do
   header, cantos de 22 px em cima. X vermelho de 36 px (`CloseButton` + `iconButtonFx(1.15)`),
   `top: -10px; right: -5px`.
 - **No lugar da coluna (mestre, deitado abaixo de 1280 px e no celular deitado):** aberta, a ficha ocupa
@@ -124,11 +146,29 @@ Sem fila fixa: `Fila · Ficha · Agir · Personagens · Partida` (inicial: Fila)
 
 ## Histórico em coluna
 
-Com colunas laterais, coluna de 280 px, aberta junto com tudo; no celular deitado (mestre e
-jogador), onde 280 não cabe, 200. No celular em pé é a gaveta com véu, `min(86%, 280px)`. Abre/fecha
-pelo botão "Histórico" do header.
+Com colunas laterais, coluna de 280 px, ou 200 onde o mapa ficaria com menos de 320 (ver
+"Larguras"). No celular em pé é a gaveta com véu, `min(86%, 280px)`. Abre/fecha pelo botão
+"Histórico" do header.
 
-**Tablet em pé (empilhado, ≥ 600 px):** coluna encaixada de 200 px à direita, **só na faixa do
+**Onde é 200: alternância 200 / 280 / escondido** (dono, 2026-11-28). `AsideMode` =
+`closed | docked | expanded | expandedOverDocked` (`MatchStageTemplate.types.ts`):
+- botão "Histórico" com ele fechado → `expanded`: 280 **por cima** do mapa, com sombra, sem coluna
+  embaixo (a célula da grade fica com 0, o mapa não muda de tamanho); tocar fora → fecha;
+- botão de largura (‹ "Ampliar o Histórico" / › "Reduzir o Histórico", pendurado inteiro sobre a borda
+  do mapa, na altura das abas, sem cobrir nenhuma) em `docked` → `expandedOverDocked`: a célula
+  continua com 200 e a superfície de 280 vaza 80 px sobre o mapa; tocar fora → volta a 200;
+- "Reduzir" em qualquer modo ampliado → `docked` (fixa em 200); "Histórico" com ele à mostra → fecha;
+- o toque fora cai num véu transparente (`aside-expand-scrim`) que mata o `pointerdown`: não
+  seleciona peça nem começa pan; ele cobre também a navegação (o primeiro toque só reduz);
+- saindo da tela estreita (girou, redimensionou), os modos ampliados valem `docked` na leitura.
+O CSS dos modos ampliados usa `&&`: o styled-components escreve as declarações soltas antes dos
+blocos `@media`, e sem a especificidade dobrada a largura 0 e o z-index perdiam para a regra da
+coluna. Na aba Personagens a 200 o seletor diz "Escolha um NPC" (`AddNpcPicker compact`), o
+título "PERSONAGENS" encolhe por container query (`min(32px, 12.13cqi)`, 32 a 280) e o selo "Fora do
+mapa" sobe para a linha do "NPC" (`@container (max-width: 239px)` no card).
+
+**Tablet em pé (empilhado, ≥ 600 px):** coluna encaixada de 280 px à direita (era 200; com a regra do
+mapa sobra 473 no Tab S9), **só na faixa do
 mapa**: o painel de baixo e a navegação passam por baixo dela, na largura toda. Sem sombra, sem
 véu; fica aberta até tocar de novo no botão e não fecha a ficha nem é fechada por ela. A folha da
 ficha, que abre por cima, passa na frente da coluna (a coluna sai da pilha da gaveta: `z-index:
