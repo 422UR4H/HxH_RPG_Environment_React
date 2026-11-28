@@ -540,7 +540,7 @@ describe("createCharacterSheet", () => {
     physicalSkills: {
       vitality: skill(10), // allowed, exp>0 -> included as "Vitality"
       energy: skill(0), // allowed, exp==0 -> excluded
-      push: skill(7), // NOT allowed, exp>0 -> excluded
+      force: skill(7), // NOT allowed, exp>0 -> excluded
     },
     spiritualSkills: {
       nen: skill(5), // NOT allowed -> excluded (also proves physical+spiritual are merged)
@@ -689,7 +689,7 @@ describe("updateCharacterSheet", () => {
     physicalSkills: {
       vitality: skill(10), // allowed, exp>0 -> included
       energy: skill(0), // allowed, exp==0 -> excluded
-      push: skill(7), // NOT allowed -> excluded
+      force: skill(7), // NOT allowed -> excluded
     },
     commonProficiencies: {
       dagger: prof(12), // camelCase key, allowed via toCamel("Dagger") -> included as "Dagger"
@@ -825,7 +825,7 @@ describe("getCombatCatalogue", () => {
   it("GETs /charactersheets/:uuid/combat-catalogue with Authorization header", async () => {
     const data = {
       weapons: [{ name: "Fist", dice: [6, 6, 4], flatDamage: 0, defenseBonus: 0, proficiencyLevel: 0 }],
-      skills: ["Push"],
+      skills: ["Force"],
     };
     let capturedUrl = "";
     let capturedAuth: string | null = null;

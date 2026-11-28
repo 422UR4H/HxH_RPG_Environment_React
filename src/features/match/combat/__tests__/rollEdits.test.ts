@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { ResolutionPayload, ResolutionTarget } from "../combatMessages";
 import type { QueuedAction } from "../combatMessages";
 import {
-  clearPayload, conditionPayload, damageSkillPayload, describeCondition, editableRolls, isNeutral, passiveBiasNote,
+  clearPayload, conditionPayload, describeCondition, editableRolls, isNeutral, passiveBiasNote,
   queuedRolls, systemBiasNote,
 } from "../rollEdits";
 
@@ -13,7 +13,7 @@ const target = (targetId: string, kind?: string, reactionId = `r-${targetId}`): 
 });
 
 const base = (over: Partial<ResolutionPayload> = {}): ResolutionPayload => ({
-  turnId: "t1", isSettled: false, targets: [], damageSkill: "Push", ...over,
+  turnId: "t1", isSettled: false, targets: [], damageSkill: "Force", ...over,
 });
 
 const fields = (res: ResolutionPayload) => editableRolls(res).map((r) => `${r.actionId ?? "action"}:${r.field}`);
@@ -146,11 +146,6 @@ describe("payloads", () => {
     expect(clearPayload(hit)).toEqual({ conditions: [{ field: "hit" }] });
     expect(clearPayload(reactionRoll)).toEqual({ actionId: "r-a", conditions: [{ field: "defense" }] });
   });
-
-  it("perícia do dano: a do turno sem id, a da fila com o id da ação", () => {
-    expect(damageSkillPayload("Grab")).toEqual({ damageSkill: "Grab" });
-    expect(damageSkillPayload("Grab", "q1")).toEqual({ actionId: "q1", damageSkill: "Grab" });
-  });
 });
 
 describe("describeCondition / isNeutral", () => {
@@ -170,7 +165,7 @@ describe("queuedRolls", () => {
   const queued = (over: Partial<QueuedAction> = {}): QueuedAction => ({
     actionId: "q1", actorId: "a", bars: ["action"],
     action: { uuid: "q1", actorId: "a", reactionKind: "", attack: { weapon: "Sword" } },
-    damageSkill: "Push",
+    damageSkill: "Force",
     ...over,
   });
 
@@ -245,7 +240,7 @@ describe("systemBiasNote", () => {
 describe("queuedRolls — viés do sistema", () => {
   it("a marca de quem cancelou pesa nas velocidades, não no acerto", () => {
     const rolls = queuedRolls({
-      actionId: "q1", actorId: "a", bars: ["action"], damageSkill: "Push",
+      actionId: "q1", actorId: "a", bars: ["action"], damageSkill: "Force",
       action: { uuid: "q1", actorId: "a", reactionKind: "", systemBias: -1, attack: {}, move: { category: "Shift" } },
     }, "Race");
     expect(Object.fromEntries(rolls.map((r) => [r.field, r.systemBias]))).toEqual({

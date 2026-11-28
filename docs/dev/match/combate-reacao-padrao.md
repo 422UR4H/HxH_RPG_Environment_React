@@ -18,7 +18,7 @@ discordam, vale este.
 | `nothing` nunca precisa ser aberto e não segura o fechamento; a padrão sentada também não segura. Os dois continuam abríveis: abrir também posiciona na cadeia, e é assim que o mestre controla o tempo de resolução dessa escolha. | "Dar a palavra" aparece para os dois. O `close_turn_refused` já vem filtrado. |
 | `match_full_state.passiveValue`: o valor base dos dados (11 no 2D10). | O reducer guarda em `state.passiveValue`; `GameMasterPage` → `QueuePanel` → `ResolutionDetails`/`QueuedActionEdits` → `RollEditLine` → `RollConditionEditor` o levam até o aviso. |
 | Viés do mestre num teste passivo o torna rolado: vantagem = melhor entre o dado e o valor base; desvantagem = pior. | Ver "O viés de uma leitura passiva". |
-| `edit_action` aceita o id de uma ação **na fila** (condições e `damageSkill`), e o servidor responde com o `action_queued` que a redescreve, com `conditions` e `damageSkill`. | Ver "Ajustar na fila". O reducer trata um `action_queued` de `actionId` conhecido como atualização (substitui no lugar). |
+| `edit_action` aceita o id de uma ação **na fila** (só condições), e o servidor responde com o `action_queued` que a redescreve, com `conditions` (e `damageSkill`, só leitura, quando há ataque). | Ver "Ajustar na fila". O reducer trata um `action_queued` de `actionId` conhecido como atualização (substitui no lugar). |
 | `ownReactions` não lista a padrão sentada. | Nada a fazer: os botões de reação continuam disponíveis para quem não respondeu. |
 
 ## `rollEdits.ts`: `bias` no lugar de `allowsBias`
@@ -73,16 +73,14 @@ aberta por vez; fecha sozinho quando a ação sai da fila). Aberto, mostra `Queu
   **Velocidade de ação** (`rolled` no Race, `passive` fora dele); **Velocidade de movimento** quando
   há movimento (`rolled` no Dash, `passive` no Shift). Cada uma com `RollEditLine` (o mesmo
   "Editar" + editor inline do cálculo do turno), um editor aberto por vez;
-- o "medido por" Push/Grab (`DamageSkillPicker`) quando há ataque;
 - a nota "Mexer na velocidade muda o lugar na fila. O jogador não vê estes ajustes."
 
 Fechada, a linha resume o que está em vigor ("Ajustada: velocidade de ação +3"), lido de
-`action_queued.conditions`. Todo payload leva o `actionId` da ação (`damageSkillPayload(skill,
-actionId)`). Alvos e perícias não se ajustam na fila — o servidor recusa (chegariam ao dono antes
+`action_queued.conditions`. Todo payload leva o `actionId` da ação. Alvos e perícias não se ajustam na fila — o servidor recusa (chegariam ao dono antes
 do fechamento).
 
-`RollEditLine.tsx` concentra a linha editável (`RollEditLine`) e o seletor Push/Grab
-(`DamageSkillPicker`), extraídos do `ResolutionDetails` para servir aos dois painéis.
+`RollEditLine.tsx` concentra a linha editável (`RollEditLine`), extraída do `ResolutionDetails`
+para servir aos dois painéis.
 
 ## Como verificar no browser
 

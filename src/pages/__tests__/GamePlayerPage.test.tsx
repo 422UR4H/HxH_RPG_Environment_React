@@ -165,7 +165,7 @@ beforeEach(() => {
     http.get(`${baseUrl}/charactersheets/:id/combat-catalogue`, () =>
       HttpResponse.json({
         weapons: [{ name: "Fist", dice: [6, 6, 4], flatDamage: 0, defenseBonus: 0, proficiencyLevel: 0 }],
-        skills: ["Push"],
+        skills: ["Force"],
       }),
     ),
   );

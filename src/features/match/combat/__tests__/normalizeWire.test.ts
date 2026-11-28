@@ -128,7 +128,7 @@ describe("normalizeWire — R33", () => {
       isSettled: true,
       targets: null,
       action: {
-        skillName: "Push",
+        skillName: "Force",
         skillValue: 3,
         diceRolled: null,
         total: 10,
@@ -183,7 +183,7 @@ describe("normalizeWire — R33", () => {
       attack: {
         weapon: "Sword",
         hit: { skillName: "Accuracy", skillValue: 0, attempts: { primary: [6, 8] }, result: 14 },
-        damage: { skillName: "Push", skillValue: 0, attempts: { primary: [4] }, result: 4 },
+        damage: { skillName: "Force", skillValue: 0, attempts: { primary: [4] }, result: 4 },
         relativeVelocity: 0,
       },
     };

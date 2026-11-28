@@ -151,7 +151,7 @@ quem viu). `useGameTable` não rebusca mais na notícia de tabuleiro.
 
 - `orderPending` (`resolutionText.ts`): as reações esperando pela chave (velocidade, como a fila de
   ações), sem velocidade depois, com "chave N · chegou em Nº". A ordem de abrir continua do mestre.
-- Dano: Push/Grab; desmarcar o atual manda `damageSkill: "None"` ("nenhuma — só a arma").
+- Dano: sempre medido por Force; sem seletor de perícia (o servidor recusa `edit_action.damageSkill`).
 - "Encerrar rodada" trava com `bars.roundTurns === 0` (nenhum turno nesta rodada); o servidor
   recusa igual.
 

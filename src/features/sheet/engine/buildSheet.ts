@@ -82,7 +82,7 @@ function buildMentalAttributes(mentals: Ability) {
 // [atributo, perícias] na ordem do Go (BuildPhysSkills / BuildSpiritualSkills)
 const PHYSICAL_SKILLS: [string, string[]][] = [
   ["Resistance", ["Vitality", "Energy", "Defense"]],
-  ["Strength", ["Push", "Grab", "Carry"]],
+  ["Strength", ["Force", "Grab", "Charge"]],
   ["Agility", ["Quickness", "Accelerate", "Brake"]],
   ["Celerity", ["Legerity", "Repel", "Feint"]],
   ["Flexibility", ["Acrobatics", "Evasion", "Sneak"]],

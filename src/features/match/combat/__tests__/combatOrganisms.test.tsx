@@ -24,7 +24,7 @@ const res: ResolutionPayload = {
   turnId: "t1",
   isSettled: false,
   action: { skillName: "Accuracy", skillValue: 14, diceRolled: [6, 8], total: 20, isCritical: false, isCriticalFailure: false, margin: 3 },
-  damageSkill: "Push",
+  damageSkill: "Force",
   targets: [{
     targetId: "c2", avoided: false, defended: true, dodgeTotal: 12, defenseTotal: 15,
     rawDamage: 10, defenseApplied: 3, projectedDamage: 7,
@@ -176,7 +176,7 @@ const fullAction = {
   attack: {
     weapon: "ThrowingDagger",
     hit: { skillName: "Accuracy", skillValue: 0, attempts: { primary: [6, 8] }, result: 14 },
-    damage: { skillName: "Push", skillValue: 0, attempts: { primary: [4] }, result: 4 },
+    damage: { skillName: "Force", skillValue: 0, attempts: { primary: [4] }, result: 4 },
     relativeVelocity: 0,
   },
 };
@@ -286,7 +286,7 @@ describe("QueuePanel", () => {
     // Fixture corrigida (2026-11-06): `fullAction` é movimento + ataque, que cobra as duas barras —
     // com só `["move"]` ela seria um movimento puro, sem velocidade de ação para ajustar.
     const queued = {
-      actionId: "a2", actorId: "n1", bars: ["action" as const, "move" as const], action: fullAction, damageSkill: "Push",
+      actionId: "a2", actorId: "n1", bars: ["action" as const, "move" as const], action: fullAction, damageSkill: "Force",
       conditions: [{ actionId: "a2", field: "speed" as const, bias: 0, modifier: 3 }],
     };
 
@@ -312,8 +312,8 @@ describe("QueuePanel", () => {
       fireEvent.click(within(edits).getByRole("button", { name: "Vantagem" }));
       fireEvent.click(within(edits).getByRole("button", { name: "Aplicar" }));
       expect(onEdit).toHaveBeenCalledWith({ actionId: "a2", conditions: [{ field: "hit", bias: 1 }] });
-      fireEvent.click(within(edits).getByRole("button", { name: "Grab" }));
-      expect(onEdit).toHaveBeenCalledWith({ actionId: "a2", damageSkill: "Grab" });
+      // O dano não tem seletor de perícia: só a condição do Dano é editável.
+      expect(within(edits).queryByRole("button", { name: /^(Force|Grab)$/ })).toBeNull();
     });
   });
 
@@ -743,7 +743,7 @@ describe("ResolutionDetails", () => {
   describe("edição do mestre (Fase 8)", () => {
     const editable: ResolutionPayload = {
       ...res,
-      damageSkill: "Push",
+      damageSkill: "Force",
       targets: [{ ...res.targets[0], reaction: { ...res.targets[0].reaction!, kind: "dodge", reactionId: "r1" } }],
       conditions: [{ actionId: "act-1", field: "hit", bias: 1, modifier: -2, description: "escuridao" }],
     };
@@ -781,21 +781,11 @@ describe("ResolutionDetails", () => {
       expect(onEdit).toHaveBeenCalledWith({ actionId: "r1", conditions: [{ field: "defense", modifier: 3 }] });
     });
 
-    it("Push/Grab manda damageSkill na hora; desmarcar o atual tira a perícia do dano (None)", () => {
-      const onEdit = vi.fn();
-      render(<ResolutionDetails resolution={editable} nameOf={resolutionNameOf} onEditAction={onEdit} />);
-      expect(screen.getByRole("button", { name: "Push" })).toHaveAttribute("aria-pressed", "true");
-      fireEvent.click(screen.getByRole("button", { name: "Grab" }));
-      expect(onEdit).toHaveBeenLastCalledWith({ damageSkill: "Grab" });
-      fireEvent.click(screen.getByRole("button", { name: "Push" }));
-      expect(onEdit).toHaveBeenLastCalledWith({ damageSkill: "None" });
-    });
-
-    it("sem perícia no dano: nenhum marcado, e o painel diz que é só a arma", () => {
-      render(<ResolutionDetails resolution={{ ...editable, damageSkill: "None" }} nameOf={resolutionNameOf} onEditAction={vi.fn()} />);
-      expect(screen.getByRole("button", { name: "Push" })).toHaveAttribute("aria-pressed", "false");
-      expect(screen.getByRole("button", { name: "Grab" })).toHaveAttribute("aria-pressed", "false");
-      expect(screen.getByText("nenhuma — só a arma")).toBeInTheDocument();
+    it("the damage block has no skill picker", () => {
+      render(<ResolutionDetails resolution={editable} nameOf={resolutionNameOf} onEditAction={vi.fn()} />);
+      expect(screen.queryByRole("button", { name: /^(Force|Grab)$/ })).toBeNull();
+      expect(screen.getByText("Dano")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Editar Dano" })).toBeInTheDocument();
     });
 
     it("sem ataque (sem damageSkill) não há bloco Dano nem acerto editável", () => {

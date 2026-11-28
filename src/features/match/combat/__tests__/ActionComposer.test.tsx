@@ -13,7 +13,7 @@ const catalogue = {
     { name: "Fist", dice: [6, 6, 4], flatDamage: 0, defenseBonus: 0, proficiencyLevel: 0 },
     { name: "Sword", dice: [10, 4], flatDamage: 2, defenseBonus: 0, proficiencyLevel: 4 },
   ],
-  skills: ["Push"],
+  skills: ["Force"],
 };
 
 const grid: GridShape = {
