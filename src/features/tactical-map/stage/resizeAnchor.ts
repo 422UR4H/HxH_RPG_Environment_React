@@ -17,7 +17,12 @@ export interface ResizeShift {
 // do canvas andou; somar `dx`/`dy` a `vp.x`/`vp.y` deixa cada ponto do mundo no mesmo pixel da
 // tela. Mudança de altura (painel de baixo do celular, girar o aparelho) continua pedindo
 // reenquadrar, como antes. A primeira medida também reenquadra: não há caixa anterior.
+// Diferença de altura abaixo de 1 px (arredondamento do ResizeObserver) não conta como mudança.
+const HEIGHT_TOLERANCE_PX = 1;
+
 export function resizeShift(prev: CanvasBox | null, next: CanvasBox): ResizeShift {
-  if (prev === null || prev.height !== next.height) return { dx: 0, dy: 0, refit: true };
+  if (prev === null || Math.abs(prev.height - next.height) >= HEIGHT_TOLERANCE_PX) {
+    return { dx: 0, dy: 0, refit: true };
+  }
   return { dx: prev.left - next.left, dy: prev.top - next.top, refit: false };
 }

@@ -60,4 +60,16 @@ describe("resizeShift", () => {
       refit: true,
     });
   });
+
+  it("ignores a sub-pixel height change and keeps the map still", () => {
+    expect(resizeShift(box(0, 45, 753, 552), box(0, 45, 553, 552.4))).toEqual({
+      dx: 0,
+      dy: 0,
+      refit: false,
+    });
+  });
+
+  it("refits when the height changes by one pixel or more", () => {
+    expect(resizeShift(box(0, 45, 753, 552), box(0, 45, 753, 551)).refit).toBe(true);
+  });
 });

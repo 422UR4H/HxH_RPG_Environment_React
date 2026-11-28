@@ -183,7 +183,10 @@ export default function ViewportInner({
       vp.x += shift.dx;
       vp.y += shift.dy;
     }
-  }, [app, width, height]);
+    // `vpReady` nas dependências: na montagem o renderer ainda está iniciando e o efeito sai
+    // cedo; sem rodar de novo quando o viewport aparece, a primeira medida só acontecia na
+    // primeira coluna aberta — e "primeira medida" reenquadra, o que mexia no mapa.
+  }, [app, width, height, vpReady]);
 
   // Game only: a camada HTML (botões de reação, balões) ancora coisas nas peças por este
   // enquadramento. Vai pelo ticker, e não pelo evento `moved`, porque o pan é feito pelos
