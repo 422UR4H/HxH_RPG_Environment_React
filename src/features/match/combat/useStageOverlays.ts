@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import useMediaQuery from "../../../hooks/useMediaQuery";
 import { breakpoints } from "../../../styles/breakpoints";
-import type { AsideMode } from "../../../components/templates/MatchStageTemplate";
+import type { AsideMode } from "../../../components/templates/MatchStageTemplate.types";
 import { useMatchLayout, type MatchLayoutOptions } from "./useMatchLayout";
 
 type Setter = (next: boolean | ((open: boolean) => boolean)) => void;

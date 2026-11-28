@@ -12,7 +12,7 @@ import {
 import { colors } from "../../styles/tokens";
 import { iconButtonFx } from "../../styles/iconButtonFx";
 import CloseButton from "../ions/CloseButton";
-import type { AsideMode } from "./MatchStageTemplate";
+import type { AsideMode } from "./MatchStageTemplate.types";
 
 /** Altura do rodapé: o rail deita no empilhado (em pé até 1279 px); com colunas laterais (`media.side`) ele é coluna. */
 export const RAIL_BAR_HEIGHT = 56;
@@ -491,8 +491,9 @@ export const AsideSurface = styled.div<{ $expanded: boolean }>`
 `;
 
 /*
- * Ampliar/reduzir o Histórico: preso à borda esquerda da superfície, na altura da faixa das abas,
- * metade para o lado do mapa (o botão mora na célula, não na superfície que rola, para poder vazar).
+ * Ampliar/reduzir o Histórico: inteiro para fora da superfície, pendurado no mapa com a borda direita
+ * encostada na borda esquerda dela, na altura da faixa das abas (nunca cobre uma aba). Mora na célula,
+ * não na superfície que rola, para poder vazar.
  */
 export const AsideWidthButton = styled.button<{ $mode: AsideMode }>`
   position: absolute;
@@ -501,7 +502,7 @@ export const AsideWidthButton = styled.button<{ $mode: AsideMode }>`
     // A borda esquerda da superfície em relação à célula: 0 (200), -280 (ampliado sozinho), -80 (sobre o encaixado).
     const surfaceLeft =
       $mode === "expanded" ? -ASIDE_WIDTH : $mode === "expandedOverDocked" ? ASIDE_NARROW_WIDTH - ASIDE_WIDTH : 0;
-    return surfaceLeft - WIDTH_BUTTON_SIZE / 2;
+    return surfaceLeft - WIDTH_BUTTON_SIZE;
   }}px;
   z-index: ${ASIDE_DRAWER_Z_INDEX};
   display: flex;
