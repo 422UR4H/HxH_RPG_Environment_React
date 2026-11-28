@@ -66,8 +66,8 @@ const SidebarContainer = styled.aside<{ $fluid?: boolean; $isDropTarget: boolean
 
 const SidebarTitle = styled.h2`
   font-weight: 700;
-  /* 32 px a 280; a 200 cai para ~22 e cabe. */
-  font-size: min(32px, 12cqi);
+  /* 32 px a 280 (264 úteis × 12,13% = 32); a 200 cai para ~22 e cabe. */
+  font-size: min(32px, 12.13cqi);
   text-align: center;
   color: ${colors.textPrimary};
   margin-bottom: 20px;
