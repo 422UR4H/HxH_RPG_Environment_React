@@ -339,7 +339,8 @@ describe("MatchStageTemplate", () => {
       const middle = screen.getByTestId("match-panel").parentElement!;
       const rules = declarationsOf(middle, media.landscapeTwoColumns);
       expect(rules).toContain('"rail queue panel stage aside"');
-      expect(rules).toContain("grid-template-columns:72px 240px 320px");
+      // A coluna do painel é `auto`: a ficha de 340 a alarga em vez de vazar sobre o mapa.
+      expect(lastValue(rules, "grid-template-columns")).toBe("72px 240px auto minmax(0, 1fr) auto");
       const queue = declarationsOf(screen.getByTestId("match-queue"), media.landscapeTwoColumns);
       expect(lastValue(queue, "width")).toBe("240px");
       expect(lastValue(queue, "display")).toBe("block");

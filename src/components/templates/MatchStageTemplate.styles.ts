@@ -80,6 +80,15 @@ const queueColumnsGrid = css`
   grid-template-areas: "rail queue panel stage aside";
 `;
 
+/*
+ * Celular deitado baixo e largo: a mesma grade, mas a coluna do painel é `auto` (o painel tem 320
+ * de largura própria), para a ficha de 340 alargar a coluna em vez de vazar sobre o mapa.
+ */
+const queueColumnsAutoGrid = css`
+  ${queueColumnsGrid}
+  grid-template-columns: ${RAIL_WIDTH}px ${QUEUE_COLUMN_WIDTH}px auto minmax(0, 1fr) auto;
+`;
+
 /* Empilhado largo (mestre, em pé de 900 a 1279 px): a fila à esquerda do painel de baixo. */
 const stackedWideGrid = css`
   grid-template-columns: ${MASTER_COLUMN_WIDTH}px minmax(0, 1fr) auto;
@@ -199,7 +208,7 @@ export const Middle = styled.div<{ $queue: boolean; $half: boolean }>`
   }
   /* Baixo e largo: a mesma grade do widescreen, depois da regra do celular deitado. */
   ${media.landscapeTwoColumns} {
-    ${({ $queue }) => $queue && queueColumnsGrid}
+    ${({ $queue }) => $queue && queueColumnsAutoGrid}
   }
 `;
 
