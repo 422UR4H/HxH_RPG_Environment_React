@@ -118,6 +118,8 @@ const ItemContainer = styled.div<{
 }>`
   position: relative;
   overflow: hidden;
+  /* Os selos leem a largura do card (o cabeçalho tem o próprio container, não muda). */
+  container-type: inline-size;
   border-radius: 0px 16px 0 0;
   opacity: ${({ $isDead }) => ($isDead ? 0.7 : 1)};
   cursor: ${({ $clickable }) => ($clickable ? "pointer" : "default")};
@@ -141,4 +143,12 @@ const OverlayBadge = styled(Badge)`
 // Segunda linha de selos: abaixo do "Saiu"/"NPC"/"Morto", que ocupam o canto de cima.
 const OffBoardBadge = styled(OverlayBadge)`
   top: 34px;
+
+  /* Card estreito (o Histórico de 200 px da mesa): o nome sobe com a escala do cabeçalho e a
+     segunda linha cairia em cima dele. O selo vai para o canto de cima à esquerda, sobre a capa. */
+  @container (max-width: 239px) {
+    top: 10px;
+    right: auto;
+    left: 10px;
+  }
 `;
