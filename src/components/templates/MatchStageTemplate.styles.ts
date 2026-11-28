@@ -464,17 +464,23 @@ export const AsideZone = styled.aside<{ $open: boolean; $mode: AsideMode; $queue
         width: ${ASIDE_NARROW_WIDTH}px;
       }
     `}
-  /* Modos ampliados (só em tela estreita; por último, vale sobre as larguras acima). */
+  /* Modos ampliados (só em tela estreita). O styled-components escreve as declarações soltas ANTES
+     dos blocos @media, então "por último no código" não basta: o "&&" dobra a especificidade para
+     vencer a largura e o z-index: auto da coluna, que moram em @media. */
   ${({ $mode }) =>
     $mode === "expanded" &&
     css`
-      width: 0;
-      z-index: ${ASIDE_DRAWER_Z_INDEX};
+      && {
+        width: 0;
+        z-index: ${ASIDE_DRAWER_Z_INDEX};
+      }
     `}
   ${({ $mode }) =>
     $mode === "expandedOverDocked" &&
     css`
-      z-index: ${ASIDE_DRAWER_Z_INDEX};
+      && {
+        z-index: ${ASIDE_DRAWER_Z_INDEX};
+      }
     `}
 `;
 
