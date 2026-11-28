@@ -118,6 +118,9 @@ function arrangePayload(p: ArrangePending): MasterActionPayload {
     : { targetIds: [p.characterId], move: { position: p.to } };
 }
 
+// Estado de um arraste com fantasma: quem, o diâmetro na tela e onde o ponteiro estava.
+type GhostDrag = { id: string; avatarUrl?: string | null; size: number; x: number; y: number };
+
 export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const { width, height } = useResizeObserver(canvasRef);
@@ -239,20 +242,19 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   const [placingId, setPlacingId] = useState<string | undefined>(undefined);
   // Arrastar o card de quem está fora do mapa até o tabuleiro (vale em qualquer modo, e sempre
   // confirma pelo mesmo diálogo do Arrumar). `x`/`y`: onde o ponteiro estava; `size`: o diâmetro do ghost.
-  const [cardDrag, setCardDrag] = useState<{
-    id: string;
-    avatarUrl?: string | null;
-    size: number;
-    x: number;
-    y: number;
-  } | null>(null);
+  const [cardDrag, setCardDrag] = useState<GhostDrag | null>(null);
   const clearCardDrag = useCallback(() => setCardDrag(null), []);
   // Estáveis: o PiecesLayer reassina os ouvintes a cada troca delas.
-  const handlePieceDragStart = useCallback((pieceId: string) => setDraggingPieceId(pieceId), []);
-  const handlePieceDragEnd = useCallback(() => setDraggingPieceId(null), []);
   const cardGhostRef = usePointerGhost(cardDrag);
   // Arrumar: uma peça está sendo arrastada para fora do mapa (acende a lista de Personagens).
   const [draggingPieceId, setDraggingPieceId] = useState<string | null>(null);
+  // O fantasma da peça arrastada no Arrumar: o PiecesLayer a esconde da cena e conta conosco para desenhá-la.
+  const [pieceDrag, setPieceDrag] = useState<GhostDrag | null>(null);
+  const pieceGhostRef = usePointerGhost(pieceDrag);
+  const handlePieceDragEnd = useCallback(() => {
+    setDraggingPieceId(null);
+    setPieceDrag(null);
+  }, []);
   // Um ref por posição: a lista pode estar montada no Histórico e na seção Personagens ao mesmo
   // tempo, e um ref só seria zerado quando qualquer uma das duas desmontasse.
   const asideListRef = useRef<HTMLDivElement | null>(null);
@@ -662,20 +664,36 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
     },
     [placingId, game.boardPieces],
   );
-  const handleCardDragStart = useCallback(
-    (participant: Participant, point: { x: number; y: number }) => {
+  // Fantasma de arraste (card ou peça): o diâmetro da peça na tela, como o ghost do lobby;
+  // não encolhe abaixo do que se agarra. Um só lugar para a fórmula.
+  const buildGhostDrag = useCallback(
+    (characterId: string, point: { x: number; y: number }): GhostDrag => {
       const scale = game.viewport.getSnapshot()?.scale ?? 1;
-      setCardDrag({
-        id: participant.characterSheet.uuid,
-        avatarUrl: participant.characterSheet.avatarUrl,
-        // O diâmetro da peça na tela, como o ghost do lobby; não encolhe abaixo do que se agarra.
+      const sheet = participants.find((p) => p.characterSheet.uuid === characterId)?.characterSheet;
+      return {
+        id: characterId,
+        avatarUrl: sheet?.avatarUrl,
         size: map ? Math.max(44, slotScreenInradius(map.grid) * 2 * 0.9 * scale) : 44,
         x: point.x,
         y: point.y,
-      });
+      };
+    },
+    [game.viewport, map, participants],
+  );
+  const handleCardDragStart = useCallback(
+    (participant: Participant, point: { x: number; y: number }) => {
+      setCardDrag(buildGhostDrag(participant.characterSheet.uuid, point));
       closeAsideIfDrawer();
     },
-    [game.viewport, map, closeAsideIfDrawer],
+    [buildGhostDrag, closeAsideIfDrawer],
+  );
+  const handlePieceDragStart = useCallback(
+    (pieceId: string, _npc: unknown, point: { x: number; y: number }) => {
+      setDraggingPieceId(pieceId);
+      const characterId = game.boardPieces.find((p) => p.id === pieceId)?.characterId;
+      if (characterId) setPieceDrag(buildGhostDrag(characterId, point));
+    },
+    [game.boardPieces, buildGhostDrag],
   );
   const handleCardPlaced = useCallback(
     (slot: SlotCoord) => {
@@ -1219,6 +1237,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
         }}
         onKeep={() => setCancelling(null)}
       />
+      {pieceDrag && <PieceDragGhostPortal ghostRef={pieceGhostRef} size={pieceDrag.size} avatarUrl={pieceDrag.avatarUrl} />}
       {cardDrag && <PieceDragGhostPortal ghostRef={cardGhostRef} size={cardDrag.size} avatarUrl={cardDrag.avatarUrl} />}
       <ArrangeConfirmDialog
         pending={arrangePending}
