@@ -38,8 +38,49 @@ export const SIDE_BELOW_ASIDE_UP_QUERY = `(orientation: landscape) and (max-widt
 /** Celular deitado: a altura baixa é o que o separa de um tablet ou computador. */
 export const LANDSCAPE_PHONE_QUERY = "(orientation: landscape) and (max-height: 540px)";
 
-/** Altura mínima para o mestre dividir a coluna em duas metades: 44 do header + 2 × 160. */
-export const LANDSCAPE_SPLIT_MIN_HEIGHT = 364;
+/**
+ * Altura mínima para o mestre dividir a coluna em duas metades. O celular do dono em tela
+ * cheia (web app) tem 427 px; no navegador, 303: 400 dá 27 px de margem.
+ */
+export const LANDSCAPE_SPLIT_MIN_HEIGHT = 400;
+
+/*
+ * Larguras (px) que entram nas regras por espaço. Moram aqui, e não no template, porque as
+ * queries precisam delas; o template as reexporta.
+ */
+/** Coluna da esquerda do mestre: painel e fila. */
+export const MASTER_COLUMN_WIDTH = 320;
+/** O Histórico em coluna. */
+export const ASIDE_WIDTH = 280;
+/** O Histórico quando, com ele em 280, o mapa ficaria com menos de `MAP_MIN_WIDTH`. */
+export const ASIDE_NARROW_WIDTH = 200;
+/** O mapa nunca fica com menos que isto por causa do Histórico: abaixo, ele encolhe para 200. */
+export const MAP_MIN_WIDTH = 320;
+/** A coluna da navegação em pé. */
+export const RAIL_WIDTH = 72;
+/** A fila do mestre em coluna própria. */
+export const QUEUE_COLUMN_WIDTH = 240;
+/** Em pé, a partir daqui (até `asideUp`) a fila do mestre ganha a zona à esquerda do painel. */
+export const STACKED_WIDE_MIN_WIDTH = 900;
+
+/**
+ * O Histórico encolhe para 200 quando, deitado, descontados a navegação, as colunas à esquerda
+ * (`leftWidth`, a soma das que ficam antes do mapa) e os 280 dele, sobram menos de
+ * `MAP_MIN_WIDTH` px de mapa. O teto é fracionário (`- 0.02`) como os demais.
+ */
+export const asideNarrowQuery = (leftWidth: number) =>
+  `(orientation: landscape) and (max-width: ${leftWidth + RAIL_WIDTH + ASIDE_WIDTH + MAP_MIN_WIDTH - 0.02}px)`;
+
+/**
+ * Celular deitado baixo e largo o bastante para fila e painel lado a lado (como no widescreen):
+ * navegação + fila + painel + Histórico estreito + mapa mínimo = 1152.
+ */
+export const LANDSCAPE_TWO_COLUMN_QUERY = `${LANDSCAPE_PHONE_QUERY} and (max-height: ${LANDSCAPE_SPLIT_MIN_HEIGHT - 0.02}px) and (min-width: ${
+  RAIL_WIDTH + QUEUE_COLUMN_WIDTH + MASTER_COLUMN_WIDTH + ASIDE_NARROW_WIDTH + MAP_MIN_WIDTH
+}px)`;
+
+/** Em pé, de 900 a 1279.98 px: o mestre ganha a fila à esquerda do painel de baixo. */
+export const STACKED_WIDE_QUERY = `(orientation: portrait) and (min-width: ${STACKED_WIDE_MIN_WIDTH}px) and (max-width: ${BELOW_ASIDE_UP_MAX})`;
 
 export const media = {
   phone: `@media (max-width: ${breakpoints.tabletUp - 1}px)`,
@@ -51,5 +92,8 @@ export const media = {
   side: `@media ${SIDE_LAYOUT_QUERY}`,
   tabletPortrait: `@media ${TABLET_PORTRAIT_QUERY}`,
   sideBelowAsideUp: `@media ${SIDE_BELOW_ASIDE_UP_QUERY}`,
+  asideNarrow: (leftWidth: number) => `@media ${asideNarrowQuery(leftWidth)}`,
+  landscapeTwoColumns: `@media ${LANDSCAPE_TWO_COLUMN_QUERY}`,
+  stackedWide: `@media ${STACKED_WIDE_QUERY}`,
   landscapeSplit: `@media ${LANDSCAPE_PHONE_QUERY} and (min-height: ${LANDSCAPE_SPLIT_MIN_HEIGHT}px)`,
 } as const;

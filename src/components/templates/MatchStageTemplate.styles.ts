@@ -1,5 +1,14 @@
 import styled, { css } from "styled-components";
-import { media } from "../../styles/breakpoints";
+import {
+  ASIDE_NARROW_WIDTH,
+  ASIDE_WIDTH,
+  asideNarrowQuery,
+  LANDSCAPE_TWO_COLUMN_QUERY,
+  MASTER_COLUMN_WIDTH,
+  media,
+  QUEUE_COLUMN_WIDTH,
+  RAIL_WIDTH,
+} from "../../styles/breakpoints";
 import { colors } from "../../styles/tokens";
 import { iconButtonFx } from "../../styles/iconButtonFx";
 import CloseButton from "../ions/CloseButton";
@@ -30,16 +39,11 @@ export const SHEET_Z_INDEX = 54;
  * Larguras fixas das colunas, em px. São as medidas do computador, valendo também no tablet
  * deitado e no celular deitado: a coluna da esquerda não encolhe quando a tela encolhe.
  */
-/** Coluna da esquerda do mestre: painel e fila. */
-export const MASTER_COLUMN_WIDTH = 320;
+export { ASIDE_NARROW_WIDTH, ASIDE_WIDTH, MASTER_COLUMN_WIDTH };
 /** Coluna da esquerda do jogador (Ação; a aba Ficha também, abaixo de `asideUp`). */
 export const PLAYER_COLUMN_WIDTH = 340;
 /** A aba Ficha do jogador a partir de `asideUp`. */
 const PLAYER_SHEET_TAB_WIDTH = 420;
-/** O Histórico em coluna. */
-export const ASIDE_WIDTH = 280;
-/** O Histórico onde 280 não cabe: celular deitado e tablet em pé (coluna só na faixa do mapa). */
-export const ASIDE_NARROW_WIDTH = 200;
 /** A ficha do mestre quando toma o lugar da coluna da esquerda. */
 export const SHEET_COLUMN_WIDTH = 340;
 /** A gaveta do Histórico no celular em pé. */
@@ -55,7 +59,7 @@ const sideColumn = (width: string) => css`
 
 /* Grade com o rail em pé e a fila embaixo do painel: mestre com colunas laterais (e celular deitado dividido). */
 const queueSplitGrid = css`
-  grid-template-columns: 72px auto minmax(0, 1fr) auto;
+  grid-template-columns: ${RAIL_WIDTH}px auto minmax(0, 1fr) auto;
   grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
   grid-template-areas:
     "rail panel stage aside"
@@ -64,9 +68,26 @@ const queueSplitGrid = css`
 
 /* Grade de uma coluna de painel só: jogador com colunas laterais e celular deitado sem fila. */
 const singleColumnGrid = css`
-  grid-template-columns: 72px auto minmax(0, 1fr) auto;
+  grid-template-columns: ${RAIL_WIDTH}px auto minmax(0, 1fr) auto;
   grid-template-rows: minmax(0, 1fr);
   grid-template-areas: "rail panel stage aside";
+`;
+
+/* Fila e painel em colunas lado a lado, à esquerda do mapa: widescreen e celular deitado baixo e largo. */
+const queueColumnsGrid = css`
+  grid-template-columns: ${RAIL_WIDTH}px ${QUEUE_COLUMN_WIDTH}px ${MASTER_COLUMN_WIDTH}px minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-areas: "rail queue panel stage aside";
+`;
+
+/* Empilhado largo (mestre, em pé de 900 a 1279 px): a fila à esquerda do painel de baixo. */
+const stackedWideGrid = css`
+  grid-template-columns: ${MASTER_COLUMN_WIDTH}px minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) ${RAIL_BAR_HEIGHT}px;
+  grid-template-areas:
+    "stage stage aside"
+    "queue panel panel"
+    "rail rail rail";
 `;
 
 /* O Histórico vira coluna encaixada (tablet em pé, colunas laterais, celular deitado): sem sombra, sem véu. */
@@ -163,21 +184,22 @@ export const Middle = styled.div<{ $queue: boolean; $half: boolean }>`
       "panel panel"
       "rail rail";
   }
+  ${media.stackedWide} {
+    ${({ $queue }) => $queue && stackedWideGrid}
+  }
   ${media.side} {
     ${({ $queue }) => ($queue ? queueSplitGrid : singleColumnGrid)}
   }
   ${media.wideUp} {
-    ${({ $queue }) =>
-      $queue &&
-      css`
-        grid-template-columns: 72px 240px 320px minmax(0, 1fr) auto;
-        grid-template-rows: minmax(0, 1fr);
-        grid-template-areas: "rail queue panel stage aside";
-      `}
+    ${({ $queue }) => $queue && queueColumnsGrid}
   }
   /* O celular deitado vale sobre os outros: por último. */
   ${media.landscapePhone} {
     ${({ $queue }) => ($queue ? queueSplitGrid : singleColumnGrid)}
+  }
+  /* Baixo e largo: a mesma grade do widescreen, depois da regra do celular deitado. */
+  ${media.landscapeTwoColumns} {
+    ${({ $queue }) => $queue && queueColumnsGrid}
   }
 `;
 
@@ -278,8 +300,12 @@ export const QueueZone = styled.section<{ $columnWidth: number; $sheetInColumn: 
     width: ${MASTER_COLUMN_WIDTH}px;
   }
   ${media.wideUp} {
-    width: 240px;
+    width: ${QUEUE_COLUMN_WIDTH}px;
     border-top: none;
+  }
+  ${media.stackedWide} {
+    display: block;
+    width: ${MASTER_COLUMN_WIDTH}px;
   }
   ${media.sideBelowAsideUp} {
     ${hiddenBySheet}
@@ -290,6 +316,12 @@ export const QueueZone = styled.section<{ $columnWidth: number; $sheetInColumn: 
     border-top: 1px solid ${colors.surfaceInput};
     ${hiddenBySheet}
   }
+  /* Em duas colunas a fila tem coluna própria e continua visível com a ficha aberta. */
+  ${media.landscapeTwoColumns} {
+    display: block;
+    width: ${QUEUE_COLUMN_WIDTH}px;
+    border-top: none;
+  }
 `;
 
 /*
@@ -297,7 +329,7 @@ export const QueueZone = styled.section<{ $columnWidth: number; $sheetInColumn: 
  * laterais abaixo de `asideUp` e no celular deitado: no lugar da coluna da esquerda. A partir de
  * `asideUp`: caixa sobre o mapa.
  */
-export const SheetZone = styled.aside<{ $open: boolean }>`
+export const SheetZone = styled.aside<{ $open: boolean; $queue: boolean }>`
   position: absolute;
   left: 8px;
   right: 8px;
@@ -320,6 +352,15 @@ export const SheetZone = styled.aside<{ $open: boolean }>`
   /* O celular deitado vale sobre os outros: por último. */
   ${media.landscapePhone} {
     ${sheetColumn}
+  }
+  /* Em duas colunas a ficha toma só a coluna do painel (a 3); a fila continua na 2. */
+  ${media.landscapeTwoColumns} {
+    ${({ $queue }) =>
+      $queue &&
+      css`
+        grid-column: 3;
+        width: ${SHEET_COLUMN_WIDTH}px;
+      `}
   }
 `;
 
@@ -365,10 +406,11 @@ export const SheetScrim = styled.div`
 `;
 
 /*
- * Gaveta sobre o mapa no celular em pé (com sombra e véu). No tablet em pé, coluna encaixada de
- * 200 só na faixa do mapa; com colunas laterais, coluna de 280; no celular deitado, 200.
+ * Gaveta sobre o mapa no celular em pé (com sombra e véu). Em coluna encaixada (tablet em pé só na
+ * faixa do mapa, colunas laterais, celular deitado) tem 280, ou 200 quando o mapa ficaria com menos
+ * de `MAP_MIN_WIDTH` (`media.asideNarrow`).
  */
-export const AsideZone = styled.aside<{ $open: boolean }>`
+export const AsideZone = styled.aside<{ $open: boolean; $queue: boolean; $columnWidth: number }>`
   position: absolute;
   top: 0;
   right: 0;
@@ -384,7 +426,7 @@ export const AsideZone = styled.aside<{ $open: boolean }>`
   box-shadow: -8px 0 24px ${colors.shadowStrong};
 
   ${media.tabletPortrait} {
-    ${asideColumn(ASIDE_NARROW_WIDTH)}
+    ${asideColumn(ASIDE_WIDTH)}
     /* Sem a pilha da gaveta: a folha da ficha, que abre por cima, passa na frente da coluna. */
     z-index: auto;
   }
@@ -392,8 +434,22 @@ export const AsideZone = styled.aside<{ $open: boolean }>`
     ${asideColumn(ASIDE_WIDTH)}
   }
   ${media.landscapePhone} {
-    ${asideColumn(ASIDE_NARROW_WIDTH)}
+    ${asideColumn(ASIDE_WIDTH)}
   }
+  /* 200 só quando, descontadas as colunas à esquerda e os 280, sobra menos de MAP_MIN_WIDTH de mapa. */
+  ${({ $columnWidth }) => css`
+    ${media.asideNarrow($columnWidth)} {
+      width: ${ASIDE_NARROW_WIDTH}px;
+    }
+  `}
+  /* Com fila, em duas colunas a fila também fica à esquerda do mapa (declarada depois). */
+  ${({ $queue }) =>
+    $queue &&
+    css`
+      @media ${LANDSCAPE_TWO_COLUMN_QUERY} and ${asideNarrowQuery(QUEUE_COLUMN_WIDTH + MASTER_COLUMN_WIDTH)} {
+        width: ${ASIDE_NARROW_WIDTH}px;
+      }
+    `}
 `;
 
 /* Véu sobre o palco inteiro: só existe no empilhado (com colunas laterais o painel é coluna). */

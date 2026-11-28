@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import useMediaQuery from "../../../hooks/useMediaQuery";
 import { breakpoints } from "../../../styles/breakpoints";
-import { useMatchLayout } from "./useMatchLayout";
+import { useMatchLayout, type MatchLayoutOptions } from "./useMatchLayout";
 
 type Setter = (next: boolean | ((open: boolean) => boolean)) => void;
 
@@ -16,7 +16,7 @@ type Setter = (next: boolean | ((open: boolean) => boolean)) => void;
  * fecha a gaveta e abrir a gaveta fecha a ficha (fechar nunca mexe no outro); fora dali não se
  * acoplam.
  */
-export function useStageOverlays(options: { panelFixed?: boolean } = {}): {
+export function useStageOverlays(options: MatchLayoutOptions & { panelFixed?: boolean }): {
   panelOpen: boolean;
   setPanelOpen: Setter;
   asideOpen: boolean;
@@ -27,7 +27,10 @@ export function useStageOverlays(options: { panelFixed?: boolean } = {}): {
   closeAsideIfDrawer: () => void;
 } {
   const panelFixed = options.panelFixed ?? false;
-  const { stacked, landscape, asideIsDrawer } = useMatchLayout();
+  const { stacked, landscape, asideIsDrawer } = useMatchLayout({
+    columnWidth: options.columnWidth,
+    queue: options.queue,
+  });
   const asideUp = useMediaQuery(`(min-width: ${breakpoints.asideUp}px)`);
 
   // Um estado só, para o "abre um, fecha o outro" ser atômico e o updater ler o valor atual.

@@ -3,7 +3,12 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import MatchStageTemplate from "../MatchStageTemplate";
 import { MASTER_COLUMN_WIDTH, PLAYER_COLUMN_WIDTH } from "../MatchStageTemplate.styles";
 import { colors } from "../../../styles/tokens";
-import { media } from "../../../styles/breakpoints";
+import {
+  asideNarrowQuery,
+  LANDSCAPE_TWO_COLUMN_QUERY,
+  media,
+  QUEUE_COLUMN_WIDTH,
+} from "../../../styles/breakpoints";
 
 const emittedCss = () => Array.from(document.querySelectorAll("style")).map((s) => s.textContent).join("\n");
 
@@ -307,17 +312,65 @@ describe("MatchStageTemplate", () => {
       expect(lastValue(declarationsOf(panel, media.asideUp), "width")).toBe("420px");
     });
 
-    it("makes the Histórico a 280 px column on side screens and 200 px on the landscape phone", () => {
+    it("makes the Histórico 280 px by default and 200 px only where the map would be left under 320 px", () => {
       render(<MatchStageTemplate {...base} panel={<div />} queue={<div />} aside={<div />} />);
       const aside = screen.getByTestId("match-aside");
       expect(lastValue(declarationsOf(aside, media.side), "width")).toBe("280px");
-      expect(lastValue(declarationsOf(aside, media.landscapePhone), "width")).toBe("200px");
+      expect(lastValue(declarationsOf(aside, media.landscapePhone), "width")).toBe("280px");
+      expect(lastValue(declarationsOf(aside, media.tabletPortrait), "width")).toBe("280px");
+      expect(lastValue(declarationsOf(aside, media.asideNarrow(MASTER_COLUMN_WIDTH)), "width")).toBe("200px");
     });
 
-    it("docks the Histórico as a 200 px column without a shadow on a portrait tablet", () => {
+    it("counts the player's column for the narrow Histórico", () => {
+      render(<MatchStageTemplate {...base} panel={<div />} aside={<div />} columnWidth={PLAYER_COLUMN_WIDTH} />);
+      const aside = screen.getByTestId("match-aside");
+      expect(lastValue(declarationsOf(aside, media.asideNarrow(PLAYER_COLUMN_WIDTH)), "width")).toBe("200px");
+      expect(declarationsOf(aside, media.asideNarrow(MASTER_COLUMN_WIDTH))).toBe("");
+    });
+
+    it("narrows the Histórico by the queue column too in two columns, declared after", () => {
+      render(<MatchStageTemplate {...base} panel={<div />} queue={<div />} aside={<div />} />);
+      const at = `@media ${LANDSCAPE_TWO_COLUMN_QUERY} and ${asideNarrowQuery(QUEUE_COLUMN_WIDTH + MASTER_COLUMN_WIDTH)}`;
+      expect(lastValue(declarationsOf(screen.getByTestId("match-aside"), at), "width")).toBe("200px");
+    });
+
+    it("lays fila and painel side by side on a low, wide landscape phone", () => {
+      render(<MatchStageTemplate {...base} panel={<div />} queue={<div />} aside={<div />} sheet={<div />} sheetOpen />);
+      const middle = screen.getByTestId("match-panel").parentElement!;
+      const rules = declarationsOf(middle, media.landscapeTwoColumns);
+      expect(rules).toContain('"rail queue panel stage aside"');
+      expect(rules).toContain("grid-template-columns:72px 240px 320px");
+      const queue = declarationsOf(screen.getByTestId("match-queue"), media.landscapeTwoColumns);
+      expect(lastValue(queue, "width")).toBe("240px");
+      expect(lastValue(queue, "display")).toBe("block");
+      expect(lastValue(queue, "border-top")).toBe("none");
+      // Com a ficha aberta o celular deitado esconde a fila; em duas colunas ela volta (declarada depois).
+      expect(lastValue(declarationsOf(screen.getByTestId("match-queue"), media.landscapePhone), "display")).toBe("none");
+    });
+
+    it("keeps the player's grid out of the two-column rule", () => {
+      render(<MatchStageTemplate {...base} panel={<div />} aside={<div />} columnWidth={PLAYER_COLUMN_WIDTH} />);
+      const middle = screen.getByTestId("match-panel").parentElement!;
+      expect(declarationsOf(middle, media.landscapeTwoColumns)).toBe("");
+      expect(declarationsOf(middle, media.stackedWide)).toBe("");
+    });
+
+    it("puts the master's queue left of the bottom panel in the wide stack", () => {
+      render(<MatchStageTemplate {...base} panel={<div />} queue={<div />} aside={<div />} panelHalf />);
+      const middle = screen.getByTestId("match-panel").parentElement!;
+      const rules = declarationsOf(middle, media.stackedWide);
+      expect(rules).toContain('"stage stage aside" "queue panel panel" "rail rail rail"');
+      expect(rules).toContain("grid-template-columns:320px minmax(0, 1fr) auto");
+      expect(rules).toContain("minmax(0, 1fr) minmax(0, 1fr) 56px");
+      const queue = declarationsOf(screen.getByTestId("match-queue"), media.stackedWide);
+      expect(lastValue(queue, "display")).toBe("block");
+      expect(lastValue(queue, "width")).toBe("320px");
+    });
+
+    it("docks the Histórico as a 280 px column without a shadow on a portrait tablet", () => {
       render(<MatchStageTemplate {...base} panel={<div />} aside={<div />} />);
       const rules = declarationsOf(screen.getByTestId("match-aside"), media.tabletPortrait);
-      expect(lastValue(rules, "width")).toBe("200px");
+      expect(lastValue(rules, "width")).toBe("280px");
       expect(lastValue(rules, "position")).toBe("static");
       expect(lastValue(rules, "grid-area")).toBe("aside");
       expect(lastValue(rules, "box-shadow")).toBe("none");
@@ -381,6 +434,13 @@ describe("MatchStageTemplate", () => {
       render(<MatchStageTemplate {...base} />);
       expect(declarationsOf(screen.getByTestId("match-panel"), media.sideBelowAsideUp)).not.toContain("display:none");
       expect(lastValue(declarationsOf(screen.getByTestId("match-queue"), media.landscapePhone), "display")).toBe("block");
+    });
+
+    it("takes only the panel column (3) in two columns, keeping the queue", () => {
+      render(<MatchStageTemplate {...base} sheetOpen />);
+      const rules = declarationsOf(screen.getByTestId("match-sheet-zone"), media.landscapeTwoColumns);
+      expect(lastValue(rules, "grid-column")).toBe("3");
+      expect(lastValue(rules, "width")).toBe("340px");
     });
 
     it("keeps the sheet a sheet (with its close X) on a portrait tablet", () => {

@@ -126,7 +126,7 @@ export default function MatchStageTemplate({
           </QueueZone>
         )}
         {sheet && (
-          <SheetZone data-testid="match-sheet-zone" data-open={sheetOpen} $open={sheetOpen}>
+          <SheetZone data-testid="match-sheet-zone" data-open={sheetOpen} $open={sheetOpen} $queue={!!queue}>
             {onDismissSheet && (
               <SheetCloseX type="button" aria-label="Fechar a ficha" onClick={onDismissSheet}>
                 <SheetCloseIcon />
@@ -137,7 +137,13 @@ export default function MatchStageTemplate({
         )}
         <RailZone>{rail}</RailZone>
         {aside && (
-          <AsideZone data-testid="match-aside" data-open={asideOpen} $open={asideOpen}>
+          <AsideZone
+            data-testid="match-aside"
+            data-open={asideOpen}
+            $open={asideOpen}
+            $queue={!!queue}
+            $columnWidth={columnWidth}
+          >
             {aside}
           </AsideZone>
         )}

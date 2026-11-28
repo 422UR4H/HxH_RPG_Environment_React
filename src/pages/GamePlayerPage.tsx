@@ -132,12 +132,12 @@ export default function GamePlayerPage({ token, campaignId, matchId }: Props) {
   const cancelPending =
     cancelling && state.declared.some((d) => d.id === cancelling.id && d.status === "queued") ? cancelling : null;
   const { panelOpen, setPanelOpen, asideOpen, setAsideOpen, sheetOpen, setSheetOpen, closeAsideIfDrawer } =
-    useStageOverlays();
+    useStageOverlays({ columnWidth: PLAYER_COLUMN_WIDTH, queue: false });
 
   // Empilhado (celular ou tablet em pé): a ficha é uma folha por cima do mapa; widescreen: uma
   // caixa ao lado do painel.
   // Nos outros tamanhos ela continua no painel (aba "Ficha"). A ficha é sempre a do próprio personagem.
-  const layout = useMatchLayout();
+  const layout = useMatchLayout({ columnWidth: PLAYER_COLUMN_WIDTH, queue: false });
   const sheetAsZone = layout.stacked || layout.wide;
 
   // Trocar de tamanho com a ficha aberta não a fecha: ela muda de lugar (painel <-> zona).

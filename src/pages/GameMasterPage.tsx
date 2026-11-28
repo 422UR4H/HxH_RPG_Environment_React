@@ -175,7 +175,7 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   });
   const { onSlotForPick, cancelPick } = controls;
 
-  const layout = useMatchLayout();
+  const layout = useMatchLayout({ columnWidth: MASTER_COLUMN_WIDTH, queue: true });
   const split = queueIsSplit(layout);
   const [section, setSection] = useState<MasterSection>("fila");
   // Com a fila fixa só Agir e Partida moram no painel; qualquer outra seção cai em Agir.
@@ -190,6 +190,8 @@ export default function GameMasterPage({ token, campaignId, matchId }: Props) {
   const cancelPending =
     cancelling && state.declared.some((d) => d.id === cancelling.id && d.status === "queued") ? cancelling : null;
   const { asideOpen, setAsideOpen, sheetOpen, setSheetOpen, closeAsideIfDrawer } = useStageOverlays({
+    columnWidth: MASTER_COLUMN_WIDTH,
+    queue: true,
     panelFixed: true,
   });
   // As paredes que o mestre tocou SEM NPC escolhido: o card "Ação do Mestre" no Agir. Tocar
