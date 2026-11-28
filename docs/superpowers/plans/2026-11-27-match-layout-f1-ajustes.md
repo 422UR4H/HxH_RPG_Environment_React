@@ -106,3 +106,11 @@
 - [ ] **Step 3: Implement** em `ViewportInner`: guardar a última `CanvasBox` num ref; no efeito que já faz `renderer.resize`/`vp.resize` (trocar para `useLayoutEffect`, para compensar antes de pintar), medir o container do canvas, chamar `resizeShift` e, se `!refit`, `vp.x += dx; vp.y += dy`. O efeito de enquadramento (`fitRequest`) passa a reenquadrar por mudança de tamanho **só** quando a última `resizeShift` pediu `refit` (pedido novo de `fitRequest` — montagem ou botão Enquadrar — continua enquadrando sempre). Comentário em português explicando a regra do dono (abrir/fechar coluna não mexe no mapa).
 - [ ] **Step 4:** suíte completa, `tsc`, lint. (A camada Pixi não tem teste: a verificação no browser fica com o controlador.)
 - [ ] **Step 5: Commit** `fix(map): opening or closing a side column no longer moves the map`.
+
+---
+
+## Depois do plano (decisões do dono no meio da execução)
+
+- **Task 4 — tablet em pé empilhado:** em pé, todo aparelho até 1279 px usa o layout empilhado do celular (mapa em cima, ações em bottom sheet, navegação no rodapé), mestre e jogador. Colunas laterais só deitado e a partir de 1280 px (`SIDE_LAYOUT_QUERY = "(orientation: landscape), (min-width: 1280px)"`). No tablet em pé (≥ 600 px) o Histórico é coluna encaixada de 200 px ao lado do mapa; abaixo de 600 px, gaveta `min(86%, 280px)`. Isso substitui as regras de "tablet em pé com colunas" das Tasks 2 e acima. `phonePortrait` virou `stacked`.
+- **Abas Histórico/Personagens em Marrom 850** (`surfaceTabStrip`); as laterais e a fila seguem em Marrom 950.
+- **Revisão final:** mudar a largura da **janela** reenquadra como antes; só a coluna (janela igual) deixa o mapa parado. Limites superiores em `1279.98px`; um teste varre telas e amarra as queries do CSS às flags do `useMatchLayout`.
